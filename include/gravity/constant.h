@@ -21,12 +21,12 @@ using namespace std;
 /** Backbone class for constant */
 class constant_{
 protected:
-    ConstType _type;
+    CType _type;
 public:
 
     virtual ~constant_(){};
-    ConstType get_type() const { return _type;}
-    void set_type(ConstType type){ _type = type;}
+    CType get_type() const { return _type;}
+    void set_type(CType type){ _type = type;}
     
     /** Querries */
     bool is_binary() const{

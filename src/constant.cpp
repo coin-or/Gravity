@@ -95,22 +95,22 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
         case parameter:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
-                case binary_p:
+                case binary_:
                     return new param<bool>(*(param<bool>*)p_c2);
                     break;
-                case short_p:
+                case short_:
                     return new param<short>(*(param<short>*)p_c2);
                     break;
-                case integer_p:
+                case integer_:
                     return new param<int>(*(param<int>*)p_c2);
                     break;
-                case float_p:
+                case float_:
                     return new param<float>(*(param<float>*)p_c2);
                     break;
-                case double_p:
+                case double_:
                     return new param<double>(*(param<double>*)p_c2);
                     break;
-                case long_p:
+                case long_:
                     return new param<long double>(*(param<long double>*)p_c2);
                     break;
                 default:
@@ -164,22 +164,22 @@ double eval(int i, const constant_* c){
         case parameter:{
             auto p_c2 = (param_*)(c);
             switch (p_c2->get_intype()) {
-                case binary_p:
+                case binary_:
                     return ((param<bool>*)p_c2)->eval(i);
                     break;
-                case short_p:
+                case short_:
                     return ((param<short>*)p_c2)->eval(i);
                     break;
-                case integer_p:
+                case integer_:
                     return ((param<int>*)p_c2)->eval(i);
                     break;
-                case float_p:
+                case float_:
                     return ((param<float>*)p_c2)->eval(i);
                     break;
-                case double_p:
+                case double_:
                     return ((param<double>*)p_c2)->eval(i);
                     break;
-                case long_p:
+                case long_:
                     return (double)((param<long double>*)p_c2)->eval(i);
                     break;
                 default:
@@ -235,22 +235,22 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
         case parameter:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
-                case binary_p:
+                case binary_:
                     ((param<bool>*)p_c2)->print();
                     break;
-                case short_p:
+                case short_:
                     ((param<short>*)p_c2)->print();
                     break;
-                case integer_p:
+                case integer_:
                     ((param<int>*)p_c2)->print();
                     break;
-                case float_p:
+                case float_:
                     ((param<float>*)p_c2)->print();
                     break;
-                case double_p:
+                case double_:
                     ((param<double>*)p_c2)->print();
                     break;
-                case long_p:
+                case long_:
                     ((param<long double>*)p_c2)->print();
                     break;
                 default:
