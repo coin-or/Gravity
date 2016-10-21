@@ -13,10 +13,7 @@
 #include <Gravity/Type.h>
 
 
-class param_;
-class expr;
-class uexpr;
-class bexpr;
+
 using namespace std;
 
 
@@ -68,20 +65,6 @@ public:
         return (_type==binary_exp);
     };
     
-    
-
-    
-//        friend constant sin(constant& c);
-//        friend constant sqrt(constant& c);
-//        friend constant expo(constant& c);
-//        friend constant log(constant& c);
-//    
-//        friend constant cos(constant&& c);
-//        friend constant sin(constant&& c);
-//        friend constant sqrt(constant&& c);
-//        friend constant expo(constant&& c);
-//        friend constant log(constant&& c);
-
 };
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
@@ -95,32 +78,26 @@ public:
     constant(){
         if(typeid(type)==typeid(bool)){
             set_type(binary_c);
-//            _val = false;
             return;
         }
         if(typeid(type)==typeid(short)) {
             set_type(short_c);
-//            _val = 0;
             return;
         }
         if(typeid(type)==typeid(int)) {
             set_type(integer_c);
-//            _val = 0;
             return;
         }
         if(typeid(type)==typeid(float)) {
             set_type(float_c);
-//            _val = 0;
             return;
         }
         if(typeid(type)==typeid(double)) {
             set_type(double_c);
-//            _val = 0;
             return;
         }
         if(typeid(type)==typeid(long double)) {
             set_type(long_c);
-//            _val = 0;
             return;
         }
         throw invalid_argument("Unknown constant type.");
@@ -321,22 +298,6 @@ public:
     
     void print(bool endline = true) const;
 
-    //
-//    expr& operator-=(const type& v){
-//        *_arg -= v;
-//        return *this;
-//    }
-//    
-//    expr& operator*=(const type& v){
-//        *_arg *= v;
-//        return *this;
-//    }
-//    
-//    expr& operator/=(const type& v){
-//        *_arg /= v;
-//        return *this;
-//    }
-
 };
 
 
@@ -423,286 +384,6 @@ public:
 };
 
 
-
-
-
-    //            switch (_arg->get_type()) {
-    //                case binary_p: {
-    //                    auto c = static_cast<param<bool>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                case short_p: {
-    //                    auto c = static_cast<param<short>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                case integer_p: {
-    //                    auto c = static_cast<param<int>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                case float_p: {
-    //                    auto c = static_cast<param<float>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                case double_p: {
-    //                    auto c = static_cast<param<double>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                case long_p: {
-    //                    auto c = static_cast<param<long double>*>(_arg);
-    //                    *c += v;
-    //                    break;
-    //                }
-    //                default:
-    //                    throw bad_typeid();
-    //                    break;
-    //            }
-
-    
-//    friend constant operator+(const constant& c1, const constant& c2){
-//        return constant(c1._val + c2._val);
-//    }
-//    
-//    friend constant operator-(const constant& c1, const constant& c2){
-//        return constant(c1._val - c2._val);
-//    }
-//    
-//    friend constant operator/(const constant& c1, const constant& c2){
-//        return constant(c1._val / c2._val);
-//    }
-//    
-//    friend constant operator*(const constant& c1, const constant& c2){
-//        return constant(c1._val * c2._val);
-//    }
-//    
-//    friend constant operator^(const constant& c1, const constant& c2){
-//        return constant(pow(c1._val,c2._val));
-//    }
-//    
-//    
-//    friend constant operator+(const constant& c, type cst){
-//        return constant(c._val + cst);
-//    }
-//    
-//    friend constant operator-(const constant& c, type cst){
-//        return constant(c._val - cst);
-//    }
-//    
-//    friend constant operator*(const constant& c, type cst){
-//        return constant(c._val * cst);
-//    }
-//    
-//    
-//    friend constant operator/(const constant& c, type cst){
-//        return constant(c._val / cst);
-//    }
-//    
-//    friend constant operator+(type cst, const constant& c){
-//        return constant(c._val + cst);
-//    }
-//    
-//    friend constant operator-(type cst, const constant& c){
-//        return constant(cst - c._val);
-//    }
-//    
-//    friend constant operator*(type cst, const constant& c){
-//        return constant(c._val * cst);
-//    }
-//    
-//    
-//    friend constant operator/(type cst, const constant& c){
-//        return constant(cst / c._val);
-//    }
-//    
-//    friend constant cos(const constant& c){
-//        return constant(cos(c._val));
-//    }
-//    
-//    friend constant sin(const constant& c){
-//        return constant(sin(c._val));
-//    }
-//    
-//    friend constant sqrt(const constant& c){
-//        return constant(sqrt(c._val));
-//    }
-//    
-//    friend constant expo(const constant& c){
-//        return constant(exp(c._val));
-//    }
-//    
-//    friend constant log(const constant& c){
-//        return constant(log(c._val));
-//    }
-//    
-//    
-//    /** Output */
-//    void print() const{
-//        cout << _val;
-//    }
-//
-//
-//};
-//
-//
-//
-//
-//public:
-//    /** Constructors */
-//
-//
-//
-//
-//
-//
-//    bool power_factor(const constant& c) const;
-//    bool factor_of(const constant& c) const;
-//    bool inverse_factor_of(const constant& c) const;
-//
-//    /** Accessors */
-//
-//    
-//
-//
-//
-//
-//
-//
-//    /** Modifiers */
-//    void shallow_copy(const constant& c);// Ignore _lson and _rson in Copy
-//
-//
-//    /* Operators */
-//
-//
-//
-//
-//
-//
-//    friend constant operator+(constant&& c, double cst);
-//    friend constant operator-(constant&& c, double cst);
-//    friend constant operator*(constant&& c, double cst);
-//    friend constant operator/(constant&& c, double cst);
-//
-//
-//    friend constant operator^(const constant& c, int p);
-//
-//    friend constant operator+(double cst, const constant& c);
-//    friend constant operator-(double cst, const constant& c);
-//    friend constant operator*(double cst, const constant& c);
-//    friend constant operator/(double cst, const constant& c);
-//
-//    friend constant operator+(double cst, constant&& c);
-//    friend constant operator-(double cst, constant&& c);
-//    friend constant operator*(double cst, constant&& c);
-//
-//    friend constant cos(constant& c);
-//    friend constant sin(constant& c);
-//    friend constant sqrt(constant& c);
-//    friend constant expo(constant& c);
-//    friend constant log(constant& c);
-//
-//    friend constant cos(constant&& c);
-//    friend constant sin(constant&& c);
-//    friend constant sqrt(constant&& c);
-//    friend constant expo(constant&& c);
-//    friend constant log(constant&& c);
-//
-//
-//
-//    /** Output */
-
-//    void print_() const;
-//    void print_tree() const;
-//    string to_string() const;
-//
-//
-//};
-
-
-//class meta_constant: public constant{
-//protected:
-//    shared_ptr<forward_list<pair<Function*, vector<constant*>>>>        _conc;/**< Pointer to a list of vectors pointing to concretizations of this constant in every function it appears.*/
-//
-//public:
-////        unsigned long get_nbc() const { /**< A meta_constant can have multiple concretisations, return the number of concretisations */
-////            return _conc->size();
-////        }
-//
-//        unsigned long assign(double v); /**< assign new concretisation, return the number of concretisations */
-//        constant* get_concretization(Function *f, int i) const;
-//        void concretize(Function *f, constant* c);
-//        double eval(Function* f, int i) const;
-//        double eval(Function* f) const;
-//
-//};
-
-//uexpr(const uexp& exp){ /**< Constructor from binary expression tree */
-//    _arg = new bexp();
-//    _arg->_otype = exp._otype;
-//    switch (_arg->_lson->_type) {
-//        case binary_c: {
-//            _arg->_lson = new constant<bool>(((constant<bool>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        case short_c: {
-//            _arg->_lson = new constant<short>(((constant<short>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        case integer_c: {
-//            _arg->_lson = new constant<int>(((constant<int>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        case float_c: {
-//            _arg->_lson = new constant<float>(((constant<float>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        case double_c: {
-//            _arg->_lson = new constant<double>(((constant<double>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        case long_c: {
-//            _arg->_lson = new constant<long double>(((constant<long double>*)(_arg->_lson))->get_val());
-//            break;
-//        }
-//        default:
-//            break;
-//    }
-//    switch (_arg->_rson->_type) {
-//        case binary_c: {
-//            _arg->_rson = new constant<bool>(((constant<bool>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        case short_c: {
-//            _arg->_rson = new constant<short>(((constant<short>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        case integer_c: {
-//            _arg->_rson = new constant<int>(((constant<int>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        case float_c: {
-//            _arg->_rson = new constant<float>(((constant<float>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        case double_c: {
-//            _arg->_rson = new constant<double>(((constant<double>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        case long_c: {
-//            _arg->_rson = new constant<long double>(((constant<long double>*)(_arg->_rson))->get_val());
-//            break;
-//        }
-//        default:
-//            break;
-//    }
-//    
-//    _type = binary_exp;
-//};
-
 constant_* copy(constant_* c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
 bool equals(const constant_* c1, const constant_* c2);
 double eval(int i, const constant_* c1);
@@ -717,11 +398,6 @@ uexpr sqrt(const constant_& c);
 uexpr expo(const constant_& c);
 
 uexpr log(const constant_& c);
-
-//bexpr operator+(const constant_& c1, const constant_& c2);
-//bexpr operator-(const constant_& c1, const constant_& c2);
-//bexpr operator*(const constant_& c1, const constant_& c2);
-//bexpr operator/(const constant_& c1, const constant_& c2);
 
 
 template<typename T1, typename T2> bexpr operator+(const T1& c1, const T2& c2){
