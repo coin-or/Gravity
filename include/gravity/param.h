@@ -21,17 +21,17 @@ using namespace std;
 /** Backbone class for parameter */
 class param_: public constant_, public expr{
 protected:
-    string       _name;
-    VType   _intype;
+    string      _name;
+    NType       _intype;
 public:
     
     virtual ~param_(){};
     
     string get_name() const { return _name;};
     
-    VType get_intype() const { return _intype;}
+    NType get_intype() const { return _intype;}
     
-    void set_type(VType type){ _intype = type;}
+    void set_type(NType type){ _intype = type;}
     
     /** Querries */
     bool is_binary() const{
@@ -72,8 +72,9 @@ protected:
 
 public:
     
+    
     param(){
-        _type = parameter;
+        _type = par_;
         _name = "noname";
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
@@ -82,14 +83,18 @@ public:
     
 
     param (const param& p) {
-        _type = parameter;
+        _type = par_;
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
     }
     
+    void set_type(CType t) { _type = t;}
+    
+    void set_intype(NType t) { _intype = t;}
+    
     void update_type() {
-        _type = parameter;
+        _type = par_;
         if(typeid(type)==typeid(bool)){
             _intype = binary_;
             return;
@@ -124,9 +129,9 @@ public:
         _val = make_shared<vector<type>>();
     }
 
-    VType get_intype() const { return _intype;}
+    NType get_intype() const { return _intype;}
     
-//    void set_intype(VType type){ _intype = type;}
+//    void set_intype(NType type){ _intype = type;}
     
     type eval() const{
         if (_val->size() == 0) {
@@ -142,7 +147,13 @@ public:
         return _val->at(i);
     }
     
-    void set_val(type val){_val->at(0) = val;}
+    
+    /* Modifiers */
+    void    reserve(int size){
+        _val->reserve(size+1);
+    };
+    
+    void add_val(type val){_val->push_back(val);}
     
     void set_val(int i, type val){
         if (_val->size() <= i) {

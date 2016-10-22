@@ -42,22 +42,22 @@ bool equals(const constant_* c1, const constant_* c2){/**< Copy c2 into c1 detec
             return (c1->is_long() && *(constant<long double>*)c1 == *(constant<long double>*)c2);
             break;
         }
-        case parameter:{
+        case par_:{
             return (c1->is_param() && *(param_ *)c1 == *(param_ *)c2);
             break;
         }
-        case unary_exp: {
+        case uexp_: {
             return (c1->is_uexpr() && *(uexpr *)c1 == *(uexpr *)c2);
             break;
         }
-        case binary_exp: {
+        case bexp_: {
             return (c1->is_bexpr() && *(bexpr *)c1 == *(bexpr *)c2);
             break;
         }
         default:
             break;
     }
-    
+    return false;
 }
 
 
@@ -92,7 +92,7 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
             return new constant<long double>(((constant<long double>*)(c2))->eval());
             break;
         }
-        case parameter:{
+        case par_:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -118,18 +118,18 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
             }
             break;
         }
-        case unary_exp: {
+        case uexp_: {
             return new uexpr(*(uexpr*)c2);
             break;
         }
-        case binary_exp: {
+        case bexp_: {
             return new bexpr(*(bexpr*)c2);
             break;
         }
         default:
             break;
     }
-    
+    return nullptr;
 }
 
 double eval(int i, const constant_* c){
@@ -161,7 +161,7 @@ double eval(int i, const constant_* c){
             return (double)((constant<long double>*)(c))->eval();
             break;
         }
-        case parameter:{
+        case par_:{
             auto p_c2 = (param_*)(c);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -187,11 +187,11 @@ double eval(int i, const constant_* c){
             }
             break;
         }
-        case unary_exp: {
+        case uexp_: {
             return ((uexpr*)c)->eval(i);
             break;
         }
-        case binary_exp: {
+        case bexp_: {
             return ((bexpr*)c)->eval(i);
             break;
         }
@@ -232,7 +232,7 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
             ((constant<long double>*)(c2))->print();
             break;
         }
-        case parameter:{
+        case par_:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -258,11 +258,11 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
             }
             break;
         }
-        case unary_exp: {
+        case uexp_: {
             ((uexpr*)c2)->print(false);
             break;
         }
-        case binary_exp: {
+        case bexp_: {
             ((bexpr*)c2)->print(false);
             break;
         }
@@ -278,20 +278,20 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
 uexpr::uexpr(){
     _otype = id_;
     _son = nullptr;
-    _type = unary_exp;
+    _type = uexp_;
 }
 
 uexpr::uexpr(const uexpr& exp){
     _otype = exp._otype;
     _son = copy(exp._son);
-    _type = unary_exp;
+    _type = uexp_;
 }
 
 uexpr::uexpr(uexpr&& exp){
     _otype = exp._otype;
     _son = move(exp._son);
     exp._son = nullptr;
-    _type = unary_exp;
+    _type = uexp_;
 }
 
 uexpr& uexpr::operator=(const uexpr& exp){
@@ -318,10 +318,10 @@ bool uexpr::contains(const constant_* c) const{
         return true;
     }
     
-    if (_son->get_type()==unary_exp) {
+    if (_son->get_type()==uexp_) {
         return ((uexpr*)_son)->contains(c);
     }
-    if (_son->get_type()==binary_exp) {
+    if (_son->get_type()==bexp_) {
         return ((bexpr*)_son)->contains(c);
     }
     return false;
@@ -411,10 +411,10 @@ bool bexpr::contains(const constant_* c) const{
         if (equals(_lson, c)) {
             return true;
         }
-        if (_lson->get_type()==unary_exp && ((uexpr*)_lson)->contains(c)) {
+        if (_lson->get_type()==uexp_ && ((uexpr*)_lson)->contains(c)) {
             return true;
         }
-        if (_lson->get_type()==binary_exp && ((bexpr*)_lson)->contains(c)) {
+        if (_lson->get_type()==bexp_ && ((bexpr*)_lson)->contains(c)) {
             return true;
         }
     }
@@ -422,10 +422,10 @@ bool bexpr::contains(const constant_* c) const{
         if (equals(_rson, c)) {
             return true;
         }
-        if (_rson->get_type()==unary_exp && ((uexpr*)_rson)->contains(c)) {
+        if (_rson->get_type()==uexp_ && ((uexpr*)_rson)->contains(c)) {
             return true;
         }
-        if (_rson->get_type()==binary_exp && ((bexpr*)_rson)->contains(c)) {
+        if (_rson->get_type()==bexp_ && ((bexpr*)_rson)->contains(c)) {
             return true;
         }
     }
@@ -436,21 +436,21 @@ bexpr::bexpr(){
     _otype = id_;
     _lson = nullptr;
     _rson = nullptr;
-    _type = binary_exp;
+    _type = bexp_;
 }
 
 bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
     _otype = exp._otype;
     _lson = copy(exp._lson);
     _rson =  copy(exp._rson);
-    _type = binary_exp;
+    _type = bexp_;
 };
 
 bexpr::bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
     _otype = exp._otype;
     _lson = move(exp._lson);
     _rson = move(exp._rson);
-    _type = binary_exp;
+    _type = bexp_;
 };
 
 bexpr& bexpr::operator=(const bexpr& exp){
@@ -608,7 +608,7 @@ void uexpr::print(bool endline) const{
 }
 
 void bexpr::print(bool endline) const {
-    if((_otype==product_ || _otype==div_) && (_lson->get_type()==unary_exp || _lson->get_type()==binary_exp)) {
+    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_ || _lson->get_type()==bexp_)) {
         cout << "(";
         poly_print(_lson);
         cout << ")";
@@ -633,7 +633,7 @@ void bexpr::print(bool endline) const {
         cout << "^";
     }
     
-    if (_otype==plus_ || (_rson->get_type()!=unary_exp && _rson->get_type()!=binary_exp)) {
+    if (_otype==plus_ || (_rson->get_type()!=uexp_ && _rson->get_type()!=bexp_)) {
         poly_print(_rson);
     }
     else {

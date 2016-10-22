@@ -54,15 +54,15 @@ public:
     };
     
     bool is_param() const{
-        return (_type==parameter);
+        return (_type==par_);
     };
 
     bool is_uexpr() const{
-        return (_type==unary_exp);
+        return (_type==uexp_);
     };
 
     bool is_bexpr() const{
-        return (_type==binary_exp);
+        return (_type==bexp_);
     };
     
 };

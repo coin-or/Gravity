@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include <gravity/param.h>
-#include <gravity/constant.h>
+#include <gravity/var.h>
 
 using namespace std;
 
@@ -89,6 +88,11 @@ int main (int argc, const char * argv[])
     auto exp = 2./3*(log(dp) + ip)/(dp^2);
 //    auto exp = dp*2;
     exp.print();
+    
+    var<> v1("v1", 4, 10);
+    v1.reserve(3);
+    v1.add_bounds(-1,2);
+    v1.print(true);
 //    constant_ t;
 //    auto test = log(t);
 //    expr<param<>> exp(ip);

@@ -7,8 +7,8 @@
 
 #ifndef Gravity___Type_h
 #define Gravity___Type_h
-typedef enum { binary_, short_, integer_, float_, double_, long_, fixed_} VType; /* Variable/Parameter Type */
-typedef enum { binary_c, short_c, integer_c, float_c, double_c, long_c, parameter, unary_exp, binary_exp} CType; /* Constant Type */
+typedef enum { binary_, short_, integer_, float_, double_, long_} NType; /* Number Type */
+typedef enum { binary_c, short_c, integer_c, float_c, double_c, long_c, var_, par_, uexp_, bexp_} CType; /* Constant type, ancestor to parameter and var */
 typedef enum { infeasible, optimal, suboptimal, unbounded, error } Outcome;
 typedef enum { geq, leq, eq } ConstraintType;
 typedef enum { const_, lin_, quad_, pol_, nlin_ } Functiontype;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */
