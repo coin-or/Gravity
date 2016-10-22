@@ -91,21 +91,22 @@ template<typename type> void var<type>::print(bool bounds) const{
     cout << " : " << endl;
     if(_lb==nullptr && _ub!=nullptr){
         for(int i = 0 ; i < _lb->size(); i++){
-            cout << "  [ -inf , " << (*_ub)[i] << " ]\n";
+            cout << "(" << i << ") = ";
+            cout << " [ -inf , " << (*_ub)[i] << " ]\n";
         }
         cout << ";\n";
     }
     if(_lb!=nullptr && _ub==nullptr){
         for(int i = 0 ; i < _lb->size(); i++){
-            cout << "  [ " << (*_lb)[i] << ", inf ]\n";
+            cout << "(" << i << ") = ";
+            cout << " [ " << (*_lb)[i] << ", inf ]\n";
         }
         cout << ";\n";
     }
     if(_lb!=nullptr && _ub!=nullptr){
         for(int i = 0 ; i < _lb->size(); i++){
-            cout << "  [ ";
-            cout << (*_lb)[i] << ", ";
-            cout << (*_ub)[i] << "]\n";
+            cout << "(" << i << ") = ";
+            cout << " [ " << (*_lb)[i] << ", " << (*_ub)[i] << "]\n";
         }
         cout << ";\n";
     }    
