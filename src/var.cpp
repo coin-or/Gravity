@@ -85,7 +85,6 @@ template<typename type> bool var<type>::operator!=(const var& v) const{
 template<typename type> void var<type>::print(bool bounds) const{
     param<type>::print(false);
     if (!bounds) {
-        cout << endl;
         return;
     }
     cout << " : " << endl;

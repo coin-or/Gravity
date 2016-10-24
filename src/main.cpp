@@ -93,6 +93,9 @@ int main (int argc, const char * argv[])
     v1.reserve(3);
     v1.add_bounds(-1,2);
     v1.print(true);
+    
+    auto exp2 = exp*log(v1);
+    exp2.print();
 //    constant_ t;
 //    auto test = log(t);
 //    expr<param<>> exp(ip);

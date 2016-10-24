@@ -3,8 +3,7 @@
 //
 
 #include <math.h>
-#include <Gravity/constant.h>
-#include <Gravity/param.h>
+#include <Gravity/var.h>
 #include <sstream>
 
 /* Polymorphic functions */
@@ -126,6 +125,33 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
             return new bexpr(*(bexpr*)c2);
             break;
         }
+        case var_:{
+            auto p_c2 = (param_*)(c2);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return new var<bool>(*(var<bool>*)p_c2);
+                    break;
+                case short_:
+                    return new var<short>(*(var<short>*)p_c2);
+                    break;
+                case integer_:
+                    return new var<int>(*(var<int>*)p_c2);
+                    break;
+                case float_:
+                    return new var<float>(*(var<float>*)p_c2);
+                    break;
+                case double_:
+                    return new var<double>(*(var<double>*)p_c2);
+                    break;
+                case long_:
+                    return new var<long double>(*(var<long double>*)p_c2);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+    
         default:
             break;
     }
@@ -264,6 +290,32 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
         }
         case bexp_: {
             ((bexpr*)c2)->print(false);
+            break;
+        }
+        case var_: {
+            auto p_c2 = (param_*)(c2);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    ((var<bool>*)p_c2)->print();
+                    break;
+                case short_:
+                    ((var<short>*)p_c2)->print();
+                    break;
+                case integer_:
+                    ((var<int>*)p_c2)->print();
+                    break;
+                case float_:
+                    ((var<float>*)p_c2)->print();
+                    break;
+                case double_:
+                    ((var<double>*)p_c2)->print();
+                    break;
+                case long_:
+                    ((var<long double>*)p_c2)->print();
+                    break;
+                default:
+                    break;
+            }
             break;
         }
         default:
