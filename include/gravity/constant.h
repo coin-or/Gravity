@@ -9,9 +9,10 @@
 #include <forward_list>
 #include <assert.h>
 #include <string>
+#include <map>
 #include <memory>
 #include <Gravity/Type.h>
-
+//#include <Gravity/func.h>
 
 
 using namespace std;
@@ -54,17 +55,24 @@ public:
     };
     
     bool is_param() const{
-        return (_type==par_);
+        return (_type==par_c);
     };
 
     bool is_uexpr() const{
-        return (_type==uexp_);
+        return (_type==uexp_c);
     };
 
     bool is_bexpr() const{
-        return (_type==bexp_);
+        return (_type==bexp_c);
     };
     
+    bool is_var() const{
+        return (_type==var_c);
+    };
+    
+    bool is_function() const{
+        return (_type==func_c);
+    };
 };
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
@@ -290,7 +298,7 @@ public:
         return !(*this==c);
     };
 
-    double eval(unsigned int i) const;
+    double eval(ind i) const;
     
     double eval() const{
         return eval(0);
@@ -379,14 +387,18 @@ public:
     
     void print_tree() const;
 
-    double eval(unsigned int i) const;
+    double eval(ind i) const;
     
 };
 
 
+
+
+
+
 constant_* copy(constant_* c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
 bool equals(const constant_* c1, const constant_* c2);
-double eval(int i, const constant_* c1);
+double eval(ind i, const constant_* c1);
 
 uexpr cos(const constant_& c);
 
@@ -399,6 +411,15 @@ uexpr expo(const constant_& c);
 
 uexpr log(const constant_& c);
 
+bexpr operator+(const expr& c1, const expr& c2);
+
+
+//template<typename T1, typename T2> lin operator+(const T1& c1, const T2& c2){
+//    if (is_arithmetic<T1>::value) {
+//        lin<T1> res(c1);
+//    }
+//    return res;
+//}
 
 template<typename T1, typename T2> bexpr operator+(const T1& c1, const T2& c2){
     bexpr res;

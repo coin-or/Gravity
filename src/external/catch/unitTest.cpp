@@ -50,7 +50,7 @@ SCENARIO( "A Parameter created with string", "returns an integer paramteric cons
     
     GIVEN( "A paramter p called p1" ) {
         param<> p("p1");
-        REQUIRE( p.get_type() == par_ );
+        REQUIRE( p.get_type() == par_c );
         REQUIRE( p.param_::get_intype() == integer_);
         
         WHEN( "The equal operator is called" ) {
@@ -128,7 +128,7 @@ SCENARIO( "A Parameter created with string", "returns an integer paramteric cons
 SCENARIO( "A nonlinear expression", "return a binary expression tree" ) {
     GIVEN( "A paramter called ip" ) {
         param<short> ip("ip");
-        REQUIRE( ip.get_type() == par_ );
+        REQUIRE( ip.get_type() == par_c );
         REQUIRE( ip.param_::get_intype() == short_);
         REQUIRE( ip.get_name() == "ip");
         for (int i = 0; i<100000; i++) {

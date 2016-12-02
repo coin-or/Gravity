@@ -1,22 +1,39 @@
 //
-//  var.hpp
+//  var.h
 //  Gravity
 //
-//  Created by Hijazi, Hassan (Data61, Canberra City) on 21/10/16.
+//  Created by Hijazi, Hassan on 21/10/16.
 //
 //
 
-#ifndef var_hpp
-#define var_hpp
+#ifndef var_h
+#define var_h
 
 #include <Gravity/param.h>
 #include <stdio.h>
+#include <set>
+
+
+//class func;
+
+using namespace std;
+
+/** Backbone class for parameter */
+class var_ {
+public:
+    virtual ~var_(){};
+    
+};
+
+
+
 
 /** A variable can be a bool, a short, an int, a float or a double*/
 template<typename type = int>
-class var: public param<type>{
+class var: public var_, public param<type>{
     
 public:
+    ind                         _id;
     shared_ptr<vector<type>>    _lb; /**< Lower Bound */
     shared_ptr<vector<type>>    _ub; /**< Upper Bound */
     
@@ -57,7 +74,7 @@ public:
     
     
     /* Modifiers */
-    void    reserve(int size);
+    void    set_size(int s);
     
     void    add_bounds(type lb, type ub);
     void    add_lb_only(type v); /**< Adds a new lower bound and infinity in the corresponding upper bound*/
@@ -79,4 +96,4 @@ public:
     
 };
 
-#endif /* var_hpp */
+#endif /* var_h */

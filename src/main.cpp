@@ -90,10 +90,21 @@ int main (int argc, const char * argv[])
     exp.print();
     
     var<> v1("v1", 4, 10);
-    v1.reserve(3);
+    v1.set_size(3);
     v1.add_bounds(-1,2);
     v1.print(true);
+    var<float> p_ij("p_ij");
+    var<float> q_ij("q_ij");
+    p_ij.set_size(200);
+    q_ij.set_size(200);
+    auto c1 = (p_ij^2) + (q_ij^2) - (dp^2);
+    c1.print();
+//    c1.concretize_all(200);
     
+    
+//    Constraint c1;
+//    c1 += log(v1[i]);
+//    c1 += v1[i];
     auto exp2 = exp*log(v1);
     exp2.print();
 //    constant_ t;

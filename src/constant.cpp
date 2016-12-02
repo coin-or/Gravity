@@ -4,11 +4,12 @@
 
 #include <math.h>
 #include <Gravity/var.h>
+#include <Gravity/func.h>
 #include <sstream>
 
 /* Polymorphic functions */
 
-bool equals(const constant_* c1, const constant_* c2){/**< Copy c2 into c1 detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+bool equals(const constant_* c1, const constant_* c2){/**< Checks if c2 equals c1 detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
     if ((!c1 && !c2) || (c1==c2)) {
         return true;
     }
@@ -41,16 +42,64 @@ bool equals(const constant_* c1, const constant_* c2){/**< Copy c2 into c1 detec
             return (c1->is_long() && *(constant<long double>*)c1 == *(constant<long double>*)c2);
             break;
         }
-        case par_:{
+        case par_c:{
             return (c1->is_param() && *(param_ *)c1 == *(param_ *)c2);
             break;
         }
-        case uexp_: {
+        case uexp_c: {
             return (c1->is_uexpr() && *(uexpr *)c1 == *(uexpr *)c2);
             break;
         }
-        case bexp_: {
+        case bexp_c: {
             return (c1->is_bexpr() && *(bexpr *)c1 == *(bexpr *)c2);
+            break;
+        }
+        case var_c:{
+            return (c1->is_var() && *(param_ *)c1 == *(param_ *)c2);
+            break;
+        }
+        case func_c:{
+            if (c1->is_function()){
+                
+                auto f1 = (func_ *)c1;
+                auto f2 = (func_ *)c2;
+                if (f1->_return_type != f2->_return_type || f1->_ftype != f2->_ftype || f1->_convex != f2->_convex) {
+                    return false;
+                }
+                switch (f1->_return_type) {
+                    case integer_:{
+                        auto fi1 = (func<int> *)c1;
+                        auto fi2 = (func<int> *)c2;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                if(f1->get_ftype() != f2->get_ftype()){
+                    return false;
+                }
+                switch (f2->get_ftype()) {
+                    case lin_: {
+                        
+                        break;
+                    }
+                    case quad_: {
+                        
+                        break;
+                    }
+                    case pol_: {
+                        
+                        break;
+                    }
+                    case nlin_: {
+                        
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+            return false;
             break;
         }
         default:
@@ -91,7 +140,7 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
             return new constant<long double>(((constant<long double>*)(c2))->eval());
             break;
         }
-        case par_:{
+        case par_c:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -117,15 +166,15 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
             }
             break;
         }
-        case uexp_: {
+        case uexp_c: {
             return new uexpr(*(uexpr*)c2);
             break;
         }
-        case bexp_: {
+        case bexp_c: {
             return new bexpr(*(bexpr*)c2);
             break;
         }
-        case var_:{
+        case var_c:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -158,7 +207,7 @@ constant_* copy(constant_* c2){/**< Copy c2 into c1 detecting the right class, i
     return nullptr;
 }
 
-double eval(int i, const constant_* c){
+double eval(ind i, const constant_* c){
     if (!c) {
         throw invalid_argument("Cannot evaluate nullptr!");
     }
@@ -187,7 +236,7 @@ double eval(int i, const constant_* c){
             return (double)((constant<long double>*)(c))->eval();
             break;
         }
-        case par_:{
+        case par_c:{
             auto p_c2 = (param_*)(c);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -213,11 +262,11 @@ double eval(int i, const constant_* c){
             }
             break;
         }
-        case uexp_: {
+        case uexp_c: {
             return ((uexpr*)c)->eval(i);
             break;
         }
-        case bexp_: {
+        case bexp_c: {
             return ((bexpr*)c)->eval(i);
             break;
         }
@@ -258,7 +307,7 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
             ((constant<long double>*)(c2))->print();
             break;
         }
-        case par_:{
+        case par_c:{
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -284,15 +333,15 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
             }
             break;
         }
-        case uexp_: {
+        case uexp_c: {
             ((uexpr*)c2)->print(false);
             break;
         }
-        case bexp_: {
+        case bexp_c: {
             ((bexpr*)c2)->print(false);
             break;
         }
-        case var_: {
+        case var_c: {
             auto p_c2 = (param_*)(c2);
             switch (p_c2->get_intype()) {
                 case binary_:
@@ -330,20 +379,20 @@ void poly_print(const constant_* c2){/**< Copy c2 into c1 detecting the right cl
 uexpr::uexpr(){
     _otype = id_;
     _son = nullptr;
-    _type = uexp_;
+    _type = uexp_c;
 }
 
 uexpr::uexpr(const uexpr& exp){
     _otype = exp._otype;
     _son = copy(exp._son);
-    _type = uexp_;
+    _type = uexp_c;
 }
 
 uexpr::uexpr(uexpr&& exp){
     _otype = exp._otype;
     _son = move(exp._son);
     exp._son = nullptr;
-    _type = uexp_;
+    _type = uexp_c;
 }
 
 uexpr& uexpr::operator=(const uexpr& exp){
@@ -370,10 +419,10 @@ bool uexpr::contains(const constant_* c) const{
         return true;
     }
     
-    if (_son->get_type()==uexp_) {
+    if (_son->get_type()==uexp_c) {
         return ((uexpr*)_son)->contains(c);
     }
-    if (_son->get_type()==bexp_) {
+    if (_son->get_type()==bexp_c) {
         return ((bexpr*)_son)->contains(c);
     }
     return false;
@@ -423,7 +472,7 @@ uexpr log(const constant_& c){
     return res;
 };
 
-double uexpr::eval(unsigned int i) const{
+double uexpr::eval(ind i) const{
     if (!_son) {
         throw invalid_argument("Cannot evaluate empty expression!");
     }
@@ -463,10 +512,10 @@ bool bexpr::contains(const constant_* c) const{
         if (equals(_lson, c)) {
             return true;
         }
-        if (_lson->get_type()==uexp_ && ((uexpr*)_lson)->contains(c)) {
+        if (_lson->get_type()==uexp_c && ((uexpr*)_lson)->contains(c)) {
             return true;
         }
-        if (_lson->get_type()==bexp_ && ((bexpr*)_lson)->contains(c)) {
+        if (_lson->get_type()==bexp_c && ((bexpr*)_lson)->contains(c)) {
             return true;
         }
     }
@@ -474,10 +523,10 @@ bool bexpr::contains(const constant_* c) const{
         if (equals(_rson, c)) {
             return true;
         }
-        if (_rson->get_type()==uexp_ && ((uexpr*)_rson)->contains(c)) {
+        if (_rson->get_type()==uexp_c && ((uexpr*)_rson)->contains(c)) {
             return true;
         }
-        if (_rson->get_type()==bexp_ && ((bexpr*)_rson)->contains(c)) {
+        if (_rson->get_type()==bexp_c && ((bexpr*)_rson)->contains(c)) {
             return true;
         }
     }
@@ -488,21 +537,21 @@ bexpr::bexpr(){
     _otype = id_;
     _lson = nullptr;
     _rson = nullptr;
-    _type = bexp_;
+    _type = bexp_c;
 }
 
 bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
     _otype = exp._otype;
     _lson = copy(exp._lson);
     _rson =  copy(exp._rson);
-    _type = bexp_;
+    _type = bexp_c;
 };
 
 bexpr::bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
     _otype = exp._otype;
     _lson = move(exp._lson);
     _rson = move(exp._rson);
-    _type = bexp_;
+    _type = bexp_c;
 };
 
 bexpr& bexpr::operator=(const bexpr& exp){
@@ -590,11 +639,19 @@ template<typename other_type> bexpr& bexpr::operator/=(const other_type& v){
 }
 
 
+bexpr operator+(const expr& c1, const expr& c2){
+    bexpr res;
+    res._otype = plus_;
+    res._lson = copy((constant_*)&c1);
+    res._rson =  copy((constant_*)&c2);
+    return res;
+}
 
 
 
 
-double bexpr::eval(unsigned int i) const{
+
+double bexpr::eval(ind i) const{
     if (!_lson || !_rson) {
         throw invalid_argument("Cannot evaluate empty expression!");
     }
@@ -660,7 +717,7 @@ void uexpr::print(bool endline) const{
 }
 
 void bexpr::print(bool endline) const {
-    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_ || _lson->get_type()==bexp_)) {
+    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
         cout << "(";
         poly_print(_lson);
         cout << ")";
@@ -685,7 +742,7 @@ void bexpr::print(bool endline) const {
         cout << "^";
     }
     
-    if (_otype==plus_ || (_rson->get_type()!=uexp_ && _rson->get_type()!=bexp_)) {
+    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
         poly_print(_rson);
     }
     else {

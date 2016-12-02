@@ -2,25 +2,26 @@
 //  var.cpp
 //  Gravity
 //
-//  Created by Hijazi, Hassan (Data61, Canberra City) on 21/10/16.
+//  Created by Hijazi, Hassan on 21/10/16.
 //
 //
 
 #include <Gravity/var.h>
 
 
+
 template<typename type> var<type>::var():param<type>(){
-    param<type>::set_type(var_);
+    param<type>::set_type(var_c);
 };
 
 template<typename type> var<type>::var(const char* name):param<type>(name){
-    param<type>::set_type(var_);
+    param<type>::set_type(var_c);
     _lb = make_shared<vector<type>>();
     _ub = make_shared<vector<type>>();
 };
 
 template<typename type> var<type>::var(const var<type>& v):param<type>(v){
-    param<type>::set_type(var_);
+    param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
 };
@@ -32,10 +33,10 @@ template<typename type> var<type>::var(const char* name, type lb, type ub):var(n
 
 
 /* Modifiers */
-template<typename type> void   var<type>::reserve(int size){
-    param<type>::reserve(size);
-    _lb->reserve(size+1);
-    _ub->reserve(size+1);
+template<typename type> void   var<type>::set_size(int s){
+    param<type>::set_size(s);
+    _lb->reserve(s);
+    _ub->reserve(s);
 };
 
 

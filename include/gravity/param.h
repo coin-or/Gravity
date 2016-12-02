@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <set>
 #include <Gravity/constant.h>
 
 using namespace std;
@@ -59,6 +60,45 @@ public:
     bool operator==(const param_& p) const {
         return (_type==p._type && _intype==p._intype && _name==p._name);
     }
+    
+    pair<ind,param_*> operator[](ind i);
+};
+
+
+/** A pair <indices, param> */
+class ind_param: public constant_{
+    
+public:
+    set<ind>*               _indices;
+    param_*                 _p;
+    
+    ind_param(ind_param&& p){
+        _indices = p._indices;
+        p._indices = nullptr;
+        _p = p._p;
+    };
+    
+//    ind_param(const param_& p){
+//        _indices = new set<ind>();
+//        _p = (param_*)copy((constant_*)&p);
+//    };
+    
+    ind_param(param_* p){
+        _indices = new set<ind>();
+        _p = p;
+    };
+    
+    void add_index(ind i);
+    
+    bool has_index(ind i) const;
+    
+    ~ind_param(){
+        delete _indices;
+        delete _p;
+    };
+    
+    bool operator==(const ind_param& p) const;
+    
 };
 
 
@@ -74,7 +114,7 @@ public:
     
     
     param(){
-        _type = par_;
+        _type = par_c;
         _name = "noname";
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
@@ -83,7 +123,7 @@ public:
     
 
     param (const param& p) {
-        _type = par_;
+        _type = par_c;
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
@@ -94,7 +134,7 @@ public:
     void set_intype(NType t) { _intype = t;}
     
     void update_type() {
-        _type = par_;
+        _type = par_c;
         if(typeid(type)==typeid(bool)){
             _intype = binary_;
             return;
@@ -149,8 +189,8 @@ public:
     
     
     /* Modifiers */
-    void    reserve(int size){
-        _val->reserve(size+1);
+    void    set_size(int s){
+        _val->reserve(s);
     };
     
     void add_val(type val){_val->push_back(val);}
