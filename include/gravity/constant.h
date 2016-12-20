@@ -12,7 +12,6 @@
 #include <map>
 #include <memory>
 #include <Gravity/Type.h>
-//#include <Gravity/func.h>
 
 
 using namespace std;
@@ -54,6 +53,9 @@ public:
         return (_type==long_c);
     };
     
+    bool is_number() const{
+        return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=func_c);
+    }
     bool is_param() const{
         return (_type==par_c);
     };
@@ -73,6 +75,10 @@ public:
     bool is_function() const{
         return (_type==func_c);
     };
+    
+    bool is_zero() const; /**< Returns true if constant equals 0 */
+    bool is_unit() const; /**< Returns true if constant equals 1 */
+    bool is_neg_unit() const; /**< Returns true if constant equals -1 */    
 };
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
@@ -250,14 +256,14 @@ public:
 
 /** Polymorphic class uexpr (unary expression), stores a unary expression tree. */
 
-class expr{
+class expr: public constant_{
 
 public:
 virtual ~expr(){};
 
 };
 
-class uexpr: public constant_, public expr{
+class uexpr: public expr{
 
 public:
     OperatorType    _otype;
@@ -309,7 +315,7 @@ public:
 };
 
 
-class bexpr: public constant_, public expr{
+class bexpr: public expr{
 private:
     
 public:
@@ -396,9 +402,6 @@ public:
 
 
 
-constant_* copy(constant_* c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
-bool equals(const constant_* c1, const constant_* c2);
-double eval(ind i, const constant_* c1);
 
 uexpr cos(const constant_& c);
 
@@ -411,105 +414,8 @@ uexpr expo(const constant_& c);
 
 uexpr log(const constant_& c);
 
-bexpr operator+(const expr& c1, const expr& c2);
 
 
-//template<typename T1, typename T2> lin operator+(const T1& c1, const T2& c2){
-//    if (is_arithmetic<T1>::value) {
-//        lin<T1> res(c1);
-//    }
-//    return res;
-//}
-
-template<typename T1, typename T2> bexpr operator+(const T1& c1, const T2& c2){
-    bexpr res;
-    res._otype = plus_;
-    if (is_arithmetic<T1>::value) {
-        res._lson = new constant<T1>(c1);
-    }
-    else{
-        res._lson = copy((constant_*)&c1);
-    }
-    if (is_arithmetic<T2>::value) {
-        res._rson = new constant<T2>(c2);
-    }
-    else{
-        res._rson =  copy((constant_*)&c2);
-    }
-    return res;
-}
-
-template<typename T1, typename T2> bexpr operator-(const T1& c1, const T2& c2){
-    bexpr res;
-    res._otype = minus_;
-    if (is_arithmetic<T1>::value) {
-        res._lson = new constant<T1>(c1);
-    }
-    else{
-        res._lson = copy((constant_*)&c1);
-    }
-    if (is_arithmetic<T2>::value) {
-        res._rson = new constant<T2>(c2);
-    }
-    else{
-        res._rson =  copy((constant_*)&c2);
-    }
-    return res;
-}
-
-template<typename T1, typename T2> bexpr operator*(const T1& c1, const T2& c2){
-    bexpr res;
-    res._otype = product_;
-    if (is_arithmetic<T1>::value) {
-        res._lson = new constant<T1>(c1);
-    }
-    else{
-        res._lson = copy((constant_*)&c1);
-    }
-    if (is_arithmetic<T2>::value) {
-        res._rson = new constant<T2>(c2);
-    }
-    else{
-        res._rson =  copy((constant_*)&c2);
-    }
-    return res;
-}
-
-template<typename T1, typename T2> bexpr operator/(const T1& c1, const T2& c2){
-    bexpr res;
-    res._otype = div_;
-    if (is_arithmetic<T1>::value) {
-        res._lson = new constant<T1>(c1);
-    }
-    else{
-        res._lson = copy((constant_*)&c1);
-    }
-    if (is_arithmetic<T2>::value) {
-        res._rson = new constant<T2>(c2);
-    }
-    else{
-        res._rson =  copy((constant_*)&c2);
-    }
-    return res;
-}
-
-template<typename T1, typename T2> bexpr operator^(const T1& c1, const T2& c2){
-    bexpr res;
-    res._otype = power_;
-    if (is_arithmetic<T1>::value) {
-        res._lson = new constant<T1>(c1);
-    }
-    else{
-        res._lson = copy((constant_*)&c1);
-    }
-    if (is_arithmetic<T2>::value) {
-        res._rson = new constant<T2>(c2);
-    }
-    else{
-        res._rson =  copy((constant_*)&c2);
-    }
-    return res;
-}
 
 
 void poly_print(const constant_* c);

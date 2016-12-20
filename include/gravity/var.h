@@ -30,7 +30,7 @@ public:
 
 /** A variable can be a bool, a short, an int, a float or a double*/
 template<typename type = int>
-class var: public var_, public param<type>{
+class var: public param<type>, public var_{
     
 public:
     ind                         _id;
@@ -43,6 +43,7 @@ public:
     //@{
     /** Unbounded variable constructor */
     var();
+    ~var(){};
     var(const char* name);
     var(const var<type>& v);
     //@}
@@ -90,7 +91,7 @@ public:
     
     
     /* Output */
-    void print(bool bouds=false) const;
+    void print(bool bounds=false) const;
     
 
     

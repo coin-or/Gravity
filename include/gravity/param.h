@@ -20,7 +20,7 @@ using namespace std;
 
 
 /** Backbone class for parameter */
-class param_: public constant_, public expr{
+class param_: public constant_{
 protected:
     string      _name;
     NType       _intype;
@@ -200,6 +200,11 @@ public:
             throw out_of_range("set_val(int i, type val)");
         }
         _val->at(i) = val;
+    }
+    void set_val(type val){
+        for (auto &v: _val) {
+            v = val;
+        }        
     }
 
     /** Operators */

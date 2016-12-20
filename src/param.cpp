@@ -8,8 +8,6 @@
 
 #include <Gravity/param.h>
 
-pair<ind,param_*> param_::operator[](ind i){
-    return make_pair(i, this);
-}
+
 
 

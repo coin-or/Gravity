@@ -11,16 +11,19 @@
 
 
 template<typename type> var<type>::var():param<type>(){
+    _id = 0;
     param<type>::set_type(var_c);
 };
 
 template<typename type> var<type>::var(const char* name):param<type>(name){
+    _id = 0;
     param<type>::set_type(var_c);
     _lb = make_shared<vector<type>>();
     _ub = make_shared<vector<type>>();
 };
 
 template<typename type> var<type>::var(const var<type>& v):param<type>(v){
+    _id = v._id;
     param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;

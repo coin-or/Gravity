@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include <gravity/var.h>
+#include <gravity/func.h>
 
 using namespace std;
 
@@ -85,28 +85,48 @@ int main (int argc, const char * argv[])
 //    dp.print();
     dp = 1909092.55;
 //    dp.print();
-    auto exp = 2./3*(log(dp) + ip)/(dp^2);
+//    auto exp = log(dp) + sqrt(ip);
 //    auto exp = dp*2;
-    exp.print();
+//    exp.print();
     
     var<> v1("v1", 4, 10);
     v1.set_size(3);
     v1.add_bounds(-1,2);
     v1.print(true);
-    var<float> p_ij("p_ij");
-    var<float> q_ij("q_ij");
-    p_ij.set_size(200);
-    q_ij.set_size(200);
-    auto c1 = (p_ij^2) + (q_ij^2) - (dp^2);
+    var<float> p("p");
+    var<float> q("q");
+    p.set_size(200);
+    q.set_size(200);
+//    auto c1 = (p_ij^2) + (q_ij^2) - (dp^2);
+    auto c1 = p + q - dp;
     c1.print();
+    auto l2 = 2*p;
+    l2.print();
+    auto l3 = dp*q;
+    l3.print();
+    
+    auto l4 = -1*(dp-ip);
+    l4.print();
+    l4 = 2*l4;
+    l4.print();
+    l4 += 2*dp;
+    l4.print();
+    l4 += 2*ip - 2 + p;
+    l4.print();
+    constant<> zero = 0;
+    auto l5 = l3*zero;
+    l3 *= zero;
+    l3.print();
+    
+//    c1->print();
 //    c1.concretize_all(200);
     
     
 //    Constraint c1;
 //    c1 += log(v1[i]);
 //    c1 += v1[i];
-    auto exp2 = exp*log(v1);
-    exp2.print();
+//    auto exp2 = exp*log(v1);
+//    exp2.print();
 //    constant_ t;
 //    auto test = log(t);
 //    expr<param<>> exp(ip);
