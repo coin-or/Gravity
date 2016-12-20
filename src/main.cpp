@@ -107,17 +107,25 @@ int main (int argc, const char * argv[])
     
     auto l4 = -1*(dp-ip);
     l4.print();
-    l4 = 2*l4;
+    l4 = 3*l4;
     l4.print();
     l4 += 2*dp;
     l4.print();
     l4 += 2*ip - 2 + p;
     l4.print();
     constant<> zero = 0;
-    auto l5 = l3*zero;
-    l3 *= zero;
+    auto l5 = l3*1;
+    l5.print();
+    l3 *= -1;
     l3.print();
+    var<short> v11("v11");
+    param<float> p11("p11");
     
+    auto l11 = p11*v11 + ip*p - dp*q;
+    l11.print();
+    l11 += dp*q + q - ip*p + p - p11*v11 + v11;
+    l11 *= ip;
+    l11.print();
 //    c1->print();
 //    c1.concretize_all(200);
     
