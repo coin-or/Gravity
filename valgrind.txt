@@ -1,0 +1,1 @@
+valgrind --leak-check=full --error-limit=no --suppressions=./ignore.supp --gen-suppressions=all ./gravity_test
