@@ -123,9 +123,12 @@ int main (int argc, const char * argv[])
     
     auto l11 = p11*v11 + ip*p - dp*q;
     l11.print();
-    l11 += dp*q + q - ip*p + p - p11*v11 + v11;
-    l11 *= ip;
+    l11 += v11;
     l11.print();
+    l11 += dp*q + q - ip*p + p - p11*v11*2 + v11;
+    l11.print();
+//    l11 *= ip;
+//    l11.print();
 //    c1->print();
 //    c1.concretize_all(200);
     

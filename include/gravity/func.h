@@ -227,7 +227,7 @@ public:
 
     lin(constant_* coef, param_* p);
     
-    bool insert(constant_* coef, param_* p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    bool insert(bool sign, constant_* coef, param_* p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     
     lin(param_* p);
     
@@ -285,6 +285,13 @@ public:
     
     bool operator==(const lin& l) const;
     bool operator!=(const lin& l) const;
+    bool is_constant() const{
+        return (_lterms->empty());
+    }
+
+    constant_* get_cst() {
+        return _cst;
+    }
     
     lin& operator+=(const lin& l);
     lin& operator-=(const lin& l);
@@ -367,12 +374,11 @@ public:
             }
         }
         else {
-            auto lterm = pair_it->second;
-            if (lterm._coef->is_neg_unit()) {
+            if (pair_it->second._coef->is_neg_unit()) {
                 _lterms->erase(pair_it);
             }
             else{
-                lterm += constant<bool>(1);
+                pair_it->second += constant<int>(1);
             }
         }
         return *this;
@@ -383,18 +389,17 @@ public:
         auto pair_it = _lterms->find(p.get_name());
         if (pair_it == _lterms->end()) {
             auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(p_new->get_name(), lterm(new constant<short>(-1), p_new)));
+            _lterms->insert(make_pair<>(p_new->get_name(), lterm(new constant<int>(-1), p_new)));
             if (p.is_var()) {
                 _vars->insert((var_*)p_new);
             }
         }
         else {
-            auto lterm = pair_it->second;
-            if (lterm._coef->is_unit()) {
+            if (pair_it->second._coef->is_unit()) {
                 _lterms->erase(pair_it);
             }
             else{
-                lterm -= constant<bool>(1);
+                pair_it->second -= constant<int>(1);
             }
         }
         return *this;
@@ -408,37 +413,36 @@ public:
                 _lterms->insert(make_pair<>(p_new->get_name(), lterm(_cst, p_new)));
             }
             else {
-                auto lterm = pair_it->second;
                 switch (_cst->get_type()) {
                     case binary_c: {
-                        lterm += (*(constant<bool>*)_cst);
+                        pair_it->second += (*(constant<bool>*)_cst);
                         break;
                     }
                     case short_c: {
-                        lterm += (*(constant<short>*)_cst);
+                        pair_it->second += (*(constant<short>*)_cst);
                         break;
                     }
                     case integer_c: {
-                        lterm += (*(constant<int>*)_cst);
+                        pair_it->second += (*(constant<int>*)_cst);
                         break;
                     }
                     case float_c: {
-                        lterm += (*(constant<float>*)_cst);
+                        pair_it->second += (*(constant<float>*)_cst);
                         break;
                     }
                     case double_c: {
-                        lterm += (*(constant<double>*)_cst);
+                        pair_it->second += (*(constant<double>*)_cst);
                         break;
                     }
                     case long_c: {
-                        lterm += (*(constant<long double>*)_cst);
+                        pair_it->second += (*(constant<long double>*)_cst);
                         break;
                     }
                     default:
                         break;
                 }
             }
-            _cst = new constant<bool>(false);
+            _cst = new constant<int>(0);
         }
         for (auto &pair:*_lterms) {
             pair.second *= p;
@@ -540,6 +544,7 @@ public:
 };
 
 constant_* add(constant_* c1, constant_* c2);
+constant_* substract(constant_* c1, constant_* c2);
 
 template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
     switch (c1->get_type()) {
@@ -651,6 +656,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
     return c1;
 }
 
+
 template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
     switch (c1->get_type()) {
         case binary_c: {
@@ -734,7 +740,14 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
                 case lin_: {
                     auto res = new lin(*(lin*)c1 + c2);
                     delete c1;
-                    return c1 = res;
+                    if (res->is_constant()) {
+                        c1 = copy(res->get_cst());
+                        delete res;
+                        return c1;
+                    }
+                    else {
+                        return c1 = res;
+                    }
                     break;
                 }
                 default:
@@ -832,9 +845,15 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
                 case lin_: {
                     auto res = new lin(*(lin*)c1 - c2);
                     delete c1;
-                    return c1 = res;
-                    break;
-                }
+                    if (res->is_constant()) {
+                        c1 = copy(res->get_cst());
+                        delete res;
+                        return c1;
+                    }
+                    else {
+                        return c1 = res;
+                    }
+                    break;                }
                 default:
                     break;
             }
@@ -1067,7 +1086,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
     }
     if (c2.eval()==0) {
         delete c1;
-        c1 = new constant<bool>(false);
+        c1 = new constant<int>(0);
         return c1;
     }
     switch (c1->get_type()) {
@@ -1360,11 +1379,11 @@ template<typename T1, typename T2> lin operator-(const param<T1>& v1, const para
 }
 
 template<typename T> lin operator-(const constant<T>& c, const lin& l){
-    return lin(l) -= c;
+    return  (lin(l) *= -1) += c;
 }
 
 template<typename T> lin operator-(const constant<T>& c, lin&& l){
-    return l -= c;
+    return  (l *= -1) += c;
 }
 
 template<typename T> lin operator-(const lin& l, const constant<T>& c){
@@ -1376,11 +1395,11 @@ template<typename T> lin operator-(lin&& l, const constant<T>& c){
 }
 
 template<typename T> lin operator-(const param<T>& v, const lin& l){
-    return lin(l)-=v;
+    return  (lin(l) *= -1) += v;
 }
 
 template<typename T> lin operator-(const param<T>& v, lin&& l){
-    return l-=v;
+    return  (l *= -1) += v;
 }
 
 template<typename T> lin operator-(const lin& l, const param<T>& v){

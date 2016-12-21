@@ -35,20 +35,26 @@ lin::~lin(){
 };
 
 
-bool lin::insert(constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+bool lin::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     auto name = p->get_name();
     auto pair_it = _lterms->find(name);
     if (pair_it == _lterms->end()) {
         auto p_new = (param_*)copy(p);
         auto c_new = copy(coef);
-        _lterms->insert(make_pair<>(name, lterm(c_new, p_new)));
+        _lterms->insert(make_pair<>(name, lterm(sign, c_new, p_new)));
         if (p->is_var()) {
             _vars->insert((var_*)p_new);
         }
         return true;
     }
     else {
-        pair_it->second._coef = add(pair_it->second._coef, coef);
+        if (pair_it->second._sign == sign) {
+            pair_it->second._coef = add(pair_it->second._coef, coef);
+        }
+        else{
+            pair_it->second._coef = substract(pair_it->second._coef, coef);
+        }
+        
         if (pair_it->second._coef->is_zero()) {
             _vars->erase((var_*)pair_it->second._p);
             _lterms->erase(pair_it);
@@ -733,7 +739,13 @@ constant_* add(constant_* c1, const lin& l1){
             auto pc1 = (param_*)(c1);
             auto l = new lin(pc1);
             *l += l1;
-            c1 =(constant_*)(l);
+            if (l->is_constant()) {
+                c1 = copy(l->get_cst());
+                delete l;
+            }
+            else {
+                c1 =(constant_*)(l);
+            }
             return c1;
             break;
         }
@@ -756,7 +768,14 @@ constant_* add(constant_* c1, const lin& l1){
                 case lin_: {
                     auto res = new lin(*(lin*)c1 + l1);
                     delete c1;
-                    return c1 = res;
+                    if (res->is_constant()) {
+                        c1 = copy(res->get_cst());
+                        delete res;
+                        return c1;
+                    }
+                    else {
+                        return c1 = res;
+                    }
                     break;
                 }
                 default:
@@ -884,8 +903,9 @@ constant_* multiply(constant_* c1, const lin& l1){
             switch (((func_*)c1)->get_ftype()) {
                 case lin_: {
 //                    auto res = new lin(*(lin*)c1 + l1);
-                    delete c1;
+//                    delete c1;
 //                    return c1 = res;
+                    cerr << "Unsupported yet!\n";
                     break;
                 }
                 default:
@@ -1289,7 +1309,7 @@ template <typename T> lterm& lterm::operator+=(const constant<T>& c){
 template <typename T> lterm& lterm::operator*=(const constant<T>& c){
     if (c.is_zero()) {
         delete _coef;
-        _coef = new constant<bool>(false);
+        _coef = new constant<int>(0);
         _sign = true;
         cerr << "\nWARNING multiplying lterm by zero!\n";
         return *this;
@@ -1359,7 +1379,7 @@ template <typename T> lterm& lterm::operator/=(const constant<T>& c){
 lin& lin::operator+=(const lin& l){
     _cst = add(_cst, l._cst);
     for (auto &pair:*l._lterms) {
-        this->insert(pair.second._coef, pair.second._p);
+        this->insert(pair.second._sign, pair.second._coef, pair.second._p);
     }
     return *this;
 }
