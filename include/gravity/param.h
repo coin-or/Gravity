@@ -24,13 +24,26 @@ class param_: public constant_{
 protected:
     string      _name;
     NType       _intype;
+    set<int>    _indices;
 public:
     
     virtual ~param_(){};
     
-    string get_name() const { return _name;};
+    string get_name() const {
+        string name = _name;
+        name += "(";
+        for (auto &idx: _indices) {
+             name += to_string(idx);
+        }
+        name += ")";
+        return name;
+    };
     
     NType get_intype() const { return _intype;}
+    
+    set<int> get_indices() const {
+        return _indices;
+    }
     
     void set_type(NType type){ _intype = type;}
     
@@ -60,46 +73,44 @@ public:
     bool operator==(const param_& p) const {
         return (_type==p._type && _intype==p._intype && _name==p._name);
     }
-    
-    pair<ind,param_*> operator[](ind i);
 };
 
 
-/** A pair <indices, param> */
-class ind_param: public constant_{
-    
-public:
-    set<ind>*               _indices;
-    param_*                 _p;
-    
-    ind_param(ind_param&& p){
-        _indices = p._indices;
-        p._indices = nullptr;
-        _p = p._p;
-    };
-    
-//    ind_param(const param_& p){
-//        _indices = new set<ind>();
-//        _p = (param_*)copy((constant_*)&p);
+///** A pair <indices, param> */
+//class ind_param: public constant_{
+//    
+//public:
+//    set<ind>*               _indices;
+//    param_*                 _p;
+//    
+//    ind_param(ind_param&& p){
+//        _indices = p._indices;
+//        p._indices = nullptr;
+//        _p = p._p;
 //    };
-    
-    ind_param(param_* p){
-        _indices = new set<ind>();
-        _p = p;
-    };
-    
-    void add_index(ind i);
-    
-    bool has_index(ind i) const;
-    
-    ~ind_param(){
-        delete _indices;
-        delete _p;
-    };
-    
-    bool operator==(const ind_param& p) const;
-    
-};
+//    
+////    ind_param(const param_& p){
+////        _indices = new set<ind>();
+////        _p = (param_*)copy((constant_*)&p);
+////    };
+//    
+//    ind_param(param_* p){
+//        _indices = new set<ind>();
+//        _p = p;
+//    };
+//    
+//    void add_index(ind i);
+//    
+//    bool has_index(ind i) const;
+//    
+//    ~ind_param(){
+//        delete _indices;
+//        delete _p;
+//    };
+//    
+//    bool operator==(const ind_param& p) const;
+//    
+//};
 
 
 
@@ -127,8 +138,21 @@ public:
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
+        _indices = p._indices;
     }
-    
+
+//    template<class... Args>
+//    param operator()(Args&&... args){
+//        auto res(*this);
+////        va_list arg_list;
+//        va_start(args, sizeof...(args));
+//        for (int i = 0; i < sizeof...(args); ++i) {
+//            res._indices.insert(va_arg(args, int));
+//        }
+//        va_end(args);
+//        return res;
+//    }
+
     void set_type(CType t) { _type = t;}
     
     void set_intype(NType t) { _intype = t;}
@@ -166,7 +190,7 @@ public:
     param(const char* s){
         _name = s;
         update_type();
-        _val = make_shared<vector<type>>();
+        _val = make_shared<vector<type>>();        
     }
 
     NType get_intype() const { return _intype;}
@@ -217,34 +241,10 @@ public:
         return *this;
     }
     
-//    param& operator=(int v){
-//        if (_type<integer_) {
-//            throw invalid_argument("Cannot assign an integer value in this parameter, check original type.");
-//        }
-//        _val = v;
-//        return *this;
-//    }
-//    
-//    
-//    param& operator=(double v){
-//        if (_type<double_){
-//            throw invalid_argument("Cannot assign a double value in this parameter, check original type.");
-//        }
-//        _val = v;
-//        return *this;
-//    }
-//    
-//    param& operator=(long double v){
-//        if (_type<long_){
-//            throw invalid_argument("Cannot assign a long double value in this parameter, check original type.");
-//        }
-//        _val = v;
-//        return *this;
-//    }
 
     /** Output */
     void print(bool vals=false) const{
-        cout << _name;
+        cout << get_name();
         if(vals){
             cout << " = [ ";
             for(auto v: *_val){

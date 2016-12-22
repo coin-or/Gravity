@@ -8,6 +8,7 @@
 #ifndef Gravity___Type_h
 #define Gravity___Type_h
 typedef unsigned int ind; /* Index type */
+//typedef std::set<ind> indx; /* Set of indices type */
 
 typedef enum { binary_, short_, integer_, float_, double_, long_} NType; /* Number Type */
 typedef enum { binary_c, short_c, integer_c, float_c, double_c, long_c, par_c, uexp_c, bexp_c, var_c, func_c} CType; /* Constant type, ancestor to parameter, var and function */

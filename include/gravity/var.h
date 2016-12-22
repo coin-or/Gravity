@@ -55,6 +55,45 @@ public:
     //@}
     
     
+//    template<class... Args>
+//    var operator()(Args&&... args){
+//        auto res(*this);
+//        //        va_list arg_list;
+//        va_start(args, sizeof...(args));
+//        for (int i = 0; i < sizeof...(args); ++i) {
+//            res._indices.insert(va_arg(args, int));
+//        }
+//        va_end(args);
+//    }
+    
+    template<class... Args>
+    var operator()(Args&&... args){
+        auto res(*this);
+        res._indices = {forward<Args>(args)...};
+        return res;
+    }
+    
+    
+//    var operator()(int idx...){
+//        auto res(*this);
+//        res._indices.insert(idx);
+//        va_list arg_list;
+//        va_start(arg_list, idx);
+//        int i = 0;
+//        while (*idx != '\0') {
+//            if (*idx == 'd') {
+//                i = va_arg(arg_list, int);
+//                res._indices.insert(i);
+//            }
+//            else {
+//                throw invalid_argument("indices can only be integers");
+//            }
+//            ++idx;
+//        }
+//        va_end(arg_list);
+//    }
+    
+    
     /* Querries */
     
     type    get_lb() const;

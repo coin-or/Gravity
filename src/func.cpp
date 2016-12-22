@@ -10,9 +10,9 @@
 
 
 
-pair<ind,param_*> param_::operator[](ind i){
-    return make_pair(i, (param_*)copy((constant_*)this));
-}
+//pair<ind,param_*> param_::operator[](ind i){
+//    return make_pair(i, (param_*)copy((constant_*)this));
+//}
 
 lin::lin(constant_* coef, param_* p):lin(){
     _lterms->insert(make_pair<>(p->get_name(), lterm(coef, p)));
