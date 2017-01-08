@@ -35,6 +35,31 @@ lin::~lin(){
 };
 
 
+quad::quad(constant_* coef, param_* p1, param_* p2):quad(){
+    _qterms->insert(make_pair<>(p1->get_name()+","+p2->get_name(), qterm(coef, p1, p2)));
+    if (p1->is_var()) {
+        _vars->insert((var_*)p1);
+    }
+    if (p2->is_var()) {
+        _vars->insert((var_*)p2);
+    }
+};
+
+quad::quad(param_* p1, param_* p2):quad(){
+    _qterms->insert(make_pair<>(p1->get_name()+","+p2->get_name(), qterm(p1, p2)));
+    if (p1->is_var()) {
+        _vars->insert((var_*)p1);
+    }
+    if (p2->is_var()) {
+        _vars->insert((var_*)p2);
+    }
+};
+
+quad::~quad(){
+    delete _qterms;
+};
+
+
 bool lin::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     auto name = p->get_name();
     auto pair_it = _lterms->find(name);
@@ -66,6 +91,81 @@ bool lin::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the 
 
 void lin::reverse_sign(){ /*<< Reverse the sign of all linear terms and constant in the function */
     for (auto &pair: *_lterms) {
+        pair.second.reverse_sign();
+    }
+    ::reverse_sign(_cst);
+}
+
+bool quad::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    auto name = p->get_name();
+    auto pair_it = _lterms->find(name);
+    if (pair_it == _lterms->end()) {
+        auto p_new = (param_*)copy(p);
+        auto c_new = copy(coef);
+        _lterms->insert(make_pair<>(name, lterm(sign, c_new, p_new)));
+        if (p->is_var()) {
+            _vars->insert((var_*)p_new);
+        }
+        return true;
+    }
+    else {
+        if (pair_it->second._sign == sign) {
+            pair_it->second._coef = add(pair_it->second._coef, coef);
+        }
+        else{
+            pair_it->second._coef = substract(pair_it->second._coef, coef);
+        }
+        
+        if (pair_it->second._coef->is_zero()) {
+            _lterms->erase(pair_it);
+            if (_qterms->find(name)==_qterms->end()) {
+                _vars->erase((var_*)pair_it->second._p);
+            }
+        }
+        return false;
+    }
+};
+
+
+bool quad::insert(bool sign, constant_* coef, param_* p1, param_* p2){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    auto name = p1->get_name()+","+p2->get_name();
+    auto pair_it = _qterms->find(name);
+    if (pair_it == _qterms->end()) {
+        auto p_new1 = (param_*)copy(p1);
+        auto p_new2 = (param_*)copy(p2);
+        auto c_new = copy(coef);
+        _qterms->insert(make_pair<>(name, qterm(sign, c_new, p_new1, p_new2)));
+        if (p1->is_var()) {
+            _vars->insert((var_*)p_new1);
+        }
+        if (p2->is_var()) {
+            _vars->insert((var_*)p_new2);
+        }        return true;
+    }
+    else {
+        if (pair_it->second._sign == sign) {
+            pair_it->second._coef = add(pair_it->second._coef, coef);
+        }
+        else{
+            pair_it->second._coef = substract(pair_it->second._coef, coef);
+        }
+        
+        if (pair_it->second._coef->is_zero()) {
+            _qterms->erase(pair_it);
+            if (_lterms->find(name)==_lterms->end()) {
+                _vars->erase((var_*)pair_it->second._p);
+            }
+        }
+        return false;
+    }
+};
+
+
+void quad::reverse_sign(){ /*<< Reverse the sign of all linear terms and constant in the function */
+    for (auto &pair: *_lterms) {
+        pair.second.reverse_sign();
+    }
+    for (auto &pair: *_qterms) {
         pair.second.reverse_sign();
     }
     ::reverse_sign(_cst);
@@ -238,6 +338,72 @@ void const lin::print(bool endline){
     if (endline)
         cout << endl;
 }
+
+
+void const quad::print(bool endline){
+    param_* p_new1;
+    param_* p_new2;
+    constant_* c_new;
+    int ind = 0;
+    string sign = " + ";
+    for (auto &pair:*_qterms) {
+        c_new = pair.second._coef;
+        p_new1 = (param_*)pair.second._p->first;
+        p_new2 = (param_*)pair.second._p->second;
+        if (c_new->is_number()){
+            auto v = eval(c_new);
+            if (pair.second._sign) {
+                if (v==-1) {
+                    cout << " - ";
+                }
+                else if (ind>0) {
+                    cout << " + ";
+                    if(v!=1) {
+                        cout << v;
+                    }
+                }
+                else if(v!=1) {
+                    cout << v;
+                }
+            }
+            if(!pair.second._sign) {
+                if (v == -1 && ind>0) {
+                    cout << " + ";
+                }
+                else if (v < 0 && ind>0){
+                    cout << " + " << -1*v;
+                }
+                else if (v==1){
+                    cout << " - ";
+                }
+                else if(v!=-1){
+                    cout << " - " << v;
+                }
+            }
+        }
+        else{
+            if(ind > 0) {
+                if (!pair.second._sign) {
+                    cout << " - ";
+                }
+                else {
+                    cout << " + ";
+                }
+            }
+            cout << "(";
+            poly_print(c_new);
+            cout << ")";
+        }
+        poly_print(p_new1);
+        poly_print(p_new2);
+        ind++;
+    }
+    if (!_qterms->empty()) {
+        cout << " + ";
+    }
+    lin::print();
+}
+
 
 
 lterm& lterm::operator=(const lterm& l){
@@ -1254,124 +1420,6 @@ lin operator-(lin&& l1, const lin& l2){
     return l1 -= l2;
 }
 
-template <typename T> lterm& lterm::operator*=(const param<T>& c){
-    if (_coef->is_number()) {
-        _coef = multiply(_coef, c);
-    }
-    else if (_coef->is_param()) {
-//        _coef = (constant_*)new lin(new constant<T>(c), (param_*)_coef);
-        cerr << "Unsupported yet;\n";
-    }
-    else if (_coef->is_function()) {
-        auto f = (func_*)_coef;
-        switch (f->get_ftype()) {
-            case lin_: {
-//                auto l = (lin*) f;
-//                *l *= c;
-                cerr << "Unsupported yet;\n";
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return *this;
-}
-
-template <typename T> lterm& lterm::operator+=(const constant<T>& c){
-    if (c.is_zero()) {
-        return *this;
-    }
-    if (_coef->is_number()) {
-        _coef = add(_coef, c);
-    }
-    else if (_coef->is_param()) {
-        auto l = new lin((param_*)_coef);
-        *l += c;
-        _coef = (constant_*)l;
-    }
-    else if (_coef->is_function()) {
-        auto f = (func_*)_coef;
-        switch (f->get_ftype()) {
-            case lin_: {
-                auto l = (lin*) f;
-                *l += c;
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return *this;
-}
-
-
-template <typename T> lterm& lterm::operator*=(const constant<T>& c){
-    if (c.is_zero()) {
-        delete _coef;
-        _coef = new constant<int>(0);
-        _sign = true;
-        cerr << "\nWARNING multiplying lterm by zero!\n";
-        return *this;
-    }
-    if (c.is_unit()) {
-        return *this;
-    }
-    
-    if (_coef->is_number()) {
-        _coef = multiply(_coef, c);
-    }
-    else if (_coef->is_param()) {
-        _coef = (constant_*)new lin(new constant<T>(c), (param_*)_coef);                
-    }
-    else if (_coef->is_function()) {
-        auto f = (func_*)_coef;
-        switch (f->get_ftype()) {
-            case lin_: {
-                auto l = (lin*) f;
-                *l *= c;
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return *this;
-}
-
-
-template <typename T> lterm& lterm::operator/=(const constant<T>& c){
-    if (c.is_zero()) {
-        throw invalid_argument("\nERROT dividing lterm by zero!\n");
-        return *this;
-    }
-    if (c.is_unit()) {
-        return *this;
-    }
-    if (_coef->is_number()) {
-        _coef = divide(_coef, c);
-    }
-    else if (_coef->is_param()) {
-        auto l = new lin((param_*)_coef);
-        *l /= c;
-        _coef = (constant_*)l;
-    }
-    else if (_coef->is_function()) {
-        auto f = (func_*)_coef;
-        switch (f->get_ftype()) {
-            case lin_: {
-                auto l = (lin*) f;
-                *l /= c;
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return *this;
-}
-
-
 
 
 
@@ -1386,6 +1434,16 @@ lin& lin::operator+=(const lin& l){
 
 lin& lin::operator-=(const lin& l){
     return *this += -1*l;
+}
+
+
+
+quad& quad::operator+=(const lin& l){
+    _cst = add(_cst, l._cst);
+    for (auto &pair:*l._lterms) {
+        this->insert(pair.second._sign, pair.second._coef, pair.second._p);
+    }
+    return *this;
 }
 
 //template<typename T> lin& lin::operator+=(const constant<T>& c){

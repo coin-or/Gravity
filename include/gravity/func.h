@@ -190,19 +190,197 @@ public:
     lterm& operator=(const lterm& l);
     lterm& operator=(lterm&& l);
     
-    template<typename T> lterm& operator+=(const constant<T>& c);
+    
+    template <typename T> lterm& operator+=(const constant<T>& c){
+        if (c.is_zero()) {
+            return *this;
+        }
+        _coef = add(_coef, c);
+        return *this;
+    }
     
     template <typename T> lterm& operator-=(const constant<T>& c){
         return *this += constant<T>(c.eval()*-1);
     }
+
     
-    template<typename T> lterm& operator*=(const constant<T>& c);
-    template<typename T> lterm& operator/=(const constant<T>& c);
+    template <typename T> lterm& operator*=(const constant<T>& c){
+        if (c.is_zero()) {
+            delete _coef;
+            _coef = new constant<int>(0);
+            _sign = true;
+            cerr << "\nWARNING multiplying lterm by zero!\n";
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        _coef = multiply(_coef, c);
+        return *this;
+    }
     
-    template<typename T> lterm& operator+=(const param<T>& p);
-    template<typename T> lterm& operator-=(const param<T>& p);
-    template<typename T> lterm& operator*=(const param<T>& p);
-    template<typename T> lterm& operator/=(const param<T>& p);
+    template <typename T> lterm& operator/=(const constant<T>& c){
+        if (c.is_zero()) {
+            throw invalid_argument("\nERROT dividing lterm by zero!\n");
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        _coef = divide(_coef, c);
+        return *this;
+    }
+    
+    
+    template <typename T> lterm& operator+=(const param<T>& p){
+        _coef = add(_coef, p);
+        return *this;
+    }
+    
+    template <typename T> lterm& operator-=(const param<T>& p){
+        _coef = substract(_coef, p);
+        return *this;
+    }
+    
+    template <typename T> lterm& operator*=(const param<T>& p){
+        _coef = multiply(_coef, p);
+        return *this;
+    }
+
+    template<typename T> lterm& operator/=(const param<T>& p){
+        _coef = divide(_coef, p);
+        return *this;
+    }
+    
+};
+
+
+/** A class to represent a quadratic term, e.g. 2xy or 3x^2. */
+class qterm{
+    
+public:
+    constant_*                  _coef;
+    pair<param_*,param_*>*      _p;
+    bool                        _sign = true; /**< True if +, flase if - */
+    
+    qterm(){
+        _coef = nullptr;
+        _p = nullptr;
+    }
+    
+    qterm(const qterm& t){
+        _coef = copy(t._coef);
+        _p = new pair<param_*, param_*>(make_pair((param_*)copy(t._p->first), (param_*)copy(t._p->second)));
+        _sign = t._sign;
+    };
+    
+    qterm(qterm&& t){
+        _coef = t._coef;
+        t._coef = nullptr;
+        _p = t._p;
+        t._p = nullptr;
+        _sign = t._sign;
+    };
+    
+    
+    qterm(param_* p1, param_* p2){
+        _coef = new constant<int>(1);
+        _p = new pair<param_*, param_*>(make_pair(p1,p2));
+    };
+    
+    
+    qterm(constant_* coef, param_* p1, param_* p2){
+        _coef = coef;
+        _p = new pair<param_*, param_*>(make_pair(p1,p2));
+    };
+    
+    qterm(bool sign, param_* p1, param_* p2){
+        _coef = new constant<int>(1);
+        _p = new pair<param_*, param_*>(make_pair(p1,p2));
+        _sign = sign;
+    };
+    
+    qterm(bool sign, constant_* coef, param_* p1, param_* p2){
+        _coef = coef;
+        _p = new pair<param_*, param_*>(make_pair(p1,p2));
+        _sign = sign;
+    };
+    
+    void reverse_sign() {
+        _sign = ! _sign;
+    }
+    
+    ~qterm(){
+        delete _coef;
+        if (_p) {
+            delete _p->first;
+            delete _p->second;
+            delete _p;
+        }
+    };
+    
+    bool operator==(const qterm& l) const;
+    bool operator!=(const qterm& l) const;
+    
+    qterm& operator=(const qterm& l);
+    qterm& operator=(qterm&& l);
+    
+    template <typename T> qterm& operator+=(const constant<T>& c){
+        if (c.is_zero()) {
+            return *this;
+        }
+        _coef = add(_coef, c);
+        return *this;
+    }
+    
+    template <typename T> qterm& operator-=(const constant<T>& c){
+        return *this += constant<T>(c.eval()*-1);
+    }
+    
+    
+    template <typename T> qterm& operator*=(const constant<T>& c){
+        if (c.is_zero()) {
+            delete _coef;
+            _coef = new constant<int>(0);
+            _sign = true;
+            cerr << "\nWARNING multiplying qterm by zero!\n";
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        _coef = multiply(_coef, c);
+        return *this;
+    }
+    
+    template <typename T> qterm& operator/=(const constant<T>& c){
+        if (c.is_zero()) {
+            throw invalid_argument("\nERROT dividing qterm by zero!\n");
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        _coef = divide(_coef, c);
+        return *this;
+    }
+    
+    
+    template <typename T> qterm& operator+=(const param<T>& p){
+        _coef = add(_coef, p);
+        return *this;
+    }
+    
+    template <typename T> qterm& operator-=(const param<T>& p){
+        _coef = substract(_coef, p);
+        return *this;
+    }
+    
+    template<typename T> qterm& operator/=(const param<T>& p){
+        _coef = divide(_coef, p);
+        return *this;
+    }
+
     
 };
 
@@ -212,10 +390,11 @@ public:
 class lin: public func_{
 protected:
 
+
+public:
     constant_*                 _cst;/**< Constant part of the linear function */
     map<string, lterm>*        _lterms;
 
-public:
     lin(){
         func_::set_ftype(lin_);
         set_type(func_c);
@@ -266,10 +445,8 @@ public:
         func_::set_ftype(lin_);
         set_type(func_c);
         _convex = true;
-        delete _lterms;
-        _lterms = new map<string, lterm>();
-        delete _vars;
-        _vars = new set<var_*>;
+        _lterms->clear();
+        _vars->clear();
         delete _cst;
         _cst = new constant<int>(0);
         
@@ -364,11 +541,11 @@ public:
     }
 
     template<typename T> lin& operator+=(const param<T>& p){
-        
-        auto pair_it = _lterms->find(p.get_name());
+        string name = p.get_name();
+        auto pair_it = _lterms->find(name);
         if (pair_it == _lterms->end()) {
             auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(p_new->get_name(), lterm(p_new)));
+            _lterms->insert(make_pair<>(name, lterm(p_new)));
             if (p.is_var()) {
                 _vars->insert((var_*)p_new);
             }
@@ -385,11 +562,11 @@ public:
     }
     
     template<typename T> lin& operator-=(const param<T>& p){
-        
-        auto pair_it = _lterms->find(p.get_name());
+        string name = p.get_name();
+        auto pair_it = _lterms->find(name);
         if (pair_it == _lterms->end()) {
             auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(p_new->get_name(), lterm(new constant<int>(-1), p_new)));
+            _lterms->insert(make_pair<>(name, lterm(new constant<int>(-1), p_new)));
             if (p.is_var()) {
                 _vars->insert((var_*)p_new);
             }
@@ -407,56 +584,14 @@ public:
 
     template<typename T> lin& operator*=(const param<T>& p){
         if (!_cst->is_zero()) {
-            auto pair_it = _lterms->find(p.get_name());
-            if (pair_it == _lterms->end()) {
-                auto p_new = (param_*)copy((constant_*)&p);
-                _lterms->insert(make_pair<>(p_new->get_name(), lterm(_cst, p_new)));
-            }
-            else {
-                switch (_cst->get_type()) {
-                    case binary_c: {
-                        pair_it->second += (*(constant<bool>*)_cst);
-                        break;
-                    }
-                    case short_c: {
-                        pair_it->second += (*(constant<short>*)_cst);
-                        break;
-                    }
-                    case integer_c: {
-                        pair_it->second += (*(constant<int>*)_cst);
-                        break;
-                    }
-                    case float_c: {
-                        pair_it->second += (*(constant<float>*)_cst);
-                        break;
-                    }
-                    case double_c: {
-                        pair_it->second += (*(constant<double>*)_cst);
-                        break;
-                    }
-                    case long_c: {
-                        pair_it->second += (*(constant<long double>*)_cst);
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-            _cst = new constant<int>(0);
+            auto p_new = (param_*)copy((constant_*)&p);
+            _lterms->insert(make_pair<>(p_new->get_name(), lterm(_cst, p_new)));
         }
         for (auto &pair:*_lterms) {
             pair.second *= p;
         }
         return *this;
     }
-//    template<typename T> lin& operator+=(const constant<T>& c);
-//    template<typename T> lin& operator-=(const constant<T>& c);
-//    template<typename T> lin& operator+=(const param<T>& c);
-//    template<typename T> lin& operator-=(const param<T>& c);
-//    template<typename T> lin& operator*=(const constant<T>& c);
-//    template<typename T> lin& operator/=(const constant<T>& c);
-//    template<typename T> lin& operator*=(const param<T>& c);
-//    template<typename T> lin& operator/=(const param<T>& c);
     
     void const print(bool endline=true);
 
@@ -466,9 +601,220 @@ public:
 
 /** A quadratic function */
 class quad: public lin{
+protected:
+    map<string, qterm>*        _qterms;
+
 public:
-    quad();
+    quad():lin(){
+        _qterms = new map<string, qterm>();
+    };
+    
+    quad(constant_* coef, param_* p1, param_* p2);
+    
+    bool insert(bool sign, constant_* coef, param_* p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    
+    bool insert(bool sign, constant_* coef, param_* p1, param_* p2);/**< Adds coef*p1*p2 to the linear function. Returns true if added new term, false if only updated coef of p */
+    
+    quad(param_* p1, param_* p2);
+    
+//    quad(const lin& l):lin(l){
+//        _qterms = new map<string, qterm>();
+//    };
+    
+    quad(const quad& q):lin(q){
+        _qterms = new map<string, qterm>();
+        param_* p_new1;
+        param_* p_new2;
+        constant_* c_new;
+        for (auto &pair:*q._qterms) {
+            p_new1 = (param_*)copy(pair.second._p->first);
+            p_new2 = (param_*)copy(pair.second._p->second);
+            c_new = copy(pair.second._coef);
+            _qterms->insert(make_pair<>(p_new1->get_name()+","+p_new2->get_name(), qterm(pair.second._sign, c_new, p_new1, p_new2)));
+            if (p_new1->is_var()) {
+                _vars->insert((var_*) p_new1);
+            }
+            if (p_new2->is_var()) {
+                _vars->insert((var_*) p_new2);
+            }
+        }        
+    }
+    
+    quad(quad&& q){
+        func_::set_ftype(lin_);
+        set_type(func_c);
+        _convex = q._convex;
+        _lterms = q._lterms;
+        q._lterms = nullptr;
+        _qterms = q._qterms;
+        q._qterms = nullptr;
+        _vars = q._vars;
+        q._vars = nullptr;
+        _cst = q._cst;
+        q._cst = nullptr;
+    }
+    
+    void reset(){
+        func_::set_ftype(lin_);
+        set_type(func_c);
+        _convex = true;
+        _lterms->clear();
+        _qterms->clear();
+        _vars->clear();
+        delete _cst;
+        _cst = new constant<int>(0);
+    };
+    
     ~quad();
+    
+    void reverse_sign(); /*<< Reverse the sign of all quadratic and linear terms + constant in the function */
+    
+    quad& operator=(const quad& q);
+    
+    quad& operator=(quad&& q);
+    
+    bool operator==(const quad& q) const;
+    bool operator!=(const quad& q) const;
+    
+    bool is_constant() const{
+        return (_lterms->empty() && _qterms->empty());
+    }
+    
+    bool is_linear() const{
+        return (!_lterms->empty() && _qterms->empty());
+    }
+    
+    bool is_quadratic() const{
+        return (!_qterms->empty());
+    }
+    
+    constant_* get_cst() {
+        return _cst;
+    }
+    
+    quad& operator+=(const lin& l);
+    
+    quad& operator+=(const quad& q);
+    quad& operator-=(const quad& q);
+    
+    
+    quad& operator*=(bool n){
+        return *this *= constant<bool>(n);
+    };
+    quad& operator*=(short n){
+        return *this *= constant<short>(n);
+    };
+    quad& operator*=(int n){
+        return *this *= constant<int>(n);
+    };
+    quad& operator*=(float n){
+        return *this *= constant<float>(n);
+    };
+    quad& operator*=(double n){
+        return *this *= constant<double>(n);
+    };
+    quad& operator*=(long double n){
+        return *this *= constant<long double>(n);
+    };
+    
+    template<typename T> quad& operator+=(const constant<T>& c){
+        if (c.is_zero()) {
+            return *this;
+        }
+        _cst = add(_cst, c);
+        return *this;
+    }
+    template<typename T> quad& operator-=(const constant<T>& c){
+        if (c.is_zero()) {
+            return *this;
+        }
+        _cst = substract(_cst, c);
+        return *this;
+    }
+    
+    template<typename T> quad& operator*=(const constant<T>& c){
+        if (c.is_unit()) {
+            return *this;
+        }
+        if (c.is_zero()) {
+            reset();
+            return *this;
+        }
+        _cst = multiply(_cst, c);
+        
+        for (auto &pair:*_lterms) {
+            pair.second *= c;
+        }
+        for (auto &pair:*_qterms) {
+            pair.second *= c;
+        }
+        return *this;
+    }
+    
+    template<typename T> quad& operator/=(const constant<T>& c){
+        if (c.is_zero()) {
+            throw invalid_argument("\nERROT dividing linear function by zero!\n");
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        _cst = divide(_cst, c);
+        
+        for (auto &pair:*_lterms) {
+            pair.second /= c;
+        }
+        for (auto &pair:*_qterms) {
+            pair.second /= c;
+        }
+        return *this;
+    }
+    
+    template<typename T> quad& operator+=(const param<T>& p){
+        string name = p.get_name();
+        auto pair_it = _lterms->find(name);
+        if (pair_it == _lterms->end()) {
+            auto p_new = (param_*)copy((constant_*)&p);
+            _lterms->insert(make_pair<>(name, lterm(p_new)));
+            if (p.is_var()) {
+                _vars->insert((var_*)p_new);
+            }
+        }
+        else {
+            if (pair_it->second._coef->is_neg_unit()) {
+                _lterms->erase(pair_it);
+            }
+            else{
+                pair_it->second += constant<int>(1);
+            }
+        }
+        return *this;
+    }
+    
+    template<typename T> quad& operator-=(const param<T>& p){
+        string name = p.get_name();
+        auto pair_it = _lterms->find(name);
+        if (pair_it == _lterms->end()) {
+            auto p_new = (param_*)copy((constant_*)&p);
+            _lterms->insert(make_pair<>(name, lterm(new constant<int>(-1), p_new)));
+            if (p.is_var()) {
+                _vars->insert((var_*)p_new);
+            }
+        }
+        else {
+            if (pair_it->second._coef->is_unit()) {
+                _lterms->erase(pair_it);
+            }
+            else{
+                pair_it->second -= constant<int>(1);
+            }
+        }
+        return *this;
+    }
+    
+    
+    
+    void const print(bool endline=true);
     
 };
 
@@ -662,54 +1008,96 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
         case binary_c: {
             auto val = ((constant<bool>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case short_c: {
             auto val = ((constant<short>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case integer_c: {
             auto val = ((constant<int>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case float_c: {
             auto val = ((constant<float>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case double_c: {
             auto val = ((constant<double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case long_c: {
             auto val = ((constant<long double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l += *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l += *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
@@ -767,54 +1155,96 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
         case binary_c: {
             auto val = ((constant<bool>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case short_c: {
             auto val = ((constant<short>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case integer_c: {
             auto val = ((constant<int>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case float_c: {
             auto val = ((constant<float>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case double_c: {
             auto val = ((constant<double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case long_c: {
             auto val = ((constant<long double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l -= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l -= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
@@ -871,54 +1301,96 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
         case binary_c: {
             auto val = ((constant<bool>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case short_c: {
             auto val = ((constant<short>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case integer_c: {
             auto val = ((constant<int>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case float_c: {
             auto val = ((constant<float>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case double_c: {
             auto val = ((constant<double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
         case long_c: {
             auto val = ((constant<long double>*)c1);
             delete c1;
-            auto l = new lin(new param<T>(c2));
-            *l *= *val;
-            c1 = (constant_*)(l);
+            if (c2.is_var()) {
+                auto l = new lin(new var<T>(*(var<T>*)&c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
+            else{
+                auto l = new lin(new param<T>(c2));
+                *l *= *val;
+                c1 = (constant_*)(l);
+            }
             return c1;
             break;
         }
@@ -1078,7 +1550,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
 }
 
 template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    if (eval(c1)==0) {
+    if (c1->is_number() && eval(c1)==0) {
         return c1;
     }
     if (c2.eval()==1) {
@@ -1540,23 +2012,91 @@ template<typename T1, typename T2> lin operator/(const var<T1>& v, const constan
 
 
 
-template<typename T> quad operator+(const constant<T>& c, const quad& q);
-template<typename T> quad operator+(const quad& q, const constant<T>& c);
-template<typename T> quad operator+(const var<T>& v, const quad& q);
-template<typename T> quad operator+(const quad& q, const var<T>& v);
-template<typename T> quad operator+(const constant<T>& c, const quad& q);
+template<typename T> quad operator+(const constant<T>& c, const quad& q){
+    return quad(q) += c;
+};
+
+template<typename T> quad operator+(const constant<T>& c, quad&& q){
+    return q += c;
+};
+
+template<typename T> quad operator+(const quad& q, const constant<T>& c){
+    return quad(q) += c;
+};
+
+template<typename T> quad operator+(quad&& q, const constant<T>& c){
+    return q += c;
+};
 
 
-template<typename T> quad operator-(const constant<T>& c, const quad& q);
-template<typename T> quad operator-(const quad& q, const constant<T>& c);
-template<typename T> quad operator-(const var<T>& v, const quad& q);
-template<typename T> quad operator-(const quad& q, const var<T>& v);
-template<typename T> quad operator-(const constant<T>& c, const quad& q);
+template<typename T> quad operator+(const param<T>& v, const quad& q){
+    return quad(q) += v;
+};
+
+template<typename T> quad operator+(const param<T>& v, quad&& q){
+    return q += v;
+};
+
+template<typename T> quad operator+(const quad& q, const param<T>& v){
+    return quad(q) += v;
+};
+
+template<typename T> quad operator+(quad&& q, const param<T>& v){
+    return q +=v;
+};
+
+
+
+template<typename T> quad operator-(const constant<T>& c, const quad& q){
+    return quad(c) -= q;
+};
+
+template<typename T> quad operator-(const constant<T>& c, quad&& q){
+    return (q *= -1) += c;
+};
+
+template<typename T> quad operator-(const quad& q, const constant<T>& c){
+    return quad(q) -= c;
+};
+
+template<typename T> quad operator-(quad&& q, const constant<T>& c){
+    return q -= c;
+};
+
+
+template<typename T> quad operator-(const param<T>& v, const quad& q){
+    return quad(v) -= q;
+};
+
+template<typename T> quad operator-(const param<T>& v, quad&& q){
+    return (q *= -1) += v;
+};
+
+template<typename T> quad operator-(const quad& q, const param<T>& v){
+    return quad(q) -= v;
+};
+
+template<typename T> quad operator-(quad&& q, const param<T>& v){
+    return q -= v;
+};
+
 
 
 template<typename T> quad operator*(const quad& q, const constant<T>& c);
 template<typename T> quad operator*(const constant<T>& c, const quad& q);
-template<typename T> quad operator*(const lin& l, const var<T>& v);
+template<typename T> quad operator*(const lin& l, const param<T>& v){
+    quad res;
+    param_* p_new1;
+    param_* p_new2 = (param_*) &v;
+    constant_* c_new;
+    for (auto &pair:*l._lterms) {
+        c_new = pair.second._coef;
+        p_new1 = pair.second._p;
+        res.insert(pair.second._sign, c_new, p_new1, p_new2);
+    }
+    return res;
+}
+
 template<typename T> quad operator*(const var<T>& v, const lin& l);
 quad operator*(const lin& l1, const lin& l2);
 

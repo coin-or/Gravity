@@ -129,7 +129,7 @@ int main (int argc, const char * argv[])
     l11.print();
     l11 *= -2;
     l11.print();
-    auto l00 = p(1,2) + q(1)+ p(3);
+    auto l00 = 2*ip*p(1,2) + q(1)+ p(3);
     l00.print();
 //    l11 *= ip;
 //    l11.print();

@@ -22,26 +22,17 @@ using namespace std;
 /** Backbone class for parameter */
 class param_: public constant_{
 protected:
-    string      _name;
-    NType       _intype;
-    set<int>    _indices;
+    string          _name;
+    NType           _intype;
+    vector<int>     _indices;
 public:
     
     virtual ~param_(){};
     
-    string get_name() const {
-        string name = _name;
-        name += "(";
-        for (auto &idx: _indices) {
-             name += to_string(idx);
-        }
-        name += ")";
-        return name;
-    };
-    
+    string get_name() const;
     NType get_intype() const { return _intype;}
     
-    set<int> get_indices() const {
+    vector<int> get_indices() const {
         return _indices;
     }
     
@@ -190,7 +181,8 @@ public:
     param(const char* s){
         _name = s;
         update_type();
-        _val = make_shared<vector<type>>();        
+        _val = make_shared<vector<type>>();
+//        _indices.reserve(3);
     }
 
     NType get_intype() const { return _intype;}
