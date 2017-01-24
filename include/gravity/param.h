@@ -24,7 +24,7 @@ class param_: public constant_{
 protected:
     string          _name;
     NType           _intype;
-    vector<int>     _indices;
+    vector<int>*    _indices;
 public:
     
     virtual ~param_(){};
@@ -32,7 +32,7 @@ public:
     string get_name() const;
     NType get_intype() const { return _intype;}
     
-    vector<int> get_indices() const {
+    vector<int>* get_indices() const {
         return _indices;
     }
     
@@ -62,7 +62,7 @@ public:
     
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_type==p._type && _intype==p._intype && _name==p._name);
+        return (_type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
 
@@ -121,7 +121,9 @@ public:
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
     
-    ~param(){}
+    ~param(){
+        delete _indices;
+    }
     
 
     param (const param& p) {
@@ -129,20 +131,18 @@ public:
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
+        _indices = new vector<int>(*p._indices);
+    }
+    
+    param (param&& p) {
+        _type = par_c;
+        _intype = p._intype;
+        _val = p._val;
+        _name = p._name;
         _indices = p._indices;
+        p._indices = nullptr;
     }
 
-//    template<class... Args>
-//    param operator()(Args&&... args){
-//        auto res(*this);
-////        va_list arg_list;
-//        va_start(args, sizeof...(args));
-//        for (int i = 0; i < sizeof...(args); ++i) {
-//            res._indices.insert(va_arg(args, int));
-//        }
-//        va_end(args);
-//        return res;
-//    }
 
     void set_type(CType t) { _type = t;}
     
@@ -182,12 +182,10 @@ public:
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();
-//        _indices.reserve(3);
+        _indices = new vector<int>();
     }
 
     NType get_intype() const { return _intype;}
-    
-//    void set_intype(NType type){ _intype = type;}
     
     type eval() const{
         if (_val->size() == 0) {
@@ -225,7 +223,7 @@ public:
 
     /** Operators */
     bool operator==(const param& p) const {
-        return (_name==p._name && _type==p._type && _intype==p._intype && *_val==*p._val);
+        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && *_indices==*p._indices && *_val==*p._val);
     }
     
     param& operator=(type v){

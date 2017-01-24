@@ -82,7 +82,7 @@ public:
 };
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
-template<typename type = short>
+template<typename type = int>
 class constant: public constant_{
 protected:
     type        _val;

@@ -69,7 +69,7 @@ public:
     template<class... Args>
     var operator()(Args&&... args){
         auto res(*this);
-        res._indices = {forward<Args>(args)...};
+        *res._indices = {forward<Args>(args)...};
         return res;
     }
     

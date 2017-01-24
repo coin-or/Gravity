@@ -27,11 +27,60 @@ double eval(const constant_* c1);
 /** Backbone class for function */
 class func_ : public constant_{
 private:
-    FType                   _ftype = const_;
+    FType                                  _ftype = const_;
 public:
-    NType                   _return_type;
-    bool                    _convex = true;
-    set<var_*>*             _vars;/**< Set of variables appearing in this function **/
+    NType                                  _return_type;
+    bool                                   _convex = true;
+    map<string, pair<param_*, int>>*       _vars;/**< map <variable name, <variable pointer, number of times it appears in function>>**/
+    
+    param_* get_var(string name){
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
+            return nullptr;
+        }
+        else {
+            return get<1>(*pair_it).first;
+        }
+    }
+    
+    void add_var(param_* p){/**< Inserts the variable in this function input list. WARNING: Assumes that p has not been added previousely!*/
+        assert(_vars->count(p->get_name())==0);
+        _vars->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
+    }
+    
+    int nb_occ(string name) const{/**< Returns the number of occurences the variable has in this function. */
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
+            return 0;
+        }
+        else {
+            return get<1>(*pair_it).second;
+        }
+    }
+    
+    void incr_occ(string str){/**< Increases the number of occurences the variable has in this function. */
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
+            throw invalid_argument("Non-existing variable in function!\n");
+        }
+        else {
+            get<1>(*pair_it).second++;
+        }
+    }
+    
+    void decr_occ(string str){/**< Decreases the number of occurences the variable has in this function. */
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
+            return;
+        }
+        else {
+            get<1>(*pair_it).second--;
+            if (get<1>(*pair_it).second==0) {
+                delete get<1>(*pair_it).first;
+                _vars->erase(pair_it);
+            }
+        }
+    }
     
     virtual ~func_(){};
     pair<ind,func_*> operator[](ind i);
@@ -40,7 +89,7 @@ public:
     };
     
     bool is_constant() const{
-        return (_ftype==const_ || (_ftype==lin_ && _vars->empty()));
+        return (_ftype==const_);
     }
     
     bool is_linear() const{
@@ -181,7 +230,7 @@ public:
     
     ~lterm(){
         delete _coef;
-        delete _p;
+//        delete _p;
     };
     
     bool operator==(const lterm& l) const;
@@ -313,8 +362,6 @@ public:
     ~qterm(){
         delete _coef;
         if (_p) {
-            delete _p->first;
-            delete _p->second;
             delete _p;
         }
     };
@@ -394,19 +441,19 @@ protected:
 public:
     constant_*                 _cst;/**< Constant part of the linear function */
     map<string, lterm>*        _lterms;
-
+    
     lin(){
         func_::set_ftype(lin_);
         set_type(func_c);
         _convex = true;
         _lterms = new map<string, lterm>();
-        _vars = new set<var_*>;
+        _vars = new map<string, pair<param_*, int>>();
         _cst = new constant<int>(0);
     };
 
     lin(constant_* coef, param_* p);
     
-    bool insert(bool sign, constant_* coef, param_* p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     
     lin(param_* p);
     
@@ -415,16 +462,18 @@ public:
         set_type(func_c);
         _convex = l._convex;
         _lterms = new map<string, lterm>();
-        _vars = new set<var_*>;
+        _vars = new map<string, pair<param_*, int>>();
         param_* p_new;
         constant_* c_new;
+        string str;
         for (auto &pair:*l._lterms) {
             p_new = (param_*)copy(pair.second._p);
             c_new = copy(pair.second._coef);
-            _lterms->insert(make_pair<>(p_new->get_name(), lterm(pair.second._sign, c_new, p_new)));
-            if (p_new->is_var()) {
-                _vars->insert((var_*) p_new);
-            }
+            str = p_new->get_name();
+            _lterms->insert(make_pair<>(str, lterm(pair.second._sign, c_new, p_new)));
+//            if (p_new->is_var()) {
+                _vars->insert(make_pair<>(str, make_pair<>(p_new, 1)));
+//            }
         }
         _cst = copy(l._cst);
     }
@@ -446,6 +495,9 @@ public:
         set_type(func_c);
         _convex = true;
         _lterms->clear();
+        for (auto &elem: *_vars) {
+            delete elem.second.first;
+        }
         _vars->clear();
         delete _cst;
         _cst = new constant<int>(0);
@@ -541,55 +593,12 @@ public:
     }
 
     template<typename T> lin& operator+=(const param<T>& p){
-        string name = p.get_name();
-        auto pair_it = _lterms->find(name);
-        if (pair_it == _lterms->end()) {
-            auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(name, lterm(p_new)));
-            if (p.is_var()) {
-                _vars->insert((var_*)p_new);
-            }
-        }
-        else {
-            if (pair_it->second._coef->is_neg_unit()) {
-                _lterms->erase(pair_it);
-            }
-            else{
-                pair_it->second += constant<int>(1);
-            }
-        }
+        insert(true, constant<int>(1), p);
         return *this;
     }
     
     template<typename T> lin& operator-=(const param<T>& p){
-        string name = p.get_name();
-        auto pair_it = _lterms->find(name);
-        if (pair_it == _lterms->end()) {
-            auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(name, lterm(new constant<int>(-1), p_new)));
-            if (p.is_var()) {
-                _vars->insert((var_*)p_new);
-            }
-        }
-        else {
-            if (pair_it->second._coef->is_unit()) {
-                _lterms->erase(pair_it);
-            }
-            else{
-                pair_it->second -= constant<int>(1);
-            }
-        }
-        return *this;
-    }
-
-    template<typename T> lin& operator*=(const param<T>& p){
-        if (!_cst->is_zero()) {
-            auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(p_new->get_name(), lterm(_cst, p_new)));
-        }
-        for (auto &pair:*_lterms) {
-            pair.second *= p;
-        }
+       insert(false, constant<int>(1), p);
         return *this;
     }
     
@@ -611,9 +620,9 @@ public:
     
     quad(constant_* coef, param_* p1, param_* p2);
     
-    bool insert(bool sign, constant_* coef, param_* p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     
-    bool insert(bool sign, constant_* coef, param_* p1, param_* p2);/**< Adds coef*p1*p2 to the linear function. Returns true if added new term, false if only updated coef of p */
+    bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the linear function. Returns true if added new term, false if only updated coef of p */
     
     quad(param_* p1, param_* p2);
     
@@ -625,19 +634,31 @@ public:
         _qterms = new map<string, qterm>();
         param_* p_new1;
         param_* p_new2;
+        string s1;
+        string s2;
         constant_* c_new;
         for (auto &pair:*q._qterms) {
-            p_new1 = (param_*)copy(pair.second._p->first);
-            p_new2 = (param_*)copy(pair.second._p->second);
+            auto p1 = pair.second._p->first;
+            auto p2 = pair.second._p->second;
+            s1 = p1->get_name();
+            p_new1 = get_var(s1);
+            if (!p_new1) {
+                p_new1 = (param_*)copy(p1);
+            }
+            s2 = p2->get_name();
+            p_new2 = get_var(s2);
+            if (!p_new2) {
+                p_new2 = (param_*)copy(p2);
+            }
             c_new = copy(pair.second._coef);
-            _qterms->insert(make_pair<>(p_new1->get_name()+","+p_new2->get_name(), qterm(pair.second._sign, c_new, p_new1, p_new2)));
-            if (p_new1->is_var()) {
-                _vars->insert((var_*) p_new1);
-            }
-            if (p_new2->is_var()) {
-                _vars->insert((var_*) p_new2);
-            }
-        }        
+            _qterms->insert(make_pair<>(s1+","+s2, qterm(pair.second._sign, c_new, p_new1, p_new2)));
+//            if (p_new1->is_var()) {
+                incr_occ(s1);
+//            }
+//            if (p_new2->is_var()) {
+                incr_occ(s2);
+//            }
+        }
     }
     
     quad(quad&& q){
@@ -660,6 +681,9 @@ public:
         _convex = true;
         _lterms->clear();
         _qterms->clear();
+        for (auto &elem: *_vars) {
+            delete elem.second.first;
+        }
         _vars->clear();
         delete _cst;
         _cst = new constant<int>(0);
@@ -771,44 +795,13 @@ public:
     }
     
     template<typename T> quad& operator+=(const param<T>& p){
-        string name = p.get_name();
-        auto pair_it = _lterms->find(name);
-        if (pair_it == _lterms->end()) {
-            auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(name, lterm(p_new)));
-            if (p.is_var()) {
-                _vars->insert((var_*)p_new);
-            }
-        }
-        else {
-            if (pair_it->second._coef->is_neg_unit()) {
-                _lterms->erase(pair_it);
-            }
-            else{
-                pair_it->second += constant<int>(1);
-            }
-        }
+        insert(true, constant<int>(1), &p);
         return *this;
     }
     
     template<typename T> quad& operator-=(const param<T>& p){
         string name = p.get_name();
-        auto pair_it = _lterms->find(name);
-        if (pair_it == _lterms->end()) {
-            auto p_new = (param_*)copy((constant_*)&p);
-            _lterms->insert(make_pair<>(name, lterm(new constant<int>(-1), p_new)));
-            if (p.is_var()) {
-                _vars->insert((var_*)p_new);
-            }
-        }
-        else {
-            if (pair_it->second._coef->is_unit()) {
-                _lterms->erase(pair_it);
-            }
-            else{
-                pair_it->second -= constant<int>(1);
-            }
-        }
+        insert(false, constant<int>(1), &p);
         return *this;
     }
     
@@ -889,8 +882,7 @@ public:
     
 };
 
-constant_* add(constant_* c1, constant_* c2);
-constant_* substract(constant_* c1, constant_* c2);
+constant_* add(constant_* c1, const constant_& c2);
 
 template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
     switch (c1->get_type()) {
@@ -1148,6 +1140,8 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
     }
     return c1;
 }
+
+constant_* substract(constant_* c1, const constant_& c2);
 
 
 template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
@@ -1894,11 +1888,11 @@ template<typename T1, typename T2> lin operator-(const constant<T2>& c, const pa
 
 
 template<typename T1, typename T2> lin operator*(const param<T1>& v1, const param<T2>& v2){
-    if (v1.is_var()) {
+    if (v2.is_param()) {
         auto vv1 = (var<T1>*)&v1;
         return lin(new param<T2>(v2), new var<T1>(*vv1));
     }
-    else{
+    else if (v1.is_param()){
         auto vv2 = (var<T2>*)&v2;
         return lin(new param<T1>(v1), new var<T2>(*vv2));
     }
@@ -1906,7 +1900,7 @@ template<typename T1, typename T2> lin operator*(const param<T1>& v1, const para
 }
 
 template<typename T1, typename T2> quad operator*(const var<T1>& v1, const var<T2>& v2){
-    return quad();
+    return ((lin() += v1) * v2);
 }
 
 
@@ -2092,7 +2086,7 @@ template<typename T> quad operator*(const lin& l, const param<T>& v){
     for (auto &pair:*l._lterms) {
         c_new = pair.second._coef;
         p_new1 = pair.second._p;
-        res.insert(pair.second._sign, c_new, p_new1, p_new2);
+        res.insert(pair.second._sign, *c_new, *p_new1, *p_new2);
     }
     return res;
 }

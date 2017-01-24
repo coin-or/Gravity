@@ -16,43 +16,48 @@
 
 lin::lin(constant_* coef, param_* p):lin(){
     _lterms->insert(make_pair<>(p->get_name(), lterm(coef, p)));
-    if (p->is_var()) {
-        _vars->insert((var_*)p);
-    }
+//    if (p->is_var()) {
+        add_var(p);
+//    }
 };
 
 lin::lin(param_* p):lin(){
     _lterms->insert(make_pair<>(p->get_name(), lterm(p)));
-    if (p->is_var()) {
-        _vars->insert((var_*)p);
-    }
+//    if (p->is_var()) {
+        add_var(p);
+//    }
 };
 
 lin::~lin(){
+    if (_vars) {
+        for (auto &elem: *_vars) {
+            delete elem.second.first;
+        }
+        delete _vars;
+    }
     delete _lterms;
-    delete _vars;
     delete _cst;
 };
 
 
 quad::quad(constant_* coef, param_* p1, param_* p2):quad(){
     _qterms->insert(make_pair<>(p1->get_name()+","+p2->get_name(), qterm(coef, p1, p2)));
-    if (p1->is_var()) {
-        _vars->insert((var_*)p1);
-    }
-    if (p2->is_var()) {
-        _vars->insert((var_*)p2);
-    }
+//    if (p1->is_var()) {
+        add_var(p1);
+//    }
+//    if (p2->is_var()) {
+        add_var(p2);
+//    }
 };
 
 quad::quad(param_* p1, param_* p2):quad(){
     _qterms->insert(make_pair<>(p1->get_name()+","+p2->get_name(), qterm(p1, p2)));
-    if (p1->is_var()) {
-        _vars->insert((var_*)p1);
-    }
-    if (p2->is_var()) {
-        _vars->insert((var_*)p2);
-    }
+//    if (p1->is_var()) {
+        add_var(p1);
+//    }
+//    if (p2->is_var()) {
+        add_var(p2);
+//    }
 };
 
 quad::~quad(){
@@ -60,16 +65,16 @@ quad::~quad(){
 };
 
 
-bool lin::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-    auto name = p->get_name();
+bool lin::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    auto name = p.get_name();
     auto pair_it = _lterms->find(name);
     if (pair_it == _lterms->end()) {
-        auto p_new = (param_*)copy(p);
-        auto c_new = copy(coef);
+        auto c_new = copy(&coef);
+        auto p_new = (param_*)copy(&p);
         _lterms->insert(make_pair<>(name, lterm(sign, c_new, p_new)));
-        if (p->is_var()) {
-            _vars->insert((var_*)p_new);
-        }
+//        if (p.is_var()) {
+            add_var(p_new);
+//        }
         return true;
     }
     else {
@@ -81,8 +86,8 @@ bool lin::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the 
         }
         
         if (pair_it->second._coef->is_zero()) {
-            _vars->erase((var_*)pair_it->second._p);
             _lterms->erase(pair_it);
+            decr_occ(name);
         }
         return false;
     }
@@ -96,55 +101,80 @@ void lin::reverse_sign(){ /*<< Reverse the sign of all linear terms and constant
     ::reverse_sign(_cst);
 }
 
-bool quad::insert(bool sign, constant_* coef, param_* p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-    auto name = p->get_name();
+bool quad::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    auto name = p.get_name();
     auto pair_it = _lterms->find(name);
     if (pair_it == _lterms->end()) {
-        auto p_new = (param_*)copy(p);
-        auto c_new = copy(coef);
-        _lterms->insert(make_pair<>(name, lterm(sign, c_new, p_new)));
-        if (p->is_var()) {
-            _vars->insert((var_*)p_new);
+        auto c_new = copy(&coef);
+        auto p_new = get_var(name);
+        if (!p_new) {
+            p_new = (param_*)copy(&p);
+//            if (p_new->is_var()) {
+                add_var(p_new);
+//            }
         }
+//        else if (p_new->is_var()) {
+        else {
+            incr_occ(name);
+        }
+        _lterms->insert(make_pair<>(name, lterm(sign, c_new, p_new)));
         return true;
     }
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
+            if (!pair_it->second._sign) { // both negative
+                pair_it->second._sign = true;
+            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
         }
-        
         if (pair_it->second._coef->is_zero()) {
             _lterms->erase(pair_it);
-            if (_qterms->find(name)==_qterms->end()) {
-                _vars->erase((var_*)pair_it->second._p);
-            }
+            decr_occ(name);
         }
         return false;
     }
 };
 
 
-bool quad::insert(bool sign, constant_* coef, param_* p1, param_* p2){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-    auto name = p1->get_name()+","+p2->get_name();
+bool quad::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+    auto s1 = p1.get_name();
+    auto s2 = p2.get_name();
+    auto name = s1+","+s2;
     auto pair_it = _qterms->find(name);
+    param_* p_new1;
+    param_* p_new2;
     if (pair_it == _qterms->end()) {
-        auto p_new1 = (param_*)copy(p1);
-        auto p_new2 = (param_*)copy(p2);
-        auto c_new = copy(coef);
-        _qterms->insert(make_pair<>(name, qterm(sign, c_new, p_new1, p_new2)));
-        if (p1->is_var()) {
-            _vars->insert((var_*)p_new1);
+        p_new1 = get_var(s1);
+        if (!p_new1) {
+            p_new1 = (param_*)copy(&p1);
+            add_var(p_new1);
         }
-        if (p2->is_var()) {
-            _vars->insert((var_*)p_new2);
-        }        return true;
+//        else if (p1.is_var()) {
+        else {
+            incr_occ(s1);
+        }
+        p_new2 = get_var(s2);
+        if (!p_new2) {
+            p_new2 = (param_*)copy(&p2);
+            add_var(p_new2);
+        }
+//        else if (p2.is_var()) {
+        else {
+            incr_occ(s2);
+        }
+        auto c_new = copy(&coef);
+        _qterms->insert(make_pair<>(name, qterm(sign, c_new, p_new1, p_new2)));
+        return true;
     }
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
+            if (!pair_it->second._sign) { // both negative
+                pair_it->second._sign = true;
+            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -152,9 +182,8 @@ bool quad::insert(bool sign, constant_* coef, param_* p1, param_* p2){/**< Adds 
         
         if (pair_it->second._coef->is_zero()) {
             _qterms->erase(pair_it);
-            if (_lterms->find(name)==_lterms->end()) {
-                _vars->erase((var_*)pair_it->second._p);
-            }
+            decr_occ(s1);
+            decr_occ(s2);
         }
         return false;
     }
@@ -206,17 +235,20 @@ lin& lin::operator=(const lin& l){
     _convex = l._convex;
     delete _lterms;
     _lterms = new map<string, lterm>();
+    for (auto &elem: *_vars) {
+        delete elem.second.first;
+    }
     delete _vars;
-    _vars = new set<var_*>;
+    _vars = new map<string, pair<param_*, int>>();
     param_* p_new;
     constant_* c_new;
     for (auto &pair:*l._lterms) {
         p_new = (param_*)copy(pair.second._p);
         c_new = copy(pair.second._coef);
         _lterms->insert(make_pair<>(p_new->get_name(), lterm(pair.second._sign, c_new, p_new)));
-        if (p_new->is_var()) {
-            _vars->insert((var_*) p_new);
-        }
+//        if (p_new->is_var()) {
+            add_var(p_new);
+//        }
     }
     delete _cst;
     _cst = copy(l._cst);
@@ -228,6 +260,9 @@ lin& lin::operator=(lin&& l){
     delete _lterms;
     _lterms = l._lterms;
     l._lterms = nullptr;
+    for (auto &elem: *_vars) {
+        delete elem.second.first;
+    }
     delete _vars;
     _vars = l._vars;
     l._vars = nullptr;
@@ -251,20 +286,6 @@ bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
 bool constant_::is_neg_unit() const{ /**< Returns true if constant equals -1 */
     return (is_number() && eval(this)==-1);
 }
-
-
-//template <typename T> lin operator*(const lin& l, const constant<T>& c){
-//    return lin(l) *= c;
-//}
-//
-//template lin operator*(const lin& l, const constant<short>& c);
-//template lin operator*(const lin& l, const constant<int>& c);
-//template lin operator*(const lin& l, const constant<float>& c);
-//template lin operator*(const lin& l, const constant<double>& c);
-//template lin operator*(const lin& l, const constant<long double>& c);
-
-
-//missing long double
 
 void const lin::print(bool endline){
     param_* p_new;
@@ -398,7 +419,7 @@ void const quad::print(bool endline){
         poly_print(p_new2);
         ind++;
     }
-    if (!_qterms->empty()) {
+    if (!_qterms->empty() && (!_lterms->empty() || !_cst->is_zero())) {
         cout << " + ";
     }
     lin::print();
@@ -1013,39 +1034,43 @@ constant_* multiply(constant_* c1, const lin& l1){
         }
         case par_c:{
             auto pc1 = (param_*)(c1);
-            auto l = new lin(l1);
             switch (pc1->get_intype()) {
-                case binary_:
-                    *l *= *((param<bool>*)pc1);
+                case binary_: {
+                    auto res = new quad(l1 * *((param<bool>*)pc1));
                     delete c1;
-                    return c1 = l;
+                    return c1 = res;
                     break;
-                case short_:
-                    *l *= *((param<short>*)pc1);
+                }
+                case short_: {
+                    auto res = new quad(l1 * *((param<short>*)pc1));
                     delete c1;
-                    return c1 = l;
+                    return c1 = res;
                     break;
-                case integer_:
-                    *l *= *((param<int>*)pc1);
+                }
+                case integer_: {
+                    auto res = new quad(l1 * *((param<int>*)pc1));
                     delete c1;
-                    return c1 = l;
-                    
+                    return c1 = res;
                     break;
-                case float_:
-                    *l *= *((param<float>*)pc1);
+                                        }
+                case float_: {
+                    auto res = new quad(l1 * *((param<float>*)pc1));
                     delete c1;
-                    return c1 = l;
+                    return c1 = res;
                     break;
-                case double_:
-                    *l *= *((param<double>*)pc1);
+                }
+                case double_: {
+                    auto res = new quad(l1 * *((param<double>*)pc1));
                     delete c1;
-                    return c1 = l;
+                    return c1 = res;
                     break;
-                case long_:
-                    *l *= *((param<long double>*)pc1);
+                }
+                case long_: {
+                    auto res = new quad(l1 * *((param<long double>*)pc1));
                     delete c1;
-                    return c1 = l;
+                    return c1 = res;
                     break;
+                }
                 default:
                     break;
             }
@@ -1183,34 +1208,34 @@ constant_* substract(constant_* c1, const lin& l1){
 }
 
 
-constant_* add(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    switch (c2->get_type()) {
+constant_* add(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    switch (c2.get_type()) {
         case binary_c: {
-            return add(c1, *(constant<bool>*)c2);
+            return add(c1, *(constant<bool>*)&c2);
             break;
         }
         case short_c: {
-            return add(c1, *(constant<short>*)c2);
+            return add(c1, *(constant<short>*)&c2);
             break;
         }
         case integer_c: {
-            return add(c1, *(constant<int>*)c2);
+            return add(c1, *(constant<int>*)&c2);
             break;
         }
         case float_c: {
-            return add(c1, *(constant<float>*)c2);
+            return add(c1, *(constant<float>*)&c2);
             break;
         }
         case double_c: {
-            return add(c1, *(constant<double>*)c2);
+            return add(c1, *(constant<double>*)&c2);
             break;
         }
         case long_c: {
-            return add(c1, *(constant<long double>*)c2);
+            return add(c1, *(constant<long double>*)&c2);
             break;
         }
         case par_c:{
-            auto pc2 = (param_*)(c2);
+            auto pc2 = (param_*)(&c2);
             switch (pc2->get_intype()) {
                 case binary_:
                     return add(c1, *(param<bool>*)pc2);
@@ -1250,9 +1275,9 @@ constant_* add(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates its ty
             break;
         }
         case func_c: {
-            switch (((func_*)c2)->get_ftype()) {
+            switch (((func_*)&c2)->get_ftype()) {
                 case lin_:
-                    return add(c1, (*(lin*)c2));
+                    return add(c1, (*(lin*)&c2));
                     break;
                     
                 default:
@@ -1265,34 +1290,34 @@ constant_* add(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates its ty
     return nullptr;
 }
 
-constant_* substract(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    switch (c2->get_type()) {
+constant_* substract(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    switch (c2.get_type()) {
         case binary_c: {
-            return substract(c1, *(constant<bool>*)c2);
+            return substract(c1, *(constant<bool>*)&c2);
             break;
         }
         case short_c: {
-            return substract(c1, *(constant<short>*)c2);
+            return substract(c1, *(constant<short>*)&c2);
             break;
         }
         case integer_c: {
-            return substract(c1, *(constant<int>*)c2);
+            return substract(c1, *(constant<int>*)&c2);
             break;
         }
         case float_c: {
-            return substract(c1, *(constant<float>*)c2);
+            return substract(c1, *(constant<float>*)&c2);
             break;
         }
         case double_c: {
-            return substract(c1, *(constant<double>*)c2);
+            return substract(c1, *(constant<double>*)&c2);
             break;
         }
         case long_c: {
-            return substract(c1, *(constant<long double>*)c2);
+            return substract(c1, *(constant<long double>*)&c2);
             break;
         }
         case par_c:{
-            auto pc2 = (param_*)(c2);
+            auto pc2 = (param_*)(&c2);
             switch (pc2->get_intype()) {
                 case binary_:
                     return substract(c1, *(param<bool>*)pc2);
@@ -1332,9 +1357,9 @@ constant_* substract(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates 
             break;
         }
         case func_c: {
-            switch (((func_*)c2)->get_ftype()) {
+            switch (((func_*)&c2)->get_ftype()) {
                 case lin_:
-                    return substract(c1, (*(lin*)c2));
+                    return substract(c1, (*(lin*)&c2));
                     break;
                     
                 default:
@@ -1347,30 +1372,30 @@ constant_* substract(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates 
     return nullptr;
 }
 
-constant_* multiply(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    switch (c2->get_type()) {
+constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    switch (c2.get_type()) {
         case binary_c: {
-            return multiply(c1, *(constant<bool>*)c2);
+            return multiply(c1, *(constant<bool>*)&c2);
             break;
         }
         case short_c: {
-            return multiply(c1, *(constant<short>*)c2);
+            return multiply(c1, *(constant<short>*)&c2);
             break;
         }
         case integer_c: {
-            return multiply(c1, *(constant<int>*)c2);
+            return multiply(c1, *(constant<int>*)&c2);
             break;
         }
         case float_c: {
-            return multiply(c1, *(constant<float>*)c2);
+            return multiply(c1, *(constant<float>*)&c2);
             break;
         }
         case double_c: {
-            return multiply(c1, *(constant<double>*)c2);
+            return multiply(c1, *(constant<double>*)&c2);
             break;
         }
         case long_c: {
-            return multiply(c1, *(constant<long double>*)c2);
+            return multiply(c1, *(constant<long double>*)&c2);
             break;
         }
         case uexp_c: {
@@ -1388,9 +1413,9 @@ constant_* multiply(constant_* c1, constant_* c2){ /**< adds c2 to c1, updates i
             break;
         }
         case func_c: {
-            switch (((func_*)c2)->get_ftype()) {
+            switch (((func_*)&c2)->get_ftype()) {
                 case lin_:
-                    return multiply(c1, (*(lin*)c2));
+                    return multiply(c1, (*(lin*)&c2));
                     break;
                     
                 default:
@@ -1425,9 +1450,9 @@ lin operator-(lin&& l1, const lin& l2){
 
 
 lin& lin::operator+=(const lin& l){
-    _cst = add(_cst, l._cst);
+    _cst = add(_cst, *l._cst);
     for (auto &pair:*l._lterms) {
-        this->insert(pair.second._sign, pair.second._coef, pair.second._p);
+        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
     }
     return *this;
 }
@@ -1439,9 +1464,9 @@ lin& lin::operator-=(const lin& l){
 
 
 quad& quad::operator+=(const lin& l){
-    _cst = add(_cst, l._cst);
+    _cst = add(_cst, *l._cst);
     for (auto &pair:*l._lterms) {
-        this->insert(pair.second._sign, pair.second._coef, pair.second._p);
+        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
     }
     return *this;
 }
