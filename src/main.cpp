@@ -102,6 +102,8 @@ int main (int argc, const char * argv[])
     c1.print();
     auto l2 = 2*p;
     l2.print();
+    auto q1 = l2 * q;
+    q1.print();
     auto l3 = dp*q;
     l3.print();
     
@@ -132,6 +134,10 @@ int main (int argc, const char * argv[])
     auto l00 = 2*p(1,2) + q(1)+ p(3);
     l00.print();
     auto q00 = l00*q(1,2,3);
+    q00.print();
+    auto t00 = q(1)*q(1,2,3) + 2;
+    t00.print();
+    q00 -= t00;
     q00.print();
     int i = 1;
     int j = 2;

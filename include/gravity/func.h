@@ -615,6 +615,7 @@ protected:
 
 public:
     quad():lin(){
+        func_::set_ftype(quad_);
         _qterms = new map<string, qterm>();
     };
     
@@ -631,6 +632,7 @@ public:
 //    };
     
     quad(const quad& q):lin(q){
+        func_::set_ftype(quad_);
         _qterms = new map<string, qterm>();
         param_* p_new1;
         param_* p_new2;
@@ -644,25 +646,27 @@ public:
             p_new1 = get_var(s1);
             if (!p_new1) {
                 p_new1 = (param_*)copy(p1);
+                add_var(p_new1);
+            }
+            else {
+                incr_occ(s1);
             }
             s2 = p2->get_name();
             p_new2 = get_var(s2);
             if (!p_new2) {
                 p_new2 = (param_*)copy(p2);
+                add_var(p_new2);
+            }
+            else {
+                incr_occ(s2);
             }
             c_new = copy(pair.second._coef);
             _qterms->insert(make_pair<>(s1+","+s2, qterm(pair.second._sign, c_new, p_new1, p_new2)));
-//            if (p_new1->is_var()) {
-                incr_occ(s1);
-//            }
-//            if (p_new2->is_var()) {
-                incr_occ(s2);
-//            }
         }
     }
     
     quad(quad&& q){
-        func_::set_ftype(lin_);
+        func_::set_ftype(quad_);
         set_type(func_c);
         _convex = q._convex;
         _lterms = q._lterms;
@@ -676,7 +680,7 @@ public:
     }
     
     void reset(){
-        func_::set_ftype(lin_);
+        func_::set_ftype(quad_);
         set_type(func_c);
         _convex = true;
         _lterms->clear();
@@ -720,6 +724,7 @@ public:
     
     quad& operator+=(const quad& q);
     quad& operator-=(const quad& q);
+//    quad& operator-=(quad&& q);
     
     
     quad& operator*=(bool n){
@@ -795,13 +800,13 @@ public:
     }
     
     template<typename T> quad& operator+=(const param<T>& p){
-        insert(true, constant<int>(1), &p);
+        insert(true, constant<int>(1), p);
         return *this;
     }
     
     template<typename T> quad& operator-=(const param<T>& p){
         string name = p.get_name();
-        insert(false, constant<int>(1), &p);
+        insert(false, constant<int>(1), p);
         return *this;
     }
     
@@ -1831,7 +1836,7 @@ template<typename T1, typename T2> lin operator+(const param<T1>& v, const const
     return lin(c) += v;
 }
 
-template<typename T1, typename T2> lin operator+(const constant<T2>& c, const var<T1>& v){
+template<typename T1, typename T2> lin operator+(const constant<T2>& c, const param<T1>& v){
     return lin(c) += v;
 }
 
@@ -1887,19 +1892,8 @@ template<typename T1, typename T2> lin operator-(const constant<T2>& c, const pa
 }
 
 
-template<typename T1, typename T2> lin operator*(const param<T1>& v1, const param<T2>& v2){
-    if (v2.is_param()) {
-        auto vv1 = (var<T1>*)&v1;
-        return lin(new param<T2>(v2), new var<T1>(*vv1));
-    }
-    else if (v1.is_param()){
-        auto vv2 = (var<T2>*)&v2;
-        return lin(new param<T1>(v1), new var<T2>(*vv2));
-    }
-    throw invalid_argument("multpilying two variables does not give a linear function");
-}
 
-template<typename T1, typename T2> quad operator*(const var<T1>& v1, const var<T2>& v2){
+template<typename T1, typename T2> quad operator*(const param<T1>& v1, const param<T2>& v2){
     return ((lin() += v1) * v2);
 }
 
@@ -2001,7 +1995,7 @@ template<typename T1, typename T2> lin operator*(const constant<T2>& c, lin&& l)
 }
 
 
-template<typename T1, typename T2> lin operator/(const var<T1>& v, const constant<T2>& c);
+template<typename T1, typename T2> lin operator/(const param<T1>& v, const constant<T2>& c);
 
 
 
@@ -2080,6 +2074,9 @@ template<typename T> quad operator*(const quad& q, const constant<T>& c);
 template<typename T> quad operator*(const constant<T>& c, const quad& q);
 template<typename T> quad operator*(const lin& l, const param<T>& v){
     quad res;
+    if (!l._cst->is_zero()) {
+        res.insert(true, *l._cst, v);
+    }
     param_* p_new1;
     param_* p_new2 = (param_*) &v;
     constant_* c_new;
@@ -2091,7 +2088,10 @@ template<typename T> quad operator*(const lin& l, const param<T>& v){
     return res;
 }
 
-template<typename T> quad operator*(const var<T>& v, const lin& l);
+template<typename T> quad operator*(const param<T>& v, const lin& l){
+    return l*v;
+};
+
 quad operator*(const lin& l1, const lin& l2);
 
 template<typename T> quad operator/(const quad& q, const constant<T>& c);
@@ -2099,22 +2099,22 @@ template<typename T> quad operator/(const quad& q, const constant<T>& c);
 
 template<typename T> polynome operator+(const constant<T>& c, const polynome& p);
 template<typename T> polynome operator+(const polynome& p, const constant<T>& c);
-template<typename T> polynome operator+(const var<T>& v, const polynome& p);
-template<typename T> polynome operator+(const polynome& p, const var<T>& v);
+template<typename T> polynome operator+(const param<T>& v, const polynome& p);
+template<typename T> polynome operator+(const polynome& p, const param<T>& v);
 template<typename T> polynome operator+(const constant<T>& c, const polynome& p);
 
 
 template<typename T> polynome operator-(const constant<T>& c, const polynome& p);
 template<typename T> polynome operator-(const polynome& p, const constant<T>& c);
-template<typename T> polynome operator-(const var<T>& v, const polynome& p);
-template<typename T> polynome operator-(const polynome& p, const var<T>& v);
+template<typename T> polynome operator-(const param<T>& v, const polynome& p);
+template<typename T> polynome operator-(const polynome& p, const param<T>& v);
 template<typename T> polynome operator-(const constant<T>& c, const polynome& p);
 
 
 template<typename T> polynome operator*(const polynome& p, const constant<T>& c);
 template<typename T> polynome operator*(const constant<T>& c, const polynome& p);
-template<typename T> polynome operator*(const quad& q, const var<T>& v);
-template<typename T> polynome operator*(const var<T>& v, const quad& q);
+template<typename T> polynome operator*(const quad& q, const param<T>& v);
+template<typename T> polynome operator*(const param<T>& v, const quad& q);
 polynome operator*(const quad& q1, const quad& q2);
 
 
@@ -2217,6 +2217,8 @@ lin operator/(short c, lin&& l);
 lin operator/(float c, lin&& l);
 lin operator/(double c, lin&& l);
 lin operator/(long double c, lin&& l);
+
+quad operator+(quad&& q, int c);
 
 
 

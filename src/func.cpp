@@ -367,6 +367,14 @@ void const quad::print(bool endline){
     constant_* c_new;
     int ind = 0;
     string sign = " + ";
+    cout << "f(";
+    for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+        poly_print(pair_it->second.first);
+        if (++pair_it != _vars->end()) {
+            cout << ",";
+        }
+    }
+    cout << ") = ";
     for (auto &pair:*_qterms) {
         c_new = pair.second._coef;
         p_new1 = (param_*)pair.second._p->first;
@@ -416,6 +424,7 @@ void const quad::print(bool endline){
             cout << ")";
         }
         poly_print(p_new1);
+        cout << ".";
         poly_print(p_new2);
         ind++;
     }
@@ -1463,6 +1472,7 @@ lin& lin::operator-=(const lin& l){
 
 
 
+
 quad& quad::operator+=(const lin& l){
     _cst = add(_cst, *l._cst);
     for (auto &pair:*l._lterms) {
@@ -1470,6 +1480,39 @@ quad& quad::operator+=(const lin& l){
     }
     return *this;
 }
+
+quad& quad::operator+=(const quad& q){
+    _cst = add(_cst, *q._cst);
+    for (auto &pair:*q._lterms) {
+        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
+    }
+    for (auto &pair:*q._qterms) {
+        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+    }
+    return *this;
+}
+
+quad& quad::operator-=(const quad& q){
+    _cst = substract(_cst, *q._cst);
+    for (auto &pair:*q._lterms) {
+        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
+    }
+    for (auto &pair:*q._qterms) {
+        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+    }
+    return *this;
+}
+
+//quad& quad::operator-=(quad&& q){
+//    _cst = substract(_cst, *q._cst);
+//    for (auto &pair:*q._lterms) {
+//        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
+//    }
+//    for (auto &pair:*q._qterms) {
+//        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+//    }
+//    return *this;
+//}
 
 //template<typename T> lin& lin::operator+=(const constant<T>& c){
 //    if (c.is_zero()) {
@@ -1758,6 +1801,10 @@ lin operator+(lin&& l, bool c){
 
 lin operator+(lin&& l, int c){
     return l += constant<int>(c);
+}
+
+quad operator+(quad&& q, int c){
+    return q += constant<int>(c);
 }
 
 lin operator+(lin&& l, short c){
