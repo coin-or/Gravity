@@ -137,6 +137,10 @@ public:
     }
     
     /** Operators */
+    bool is_negative() const {
+        return _val < 0;
+    }
+    
     bool operator==(const constant& c) const {
         return (_type==c._type && _val==c._val);
     }

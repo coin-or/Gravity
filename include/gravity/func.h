@@ -30,7 +30,7 @@ private:
     FType                                  _ftype = const_;
 public:
     NType                                  _return_type;
-    bool                                   _convex = true;
+    Convexity                              _convex = convex_;
     map<string, pair<param_*, int>>*       _vars;/**< map <variable name, <variable pointer, number of times it appears in function>>**/
     
     param_* get_var(string name){
@@ -445,7 +445,6 @@ public:
     lin(){
         func_::set_ftype(lin_);
         set_type(func_c);
-        _convex = true;
         _lterms = new map<string, lterm>();
         _vars = new map<string, pair<param_*, int>>();
         _cst = new constant<int>(0);
@@ -493,7 +492,6 @@ public:
     void reset(){
         func_::set_ftype(lin_);
         set_type(func_c);
-        _convex = true;
         _lterms->clear();
         for (auto &elem: *_vars) {
             delete elem.second.first;
@@ -632,6 +630,7 @@ public:
 //    };
     
     quad(const quad& q):lin(q){
+        _convex = q._convex;
         func_::set_ftype(quad_);
         _qterms = new map<string, qterm>();
         param_* p_new1;
@@ -666,6 +665,7 @@ public:
     }
     
     quad(quad&& q){
+        _convex = q._convex;
         func_::set_ftype(quad_);
         set_type(func_c);
         _convex = q._convex;
@@ -679,10 +679,51 @@ public:
         q._cst = nullptr;
     }
     
+    qterm* get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+        for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
+            if (pair_it->second._p->first==p && pair_it->second._p->second==p) {
+                return &pair_it->second;
+            }
+        }
+        return nullptr;
+    }
+    
+    Convexity get_convexity(const qterm& q) {
+        if(q._p->first == q._p->second){
+            if (q._sign) {
+                return convex_;
+            }
+            return concave_;
+        }
+        //q._p->first !=q._p->second
+        auto sqr1 = get_square(q._p->first);
+        auto sqr2 = get_square(q._p->second);
+        if (sqr1 && sqr2 && sqr1->_sign==sqr2->_sign) {
+            if (sqr1->_sign) {
+                return convex_;
+            }
+            return concave_;
+        }
+        return indet_;
+    }
+    
+    void update_convexity(){
+        if (_qterms->empty()) {
+            _convex = convex_;
+        }
+        _convex = get_convexity(_qterms->begin()->second);
+        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+            if (_convex != get_convexity(pair_it->second)) {
+                _convex = indet_;
+                return;
+            }
+        }
+    }
+    
     void reset(){
         func_::set_ftype(quad_);
         set_type(func_c);
-        _convex = true;
+        _convex = convex_;
         _lterms->clear();
         _qterms->clear();
         for (auto &elem: *_vars) {
@@ -777,6 +818,16 @@ public:
         for (auto &pair:*_qterms) {
             pair.second *= c;
         }
+        if (!_qterms->empty()) {
+            if (c.is_negative()) {
+                if (_convex==convex_) {
+                    _convex = concave_;
+                }
+                if (_convex==concave_) {
+                    _convex = convex_;
+                }
+            }
+        }
         return *this;
     }
     
@@ -795,6 +846,16 @@ public:
         }
         for (auto &pair:*_qterms) {
             pair.second /= c;
+        }
+        if (!_qterms->empty()) {
+            if (c.is_negative()) {
+                if (_convex==convex_) {
+                    _convex = concave_;
+                }
+                if (_convex==concave_) {
+                    _convex = convex_;
+                }
+            }
         }
         return *this;
     }
@@ -2218,7 +2279,102 @@ lin operator/(float c, lin&& l);
 lin operator/(double c, lin&& l);
 lin operator/(long double c, lin&& l);
 
-quad operator+(quad&& q, int c);
+quad operator+(const quad& q, bool c);
+quad operator+(const quad& q, int c);
+quad operator+(const quad& q, short c);
+quad operator+(const quad& q, float c);
+quad operator+(const quad& q, double c);
+quad operator+(const quad& q, long double c);
+quad operator-(const quad& q, bool c);
+quad operator-(const quad& q, int c);
+quad operator-(const quad& q, short c);
+quad operator-(const quad& q, float c);
+quad operator-(const quad& q, double c);
+quad operator-(const quad& q, long double c);
+quad operator*(const quad& q, bool c);
+quad operator*(const quad& q, int c);
+quad operator*(const quad& q, short c);
+quad operator*(const quad& q, float c);
+quad operator*(const quad& q, double c);
+quad operator*(const quad& q, long double c);
+quad operator/(const quad& q, bool c);
+quad operator/(const quad& q, int c);
+quad operator/(const quad& q, short c);
+quad operator/(const quad& q, float c);
+quad operator/(const quad& q, double c);
+quad operator/(const quad& q, long double c);
+quad operator+(quad&& l, bool c);
+quad operator+(quad&& l, int c);
+quad operator+(quad&& l, short c);
+quad operator+(quad&& l, float c);
+quad operator+(quad&& l, double c);
+quad operator+(quad&& l, long double c);
+quad operator-(quad&& l, bool c);
+quad operator-(quad&& l, int c);
+quad operator-(quad&& l, short c);
+quad operator-(quad&& l, float c);
+quad operator-(quad&& l, double c);
+quad operator-(quad&& l, long double c);
+quad operator*(quad&& l, bool c);
+quad operator*(quad&& l, int c);
+quad operator*(quad&& l, short c);
+quad operator*(quad&& l, float c);
+quad operator*(quad&& l, double c);
+quad operator*(quad&& l, long double c);
+quad operator/(quad&& l, bool c);
+quad operator/(quad&& l, int c);
+quad operator/(quad&& l, short c);
+quad operator/(quad&& l, float c);
+quad operator/(quad&& l, double c);
+quad operator/(quad&& l, long double c);
+quad operator+(bool c, const quad& q);
+quad operator+(int c, const quad& q);
+quad operator+(short c, const quad& q);
+quad operator+(float c, const quad& q);
+quad operator+(double c, const quad& q);
+quad operator+(long double c, const quad& q);
+quad operator-(bool c, const quad& q);
+quad operator-(int c, const quad& q);
+quad operator-(short c, const quad& q);
+quad operator-(float c, const quad& q);
+quad operator-(double c, const quad& q);
+quad operator-(long double c, const quad& q);
+quad operator*(bool c, const quad& q);
+quad operator*(int c, const quad& q);
+quad operator*(short c, const quad& q);
+quad operator*(float c, const quad& q);
+quad operator*(double c, const quad& q);
+quad operator*(long double c, const quad& q);
+quad operator/(bool c, const quad& q);
+quad operator/(int c, const quad& q);
+quad operator/(short c, const quad& q);
+quad operator/(float c, const quad& q);
+quad operator/(double c, const quad& q);
+quad operator/(long double c, const quad& q);
+quad operator+(bool c, quad&& l);
+quad operator+(int c, quad&& l);
+quad operator+(short c, quad&& l);
+quad operator+(float c, quad&& l);
+quad operator+(double c, quad&& l);
+quad operator+(long double c, quad&& l);
+quad operator-(bool c, quad&& l);
+quad operator-(int c, quad&& l);
+quad operator-(short c, quad&& l);
+quad operator-(float c, quad&& l);
+quad operator-(double c, quad&& l);
+quad operator-(long double c, quad&& l);
+quad operator*(bool c, quad&& l);
+quad operator*(int c, quad&& l);
+quad operator*(short c, quad&& l);
+quad operator*(float c, quad&& l);
+quad operator*(double c, quad&& l);
+quad operator*(long double c, quad&& l);
+quad operator/(bool c, quad&& l);
+quad operator/(int c, quad&& l);
+quad operator/(short c, quad&& l);
+quad operator/(float c, quad&& l);
+quad operator/(double c, quad&& l);
+quad operator/(long double c, quad&& l);
 
 
 

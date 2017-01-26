@@ -48,6 +48,17 @@ quad::quad(constant_* coef, param_* p1, param_* p2):quad(){
 //    if (p2->is_var()) {
         add_var(p2);
 //    }
+    if(p1 == p2){
+        if (is_always_pos(coef)) {
+            _convex = convex_;
+        }
+        else if (is_always_neg(coef)) {
+            _convex =  concave_;
+        }
+        else {
+            _convex = indet_;
+        }
+    }
 };
 
 quad::quad(param_* p1, param_* p2):quad(){
@@ -184,6 +195,7 @@ bool quad::insert(bool sign, const constant_& coef, const param_& p1, const para
             _qterms->erase(pair_it);
             decr_occ(s1);
             decr_occ(s2);
+            update_convexity();
         }
         return false;
     }
@@ -367,6 +379,12 @@ void const quad::print(bool endline){
     constant_* c_new;
     int ind = 0;
     string sign = " + ";
+    if (_convex==convex_) {
+        cout << "Convex function: ";
+    }
+    if (_convex==concave_) {
+        cout << "Concave function: ";
+    }
     cout << "f(";
     for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
         poly_print(pair_it->second.first);
@@ -428,7 +446,7 @@ void const quad::print(bool endline){
         poly_print(p_new2);
         ind++;
     }
-    if (!_qterms->empty() && (!_lterms->empty() || !_cst->is_zero())) {
+    if (!_qterms->empty() && !_lterms->empty()) {
         cout << " + ";
     }
     lin::print();
@@ -1489,6 +1507,7 @@ quad& quad::operator+=(const quad& q){
     for (auto &pair:*q._qterms) {
         this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
     }
+    update_convexity();
     return *this;
 }
 
@@ -1500,6 +1519,7 @@ quad& quad::operator-=(const quad& q){
     for (auto &pair:*q._qterms) {
         this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
     }
+    update_convexity();
     return *this;
 }
 
@@ -1803,10 +1823,6 @@ lin operator+(lin&& l, int c){
     return l += constant<int>(c);
 }
 
-quad operator+(quad&& q, int c){
-    return q += constant<int>(c);
-}
-
 lin operator+(lin&& l, short c){
     return l += constant<short>(c);
 }
@@ -2086,6 +2102,397 @@ lin operator/(double c, lin&& l){
 
 lin operator/(long double c, lin&& l){
     return l /= constant<long double>(c);
+}
+
+
+
+
+
+
+
+quad operator+(const quad& q, bool c){
+    return quad(q) += constant<bool>(c);
+}
+
+quad operator+(const quad& q, int c){
+    return quad(q) += constant<int>(c);
+}
+
+quad operator+(const quad& q, short c){
+    return quad(q) += constant<short>(c);
+}
+
+quad operator+(const quad& q, float c){
+    return quad(q) += constant<float>(c);
+}
+
+quad operator+(const quad& q, double c){
+    return quad(q) += constant<double>(c);
+}
+
+quad operator+(const quad& q, long double c){
+    return quad(q) += constant<long double>(c);
+}
+
+quad operator-(const quad& q, bool c){
+    return quad(q) -= constant<bool>(c);
+}
+
+quad operator-(const quad& q, int c){
+    return quad(q) -= constant<int>(c);
+}
+
+quad operator-(const quad& q, short c){
+    return quad(q) -= constant<short>(c);
+}
+
+quad operator-(const quad& q, float c){
+    return quad(q) -= constant<float>(c);
+}
+
+quad operator-(const quad& q, double c){
+    return quad(q) -= constant<double>(c);
+}
+
+quad operator-(const quad& q, long double c){
+    return quad(q) -= constant<long double>(c);
+}
+
+quad operator*(const quad& q, bool c){
+    return quad(q) *= constant<bool>(c);
+}
+
+quad operator*(const quad& q, int c){
+    return quad(q) *= constant<int>(c);
+}
+
+quad operator*(const quad& q, short c){
+    return quad(q) *= constant<short>(c);
+}
+
+quad operator*(const quad& q, float c){
+    return quad(q) *= constant<float>(c);
+}
+
+quad operator*(const quad& q, double c){
+    return quad(q) *= constant<double>(c);
+}
+
+quad operator*(const quad& q, long double c){
+    return quad(q) *= constant<long double>(c);
+}
+
+quad operator/(const quad& q, bool c){
+    return quad(q) /= constant<bool>(c);
+}
+
+quad operator/(const quad& q, int c){
+    return quad(q) /= constant<int>(c);
+}
+
+quad operator/(const quad& q, short c){
+    return quad(q) /= constant<short>(c);
+}
+
+quad operator/(const quad& q, float c){
+    return quad(q) /= constant<float>(c);
+}
+
+quad operator/(const quad& q, double c){
+    return quad(q) /= constant<double>(c);
+}
+
+quad operator/(const quad& q, long double c){
+    return quad(q) /= constant<long double>(c);
+}
+
+quad operator+(quad&& q, bool c){
+    return q += constant<bool>(c);
+}
+
+quad operator+(quad&& q, int c){
+    return q += constant<int>(c);
+}
+
+quad operator+(quad&& q, short c){
+    return q += constant<short>(c);
+}
+
+quad operator+(quad&& q, float c){
+    return q += constant<float>(c);
+}
+
+quad operator+(quad&& q, double c){
+    return q += constant<double>(c);
+}
+
+quad operator+(quad&& q, long double c){
+    return q += constant<long double>(c);
+}
+
+quad operator-(quad&& q, bool c){
+    return q -= constant<bool>(c);
+}
+
+quad operator-(quad&& q, int c){
+    return q -= constant<int>(c);
+}
+
+quad operator-(quad&& q, short c){
+    return q -= constant<short>(c);
+}
+
+quad operator-(quad&& q, float c){
+    return q -= constant<float>(c);
+}
+
+quad operator-(quad&& q, double c){
+    return q -= constant<double>(c);
+}
+
+quad operator-(quad&& q, long double c){
+    return q -= constant<long double>(c);
+}
+
+quad operator*(quad&& q, bool c){
+    return q *= constant<bool>(c);
+}
+
+quad operator*(quad&& q, int c){
+    return q *= constant<int>(c);
+}
+
+quad operator*(quad&& q, short c){
+    return q *= constant<short>(c);
+}
+
+quad operator*(quad&& q, float c){
+    return q *= constant<float>(c);
+}
+
+quad operator*(quad&& q, double c){
+    return q *= constant<double>(c);
+}
+
+quad operator*(quad&& q, long double c){
+    return q *= constant<long double>(c);
+}
+
+quad operator/(quad&& q, bool c){
+    return q /= constant<bool>(c);
+}
+
+quad operator/(quad&& q, int c){
+    return q /= constant<int>(c);
+}
+
+quad operator/(quad&& q, short c){
+    return q /= constant<short>(c);
+}
+
+quad operator/(quad&& q, float c){
+    return q /= constant<float>(c);
+}
+
+quad operator/(quad&& q, double c){
+    return q /= constant<double>(c);
+}
+
+quad operator/(quad&& q, long double c){
+    return q /= constant<long double>(c);
+}
+
+
+quad operator+(bool c, const quad& q){
+    return quad(q) += constant<bool>(c);
+}
+
+quad operator+(int c, const quad& q){
+    return quad(q) += constant<int>(c);
+}
+
+quad operator+(short c, const quad& q){
+    return quad(q) += constant<short>(c);
+}
+
+quad operator+(float c, const quad& q){
+    return quad(q) += constant<float>(c);
+}
+
+quad operator+(double c, const quad& q){
+    return quad(q) += constant<double>(c);
+}
+
+quad operator+(long double c, const quad& q){
+    return quad(q) += constant<long double>(c);
+}
+
+quad operator-(bool c, const quad& q){
+    return quad(q) -= constant<bool>(c);
+}
+
+quad operator-(int c, const quad& q){
+    return quad(q) -= constant<int>(c);
+}
+
+quad operator-(short c, const quad& q){
+    return quad(q) -= constant<short>(c);
+}
+
+quad operator-(float c, const quad& q){
+    return quad(q) -= constant<float>(c);
+}
+
+quad operator-(double c, const quad& q){
+    return quad(q) -= constant<double>(c);
+}
+
+quad operator-(long double c, const quad& q){
+    return quad(q) -= constant<long double>(c);
+}
+
+quad operator*(bool c, const quad& q){
+    return quad(q) *= constant<bool>(c);
+}
+
+quad operator*(int c, const quad& q){
+    return quad(q) *= constant<int>(c);
+}
+
+quad operator*(short c, const quad& q){
+    return quad(q) *= constant<short>(c);
+}
+
+quad operator*(float c, const quad& q){
+    return quad(q) *= constant<float>(c);
+}
+
+quad operator*(double c, const quad& q){
+    return quad(q) *= constant<double>(c);
+}
+
+quad operator*(long double c, const quad& q){
+    return quad(q) *= constant<long double>(c);
+}
+
+quad operator/(bool c, const quad& q){
+    return quad(q) /= constant<bool>(c);
+}
+
+quad operator/(int c, const quad& q){
+    return quad(q) /= constant<int>(c);
+}
+
+quad operator/(short c, const quad& q){
+    return quad(q) /= constant<short>(c);
+}
+
+quad operator/(float c, const quad& q){
+    return quad(q) /= constant<float>(c);
+}
+
+quad operator/(double c, const quad& q){
+    return quad(q) /= constant<double>(c);
+}
+
+quad operator/(long double c, const quad& q){
+    return quad(q) /= constant<long double>(c);
+}
+
+quad operator+(bool c, quad&& q){
+    return q += constant<bool>(c);
+}
+
+quad operator+(int c, quad&& q){
+    return q += constant<int>(c);
+}
+
+quad operator+(short c, quad&& q){
+    return q += constant<short>(c);
+}
+
+quad operator+(float c, quad&& q){
+    return q += constant<float>(c);
+}
+
+quad operator+(double c, quad&& q){
+    return q += constant<double>(c);
+}
+
+quad operator+(long double c, quad&& q){
+    return q += constant<long double>(c);
+}
+
+quad operator-(bool c, quad&& q){
+    return q -= constant<bool>(c);
+}
+
+quad operator-(int c, quad&& q){
+    return q -= constant<int>(c);
+}
+
+quad operator-(short c, quad&& q){
+    return q -= constant<short>(c);
+}
+
+quad operator-(float c, quad&& q){
+    return q -= constant<float>(c);
+}
+
+quad operator-(double c, quad&& q){
+    return q -= constant<double>(c);
+}
+
+quad operator-(long double c, quad&& q){
+    return q -= constant<long double>(c);
+}
+
+quad operator*(bool c, quad&& q){
+    return q *= constant<bool>(c);
+}
+
+quad operator*(int c, quad&& q){
+    return q *= constant<int>(c);
+}
+
+quad operator*(short c, quad&& q){
+    return q *= constant<short>(c);
+}
+
+quad operator*(float c, quad&& q){
+    return q *= constant<float>(c);
+}
+
+quad operator*(double c, quad&& q){
+    return q *= constant<double>(c);
+}
+
+quad operator*(long double c, quad&& q){
+    return q *= constant<long double>(c);
+}
+
+quad operator/(bool c, quad&& q){
+    return q /= constant<bool>(c);
+}
+
+quad operator/(int c, quad&& q){
+    return q /= constant<int>(c);
+}
+
+quad operator/(short c, quad&& q){
+    return q /= constant<short>(c);
+}
+
+quad operator/(float c, quad&& q){
+    return q /= constant<float>(c);
+}
+
+quad operator/(double c, quad&& q){
+    return q /= constant<double>(c);
+}
+
+quad operator/(long double c, quad&& q){
+    return q /= constant<long double>(c);
 }
 
 

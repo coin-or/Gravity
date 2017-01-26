@@ -137,6 +137,10 @@ int main (int argc, const char * argv[])
     q00.print();
     auto t00 = q(1)*q(1,2,3) + 2;
     t00.print();
+    
+    t00 *= 0;
+    t00.print();
+    
     q00 -= t00;
     q00.print();
     int i = 1;
