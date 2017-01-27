@@ -288,19 +288,19 @@ class pterm{
     
 public:
     constant_*                      _coef;
-    vector<pair<param_*, int>>*     _p; /**< A polynomial term is represented as a vector of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
+    list<pair<param_*, int>>*       _l; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
     bool                            _sign = true; /**< True if +, flase if - */
     
     pterm(){
         _coef = nullptr;
-        _p = nullptr;
+        _l = nullptr;
     }
     
     pterm(const pterm& t){
         _coef = copy(t._coef);
-        _p = new vector<pair<param_*, int>>();
-        for (auto &pair : *t._p) {
-            _p->push_back(make_pair<>((param_*)copy(pair.first), pair.second));
+        _l = new list<pair<param_*, int>>();
+        for (auto &pair : *t._l) {
+            _l->push_back(make_pair<>((param_*)copy(pair.first), pair.second));
         }
         _sign = t._sign;
     };
@@ -308,10 +308,17 @@ public:
     pterm(pterm&& t){
         _coef = t._coef;
         t._coef = nullptr;
-        _p = t._p;
-        t._p = nullptr;
+        _l = t._l;
+        t._l = nullptr;
         _sign = t._sign;
     };
+    
+    pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
+        _coef = new constant<int>(1);
+        _l = l;
+        _sign = sign;
+    };
+
     
     void reverse_sign() {
         _sign = ! _sign;
@@ -319,8 +326,8 @@ public:
     
     ~pterm(){
         delete _coef;
-        if (_p) {
-            delete _p;
+        if (_l) {
+            delete _l;
         }
     };
     
@@ -381,6 +388,11 @@ public:
         return *this;
     }
     
+    template <typename T> pterm& operator*=(const param<T>& p){
+        _coef = multiply(_coef, p);
+        return *this;
+    }
+    
     template<typename T> pterm& operator/=(const param<T>& p){
         _coef = divide(_coef, p);
         return *this;
@@ -417,7 +429,8 @@ public:
 
     bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
     bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-        
+    bool insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+   
     
     void insert(const lterm& term);
     
@@ -670,110 +683,27 @@ public:
 //    template<typename T> func_& operator/=(const constant<T>& c);
 //
     
-    func_& operator+=(const func_& f);
-    func_& operator-=(const func_& f);
-    func_& operator*=(const func_& f);
-    func_& operator/=(const func_& f);
+    func_& operator+=(const constant_& f);
+    func_& operator-=(const constant_& f);
+    func_& operator*=(const constant_& f);
+    func_& operator/=(const constant_& f);
     
-    func_& operator+=(double v);
-    func_& operator-=(double v);
-    func_& operator*=(double v);
-    func_& operator/=(double v);
-    //    template<typename T> func_& operator+=(const param<T>& c){
-//        switch (_cst->get_type()) {
-//            case binary_c: {
-//                auto f = new func_(*(constant<bool>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                return *this;
-//                break;
-//            }
-//            case short_c: {
-//                auto f = new func_(*(constant<short>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                return *this;
-//                break;
-//            }
-//            case integer_c: {
-//                auto f = new func_(*(constant<int>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                return *this;
-//                break;
-//            }
-//            case float_c: {
-//                auto f = new func_(*(constant<float>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//
-//                return *this;
-//                break;
-//            }
-//            case double_c: {
-//                auto f = new func_(*(constant<double>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//
-//                return *this;
-//                break;
-//            }
-//            case long_c: {
-//                auto f = new func_(*(constant<long double>*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                return *this;
-//                break;
-//            }
-//            case par_c:{
-//                auto f = new func_(*(param_*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                break;
-//            }
-//            case uexp_c: {
-//                //                auto res = new bexpr(*(uexpr*)c1 + c2);
-//                //                delete c1;
-//                //                c1 = (constant_*)res;
-//                //                return c1;
-//                //                break;
-//            }
-//            case bexp_c: {
-//                //                auto res = new bexpr(*(bexpr*)c1 + c2);
-//                //                delete c1;
-//                //                c1 = (constant_*)res;
-//                //                return c1;
-//                //                break;
-//            }
-//            case func_c: {
-//                auto f = new func_(*(func_*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                break;
-//                //                switch (((func_*)&c2)->get_ftype()) {
-//                //                    case lin_:
-//                //                        return add(c1, (*(lin*)&c2));
-//                //                        break;
-//                //                        
-//                //                    default:
-//                //                        break;
-//                //                }
-//            }
-//            default:
-//                break;
-//        }
-//        return *this;
-//    };
-//    
-//    template<typename T> func_& operator-=(const param<T>& c);
-//    template<typename T> func_& operator*=(const param<T>& c);
-//    template<typename T> func_& operator/=(const param<T>& c);
-//    
-//    template<typename T> func_& operator+=(const func_& c);
-//    template<typename T> func_& operator-=(const func_& c);
-//    template<typename T> func_& operator*=(const func_& c);
-//    template<typename T> func_& operator/=(const func_& c);
+    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator+=(T c){
+        return *this += constant<T>(c);
+    };
     
+    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator-=(T c){
+        return *this -= constant<T>(c);
+    };
+
+    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator*=(T c){
+        return *this *= constant<T>(c);
+    };
+
+    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator/=(T c){
+        return *this /= constant<T>(c);
+    };
+
     
     qterm* get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
         for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
@@ -803,12 +733,258 @@ public:
 };
 
 
-func_ operator+(const func_& f1, const func_& f2);
-func_ operator+(func_&& f1, const func_& f2);
+/** Polymorphic class uexpr (unary expression), stores a unary expression tree. */
 
-func_ operator-(const func_& f1, const func_& f2);
-func_ operator-(func_&& f1, const func_& f2);
+class expr: public constant_{
+    
+public:
+    virtual ~expr(){};
+    
+};
 
+class uexpr: public expr{
+    
+public:
+    OperatorType    _otype;
+    constant_*      _son;
+    
+    uexpr();
+    uexpr(const uexpr& exp);
+    uexpr(uexpr&& exp);
+    
+    uexpr& operator=(const uexpr& e);
+    uexpr& operator=(uexpr&& e);
+    
+    
+    ~uexpr(){
+        delete _son;
+    };
+    
+    bool contains(const constant_* c) const;
+    
+    
+    void reset(){
+        delete _son;
+        _son = nullptr;
+        
+    };
+    
+    
+    OperatorType get_otype() const{
+        return _otype;
+    };
+    
+    /** Operators */
+    
+    
+    bool operator==(const uexpr &c)const;
+    
+    bool operator!=(const uexpr& c) const{
+        return !(*this==c);
+    };
+    
+    double eval(ind i) const;
+    
+    double eval() const{
+        return eval(0);
+    }
+    
+    void print(bool endline = true) const;
+    
+};
+
+
+class bexpr: public expr{
+private:
+    
+public:
+    OperatorType    _otype;
+    constant_*      _lson;
+    constant_*      _rson;
+    
+    bexpr();
+    
+    bexpr(const bexpr& exp);
+    
+    bexpr(const func_& f);
+    
+    bexpr(bexpr&& exp);
+    
+    bexpr& operator=(const bexpr& e);
+    
+    bexpr& operator=(bexpr&& e);
+    
+    ~bexpr(){
+        delete _lson;
+        delete _rson;
+    }
+    
+    void reset(){
+        _otype = id_;
+        delete _lson;
+        _lson = nullptr;
+        delete _rson;
+        _rson = nullptr;
+    };
+    
+    bool is_lson(const constant_* c) const{
+        return (_lson == c);
+    };
+    
+    bool is_rson(const constant_* c) const{
+        return (_rson == c);
+    };
+    
+    constant_* get_lson() const{
+        return _lson;
+    };
+    
+    constant_* get_rson() const{
+        return _rson;
+    };
+    
+    void set_lson(constant_* c){
+        delete _lson;
+        _lson = c;
+    };
+    
+    void set_rson(constant_* c){
+        delete _rson;
+        _rson = c;
+    };
+    
+    OperatorType get_otype() const {
+        return _otype;
+    };
+    
+    bool contains(const constant_* c) const;
+    
+    bool operator==(const bexpr &c)const;
+    
+    bool operator!=(const bexpr& c) const{
+        return !(*this==c);
+    };
+    
+    template<typename other_type> bexpr& operator+=(const other_type& v);
+    template<typename other_type> bexpr& operator-=(const other_type& v);
+    template<typename other_type> bexpr& operator*=(const other_type& v);
+    template<typename other_type> bexpr& operator/=(const other_type& v);
+    
+    
+    void print(bool endline = true) const;
+    
+    void print_tree() const;
+    
+    double eval(ind i) const;
+    
+};
+
+
+
+
+
+
+
+uexpr cos(const constant_& c);
+
+uexpr sin(const constant_& c);
+
+
+uexpr sqrt(const constant_& c);
+
+uexpr expo(const constant_& c);
+
+uexpr log(const constant_& c);
+
+
+
+
+
+void poly_print(const constant_* c);
+
+
+func_ operator+(const constant_& c1, const constant_& c2);
+func_ operator+(func_&& f, const constant_& c);
+//func_ operator+(const constant_& c, func_&& f);
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
+    return f += c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
+    return f += c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(func_&& f, T c){
+    return f -= c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(T c, func_&& f){
+    return (f *= -1) += c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(func_&& f, T c){
+    return f *= c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(T c, func_&& f){
+    return f *= c;
+};
+
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(func_&& f, T c){
+    return f /= c;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(const constant_& c1, T c2){
+    return func_(c1) += c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
+    return func_(c1) += c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(const constant_& c1, T c2){
+    return func_(c1) -= c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(T c2, const constant_& c1){
+    return (func_(c1) *= -1) += c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(const constant_& c1, T c2){
+    return func_(c1) *= c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(T c2, const constant_& c1){
+    return func_(c1) *= c2;
+};
+
+template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(const constant_& c1, T c2){
+    return func_(c1) /= c2;
+};
+
+func_ operator*(const constant_& c1, const constant_& c2);
+func_ operator*(func_&& f, const constant_& c);
+//func_ operator*(const constant_& c, func_&& f);
+
+//template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
+//    return func_(c1) += c2;
+//};
+
+
+//template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
+//    return f += c;
+//};
+
+//template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
+//    return f += c;
+//};
+
+
+func_ operator-(const constant_& c1, const constant_& c2);
+func_ operator-(func_&& f, const constant_& c);
+//func_ operator-(const constant_& c, func_&& f);
 
 //template<typename T> func_ operator+(func_&& f, const T& v){
 //    return f += v;
@@ -919,9 +1095,9 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
                 *(constant<bool>*)c1 += c2.eval();
             }
             else {
-                auto val = ((constant<bool>*)c1)->eval();
+                bool val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             return c1;
             break;
@@ -933,7 +1109,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             break;
         }
@@ -944,7 +1120,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             break;
         }
@@ -955,7 +1131,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             break;
         }
@@ -966,7 +1142,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             break;
         }
@@ -977,7 +1153,7 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 + val);
+                c1 = new constant<T>(c2.eval() + val);
             }
             break;
         }
@@ -1010,9 +1186,11 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             break;
         }
         case func_c: {
-            auto res = new func_((*(func_*)c1) + c2);
-            delete c1;
-            return c1 = (constant_*)res;
+//            auto res = new func_((*(func_*)c1) + c2);
+//            delete c1;
+//            return c1 = (constant_*)res;
+            (*(func_*)c1) += c2;
+            return c1;
             break;
         }
             
@@ -1116,10 +1294,12 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
             break;
         }
         case func_c: {
-            auto res = new func_(*c1);
-            delete c1;
-            *res += c2;
-            return c1 = (constant_*)res;
+//            auto res = new func_(*c1);
+//            delete c1;
+//            *res += c2;
+//            return c1 = (constant_*)res;
+            (*(func_*)c1) += c2;
+            return c1;
             break;
         }
         default:
@@ -1223,10 +1403,13 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
             break;
         }
         case func_c: {
-            auto res = new func_(*c1);
-            delete c1;
-            *res -= c2;
-            return c1 = res;
+//            auto res = new func_(*c1);
+//            delete c1;
+//            *res -= c2;
+//            return c1 = res;
+            (*(func_*)c1) -= c2;
+            return c1;
+            break;
         }
         default:
             break;
@@ -1315,10 +1498,13 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
             break;
         }
         case func_c: {
-            auto res = new func_(*c1);
-            delete c1;
-            *res *= c2;
-            return c1 = res;
+//            auto res = new func_(*c1);
+//            delete c1;
+//            *res *= c2;
+//            return c1 = res;
+            (*(func_*)c1) += c2;
+            return c1;
+            break;
         }
         default:
             break;
@@ -1338,7 +1524,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             return c1;
             break;
@@ -1350,7 +1536,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             break;
         }
@@ -1361,7 +1547,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             break;
         }
@@ -1372,7 +1558,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             break;
         }
@@ -1383,7 +1569,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             break;
         }
@@ -1394,7 +1580,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 - val);
+                c1 = new constant<T>(c2.eval() - val);
             }
             break;
         }
@@ -1407,29 +1593,32 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
         }
         case var_c:{
             auto f = new func_(*c1);
-            *f += c2;
+            *f -= c2;
             c1 =(constant_*)(f);
             return c1;
             break;
         }
         case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 + c2);
+            auto res = new bexpr(*(uexpr*)c1 - c2);
             delete c1;
             c1 = (constant_*)res;
             return c1;
             break;
         }
         case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 + c2);
+            auto res = new bexpr(*(bexpr*)c1 - c2);
             delete c1;
             c1 = (constant_*)res;
             return c1;
             break;
         }
         case func_c: {
-            auto res = new func_(*(func_*)c1 + c2);
-            delete c1;
-            return c1 = (constant_*)res;
+//            auto res = new func_(*(func_*)c1 - c2);
+//            delete c1;
+//            return c1 = (constant_*)res;
+            (*(func_*)c1) -= c2;
+            return c1;
+            break;
         }        default:
             break;
     }
@@ -1458,7 +1647,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             return c1;
             break;
@@ -1470,7 +1659,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             break;
         }
@@ -1481,7 +1670,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             break;
         }
@@ -1492,7 +1681,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             break;
         }
@@ -1503,7 +1692,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             break;
         }
@@ -1514,7 +1703,7 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 * val);
+                c1 = new constant<T>(c2.eval() * val);
             }
             break;
         }
@@ -1541,9 +1730,9 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             break;
         }
         case func_c: {
-//            auto res = new func_(*(func_*)c1 * c2);
-//            delete c1;
-//            return c1 = res;
+            (*(func_*)c1) *= c2;
+            return c1;
+            break;
         }
         default:
             break;
@@ -1563,7 +1752,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             return c1;
             break;
@@ -1575,7 +1764,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             break;
         }
@@ -1586,7 +1775,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             break;
         }
@@ -1597,7 +1786,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             break;
         }
@@ -1608,7 +1797,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             break;
         }
@@ -1619,7 +1808,7 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2 / val);
+                c1 = new constant<T>(c2.eval() / val);
             }
             break;
         }
@@ -1733,5 +1922,8 @@ template<typename other_type> bexpr operator/(const expr& c1, const other_type& 
     res._rson =  copy((constant_*)&c2);
     return res;
 }
+
+
+
 #endif /* func_h */
 

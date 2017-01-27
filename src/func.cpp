@@ -210,7 +210,7 @@ func_::func_(func_&& f){
     _vars = f._vars;
     f._vars = nullptr;
     _params = f._params;
-    f._vars = nullptr;
+    f._params = nullptr;
     _cst = f._cst;
     f._cst = nullptr;
 }
@@ -234,17 +234,103 @@ func_::func_(const func_& f){
     _cst = copy(f._cst);
 }
 
-
-func_::~func_(){
+func_& func_::operator=(const func_& f){
     if (_vars) {
-        for (auto &elem: *_vars) {
-            delete elem.second.first;
+        if (!_in_model) {
+            for (auto &elem: *_vars) {
+                delete elem.second.first;
+            }
         }
         delete _vars;
     }
     if (_params) {
-        for (auto &elem: *_params) {
-            delete elem.second.first;
+        if (!_in_model) {
+            for (auto &elem: *_params) {
+                delete elem.second.first;
+            }
+        }
+        delete _params;
+    }
+    delete _lterms;
+    delete _qterms;
+    delete _pterms;
+    delete _cst;
+    set_type(func_c);
+    _params = new map<string, pair<param_*, int>>();
+    _vars = new map<string, pair<param_*, int>>();
+    _lterms = new map<string, lterm>();
+    _qterms = new map<string, qterm>();
+    _pterms = new map<string, pterm>();
+    _ftype = f._ftype;
+    _return_type = f._return_type;
+    _convex = f._convex;
+    for (auto &pair:*f._lterms) {
+        insert(pair.second);
+    }
+    for (auto &pair:*f._qterms) {
+        insert(pair.second);
+    }
+    _cst = copy(f._cst);
+    return *this;
+}
+
+
+func_& func_::operator=(func_&& f){
+    if (_vars) {
+        if (!_in_model) {
+            for (auto &elem: *_vars) {
+                delete elem.second.first;
+            }
+        }
+        delete _vars;
+    }
+    if (_params) {
+        if (!_in_model) {
+            for (auto &elem: *_params) {
+                delete elem.second.first;
+            }
+        }
+        delete _params;
+    }
+    delete _lterms;
+    delete _qterms;
+    delete _pterms;
+    delete _cst;
+    set_type(func_c);
+    _ftype = f._ftype;
+    _return_type = f._return_type;
+    _convex = f._convex;
+    _lterms = f._lterms;
+    f._lterms = nullptr;
+    _qterms = f._qterms;
+    f._qterms = nullptr;
+    _pterms = f._pterms;
+    f._pterms = nullptr;
+    _vars = f._vars;
+    f._vars = nullptr;
+    _params = f._params;
+    f._params = nullptr;
+    _cst = f._cst;
+    f._cst = nullptr;
+    return *this;
+}
+
+
+
+func_::~func_(){
+    if (_vars) {
+        if (!_in_model) {
+            for (auto &elem: *_vars) {
+                delete elem.second.first;
+            }
+        }
+        delete _vars;
+    }
+    if (_params) {
+        if (!_in_model) {
+            for (auto &elem: *_params) {
+                delete elem.second.first;
+            }
         }
         delete _params;
     }
@@ -258,69 +344,241 @@ bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
     return (is_number() && eval(this)==0);
 }
 
-func_& func_::operator+=(double v){
-    add(_cst, constant<double>(v));
-    return *this;
+bool constant_::is_unit() const{ /**< Returns true if constant equals 1 */
+    return (is_number() && eval(this)==1);
 }
 
-func_& func_::operator-=(double v){
-    substract(_cst, constant<double>(v));
-    return *this;
-}
-
-func_& func_::operator*=(double v){
-    multiply(_cst, constant<double>(v));
-    return *this;
-}
-
-func_& func_::operator/=(double v){
-    divide(_cst, constant<double>(v));
-    return *this;
-}
-
-
-func_& func_::operator+=(const func_& f){
-    if (!is_constant() && f.is_constant()) {
-        _cst = add(_cst, f);
+func_& func_::operator+=(const constant_& c){
+    if (c.is_zero()) {
         return *this;
     }
-    _cst = add(_cst, *f._cst);
-    for (auto &pair:*f._lterms) {
-        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
-    }
-    for (auto &pair:*f._qterms) {
-        this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
-    }
-//    update_convexity();
-    return *this;
-}
-
-func_& func_::operator-=(const func_& f){
-    if (!is_constant() && f.is_constant()) {
-        _cst = substract(_cst, f);
+    if (c.is_number() || (!is_constant() && c.is_param())) {
+        _cst = add(_cst, c);
         return *this;
     }
-    _cst = substract(_cst, *f._cst);
-    for (auto &pair:*f._lterms) {
-        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
+    if (c.is_param() || c.is_var()) {
+        this->insert(true, constant<int>(1), *(param_*)&c);
     }
-    for (auto &pair:*f._qterms) {
-        this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
-    }
-    //    update_convexity();
-    return *this;
-}
-
-
-func_& func_::operator*=(const func_& f){
-    if (f.is_constant()) {
-        _cst = multiply(_cst, f);
+    if (c.is_function()) {
+        func_* f = (func_*)&c;
+        if (!is_constant() && f->is_constant()) {
+            _cst = add(_cst, c);
+            return *this;
+        }
+        _cst = add(_cst, *f->_cst);
+        for (auto &pair:*f->_lterms) {
+            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
+        }
+        for (auto &pair:*f->_qterms) {
+            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+        }
+        //    update_convexity();
         return *this;
     }
     return *this;
 }
 
-func_& func_::operator/=(const func_& f){
+func_& func_::operator-=(const constant_& c){
+    if (c.is_zero()) {
+        return *this;
+    }
+    if (c.is_number() || (!is_constant() && c.is_param())) {
+        _cst = substract(_cst, c);
+        return *this;
+    }
+    if (c.is_param() || c.is_var()) {
+        this->insert(false, constant<int>(1), *(param_*)&c);
+    }
+    if (c.is_function()) {
+        func_* f = (func_*)&c;
+        if (!is_constant() && f->is_constant()) {
+            _cst = substract(_cst, c);
+            return *this;
+        }
+        _cst = substract(_cst, *f->_cst);
+        for (auto &pair:*f->_lterms) {
+            this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
+        }
+        for (auto &pair:*f->_qterms) {
+            this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+        }
+        //    update_convexity();
+        return *this;
+    }
+    return *this;
+}
+
+
+func_& func_::operator*=(const constant_& c){
+    if (is_zero()) {
+        return *this;
+    }
+    if (c.is_unit()) {
+        return *this;
+    }
+    if (c.is_zero()) {
+        reset();
+        return *this;
+    }
+    if (c.is_number() || (!is_constant() && c.is_param())) {
+        _cst = multiply(_cst, c);
+        for (auto &pair:*_lterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
+        for (auto &pair:*_qterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
+        return *this;
+    }
+    if (is_constant() && (c.is_var() || c.is_function())) {
+        func_ f(c);
+        f._cst = multiply(f._cst, *this);
+        for (auto &pair:*f._lterms) {
+            pair.second._coef = multiply(pair.second._coef, *this);
+        }
+        for (auto &pair:*f._qterms) {
+            pair.second._coef = multiply(pair.second._coef, *this);
+        }
+        for (auto &pair:*f._pterms) {
+            pair.second._coef = multiply(pair.second._coef, *this);
+        }
+        *this = move(f);
+        return *this;
+    }
+    if (c.is_param() || c.is_var()) {
+        for (auto &pair:*_qterms) {
+//            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+        }
+        _qterms->clear();
+        for (auto &pair:*_lterms) {
+            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p, *(param_*)&c);
+        }
+        _lterms->clear();
+        if (!_cst->is_zero()) {
+            insert(true, *_cst, *(param_*)&c);
+            delete _cst;
+            _cst = new constant<int>(0);
+        }
+    }
+    if (c.is_function()) {
+        func_* f = (func_*)&c;
+        if (!is_constant() && f->is_constant()) {
+            _cst = multiply(_cst, c);
+            for (auto &pair:*_lterms) {
+                pair.second._coef = multiply(pair.second._coef, c);
+            }
+            for (auto &pair:*_qterms) {
+                pair.second._coef = multiply(pair.second._coef, c);
+            }
+            return *this;
+        }
+        list<pair<param_*, int>> newlist;
+        list<pair<param_*, int>>* list;
+        func_ res;
+        for (auto& t1: *_pterms) {
+            list = t1.second._l;
+            for (auto& t2: *f->_pterms) {
+                newlist = *list;
+                for  (auto& v: *t1.second._l){
+                    list->push_back(v);
+                }
+                res.insert(!(t1.second._sign^t2.second._sign), *multiply(t1.second._coef, *t1.second._coef), newlist);
+            }
+//            if (f._qterms) {
+//                for (auto& t2: *f._qterms) {
+//                    newlist = list;
+//                    newlist.push_front(get<1>(t2));
+//                    newlist.push_front(get<2>(t2));
+//                    res.add((*get<0>(t1))*(*get<0>(t2)), newlist);
+//                }
+//            }
+//            if (f._lterms) {
+//                for (auto& t2: *f._lterms) {
+//                    newlist = list;
+//                    newlist.push_front(get<1>(t2));
+//                    res.add((*get<0>(t1))*(*get<0>(t2)), newlist);
+//                }
+//            }
+//            if ((*f._cst)!=0) {
+//                res.add((*get<0>(t1))*(*f._cst), list);
+//            }
+        }
+        
+        
+        if (_qterms) {
+            for (auto& t1: *_qterms) {
+                for (auto& t2: *f->_pterms) {
+//                    newlist = get<1>(t2);
+//                    newlist.push_front(get<1>(t1));
+//                    newlist.push_front(get<2>(t1));
+//                    res.add((*get<0>(t1))*(*get<0>(t2)), newlist);
+                }
+                for (auto& t2: *f->_qterms) {
+//                    forward_list<var_*> list;
+//                    list.push_front(get<1>(t1));
+//                    list.push_front(get<2>(t1));
+//                    list.push_front(get<1>(t2));
+//                    list.push_front(get<2>(t2));
+//                    res.add((*get<0>(t1))*(*get<0>(t2)), list);
+                }
+                for (auto& t2: *f->_lterms) {
+//                    forward_list<var_*> list;
+//                    list.push_front(get<1>(t1));
+//                    list.push_front(get<2>(t1));
+//                    list.push_front(get<1>(t2));
+//                    res.add((*get<0>(t1))*(*get<0>(t2)), list);
+                }
+                if (!f->_cst->is_zero()) {
+                    res.insert(t1.second._sign, *multiply(t1.second._coef, *f->_cst), *t1.second._p->first, *t1.second._p->second);
+                }
+                
+            }
+        }
+        for (auto& t1: *_lterms) {
+            for (auto& t2: *f->_pterms) {
+//                newlist = get<1>(t2);
+//                newlist.push_front(get<1>(t1));
+//                res.add((*get<0>(t1))*(*get<0>(t2)), newlist);
+            }
+            for (auto& t2: *f->_qterms) {
+//                forward_list<var_*> list;
+//                list.push_front(get<1>(t1));
+//                list.push_front(get<1>(t2));
+//                list.push_front(get<2>(t2));
+//                res.add((*get<0>(t1))*(*get<0>(t2)), list);
+            }
+            for (auto& t2: *f->_lterms) {
+                res.insert(!(t1.second._sign^t2.second._sign), *multiply(t1.second._coef, *f->_cst), *t1.second._p, *t2.second._p);
+            }
+            if (!f->_cst->is_zero()) {
+                res.insert(t1.second._sign, *multiply(t1.second._coef, *f->_cst), *t1.second._p);
+            }
+        }
+//        if (*_cst!=0) {
+//            if (f._pterms) {
+//                for (auto& t2: *f._pterms) {
+//                    newlist = get<1>(t2);
+//                    res.add((*get<0>(t2)*(*_cst)), newlist);
+//                }
+//            }
+//            if (f._qterms) {
+//                for (auto& t2: *f._qterms) {
+//                    res.add((*get<0>(t2))*(*_cst), *get<1>(t2), *get<2>(t2));
+//                }
+//            }
+//            if (f._lterms) {
+//                for (auto& t2: *f._lterms) {
+//                    res.add((*get<0>(t2))*(*_cst), *get<1>(t2));
+//                }
+//            }
+//            res.replace_const(res.new_coef((*f._cst) * (*_cst)));
+//        }        //    update_convexity();
+//        return *this;
+    }
+    return *this;
+}
+
+func_& func_::operator/=(const constant_& c){
     
     return *this;
 }
@@ -393,6 +651,16 @@ void func_::reset(){
     _cst = new constant<int>(0);
 };
 
+void func_::reverse_sign(){ /*<< Reverse the sign of all linear terms and constant in the function */
+    for (auto &pair: *_lterms) {
+        pair.second.reverse_sign();
+    }
+    for (auto &pair: *_qterms) {
+        pair.second.reverse_sign();
+    }
+    ::reverse_sign(_cst);
+}
+
 bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
     param_* p_new;
     auto name = p.get_name();
@@ -462,10 +730,7 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
     param_* p_new1;
     param_* p_new2;
     
-    if (_ftype == const_ && p1.is_var()) {
-        _ftype = lin_;
-    }
-    if (_ftype == lin_ && p1.is_var() && p2.is_var()) {
+    if (_ftype <= lin_ && p1.is_var()) {
         _ftype = quad_;
     }
     
@@ -550,6 +815,77 @@ void func_::insert(const qterm& term){
     insert(term._sign, *term._coef, *term._p->first, *term._p->second);
 }
 
+
+bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+    string name;
+    string s;
+    for (auto &pair:l) {
+        name += pair.first->get_name();
+        name += ",";
+    }
+    auto pair_it = _pterms->find(name);
+    param_* p = l.begin()->first;
+    param_* pnew;
+    if (_ftype <= quad_ && p->is_var()) {
+        _ftype = pol_;
+    }
+    list<pair<param_*, int>>* newl;
+    if (pair_it == _pterms->end()) {
+        newl = new list<pair<param_*, int>>;
+        for (auto &pair:l) {
+            p = pair.first;
+            s = p->get_name();
+            if (p->is_var()) {
+                pnew = (param_*)get_var(s);
+                if (!pnew) {
+                    pnew = (param_*)copy(p);
+                    add_var(pnew);
+                }
+                else {
+                    incr_occ_var(s);
+                }
+            }
+            else {
+                pnew = (param_*)get_param(s);
+                if (!pnew) {
+                    pnew = (param_*)copy(p);
+                    add_param(pnew);
+                }
+                else {
+                    incr_occ_param(s);
+                }
+            }
+            newl->push_back(make_pair<>(pnew, pair.second));
+        }
+        auto c_new = copy(&coef);
+        _pterms->insert(make_pair<>(name, pterm(sign, c_new, newl)));
+        return true;
+    }
+    else {
+        if (pair_it->second._sign == sign) {
+            pair_it->second._coef = add(pair_it->second._coef, coef);
+            if (!pair_it->second._sign) { // both negative
+                pair_it->second._sign = true;
+            }
+        }
+        else{
+            pair_it->second._coef = substract(pair_it->second._coef, coef);
+        }
+        
+        if (pair_it->second._coef->is_zero()) {
+            _pterms->erase(pair_it);
+            if (p->is_var()) {
+                decr_occ_var(s);
+            }
+            else {
+                decr_occ_param(s);
+            }
+            //            update_convexity();
+        }
+        return false;
+    }
+
+}
 
 
 uexpr::uexpr(const uexpr& exp){
@@ -788,6 +1124,40 @@ template<typename other_type> bexpr& bexpr::operator/=(const other_type& v){
 
 
 
+/* Polymorphic functions */
+
+void reverse_sign(constant_* c){ /**< Reverses the sign of the constant. */
+    switch (c->get_type()) {
+        case binary_c: {
+            ((constant<bool>*)c)->set_val(!((constant<bool>*)c)->eval());
+            break;
+        }
+        case short_c: {
+            ((constant<short>*)c)->set_val(-1*((constant<short>*)c)->eval());
+            break;
+        }
+        case integer_c: {
+            ((constant<int>*)c)->set_val(-1*((constant<int>*)c)->eval());
+            break;
+        }
+        case float_c: {
+            ((constant<float>*)c)->set_val(-1*((constant<float>*)c)->eval());
+            break;
+        }
+        case double_c: {
+            ((constant<double>*)c)->set_val(-1*((constant<double>*)c)->eval());
+            break;
+        }
+        case long_c: {
+            ((constant<long double>*)c)->set_val(-1*((constant<long double>*)c)->eval());
+            break;
+        }
+        default:
+            throw invalid_argument("Cannot reverse sign of non-numeric constant");
+            break;
+    }
+    
+}
 
 void poly_print(const constant_* c){/**< Copy c into c1 detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
     
@@ -1054,32 +1424,69 @@ double bexpr::eval(ind i) const{
     
 }
 
-
-func_ operator+(const func_& f1, const func_& f2){
-    return func_(f1) += f2;
+func_ operator+(const constant_& c1, const constant_& c2){
+    return func_(c1) += c2;
 }
 
-func_ operator+(func_&& f1, const func_& f2){
-    return f1 += f2;
+func_ operator+(func_&& f, const constant_& c){
+    return f += c;
 }
 
-func_ operator+(const func_& f1, func_&& f2){
-    return f2 += f1;
+func_ operator+(const constant_& c, func_&& f){
+    return f += c;
 }
 
 
-func_ operator-(const func_& f1, const func_& f2){
-    return func_(f1) -= f2;
+func_ operator-(const constant_& c1, const constant_& c2){
+    return func_(c1) -= c2;
 }
 
-func_ operator-(func_&& f1, const func_& f2){
-    return f1 -= f2;
+func_ operator-(func_&& f, const constant_& c){
+    return f -= c;
 }
 
-func_ operator-(const func_& f1, func_&& f2){
-    return (f2 *= -1) += f1;
+func_ operator-(const constant_& c, func_&& f){
+    return (f *= -1) += c;
 }
 
+
+func_ operator*(const constant_& c1, const constant_& c2){
+    return func_(c1) *= c2;
+}
+
+func_ operator*(func_&& f, const constant_& c){
+    return f *= c;
+}
+
+func_ operator*(const constant_& c, func_&& f){
+    return f *= c;
+}
+//
+//func_ operator+(const func_& f1, const func_& f2){
+//    return func_(f1) += f2;
+//}
+//
+//func_ operator+(func_&& f1, const func_& f2){
+//    return f1 += f2;
+//}
+//
+//func_ operator+(const func_& f1, func_&& f2){
+//    return f2 += f1;
+//}
+//
+//
+//func_ operator-(const func_& f1, const func_& f2){
+//    return func_(f1) -= f2;
+//}
+//
+//func_ operator-(func_&& f1, const func_& f2){
+//    return f1 -= f2;
+//}
+//
+//func_ operator-(const func_& f1, func_&& f2){
+//    return (f2 *= -1) += f1;
+//}
+//
 constant_* add(constant_* c1, const func_& f){
     switch (c1->get_type()) {
         case binary_c: {
@@ -1378,6 +1785,17 @@ constant_* substract(constant_* c1, const constant_& c2){ /**< adds c2 to c1, up
 }
 
 constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    if (c1->is_zero()) {
+        return c1;
+    }
+    if (c2.is_unit()) {
+        return c1;
+    }
+    if (c2.is_zero()) {
+        delete c1;
+        c1 = new constant<int>(0);
+        return c1;
+    }
     switch (c2.get_type()) {
         case binary_c: {
             return multiply(c1, *(constant<bool>*)&c2);
@@ -1470,9 +1888,9 @@ constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, upd
             break;
         }
         case func_c: {
-            auto f = new func_(*c1);
+            auto f = new func_(c2);
+            *f *= *c1;
             delete c1;
-            *f *= c2;
             return c1 = (constant_*)f;
             break;
         }
@@ -1496,14 +1914,16 @@ void const func_::print(bool endline){
     if (_convex==concave_) {
         cout << "Concave function: ";
     }
-    cout << "f(";
-    for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-        poly_print(pair_it->second.first);
-        if (++pair_it != _vars->end()) {
-            cout << ",";
+    if (!is_constant()) {
+        cout << "f(";
+        for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+            poly_print(pair_it->second.first);
+            if (++pair_it != _vars->end()) {
+                cout << ",";
+            }
         }
+        cout << ") = ";
     }
-    cout << ") = ";
     for (auto &pair:*_qterms) {
         c_new = pair.second._coef;
         p_new1 = (param_*)pair.second._p->first;
@@ -1626,5 +2046,90 @@ void const func_::print(bool endline){
         cout <<")";
     }
     if (endline)
+        cout << endl;
+}
+
+/* UNARY EXPRESSIONS */
+
+uexpr::uexpr(){
+    _otype = id_;
+    _son = nullptr;
+    _type = uexp_c;
+}
+
+
+void uexpr::print(bool endline) const{
+    switch (_otype) {
+        case log_:
+            cout << "log(";
+            poly_print(_son);
+            cout << ")";
+            break;
+            
+        case exp_:
+            cout << "exp(";
+            poly_print(_son);
+            cout << ")";
+            break;
+            
+        case cos_:
+            cout << "cos(";
+            poly_print(_son);
+            cout << ")";
+            break;
+            
+        case sin_:
+            cout << "sin(";
+            poly_print(_son);
+            cout << ")";
+            break;
+            
+        case sqrt_:
+            cout << "sqrt(";
+            poly_print(_son);
+            cout << ")";
+            break;
+        default:
+            break;
+    }
+    if(endline)
+        cout << endl;
+}
+
+void bexpr::print(bool endline) const {
+    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+        cout << "(";
+        poly_print(_lson);
+        cout << ")";
+    }
+    else
+        poly_print(_lson);
+    
+    if (_otype==plus_) {
+        cout << " + ";
+    }
+    if (_otype==minus_) {
+        cout << " - ";
+    }
+    if (_otype==product_) {
+        cout << " * ";
+    }
+    if (_otype==div_) {
+        cout << "/";
+    }
+    
+    if (_otype==power_) {
+        cout << "^";
+    }
+    
+    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+        poly_print(_rson);
+    }
+    else {
+        cout << "(";
+        poly_print(_rson);
+        cout << ")";
+    }
+    if(endline)
         cout << endl;
 }
