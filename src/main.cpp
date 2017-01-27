@@ -135,8 +135,15 @@ int main (int argc, const char * argv[])
     l22.print();
     l22 += 1 - p11*v11*2;
     l22.print();
-//    l11 += dp*q + q - ip*p + p - p11*v11*2 + v11;
-//    l11.print();
+    l11 += dp*q + q - ip*p + p - p11*v11*2 + v11;
+    l11.print();
+    auto cc = p*p + q*q;
+    cc.print();
+    
+    auto cc1 = cc * -1;
+    cc1.print();//SHOULD PRINT CONCAVE
+    cc1 += 2*p*q;
+    cc1.print();
 //    l11 *= -2;
 //    l11.print();
 //    auto l00 = 2*p(1,2) + q(1)+ p(3);

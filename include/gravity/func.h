@@ -37,9 +37,10 @@ public:
         _p = nullptr;
     }
     
-    lterm(const lterm& t){
+    lterm(const lterm& t){ // WARNING: copy constructor does not create copy of pointers!
         _coef = copy(t._coef);
-        _p = (param_*)copy(t._p);
+//        _p = (param_*)copy(t._p);
+        _p = t._p;
         _sign = t._sign;
     };
     
@@ -168,9 +169,9 @@ public:
         _p = nullptr;
     }
     
-    qterm(const qterm& t){
+    qterm(const qterm& t){// WARNING: copy constructor does not create copy of pointers!
         _coef = copy(t._coef);
-        _p = new pair<param_*, param_*>(make_pair((param_*)copy(t._p->first), (param_*)copy(t._p->second)));
+        _p = new pair<param_*, param_*>(make_pair(t._p->first, t._p->second));
         _sign = t._sign;
     };
     
@@ -296,11 +297,11 @@ public:
         _l = nullptr;
     }
     
-    pterm(const pterm& t){
+    pterm(const pterm& t){// WARNING: copy constructor does not create copy of pointers!
         _coef = copy(t._coef);
         _l = new list<pair<param_*, int>>();
         for (auto &pair : *t._l) {
-            _l->push_back(make_pair<>((param_*)copy(pair.first), pair.second));
+            _l->push_back(make_pair<>(pair.first, pair.second));
         }
         _sign = t._sign;
     };
@@ -714,19 +715,52 @@ public:
         return nullptr;
     }
     
-//    void update_convexity(){// WRONG!!
-//        if (_qterms->empty() && _pterms->empty()) {
-//            _convex = linear_;
-//            return;
-//        }
-//        _convex = get_convexity(_qterms->begin()->second);
-//        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-//            if (_convex != get_convexity(pair_it->second)) {
-//                _convex = indet_;
-//                return;
-//            }
-//        }
-//    }
+    Convexity get_convexity(const qterm& q) {
+        if(q._p->first == q._p->second){
+            if (q._sign) {
+                return convex_;
+            }
+            return concave_;
+        }
+        // At this stage, we know that q._p->first !=q._p->second
+        // Checking if the product can be factorized
+        auto sqr1 = get_square(q._p->first);
+        auto sqr2 = get_square(q._p->second);
+        if (sqr1 && sqr2){
+            auto c0 = q._coef;
+            auto c1 = sqr1->_coef;
+            auto c2 = sqr2->_coef;
+            if (sqr1->_sign==sqr2->_sign) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
+                if (sqr1->_sign) {
+                    return convex_;
+                }
+                return concave_;
+            }
+        }
+        return indet_;
+    }
+    
+    void update_convexity(){
+        if (!_pterms->empty()) {
+            _convex = indet_;
+            return;
+        }
+        if (_qterms->empty()) {
+            _convex = linear_;
+            return;
+        }
+        _convex = get_convexity(_qterms->begin()->second);
+        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+            Convexity conv = get_convexity(pair_it->second);
+            if (_convex==indet_ || conv ==indet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
+                _convex = indet_;
+                return;
+            }
+            else {
+                _convex = conv;
+            }
+        }
+    }
     
     void const print(bool endline=true);
     
@@ -1064,24 +1098,7 @@ func_ operator-(func_&& f, const constant_& c);
     
 
     
-//Convexity get_convexity(const qterm& q) {
-//    if(q._p->first == q._p->second){
-//        if (q._sign) {
-//            return convex_;
-//        }
-//        return concave_;
-//    }
-//    //q._p->first !=q._p->second
-//    auto sqr1 = get_square(q._p->first);
-//    auto sqr2 = get_square(q._p->second);
-//    if (sqr1 && sqr2 && sqr1->_sign==sqr2->_sign) {
-//        if (sqr1->_sign) {
-//            return convex_;
-//        }
-//        return concave_;
-//    }
-//    return indet_;
-//}
+
 
 
     

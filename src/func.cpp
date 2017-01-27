@@ -372,7 +372,7 @@ func_& func_::operator+=(const constant_& c){
         for (auto &pair:*f->_qterms) {
             this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
         }
-        //    update_convexity();
+        update_convexity();
         return *this;
     }
     return *this;
@@ -402,7 +402,7 @@ func_& func_::operator-=(const constant_& c){
         for (auto &pair:*f->_qterms) {
             this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
         }
-        //    update_convexity();
+        update_convexity();
         return *this;
     }
     return *this;
@@ -449,11 +449,11 @@ func_& func_::operator*=(const constant_& c){
         for (auto &pair:*_qterms) {
 //            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
         }
-        _qterms->clear();
+        _qterms->clear();// clear_qterms(); //remove occurences
         for (auto &pair:*_lterms) {
             this->insert(pair.second._sign, *pair.second._coef, *pair.second._p, *(param_*)&c);
         }
-        _lterms->clear();
+        _lterms->clear();// clear_lterms(); //remove occurences
         if (!_cst->is_zero()) {
             insert(true, *_cst, *(param_*)&c);
             delete _cst;
@@ -777,7 +777,15 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
             }
         }
         auto c_new = copy(&coef);
-        _qterms->insert(make_pair<>(name, qterm(sign, c_new, p_new1, p_new2)));
+        qterm q(sign, c_new, p_new1, p_new2);
+        Convexity conv = get_convexity(q);
+        if (_convex==indet_ || conv ==indet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
+            _convex = indet_;
+        }
+        else {
+            _convex = conv;
+        }
+        _qterms->insert(make_pair<>(name, q));
         return true;
     }
     else {
@@ -790,7 +798,13 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
         }
-        
+        Convexity conv = get_convexity(pair_it->second);
+        if (_convex==indet_ || conv ==indet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
+            _convex = indet_;
+        }
+        else {
+            _convex = conv;
+        }
         if (pair_it->second._coef->is_zero()) {
             _qterms->erase(pair_it);
             if (p1.is_var()) {
@@ -805,7 +819,7 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
             else {
                 decr_occ_param(s2);
             }
-//            update_convexity();
+            update_convexity();
         }
         return false;
     }
@@ -817,6 +831,7 @@ void func_::insert(const qterm& term){
 
 
 bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+    _convex = indet_;
     string name;
     string s;
     for (auto &pair:l) {
@@ -880,7 +895,7 @@ bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l
             else {
                 decr_occ_param(s);
             }
-            //            update_convexity();
+            update_convexity();
         }
         return false;
     }
