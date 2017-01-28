@@ -32,6 +32,12 @@ template<typename type> var<type>::var(const var<type>& v):param<type>(v){
 template<typename type> var<type>::var(const char* name, type lb, type ub):var(name){
     _lb->push_back(lb);
     _ub->push_back(ub);
+    if (lb < param<type>::_range.first) {
+        param<type>::_range.first = lb;
+    }
+    if (ub > param<type>::_range.second) {
+        param<type>::_range.second = ub;
+    }
 };
 
 
@@ -49,16 +55,30 @@ template<typename type> void   var<type>::add_bounds(type lb, type ub){
     }
     _lb->push_back(lb);
     _ub->push_back(ub);
+    if (lb < param<type>::_range.first) {
+        param<type>::_range.first = lb;
+    }
+    if (ub > param<type>::_range.second) {
+        param<type>::_range.second = ub;
+    }
 }
 
 template<typename type> void   var<type>::add_lb_only(type val){
     _lb->push_back(val);
-    _ub->push_back(std::numeric_limits<type>::max());
+    _ub->push_back(numeric_limits<type>::max());
+    if (val < param<type>::_range.first) {
+        param<type>::_range.first = val;
+    }
+    param<type>::_range.second = numeric_limits<type>::max();
 }
 
 template<typename type> void   var<type>::add_ub_only(type val){
-    _lb->push_back(std::numeric_limits<type>::min());
+    _lb->push_back(numeric_limits<type>::lowest());
     _ub->push_back(val);
+    param<type>::_range.first = numeric_limits<type>::lowest();
+    if (val > param<type>::_range.second) {
+        param<type>::_range.second = val;
+    }
 }
 
 template<typename type> void   var<type>::set_lb(int i, type val){
@@ -66,6 +86,9 @@ template<typename type> void   var<type>::set_lb(int i, type val){
         throw out_of_range("set_lb(int i, type val)");
     }
     _lb->at(i) = val;
+    if (val < param<type>::_range.first) {
+        param<type>::_range.first = val;
+    }
 }
 
 template<typename type> void   var<type>::set_ub(int i, type val){
@@ -73,6 +96,9 @@ template<typename type> void   var<type>::set_ub(int i, type val){
         throw out_of_range("set_lb(int i, type val)");
     }
     _ub->at(i) = val;
+    if (val > param<type>::_range.second) {
+        param<type>::_range.second = val;
+    }
 }
 
 

@@ -408,6 +408,7 @@ private:
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
     Convexity                              _convex = linear_; /**< Convexity type, i.e., linear, convex, concave or indeterminate. >>**/
+    Sign                                   _sign = zero_; /**< Sign of return value if known. >>**/
     bool                                   _in_model = false; /**< If the function is in a mathematical model, the latter is responsible for memory management. >>**/
     map<string, pair<param_*, int>>*       _params;/**< map <parameter name, <paramter pointer, number of times it appears in function>>**/
     map<string, pair<param_*, int>>*       _vars;/**< map <variable name, <variable pointer, number of times it appears in function>>**/
@@ -579,6 +580,8 @@ public:
     
     void reverse_sign(); /*<< Reverse the sign of all terms in the function */
     
+    void reverse_convexity();    
+    
     func_& operator=(const func_& f);
     
     func_& operator=(func_&& f);
@@ -715,12 +718,62 @@ public:
         return nullptr;
     }
     
+    Sign get_sign() const{
+        return _sign;
+    }
+    
+    Sign get_sign(const lterm& l) {
+        if (l._coef->is_zero()) {
+            return zero_;
+        }
+        if (l._coef->get_sign()==unknown_ || l._p->get_sign()==unknown_) {
+            return unknown_;
+        }
+        if (l._sign) {
+            if(l._coef->get_sign() * l._p->get_sign() == 2) {
+                return non_neg_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == 4) {
+                return pos_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == -2) {
+                return non_pos_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == -4) {
+                return neg_;
+            }
+        }
+        else {
+            if(l._coef->get_sign() * l._p->get_sign() == 2) {
+                return non_pos_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == 4) {
+                return neg_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == -2) {
+                return non_neg_;
+            }
+            if(l._coef->get_sign() * l._p->get_sign() == -4) {
+                return pos_;
+            }
+        }
+        return unknown_;
+    }
+    
     Convexity get_convexity(const qterm& q) {
         if(q._p->first == q._p->second){
-            if (q._sign) {
+            if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
                 return convex_;
             }
-            return concave_;
+            if (q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                return concave_;
+            }
+            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                return convex_;
+            }
+            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                return concave_;
+            }
         }
         // At this stage, we know that q._p->first !=q._p->second
         // Checking if the product can be factorized
@@ -730,19 +783,29 @@ public:
             auto c0 = q._coef;
             auto c1 = sqr1->_coef;
             auto c2 = sqr2->_coef;
-            if (sqr1->_sign==sqr2->_sign) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
-                if (sqr1->_sign) {
+            if (!(sqr1->_sign^c1->is_positive())==!(sqr2->_sign^c2->is_positive())) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
+                if (!(sqr1->_sign^c1->is_positive())) {
                     return convex_;
                 }
                 return concave_;
             }
         }
-        return indet_;
+        return undet_;
     }
+    
+    void update_sign(const constant_& c);
+    
+    void update_sign(const lterm& l);
+    
+    void update_sign(const qterm& q);
+    
+    void update_sign(const pterm& q);
+    
+    void update_convexity(const qterm& q);
     
     void update_convexity(){
         if (!_pterms->empty()) {
-            _convex = indet_;
+            _convex = undet_;
             return;
         }
         if (_qterms->empty()) {
@@ -752,8 +815,8 @@ public:
         _convex = get_convexity(_qterms->begin()->second);
         for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
             Convexity conv = get_convexity(pair_it->second);
-            if (_convex==indet_ || conv ==indet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
-                _convex = indet_;
+            if (_convex==undet_ || conv ==undet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
+                _convex = undet_;
                 return;
             }
             else {

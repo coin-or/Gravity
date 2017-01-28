@@ -75,10 +75,14 @@ public:
     bool is_function() const{
         return (_type==func_c);
     };
-    
+    Sign get_sign() const;
     bool is_zero() const; /**< Returns true if constant equals 0 */
     bool is_unit() const; /**< Returns true if constant equals 1 */
-    bool is_neg_unit() const; /**< Returns true if constant equals -1 */    
+    bool is_neg_unit() const; /**< Returns true if constant equals -1 */
+    bool is_positive() const; /**< Returns true if constant is positive */
+    bool is_negative() const; /**< Returns true if constant is negative */
+    bool is_non_positive() const; /**< Returns true if constant is non positive */
+    bool is_non_negative() const; /**< Returns true if constant is non negative */
 };
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
@@ -134,6 +138,18 @@ public:
     
     void set_val(type val) {
         _val = val;
+    }
+    
+    Sign get_sign() const{
+        if (_val==0) {
+            return zero_;
+        }
+        if (_val > 0) {
+            return pos_;
+        }
+        if (_val < 0) {
+            return neg_;
+        }
     }
     
     /** Operators */

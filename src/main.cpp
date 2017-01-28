@@ -93,7 +93,9 @@ int main (int argc, const char * argv[])
     v1.set_size(3);
     v1.add_bounds(-1,2);
     v1.print(true);
-    var<float> p("p");
+    var<double> p("p", 1, 50);
+    p.add_bounds(0.1, 20);
+    p.add_bounds(10, 60);
     var<float> q("q");
     p.set_size(200);
     q.set_size(200);
@@ -144,6 +146,11 @@ int main (int argc, const char * argv[])
     cc1.print();//SHOULD PRINT CONCAVE
     cc1 += 2*p*q;
     cc1.print();
+    param<> aa("aa");
+    aa = -1;
+//    aa = 0;
+    auto ff = (aa*-1)*p*p;
+    ff.print();
 //    l11 *= -2;
 //    l11.print();
 //    auto l00 = 2*p(1,2) + q(1)+ p(3);
