@@ -37,10 +37,9 @@ public:
         _p = nullptr;
     }
     
-    lterm(const lterm& t){ // WARNING: copy constructor does not create copy of pointers!
+    lterm(const lterm& t){
         _coef = copy(t._coef);
-//        _p = (param_*)copy(t._p);
-        _p = t._p;
+        _p = (param_*)copy(t._p);
         _sign = t._sign;
     };
     
@@ -153,6 +152,7 @@ public:
         return *this;
     }
     
+    void const print(int ind);
 };
 
 
@@ -169,9 +169,9 @@ public:
         _p = nullptr;
     }
     
-    qterm(const qterm& t){// WARNING: copy constructor does not create copy of pointers!
+    qterm(const qterm& t){
         _coef = copy(t._coef);
-        _p = new pair<param_*, param_*>(make_pair(t._p->first, t._p->second));
+        _p = new pair<param_*, param_*>(make_pair((param_*)copy(t._p->first), (param_*)copy(t._p->second)));
         _sign = t._sign;
     };
     
@@ -217,6 +217,7 @@ public:
             delete _p;
         }
     };
+    
     
     bool operator==(const qterm& l) const;
     bool operator!=(const qterm& l) const;
@@ -280,7 +281,7 @@ public:
         return *this;
     }
     
-    
+    void const print(int ind);
 };
 
 
@@ -297,14 +298,22 @@ public:
         _l = nullptr;
     }
     
-    pterm(const pterm& t){// WARNING: copy constructor does not create copy of pointers!
+    pterm(const pterm& t){
         _coef = copy(t._coef);
         _l = new list<pair<param_*, int>>();
         for (auto &pair : *t._l) {
-            _l->push_back(make_pair<>(pair.first, pair.second));
+            _l->push_back(make_pair<>((param_*)copy(pair.first), pair.second));
         }
         _sign = t._sign;
     };
+    
+    pterm(bool sign, const constant_& coef, const param_& p, int exp){
+        _coef = copy(&coef);
+        _l = new list<pair<param_*, int>>();
+        _l->push_back(make_pair<>((param_*)copy(&p), exp));
+        _sign = sign;
+    };
+    
     
     pterm(pterm&& t){
         _coef = t._coef;
@@ -315,7 +324,7 @@ public:
     };
     
     pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
-        _coef = new constant<int>(1);
+        _coef = coef;
         _l = l;
         _sign = sign;
     };
@@ -389,17 +398,25 @@ public:
         return *this;
     }
     
-    template <typename T> pterm& operator*=(const param<T>& p){
-        _coef = multiply(_coef, p);
-        return *this;
-    }
+    pterm& operator*=(const param_& p);
     
     template<typename T> pterm& operator/=(const param<T>& p){
-        _coef = divide(_coef, p);
+        if (p.is_param() && _l->begin()->first->is_var()) {
+            _coef = divide(_coef, p);
+        }
+        else {
+            for (auto& p_it:*_l) {
+                if (p_it.first->get_name()==p.get_name()) {
+                    p_it.second--;
+                    return *this;
+                }
+            }
+            throw invalid_argument("The division result is not a polynomial term.");
+        }
         return *this;
     }
     
-    
+    void const print(int ind);
 };
 
 /** Backbone class for function */
@@ -437,6 +454,8 @@ public:
     void insert(const lterm& term);
     
     void insert(const qterm& term);
+    
+    void insert(const pterm& term);
     
     constant_* get_cst() {
         return _cst;
@@ -692,7 +711,7 @@ public:
     func_& operator*=(const constant_& f);
     func_& operator/=(const constant_& f);
     
-    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator+=(T c){
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator+=(T c){
         return *this += constant<T>(c);
     };
     
@@ -902,8 +921,6 @@ public:
     bexpr();
     
     bexpr(const bexpr& exp);
-    
-    bexpr(const func_& f);
     
     bexpr(bexpr&& exp);
     

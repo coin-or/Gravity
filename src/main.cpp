@@ -149,8 +149,15 @@ int main (int argc, const char * argv[])
     param<> aa("aa");
     aa = -1;
 //    aa = 0;
-    auto ff = (aa*-1)*p*p;
+//    auto ff = (aa*-1)*p*p - (ip + dp)*q*q;
+    auto ff = -1*aa*v11*v11;
     ff.print();
+    ff += 1*(ip + dp)*q*q;
+    ff.print();
+    ff *= aa*p*q;
+    ff.print();
+//    auto exp = log(ff);
+//    exp.print();
 //    l11 *= -2;
 //    l11.print();
 //    auto l00 = 2*p(1,2) + q(1)+ p(3);
