@@ -285,6 +285,8 @@ qterm& qterm::operator=(qterm&& q){
     return *this;
 }
 
+
+
 pterm& pterm::operator=(const pterm &p){
     if (_coef) {
         delete _coef;
@@ -317,21 +319,6 @@ pterm& pterm::operator=(pterm&& p){
     return *this;
 }
 
-pterm& pterm::operator*=(const param_& p){
-    if (p.is_param() && _l->begin()->first->is_var()) {
-        _coef = multiply(_coef, p);
-    }
-    else {
-        for (auto& p_it:*_l) {
-            if (p_it.first->get_name()==p.get_name()) {
-                p_it.second++;
-                return *this;
-            }
-        }
-        _l->push_back(make_pair<>((param_*)copy(&p),1));
-    }
-    return *this;
-}
 
 
 func_::func_(){
@@ -384,7 +371,7 @@ func_::func_(const constant_& c){
         }
         case par_c:{
             auto p_c2 = (param_*)copy(&c);
-            _lterms->insert(make_pair<>(p_c2->get_name(), move(p_c2)));
+            _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_param(p_c2);
             _cst = new constant<int>(0);
             _sign = p_c2->get_sign();
@@ -400,7 +387,7 @@ func_::func_(const constant_& c){
         }
         case var_c:{
             auto p_c2 = (param_*)copy(&c);
-            _lterms->insert(make_pair<>(p_c2->get_name(), move(p_c2)));
+            _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_var(p_c2);
             _ftype = lin_;
             _cst = new constant<int>(0);
@@ -417,6 +404,9 @@ func_::func_(const constant_& c){
                 insert(pair.second);
             }
             for (auto &pair:*f->_qterms) {
+                insert(pair.second);
+            }
+            for (auto &pair:*f->_pterms) {
                 insert(pair.second);
             }
             _cst = copy(f->_cst);
@@ -464,6 +454,9 @@ func_::func_(const func_& f){
     for (auto &pair:*f._qterms) {
         insert(pair.second);
     }
+    for (auto &pair:*f._pterms) {
+        insert(pair.second);
+    }
     _cst = copy(f._cst);
 }
 
@@ -502,6 +495,9 @@ func_& func_::operator=(const func_& f){
         insert(pair.second);
     }
     for (auto &pair:*f._qterms) {
+        insert(pair.second);
+    }
+    for (auto &pair:*f._pterms) {
         insert(pair.second);
     }
     _cst = copy(f._cst);
@@ -604,6 +600,9 @@ bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
                 break;
         }
     }
+    if (is_function()) {
+        return ((func_*)(this))->is_zero();
+    }
     return false;
 }
 
@@ -692,10 +691,13 @@ func_& func_::operator+=(const constant_& c){
         }
         _cst = add(_cst, *f->_cst);
         for (auto &pair:*f->_lterms) {
-            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p);
+            this->insert(pair.second);
         }
         for (auto &pair:*f->_qterms) {
-            this->insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+            this->insert(pair.second);
+        }
+        for (auto &pair:*f->_pterms) {
+            this->insert(pair.second);
         }
         update_sign(*f);
         update_convexity();
@@ -728,6 +730,9 @@ func_& func_::operator-=(const constant_& c){
         }
         for (auto &pair:*f->_qterms) {
             this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+        }
+        for (auto &pair:*f->_pterms) {
+            this->insert(!pair.second._sign, *pair.second._coef, *pair.second._l);
         }
         update_sign(*f);
         update_convexity();
@@ -775,23 +780,6 @@ func_& func_::operator*=(const constant_& c){
         return *this;
     }
     if (c.is_param() || c.is_var()) {
-//        func_ res;
-//        pterm pt;
-//        list<pair<param_*, int>> l;
-//        for (auto &p_it:*_qterms) {
-//            l.push_back(make_pair<>(move(p_it.second._p->first), 1));
-//            l.push_back(make_pair<>(move(p_it.second._p->second), 1));
-//            l.push_back(make_pair<>(move((param_*)&c), 1));
-//            res.insert(p_it.second._sign, *p_it.second._coef, l);
-//            l.clear();
-//        }
-//        for (auto &pair:*_lterms) {
-//            res.insert(pair.second._sign, *pair.second._coef, *pair.second._p, *(param_*)&c);
-//        }
-//        if (!_cst->is_zero()) {
-//            res.insert(true, *_cst, *(param_*)&c);
-//        }
-//        *this = move(res);
         func_ f(c);
         *this *= f;
         return *this;
@@ -799,74 +787,74 @@ func_& func_::operator*=(const constant_& c){
     if (c.is_function()) {
         func_* f = (func_*)&c;
         constant_* coef;
-        pterm pt;
         func_ res;
         for (auto& t1: *_pterms) {
             for (auto& t2: *f->_pterms) {
-                pt = pterm(t1.second);
-                for (auto& v: *t2.second._l) {
-                    pt *= *v.first;
+                auto newl(*t1.second._l);
+                for (auto& it: *t2.second._l) {
+                    newl.push_back(make_pair<>(it.first, it.second));
                 }
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                res.insert(!(t1.second._sign^t2.second._sign), *coef, *pt._l);
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
-                pt = pterm(t1.second);
-                pt *= *t2.second._p->first;
-                pt *= *t2.second._p->second;
+                auto newl(*t1.second._l);
+                newl.push_back(make_pair<>((t2.second._p->first), 1));
+                newl.push_back(make_pair<>((t2.second._p->second), 1));
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                res.insert(!(t1.second._sign^t2.second._sign), *coef, *pt._l);
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
             }
             for (auto& t2: *f->_lterms) {
-                pt = pterm(t1.second);
-                pt *= *t2.second._p;
+                auto newl(*t1.second._l);
+                newl.push_back(make_pair<>((t2.second._p), 1));
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                res.insert(!(t1.second._sign^t2.second._sign), *coef, *pt._l);
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
             }
             if (!f->_cst->is_zero()) {
-                pt = pterm(t1.second);
+                auto newl(*t1.second._l);
                 coef = copy(f->_cst);
                 coef = multiply(coef, *t1.second._coef);
-                res.insert(t1.second._sign, *coef, *pt._l);
+                res.insert(t1.second._sign, *coef, newl);
                 delete coef;
             }
         }
 
         for (auto& t1: *_qterms) {
             for (auto& t2: *f->_pterms) {
-                pt = pterm(t2.second);
-                pt *= *t1.second._p->first;
-                pt *= *t1.second._p->second;
+                auto newl(*t2.second._l);
+                newl.push_back(make_pair<>(t1.second._p->first, 1));
+                newl.push_back(make_pair<>(t1.second._p->second, 1));
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                res.insert(!(t1.second._sign^t2.second._sign), *coef, *pt._l);
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                pt = pterm(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p->first, 1);
+                list<pair<param_*, int>> newl;
+                newl.push_back(make_pair<>(t1.second._p->first, 1));
+                newl.push_back(make_pair<>(t1.second._p->second, 1));
+                newl.push_back(make_pair<>(t2.second._p->first, 1));
+                newl.push_back(make_pair<>(t2.second._p->second, 1));
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
-                pt *= *t1.second._p->second;
-                pt *= *t2.second._p->first;
-                pt *= *t2.second._p->second;
-                res.insert(pt);
             }
             for (auto& t2: *f->_lterms) {
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                pt = pterm(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p->first, 1);
+                list<pair<param_*, int>> newl;
+                newl.push_back(make_pair<>(t1.second._p->first, 1));
+                newl.push_back(make_pair<>(t1.second._p->second, 1));
+                newl.push_back(make_pair<>(t2.second._p, 1));
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
-                pt *= *t1.second._p->second;
-                pt *= *t2.second._p;
-                res.insert(pt);
-
             }
             if (!f->_cst->is_zero()) {
                 coef = copy(t1.second._coef);
@@ -878,21 +866,22 @@ func_& func_::operator*=(const constant_& c){
         }
         for (auto& t1: *_lterms) {
             for (auto& t2: *f->_pterms) {
-                pt = pterm(t2.second);
-                pt *= *t1.second._p;
+                auto newl(*t2.second._l);
+                newl.push_back(make_pair<>((t1.second._p), 1));
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                res.insert(!(t1.second._sign^t2.second._sign), *coef, *pt._l);
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
                 coef = copy(t1.second._coef);
                 coef = multiply(coef, *t2.second._coef);
-                pt = pterm(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, 1);
+                list<pair<param_*, int>> newl;
+                newl.push_back(make_pair<>(t1.second._p, 1));
+                newl.push_back(make_pair<>(t2.second._p->first, 1));
+                newl.push_back(make_pair<>(t2.second._p->second, 1));
+                res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                 delete coef;
-                pt *= *t2.second._p->first;
-                pt *= *t2.second._p->second;
-                res.insert(pt);
             }
             for (auto& t2: *f->_lterms) {
                 coef = copy(t1.second._coef);
@@ -1258,10 +1247,11 @@ void func_::insert(const qterm& term){
 }
 
 
-bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
     _convex = undet_;
     string name;
     string s;
+    bool newv = true;
     for (auto &pair:l) {
         name += pair.first->get_name();
         name += ",";
@@ -1271,10 +1261,9 @@ bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l
     param_* pnew;
     if (_ftype <= quad_ && p->is_var()) {
         _ftype = pol_;
-    }
-    list<pair<param_*, int>>* newl;
+    }    
     if (pair_it == _pterms->end()) {
-        newl = new list<pair<param_*, int>>;
+        auto newl = new list<pair<param_*, int>>();
         for (auto &pair:l) {
             p = pair.first;
             s = p->get_name();
@@ -1298,7 +1287,17 @@ bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l
                     incr_occ_param(s);
                 }
             }
-            newl->push_back(make_pair<>(pnew, pair.second));
+            newv = true;
+            for (auto& p_it:*newl) {
+                if (p_it.first->get_name()==s) {
+                    p_it.second++;
+                    newv = false;
+                    break;
+                }
+            }
+            if (newv) {
+                newl->push_back(make_pair<>(pnew, pair.second));
+            }
         }
         auto c_new = copy(&coef);
         _pterms->insert(make_pair<>(name, pterm(sign, c_new, newl)));
@@ -1317,11 +1316,14 @@ bool func_::insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l
         
         if (pair_it->second._coef->is_zero()) {
             _pterms->erase(pair_it);
-            if (p->is_var()) {
-                decr_occ_var(s);
-            }
-            else {
-                decr_occ_param(s);
+            for (auto& it:*pair_it->second._l) {
+                p = it.first;
+                if (p->is_var()) {
+                    decr_occ_var(s);
+                }
+                else {
+                    decr_occ_param(s);
+                }
             }
             update_convexity();
         }
@@ -2515,10 +2517,10 @@ void const lterm::print(int ind){
 void const func_::print(bool endline){
     int ind = 0;
     string sign = " + ";
-    if (_convex==convex_) {
+    if (!is_constant() && _convex==convex_) {
         cout << "Convex function: ";
     }
-    if (_convex==concave_) {
+    if (!is_constant() && _convex==concave_) {
         cout << "Concave function: ";
     }
     if (!is_constant()) {

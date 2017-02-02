@@ -37,12 +37,6 @@ public:
         _p = nullptr;
     }
     
-    lterm(const lterm& t){
-        _coef = copy(t._coef);
-        _p = (param_*)copy(t._p);
-        _sign = t._sign;
-    };
-    
     lterm(lterm&& t){
         _coef = t._coef;
         t._coef = nullptr;
@@ -91,66 +85,66 @@ public:
     lterm& operator=(lterm&& l);
     
     
-    template <typename T> lterm& operator+=(const constant<T>& c){
-        if (c.is_zero()) {
-            return *this;
-        }
-        _coef = add(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> lterm& operator-=(const constant<T>& c){
-        return *this += constant<T>(c.eval()*-1);
-    }
-    
-    
-    template <typename T> lterm& operator*=(const constant<T>& c){
-        if (c.is_zero()) {
-            delete _coef;
-            _coef = new constant<int>(0);
-            _sign = true;
-            cerr << "\nWARNING multiplying lterm by zero!\n";
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = multiply(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> lterm& operator/=(const constant<T>& c){
-        if (c.is_zero()) {
-            throw invalid_argument("\nERROT dividing lterm by zero!\n");
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = divide(_coef, c);
-        return *this;
-    }
-    
-    
-    template <typename T> lterm& operator+=(const param<T>& p){
-        _coef = add(_coef, p);
-        return *this;
-    }
-    
-    template <typename T> lterm& operator-=(const param<T>& p){
-        _coef = substract(_coef, p);
-        return *this;
-    }
-    
-    template <typename T> lterm& operator*=(const param<T>& p){
-        _coef = multiply(_coef, p);
-        return *this;
-    }
-    
-    template<typename T> lterm& operator/=(const param<T>& p){
-        _coef = divide(_coef, p);
-        return *this;
-    }
+//    template <typename T> lterm& operator+=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            return *this;
+//        }
+//        _coef = add(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> lterm& operator-=(const constant<T>& c){
+//        return *this += constant<T>(c.eval()*-1);
+//    }
+//    
+//    
+//    template <typename T> lterm& operator*=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            delete _coef;
+//            _coef = new constant<int>(0);
+//            _sign = true;
+//            cerr << "\nWARNING multiplying lterm by zero!\n";
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = multiply(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> lterm& operator/=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            throw invalid_argument("\nERROT dividing lterm by zero!\n");
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = divide(_coef, c);
+//        return *this;
+//    }
+//    
+//    
+//    template <typename T> lterm& operator+=(const param<T>& p){
+//        _coef = add(_coef, p);
+//        return *this;
+//    }
+//    
+//    template <typename T> lterm& operator-=(const param<T>& p){
+//        _coef = substract(_coef, p);
+//        return *this;
+//    }
+//    
+//    template <typename T> lterm& operator*=(const param<T>& p){
+//        _coef = multiply(_coef, p);
+//        return *this;
+//    }
+//    
+//    template<typename T> lterm& operator/=(const param<T>& p){
+//        _coef = divide(_coef, p);
+//        return *this;
+//    }
     
     void const print(int ind);
 };
@@ -168,12 +162,6 @@ public:
         _coef = nullptr;
         _p = nullptr;
     }
-    
-    qterm(const qterm& t){
-        _coef = copy(t._coef);
-        _p = new pair<param_*, param_*>(make_pair((param_*)copy(t._p->first), (param_*)copy(t._p->second)));
-        _sign = t._sign;
-    };
     
     qterm(qterm&& t){
         _coef = t._coef;
@@ -225,61 +213,61 @@ public:
     qterm& operator=(const qterm& l);
     qterm& operator=(qterm&& l);
     
-    template <typename T> qterm& operator+=(const constant<T>& c){
-        if (c.is_zero()) {
-            return *this;
-        }
-        _coef = add(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> qterm& operator-=(const constant<T>& c){
-        return *this += constant<T>(c.eval()*-1);
-    }
-    
-    
-    template <typename T> qterm& operator*=(const constant<T>& c){
-        if (c.is_zero()) {
-            delete _coef;
-            _coef = new constant<int>(0);
-            _sign = true;
-            cerr << "\nWARNING multiplying qterm by zero!\n";
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = multiply(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> qterm& operator/=(const constant<T>& c){
-        if (c.is_zero()) {
-            throw invalid_argument("\nERROT dividing qterm by zero!\n");
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = divide(_coef, c);
-        return *this;
-    }
-    
-    
-    template <typename T> qterm& operator+=(const param<T>& p){
-        _coef = add(_coef, p);
-        return *this;
-    }
-    
-    template <typename T> qterm& operator-=(const param<T>& p){
-        _coef = substract(_coef, p);
-        return *this;
-    }
-    
-    template<typename T> qterm& operator/=(const param<T>& p){
-        _coef = divide(_coef, p);
-        return *this;
-    }
+//    template <typename T> qterm& operator+=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            return *this;
+//        }
+//        _coef = add(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> qterm& operator-=(const constant<T>& c){
+//        return *this += constant<T>(c.eval()*-1);
+//    }
+//    
+//    
+//    template <typename T> qterm& operator*=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            delete _coef;
+//            _coef = new constant<int>(0);
+//            _sign = true;
+//            cerr << "\nWARNING multiplying qterm by zero!\n";
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = multiply(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> qterm& operator/=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            throw invalid_argument("\nERROT dividing qterm by zero!\n");
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = divide(_coef, c);
+//        return *this;
+//    }
+//    
+//    
+//    template <typename T> qterm& operator+=(const param<T>& p){
+//        _coef = add(_coef, p);
+//        return *this;
+//    }
+//    
+//    template <typename T> qterm& operator-=(const param<T>& p){
+//        _coef = substract(_coef, p);
+//        return *this;
+//    }
+//    
+//    template<typename T> qterm& operator/=(const param<T>& p){
+//        _coef = divide(_coef, p);
+//        return *this;
+//    }
     
     void const print(int ind);
 };
@@ -298,19 +286,11 @@ public:
         _l = nullptr;
     }
     
-    pterm(const pterm& t){
-        _coef = copy(t._coef);
-        _l = new list<pair<param_*, int>>();
-        for (auto &pair : *t._l) {
-            _l->push_back(make_pair<>((param_*)copy(pair.first), pair.second));
-        }
-        _sign = t._sign;
-    };
     
-    pterm(bool sign, const constant_& coef, const param_& p, int exp){
-        _coef = copy(&coef);
+    pterm(bool sign, constant_* coef, param_* p, int exp){
+        _coef = coef;
         _l = new list<pair<param_*, int>>();
-        _l->push_back(make_pair<>((param_*)copy(&p), exp));
+        _l->push_back(make_pair<>(p, exp));
         _sign = sign;
     };
     
@@ -347,74 +327,89 @@ public:
     pterm& operator=(const pterm& l);
     pterm& operator=(pterm&& l);
     
-    template <typename T> pterm& operator+=(const constant<T>& c){
-        if (c.is_zero()) {
-            return *this;
-        }
-        _coef = add(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> pterm& operator-=(const constant<T>& c){
-        return *this += constant<T>(c.eval()*-1);
-    }
-    
-    
-    template <typename T> pterm& operator*=(const constant<T>& c){
-        if (c.is_zero()) {
-            delete _coef;
-            _coef = new constant<int>(0);
-            _sign = true;
-            cerr << "\nWARNING multiplying pterm by zero!\n";
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = multiply(_coef, c);
-        return *this;
-    }
-    
-    template <typename T> pterm& operator/=(const constant<T>& c){
-        if (c.is_zero()) {
-            throw invalid_argument("\nERROT dividing pterm by zero!\n");
-            return *this;
-        }
-        if (c.is_unit()) {
-            return *this;
-        }
-        _coef = divide(_coef, c);
-        return *this;
-    }
-    
-    
-    template <typename T> pterm& operator+=(const param<T>& p){
-        _coef = add(_coef, p);
-        return *this;
-    }
-    
-    template <typename T> pterm& operator-=(const param<T>& p){
-        _coef = substract(_coef, p);
-        return *this;
-    }
-    
-    pterm& operator*=(const param_& p);
-    
-    template<typename T> pterm& operator/=(const param<T>& p){
-        if (p.is_param() && _l->begin()->first->is_var()) {
-            _coef = divide(_coef, p);
-        }
-        else {
-            for (auto& p_it:*_l) {
-                if (p_it.first->get_name()==p.get_name()) {
-                    p_it.second--;
-                    return *this;
-                }
-            }
-            throw invalid_argument("The division result is not a polynomial term.");
-        }
-        return *this;
-    }
+//    template <typename T> pterm& operator+=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            return *this;
+//        }
+//        _coef = add(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> pterm& operator-=(const constant<T>& c){
+//        return *this += constant<T>(c.eval()*-1);
+//    }
+//    
+//    
+//    template <typename T> pterm& operator*=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            delete _coef;
+//            _coef = new constant<int>(0);
+//            _sign = true;
+//            cerr << "\nWARNING multiplying pterm by zero!\n";
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = multiply(_coef, c);
+//        return *this;
+//    }
+//    
+//    template <typename T> pterm& operator/=(const constant<T>& c){
+//        if (c.is_zero()) {
+//            throw invalid_argument("\nERROT dividing pterm by zero!\n");
+//            return *this;
+//        }
+//        if (c.is_unit()) {
+//            return *this;
+//        }
+//        _coef = divide(_coef, c);
+//        return *this;
+//    }
+//    
+//    
+//    template <typename T> pterm& operator+=(const param<T>& p){
+//        _coef = add(_coef, p);
+//        return *this;
+//    }
+//    
+//    template <typename T> pterm& operator-=(const param<T>& p){
+//        _coef = substract(_coef, p);
+//        return *this;
+//    }
+//    
+//    pterm& pterm::operator*=(const param_& p){
+//        if (p.is_param() && _l->begin()->first->is_var()) {
+//            _coef = multiply(_coef, p);
+//        }
+//        else {
+//            for (auto& p_it:*_l) {
+//                if (p_it.first->get_name()==p.get_name()) {
+//                    p_it.second++;
+//                    return *this;
+//                }
+//            }
+//            _l->push_back(make_pair<>((param_*)copy(&p),1));
+//        }
+//        return *this;
+//    }
+//
+//    
+//    template<typename T> pterm& operator/=(const param<T>& p){
+//        if (p.is_param() && _l->begin()->first->is_var()) {
+//            _coef = divide(_coef, p);
+//        }
+//        else {
+//            for (auto& p_it:*_l) {
+//                if (p_it.first->get_name()==p.get_name()) {
+//                    p_it.second--;
+//                    return *this;
+//                }
+//            }
+//            throw invalid_argument("The division result is not a polynomial term.");
+//        }
+//        return *this;
+//    }
     
     void const print(int ind);
 };
@@ -448,7 +443,7 @@ public:
 
     bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
     bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-    bool insert(bool sign, const constant_& coef, list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+    bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
    
     
     void insert(const lterm& term);
@@ -592,6 +587,18 @@ public:
     bool is_nonlinear() const{
         return (_ftype==nlin_);
     };
+    
+    bool is_zero(){/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
+        if (_ftype==const_ && _cst->is_zero()){
+            for (auto& it:*_params) {
+                if (!it.second.first->is_zero()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
     
     FType get_ftype() const { return _ftype;}
     
