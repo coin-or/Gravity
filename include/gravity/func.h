@@ -477,9 +477,9 @@ public:
     }
     
     
-    void add_var(param_* v){/**< Inserts the variable in this function input list. WARNING: Assumes that v has not been added previousely!*/
+    void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has.WARNING: Assumes that v has not been added previousely!*/
         assert(_vars->count(v->get_name())==0);
-        _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, 1)));
+        _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
     }
     
     
@@ -529,13 +529,13 @@ public:
         }
     }
     
-    void decr_occ_var(string str){/**< Decreases the number of occurences the variable has in this function. */
+    void decr_occ_var(string str, int nb=1){/**< Decreases the number of occurences the variable has in this function by nb. */
         auto pair_it = _vars->find(str);
         if (pair_it==_vars->end()) {
             return;
         }
         else {
-            get<1>(*pair_it).second--;
+            get<1>(*pair_it).second-=nb;
             if (get<1>(*pair_it).second==0) {
                 delete get<1>(*pair_it).first;
                 _vars->erase(pair_it);
@@ -543,13 +543,13 @@ public:
         }
     }
     
-    void decr_occ_param(string str){/**< Decreases the number of occurences the parameter has in this function. */
+    void decr_occ_param(string str, int nb=1){/**< Decreases the number of occurences the parameter has in this function by nb. */
         auto pair_it = _params->find(str);
         if (pair_it==_params->end()) {
             return;
         }
         else {
-            get<1>(*pair_it).second--;
+            get<1>(*pair_it).second -= nb;
             if (get<1>(*pair_it).second==0) {
                 delete get<1>(*pair_it).first;
                 _params->erase(pair_it);

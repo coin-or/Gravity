@@ -761,6 +761,9 @@ func_& func_::operator*=(const constant_& c){
         for (auto &pair:*_qterms) {
             pair.second._coef = multiply(pair.second._coef, c);
         }
+        for (auto &pair:*_pterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
         if (c.is_negative()) {
             reverse_convexity();
             reverse_sign();
@@ -1128,14 +1131,14 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds 
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
         }
-        if (pair_it->second._coef->is_zero()) {
-            _lterms->erase(pair_it);
+        if (pair_it->second._coef->is_zero()) {            
             if (p.is_var()) {
                 decr_occ_var(name);
             }
             else{
                 decr_occ_param(name);
             }
+            _lterms->erase(pair_it);
             //update_sign();
         }
         else {
@@ -1220,7 +1223,6 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
             pair_it->second._coef = substract(pair_it->second._coef, coef);
         }
         if (pair_it->second._coef->is_zero()) {
-            _qterms->erase(pair_it);
             if (p1.is_var()) {
                 decr_occ_var(s1);
             }
@@ -1233,6 +1235,7 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
             else {
                 decr_occ_param(s2);
             }
+            _qterms->erase(pair_it);
             update_convexity();
         }
         else {
@@ -1271,7 +1274,7 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
                 pnew = (param_*)get_var(s);
                 if (!pnew) {
                     pnew = (param_*)copy(p);
-                    add_var(pnew);
+                    add_var(pnew,pair.second);
                 }
                 else {
                     incr_occ_var(s);
@@ -1315,16 +1318,17 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
         }
         
         if (pair_it->second._coef->is_zero()) {
-            _pterms->erase(pair_it);
             for (auto& it:*pair_it->second._l) {
                 p = it.first;
+                s = p->get_name();
                 if (p->is_var()) {
-                    decr_occ_var(s);
+                    decr_occ_var(s,it.second);
                 }
                 else {
-                    decr_occ_param(s);
+                    decr_occ_param(s,it.second);
                 }
             }
+            _pterms->erase(pair_it);
             update_convexity();
         }
         return false;

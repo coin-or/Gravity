@@ -162,6 +162,10 @@ int main (int argc, const char * argv[])
     qqq.print();
     auto ss = ppp + qqq;
     ss.print();
+    ss += 2*ip*ppp;
+    ss.print();
+    ss -= 2*ip*ppp + ppp;
+    ss.print();
 //    auto exp = log(ff);
 //    exp.print();
 //    l11 *= -2;
