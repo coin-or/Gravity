@@ -69,7 +69,12 @@ public:
     template<class... Args>
     var operator()(Args&&... args){
         auto res(*this);
-        *res._indices = {forward<Args>(args)...};
+        vector<int> indices = {forward<Args>(args)...};
+        string key;
+        for (int i= 0; i<indices.size(); i++) {
+            key += std::to_string(indices[i]);
+        }
+        res._indices->insert(make_pair<>(key,0));
         return res;
     }
     
@@ -112,6 +117,26 @@ public:
         return (is_bounded_below() && is_bounded_above() && _lb->at(i)==_ub->at(i));
     };
     
+    
+    
+    Sign get_sign(int idx = 0) const{
+        if (_lb->at(idx) == 0 && _ub->at(idx) == 0) {
+            return zero_;
+        }
+        if (_ub->at(idx) < 0) {
+            return neg_;
+        }
+        if (_lb->at(idx) > 0) {
+            return pos_;
+        }
+        if (_ub->at(idx) == 0){
+            return non_pos_;
+        }
+        if (_lb->at(idx) == 0) {
+            return non_neg_;
+        }
+        return unknown_;
+    }
     
     /* Modifiers */
     void    set_size(int s);

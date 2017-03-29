@@ -75,7 +75,9 @@ public:
     bool is_function() const{
         return (_type==func_c);
     };
-    Sign get_sign() const;
+    
+    Sign get_all_sign() const;
+    Sign get_sign(int idx=0) const;
     bool is_zero() const; /**< Returns true if constant equals 0 */
     bool is_unit() const; /**< Returns true if constant equals 1 */
     bool is_neg_unit() const; /**< Returns true if constant equals -1 */
@@ -150,6 +152,7 @@ public:
         if (_val < 0) {
             return neg_;
         }
+        return unknown_;
     }
     
     /** Operators */
@@ -269,6 +272,10 @@ public:
     /** Output */
     void print() const{
         cout << _val;
+    }
+    
+    string to_string() const{
+        return std::to_string(_val);
     }
 
     

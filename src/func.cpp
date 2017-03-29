@@ -8,7 +8,7 @@
 #include <math.h>
 #include <Gravity/func.h>
 
-Sign constant_::get_sign() const{
+Sign constant_::get_all_sign() const{
     switch (_type) {
         case binary_c: {
             return ((constant<bool>*)this)->get_sign();
@@ -35,47 +35,24 @@ Sign constant_::get_sign() const{
             break;
         }
         case par_c:{
-            return ((param_*)this)->get_sign();
+            return ((param_*)this)->get_all_sign();
             break;
         }
         case uexp_c: {
-//            return new uexpr(*(uexpr*)c2);
+            return ((uexpr*)this)->get_all_sign();
             break;
         }
         case bexp_c: {
-//            return new bexpr(*(bexpr*)c2);
+            return ((bexpr*)this)->get_all_sign();
             break;
         }
         case var_c:{
-            return ((param_*)this)->get_sign();
-//            auto p_c2 = (param_*)(c2);
-//            switch (p_c2->get_intype()) {
-//                case binary_:
-//                    return new var<bool>(*(var<bool>*)p_c2);
-//                    break;
-//                case short_:
-//                    return new var<short>(*(var<short>*)p_c2);
-//                    break;
-//                case integer_:
-//                    return new var<int>(*(var<int>*)p_c2);
-//                    break;
-//                case float_:
-//                    return new var<float>(*(var<float>*)p_c2);
-//                    break;
-//                case double_:
-//                    return new var<double>(*(var<double>*)p_c2);
-//                    break;
-//                case long_:
-//                    return new var<long double>(*(var<long double>*)p_c2);
-//                    break;
-//                default:
-//                    break;
-//            }
+            return ((param_*)this)->get_all_sign();
             break;
         }
             
         case func_c: {
-            return ((func_*)this)->get_sign();
+            return ((func_*)this)->get_all_sign();
             break;
         }
         default:
@@ -84,43 +61,141 @@ Sign constant_::get_sign() const{
     return unknown_;
 }
 
-Sign param_::get_sign() const{
+
+
+Sign constant_::get_sign(int idx) const{
+    switch (_type) {
+        case binary_c: {
+            return ((constant<bool>*)this)->get_sign();
+            break;
+        }
+        case short_c: {
+            return ((constant<short>*)this)->get_sign();
+            break;
+        }
+        case integer_c: {
+            return ((constant<int>*)this)->get_sign();
+            break;
+        }
+        case float_c: {
+            return ((constant<float>*)this)->get_sign();
+            break;
+        }
+        case double_c: {
+            return ((constant<double>*)this)->get_sign();
+            break;
+        }
+        case long_c: {
+            return ((constant<long double>*)this)->get_sign();
+            break;
+        }
+        case par_c:{
+            return ((param_*)this)->get_sign(idx);
+            break;
+        }
+        case uexp_c: {
+            return ((uexpr*)this)->get_sign(idx);
+            break;
+        }
+        case bexp_c: {
+            return ((bexpr*)this)->get_sign(idx);
+            break;
+        }
+        case var_c:{
+            return ((param_*)this)->get_sign(idx);
+            break;
+        }
+            
+        case func_c: {
+            return ((func_*)this)->get_sign(idx);
+            break;
+        }
+        default:
+            break;
+    }
+    return unknown_;
+}
+
+Sign param_::get_sign(int idx) const{
     switch (_intype) {
         case binary_:
             if (is_param()) {
-                return ((param<bool>*)this)->get_sign();
+                return ((param<bool>*)this)->get_sign(idx);
             }
-            return ((var<bool>*)this)->get_sign();
+            return ((var<bool>*)this)->get_sign(idx);
             break;
         case short_:
             if (is_param()) {
-                return ((param<short>*)this)->get_sign();
+                return ((param<short>*)this)->get_sign(idx);
             }
-            return ((var<short>*)this)->get_sign();
+            return ((var<short>*)this)->get_sign(idx);
             break;
         case integer_:
             if (is_param()) {
-                return ((param<int>*)this)->get_sign();
+                return ((param<int>*)this)->get_sign(idx);
             }
-            return ((var<int>*)this)->get_sign();
+            return ((var<int>*)this)->get_sign(idx);
             break;
         case float_:
             if (is_param()) {
-                return ((param<float>*)this)->get_sign();
+                return ((param<float>*)this)->get_sign(idx);
             }
-            return ((var<float>*)this)->get_sign();
+            return ((var<float>*)this)->get_sign(idx);
             break;
         case double_:
             if (is_param()) {
-                return ((param<double>*)this)->get_sign();
+                return ((param<double>*)this)->get_sign(idx);
             }
-            return ((var<double>*)this)->get_sign();
+            return ((var<double>*)this)->get_sign(idx);
             break;
         case long_:
             if (is_param()) {
-                return ((param<long double>*)this)->get_sign();
+                return ((param<long double>*)this)->get_sign(idx);
             }
-            return ((var<long double>*)this)->get_sign();
+            return ((var<long double>*)this)->get_sign(idx);
+            break;
+        default:
+            break;
+    }
+}
+
+Sign param_::get_all_sign() const{
+    switch (_intype) {
+        case binary_:
+            if (is_param()) {
+                return ((param<bool>*)this)->get_all_sign();
+            }
+            return ((var<bool>*)this)->get_all_sign();
+            break;
+        case short_:
+            if (is_param()) {
+                return ((param<short>*)this)->get_all_sign();
+            }
+            return ((var<short>*)this)->get_all_sign();
+            break;
+        case integer_:
+            if (is_param()) {
+                return ((param<int>*)this)->get_all_sign();
+            }
+            return ((var<int>*)this)->get_all_sign();
+            break;
+        case float_:
+            if (is_param()) {
+                return ((param<float>*)this)->get_all_sign();
+            }
+            return ((var<float>*)this)->get_all_sign();
+            break;
+        case double_:
+            if (is_param()) {
+                return ((param<double>*)this)->get_all_sign();
+            }
+            return ((var<double>*)this)->get_all_sign();
+            break;
+        case long_:
+            if (is_param()) {
+                return ((param<long double>*)this)->get_all_sign();
+            }
+            return ((var<long double>*)this)->get_all_sign();
             break;
         default:
             break;
@@ -325,48 +400,60 @@ func_::func_(){
     set_type(func_c);
     _params = new map<string, pair<param_*, int>>();
     _vars = new map<string, pair<param_*, int>>();
-    _lterms = new map<string, lterm>();
-    _qterms = new map<string, qterm>();;
-    _pterms = new map<string, pterm>();;
     _cst = new constant<int>(0);
+    _lterms = new map<string, lterm>();
+    _qterms = new map<string, qterm>();
+    _pterms = new map<string, pterm>();
+    _expr = nullptr;
+    _DAG = new map<string, expr>();
+    _all_sign = zero_;
+    _all_convexity = linear_;
+    _all_range = new pair<constant_, constant_>(constant<int>(0),constant<int>(0));
+    _sign = nullptr;
+    _convexity = nullptr;
+    _range = nullptr;
 };
 
 func_::func_(const constant_& c){
     set_type(func_c);
     _params = new map<string, pair<param_*, int>>();
     _vars = new map<string, pair<param_*, int>>();
+    _cst = nullptr;
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
+    _expr = nullptr;
+    _DAG = new map<string, expr>();
     switch (c.get_type()) {
         case binary_c: {
             _cst = new constant<bool>(*(constant<bool>*)(&c));
-            _sign = ((constant<bool>*)_cst)->get_sign();
+            _all_sign = ((constant<bool>*)_cst)->get_sign();
+            
             break;
         }
         case short_c: {
             _cst = new constant<short>(*(constant<short>*)(&c));
-            _sign = ((constant<short>*)_cst)->get_sign();
+            _all_sign = ((constant<short>*)_cst)->get_sign();
             break;
         }
         case integer_c: {
             _cst = new constant<int>(*(constant<int>*)(&c));
-            _sign = ((constant<int>*)_cst)->get_sign();
+            _all_sign = ((constant<int>*)_cst)->get_sign();
             break;
         }
         case float_c: {
             _cst = new constant<float>(*(constant<float>*)(&c));
-            _sign = ((constant<float>*)_cst)->get_sign();
+            _all_sign = ((constant<float>*)_cst)->get_sign();
             break;
         }
         case double_c: {
             _cst = new constant<double>(*(constant<double>*)(&c));
-            _sign = ((constant<double>*)_cst)->get_sign();
+            _all_sign = ((constant<double>*)_cst)->get_sign();
             break;
         }
         case long_c: {
             _cst = new constant<long double>(*(constant<long double>*)(&c));
-            _sign = ((constant<long double>*)_cst)->get_sign();
+            _all_sign = ((constant<long double>*)_cst)->get_sign();
             break;
         }
         case par_c:{
@@ -374,15 +461,7 @@ func_::func_(const constant_& c){
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_param(p_c2);
             _cst = new constant<int>(0);
-            _sign = p_c2->get_sign();
-            break;
-        }
-        case uexp_c: {
-//            return new uexpr(*(uexpr*)(&c2));
-            break;
-        }
-        case bexp_c: {
-//            return new bexpr(*(bexpr*)&c2);
+            _all_sign = p_c2->get_all_sign();
             break;
         }
         case var_c:{
@@ -391,26 +470,22 @@ func_::func_(const constant_& c){
             add_var(p_c2);
             _ftype = lin_;
             _cst = new constant<int>(0);
-            _sign = p_c2->get_sign();
+            _all_sign = p_c2->get_all_sign();
+            break;
+        }
+        case uexp_c: {
+            _expr = &((*_DAG->insert(make_pair<>(((uexpr*)(&c))->_to_str, *((uexpr*)(&c)))).first).second);
+//            update_DAG();
+            //sign and convexity
+            break;
+        }
+        case bexp_c: {
+            _expr = &((*_DAG->insert(make_pair<>(((bexpr*)(&c))->_to_str, *((bexpr*)(&c)))).first).second);
+//            update_DAG();
             break;
         }
         case func_c: {
-            auto f = (func_*)(&c);
-            _ftype = f->_ftype;
-            _return_type = f->_return_type;
-            _convex = f->_convex;
-            _sign = f->_sign;            
-            for (auto &pair:*f->_lterms) {
-                insert(pair.second);
-            }
-            for (auto &pair:*f->_qterms) {
-                insert(pair.second);
-            }
-            for (auto &pair:*f->_pterms) {
-                insert(pair.second);
-            }
-            _cst = copy(f->_cst);
-            break;
+            *this = *(func_*)&c;
         }
         default:
             break;
@@ -421,7 +496,7 @@ func_::func_(func_&& f){
     set_type(func_c);
     _ftype = f._ftype;
     _return_type = f._return_type;
-    _convex = f._convex;
+    _all_convexity = f._all_convexity;
     _sign = f._sign;
     _lterms = f._lterms;
     f._lterms = nullptr;
@@ -429,6 +504,10 @@ func_::func_(func_&& f){
     f._qterms = nullptr;
     _pterms = f._pterms;
     f._pterms = nullptr;
+    _expr = f._expr;
+    f._expr = nullptr;
+    _DAG = f._DAG;
+    f._DAG = nullptr;
     _vars = f._vars;
     f._vars = nullptr;
     _params = f._params;
@@ -444,9 +523,11 @@ func_::func_(const func_& f){
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
+    _expr = nullptr;
+    _DAG = new map<string, expr>();
     _ftype = f._ftype;
     _return_type = f._return_type;
-    _convex = f._convex;
+    _all_convexity = f._all_convexity;
     _sign = f._sign;
     for (auto &pair:*f._lterms) {
         insert(pair.second);
@@ -457,12 +538,16 @@ func_::func_(const func_& f){
     for (auto &pair:*f._pterms) {
         insert(pair.second);
     }
+    if (f._expr) {
+        _expr = &((*_DAG->insert(make_pair<>(f._expr->_to_str, *f._expr)).first).second);
+//        update_DAG();
+    }
     _cst = copy(f._cst);
 }
 
 func_& func_::operator=(const func_& f){
     if (_vars) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_vars) {
                 delete elem.second.first;
             }
@@ -470,7 +555,7 @@ func_& func_::operator=(const func_& f){
         delete _vars;
     }
     if (_params) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_params) {
                 delete elem.second.first;
             }
@@ -480,6 +565,7 @@ func_& func_::operator=(const func_& f){
     delete _lterms;
     delete _qterms;
     delete _pterms;
+    delete _DAG;
     delete _cst;
     set_type(func_c);
     _params = new map<string, pair<param_*, int>>();
@@ -487,9 +573,10 @@ func_& func_::operator=(const func_& f){
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
+    _DAG = new map<string, expr>();
     _ftype = f._ftype;
     _return_type = f._return_type;
-    _convex = f._convex;
+    _all_convexity = f._all_convexity;
     _sign = f._sign;
     for (auto &pair:*f._lterms) {
         insert(pair.second);
@@ -499,6 +586,10 @@ func_& func_::operator=(const func_& f){
     }
     for (auto &pair:*f._pterms) {
         insert(pair.second);
+    }
+    if (f._expr) {
+        _expr = &((*_DAG->insert(make_pair<>(f._expr->_to_str, *f._expr)).first).second);
+//        update_DAG();
     }
     _cst = copy(f._cst);
     return *this;
@@ -507,7 +598,7 @@ func_& func_::operator=(const func_& f){
 
 func_& func_::operator=(func_&& f){
     if (_vars) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_vars) {
                 delete elem.second.first;
             }
@@ -515,7 +606,7 @@ func_& func_::operator=(func_&& f){
         delete _vars;
     }
     if (_params) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_params) {
                 delete elem.second.first;
             }
@@ -525,11 +616,12 @@ func_& func_::operator=(func_&& f){
     delete _lterms;
     delete _qterms;
     delete _pterms;
+    delete _DAG;
     delete _cst;
     set_type(func_c);
     _ftype = f._ftype;
     _return_type = f._return_type;
-    _convex = f._convex;
+    _all_convexity = f._all_convexity;
     _sign = f._sign;
     _lterms = f._lterms;
     f._lterms = nullptr;
@@ -537,6 +629,10 @@ func_& func_::operator=(func_&& f){
     f._qterms = nullptr;
     _pterms = f._pterms;
     f._pterms = nullptr;
+    _expr = f._expr;
+    f._expr = nullptr;
+    _DAG = f._DAG;
+    f._DAG = nullptr;
     _vars = f._vars;
     f._vars = nullptr;
     _params = f._params;
@@ -550,7 +646,7 @@ func_& func_::operator=(func_&& f){
 
 func_::~func_(){
     if (_vars) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_vars) {
                 delete elem.second.first;
             }
@@ -558,7 +654,7 @@ func_::~func_(){
         delete _vars;
     }
     if (_params) {
-        if (!_in_model) {
+        if (!_embedded) {
             for (auto &elem: *_params) {
                 delete elem.second.first;
             }
@@ -568,37 +664,32 @@ func_::~func_(){
     delete _lterms;
     delete _qterms;
     delete _pterms;
+    delete _DAG;
     delete _cst;
 };
 
+bool all_zeros(const string& s){
+    auto it = s.begin();
+    while (it != s.end()) {
+        if (*it!='0' && *it!='.') {
+            return false;
+        }
+        it++;
+    }
+    return true;
+}
+
 bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
-    if (is_number() && eval(this)==0){
+    if (is_number() && all_zeros(to_string(this))){
         return true;
     }
-    if (is_param()) {
+    if (is_param() || is_var()) {
         auto p_c = (param_*)this;
-        switch (p_c->get_intype()) {
-            case binary_:
-                return ((param<bool>*)p_c)->is_zero();
-                break;
-            case short_:
-                return ((param<short>*)p_c)->is_zero();
-                break;
-            case integer_:
-                return ((param<int>*)p_c)->is_zero();
-                break;
-            case float_:
-                return ((param<float>*)p_c)->is_zero();
-                break;
-            case double_:
-                return ((param<double>*)p_c)->is_zero();
-                break;
-            case long_:
-                return ((param<long double>*)p_c)->is_zero();
-                break;
-            default:
-                break;
-        }
+        return p_c->get_all_sign()==zero_;
+    }
+    if (is_uexpr() || is_bexpr()) {
+        auto e_p = (expr*)this;
+        return e_p->get_all_sign()==zero_;
     }
     if (is_function()) {
         return ((func_*)(this))->is_zero();
@@ -607,7 +698,7 @@ bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
 }
 
 bool constant_::is_unit() const{ /**< Returns true if constant equals 1 */
-    if(is_number() && eval(this)==1){
+    if(is_number() && to_string(this)=="1"){
         return true;
     }
     if (is_param()) {
@@ -640,7 +731,7 @@ bool constant_::is_unit() const{ /**< Returns true if constant equals 1 */
 
 
 bool constant_::is_positive() const{
-    if (get_sign()==pos_) {
+    if (get_all_sign()==pos_) {
         return true;
     }
     return false;
@@ -648,21 +739,21 @@ bool constant_::is_positive() const{
 
 
 bool constant_::is_non_positive() const{
-    if (get_sign()==non_pos_) {
+    if (get_all_sign()==non_pos_) {
         return true;
     }
     return false;
 }
 
 bool constant_::is_non_negative() const{
-    if (get_sign()==non_neg_) {
+    if (get_all_sign()==non_neg_) {
         return true;
     }
     return false;
 }
 
 bool constant_::is_negative() const{
-    if (get_sign()==neg_) {
+    if (get_all_sign()==neg_) {
         return true;
     }
     return false;
@@ -689,7 +780,9 @@ func_& func_::operator+=(const constant_& c){
             _cst = add(_cst, c);
             return *this;
         }
-        _cst = add(_cst, *f->_cst);
+        if (!f->_cst->is_zero()) {
+            _cst = add(_cst, *f->_cst);
+        }
         for (auto &pair:*f->_lterms) {
             this->insert(pair.second);
         }
@@ -753,8 +846,11 @@ func_& func_::operator*=(const constant_& c){
         reset();
         return *this;
     }
-    if (c.is_number() || (!is_constant() && (c.is_param() || (c.is_function() && ((func_)c).is_constant())))) {
-        _cst = multiply(_cst, c);
+    /* Case where c is a number */
+    if (c.is_number()){
+        if (!_cst->is_zero()) {
+            _cst = multiply(_cst, c);
+        }
         for (auto &pair:*_lterms) {
             pair.second._coef = multiply(pair.second._coef, c);
         }
@@ -765,18 +861,37 @@ func_& func_::operator*=(const constant_& c){
             pair.second._coef = multiply(pair.second._coef, c);
         }
         if (c.is_negative()) {
-            reverse_convexity();
             reverse_sign();
         }
-        if (c.get_sign()==unknown_) {
-            _sign = unknown_;
+        
+    }
+    /* Case where the current function is not constant and the other operand is */
+     if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
+         if (!_cst->is_zero()) {
+             _cst = multiply(_cst, c);
+         }
+        for (auto &pair:*_lterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
+        for (auto &pair:*_qterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
+        for (auto &pair:*_pterms) {
+            pair.second._coef = multiply(pair.second._coef, c);
+        }
+        if (c.is_negative()) {
+            reverse_sign();
+        }
+        if (c.get_all_sign()==unknown_) {
+            _all_sign = unknown_;
             if (!_qterms->empty()) {
-                _convex = undet_;
+                _all_convexity = undet_;
             }
         }
         return *this;
     }
-    if (is_constant() && (c.is_var() || (c.is_function() && !((func_)c).is_constant()))) {
+    /* Case where the current function is constant and the other operand is not (we go to previous case) */
+    if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
         func_ f(c);
         f *= *this;
         *this = move(f);
@@ -787,6 +902,7 @@ func_& func_::operator*=(const constant_& c){
         *this *= f;
         return *this;
     }
+    /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
     if (c.is_function()) {
         func_* f = (func_*)&c;
         constant_* coef;
@@ -922,15 +1038,80 @@ func_& func_::operator*=(const constant_& c){
                 res._cst = multiply(res._cst, *f->_cst);
             }
         }
+        
         *this = move(res);
     }
     return *this;
 }
 
 func_& func_::operator/=(const constant_& c){
+    if (is_zero()) {
+        return *this;
+    }
+    if (c.is_unit()) {
+        return *this;
+    }
+    if (c.is_zero()) {
+        throw invalid_argument("dividing by zero!\n");
+    }
+    /* Case where c is a number */
+    if (c.is_number()){
+        if (!_cst->is_zero()) {
+            _cst = divide(_cst, c);
+        }
+        if (c.is_negative()) {
+            reverse_sign();
+        }
+    }
+    /* Case where the current function is not constant and the other operand is */
+    if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
+        _cst = divide(_cst, c);
+        for (auto &pair:*_lterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
+        for (auto &pair:*_qterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
+        for (auto &pair:*_pterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
+        if (c.is_negative()) {
+            reverse_convexity();
+            reverse_sign();
+        }
+        if (c.get_all_sign()==unknown_) {
+            _all_sign = unknown_;
+            if (!_qterms->empty()) {
+                _all_convexity = undet_;
+            }
+        }
+        return *this;
+    }
+    /* Case where the current function is constant and the other operand is not (we go to previous case) */
+    if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+        func_ f(c);
+        f *= *this;
+        *this = move(f);
+        return *this;
+    }
+    if (c.is_param() || c.is_var()) {
+        func_ f(c);
+        *this *= f;
+        return *this;
+    }
+    /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
+    if (c.is_function()) {
+    }
+
     if (c.is_negative()) {
         reverse_convexity();
     }
+    bexpr res;
+    res._otype = div_;
+    res._lson = copy((constant_*)this);
+    res._rson =  copy((constant_*)&c);
+    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+    *this = func_(res);
     return *this;
 }
 
@@ -984,12 +1165,12 @@ void func_::reset(){
     set_type(func_c);
     _ftype = const_;
     _return_type = integer_;
-    _convex = linear_;
-    _sign = zero_;
+    _all_convexity = linear_;
+    _all_sign = zero_;
     _lterms->clear();
     _qterms->clear();
     _pterms->clear();
-    if (!_in_model) {
+    if (!_embedded) {
         for (auto &elem: *_vars) {
             delete elem.second.first;
         }
@@ -1027,62 +1208,89 @@ void func_::reset(){
 //}
 
 void func_::reverse_convexity(){
-    if (_convex==convex_) {
-        _convex=concave_;
+    if (_all_convexity==convex_) {
+        _all_convexity=concave_;
     }
-    else if (_convex==concave_) {
-        _convex=convex_;
+    else if (_all_convexity==concave_) {
+        _all_convexity=convex_;
     }
 }
 
 void func_::reverse_sign(){
-    if (_sign==pos_) {
-        _sign = neg_;
+    reverse_convexity();
+    if (_all_sign==pos_) {
+        _all_sign = neg_;
     }
-    else if (_sign==neg_) {
-        _sign = pos_;
+    else if (_all_sign==neg_) {
+        _all_sign = pos_;
     }
-    else if (_sign== non_neg_){
-        _sign = non_pos_;
+    else if (_all_sign== non_neg_){
+        _all_sign = non_pos_;
     }
-    else if (_sign== non_pos_){
-        _sign = non_neg_;
+    else if (_all_sign== non_pos_){
+        _all_sign = non_neg_;
     }
 }
 
 void func_::update_sign(const constant_& c){
-    Sign sign = c.get_sign();
-    if (sign==unknown_ || ((_sign==non_neg_ || _sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
-        _sign = unknown_;
+    Sign sign = c.get_all_sign();
+    if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
+        _all_sign = unknown_;
     }
-    else if((_sign==non_pos_ || _sign==neg_) && sign!=non_pos_ && sign!=neg_){
-        _sign = unknown_;
+    else if((_all_sign==non_pos_ || _all_sign==neg_) && sign!=non_pos_ && sign!=neg_){
+        _all_sign = unknown_;
     }
-    else if(_sign==zero_ || _sign==pos_ || _sign==neg_){// take weaker sign
-        _sign = sign;
+    else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
+        _all_sign = sign;
     }
 }
 
 void func_::update_sign(const lterm& l){
-    Sign sign = get_sign(l);
-    if (sign==unknown_ || ((_sign==non_neg_ || _sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
-        _sign = unknown_;
+    Sign sign = get_all_sign(l);
+    if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
+        _all_sign = unknown_;
     }
-    else if((_sign==non_pos_ || _sign==neg_) && sign!=non_pos_ && sign!=neg_){
-        _sign = unknown_;
+    else if((_all_sign==non_pos_ || _all_sign==neg_) && sign!=non_pos_ && sign!=neg_){
+        _all_sign = unknown_;
     }
-    else if(_sign==zero_ || _sign==pos_ || _sign==neg_){// take weaker sign
-        _sign = sign;
+    else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
+        _all_sign = sign;
+    }
+}
+
+void func_::update_sign(const qterm& q){
+    Sign sign = get_all_sign(q);
+    if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
+        _all_sign = unknown_;
+    }
+    else if((_all_sign==non_pos_ || _all_sign==neg_) && sign!=non_pos_ && sign!=neg_){
+        _all_sign = unknown_;
+    }
+    else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
+        _all_sign = sign;
+    }
+}
+
+void func_::update_sign(const pterm& p){
+    Sign sign = get_all_sign(p);
+    if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
+        _all_sign = unknown_;
+    }
+    else if((_all_sign==non_pos_ || _all_sign==neg_) && sign!=non_pos_ && sign!=neg_){
+        _all_sign = unknown_;
+    }
+    else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
+        _all_sign = sign;
     }
 }
 
 void func_::update_convexity(const qterm& q){
     Convexity conv = get_convexity(q);
-    if (_convex==undet_ || conv ==undet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
-        _convex = undet_;
+    if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+        _all_convexity = undet_;
     }
     else {
-        _convex = conv;
+        _all_convexity = conv;
     }
 }
 
@@ -1208,6 +1416,7 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
         }
         auto c_new = copy(&coef);
         qterm q(sign, c_new, p_new1, p_new2);
+        update_sign(q);
         update_convexity(q);
         _qterms->insert(make_pair<>(name, move(q)));
         return true;
@@ -1236,9 +1445,11 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
                 decr_occ_param(s2);
             }
             _qterms->erase(pair_it);
+            update_sign();
             update_convexity();
         }
         else {
+            update_sign(pair_it->second);
             update_convexity(pair_it->second);
         }
         return false;
@@ -1251,7 +1462,7 @@ void func_::insert(const qterm& term){
 
 
 bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
-    _convex = undet_;
+    _all_convexity = undet_;
     string name;
     string s;
     bool newv = true;
@@ -1303,7 +1514,9 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
             }
         }
         auto c_new = copy(&coef);
-        _pterms->insert(make_pair<>(name, pterm(sign, c_new, newl)));
+        pterm p(sign, c_new, newl);
+        update_sign(p);
+        _pterms->insert(make_pair<>(name, move(p)));
         return true;
     }
     else {
@@ -1329,7 +1542,11 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
                 }
             }
             _pterms->erase(pair_it);
+            update_sign();
             update_convexity();
+        }
+        else {
+            update_sign(pair_it->second);            
         }
         return false;
     }
@@ -1338,6 +1555,54 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
 
 void func_::insert(const pterm& term){
     insert(term._sign, *term._coef, *term._l);
+}
+
+void func_::insert(const expr& e){
+//    insert(term._sign, *term._coef, *term._l);
+    auto name = e._to_str;
+    auto pair_it = _DAG->find(name);
+    
+    _ftype = nlin_;
+    
+//    if (pair_it == _DAG->end()) {
+//        update_sign(e);
+//        update_convexity(e);
+//        _DAG->insert(make_pair<>(name, e));
+//    }
+//    else {
+//        if (pair_it->second._sign == e.sign) {
+////            pair_it->second._coef = add(pair_it->second._coef, coef);
+////            if (!pair_it->second._sign) { // both negative
+////                pair_it->second._sign = true;
+////            }
+//        }
+//        else{
+////            pair_it->second._coef = substract(pair_it->second._coef, coef);
+//        }
+////        if (pair_it->second._coef->is_zero()) {
+////            if (p1.is_var()) {
+////                decr_occ_var(s1);
+////            }
+////            else {
+////                decr_occ_param(s1);
+////            }
+////            if (p2.is_var()) {
+////                decr_occ_var(s2);
+////            }
+////            else {
+////                decr_occ_param(s2);
+////            }
+////            _qterms->erase(pair_it);
+////            update_sign();
+////            update_convexity();
+////        }
+////        else {
+////            update_sign(pair_it->second);
+////            update_convexity(pair_it->second);
+////        }
+////        return false;
+//    }
+////    _DAG->insert(<#const value_type &__v#>)
 }
 
 
@@ -1397,6 +1662,7 @@ uexpr cos(const constant_& c){
     uexpr res;
     res._otype = cos_;
     res._son = copy((constant_*)&c);
+    res._to_str = "cos(" + ::to_string(&c) + ")";
     return res;
 };
 
@@ -1405,6 +1671,7 @@ uexpr sin(const constant_& c){
     uexpr res;
     res._otype = sin_;
     res._son = copy((constant_*)&c);
+    res._to_str = "sin(" + ::to_string(&c) + ")";
     return res;
 };
 
@@ -1413,6 +1680,7 @@ uexpr sqrt(const constant_& c){
     uexpr res;
     res._otype = sqrt_;
     res._son = copy((constant_*)&c);
+    res._to_str = "sqrt(" + ::to_string(&c) + ")";
     return res;
 };
 
@@ -1420,6 +1688,7 @@ uexpr expo(const constant_& c){
     uexpr res;
     res._otype = exp_;
     res._son = copy((constant_*)&c);
+    res._to_str = "exp(" + ::to_string(&c) + ")";
     return res;
 };
 
@@ -1427,6 +1696,7 @@ uexpr log(const constant_& c){
     uexpr res;
     res._otype = log_;
     res._son = copy((constant_*)&c);
+    res._to_str = "log(" + ::to_string(&c) + ")";
     return res;
 };
 
@@ -1436,19 +1706,19 @@ double uexpr::eval(ind i) const{
     }
     switch (_otype) {
         case cos_:
-            return cos(::eval(i,_son));
+            return cos(::eval<double>(i,_son));
             break;
         case sin_:
-            return sin(::eval(i,_son));
+            return sin(::eval<double>(i,_son));
             break;
         case sqrt_:
-            return sqrt(::eval(i,_son));
+            return sqrt(::eval<double>(i,_son));
             break;
         case log_:
-            return log(::eval(i,_son));
+            return log(::eval<double>(i,_son));
             break;
         case exp_:
-            return exp(::eval(i,_son));
+            return exp(::eval<double>(i,_son));
             break;
         default:
             throw invalid_argument("Unsupported unary operator");
@@ -1496,6 +1766,7 @@ bexpr::bexpr(){
     _lson = nullptr;
     _rson = nullptr;
     _type = bexp_c;
+    _to_str = "null";
 }
 
 bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
@@ -1503,6 +1774,7 @@ bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tre
     _lson = copy(exp._lson);
     _rson =  copy(exp._rson);
     _type = bexp_c;
+    _to_str = exp._to_str;
 };
 
 bexpr::bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
@@ -1510,6 +1782,7 @@ bexpr::bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
     _lson = move(exp._lson);
     _rson = move(exp._rson);
     _type = bexp_c;
+    _to_str = exp._to_str;
 };
 
 bexpr& bexpr::operator=(const bexpr& exp){
@@ -1518,6 +1791,7 @@ bexpr& bexpr::operator=(const bexpr& exp){
     _lson = copy(exp._lson);
     _rson =  copy(exp._rson);
     _otype = exp._otype;
+    _to_str = exp._to_str;
     return *this;
 }
 
@@ -1527,6 +1801,7 @@ bexpr& bexpr::operator=(bexpr&& exp){
     _lson = move(exp._lson);
     _rson = move(exp._rson);
     _otype = exp._otype;
+    _to_str = exp._to_str;
     return *this;
 }
 
@@ -1540,6 +1815,8 @@ template<typename other_type> bexpr& bexpr::operator+=(const other_type& v){
     delete _rson;
     _rson = copy((constant_*)&v);
     _otype = plus_;
+    _to_str = _to_str + "+";
+    _to_str << poly_print(v);
     return *this;
 }
 
@@ -1551,6 +1828,7 @@ template<typename other_type> bexpr& bexpr::operator-=(const other_type& v){
     delete _rson;
     _rson = copy((constant_*)&v);
     _otype = minus_;
+    _to_str = _to_str + "-" + poly_print(v);
     return *this;
 }
 
@@ -1579,89 +1857,94 @@ template<typename other_type> bexpr& bexpr::operator/=(const other_type& v){
 
 /* Polymorphic functions */
 
-void reverse_sign(constant_* c){ /**< Reverses the sign of the constant. */
-    switch (c->get_type()) {
-        case binary_c: {
-            ((constant<bool>*)c)->set_val(!((constant<bool>*)c)->eval());
-            break;
-        }
-        case short_c: {
-            ((constant<short>*)c)->set_val(-1*((constant<short>*)c)->eval());
-            break;
-        }
-        case integer_c: {
-            ((constant<int>*)c)->set_val(-1*((constant<int>*)c)->eval());
-            break;
-        }
-        case float_c: {
-            ((constant<float>*)c)->set_val(-1*((constant<float>*)c)->eval());
-            break;
-        }
-        case double_c: {
-            ((constant<double>*)c)->set_val(-1*((constant<double>*)c)->eval());
-            break;
-        }
-        case long_c: {
-            ((constant<long double>*)c)->set_val(-1*((constant<long double>*)c)->eval());
-            break;
-        }
-        default:
-            throw invalid_argument("Cannot reverse sign of non-numeric constant");
-            break;
-    }
-    
+//void reverse_sign(constant_* c){ /**< Reverses the sign of the constant. */
+//    switch (c->get_type()) {
+//        case binary_c: {
+//            ((constant<bool>*)c)->set_val(!((constant<bool>*)c)->eval());
+//            break;
+//        }
+//        case short_c: {
+//            ((constant<short>*)c)->set_val(-1*((constant<short>*)c)->eval());
+//            break;
+//        }
+//        case integer_c: {
+//            ((constant<int>*)c)->set_val(-1*((constant<int>*)c)->eval());
+//            break;
+//        }
+//        case float_c: {
+//            ((constant<float>*)c)->set_val(-1*((constant<float>*)c)->eval());
+//            break;
+//        }
+//        case double_c: {
+//            ((constant<double>*)c)->set_val(-1*((constant<double>*)c)->eval());
+//            break;
+//        }
+//        case long_c: {
+//            ((constant<long double>*)c)->set_val(-1*((constant<long double>*)c)->eval());
+//            break;
+//        }
+//        default:
+//            throw invalid_argument("Cannot reverse sign of non-numeric constant");
+//            break;
+//    }
+//    
+//}
+
+void poly_print(const constant_* c){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+    cout << to_string(c);
 }
 
-void poly_print(const constant_* c){/**< Copy c into c1 detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+
+string to_string(const constant_* c){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
     
     if (!c) {
-        return;
+        return "null";
     }
     switch (c->get_type()) {
         case binary_c: {
-            ((constant<bool>*)(c))->print();
+            return ((constant<bool>*)(c))->to_string();
             break;
         }
         case short_c: {
-            ((constant<short>*)(c))->print();
+            return ((constant<short>*)(c))->to_string();
             break;
         }
         case integer_c: {
-            ((constant<int>*)(c))->print();
+            return ((constant<int>*)(c))->to_string();
             break;
         }
         case float_c: {
-            ((constant<float>*)(c))->print();
+            return ((constant<float>*)(c))->to_string();
             break;
         }
         case double_c: {
-            ((constant<double>*)(c))->print();
+            return ((constant<double>*)(c))->to_string();
             break;
         }
         case long_c: {
-            ((constant<long double>*)(c))->print();
+            return ((constant<long double>*)(c))->to_string();
             break;
         }
         case par_c:{
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    ((param<bool>*)p_c)->print();
+                    return ((param<bool>*)p_c)->to_string();
                     break;
                 case short_:
-                    ((param<short>*)p_c)->print();
+                    return ((param<short>*)p_c)->to_string();
                     break;
                 case integer_:
-                    ((param<int>*)p_c)->print();
+                    return ((param<int>*)p_c)->to_string();
                     break;
                 case float_:
-                    ((param<float>*)p_c)->print();
+                    return ((param<float>*)p_c)->to_string();
                     break;
                 case double_:
-                    ((param<double>*)p_c)->print();
+                    return ((param<double>*)p_c)->to_string();
                     break;
                 case long_:
-                    ((param<long double>*)p_c)->print();
+                    return ((param<long double>*)p_c)->to_string();
                     break;
                 default:
                     break;
@@ -1669,33 +1952,33 @@ void poly_print(const constant_* c){/**< Copy c into c1 detecting the right clas
             break;
         }
         case uexp_c: {
-            ((uexpr*)c)->print(false);
+            return ((uexpr*)c)->to_string();
             break;
         }
         case bexp_c: {
-            ((bexpr*)c)->print(false);
+            return ((bexpr*)c)->to_string();
             break;
         }
         case var_c: {
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    ((var<bool>*)p_c)->print();
+                    return ((var<bool>*)p_c)->to_string();
                     break;
                 case short_:
-                    ((var<short>*)p_c)->print();
+                    return ((var<short>*)p_c)->to_string();
                     break;
                 case integer_:
-                    ((var<int>*)p_c)->print();
+                    return ((var<int>*)p_c)->to_string();
                     break;
                 case float_:
-                    ((var<float>*)p_c)->print();
+                    return ((var<float>*)p_c)->to_string();
                     break;
                 case double_:
-                    ((var<double>*)p_c)->print();
+                    return ((var<double>*)p_c)->to_string();
                     break;
                 case long_:
-                    ((var<long double>*)p_c)->print();
+                    return ((var<long double>*)p_c)->to_string();
                     break;
                 default:
                     break;
@@ -1704,7 +1987,7 @@ void poly_print(const constant_* c){/**< Copy c into c1 detecting the right clas
         }
         case func_c: {
             auto f = (func_*)c;
-            f->print(false);
+            return f->to_string();
             break;
         }
         default:
@@ -1777,7 +2060,7 @@ bool equals(const constant_* c1, const constant_* c2){/**< Checks if c2 equals c
     return false;
 }
 
-double eval(ind i, const constant_* c){
+template<typename type> type eval(ind i, const constant_* c){
     if (!c) {
         throw invalid_argument("Cannot evaluate nullptr!");
     }
@@ -1832,6 +2115,33 @@ double eval(ind i, const constant_* c){
             }
             break;
         }
+        case var_c:{
+            auto p_c2 = (param_*)(c);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return ((var<bool>*)p_c2)->eval(i);
+                    break;
+                case short_:
+                    return ((var<short>*)p_c2)->eval(i);
+                    break;
+                case integer_:
+                    return ((var<int>*)p_c2)->eval(i);
+                    break;
+                case float_:
+                    return ((var<float>*)p_c2)->eval(i);
+                    break;
+                case double_:
+                    return ((var<double>*)p_c2)->eval(i);
+                    break;
+                case long_:
+                    return (double)((var<long double>*)p_c2)->eval(i);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+
         case uexp_c: {
             return ((uexpr*)c)->eval(i);
             break;
@@ -1846,29 +2156,29 @@ double eval(ind i, const constant_* c){
     return 0;
 }
 
-double eval(const constant_* c1){
-    return eval(0,c1);
+template<typename type> type  eval(const constant_* c1){
+    return eval<type>(0,c1);
 };
 
-double bexpr::eval(ind i) const{
+double  bexpr::eval(ind i) const{
     if (!_lson || !_rson) {
         throw invalid_argument("Cannot evaluate empty expression!");
     }
     switch (_otype) {
         case plus_:
-            return ::eval(i,_lson) + ::eval(i,_rson);
+            return ::eval<double>(i,_lson) + ::eval<double>(i,_rson);
             break;
         case minus_:
-            return ::eval(i,_lson) + ::eval(i,_rson);
+            return ::eval<double>(i,_lson) + ::eval<double>(i,_rson);
             break;
         case product_:
-            return ::eval(i,_lson) * ::eval(i,_rson);
+            return ::eval<double>(i,_lson) * ::eval<double>(i,_rson);
             break;
         case div_:
-            return ::eval(i,_lson)/::eval(i,_rson);
+            return ::eval<double>(i,_lson)/::eval<double>(i,_rson);
             break;
         case power_:
-            return powl(::eval(i,_lson),::eval(i,_rson));
+            return powl(::eval<double>(i,_lson),::eval<double>(i,_rson));
             break;
         default:
             throw invalid_argument("Unsupported binary operator");
@@ -2124,7 +2434,7 @@ constant_* add(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates 
             break;
         }
         case func_c: {
-            return add(c1, (func_)c2);
+            return add(c1, *(func_*)&c2);
             break;
         }
         default:
@@ -2238,17 +2548,6 @@ constant_* substract(constant_* c1, const constant_& c2){ /**< adds c2 to c1, up
 }
 
 constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    if (c1->is_zero()) {
-        return c1;
-    }
-    if (c2.is_unit()) {
-        return c1;
-    }
-    if (c2.is_zero()) {
-        delete c1;
-        c1 = new constant<int>(0);
-        return c1;
-    }
     switch (c2.get_type()) {
         case binary_c: {
             return multiply(c1, *(constant<bool>*)&c2);
@@ -2352,223 +2651,361 @@ constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, upd
     }
     return nullptr;
 }
-
-void const pterm::print(int ind){
+    
+    
+    constant_* divide(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+        switch (c2.get_type()) {
+            case binary_c: {
+                return divide(c1, *(constant<bool>*)&c2);
+                break;
+            }
+            case short_c: {
+                return divide(c1, *(constant<short>*)&c2);
+                break;
+            }
+            case integer_c: {
+                return divide(c1, *(constant<int>*)&c2);
+                break;
+            }
+            case float_c: {
+                return divide(c1, *(constant<float>*)&c2);
+                break;
+            }
+            case double_c: {
+                return divide(c1, *(constant<double>*)&c2);
+                break;
+            }
+            case long_c: {
+                return divide(c1, *(constant<long double>*)&c2);
+                break;
+            }
+            case uexp_c: {
+                auto res = new bexpr(*(uexpr*)c1 * c2);
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(*(bexpr*)c1 * c2);
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case par_c:{
+                auto pc2 = (param_*)(&c2);
+                switch (pc2->get_intype()) {
+                    case binary_:
+                        return divide(c1, *(param<bool>*)pc2);
+                        break;
+                    case short_:
+                        return divide(c1, *(param<short>*)pc2);
+                        break;
+                    case integer_:
+                        return divide(c1, *(param<int>*)pc2);
+                        break;
+                    case float_:
+                        return divide(c1, *(param<float>*)pc2);
+                        break;
+                    case double_:
+                        return divide(c1, *(param<double>*)pc2);
+                        break;
+                    case long_:
+                        return divide(c1, *(param<long double>*)pc2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case var_c:{
+                auto pc2 = (param_*)(&c2);
+                switch (pc2->get_intype()) {
+                    case binary_:
+                        return divide(c1, *(var<bool>*)pc2);
+                        break;
+                    case short_:
+                        return divide(c1, *(var<short>*)pc2);
+                        break;
+                    case integer_:
+                        return divide(c1, *(var<int>*)pc2);
+                        break;
+                    case float_:
+                        return divide(c1, *(var<float>*)pc2);
+                        break;
+                    case double_:
+                        return divide(c1, *(var<double>*)pc2);
+                        break;
+                    case long_:
+                        return divide(c1, *(var<long double>*)pc2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case func_c: {
+                auto f = new func_(c2);
+                *f /= *c1;
+                delete c1;
+                return c1 = (constant_*)f;
+                break;
+            }
+            default:
+                break;
+        }
+        return nullptr;
+    }
+    
+string pterm::to_string(int ind) const{
+    string str;
     constant_* c_new = _coef;
-    param_* p_new;
     if (c_new->is_number()){
-        auto v = eval(c_new);
+        string v = ::to_string(c_new);
         if (_sign) {
-            if (v==-1) {
-                cout << " - ";
+            if (v=="-1") {
+                str += " - ";
             }
             else if (ind>0) {
-                cout << " + ";
-                if(v!=1) {
-                    cout << v;
+                str += " + ";
+                if(v!="1") {
+                    str += v;
                 }
             }
-            else if(v!=1) {
-                cout << v;
+            else if(v!="1") {
+                str += v;
             }
         }
         if(!_sign) {
-            if (v == -1 && ind>0) {
-                cout << " + ";
+            if (v == "-1" && ind>0) {
+                str += " + ";
             }
-            else if (v < 0 && ind>0){
-                cout << " + " << -1*v;
+            else if (v.front()=='-'){
+                if (ind > 0) {
+                    str += " + ";
+                }
+                str += v.substr(1);
             }
-            else if (v==1){
-                cout << " - ";
+            else if (v=="1"){
+                str += " - ";
             }
-            else if(v!=-1){
-                cout << " - " << v;
+            else if(v!="-1"){
+                str += " - " + v;
             }
         }
     }
     else{
-        if(ind > 0) {
-            if (!_sign) {
-                cout << " - ";
-            }
-            else {
-                cout << " + ";
-            }
+        if (!_sign) {
+            str += " - ";
         }
-        cout << "(";
-        poly_print(c_new);
-        cout << ")";
+        if(ind > 0 && _sign) {
+            str += " + ";
+        }
+        str += "(";
+        str += ::to_string(c_new);
+        str += ")";
     }
     for (auto& p: *_l) {
-        poly_print(p.first);
+        str += ::to_string(p.first);
         if (p.second != 1) {
-            cout << "^" << p.second;
+            str += "^" + std::to_string(p.second);
         }
     }
+    return str;
 }
 
+void pterm::print(int ind) const{
+    cout << this->to_string(ind);
+}
 
-void const qterm::print(int ind){
+string qterm::to_string(int ind) const {
+    string str;
     constant_* c_new = _coef;
     param_* p_new1 = (param_*)_p->first;
     param_* p_new2 = (param_*)_p->second;
     if (c_new->is_number()){
-        auto v = eval(c_new);
+        string v = ::to_string(c_new);
         if (_sign) {
-            if (v==-1) {
-                cout << " - ";
+            if (v=="-1") {
+                str += " - ";
             }
             else if (ind>0) {
-                cout << " + ";
-                if(v!=1) {
-                    cout << v;
+                str += " + ";
+                if(v!="1") {
+                    str += v;
                 }
             }
-            else if(v!=1) {
-                cout << v;
+            else if(v!="1") {
+                str += v;
             }
         }
         if(!_sign) {
-            if (v == -1 && ind>0) {
-                cout << " + ";
+            if (v == "-1" && ind>0) {
+                str += " + ";
             }
-            else if (v < 0 && ind>0){
-                cout << " + " << -1*v;
+            else if (v.front()=='-'){
+                if (ind > 0) {
+                    str += " + ";
+                }
+                str += v.substr(1);
             }
-            else if (v==1){
-                cout << " - ";
+            else if (v=="1"){
+                str += " - ";
             }
-            else if(v!=-1){
-                cout << " - " << v;
+            else if(v!="-1"){
+                str += " - " + v;
             }
         }
     }
     else{
-        if(ind > 0) {
-            if (!_sign) {
-                cout << " - ";
-            }
-            else {
-                cout << " + ";
-            }
+        if (!_sign) {
+            str += " - ";
         }
-        cout << "(";
-        poly_print(c_new);
-        cout << ")";
+        if(ind > 0 && _sign) {
+            str += " + ";
+        }
+        str += "(";
+        str += ::to_string(c_new);
+        str += ")";
     }
-    poly_print(p_new1);
+    str += ::to_string(p_new1);
     if (p_new1==p_new2) {
-        cout << "^2";
+        str += "^2";
     }
     else {
-        cout << ".";
-        poly_print(p_new2);
+        str += ".";
+        str += ::to_string(p_new2);
     }
+    return str;
 }
 
-void const lterm::print(int ind){
+
+void qterm::print(int ind) const {
+    cout << this->to_string(ind);
+}
+
+
+string lterm::to_string(int ind) const{
+    string str;
     constant_* c_new = _coef;
     param_* p_new = (param_*)_p;
     if (c_new->is_number()){
-        auto v = eval(c_new);
+        string v = ::to_string(c_new);
         if (_sign) {
-            if (v==-1) {
-                cout << " - ";
+            if (v=="-1") {
+                str += " - ";
             }
             else if (ind>0) {
-                cout << " + ";
-                if(v!=1) {
-                    cout << v;
+                str += " + ";
+                if(v!="1") {
+                    str += v;
                 }
             }
-            else if(v!=1) {
-                cout << v;
+            else if(v!="1") {
+                str += v;
             }
         }
         if(!_sign) {
-            if (v == -1 && ind>0) {
-                cout << " + ";
+            if (v == "-1" && ind>0) {
+                str += " + ";
             }
-            else if (v < 0 && ind>0){
-                cout << " + " << -1*v;
+            else if (v.front()=='-'){
+                if (ind > 0) {
+                    str += " + ";
+                }
+                str += v.substr(1);
             }
-            else if (v==1){
-                cout << " - ";
+            else if (v=="1"){
+                str += " - ";
             }
-            else if(v!=-1){
-                cout << " - " << v;
+            else if(v!="-1"){
+                str += " - " + v;
             }
         }
     }
     else{
-        if(ind > 0) {
-            if (!_sign) {
-                cout << " - ";
-            }
-            else {
-                cout << " + ";
-            }
+        if (!_sign) {
+            str += " - ";
         }
-        cout << "(";
-        poly_print(c_new);
-        cout << ")";
+        if(ind > 0 && _sign) {
+            str += " + ";
+        }
+        str += "(";
+        str += ::to_string(c_new);
+        str += ")";
     }
-    poly_print(p_new);
+    str += ::to_string(p_new);
+    return str;
+}
+
+void lterm::print(int ind) const{
+    cout << this->to_string(ind);
 }
 
 
-void const func_::print(bool endline){
+string func_::to_string() const{
+    string str;
     int ind = 0;
     string sign = " + ";
-    if (!is_constant() && _convex==convex_) {
-        cout << "Convex function: ";
+    if (!is_constant() && _all_convexity==convex_) {
+        str += "Convex function: ";
     }
-    if (!is_constant() && _convex==concave_) {
-        cout << "Concave function: ";
+    if (!is_constant() && _all_convexity==concave_) {
+        str += "Concave function: ";
     }
     if (!is_constant()) {
-        cout << "f(";
+        str += "f(";
         for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-            poly_print(pair_it->second.first);
+            str += pair_it->second.first->get_name();
             if (++pair_it != _vars->end()) {
-                cout << ",";
+                str += ",";
             }
         }
-        cout << ") = ";
+        str += ") = ";
     }
     for (auto &pair:*_pterms) {
-        pair.second.print(ind++);
+        str += pair.second.to_string(ind++);
     }
     if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
-        cout << " + ";
+        str += " + ";
     }
     for (auto &pair:*_qterms) {
-        pair.second.print(ind++);
+        str += pair.second.to_string(ind++);
     }
     if (!_qterms->empty() && !_lterms->empty()) {
-        cout << " + ";
+        str += " + ";
     }
     for (auto &pair:*_lterms) {
-        pair.second.print(ind++);
+        str += pair.second.to_string(ind++);
     }
     if (_cst->is_number()) {
-        auto val = eval(_cst);
-        if (val < 0) {
-            cout <<" - " << -val;
+        auto val = ::to_string(_cst);
+        if (val.front()=='-') {
+            str += " - " + val.substr(1);
         }
-        else if (val > 0){
-            cout <<" + " << val;
+        else if (val != "0"){
+            str += " + " + val;
         }
     }
     else {
-        cout <<" + (";
-        poly_print(_cst);
-        cout <<")";
+        str += " + (";
+        str += ::to_string(_cst);
+        str += ")";
     }
+    if (!_DAG->empty()) {
+        str += " + " + _DAG->begin()->second._to_str;
+    }
+    return str;
+}
+
+
+void func_::print(bool endline) const{
+    cout << this->to_string();
     if (endline)
         cout << endl;
 }
+
 
 /* UNARY EXPRESSIONS */
 
@@ -2576,81 +3013,94 @@ uexpr::uexpr(){
     _otype = id_;
     _son = nullptr;
     _type = uexp_c;
+    _to_str = "null";
 }
 
+string uexpr::to_string() const{
+    return _to_str;
+//    string str;
+//    switch (_otype) {
+//        case log_:
+//            str += "log(";
+//            str += ::to_string(_son);
+//            str += ")";
+//            break;
+//            
+//        case exp_:
+//            str += "exp(";
+//            str += ::to_string(_son);
+//            str += ")";
+//            break;
+//            
+//        case cos_:
+//            str += "cos(";
+//            str += ::to_string(_son);
+//            str += ")";
+//            break;
+//            
+//        case sin_:
+//            str += "sin(";
+//            str += ::to_string(_son);
+//            str += ")";
+//            break;
+//            
+//        case sqrt_:
+//            str += "sqrt(";
+//            str += ::to_string(_son);
+//            str += ")";
+//            break;
+//        default:
+//            break;
+//    }
+//    return str;
+}
 
 void uexpr::print(bool endline) const{
-    switch (_otype) {
-        case log_:
-            cout << "log(";
-            poly_print(_son);
-            cout << ")";
-            break;
-            
-        case exp_:
-            cout << "exp(";
-            poly_print(_son);
-            cout << ")";
-            break;
-            
-        case cos_:
-            cout << "cos(";
-            poly_print(_son);
-            cout << ")";
-            break;
-            
-        case sin_:
-            cout << "sin(";
-            poly_print(_son);
-            cout << ")";
-            break;
-            
-        case sqrt_:
-            cout << "sqrt(";
-            poly_print(_son);
-            cout << ")";
-            break;
-        default:
-            break;
-    }
+    cout << _to_str;
     if(endline)
         cout << endl;
+
+}
+
+string bexpr::to_string() const{
+    return _to_str;
 }
 
 void bexpr::print(bool endline) const {
-    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
-        cout << "(";
-        poly_print(_lson);
-        cout << ")";
-    }
-    else
-        poly_print(_lson);
-    
-    if (_otype==plus_) {
-        cout << " + ";
-    }
-    if (_otype==minus_) {
-        cout << " - ";
-    }
-    if (_otype==product_) {
-        cout << " * ";
-    }
-    if (_otype==div_) {
-        cout << "/";
-    }
-    
-    if (_otype==power_) {
-        cout << "^";
-    }
-    
-    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
-        poly_print(_rson);
-    }
-    else {
-        cout << "(";
-        poly_print(_rson);
-        cout << ")";
-    }
+    cout << _to_str;
+//    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+//        cout << "(";
+//        poly_print(_lson);
+//        cout << ")";
+//    }
+//    else
+//        poly_print(_lson);
+//    
+//    if (_otype==plus_) {
+//        cout << " + ";
+//    }
+//    if (_otype==minus_) {
+//        cout << " - ";
+//    }
+//    if (_otype==product_) {
+//        cout << " * ";
+//    }
+//    if (_otype==div_) {
+//        cout << "/";
+//    }
+//    
+//    if (_otype==power_) {
+//        cout << "^";
+//    }
+//    
+//    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+//        poly_print(_rson);
+//    }
+//    else {
+//        cout << "(";
+//        poly_print(_rson);
+//        cout << ")";
+//    }
     if(endline)
         cout << endl;
 }

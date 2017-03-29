@@ -9,16 +9,17 @@
 #include <Gravity/param.h>
 
 
-string param_::get_name() const {
+string param_::get_name(bool indices) const {
     string name = _name;
     int nb = _indices->size() - 1;
-    if (nb >= 0) {        
+    if (indices && nb >= 0) {
         name += "(";
+        auto iter = _indices->begin();
         for (auto i = 0; i < nb; i++) {
-            name += to_string((*_indices)[i]);
+            name += (*iter++).first;
             name += ",";
         }
-        name += to_string((*_indices)[nb]);
+        name += (*iter).first;
         name += ")";
     }
     return name;

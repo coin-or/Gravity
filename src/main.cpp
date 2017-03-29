@@ -72,12 +72,12 @@ int main (int argc, const char * argv[])
 //    constant<float> cf(1.60);
 //    cf.print();
 //    param<> p;
-    param<short> ip("ip");
+    param<int> ip("ip");
     ip = 2;
 //    ip.print();
     ip = 5;
 //    ip.print();
-    for (int i = 0; i<100000; i++) {
+    for (int i = 0; i<10000; i++) {
         ip = 222;
     }
     param<double> dp("dp");
@@ -102,11 +102,12 @@ int main (int argc, const char * argv[])
 //    auto c1 = (p_ij^2) + (q_ij^2) - (dp^2);
 //    func_ f(constant<>(2));
 //    func_ f(2);
-    
+    p(1).print(true);
+    q.print(true);
     auto f = dp*p;
-    f.print();
+    f.print(true);
     auto c1 = p + q - dp + 1;
-    c1.print();
+    c1.print(true);
     c1 += p;
     c1.print();
     auto l2 = 2*p;
@@ -141,7 +142,6 @@ int main (int argc, const char * argv[])
     l11.print();
     auto cc = p*p + q*q;
     cc.print();
-    
     auto cc1 = cc * -1;
     cc1.print();//SHOULD PRINT CONCAVE
     cc1 += 2*p*q;
@@ -149,11 +149,14 @@ int main (int argc, const char * argv[])
     param<> aa("aa");
     aa = -1;
 //    aa = 0;
-    auto ff = (aa*-1)*p*p - (ip + dp)*q*q;
+//    auto ff = (aa*-1)*p*p - (ip + dp)*q*q;
+    auto ff = (aa*-1)*p*p;
 //    auto ff = -1*aa*v11*v11;
     ff.print();
-    ff += 1*(ip + dp)*q*q;
+    ff *= aa;
     ff.print();
+//    ff += aa*(ip + dp)*q*q;
+//    ff.print();
     ff *= aa*p*q;
     ff.print();
     auto ppp = p*p*p;
@@ -170,7 +173,14 @@ int main (int argc, const char * argv[])
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
-//    auto l00 = 2*p(1,2) + q(1)+ p(3);
+    auto l00 = 2*p(1,2)*p(3,1) + q(1)+ p(3);
+    l00.print();
+    
+    auto f0 = 0.1*q;
+    f0.print();
+    f0 -= 0.1*q;
+    f0.print();
+    return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);
 //    q00.print();

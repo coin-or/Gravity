@@ -22,17 +22,17 @@ using namespace std;
 /** Backbone class for parameter */
 class param_: public constant_{
 protected:
-    string          _name;
-    NType           _intype;
-    vector<int>*    _indices;
+    string              _name;
+    NType               _intype;
+    map<string,int>*    _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
 public:
     
     virtual ~param_(){};
     
-    string get_name() const;
+    string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     
-    vector<int>* get_indices() const {
+    map<string,int>* get_indices() const {
         return _indices;
     }
     
@@ -59,7 +59,9 @@ public:
         return (_intype==long_);
     };
     
-    Sign get_sign() const;
+    Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
+    Sign get_sign(int idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
+    
     /** Operators */
     bool operator==(const param_& p) const {
         return (_type==p._type && _intype==p._intype && get_name()==p.get_name());
@@ -132,7 +134,7 @@ public:
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
-        _indices = new vector<int>(*p._indices);
+        _indices = new map<string, int>(*p._indices);
         _range = p._range;
     }
     
@@ -185,7 +187,7 @@ public:
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();
-        _indices = new vector<int>();
+        _indices = new map<string,int>();
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -242,7 +244,23 @@ public:
         _range.second = val;
     }
     
-    Sign get_sign() const{
+    Sign get_sign(int idx = 0) const{
+        assert(idx < _val->size());
+        if (_val->at(idx)==0) {
+            return zero_;
+        }
+        if (_val->at(idx)< 0) {
+            return neg_;
+        }
+        if (_val->at(idx)> 0) {
+            return pos_;
+        }
+        return unknown_;
+    }
+
+    
+    
+    Sign get_all_sign() const{
         if (_range.first == 0 && _range.second == 0) {
             return zero_;
         }
@@ -258,7 +276,7 @@ public:
         if (_range.first == 0  && _range.second > 0) {
             return non_neg_;
         }
-        return zero_;
+        return unknown_;
     }
     
     bool is_unit() const{ /**< Returns true if all values of this paramter are 1 **/
@@ -299,15 +317,22 @@ public:
 
     /** Output */
     void print(bool vals=false) const{
-        cout << get_name();
-        if(vals){
-            cout << " = [ ";
-            for(auto v: *_val){
-                cout << v << " ";
-            }
-            cout << "];\n";
-        }
+        cout << to_string(vals);
     }
+    
+    string to_string(bool vals=false) const{
+        string str = get_name();
+        if(vals){
+            str += " = [ ";
+            for(auto v: *_val){
+                str += v;
+                str += " ";
+            }
+            str += "];\n";
+        }
+        return str;
+    }
+    
 
 
 };

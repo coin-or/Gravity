@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include <gravity/param.h>
+#include <gravity/func.h>
 
 
 SCENARIO( "Constant created with default constructor", "" ) {
@@ -9,7 +9,7 @@ SCENARIO( "Constant created with default constructor", "" ) {
         
         
         WHEN( "The equal operator is called" ) {
-            REQUIRE( c.get_type() == short_c );
+            REQUIRE( c.get_type() == integer_c);
             c = 2;
 //
             THEN( "Make sure the argument is changed" ) {                
@@ -139,7 +139,7 @@ SCENARIO( "A nonlinear expression", "return a binary expression tree" ) {
         dp = 1909092.55;
         
         WHEN( "The expression tree is built" ) {
-            auto exp = 2./3*(log(dp) + ip)/(dp^2);
+            auto exp = 2./3*(log(dp) + ip)/(dp*dp);
             std::stringstream buffer;
             std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
             exp.print();

@@ -20,8 +20,174 @@ using namespace std;
 void reverse_sign(constant_* c); /**< Reverses the sign of the constant. */
 constant_* copy(const constant_* c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
 bool equals(const constant_* c1, const constant_* c2);
-double eval(ind i, const constant_* c1);
-double eval(const constant_* c1);
+template<typename type> type eval(ind i, const constant_* c1);
+template<typename type> type eval(const constant_* c1);
+
+
+/** Class uexpr (unary expression), stores a unary expression tree. */
+
+class expr: public constant_{
+    
+public:
+    string                                 _to_str; /**< A string representation of the expression */
+    NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
+    
+    map<string, pair<param_*, int>>*       _params;/**< Set of parameters in current expression, stored as a map <parameter name, <paramter pointer, number of times it appears in expression>>**/
+    map<string, pair<param_*, int>>*       _vars;/**< Set of variables in current expression, stored as a map <variable name, <variable pointer, number of times it appears in expression>>**/
+    
+    map<string, expr>*                     _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
+    
+    Convexity                              _all_convexity; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
+    Sign                                   _all_sign; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
+    pair<constant_, constant_>*            _all_range; /**< Range of the return value considering all instances of the current expression. >>**/
+    
+    vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a expression can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
+    vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
+    vector<pair<constant_, constant_>>*    _range; /**< Bounds of the return value if known. >>**/
+    
+    
+
+    virtual ~expr(){};
+};
+
+class uexpr: public expr{
+    
+public:
+    OperatorType    _otype;
+    constant_*      _son;
+    
+    uexpr();
+    uexpr(const uexpr& exp);
+    uexpr(uexpr&& exp);
+    
+    uexpr& operator=(const uexpr& e);
+    uexpr& operator=(uexpr&& e);
+    
+    
+    ~uexpr(){
+        delete _son;
+    };
+    
+    bool contains(const constant_* c) const;
+    
+    
+    void reset(){
+        delete _son;
+        _son = nullptr;
+        
+    };
+    
+    
+    OperatorType get_otype() const{
+        return _otype;
+    };
+    
+    /** Operators */
+    
+    
+    bool operator==(const uexpr &c)const;
+    
+    bool operator!=(const uexpr& c) const{
+        return !(*this==c);
+    };
+    
+    double eval(ind i) const;
+    
+    double eval() const{
+        return eval(0);
+    }
+    
+    string to_string() const;
+    void print(bool endline = true) const;
+    
+};
+
+
+class bexpr: public expr{
+private:
+    
+public:
+    OperatorType    _otype;
+    constant_*      _lson;
+    constant_*      _rson;
+    
+    bexpr();
+    
+    bexpr(const bexpr& exp);
+    
+    bexpr(bexpr&& exp);
+    
+    bexpr& operator=(const bexpr& e);
+    
+    bexpr& operator=(bexpr&& e);
+    
+    ~bexpr(){
+        delete _lson;
+        delete _rson;
+    }
+    
+    void reset(){
+        _otype = id_;
+        delete _lson;
+        _lson = nullptr;
+        delete _rson;
+        _rson = nullptr;
+    };
+    
+    bool is_lson(const constant_* c) const{
+        return (_lson == c);
+    };
+    
+    bool is_rson(const constant_* c) const{
+        return (_rson == c);
+    };
+    
+    constant_* get_lson() const{
+        return _lson;
+    };
+    
+    constant_* get_rson() const{
+        return _rson;
+    };
+    
+    void set_lson(constant_* c){
+        delete _lson;
+        _lson = c;
+    };
+    
+    void set_rson(constant_* c){
+        delete _rson;
+        _rson = c;
+    };
+    
+    OperatorType get_otype() const {
+        return _otype;
+    };
+    
+    bool contains(const constant_* c) const;
+    
+    bool operator==(const bexpr &c)const;
+    
+    bool operator!=(const bexpr& c) const{
+        return !(*this==c);
+    };
+    
+    template<typename other_type> bexpr& operator+=(const other_type& v);
+    template<typename other_type> bexpr& operator-=(const other_type& v);
+    template<typename other_type> bexpr& operator*=(const other_type& v);
+    template<typename other_type> bexpr& operator/=(const other_type& v);
+    
+    
+    string to_string() const;
+    
+    void print(bool endline = true) const;
+    
+    void print_tree() const;
+    
+    double eval(ind i) const;
+    
+};
+
 
 
 /** A class to represent a linear term, e.g. 2x. */
@@ -84,69 +250,8 @@ public:
     lterm& operator=(const lterm& l);
     lterm& operator=(lterm&& l);
     
-    
-//    template <typename T> lterm& operator+=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            return *this;
-//        }
-//        _coef = add(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> lterm& operator-=(const constant<T>& c){
-//        return *this += constant<T>(c.eval()*-1);
-//    }
-//    
-//    
-//    template <typename T> lterm& operator*=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            delete _coef;
-//            _coef = new constant<int>(0);
-//            _sign = true;
-//            cerr << "\nWARNING multiplying lterm by zero!\n";
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = multiply(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> lterm& operator/=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            throw invalid_argument("\nERROT dividing lterm by zero!\n");
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = divide(_coef, c);
-//        return *this;
-//    }
-//    
-//    
-//    template <typename T> lterm& operator+=(const param<T>& p){
-//        _coef = add(_coef, p);
-//        return *this;
-//    }
-//    
-//    template <typename T> lterm& operator-=(const param<T>& p){
-//        _coef = substract(_coef, p);
-//        return *this;
-//    }
-//    
-//    template <typename T> lterm& operator*=(const param<T>& p){
-//        _coef = multiply(_coef, p);
-//        return *this;
-//    }
-//    
-//    template<typename T> lterm& operator/=(const param<T>& p){
-//        _coef = divide(_coef, p);
-//        return *this;
-//    }
-    
-    void const print(int ind);
+    string to_string(int ind) const;
+    void print(int ind) const;
 };
 
 
@@ -213,63 +318,8 @@ public:
     qterm& operator=(const qterm& l);
     qterm& operator=(qterm&& l);
     
-//    template <typename T> qterm& operator+=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            return *this;
-//        }
-//        _coef = add(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> qterm& operator-=(const constant<T>& c){
-//        return *this += constant<T>(c.eval()*-1);
-//    }
-//    
-//    
-//    template <typename T> qterm& operator*=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            delete _coef;
-//            _coef = new constant<int>(0);
-//            _sign = true;
-//            cerr << "\nWARNING multiplying qterm by zero!\n";
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = multiply(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> qterm& operator/=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            throw invalid_argument("\nERROT dividing qterm by zero!\n");
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = divide(_coef, c);
-//        return *this;
-//    }
-//    
-//    
-//    template <typename T> qterm& operator+=(const param<T>& p){
-//        _coef = add(_coef, p);
-//        return *this;
-//    }
-//    
-//    template <typename T> qterm& operator-=(const param<T>& p){
-//        _coef = substract(_coef, p);
-//        return *this;
-//    }
-//    
-//    template<typename T> qterm& operator/=(const param<T>& p){
-//        _coef = divide(_coef, p);
-//        return *this;
-//    }
-    
-    void const print(int ind);
+    string to_string(int ind) const;
+    void print(int ind) const;
 };
 
 
@@ -327,91 +377,9 @@ public:
     pterm& operator=(const pterm& l);
     pterm& operator=(pterm&& l);
     
-//    template <typename T> pterm& operator+=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            return *this;
-//        }
-//        _coef = add(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> pterm& operator-=(const constant<T>& c){
-//        return *this += constant<T>(c.eval()*-1);
-//    }
-//    
-//    
-//    template <typename T> pterm& operator*=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            delete _coef;
-//            _coef = new constant<int>(0);
-//            _sign = true;
-//            cerr << "\nWARNING multiplying pterm by zero!\n";
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = multiply(_coef, c);
-//        return *this;
-//    }
-//    
-//    template <typename T> pterm& operator/=(const constant<T>& c){
-//        if (c.is_zero()) {
-//            throw invalid_argument("\nERROT dividing pterm by zero!\n");
-//            return *this;
-//        }
-//        if (c.is_unit()) {
-//            return *this;
-//        }
-//        _coef = divide(_coef, c);
-//        return *this;
-//    }
-//    
-//    
-//    template <typename T> pterm& operator+=(const param<T>& p){
-//        _coef = add(_coef, p);
-//        return *this;
-//    }
-//    
-//    template <typename T> pterm& operator-=(const param<T>& p){
-//        _coef = substract(_coef, p);
-//        return *this;
-//    }
-//    
-//    pterm& pterm::operator*=(const param_& p){
-//        if (p.is_param() && _l->begin()->first->is_var()) {
-//            _coef = multiply(_coef, p);
-//        }
-//        else {
-//            for (auto& p_it:*_l) {
-//                if (p_it.first->get_name()==p.get_name()) {
-//                    p_it.second++;
-//                    return *this;
-//                }
-//            }
-//            _l->push_back(make_pair<>((param_*)copy(&p),1));
-//        }
-//        return *this;
-//    }
-//
-//    
-//    template<typename T> pterm& operator/=(const param<T>& p){
-//        if (p.is_param() && _l->begin()->first->is_var()) {
-//            _coef = divide(_coef, p);
-//        }
-//        else {
-//            for (auto& p_it:*_l) {
-//                if (p_it.first->get_name()==p.get_name()) {
-//                    p_it.second--;
-//                    return *this;
-//                }
-//            }
-//            throw invalid_argument("The division result is not a polynomial term.");
-//        }
-//        return *this;
-//    }
+    string to_string(int ind) const;
+    void print(int ind) const;
     
-    void const print(int ind);
 };
 
 /** Backbone class for function */
@@ -419,15 +387,26 @@ class func_ : public constant_{
 private:
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
-    Convexity                              _convex = linear_; /**< Convexity type, i.e., linear, convex, concave or indeterminate. >>**/
-    Sign                                   _sign = zero_; /**< Sign of return value if known. >>**/
-    bool                                   _in_model = false; /**< If the function is in a mathematical model, the latter is responsible for memory management. >>**/
-    map<string, pair<param_*, int>>*       _params;/**< map <parameter name, <paramter pointer, number of times it appears in function>>**/
-    map<string, pair<param_*, int>>*       _vars;/**< map <variable name, <variable pointer, number of times it appears in function>>**/
-    constant_*                             _cst;/**< Constant part of the linear function */
-    map<string, lterm>*                    _lterms; /**< Map of linear terms */
-    map<string, qterm>*                    _qterms; /**< Map of quadratic terms */
-    map<string, pterm>*                    _pterms; /**< Map of polynomial terms */
+
+    map<string, pair<param_*, int>>*       _params;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+    map<string, pair<param_*, int>>*       _vars;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+    
+    constant_*                             _cst;/**< Constant part of the function */
+    map<string, lterm>*                    _lterms; /**< Set of linear terms, stored as a map <string describing term, term>. */
+    map<string, qterm>*                    _qterms; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
+    map<string, pterm>*                    _pterms; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
+    expr*                                  _expr; /**< Nonlinear part of the function, this points to the root node in _DAG */
+    map<string, expr>*                     _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
+    
+    Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
+    Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
+    pair<constant_, constant_>*            _all_range; /**< Range of the return value considering all instances of the current function. >>**/
+
+    vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
+    vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
+    vector<pair<constant_, constant_>>*    _range; /**< Bounds of the return value if known. >>**/
+    
+    bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
 
 public:
     
@@ -451,6 +430,8 @@ public:
     void insert(const qterm& term);
     
     void insert(const pterm& term);
+    
+    void insert(const expr& e);
     
     constant_* get_cst() {
         return _cst;
@@ -560,12 +541,12 @@ public:
     
     pair<ind,func_*> operator[](ind i);
     
-    bool is_convex() const{
-        return (_convex==convex_ || _convex==linear_);
+    bool is_convex(int idx=0) const{
+        return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
     };
     
-    bool is_concave() const{
-        return (_convex==concave_ || _convex==linear_);
+    bool is_concave(int idx=0) const{
+        return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
     };
     
     bool is_constant() const{
@@ -616,103 +597,7 @@ public:
     
     bool operator!=(const func_& f) const;
     
-//    template<typename T> func_& operator+=(const T& v){
-//        if (is_arithmetic<T>::value || typeid(T)==typeid(constant<bool>) || typeid(T)==typeid(constant<int>) || typeid(T)==typeid(constant<short>)) {
-//            _cst = add(_cst, v);
-//            return *this;
-//        }
-//        return *this;
-//    };
-//    template<typename T> func_& operator-=(const T& v){
-//        return *this;
-//    };
-//    template<typename T> func_& operator*=(const T& v){
-//        return *this;
-//    };
-//    template<typename T> func_& operator/=(const T& v){
-//        return *this;
-//    };
-//    
-//    func_& operator+=(const constant_& c){
-//        return *this;
-//    };
-    
-//    template<typename T> func_& operator+=(const constant<T>& c){
-//        switch (_cst->get_type()) {
-//            case binary_c: {
-//                *(constant<bool>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case short_c: {
-//                *(constant<short>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case integer_c: {
-//                *(constant<int>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case float_c: {
-//                *(constant<float>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case double_c: {
-//                *(constant<double>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case long_c: {
-//                *(constant<long double>*)_cst += c;
-//                return *this;
-//                break;
-//            }
-//            case par_c:{
-//                auto f = new func_(*(param_*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                break;
-//            }
-//            case uexp_c: {
-////                auto res = new bexpr(*(uexpr*)c1 + c2);
-////                delete c1;
-////                c1 = (constant_*)res;
-////                return c1;
-////                break;
-//            }
-//            case bexp_c: {
-////                auto res = new bexpr(*(bexpr*)c1 + c2);
-////                delete c1;
-////                c1 = (constant_*)res;
-////                return c1;
-////                break;
-//            }
-//            case func_c: {
-//                auto f = new func_(*(func_*)_cst + c);
-//                delete _cst;
-//                _cst = (constant_*)f;
-//                break;
-////                switch (((func_*)&c2)->get_ftype()) {
-////                    case lin_:
-////                        return add(c1, (*(lin*)&c2));
-////                        break;
-////                        
-////                    default:
-////                        break;
-////                }
-//            }
-//            default:
-//                break;
-//        }
-//        return *this;
-//    }
-//    template<typename T> func_& operator-=(const constant<T>& c);
-//    template<typename T> func_& operator*=(const constant<T>& c);
-//    template<typename T> func_& operator/=(const constant<T>& c);
-//
-    
+
     func_& operator+=(const constant_& f);
     func_& operator-=(const constant_& f);
     func_& operator*=(const constant_& f);
@@ -744,47 +629,130 @@ public:
         return nullptr;
     }
     
-    Sign get_sign() const{
-        return _sign;
+    Sign get_all_sign() const{
+        return _all_sign;
     }
     
-    Sign get_sign(const lterm& l) {
+    Sign get_sign(int idx=0) const{
+        return _sign->at(idx);
+    }
+    
+    Sign get_all_sign(const lterm& l) {
         if (l._coef->is_zero()) {
             return zero_;
         }
-        if (l._coef->get_sign()==unknown_ || l._p->get_sign()==unknown_) {
+        if (l._coef->get_all_sign()==unknown_ || l._p->get_all_sign()==unknown_) {
             return unknown_;
         }
         if (l._sign) {
-            if(l._coef->get_sign() * l._p->get_sign() == 2) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == 2) {
                 return non_neg_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == 4) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == 4) {
                 return pos_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == -2) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == -2) {
                 return non_pos_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == -4) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == -4) {
                 return neg_;
             }
         }
         else {
-            if(l._coef->get_sign() * l._p->get_sign() == 2) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == 2) {
                 return non_pos_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == 4) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == 4) {
                 return neg_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == -2) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == -2) {
                 return non_neg_;
             }
-            if(l._coef->get_sign() * l._p->get_sign() == -4) {
+            if(l._coef->get_all_sign() * l._p->get_all_sign() == -4) {
                 return pos_;
             }
         }
         return unknown_;
     }
+    
+    
+    Sign get_all_sign(const qterm& l) {
+        if (l._coef->is_zero()) {
+            return zero_;
+        }
+        if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
+            return unknown_;
+        }
+        if (l._sign) {
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+                return non_neg_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+                return pos_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+                return non_pos_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+                return neg_;
+            }
+        }
+        else {
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+                return non_pos_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+                return neg_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+                return non_neg_;
+            }
+            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+                return pos_;
+            }
+        }
+        return unknown_;
+    }
+    
+    Sign get_all_sign(const pterm& l) {
+        if (l._coef->is_zero()) {
+            return zero_;
+        }
+//        if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
+//            return unknown_;
+//        }
+//        if (l._sign) {
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+//                return non_neg_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+//                return pos_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+//                return non_pos_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+//                return neg_;
+//            }
+//        }
+//        else {
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+//                return non_pos_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+//                return neg_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+//                return non_neg_;
+//            }
+//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+//                return pos_;
+//            }
+//        }
+        return unknown_;
+    }
+
+
     
     Convexity get_convexity(const qterm& q) {
         if(q._p->first == q._p->second){
@@ -806,7 +774,6 @@ public:
         auto sqr1 = get_square(q._p->first);
         auto sqr2 = get_square(q._p->second);
         if (sqr1 && sqr2){
-            auto c0 = q._coef;
             auto c1 = sqr1->_coef;
             auto c2 = sqr2->_coef;
             if (!(sqr1->_sign^c1->is_positive())==!(sqr2->_sign^c2->is_positive())) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
@@ -831,175 +798,44 @@ public:
     
     void update_convexity(){
         if (!_pterms->empty()) {
-            _convex = undet_;
+            _all_convexity = undet_;
             return;
         }
         if (_qterms->empty()) {
-            _convex = linear_;
+            _all_convexity = linear_;
             return;
         }
-        _convex = get_convexity(_qterms->begin()->second);
+        _all_convexity = get_convexity(_qterms->begin()->second);
         for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
             Convexity conv = get_convexity(pair_it->second);
-            if (_convex==undet_ || conv ==undet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
-                _convex = undet_;
+            if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+                _all_convexity = undet_;
                 return;
             }
             else {
-                _convex = conv;
+                _all_convexity = conv;
             }
         }
     }
     
-    void const print(bool endline=true);
-    
-};
-
-
-/** Polymorphic class uexpr (unary expression), stores a unary expression tree. */
-
-class expr: public constant_{
-    
-public:
-    virtual ~expr(){};
-    
-};
-
-class uexpr: public expr{
-    
-public:
-    OperatorType    _otype;
-    constant_*      _son;
-    
-    uexpr();
-    uexpr(const uexpr& exp);
-    uexpr(uexpr&& exp);
-    
-    uexpr& operator=(const uexpr& e);
-    uexpr& operator=(uexpr&& e);
-    
-    
-    ~uexpr(){
-        delete _son;
-    };
-    
-    bool contains(const constant_* c) const;
-    
-    
-    void reset(){
-        delete _son;
-        _son = nullptr;
+    void update_sign(){
+//        _sign = get_sign(_qterms->begin()->second);
+//        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+//            Sign sign = get_sign(pair_it->second);
+//            if (_convex==undet_ || conv ==undet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
+//                _convex = undet_;
+//                return;
+//            }
+//            else {
+//                _convex = conv;
+//            }
+//        }
+    }
         
-    };
-    
-    
-    OperatorType get_otype() const{
-        return _otype;
-    };
-    
-    /** Operators */
-    
-    
-    bool operator==(const uexpr &c)const;
-    
-    bool operator!=(const uexpr& c) const{
-        return !(*this==c);
-    };
-    
-    double eval(ind i) const;
-    
-    double eval() const{
-        return eval(0);
-    }
-    
-    void print(bool endline = true) const;
+    string to_string() const;
+    void print(bool endline=true) const;
     
 };
-
-
-class bexpr: public expr{
-private:
-    
-public:
-    OperatorType    _otype;
-    constant_*      _lson;
-    constant_*      _rson;
-    
-    bexpr();
-    
-    bexpr(const bexpr& exp);
-    
-    bexpr(bexpr&& exp);
-    
-    bexpr& operator=(const bexpr& e);
-    
-    bexpr& operator=(bexpr&& e);
-    
-    ~bexpr(){
-        delete _lson;
-        delete _rson;
-    }
-    
-    void reset(){
-        _otype = id_;
-        delete _lson;
-        _lson = nullptr;
-        delete _rson;
-        _rson = nullptr;
-    };
-    
-    bool is_lson(const constant_* c) const{
-        return (_lson == c);
-    };
-    
-    bool is_rson(const constant_* c) const{
-        return (_rson == c);
-    };
-    
-    constant_* get_lson() const{
-        return _lson;
-    };
-    
-    constant_* get_rson() const{
-        return _rson;
-    };
-    
-    void set_lson(constant_* c){
-        delete _lson;
-        _lson = c;
-    };
-    
-    void set_rson(constant_* c){
-        delete _rson;
-        _rson = c;
-    };
-    
-    OperatorType get_otype() const {
-        return _otype;
-    };
-    
-    bool contains(const constant_* c) const;
-    
-    bool operator==(const bexpr &c)const;
-    
-    bool operator!=(const bexpr& c) const{
-        return !(*this==c);
-    };
-    
-    template<typename other_type> bexpr& operator+=(const other_type& v);
-    template<typename other_type> bexpr& operator-=(const other_type& v);
-    template<typename other_type> bexpr& operator*=(const other_type& v);
-    template<typename other_type> bexpr& operator/=(const other_type& v);
-    
-    
-    void print(bool endline = true) const;
-    
-    void print_tree() const;
-    
-    double eval(ind i) const;
-    
-};
-
 
 
 
@@ -1022,6 +858,8 @@ uexpr log(const constant_& c);
 
 
 void poly_print(const constant_* c);
+
+string to_string(const constant_* c);
 
 
 func_ operator+(const constant_& c1, const constant_& c2);
@@ -1606,7 +1444,7 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
 //            delete c1;
 //            *res *= c2;
 //            return c1 = res;
-            (*(func_*)c1) += c2;
+            (*(func_*)c1) *= c2;
             return c1;
             break;
         }
@@ -1730,19 +1568,10 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
 }
 
 constant_* multiply(constant_* c1, const constant_& c2);
+constant_* divide(constant_* c1, const constant_& c2);
+
 
 template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-    if (c1->is_number() && eval(c1)==0) {
-        return c1;
-    }
-    if (c2.eval()==1) {
-        return c1;
-    }
-    if (c2.eval()==0) {
-        delete c1;
-        c1 = new constant<int>(0);
-        return c1;
-    }
     switch (c1->get_type()) {
         case binary_c: {
             if (c2.is_binary() ) {
@@ -1965,6 +1794,7 @@ template<typename other_type> bexpr operator+(const other_type& c1, const expr& 
     res._otype = plus_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
     return res;
 }
 
@@ -1973,6 +1803,7 @@ template<typename other_type> bexpr operator+(const expr& c1, const other_type& 
     res._otype = plus_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
     return res;
 }
 
@@ -1982,6 +1813,7 @@ template<typename other_type> bexpr operator-(const other_type& c1, const expr& 
     res._otype = minus_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
     return res;
 }
 
@@ -1990,6 +1822,7 @@ template<typename other_type> bexpr operator-(const expr& c1, const other_type& 
     res._otype = minus_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
     return res;
 }
 
@@ -1999,6 +1832,7 @@ template<typename other_type> bexpr operator*(const other_type& c1, const expr& 
     res._otype = product_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
     return res;
 }
 
@@ -2007,6 +1841,7 @@ template<typename other_type> bexpr operator*(const expr& c1, const other_type& 
     res._otype = product_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
     return res;
 }
 
@@ -2017,6 +1852,7 @@ template<typename other_type> bexpr operator/(const other_type& c1, const expr& 
     res._otype = div_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
     return res;
 }
 template<typename other_type> bexpr operator/(const expr& c1, const other_type& c2){
@@ -2024,6 +1860,7 @@ template<typename other_type> bexpr operator/(const expr& c1, const other_type& 
     res._otype = div_;
     res._lson = copy((constant_*)&c1);
     res._rson =  copy((constant_*)&c2);
+    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
     return res;
 }
 
