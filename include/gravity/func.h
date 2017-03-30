@@ -39,11 +39,11 @@ public:
     
     Convexity                              _all_convexity; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
     Sign                                   _all_sign; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
-    pair<constant_, constant_>*            _all_range; /**< Range of the return value considering all instances of the current expression. >>**/
+    pair<constant_*, constant_*>*            _all_range; /**< Range of the return value considering all instances of the current expression. >>**/
     
     vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a expression can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
-    vector<pair<constant_, constant_>>*    _range; /**< Bounds of the return value if known. >>**/
+    vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
     
 
@@ -400,11 +400,11 @@ private:
     
     Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
     Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
-    pair<constant_, constant_>*            _all_range; /**< Range of the return value considering all instances of the current function. >>**/
+    pair<constant_*, constant_*>*            _all_range; /**< Range of the return value considering all instances of the current function. >>**/
 
     vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
-    vector<pair<constant_, constant_>>*    _range; /**< Bounds of the return value if known. >>**/
+    vector<pair<constant_*, constant_*>>*    _range; /**< Bounds of the return value if known. >>**/
     
     bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
 
@@ -548,6 +548,11 @@ public:
     bool is_concave(int idx=0) const{
         return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
     };
+    
+    
+    bool is_number() const{
+        return (_vars->empty() && _params->empty());
+    }
     
     bool is_constant() const{
         return (_ftype==const_);

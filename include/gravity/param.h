@@ -61,6 +61,7 @@ public:
     
     Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
     Sign get_sign(int idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
+    pair<constant_*, constant_*>* get_range() const;
     
     /** Operators */
     bool operator==(const param_& p) const {

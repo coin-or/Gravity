@@ -408,7 +408,7 @@ func_::func_(){
     _DAG = new map<string, expr>();
     _all_sign = zero_;
     _all_convexity = linear_;
-    _all_range = new pair<constant_, constant_>(constant<int>(0),constant<int>(0));
+    _all_range = new pair<constant_*, constant_*>(new constant<int>(0), new constant<int>(0));
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
@@ -424,36 +424,48 @@ func_::func_(const constant_& c){
     _pterms = new map<string, pterm>();
     _expr = nullptr;
     _DAG = new map<string, expr>();
+    _all_sign = zero_;
+    _all_convexity = linear_;
+    _all_range = nullptr;
+    _sign = nullptr;
+    _convexity = nullptr;
+    _range = nullptr;
+
     switch (c.get_type()) {
         case binary_c: {
             _cst = new constant<bool>(*(constant<bool>*)(&c));
             _all_sign = ((constant<bool>*)_cst)->get_sign();
-            
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case short_c: {
             _cst = new constant<short>(*(constant<short>*)(&c));
             _all_sign = ((constant<short>*)_cst)->get_sign();
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case integer_c: {
             _cst = new constant<int>(*(constant<int>*)(&c));
             _all_sign = ((constant<int>*)_cst)->get_sign();
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case float_c: {
             _cst = new constant<float>(*(constant<float>*)(&c));
             _all_sign = ((constant<float>*)_cst)->get_sign();
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case double_c: {
             _cst = new constant<double>(*(constant<double>*)(&c));
             _all_sign = ((constant<double>*)_cst)->get_sign();
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case long_c: {
             _cst = new constant<long double>(*(constant<long double>*)(&c));
             _all_sign = ((constant<long double>*)_cst)->get_sign();
+            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
             break;
         }
         case par_c:{
@@ -462,6 +474,7 @@ func_::func_(const constant_& c){
             add_param(p_c2);
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
+            _all_range = p_c2->get_range();
             break;
         }
         case var_c:{
@@ -471,6 +484,7 @@ func_::func_(const constant_& c){
             _ftype = lin_;
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
+            _all_range = p_c2->get_range();
             break;
         }
         case uexp_c: {
@@ -497,7 +511,9 @@ func_::func_(func_&& f){
     _ftype = f._ftype;
     _return_type = f._return_type;
     _all_convexity = f._all_convexity;
-    _sign = f._sign;
+    _all_sign = f._all_sign;
+    _all_range = f._all_range;
+    f._all_range = nullptr;
     _lterms = f._lterms;
     f._lterms = nullptr;
     _qterms = f._qterms;
@@ -514,6 +530,12 @@ func_::func_(func_&& f){
     f._params = nullptr;
     _cst = f._cst;
     f._cst = nullptr;
+    _range = f._range;
+    f._range = nullptr;
+    _convexity = f._convexity;
+    f._convexity = nullptr;
+    _sign = f._sign;
+    f._sign = nullptr;
 }
 
 func_::func_(const func_& f){
@@ -528,7 +550,34 @@ func_::func_(const func_& f){
     _ftype = f._ftype;
     _return_type = f._return_type;
     _all_convexity = f._all_convexity;
-    _sign = f._sign;
+    _all_sign = f._all_sign;
+    _cst = copy(f._cst);
+    if (f.is_number()) {
+        _all_range = new pair<constant_*, constant_*>(_cst, _cst);
+    }
+    else {
+        _all_range = new pair<constant_*, constant_*>(copy(f._all_range->first), copy(f._all_range->first));
+    }
+    _sign = nullptr;
+    _convexity = nullptr;
+    _range = nullptr;
+    
+    if(f._sign){
+        _sign = new vector<Sign>();
+        *_sign = *f._sign;
+    }
+    if (f._convexity) {
+        _convexity = new vector<Convexity>();
+        *_convexity = *f._convexity;
+    }
+    if (f._range) {
+        _range= new vector<pair<constant_*, constant_*>>();
+        *_range = *f._range;// Make sure this creates new pointers inside each pair, otherwise use below.
+//        for (auto &elem: *f._range) {
+//            _range->push_back(make_pair<>(copy(elem.first), copy(elem.second)));
+//        }
+    }
+    
     for (auto &pair:*f._lterms) {
         insert(pair.second);
     }
@@ -542,10 +591,15 @@ func_::func_(const func_& f){
         _expr = &((*_DAG->insert(make_pair<>(f._expr->_to_str, *f._expr)).first).second);
 //        update_DAG();
     }
-    _cst = copy(f._cst);
+    
 }
 
 func_& func_::operator=(const func_& f){
+    if (_all_range && _cst!=_all_range->first) {
+        delete _all_range->first;
+        delete _all_range->second;
+    }
+    delete _all_range;
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -562,11 +616,21 @@ func_& func_::operator=(const func_& f){
         }
         delete _params;
     }
+    if (_range) {
+        for (auto &elem: *_range) {
+            delete elem.first;
+            delete elem.second;
+        }
+    }
+    delete _range;
+    delete _convexity;
+    delete _sign;
     delete _lterms;
     delete _qterms;
     delete _pterms;
     delete _DAG;
     delete _cst;
+    
     set_type(func_c);
     _params = new map<string, pair<param_*, int>>();
     _vars = new map<string, pair<param_*, int>>();
@@ -577,7 +641,35 @@ func_& func_::operator=(const func_& f){
     _ftype = f._ftype;
     _return_type = f._return_type;
     _all_convexity = f._all_convexity;
-    _sign = f._sign;
+    _all_sign = f._all_sign;
+    _return_type = f._return_type;
+    _cst = copy(f._cst);
+    if (f.is_number()) {
+        _all_range = new pair<constant_*, constant_*>(_cst, _cst);
+    }
+    else {
+        _all_range = new pair<constant_*, constant_*>(copy(f._all_range->first), copy(f._all_range->first));
+    }
+    _sign = nullptr;
+    _convexity = nullptr;
+    _range = nullptr;
+    
+    if(f._sign){
+        _sign = new vector<Sign>();
+        *_sign = *f._sign;
+    }
+    if (f._convexity) {
+        _convexity = new vector<Convexity>();
+        *_convexity = *f._convexity;
+    }
+    if (f._range) {
+        _range= new vector<pair<constant_*, constant_*>>();
+        *_range = *f._range;// Make sure this creates new pointers inside each pair, otherwise use below.
+        //        for (auto &elem: *f._range) {
+        //            _range->push_back(make_pair<>(copy(elem.first), copy(elem.second)));
+        //        }
+    }
+
     for (auto &pair:*f._lterms) {
         insert(pair.second);
     }
@@ -591,12 +683,16 @@ func_& func_::operator=(const func_& f){
         _expr = &((*_DAG->insert(make_pair<>(f._expr->_to_str, *f._expr)).first).second);
 //        update_DAG();
     }
-    _cst = copy(f._cst);
     return *this;
 }
 
 
 func_& func_::operator=(func_&& f){
+    if (_all_range && _cst!=_all_range->first) {
+        delete _all_range->first;
+        delete _all_range->second;
+    }
+    delete _all_range;
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -613,6 +709,15 @@ func_& func_::operator=(func_&& f){
         }
         delete _params;
     }
+    if (_range) {
+        for (auto &elem: *_range) {
+            delete elem.first;
+            delete elem.second;
+        }
+    }
+    delete _range;
+    delete _convexity;
+    delete _sign;
     delete _lterms;
     delete _qterms;
     delete _pterms;
@@ -622,7 +727,9 @@ func_& func_::operator=(func_&& f){
     _ftype = f._ftype;
     _return_type = f._return_type;
     _all_convexity = f._all_convexity;
-    _sign = f._sign;
+    _all_sign = f._all_sign;
+    _all_range = f._all_range;
+    f._all_range = nullptr;
     _lterms = f._lterms;
     f._lterms = nullptr;
     _qterms = f._qterms;
@@ -639,12 +746,23 @@ func_& func_::operator=(func_&& f){
     f._params = nullptr;
     _cst = f._cst;
     f._cst = nullptr;
+    _range = f._range;
+    f._range = nullptr;
+    _convexity = f._convexity;
+    f._convexity = nullptr;
+    _sign = f._sign;
+    f._sign = nullptr;
     return *this;
 }
 
 
 
 func_::~func_(){
+    if (_all_range && _cst!=_all_range->first) {
+        delete _all_range->first;
+        delete _all_range->second;
+    }
+    delete _all_range;
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -661,6 +779,15 @@ func_::~func_(){
         }
         delete _params;
     }
+    if (_range) {
+        for (auto &elem: *_range) {
+            delete elem.first;
+            delete elem.second;
+        }
+    }
+    delete _range;
+    delete _convexity;
+    delete _sign;    
     delete _lterms;
     delete _qterms;
     delete _pterms;
@@ -1162,6 +1289,37 @@ func_& func_::operator/=(const constant_& c){
 
 
 void func_::reset(){
+    if (_all_range && _cst!=_all_range->first) {
+        delete _all_range->first;
+        delete _all_range->second;
+    }
+    *_all_range = make_pair<>(new constant<int>(0), new constant<int>(0));
+    if (_vars) {
+        if (!_embedded) {
+            for (auto &elem: *_vars) {
+                delete elem.second.first;
+            }
+        }
+        _vars->clear();
+    }
+    if (_params) {
+        if (!_embedded) {
+            for (auto &elem: *_params) {
+                delete elem.second.first;
+            }
+        }
+        _params->clear();
+    }
+    if (_range) {
+        for (auto &elem: *_range) {
+            delete elem.first;
+            delete elem.second;
+        }
+    }
+    delete _range;
+    delete _convexity;
+    delete _sign;
+    delete _DAG;
     set_type(func_c);
     _ftype = const_;
     _return_type = integer_;
@@ -1170,16 +1328,6 @@ void func_::reset(){
     _lterms->clear();
     _qterms->clear();
     _pterms->clear();
-    if (!_embedded) {
-        for (auto &elem: *_vars) {
-            delete elem.second.first;
-        }
-        for (auto &elem: *_params) {
-            delete elem.second.first;
-        }
-    }
-    _vars->clear();
-    _params->clear();
     delete _cst;
     _cst = new constant<int>(0);
 };
