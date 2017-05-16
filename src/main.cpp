@@ -67,6 +67,22 @@ int main (int argc, const char * argv[])
 
     //  Start Timers
     cout << "HELLO!\n";
+    cout << "Understanding the numerical limits of your machine:" << endl;
+    std::cout << "type\tlowest\thighest\n";
+    std::cout << "short\t"
+    << std::numeric_limits<short>::lowest() << '\t'
+    << std::numeric_limits<short>::max() << '\n';
+    std::cout << "int\t"
+    << std::numeric_limits<int>::lowest() << '\t'
+    << std::numeric_limits<int>::max() << '\n';
+    std::cout << "long int\t"
+    << std::numeric_limits<long int>::lowest() << '\t'
+    << std::numeric_limits<long int>::max() << '\n';
+    std::cout << "double\t"
+    << std::numeric_limits<double>::lowest() << '\t'
+    << std::numeric_limits<double>::max() << '\n';
+    std::cout << "long double\t"
+    << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
 //    constant<int> c(2);
 //    c.print();
 //    constant<float> cf(1.60);
@@ -77,7 +93,7 @@ int main (int argc, const char * argv[])
 //    ip.print();
     ip = 5;
 //    ip.print();
-    for (int i = 0; i<10000; i++) {
+    for (int i = 0; i<100000; i++) {
         ip = 222;
     }
     param<double> dp("dp");
@@ -155,6 +171,10 @@ int main (int argc, const char * argv[])
     ff.print();
     ff *= aa;
     ff.print();
+    ff *= aa*aa;
+    ff.print();
+    ff *= aa;
+    ff.print();
 //    ff += aa*(ip + dp)*q*q;
 //    ff.print();
     ff *= aa*p*q;
@@ -178,8 +198,29 @@ int main (int argc, const char * argv[])
     
     auto f0 = 0.1*q;
     f0.print();
-    f0 -= 0.1*q;
+    f0 -= (0.1+1e-7)*q;
     f0.print();
+//    ip.print(true);
+    auto vec_prod = (aa+ip).tr()*v1;
+    vec_prod.print();
+    vec_prod += ip.tr()*p;
+    vec_prod.print();
+    auto quad = (aa+ip)*(v1.tr()*v1) + q;
+    quad.print();
+//    int C = 10;
+//    int n = 10, ni = 3;
+//    var<float> alpha_ij("alpha_ij", 0, C);
+//    var<float> alpha_kl("alpha_kl", 0, C);
+//    param<int> y_ij("y_ij");
+//    param<int> y_kl("y_kl");
+//    var<>x("x"), y("y");
+//    auto SVM = (3-3*x-y) + (4-3*x-y) + (4-4*x-y) + (5-4*x-y) + (y) + (y-1+x) + (y+2*x) + (y-2+3*x);
+//    auto SVM = 5 - y -4*x -y + 4 -3*x - y + 3 - 3*x +4 -4*x + y + y -1 +x +y +2*x +y - 2 + 3*x;
+//    SVM.print();
+//    auto f1 = sum(alpha,n,ni);
+//    auto f1 = sqrt(v1.tr()*v1) + p*q;
+    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+    f1.print();
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);

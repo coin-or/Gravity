@@ -73,6 +73,9 @@ public:
         string key;
         for (int i= 0; i<indices.size(); i++) {
             key += std::to_string(indices[i]);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
         }
         res._indices->insert(make_pair<>(key,0));
         return res;
@@ -152,7 +155,11 @@ public:
     /* Operators */
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
-    
+    var tr() const{
+        auto v = var(*this);
+        v._is_transposed = true;
+        return v;
+    }
     
     /* Output */
     void print(bool bounds=false) const;

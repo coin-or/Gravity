@@ -10,6 +10,7 @@
 typedef unsigned int ind; /* Index type */
 //typedef std::set<ind> indx; /* Set of indices type */
 
+typedef enum { none_, first_, second_} IS_SUM; /* Used for vectorial products */
 typedef enum { linear_, convex_, concave_, undet_} Convexity; /* Convexity Type */
 typedef enum { neg_ = -2, non_pos_ = -1, zero_ = 0, non_neg_ = 1, pos_ = 2, unknown_ = 3} Sign; /* Sign Type */
 

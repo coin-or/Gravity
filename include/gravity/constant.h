@@ -68,6 +68,11 @@ public:
         return (_type==bexp_c);
     };
     
+    bool is_expr() const{
+        return (_type==uexp_c || _type==bexp_c);
+    };
+
+    
     bool is_var() const{
         return (_type==var_c);
     };
@@ -95,7 +100,7 @@ protected:
 public:
     
     /** Constructors */
-    constant(){
+    constant(){        
         if(typeid(type)==typeid(bool)){
             set_type(binary_c);
             return;
@@ -275,7 +280,16 @@ public:
     }
     
     string to_string() const{
-        return std::to_string(_val);
+        char buffer [50];
+        if(typeid(type)==typeid(float) || typeid(type)==typeid(double) || typeid(type)==typeid(long double)){
+            sprintf (buffer, "%g", _val);
+        }
+        else {
+         sprintf (buffer, "%d", _val);
+        }
+//        cout << string(buffer) << endl;
+        return string(buffer);
+//        return std::to_string(_val);
     }
 
     

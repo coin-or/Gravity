@@ -12,44 +12,33 @@
 #include <Gravity/var.h>
 #include <stdio.h>
 #include <map>
+#include <iterator>
+#include <queue>
 #include <list>
 #include <set>
 
 using namespace std;
 
 void reverse_sign(constant_* c); /**< Reverses the sign of the constant. */
-constant_* copy(const constant_* c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
+constant_* copy(constant_&& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
 bool equals(const constant_* c1, const constant_* c2);
 template<typename type> type eval(ind i, const constant_* c1);
 template<typename type> type eval(const constant_* c1);
+template<typename type> param<type> vec(type t, int n); /**< Returns a vector of dimension n and storing the value t */
 
 
-/** Class uexpr (unary expression), stores a unary expression tree. */
+/** Backbone class for unary and binary expressions. */
 
 class expr: public constant_{
     
 public:
     string                                 _to_str; /**< A string representation of the expression */
-    NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
-    
-    map<string, pair<param_*, int>>*       _params;/**< Set of parameters in current expression, stored as a map <parameter name, <paramter pointer, number of times it appears in expression>>**/
-    map<string, pair<param_*, int>>*       _vars;/**< Set of variables in current expression, stored as a map <variable name, <variable pointer, number of times it appears in expression>>**/
-    
-    map<string, expr>*                     _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
-    
-    Convexity                              _all_convexity; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
-    Sign                                   _all_sign; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
-    pair<constant_*, constant_*>*            _all_range; /**< Range of the return value considering all instances of the current expression. >>**/
-    
-    vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a expression can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
-    vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
-    vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
-    
-    
-
     virtual ~expr(){};
 };
 
+
+/** Class uexpr (unary expression), stores a unary expression tree. */
 class uexpr: public expr{
     
 public:
@@ -112,6 +101,8 @@ public:
     constant_*      _rson;
     
     bexpr();
+    
+    bexpr(OperatorType otype, constant_* lson, constant_* rson);
     
     bexpr(const bexpr& exp);
     
@@ -197,6 +188,7 @@ public:
     constant_*              _coef;
     param_*                 _p;
     bool                    _sign = true; /**< True if +, flase if - */
+    bool                    _is_sum = false; /**< True if this is term is a product of two vectors a^T.x */
     
     lterm(){
         _coef = nullptr;
@@ -209,19 +201,13 @@ public:
         _p = t._p;
         t._p = nullptr;
         _sign = t._sign;
+        _is_sum = t._is_sum;
     };
     
     
-    lterm(param_* p){
-        _coef = new constant<int>(1);
-        _p = p;
+    lterm(param_* p):lterm(true,p){
     };
     
-    
-    lterm(constant_* coef, param_* p){
-        _coef = coef;
-        _p = p;
-    };
     
     lterm(bool sign, param_* p){
         _coef = new constant<int>(1);
@@ -229,11 +215,9 @@ public:
         _sign = sign;
     };
     
-    lterm(bool sign, constant_* coef, param_* p){
-        _coef = coef;
-        _p = p;
-        _sign = sign;
-    };
+    lterm(constant_* coef, param_* p):lterm(false,true,coef,p){};
+    
+    lterm(bool is_sum, bool sign, constant_* coef, param_* p);
     
     void reverse_sign() {
         _sign = ! _sign;
@@ -262,6 +246,7 @@ public:
     constant_*                  _coef;
     pair<param_*,param_*>*      _p;
     bool                        _sign = true; /**< True if +, flase if - */
+    IS_SUM                      _is_sum = none_; /**< Given a quadratic term a.x.y, _is_sum = first_ if a^t.x.y, second_ if a.x^t.y and none_ otherwise */
     
     qterm(){
         _coef = nullptr;
@@ -274,30 +259,49 @@ public:
         _p = t._p;
         t._p = nullptr;
         _sign = t._sign;
+        _is_sum = t._is_sum;
     };
     
     
-    qterm(param_* p1, param_* p2){
-        _coef = new constant<int>(1);
-        _p = new pair<param_*, param_*>(make_pair(p1,p2));
-    };
+    qterm(param_* p1, param_* p2):qterm(true, p1, p2){};
     
     
-    qterm(constant_* coef, param_* p1, param_* p2){
-        _coef = coef;
-        _p = new pair<param_*, param_*>(make_pair(p1,p2));
-    };
+    qterm(constant_* coef, param_* p1, param_* p2):qterm(none_, true, coef, p1, p2){};
     
-    qterm(bool sign, param_* p1, param_* p2){
-        _coef = new constant<int>(1);
-        _p = new pair<param_*, param_*>(make_pair(p1,p2));
-        _sign = sign;
-    };
+    qterm(bool sign, param_* p1, param_* p2):qterm(none_, true, new constant<int>(1), p1, p2){};
     
-    qterm(bool sign, constant_* coef, param_* p1, param_* p2){
+    qterm(IS_SUM is_sum, bool sign, constant_* coef, param_* p1, param_* p2){
         _coef = coef;
         _p = new pair<param_*, param_*>(make_pair(p1,p2));
         _sign = sign;
+        if (coef->is_param()) {
+            auto pc = (param_*)coef;
+            if (pc->_is_transposed || is_sum == first_) {
+                pc->_is_transposed = false;
+                if (pc->get_dim() != p1->get_dim()) {
+                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                }
+                _is_sum = first_;
+            }
+        }
+        if (p1->_is_transposed || is_sum == second_) {
+            if (_is_sum != none_ || p1->get_dim() != p2->get_dim()) {
+                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+            }
+            p1->_is_transposed = false;
+            _is_sum = second_;
+        }
+        if (p2->_is_transposed) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
+        //        if (coef->is_function()) {
+        //            auto f = (func_*)coef;
+        //            assert(f->is_constant());
+        //            if (f->is_transposed()) {
+        //                f->_is_transposed = false;
+        //                _is_sum = true;
+        //            }
+        //        }    };
     };
     
     void reverse_sign() {
@@ -330,15 +334,33 @@ public:
     constant_*                      _coef;
     list<pair<param_*, int>>*       _l; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
     bool                            _sign = true; /**< True if +, flase if - */
+    vector<bool>*                   _is_sum; /**< Given a polynomial term, e.g., axyz, _is_sum[0] = true if a is transposed: a^t.x.y.z, _is_sum[1] = true if a.x^t.y.z, etc.., the values are false otherwise */
     
     pterm(){
         _coef = nullptr;
         _l = nullptr;
+        _is_sum = nullptr;
     }
     
     
     pterm(bool sign, constant_* coef, param_* p, int exp){
         _coef = coef;
+        if (coef->is_param()) {
+            auto pc = (param_*)coef;
+            if (pc->_is_transposed) {
+                pc->_is_transposed = false;
+                if (pc->get_dim() != p->get_dim()) {
+                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                }
+                _is_sum = new vector<bool>();
+                _is_sum->resize(1);
+                _is_sum->at(0) = true;
+            }
+        }
+        if (p->_is_transposed) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
+
         _l = new list<pair<param_*, int>>();
         _l->push_back(make_pair<>(p, exp));
         _sign = sign;
@@ -351,9 +373,42 @@ public:
         _l = t._l;
         t._l = nullptr;
         _sign = t._sign;
+        _is_sum = t._is_sum;
+        t._is_sum = nullptr;
     };
     
-    pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
+    pterm(vector<bool>* is_sum, bool sign, constant_* coef, list<pair<param_*, int>>* l){
+        if (is_sum) {
+            _is_sum = new vector<bool>(*is_sum);
+        }
+        else {
+            _is_sum = nullptr;
+        }
+        if (coef->is_param()) {
+            auto p = l->begin()->first;
+            auto pc = (param_*)coef;
+            if (pc->_is_transposed || (_is_sum && _is_sum->at(0))) {
+                pc->_is_transposed = false;
+                if (pc->get_dim() != p->get_dim()) {
+                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                }
+                _is_sum->at(0) = true;
+            }
+        }
+        int i = 1;
+        param_* p1 = nullptr;
+        param_* p2 = nullptr;
+        for (auto it = l->begin(); it != l->end(); it++){
+            p1 = it->first;
+            if ((p1->_is_transposed || (_is_sum && _is_sum->at(i))) && next(it)!=l->end()) {
+                p2 = next(it)->first;
+                if (_is_sum->at(i-1)==true || p1->get_dim() != p2->get_dim()) {
+                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                }
+                p1->_is_transposed = false;
+                _is_sum->at(i++) = true;
+            }
+        }
         _coef = coef;
         _l = l;
         _sign = sign;
@@ -368,6 +423,9 @@ public:
         delete _coef;
         if (_l) {
             delete _l;
+        }
+        if (_is_sum) {
+            delete _is_sum;
         }
     };
     
@@ -396,17 +454,19 @@ private:
     map<string, qterm>*                    _qterms; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
     map<string, pterm>*                    _pterms; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
     expr*                                  _expr; /**< Nonlinear part of the function, this points to the root node in _DAG */
-    map<string, expr>*                     _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
+    map<string, expr*>*                    _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
+    queue<expr*>*                          _queue; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
     
     Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
     Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
-    pair<constant_*, constant_*>*            _all_range; /**< Range of the return value considering all instances of the current function. >>**/
+    pair<constant_*, constant_*>*          _all_range; /**< Range of the return value considering all instances of the current function. >>**/
 
     vector<Convexity>*                     _convexity; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
-    vector<pair<constant_*, constant_*>>*    _range; /**< Bounds of the return value if known. >>**/
+    vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
     bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
+    bool                                   _is_transposed = false;
 
 public:
     
@@ -414,16 +474,23 @@ public:
     
     func_(const constant_& c);
     
+    func_(constant_&& c);
+    
     func_(const func_& f); /**< Copy constructor */
     
     func_(func_&& f); /**< Move constructor */
 
     ~func_();
 
-    bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
-    bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-    bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+    bool insert(bool is_sum, bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
+    bool insert(IS_SUM is_sum, bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+    bool insert(vector<bool>* is_sum, bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
    
+    func_ tr() const{/**< Transpose the output of the current function */
+        auto f = func_(*this);
+        f._is_transposed = true;
+        return f;
+    }
     
     void insert(const lterm& term);
     
@@ -586,7 +653,14 @@ public:
         return false;
     }
     
+    bool is_transposed() const {
+        return _is_transposed;
+    }
+    
     FType get_ftype() const { return _ftype;}
+    
+    void embed(func_& f);
+    void embed(expr& e);
     
     void reset();
     
@@ -607,6 +681,23 @@ public:
     func_& operator-=(const constant_& f);
     func_& operator*=(const constant_& f);
     func_& operator/=(const constant_& f);
+    
+    friend func_ cos(const constant_& c);
+    friend func_ cos(constant_&& c);
+    
+    friend func_ sin(const constant_& c);
+    friend func_ sin(constant_&& c);
+    
+    
+    friend func_ sqrt(const constant_& c);
+    friend func_ sqrt(constant_&& c);
+    
+    friend func_ expo(const constant_& c);
+    friend func_ expo(constant_&& c);
+    
+    friend func_ log(const constant_& c);
+    friend func_ log(constant_&& c);
+
     
     template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator+=(T c){
         return *this += constant<T>(c);
@@ -649,31 +740,36 @@ public:
         if (l._coef->get_all_sign()==unknown_ || l._p->get_all_sign()==unknown_) {
             return unknown_;
         }
-        if (l._sign) {
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == 2) {
+        auto s = l._coef->get_all_sign() * l._p->get_all_sign();
+        if(s == 1 || s == 2) {
+            if (l._sign) {
                 return non_neg_;
             }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == 4) {
-                return pos_;
-            }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == -2) {
+            else {
                 return non_pos_;
             }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == -4) {
+        }
+        if(s == 4) {
+            if (l._sign) {
+                return pos_;
+            }
+            else {
                 return neg_;
             }
         }
-        else {
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == 2) {
+        if(s == -1 || s == -2) {
+            if (l._sign) {
                 return non_pos_;
             }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == 4) {
-                return neg_;
-            }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == -2) {
+            else{
                 return non_neg_;
             }
-            if(l._coef->get_all_sign() * l._p->get_all_sign() == -4) {
+        }
+        if(s == -4) {
+            if (l._sign) {
+                return neg_;
+            }
+            else {
                 return pos_;
             }
         }
@@ -688,31 +784,36 @@ public:
         if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
             return unknown_;
         }
-        if (l._sign) {
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+        auto s = l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign();
+        if(s == 1 || s == 2 || s == 4) {
+            if (l._sign) {
                 return non_neg_;
             }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
-                return pos_;
-            }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+            else {
                 return non_pos_;
             }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+        }
+        if(s == 8) {
+            if (l._sign) {
+                return pos_;
+            }
+            else {
                 return neg_;
             }
         }
-        else {
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+        if(s == -1 || s == -2 || s == -4) {
+            if (l._sign) {
                 return non_pos_;
             }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
-                return neg_;
-            }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+            else{
                 return non_neg_;
             }
-            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+        }
+        if(s == -8) {
+            if (l._sign) {
+                return neg_;
+            }
+            else {
                 return pos_;
             }
         }
@@ -847,16 +948,6 @@ public:
 
 
 
-uexpr cos(const constant_& c);
-
-uexpr sin(const constant_& c);
-
-
-uexpr sqrt(const constant_& c);
-
-uexpr expo(const constant_& c);
-
-uexpr log(const constant_& c);
 
 
 
@@ -1118,20 +1209,20 @@ template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< 
             return c1;
             break;
         }
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 + c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 + c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 + c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 + c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
 //            auto res = new func_((*(func_*)c1) + c2);
 //            delete c1;
@@ -1208,7 +1299,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(true, constant<int>(1), c2);
+            res->insert(false, true, constant<int>(1), c2);
             return c1 = res;
             break;
         }
@@ -1216,7 +1307,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(true, constant<int>(1), c2);
+                res->insert(false, true, constant<int>(1), c2);
             }
             else {
                 auto cst = res->get_cst();
@@ -1226,20 +1317,20 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
             break;
         }
 
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 + c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 + c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 + c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 + c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
 //            auto res = new func_(*c1);
 //            delete c1;
@@ -1317,7 +1408,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(false, constant<int>(1), c2);
+            res->insert(false, false, constant<int>(1), c2);
             return c1 = res;
             break;
         }
@@ -1325,7 +1416,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(false, constant<int>(1), c2);
+                res->insert(false, false, constant<int>(1), c2);
             }
             else {
                 auto cst = res->get_cst();
@@ -1335,20 +1426,20 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
             break;
         }
 
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 - c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 - c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 - c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 - c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
 //            auto res = new func_(*c1);
 //            delete c1;
@@ -1430,20 +1521,20 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
             return c1;
             break;
         }
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 * c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 * c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 * c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 * c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
 //            auto res = new func_(*c1);
 //            delete c1;
@@ -1545,20 +1636,20 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             return c1;
             break;
         }
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 - c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 - c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 - c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 - c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
 //            auto res = new func_(*(func_*)c1 - c2);
 //            delete c1;
@@ -1653,20 +1744,20 @@ template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ 
             return c1;
             break;
         }
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 * c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 * c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 * c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 * c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
             (*(func_*)c1) *= c2;
             return c1;
@@ -1758,20 +1849,20 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
             return c1;
             break;
         }
-        case uexp_c: {
-            auto res = new bexpr(*(uexpr*)c1 / c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
-        case bexp_c: {
-            auto res = new bexpr(*(bexpr*)c1 / c2);
-            delete c1;
-            c1 = (constant_*)res;
-            return c1;
-            break;
-        }
+//        case uexp_c: {
+//            auto res = new bexpr(*(uexpr*)c1 / c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
+//        case bexp_c: {
+//            auto res = new bexpr(*(bexpr*)c1 / c2);
+//            delete c1;
+//            c1 = (constant_*)res;
+//            return c1;
+//            break;
+//        }
         case func_c: {
             switch (((func_*)c1)->get_ftype()) {
                 case lin_: {
@@ -1792,82 +1883,94 @@ template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /*
 }
 
 
+func_ cos(const constant_& c);
+
+func_ sin(const constant_& c);
 
 
-template<typename other_type> bexpr operator+(const other_type& c1, const expr& c2){
-    bexpr res;
-    res._otype = plus_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
-    return res;
-}
+func_ sqrt(const constant_& c);
 
-template<typename other_type> bexpr operator+(const expr& c1, const other_type& c2){
-    bexpr res;
-    res._otype = plus_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
-    return res;
-}
+func_ expo(const constant_& c);
+
+func_ log(const constant_& c);
+
+func_ log(constant_&& c);
 
 
-template<typename other_type> bexpr operator-(const other_type& c1, const expr& c2){
-    bexpr res;
-    res._otype = minus_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
-    return res;
-}
-
-template<typename other_type> bexpr operator-(const expr& c1, const other_type& c2){
-    bexpr res;
-    res._otype = minus_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
-    return res;
-}
-
-
-template<typename other_type> bexpr operator*(const other_type& c1, const expr& c2){
-    bexpr res;
-    res._otype = product_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
-    return res;
-}
-
-template<typename other_type> bexpr operator*(const expr& c1, const other_type& c2){
-    bexpr res;
-    res._otype = product_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
-    return res;
-}
-
-
-
-template<typename other_type> bexpr operator/(const other_type& c1, const expr& c2){
-    bexpr res;
-    res._otype = div_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
-    return res;
-}
-template<typename other_type> bexpr operator/(const expr& c1, const other_type& c2){
-    bexpr res;
-    res._otype = div_;
-    res._lson = copy((constant_*)&c1);
-    res._rson =  copy((constant_*)&c2);
-    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
-    return res;
-}
+//template<typename other_type> bexpr operator+(const other_type& c1, const expr& c2){
+//    bexpr res;
+//    res._otype = plus_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//template<typename other_type> bexpr operator+(const expr& c1, const other_type& c2){
+//    bexpr res;
+//    res._otype = plus_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//
+//template<typename other_type> bexpr operator-(const other_type& c1, const expr& c2){
+//    bexpr res;
+//    res._otype = minus_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//template<typename other_type> bexpr operator-(const expr& c1, const other_type& c2){
+//    bexpr res;
+//    res._otype = minus_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//
+//template<typename other_type> bexpr operator*(const other_type& c1, const expr& c2){
+//    bexpr res;
+//    res._otype = product_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//template<typename other_type> bexpr operator*(const expr& c1, const other_type& c2){
+//    bexpr res;
+//    res._otype = product_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
+//    return res;
+//}
+//
+//
+//
+//template<typename other_type> bexpr operator/(const other_type& c1, const expr& c2){
+//    bexpr res;
+//    res._otype = div_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    return res;
+//}
+//template<typename other_type> bexpr operator/(const expr& c1, const other_type& c2){
+//    bexpr res;
+//    res._otype = div_;
+//    res._lson = copy((constant_*)&c1);
+//    res._rson =  copy((constant_*)&c2);
+//    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    return res;
+//}
 
 
 

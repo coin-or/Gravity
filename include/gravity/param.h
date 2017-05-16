@@ -24,13 +24,18 @@ class param_: public constant_{
 protected:
     string              _name;
     NType               _intype;
-    map<string,int>*    _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
+    map<string,int>*    _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
+                                   vectors */
+    size_t              _dim = 0; /*<< dimension of current parameter */
+    
 public:
     
+    bool                _is_transposed = false;
     virtual ~param_(){};
     
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
+    size_t get_dim() const { return _dim;}
     
     map<string,int>* get_indices() const {
         return _indices;
@@ -39,6 +44,10 @@ public:
     void set_type(NType type){ _intype = type;}
     
     /** Querries */
+    bool is_transposed() const{ /**< Returns true if the vector is transposed **/
+        return _is_transposed;
+    }
+
     bool is_binary() const{
         return (_intype==binary_);
     };
@@ -122,6 +131,7 @@ public:
     param(){
         _type = par_c;
         _name = "noname";
+        _is_transposed = false;
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
     
@@ -137,6 +147,8 @@ public:
         _name = p._name;
         _indices = new map<string, int>(*p._indices);
         _range = p._range;
+        _is_transposed = p._is_transposed;
+        _dim = p._dim;
     }
     
     param (param&& p) {
@@ -147,9 +159,17 @@ public:
         _indices = p._indices;
         p._indices = nullptr;
         _range = p._range;
+        _is_transposed = p._is_transposed;
+        _dim = p._dim;
     }
 
 
+    param tr() const{
+        auto p = param(*this);
+        p._is_transposed = true;
+        return p;
+    }
+    
     void set_type(CType t) { _type = t;}
     
     void set_intype(NType t) { _intype = t;}
@@ -212,12 +232,14 @@ public:
     
     /* Modifiers */
     void    set_size(int s){
-        _val->reserve(s);
+        _val->resize(s);
+        _dim = s;
     };
     
     void add_val(type val){
         _val->push_back(val);
         update_range(val);
+        _dim++;
     }
     
     void update_range(type val){
@@ -306,12 +328,13 @@ public:
 
     /** Operators */
     bool operator==(const param& p) const {
-        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && *_indices==*p._indices && *_val==*p._val);
+        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && *_indices==*p._indices && *_val==*p._val);
     }
     
     param& operator=(type v){
         _val->push_back(v);
         update_range(v);
+        _dim++;
         return *this;
     }
     
@@ -326,10 +349,10 @@ public:
         if(vals){
             str += " = [ ";
             for(auto v: *_val){
-                str += v;
+                str += std::to_string(v);
                 str += " ";
             }
-            str += "];\n";
+            str += "];";
         }
         return str;
     }
