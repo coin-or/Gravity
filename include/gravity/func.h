@@ -31,9 +31,11 @@ template<typename type> param<type> vec(type t, int n); /**< Returns a vector of
 /** Backbone class for unary and binary expressions. */
 
 class expr: public constant_{
-    
-public:
+protected:
     string                                 _to_str; /**< A string representation of the expression */
+public:
+    string get_str();
+    
     virtual ~expr(){};
 };
 
@@ -79,6 +81,10 @@ public:
     bool operator!=(const uexpr& c) const{
         return !(*this==c);
     };
+    
+    Sign get_all_sign() const{
+        return unknown_;// TO UPDATE
+    }
     
     double eval(ind i) const;
     
@@ -162,6 +168,11 @@ public:
     bool operator!=(const bexpr& c) const{
         return !(*this==c);
     };
+    
+    Sign get_all_sign() const{
+        return unknown_; // TO UPDATE
+    }
+    
     
     template<typename other_type> bexpr& operator+=(const other_type& v);
     template<typename other_type> bexpr& operator-=(const other_type& v);
@@ -498,7 +509,7 @@ public:
     
     void insert(const pterm& term);
     
-    void insert(const expr& e);
+    void insert(expr& e);
     
     constant_* get_cst() {
         return _cst;
@@ -775,7 +786,6 @@ public:
         }
         return unknown_;
     }
-    
     
     Sign get_all_sign(const qterm& l) {
         if (l._coef->is_zero()) {

@@ -221,6 +221,8 @@ int main (int argc, const char * argv[])
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     f1.print();
+    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p);
+    f2.print();
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);

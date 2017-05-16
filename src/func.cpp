@@ -39,11 +39,11 @@ Sign constant_::get_all_sign() const{
             break;
         }
         case uexp_c: {
-            return ((uexpr*)this)->get_all_sign();
+            return ((uexpr*)this)->get_all_sign(); // TO UPDATE
             break;
         }
         case bexp_c: {
-            return ((bexpr*)this)->get_all_sign();
+            return ((bexpr*)this)->get_all_sign(); // TO UPDATE
             break;
         }
         case var_c:{
@@ -651,14 +651,14 @@ func_::func_(constant_&& c){
             }
             case uexp_c: {
                 _expr = new uexpr(*(uexpr*)move(&c));
-                _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
                 _queue->push(_expr);
                 //sign and convexity
                 break;
             }
             case bexp_c: {
                 _expr = new bexpr(*(bexpr*)move(&c));
-                _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
                 _queue->push(_expr);
                 break;
             }
@@ -747,17 +747,53 @@ func_::func_(const constant_& c){
             break;
         }
         case uexp_c: {
-            _expr = new uexpr(*(uexpr*)&c);
+            _cst = new constant<int>(0);
+            auto ue = (uexpr*)(&c);
+            switch (ue->_otype) {
+                case sin_:
+                    _all_range = new pair<constant_*, constant_*>(new constant<float>(-1),new constant<float>(1)); // TO UPDATE
+                    _all_sign = unknown_;
+                    break;
+                case cos_:
+                    _all_range = new pair<constant_*, constant_*>(new constant<float>(-1),new constant<float>(1)); // TO UPDATE
+                    _all_sign = unknown_;
+                    break;
+                case sqrt_:
+                    _all_range = new pair<constant_*, constant_*>(new constant<float>(0),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_sign = non_neg_;
+                    break;
+                case exp_:
+                    _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_sign = pos_;
+                    break;
+                case log_:
+                    _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_sign = unknown_;
+                    break;
+                default:
+                    break;
+            }
+            _expr = new uexpr(*ue);
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            if (!_vars->empty()) {
+                _ftype = nlin_;
+            }
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
             //sign and convexity
             break;
         }
         case bexp_c: {
+            auto be = (bexpr*)&c;
+            _cst = new constant<int>(0);
             _expr = new bexpr(*(bexpr*)&c);
+            _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+            _all_sign = be->get_all_sign();
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            if (!_vars->empty()) {
+                _ftype = nlin_;
+            }
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
             break;
         }
@@ -860,7 +896,7 @@ func_::func_(const func_& f){
     if (f._expr) {
         _expr = (expr*)copy(*f._expr);
         embed(*_expr);
-        _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+        _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
 }
@@ -958,7 +994,7 @@ func_& func_::operator=(const func_& f){
     if (f._expr) {
         _expr = (expr*)copy(*f._expr);
         embed(*_expr);
-        _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+        _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
     return *this;
@@ -1209,13 +1245,13 @@ func_& func_::operator+=(const constant_& c){
         if (_expr && f->_expr) {
             _expr = new bexpr(plus_, _expr, copy(*f->_expr));
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
         }
         if (!_expr && f->_expr) {
             _expr = (expr*)copy(*f->_expr);
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
         }
         update_sign(*f);
@@ -1256,13 +1292,13 @@ func_& func_::operator-=(const constant_& c){
         if (_expr && f->_expr) {
             _expr = new bexpr(plus_, _expr, copy(*f->_expr));
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
         }
         if (!_expr && f->_expr) {
             _expr = (expr*)copy(*f->_expr);
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->_to_str, _expr));
+            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
             _queue->push(_expr);
         }
         update_sign(*f);
@@ -1367,28 +1403,15 @@ func_& func_::operator*=(const constant_& c){
             }
 
         }
-//        if (c.is_function()) {
-//             func_* f = (func_*)&c;
-//             if (_expr && f->_expr) {
-//                 _expr = new bexpr(product_, _expr, f->_expr);
-//                 _DAG->insert(make_pair<>(_expr->_to_str, _expr));
-//                 _queue->push(_expr);
-//             }
-//             if (!_expr && f->_expr) {
-//                 _expr = (expr*)copy(*f->_expr);
-//                 _DAG->insert(make_pair<>(_expr->_to_str, _expr));
-//                 _queue->push(_expr);
-//             }
-//            if (c.is_negative()) {
-//                reverse_sign();
-//            }
-//            if (c.get_all_sign()==unknown_) {
-//                _all_sign = unknown_;
-//                if (!_qterms->empty()) {
-//                    _all_convexity = undet_;
-//                }
-//            }
-//        }
+        if (c.is_negative()) {
+            reverse_sign();
+        }
+        if (c.get_all_sign()==unknown_) {
+            _all_sign = unknown_;
+            if (!_qterms->empty()) {
+                _all_convexity = undet_;
+            }
+        }
         return *this;
     }
     /* Case where the current function is constant and the other operand is not (we go to previous case) */
@@ -1832,7 +1855,7 @@ func_& func_::operator/=(const constant_& c){
 //    res._otype = div_;
 //    res._lson = copy((constant_*)this);
 //    res._rson =  copy((constant_*)&c);
-//    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    res.get_str() = ::to_string(res._lson) + " / " + ::to_string(res._rson);
 //    *this = func_(res);
     return *this;
 }
@@ -2016,6 +2039,9 @@ void func_::embed(func_& f){
                 }
             }
         }
+    }
+    if (f._expr) {
+        embed(*f._expr);
     }
     for (auto &vp: *f._vars) {
         if ((*_vars)[vp.first].first != vp.second.first) {
@@ -2467,9 +2493,9 @@ void func_::insert(const pterm& term){
     insert(term._is_sum, term._sign, *term._coef, *term._l);
 }
 
-void func_::insert(const expr& e){
+void func_::insert(expr& e){
 //    insert(term._sign, *term._coef, *term._l);
-    auto name = e._to_str;
+    auto name = e.get_str();
     auto pair_it = _DAG->find(name);
     
     _ftype = nlin_;
@@ -2515,6 +2541,20 @@ void func_::insert(const expr& e){
 ////    _DAG->insert(<#const value_type &__v#>)
 }
 
+
+string expr::get_str(){
+    if (_to_str=="" || _to_str=="null") {
+        if (is_uexpr()) {
+            return _to_str = ((uexpr*)this)->to_string();
+        }
+        else {
+            return _to_str = ((bexpr*)this)->to_string();
+        }
+    }
+    else {
+        return _to_str;
+    }
+}
 
 uexpr::uexpr(const uexpr& exp){
     _otype = exp._otype;
@@ -2584,11 +2624,9 @@ func_ cos(const constant_& c){
         e._son = copy(c);
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "cos(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2606,11 +2644,9 @@ func_ cos(constant_&& c){
         e._son = copy(move(c));
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "cos(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2629,11 +2665,9 @@ func_ sin(const constant_& c){
         e._son = copy(c);
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "sin(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2651,11 +2685,9 @@ func_ sin(constant_&& c){
         e._son = copy(move(c));
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "sin(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2674,11 +2706,9 @@ func_ sqrt(const constant_& c){
         e._son = copy(c);
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "sqrt(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2696,11 +2726,9 @@ func_ sqrt(constant_&& c){
         e._son = copy(move(c));
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "sqrt(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2719,11 +2747,9 @@ func_ expo(const constant_& c){
         e._son = copy(c);
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "exp(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2742,12 +2768,9 @@ func_ expo(constant_&& c){
         e._son = copy(move(c));
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "exp(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2767,11 +2790,9 @@ func_ log(const constant_& c){
         e._son = copy(c);
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "log(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -2789,11 +2810,9 @@ func_ log(constant_&& c){
         e._son = copy(move(c));
     }
     func_ res;
-    auto f = (func_*)e._son;
-    res.embed(*f);
-    e._to_str = "log(" + ::to_string(e._son) + ")";
     res._expr = new uexpr(move(e));
-    res._DAG->insert(make_pair<>(res._expr->_to_str, res._expr));
+    res.embed(*res._expr);
+    res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
     res._queue->push(res._expr);
     if (!res._vars->empty()) {
         res._ftype = nlin_;
@@ -4122,7 +4141,7 @@ string func_::to_string() const{
         str += " + ";
     }
     if (!_queue->empty()) {
-        str += _expr->_to_str;
+        str += _expr->get_str();
     }
     return str;
 }
@@ -4145,42 +4164,41 @@ uexpr::uexpr(){
 }
 
 string uexpr::to_string() const{
-    return _to_str;
-//    string str;
-//    switch (_otype) {
-//        case log_:
-//            str += "log(";
-//            str += ::to_string(_son);
-//            str += ")";
-//            break;
-//            
-//        case exp_:
-//            str += "exp(";
-//            str += ::to_string(_son);
-//            str += ")";
-//            break;
-//            
-//        case cos_:
-//            str += "cos(";
-//            str += ::to_string(_son);
-//            str += ")";
-//            break;
-//            
-//        case sin_:
-//            str += "sin(";
-//            str += ::to_string(_son);
-//            str += ")";
-//            break;
-//            
-//        case sqrt_:
-//            str += "sqrt(";
-//            str += ::to_string(_son);
-//            str += ")";
-//            break;
-//        default:
-//            break;
-//    }
-//    return str;
+    string str;
+    switch (_otype) {
+        case log_:
+            str += "log(";
+            str += ::to_string(_son);
+            str += ")";
+            break;
+            
+        case exp_:
+            str += "exp(";
+            str += ::to_string(_son);
+            str += ")";
+            break;
+            
+        case cos_:
+            str += "cos(";
+            str += ::to_string(_son);
+            str += ")";
+            break;
+            
+        case sin_:
+            str += "sin(";
+            str += ::to_string(_son);
+            str += ")";
+            break;
+            
+        case sqrt_:
+            str += "sqrt(";
+            str += ::to_string(_son);
+            str += ")";
+            break;
+        default:
+            break;
+    }
+    return str;
 }
 
 void uexpr::print(bool endline) const{
@@ -4191,7 +4209,41 @@ void uexpr::print(bool endline) const{
 }
 
 string bexpr::to_string() const{
-    return _to_str;
+    string str;
+    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+        str += "(";
+        str+= ::to_string(_lson);
+        str += ")";
+    }
+    else
+        str+= ::to_string(_lson);
+
+    if (_otype==plus_) {
+        str+= " + ";
+    }
+    if (_otype==minus_) {
+        str+= " - ";
+    }
+    if (_otype==product_) {
+        str+= " * ";
+    }
+    if (_otype==div_) {
+        str+= "/";
+    }
+
+    if (_otype==power_) {
+        str+= "^";
+    }
+
+    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+        str+= ::to_string(_rson);
+    }
+    else {
+        str+= "(";
+        str+= ::to_string(_rson);
+        str+= ")";
+    }
+    return str;
 }
 
 void bexpr::print(bool endline) const {
