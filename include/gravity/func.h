@@ -221,7 +221,7 @@ public:
     
     
     lterm(bool sign, param_* p){
-        _coef = new constant<int>(1);
+        _coef = new constant<float>(1);
         _p = p;
         _sign = sign;
     };
@@ -279,7 +279,7 @@ public:
     
     qterm(constant_* coef, param_* p1, param_* p2):qterm(none_, true, coef, p1, p2){};
     
-    qterm(bool sign, param_* p1, param_* p2):qterm(none_, true, new constant<int>(1), p1, p2){};
+    qterm(bool sign, param_* p1, param_* p2):qterm(none_, true, new constant<float>(1), p1, p2){};
     
     qterm(IS_SUM is_sum, bool sign, constant_* coef, param_* p1, param_* p2){
         _coef = coef;
@@ -1049,6 +1049,10 @@ func_ operator*(func_&& f, const constant_& c);
 
 func_ operator-(const constant_& c1, const constant_& c2);
 func_ operator-(func_&& f, const constant_& c);
+
+func_ operator/(const constant_& c1, const constant_& c2);
+func_ operator/(func_&& f, const constant_& c);
+
 //func_ operator-(const constant_& c, func_&& f);
 
 //template<typename T> func_ operator+(func_&& f, const T& v){
@@ -1309,7 +1313,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(false, true, constant<int>(1), c2);
+            res->insert(false, true, constant<float>(1), c2);
             return c1 = res;
             break;
         }
@@ -1317,7 +1321,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(false, true, constant<int>(1), c2);
+                res->insert(false, true, constant<float>(1), c2);
             }
             else {
                 auto cst = res->get_cst();
@@ -1418,7 +1422,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(false, false, constant<int>(1), c2);
+            res->insert(false, false, constant<float>(1), c2);
             return c1 = res;
             break;
         }
@@ -1426,7 +1430,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(false, false, constant<int>(1), c2);
+                res->insert(false, false, constant<float>(1), c2);
             }
             else {
                 auto cst = res->get_cst();

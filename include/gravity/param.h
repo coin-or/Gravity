@@ -163,6 +163,21 @@ public:
         _dim = p._dim;
     }
 
+    template<class... Args>
+    param operator()(Args&&... args){
+        auto res(*this);
+        vector<int> indices = {forward<Args>(args)...};
+        string key;
+        for (int i= 0; i<indices.size(); i++) {
+            key += std::to_string(indices[i]);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+        }
+        res._indices->insert(make_pair<>(key,0));
+        return res;
+    }
+
 
     param tr() const{
         auto p = param(*this);

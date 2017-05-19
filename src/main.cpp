@@ -221,7 +221,11 @@ int main (int argc, const char * argv[])
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     f1.print();
-    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p);
+    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
+    f2.print();
+    f2 = v1/3 + sin(dp*q(2)) + 3;
+    f2.print();
+    f2 -= 2.2;
     f2.print();
     return 0;
 //    l00.print();

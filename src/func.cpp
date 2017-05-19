@@ -530,7 +530,7 @@ func_::func_(){
     _queue = new queue<expr*>();
     _all_sign = zero_;
     _all_convexity = linear_;
-    _all_range = new pair<constant_*, constant_*>(new constant<int>(0), new constant<int>(0));
+    _all_range = new pair<constant_*, constant_*>(new constant<float>(0), new constant<float>(0));
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
@@ -901,6 +901,16 @@ func_::func_(const func_& f){
     }
 }
 
+bool func_::operator==(const func_& f) const{
+    if (_ftype!=f._ftype || _all_sign!=f._all_sign || _vars->size()!=f._vars->size() || _pterms->size() != f._pterms->size()|| _qterms->size() != f._qterms->size() || _lterms->size() != f._lterms->size()) {
+        return false;
+    }
+    if (this->to_string()!=f.to_string()) {
+        return false;
+    }
+    return true;
+}
+
 func_& func_::operator=(const func_& f){
     if (_all_range && _cst!=_all_range->first) {
         delete _all_range->first;
@@ -1221,7 +1231,7 @@ func_& func_::operator+=(const constant_& c){
         return *this;
     }
     if (c.is_param() || c.is_var()) {
-        this->insert(false, true, constant<int>(1), *(param_*)&c);
+        this->insert(false, true, constant<float>(1), *(param_*)&c);
     }
     if (c.is_function()) {
         func_* f = (func_*)&c;
@@ -1271,7 +1281,7 @@ func_& func_::operator-=(const constant_& c){
         return *this;
     }
     if (c.is_param() || c.is_var()) {
-        this->insert(false, false, constant<int>(1), *(param_*)&c);
+        this->insert(false, false, constant<float>(1), *(param_*)&c);
     }
     if (c.is_function()) {
         func_* f = (func_*)&c;
@@ -1798,6 +1808,15 @@ func_& func_::operator/=(const constant_& c){
         if (!_cst->is_zero()) {
             _cst = divide(_cst, c);
         }
+        for (auto &pair:*_lterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
+        for (auto &pair:*_qterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
+        for (auto &pair:*_pterms) {
+            pair.second._coef = divide(pair.second._coef, c);
+        }
         if (c.is_negative()) {
             reverse_sign();
         }
@@ -2043,14 +2062,22 @@ void func_::embed(func_& f){
     if (f._expr) {
         embed(*f._expr);
     }
-    for (auto &vp: *f._vars) {
-        if ((*_vars)[vp.first].first != vp.second.first) {
+    auto old_vars = *f._vars;
+    for (auto &vp: old_vars) {
+        auto vv = (*_vars)[vp.first].first;
+        if (vv != vp.second.first) {
             delete vp.second.first;
+            f._vars->erase(vp.first);
+            f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
         }
     }
-    for (auto &pp: *f._params) {
-        if ((*_params)[pp.first].first != pp.second.first) {
+    auto old_params = *f._params;
+    for (auto &pp: old_params) {
+        auto p = (*_params)[pp.first].first;
+        if (p != pp.second.first) {
             delete pp.second.first;
+            f._params->erase(pp.first);
+            f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
         }
     }
 
@@ -2061,7 +2088,7 @@ void func_::reset(){
         delete _all_range->first;
         delete _all_range->second;
     }
-    *_all_range = make_pair<>(new constant<int>(0), new constant<int>(0));
+    *_all_range = make_pair<>(new constant<float>(0), new constant<float>(0));
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -3354,6 +3381,15 @@ func_ operator*(func_&& f, const constant_& c){
 func_ operator*(const constant_& c, func_&& f){
     return f *= c;
 }
+
+func_ operator/(const constant_& c1, const constant_& c2){
+    return func_(c1) /= c2;
+}
+
+func_ operator/(func_&& f, const constant_& c){
+    return f /= c;
+}
+
 //
 //func_ operator+(const func_& f1, const func_& f2){
 //    return func_(f1) += f2;
@@ -3427,7 +3463,7 @@ constant_* add(constant_* c1, const func_& f){
         case par_c:{
             auto res = new func_(f);
             if (f.is_constant()) {
-                res->insert(false, true, constant<int>(1), *(param_*)c1);
+                res->insert(false, true, constant<float>(1), *(param_*)c1);
             }
             else{
                 auto cst = res->get_cst();
@@ -3440,7 +3476,7 @@ constant_* add(constant_* c1, const func_& f){
         case var_c:{
             auto res = new func_(f);
             delete c1;
-            res->insert(false, true, constant<int>(1), *(param_*)c1);
+            res->insert(false, true, constant<float>(1), *(param_*)c1);
             return c1 = res;
             break;
         }
