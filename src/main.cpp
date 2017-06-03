@@ -72,6 +72,9 @@ int main (int argc, const char * argv[])
     std::cout << "short\t"
     << std::numeric_limits<short>::lowest() << '\t'
     << std::numeric_limits<short>::max() << '\n';
+    std::cout << "unsigned\t"
+    << std::numeric_limits<unsigned>::lowest() << '\t'
+    << std::numeric_limits<unsigned>::max() << '\n';
     std::cout << "int\t"
     << std::numeric_limits<int>::lowest() << '\t'
     << std::numeric_limits<int>::max() << '\n';
@@ -223,7 +226,7 @@ int main (int argc, const char * argv[])
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
-    f2 = v1/3 + sin(dp*q(2)) + 3;
+    f2 = v1/2 + sin(p/q(2)) + 3;
     f2.print();
     f2 -= 2.2;
     f2.print();

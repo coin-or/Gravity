@@ -1576,7 +1576,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             return c1;
             break;
@@ -1588,7 +1588,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1599,7 +1599,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1610,7 +1610,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1621,7 +1621,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1632,7 +1632,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }

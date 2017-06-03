@@ -1823,7 +1823,9 @@ func_& func_::operator/=(const constant_& c){
     }
     /* Case where the current function is not constant and the other operand is */
     if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
-        _cst = divide(_cst, c);
+//        if (!_cst->is_zero()) {
+            _cst = divide(_cst, c);
+//        }
         for (auto &pair:*_lterms) {
             pair.second._coef = divide(pair.second._coef, c);
         }
@@ -1845,13 +1847,11 @@ func_& func_::operator/=(const constant_& c){
         }
         return *this;
     }
-    /* Case where the current function is constant and the other operand is not (we go to previous case) */
-    if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
-        func_ f(c);
-        f /= *this;
-        *this = move(f);
-        return *this;
-    }
+//    /* Case where the current function is constant and the other operand is not (we go to previous case) */
+//    if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+//        *this = ;
+//        return *this;
+//    }
     if (c.is_param() || c.is_var()) {
         func_ f(c);
         *this /= f;
@@ -1863,7 +1863,7 @@ func_& func_::operator/=(const constant_& c){
         e._lson = copy(*this);
         e._rson = copy(c);
         e._otype = div_;
-        *this = move(e);
+        *this = func_(e);
         return *this;
     }
 
