@@ -222,7 +222,7 @@ int main (int argc, const char * argv[])
 //    SVM.print();
 //    auto f1 = sum(alpha,n,ni);
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
-    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
