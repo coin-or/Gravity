@@ -188,10 +188,13 @@ int main (int argc, const char * argv[])
     qqq.print();
     auto ss = ppp + qqq;
     ss.print();
+    (ss.get_dfdx(p)).print();
     ss += 2*ip*ppp;
     ss.print();
+    (ss.get_dfdx(p)).print();
     ss -= 2*ip*ppp + ppp;
     ss.print();
+    (ss.get_dfdx(p)).print();
 //    auto exp = log(ff);
 //    exp.print();
 //    l11 *= -2;

@@ -595,37 +595,37 @@ func_::func_(constant_&& c){
             case binary_c: {
                 _cst = new constant<bool>(*(constant<bool>*)(&c));
                 _all_sign = ((constant<bool>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case short_c: {
                 _cst = new constant<short>(*(constant<short>*)(&c));
                 _all_sign = ((constant<short>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case integer_c: {
                 _cst = new constant<int>(*(constant<int>*)(&c));
                 _all_sign = ((constant<int>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case float_c: {
                 _cst = new constant<float>(*(constant<float>*)(&c));
                 _all_sign = ((constant<float>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case double_c: {
                 _cst = new constant<double>(*(constant<double>*)(&c));
                 _all_sign = ((constant<double>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case long_c: {
                 _cst = new constant<long double>(*(constant<long double>*)(&c));
                 _all_sign = ((constant<long double>*)_cst)->get_sign();
-                _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+                _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
                 break;
             }
             case par_c:{
@@ -692,37 +692,37 @@ func_::func_(const constant_& c){
         case binary_c: {
             _cst = new constant<bool>(*(constant<bool>*)(&c));
             _all_sign = ((constant<bool>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case short_c: {
             _cst = new constant<short>(*(constant<short>*)(&c));
             _all_sign = ((constant<short>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case integer_c: {
             _cst = new constant<int>(*(constant<int>*)(&c));
             _all_sign = ((constant<int>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case float_c: {
             _cst = new constant<float>(*(constant<float>*)(&c));
             _all_sign = ((constant<float>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case double_c: {
             _cst = new constant<double>(*(constant<double>*)(&c));
             _all_sign = ((constant<double>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case long_c: {
             _cst = new constant<long double>(*(constant<long double>*)(&c));
             _all_sign = ((constant<long double>*)_cst)->get_sign();
-            _all_range = new pair<constant_*, constant_*>(_cst,_cst);
+            _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
             break;
         }
         case par_c:{
@@ -858,12 +858,7 @@ func_::func_(const func_& f){
     _is_transposed = f._is_transposed;
     _embedded = f._embedded;
     _cst = copy(*f._cst);
-    if (f.is_number()) {
-        _all_range = new pair<constant_*, constant_*>(_cst, _cst);
-    }
-    else {
-        _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
-    }
+    _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
@@ -912,7 +907,7 @@ bool func_::operator==(const func_& f) const{
 }
 
 func_& func_::operator=(const func_& f){
-    if (_all_range && _cst!=_all_range->first) {
+    if (_all_range) {
         delete _all_range->first;
         delete _all_range->second;
     }
@@ -966,12 +961,7 @@ func_& func_::operator=(const func_& f){
     _embedded = f._embedded;
     _return_type = f._return_type;
     _cst = copy(*f._cst);
-    if (f.is_number()) {
-        _all_range = new pair<constant_*, constant_*>(_cst, _cst);
-    }
-    else {
-        _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
-    }
+    _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
@@ -1012,7 +1002,7 @@ func_& func_::operator=(const func_& f){
 
 
 func_& func_::operator=(func_&& f){
-    if (_all_range && _cst!=_all_range->first) {
+    if (_all_range) {
         delete _all_range->first;
         delete _all_range->second;
     }
@@ -1088,7 +1078,7 @@ func_& func_::operator=(func_&& f){
 
 
 func_::~func_(){
-    if (_all_range && _cst!=_all_range->first) {
+    if (_all_range) {
         delete _all_range->first;
         delete _all_range->second;
     }
@@ -1347,7 +1337,11 @@ func_& func_::operator*=(const constant_& c){
         if (c.is_negative()) {
             reverse_sign();
         }
-        
+        if (_expr) {
+            auto be = new bexpr(product_, _expr, copy(c));
+            _expr = be;
+        }        
+        return *this;
     }
     if (_expr || (c.is_function() && ((func_*)&c)->_expr)) {
         auto be = bexpr(product_, copy(*this), copy(c));
@@ -1784,7 +1778,10 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             if (!f->_cst->is_zero()) {
-                res._cst = multiply(res._cst, *f->_cst);
+                coef = copy(*_cst);
+                coef = multiply(coef, *f->_cst);
+                delete res._cst;
+                res._cst = coef;
             }
         }
         
@@ -2084,7 +2081,7 @@ void func_::embed(func_& f){
 }
 
 void func_::reset(){
-    if (_all_range && _cst!=_all_range->first) {
+    if (_all_range) {
         delete _all_range->first;
         delete _all_range->second;
     }
@@ -4118,6 +4115,65 @@ void lterm::print(int ind) const{
     cout << this->to_string(ind);
 }
 
+func_ func_::get_dfdx(const param_ &v) const{
+    if (is_constant() || _vars->count(v.get_name())==0) {
+        return func_(constant<>(0));
+    }
+    func_ res;
+    for (auto &lt: *_lterms) {
+        if (*lt.second._p == v) {
+            if(lt.second._sign)
+                res += (*lt.second._coef);
+            else
+                res -= (*lt.second._coef);
+        }
+    }
+    for (auto &lt: *_qterms) {
+        if (*lt.second._p->first == v) {
+            if(lt.second._sign)
+                res += *lt.second._coef*(*lt.second._p->second);
+            else
+                res -= *lt.second._coef*(*lt.second._p->second);
+        }
+        if (*lt.second._p->second == v) {
+            if(lt.second._sign)
+                res += *lt.second._coef*(*lt.second._p->first);
+            else
+                res -= *lt.second._coef*(*lt.second._p->first);
+        }
+    }
+    for (auto &lt: *_pterms) {
+        for (auto &p: *lt.second._l) {
+            if (*p.first == v) {
+                func_ pterm = constant<>(1);
+                if (!lt.second._sign) {
+                    pterm = constant<>(-1);
+                }
+                auto expo = p.second;
+                if (expo > 1) {
+                    pterm *= expo;
+                    pterm *= *lt.second._coef;
+                    pterm *= (*p.first);
+                    for (int i = 1; i<expo-1; i++) {
+                        pterm *= *p.first;
+                    }
+                }
+                for (auto &p2: *lt.second._l) {
+                    if (p2!=p) {
+                        func_ pterm2(*p2.first);
+                        for (int i = 1; i<p2.second; i++) {
+                            pterm2 *= *p2.first;
+                        }
+                        pterm *= pterm2;
+                    }
+                }
+                res += pterm;
+            }
+        }
+    }
+    //Compute NONLINEAR part missing.
+    return res;
+}
 
 string func_::to_string() const{
     string str;

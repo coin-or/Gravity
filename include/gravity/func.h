@@ -934,6 +934,8 @@ public:
         }
     }
     
+    func_ get_dfdx(const param_& v) const;
+    
     void update_sign(){
 //        _sign = get_sign(_qterms->begin()->second);
 //        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
