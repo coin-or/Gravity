@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <list>
 #include <set>
 #include <Gravity/constant.h>
 
@@ -118,6 +119,7 @@ public:
 
 
 
+
 /** A parameter can be a bool, a short, an int, a float or a double*/
 template<typename type = int>
 class param: public param_{
@@ -161,21 +163,6 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _dim = p._dim;
-    }
-
-    template<class... Args>
-    param operator()(Args&&... args){
-        auto res(*this);
-        vector<int> indices = {forward<Args>(args)...};
-        string key;
-        for (int i= 0; i<indices.size(); i++) {
-            key += std::to_string(indices[i]);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-        }
-        res._indices->insert(make_pair<>(key,0));
-        return res;
     }
 
 
@@ -353,6 +340,64 @@ public:
         return *this;
     }
     
+    template<typename... Args>
+    param operator()(char t1, Args&&... args){
+        auto res(*this);
+        
+        list<char> indices;
+        indices = {forward<char>(args)...};
+        indices.push_front(t1);
+        string key;
+        auto it = indices.begin();
+        for (int i= 0; i<indices.size(); i++) {
+            key += (*it++);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+        }
+        res._indices->insert(make_pair<>(key,0));
+        return res;
+    }
+    
+    
+    template<typename... Args>
+    param operator()(string t1, Args&&... args){
+        auto res(*this);
+        
+        list<string> indices;
+        indices = {forward<string>(args)...};
+        indices.push_front(t1);
+        string key;
+        auto it = indices.begin();
+        for (int i= 0; i<indices.size(); i++) {
+            key += (*it++);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+        }
+        res._indices->insert(make_pair<>(key,0));
+        return res;
+    }
+    
+    
+    template<typename... Args>
+    param operator()(int t1, Args&&... args){
+        auto res(*this);
+        
+        list<string> indices;
+        indices = {forward<string>(std::to_string(args))...};
+        indices.push_front(std::to_string(t1));
+        string key;
+        auto it = indices.begin();
+        for (int i= 0; i<indices.size(); i++) {
+            key += (*it++);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+        }
+        res._indices->insert(make_pair<>(key,0));
+        return res;
+    }
 
     /** Output */
     void print(bool vals=false) const{

@@ -1569,6 +1569,7 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
 
 
 
+
 template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
     switch (c1->get_type()) {
         case binary_c: {

@@ -199,9 +199,9 @@ int main (int argc, const char * argv[])
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
-    auto l00 = 2*p(1,2)*p(3,1) + q(1)+ p(3);
+    auto l00 = 2*p('i')*p(3,1) + q(1)+ p(3);
     l00.print();
-    
+    (l00.get_dfdx(p('i'))).print();
     auto f0 = 0.1*q;
     f0.print();
     f0 -= (0.1+1e-7)*q;
@@ -229,9 +229,10 @@ int main (int argc, const char * argv[])
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
-    f2 = v1/2 + sin(p/q(2)) + 3;
+    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
     f2.print();
     f2 -= 2.2;
+    f2 *= 2;
     f2.print();
     return 0;
 //    l00.print();

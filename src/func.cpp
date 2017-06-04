@@ -3842,81 +3842,13 @@ constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, upd
                 return divide(c1, *(constant<long double>*)&c2);
                 break;
             }
-//            case uexp_c: {
-//                auto res = new bexpr(*(uexpr*)c1 * c2);
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(*(bexpr*)c1 * c2);
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-            case par_c:{
-                auto pc2 = (param_*)(&c2);
-                switch (pc2->get_intype()) {
-                    case binary_:
-                        return divide(c1, *(param<bool>*)pc2);
-                        break;
-                    case short_:
-                        return divide(c1, *(param<short>*)pc2);
-                        break;
-                    case integer_:
-                        return divide(c1, *(param<int>*)pc2);
-                        break;
-                    case float_:
-                        return divide(c1, *(param<float>*)pc2);
-                        break;
-                    case double_:
-                        return divide(c1, *(param<double>*)pc2);
-                        break;
-                    case long_:
-                        return divide(c1, *(param<long double>*)pc2);
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            }
-            case var_c:{
-                auto pc2 = (param_*)(&c2);
-                switch (pc2->get_intype()) {
-                    case binary_:
-                        return divide(c1, *(var<bool>*)pc2);
-                        break;
-                    case short_:
-                        return divide(c1, *(var<short>*)pc2);
-                        break;
-                    case integer_:
-                        return divide(c1, *(var<int>*)pc2);
-                        break;
-                    case float_:
-                        return divide(c1, *(var<float>*)pc2);
-                        break;
-                    case double_:
-                        return divide(c1, *(var<double>*)pc2);
-                        break;
-                    case long_:
-                        return divide(c1, *(var<long double>*)pc2);
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            }
-            case func_c: {
-                auto f = new func_(c2);
-                *f /= *c1;
+            default:{
+                auto f = new func_(*c1);
+                *f /= func_(c2);
                 delete c1;
                 return c1 = (constant_*)f;
                 break;
             }
-            default:
-                break;
         }
         return nullptr;
     }
@@ -4218,7 +4150,10 @@ string func_::to_string() const{
             str += " - " + val.substr(1);
         }
         else if (val != "0"){
-            str += " + " + val;
+            if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
+                str += " + ";
+            }
+            str += val;
         }
     }
     else {
