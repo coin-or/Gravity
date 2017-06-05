@@ -32,15 +32,15 @@ using namespace std;
 class Model {
     
 protected:
-    string*                         _name;
+    string                          _name;
     vector<shared_ptr<func_>>       _functions;
 
 public:
     unsigned                        _nnz_g; /* Number of non zeros in the Jacobian */
     unsigned                        _nnz_h; /* Number of non zeros in the Hessian */
-    vector<var_*>                   _vars; /**< Sorted map pointing to all variables contained in this model */
-    vector<Constraint*>             _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-    func_*                          _obj; /** Objective function */
+    map<string,var_>                _vars; /**< Sorted map pointing to all variables contained in this model */
+    map<string,Constraint>          _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
     
     /** Constructor */

@@ -111,7 +111,7 @@ int PTSolver::run(int output, bool relax){
             }
 
         if(prog.ipopt_prog->model->_objt==maximize){
-            *prog.ipopt_prog->model->_obj *= -1;
+//            *prog.ipopt_prog->model->_obj *= -1;
         }
         SmartPtr<TNLP> tmp = new IpoptProgram(prog.ipopt_prog->model);
 //        prog.ipopt_prog;
@@ -126,7 +126,7 @@ int PTSolver::run(int output, bool relax){
             //            iapp.Options()->SetStringValue("derivative_test_print_all", "yes");
         status = iapp.OptimizeTNLP(tmp);
         if(prog.ipopt_prog->model->_objt==maximize){
-            *prog.ipopt_prog->model->_obj *= -1;
+//            *prog.ipopt_prog->model->_obj *= -1;
         }
             if (status == Solve_Succeeded) {
                 // Retrieve some statistics about the solve

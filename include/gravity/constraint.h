@@ -58,7 +58,7 @@ public:
     /* Modifiers */
     
     /* Output */
-    void print();
+    void print() const;
     
     
 };

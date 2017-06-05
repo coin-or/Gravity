@@ -476,6 +476,8 @@ protected:
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
     vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
+    size_t                                 _nb_instances; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
+    
     bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
     bool                                   _is_transposed = false;
 
@@ -511,6 +513,20 @@ public:
     
     void insert(expr& e);
     
+    size_t get_nb_vars() const{
+        size_t n = 0;
+        for (auto &p: *_vars) {
+            if (p.second.first->is_transposed()) {
+                n += p.second.first->get_dim();
+            }
+            else {
+                n += 1;
+            }
+            
+        }
+        return n;
+    }
+    
     constant_* get_cst() {
         return _cst;
     }
@@ -536,9 +552,15 @@ public:
     }
     
     
-    void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has.WARNING: Assumes that v has not been added previousely!*/
+    void add_var(param_* v, int nb = 1, bool transposed=false){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         assert(_vars->count(v->get_name())==0);
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
+        if (!transposed) {
+            _nb_instances =max(_nb_instances, v->get_dim());
+        }
+        else{
+            _nb_instances =max(_nb_instances, (size_t)1);
+        }
     }
     
     

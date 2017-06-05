@@ -75,7 +75,7 @@ Constraint& Constraint::operator=(const func_& f){
 }
 
 /* Output */
-void Constraint::print(){
+void Constraint::print() const{
     cout << _name << " : ";
     
     this->func_::print(false);

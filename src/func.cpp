@@ -2264,7 +2264,7 @@ bool func_::insert(bool is_sum, bool sign, const constant_& coef, const param_& 
             p_new = get_var(pname);
             if (!p_new) {
                 p_new = (param_*)copy(p);
-                add_var(p_new);
+                add_var(p_new,is_sum);
             }
             else {
                 incr_occ_var(pname);
@@ -2342,7 +2342,7 @@ bool func_::insert(IS_SUM is_sum, bool sign, const constant_& coef, const param_
             p_new1 = (param_*)get_var(ps1);
             if (!p_new1) {
                 p_new1 = (param_*)copy(p1);
-                add_var(p_new1);
+                add_var(p_new1,(is_sum==second_));
             }
             else {
                 incr_occ_var(ps1);
@@ -2447,6 +2447,7 @@ bool func_::insert(vector<bool>* is_sum, bool sign, const constant_& coef, const
     }    
     if (pair_it == _pterms->end()) {
         auto newl = new list<pair<param_*, int>>();
+        i = 1;
         for (auto &pair:l) {
             p = pair.first;
             s = p->get_name();
@@ -2454,7 +2455,13 @@ bool func_::insert(vector<bool>* is_sum, bool sign, const constant_& coef, const
                 pnew = (param_*)get_var(s);
                 if (!pnew) {
                     pnew = (param_*)copy(*p);
-                    add_var(pnew,pair.second);
+                    if (is_sum) {
+                        add_var(pnew,pair.second,is_sum->at(i));
+                    }
+                    else {
+                        add_var(pnew,pair.second);
+                    }
+                    
                 }
                 else {
                     incr_occ_var(s);

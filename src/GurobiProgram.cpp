@@ -156,7 +156,9 @@ void GurobiProgram::create_grb_constraints(){
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
     double coeff;
-    for(auto& c: model->_cons){
+    Constraint* c;
+    for(auto& p: model->_cons){
+        c = &p.second;
         switch(c->get_type()) {
             case geq:
                 sense = GRB_GREATER_EQUAL;
@@ -225,7 +227,7 @@ void GurobiProgram::set_grb_objective(){
     const func_* q;
     if (model->_objt == minimize) objt = GRB_MINIMIZE;
     else objt = GRB_MAXIMIZE;
-    switch(model->_obj->get_type()){
+    switch(model->_obj.get_type()){
         case lin_:
 //            q = model->_obj->get_quad();
 //            for (auto& it1: q->_coefs) {

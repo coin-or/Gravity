@@ -14,20 +14,13 @@ using namespace std;
 /** Constructor */
 //@{
 Model::Model(){
-    _name = NULL;
-    _obj = NULL;
     _nnz_g = 0;
     _nnz_h = 0;
 };
 //@}
 
 /* Destructor */
-Model::~Model(){
-    for (auto it:_cons) {
-        delete it;
-    }
-    delete _obj;
-};
+Model::~Model(){};
 
 
 /* Accessors */
@@ -45,7 +38,7 @@ int Model::get_nb_cons() const{
 int Model::get_nb_nnz_g() const{
     //    return _nnz_g;
     int idx = 0;
-    for(auto& c: _cons)
+    for(auto &c: _cons)
     {
 //        idx += c->get_nb_vars();
     }
@@ -319,7 +312,7 @@ void Model::del_constraint(const Constraint& c){
 };
 
 void Model::set_objective(const func_& f) {
-    _obj = new func_(f);
+    _obj = f;
 }
 
 void Model::set_objective_type(ObjectiveType t) {
@@ -785,7 +778,7 @@ void Model::print_solution() const{
 }
 
 void Model::print_constraints() const{
-    for(auto& c: _cons){
-        c->print();
+    for(auto& p: _cons){
+        p.second.print();
     }
 }
