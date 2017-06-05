@@ -229,7 +229,8 @@ int main (int argc, const char * argv[])
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
-    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
+//    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
+    f2 = sin((ip/dp)*p);
     f2.print();
     f2 -= 2.2;
     f2 *= 2;

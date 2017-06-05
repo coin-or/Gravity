@@ -4,14 +4,53 @@ project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-# Find solvers on system
-#find_package(GUROBI REQUIRED)
-#find_package(IPOPT REQUIRED)
-#find_package(BONMIN REQUIRED)
 
-# Include solver headers and libraries
-#include_directories(${GUROBI_INCLUDE_DIRS} ${IPOPT_INCLUDE_DIRS}/.. ${BONMIN_INCLUDE_DIRS}/..)
-#set(LIBS ${LIBS} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES})
+# Find Gurobi (optional).
+option(ENABLE_GUROBI "Link to Gurobi libraries" ON)
+
+# Find IPOPT (optional).
+option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
+
+# Find BONMIN (optional).
+option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
+
+
+# configure a header file to pass some of the CMake settings
+# to the source code.
+configure_file (
+    "${PROJECT_SOURCE_DIR}/GravityConfig.h.in"
+    "${PROJECT_BINARY_DIR}/include/gravity/GravityConfig.h")
+
+
+
+# Find Ipopt.
+if (ENABLE_IPOPT)
+	message(STATUS "Enable IPOPT")
+	add_definitions(-DUSE_IPOPT)
+	find_package(IPOPT REQUIRED)
+	include_directories(${IPOPT_INCLUDE_DIRS}/..)
+	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+endif()
+
+# Find Gurobi?
+if (ENABLE_GUROBI)
+    message(STATUS "Enable GUROBI")
+    add_definitions(-DUSE_GUROBI)
+    find_package(GUROBI)
+    include_directories(${GUROBI_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
+endif()
+
+# Find BONMIN?
+if (ENABLE_BONMIN)
+    message(STATUS "Enable BONMIN")
+    add_definitions(-DUSE_BONMIN)
+    find_package(BONMIN)
+    include_directories(${BONMIN_INCLUDE_DIRS}/..)
+    set(LIBS ${LIBS} ${BONMIN_LIBRARIES})
+endif()
+
+
 
 # Compiler options
 
@@ -32,7 +71,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 
+# Install
+install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
+
 # Includes Catch in the project:
 add_subdirectory(src/external/catch)
 include_directories(${CATCH_INCLUDE_DIR} ${COMMON_INCLUDES})
 enable_testing(true)  # Enables unit-testing.
+

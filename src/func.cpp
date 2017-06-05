@@ -1929,6 +1929,9 @@ void func_::embed(expr& e){
             else if(ue->_son->is_expr()){
                 embed(*(expr*)ue->_son);
             }
+            else if (ue->_son->is_var()){
+                add_var((param_*)copy(*ue->_son));
+            }
             break;
         }
         case bexp_c:{
@@ -1940,12 +1943,18 @@ void func_::embed(expr& e){
             else if(be->_lson->is_expr()){
                 embed(*(expr*)be->_lson);
             }
+            else if (be->_lson->is_var()){
+                add_var((param_*)copy(*be->_lson));
+            }
             if (be->_rson->is_function()) {
                 auto f = (func_*)be->_rson;
                 embed(*f);
             }
             else if(be->_rson->is_expr()){
                 embed(*(expr*)be->_rson);
+            }
+            else if (be->_rson->is_var()){
+                add_var((param_*)copy(*be->_rson));
             }
             break;
         }

@@ -453,7 +453,7 @@ public:
 
 /** Backbone class for function */
 class func_ : public constant_{
-private:
+protected:
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
