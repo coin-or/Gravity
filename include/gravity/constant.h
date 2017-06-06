@@ -11,7 +11,7 @@
 #include <string>
 #include <map>
 #include <memory>
-#include <Gravity/Type.h>
+#include <Gravity/types.h>
 
 
 using namespace std;
@@ -21,9 +21,12 @@ using namespace std;
 /** Backbone class for constant */
 class constant_{
 protected:
-    CType _type;
+    CType               _type;
+    bool                _is_transposed = false;
 public:
 
+    
+    
     virtual ~constant_(){};
     CType get_type() const { return _type;}
     void set_type(CType type){ _type = type;}
@@ -80,6 +83,10 @@ public:
     bool is_function() const{
         return (_type==func_c);
     };
+    
+    bool is_transposed() const{ /**< Returns true if the vector is transposed **/
+        return _is_transposed;
+    }
     
     Sign get_all_sign() const;
     Sign get_sign(int idx=0) const;

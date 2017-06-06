@@ -76,6 +76,9 @@ int main (int argc, const char * argv[])
     std::cout << "short\t"
     << std::numeric_limits<short>::lowest() << '\t'
     << std::numeric_limits<short>::max() << '\n';
+    std::cout << "unsigned\t"
+    << std::numeric_limits<unsigned>::lowest() << '\t'
+    << std::numeric_limits<unsigned>::max() << '\n';
     std::cout << "int\t"
     << std::numeric_limits<int>::lowest() << '\t'
     << std::numeric_limits<int>::max() << '\n';
@@ -191,17 +194,20 @@ int main (int argc, const char * argv[])
     qqq.print();
     auto ss = ppp + qqq;
     ss.print();
+    (ss.get_dfdx(p)).print();
     ss += 2*ip*ppp;
     ss.print();
+    (ss.get_dfdx(p)).print();
     ss -= 2*ip*ppp + ppp;
     ss.print();
+    (ss.get_dfdx(p)).print();
 //    auto exp = log(ff);
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
-    auto l00 = 2*p(1,2)*p(3,1) + q(1)+ p(3);
+    auto l00 = 2*p('i')*p(3,1) + q(1)+ p(3);
     l00.print();
-    
+    (l00.get_dfdx(p('i'))).print();
     auto f0 = 0.1*q;
     f0.print();
     f0 -= (0.1+1e-7)*q;
@@ -225,15 +231,21 @@ int main (int argc, const char * argv[])
 //    SVM.print();
 //    auto f1 = sum(alpha,n,ni);
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
+<<<<<<< HEAD
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     
     
+=======
+    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
+>>>>>>> adcedd785856259adbaa2b3ad971ac011b587a2c
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
-    f2 = v1/3 + sin(dp*q(2)) + 3;
+//    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
+    f2 = sin((ip/dp)*p);
     f2.print();
     f2 -= 2.2;
+<<<<<<< HEAD
 //  f2.print();
     
 //  assuming a vector of coefficients are given, try to generate the graph structure.
@@ -349,6 +361,10 @@ int main (int argc, const char * argv[])
     string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
     graph.readFile(fname);
     
+=======
+    f2 *= 2;
+    f2.print();
+>>>>>>> adcedd785856259adbaa2b3ad971ac011b587a2c
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);

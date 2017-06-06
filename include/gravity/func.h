@@ -198,8 +198,7 @@ class lterm{
 public:
     constant_*              _coef;
     param_*                 _p;
-    bool                    _sign = true; /**< True if +, flase if - */
-    bool                    _is_sum = false; /**< True if this is term is a product of two vectors a^T.x */
+    bool                    _sign = true; /**< True if +, flase if - */    
     
     lterm(){
         _coef = nullptr;
@@ -212,7 +211,6 @@ public:
         _p = t._p;
         t._p = nullptr;
         _sign = t._sign;
-        _is_sum = t._is_sum;
     };
     
     
@@ -226,9 +224,9 @@ public:
         _sign = sign;
     };
     
-    lterm(constant_* coef, param_* p):lterm(false,true,coef,p){};
+    lterm(constant_* coef, param_* p):lterm(true,coef,p){};
     
-    lterm(bool is_sum, bool sign, constant_* coef, param_* p);
+    lterm(bool sign, constant_* coef, param_* p);
     
     void reverse_sign() {
         _sign = ! _sign;
@@ -236,7 +234,6 @@ public:
     
     ~lterm(){
         delete _coef;
-        //        delete _p;
     };
     
     bool operator==(const lterm& l) const;
@@ -257,7 +254,6 @@ public:
     constant_*                  _coef;
     pair<param_*,param_*>*      _p;
     bool                        _sign = true; /**< True if +, flase if - */
-    IS_SUM                      _is_sum = none_; /**< Given a quadratic term a.x.y, _is_sum = first_ if a^t.x.y, second_ if a.x^t.y and none_ otherwise */
     
     qterm(){
         _coef = nullptr;
@@ -270,49 +266,31 @@ public:
         _p = t._p;
         t._p = nullptr;
         _sign = t._sign;
-        _is_sum = t._is_sum;
     };
     
     
     qterm(param_* p1, param_* p2):qterm(true, p1, p2){};
     
     
-    qterm(constant_* coef, param_* p1, param_* p2):qterm(none_, true, coef, p1, p2){};
+    qterm(constant_* coef, param_* p1, param_* p2):qterm(true, coef, p1, p2){};
     
-    qterm(bool sign, param_* p1, param_* p2):qterm(none_, true, new constant<float>(1), p1, p2){};
+    qterm(bool sign, param_* p1, param_* p2):qterm(true, new constant<float>(1), p1, p2){};
     
-    qterm(IS_SUM is_sum, bool sign, constant_* coef, param_* p1, param_* p2){
+    qterm(bool sign, constant_* coef, param_* p1, param_* p2){
         _coef = coef;
         _p = new pair<param_*, param_*>(make_pair(p1,p2));
         _sign = sign;
-        if (coef->is_param()) {
-            auto pc = (param_*)coef;
-            if (pc->_is_transposed || is_sum == first_) {
-                pc->_is_transposed = false;
-                if (pc->get_dim() != p1->get_dim()) {
-                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                }
-                _is_sum = first_;
-            }
-        }
-        if (p1->_is_transposed || is_sum == second_) {
-            if (_is_sum != none_ || p1->get_dim() != p2->get_dim()) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-            }
-            p1->_is_transposed = false;
-            _is_sum = second_;
-        }
-        if (p2->_is_transposed) {
+        if (coef->is_transposed() && p1->is_transposed()) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
-        //        if (coef->is_function()) {
-        //            auto f = (func_*)coef;
-        //            assert(f->is_constant());
-        //            if (f->is_transposed()) {
-        //                f->_is_transposed = false;
-        //                _is_sum = true;
-        //            }
-        //        }    };
+        if (p1->is_transposed()) {
+            if (p1->get_dim() != p2->get_dim()) {
+                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+            }
+        }
+        if (p2->is_transposed()) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
     };
     
     void reverse_sign() {
@@ -345,33 +323,21 @@ public:
     constant_*                      _coef;
     list<pair<param_*, int>>*       _l; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
     bool                            _sign = true; /**< True if +, flase if - */
-    vector<bool>*                   _is_sum; /**< Given a polynomial term, e.g., axyz, _is_sum[0] = true if a is transposed: a^t.x.y.z, _is_sum[1] = true if a.x^t.y.z, etc.., the values are false otherwise */
     
     pterm(){
         _coef = nullptr;
         _l = nullptr;
-        _is_sum = nullptr;
     }
     
     
     pterm(bool sign, constant_* coef, param_* p, int exp){
         _coef = coef;
-        if (coef->is_param()) {
-            auto pc = (param_*)coef;
-            if (pc->_is_transposed) {
-                pc->_is_transposed = false;
-                if (pc->get_dim() != p->get_dim()) {
-                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                }
-                _is_sum = new vector<bool>();
-                _is_sum->resize(1);
-                _is_sum->at(0) = true;
-            }
-        }
-        if (p->_is_transposed) {
+        if (coef->is_transposed() && p->is_transposed()) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
-
+        if (p->is_transposed()) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
         _l = new list<pair<param_*, int>>();
         _l->push_back(make_pair<>(p, exp));
         _sign = sign;
@@ -384,40 +350,21 @@ public:
         _l = t._l;
         t._l = nullptr;
         _sign = t._sign;
-        _is_sum = t._is_sum;
-        t._is_sum = nullptr;
     };
     
-    pterm(vector<bool>* is_sum, bool sign, constant_* coef, list<pair<param_*, int>>* l){
-        if (is_sum) {
-            _is_sum = new vector<bool>(*is_sum);
-        }
-        else {
-            _is_sum = nullptr;
-        }
-        if (coef->is_param()) {
-            auto p = l->begin()->first;
-            auto pc = (param_*)coef;
-            if (pc->_is_transposed || (_is_sum && _is_sum->at(0))) {
-                pc->_is_transposed = false;
-                if (pc->get_dim() != p->get_dim()) {
-                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                }
-                _is_sum->at(0) = true;
-            }
-        }
-        int i = 1;
+    pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
         param_* p1 = nullptr;
         param_* p2 = nullptr;
         for (auto it = l->begin(); it != l->end(); it++){
             p1 = it->first;
-            if ((p1->_is_transposed || (_is_sum && _is_sum->at(i))) && next(it)!=l->end()) {
+            if (p1->is_transposed() && next(it)!=l->end()) {
                 p2 = next(it)->first;
-                if (_is_sum->at(i-1)==true || p1->get_dim() != p2->get_dim()) {
+                if (p1->get_dim() != p2->get_dim()) {
                     throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
                 }
-                p1->_is_transposed = false;
-                _is_sum->at(i++) = true;
+            }
+            if (p1->is_transposed() && next(it)==l->end()) {
+                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
         }
         _coef = coef;
@@ -435,9 +382,6 @@ public:
         if (_l) {
             delete _l;
         }
-        if (_is_sum) {
-            delete _is_sum;
-        }
     };
     
     bool operator==(const pterm& l) const;
@@ -453,7 +397,7 @@ public:
 
 /** Backbone class for function */
 class func_ : public constant_{
-private:
+protected:
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
@@ -476,6 +420,8 @@ private:
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
     vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
+    size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
+    
     bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
     bool                                   _is_transposed = false;
 
@@ -493,9 +439,9 @@ public:
 
     ~func_();
 
-    bool insert(bool is_sum, bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
-    bool insert(IS_SUM is_sum, bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-    bool insert(vector<bool>* is_sum, bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+    bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
+    bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+    bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
    
     func_ tr() const{/**< Transpose the output of the current function */
         auto f = func_(*this);
@@ -510,6 +456,20 @@ public:
     void insert(const pterm& term);
     
     void insert(expr& e);
+    
+    size_t get_nb_vars() const{
+        size_t n = 0;
+        for (auto &p: *_vars) {
+            if (p.second.first->is_transposed()) {
+                n += p.second.first->get_dim();
+            }
+            else {
+                n += 1;
+            }
+            
+        }
+        return n;
+    }
     
     constant_* get_cst() {
         return _cst;
@@ -536,9 +496,15 @@ public:
     }
     
     
-    void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has.WARNING: Assumes that v has not been added previousely!*/
+    void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         assert(_vars->count(v->get_name())==0);
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
+        if (!v->is_transposed()) {
+            _nb_instances =max(_nb_instances, v->get_dim());
+        }
+        else{
+            _nb_instances =max(_nb_instances, (size_t)1);
+        }
     }
     
     
@@ -934,6 +900,8 @@ public:
         }
     }
     
+    func_ get_dfdx(const param_& v) const;
+    
     void update_sign(){
 //        _sign = get_sign(_qterms->begin()->second);
 //        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
@@ -1313,7 +1281,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(false, true, constant<float>(1), c2);
+            res->insert(true, constant<float>(1), c2);
             return c1 = res;
             break;
         }
@@ -1321,7 +1289,7 @@ template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< add
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(false, true, constant<float>(1), c2);
+                res->insert(true, constant<float>(1), c2);
             }
             else {
                 auto cst = res->get_cst();
@@ -1422,7 +1390,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
         case par_c:{
             auto res = new func_(*c1);
             delete c1;
-            res->insert(false, false, constant<float>(1), c2);
+            res->insert(false, constant<float>(1), c2);
             return c1 = res;
             break;
         }
@@ -1430,7 +1398,7 @@ template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /*
             auto res = new func_(*c1);
             delete c1;
             if (c2.is_var()) {
-                res->insert(false, false, constant<float>(1), c2);
+                res->insert(false, constant<float>(1), c2);
             }
             else {
                 auto cst = res->get_cst();
@@ -1567,6 +1535,7 @@ template<typename T> constant_* multiply(constant_* c1, const param<T>& c2){ /**
 
 
 
+
 template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
     switch (c1->get_type()) {
         case binary_c: {
@@ -1576,7 +1545,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<bool>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             return c1;
             break;
@@ -1588,7 +1557,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<short>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1599,7 +1568,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<int>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1610,7 +1579,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<float>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1621,7 +1590,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
@@ -1632,7 +1601,7 @@ template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){
             else {
                 auto val = ((constant<long double>*)c1)->eval();
                 delete c1;
-                c1 = new constant<T>(c2.eval() - val);
+                c1 = new constant<T>(val - c2.eval());
             }
             break;
         }
