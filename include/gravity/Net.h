@@ -45,7 +45,6 @@ public:
     /** Cloning */
     Net* clone();
     
-    
     /* Constructors */
     Net();
     

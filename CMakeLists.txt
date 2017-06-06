@@ -14,6 +14,8 @@ option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 # Find BONMIN (optional).
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
+
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
@@ -50,6 +52,14 @@ if (ENABLE_BONMIN)
     set(LIBS ${LIBS} ${BONMIN_LIBRARIES})
 endif()
 
+# Find CPLEX?
+if (ENABLE_CPLEX)
+    message(STATUS "Enable CPLEX")
+    add_definitions(-DUSE_CPLEX)
+    find_package(CPLEX)
+    include_directories(${CPLEX_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
+endif()
 
 
 # Compiler options
