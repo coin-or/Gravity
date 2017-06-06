@@ -230,8 +230,7 @@ int main (int argc, const char * argv[])
 //    auto SVM = 5 - y -4*x -y + 4 -3*x - y + 3 - 3*x +4 -4*x + y + y -1 +x +y +2*x +y - 2 + 3*x;
 //    SVM.print();
 //    auto f1 = sum(alpha,n,ni);
-//    auto f1 = sqrt(v1.tr()*v1) + p*q;
-//    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+//    auto f1 = sqrt(v1.tr()*v1) + p*q;    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
     f1.print();
