@@ -130,7 +130,7 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
 bool IpoptProgram::eval_f(Index n, const Number* x, bool new_x, Number& obj_value){
     
     assert(n==model->get_nb_vars());
-    model->fill_in_obj(x, obj_value);
+    model->fill_in_obj(x, obj_value,new_x);
     return true;
 }
 

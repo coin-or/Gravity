@@ -8,6 +8,105 @@
 #include <math.h>
 #include <Gravity/func.h>
 
+
+double poly_eval(const constant_* c, size_t i){
+    if (!c) {
+        throw invalid_argument("Cannot evaluate nullptr!");
+    }
+    switch (c->get_type()) {
+        case binary_c: {
+            return ((constant<bool>*)(c))->eval();
+            break;
+        }
+        case short_c: {
+            return ((constant<short>*)(c))->eval();
+            break;
+        }
+        case integer_c: {
+            return ((constant<int>*)(c))->eval();
+            break;
+        }
+        case float_c: {
+            return ((constant<float>*)(c))->eval();
+            break;
+        }
+        case double_c: {
+            return ((constant<double>*)(c))->eval();
+            break;
+        }
+        case long_c: {
+            return (double)((constant<long double>*)(c))->eval();
+            break;
+        }
+        case par_c:{
+            auto p_c2 = (param_*)(c);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return ((param<bool>*)p_c2)->eval(i);
+                    break;
+                case short_:
+                    return ((param<short>*)p_c2)->eval(i);
+                    break;
+                case integer_:
+                    return ((param<int>*)p_c2)->eval(i);
+                    break;
+                case float_:
+                    return ((param<float>*)p_c2)->eval(i);
+                    break;
+                case double_:
+                    return ((param<double>*)p_c2)->eval(i);
+                    break;
+                case long_:
+                    return (double)((param<long double>*)p_c2)->eval(i);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        case var_c:{
+            auto p_c2 = (param_*)(c);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return ((var<bool>*)p_c2)->eval(i);
+                    break;
+                case short_:
+                    return ((var<short>*)p_c2)->eval(i);
+                    break;
+                case integer_:
+                    return ((var<int>*)p_c2)->eval(i);
+                    break;
+                case float_:
+                    return ((var<float>*)p_c2)->eval(i);
+                    break;
+                case double_:
+                    return ((var<double>*)p_c2)->eval(i);
+                    break;
+                case long_:
+                    return (double)((var<long double>*)p_c2)->eval(i);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+            
+        case uexp_c: {
+            return ((uexpr*)c)->eval(i);
+            break;
+        }
+        case bexp_c: {
+            return ((bexpr*)c)->eval(i);
+            break;
+        }
+            
+        default:
+            break;
+    }
+    return 0;
+}
+
+
 Sign constant_::get_all_sign() const{
     switch (_type) {
         case binary_c: {
@@ -399,6 +498,73 @@ constant_* copy(const constant_& c2){/**< Copy c2 into c1 detecting the right cl
     }
     return nullptr;
 }
+
+double lterm::eval(size_t i) const{
+    double res = 0;
+    if (_coef->is_transposed()) {
+        for (int j = 0; j<_p->get_dim(); j++) {
+            res += poly_eval(_coef,j) * poly_eval(_p, j);
+        }
+    }
+    else {
+        res = poly_eval(_coef,i) * poly_eval(_p, i);
+    }
+    if (!_sign) {
+        res *= -1;
+    }
+    return res;
+}
+
+
+double qterm::eval(size_t i) const{
+    double res = 0;
+    if (_coef->is_transposed()) {
+        for (int j = 0; j<_p->first->get_dim(); j++) {
+            res += poly_eval(_coef,j) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
+        }
+    }
+    else if(_p->first->is_transposed()){
+        for (int j = 0; j<_p->first->get_dim(); j++) {
+            res += poly_eval(_coef,i) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
+        }
+    }
+    else {
+        res = poly_eval(_coef,i) * poly_eval(_p->first, i) * poly_eval(_p->second, i);
+    }
+    if (!_sign) {
+        res *= -1;
+    }
+    return res;
+}
+
+
+double pterm::eval(size_t i) const{
+    double res = 0;
+    if (_coef->is_transposed()) {
+        double pterm = 0;
+        for (int j = 0; j<_l->front().first->get_dim(); j++) {
+            pterm = 1;
+            for (auto &pair: *_l) {
+                pterm *= pow(poly_eval(pair.first, j), pair.second);
+            }
+            pterm *= poly_eval(_coef,j);
+            res += pterm;
+        }
+    }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
+    else {
+        res =1;
+        for (auto &pair: *_l) {
+            res *= pow(poly_eval(pair.first, i), pair.second);
+        }
+        
+        res *= poly_eval(_coef,i);
+    }
+    if (!_sign) {
+        res *= -1;
+    }
+    return res;
+}
+
 
 lterm::lterm(bool sign, constant_* coef, param_* p){
     _coef = coef;
@@ -2679,25 +2845,25 @@ func_ log(constant_&& c){
     return res;
 };
 
-double uexpr::eval(ind i) const{
+double uexpr::eval(size_t i) const{
     if (!_son) {
         throw invalid_argument("Cannot evaluate empty expression!");
     }
     switch (_otype) {
         case cos_:
-            return cos(::eval<double>(i,_son));
+            return cos(poly_eval(_son,i));
             break;
         case sin_:
-            return sin(::eval<double>(i,_son));
+            return sin(poly_eval(_son,i));
             break;
         case sqrt_:
-            return sqrt(::eval<double>(i,_son));
+            return sqrt(poly_eval(_son,i));
             break;
         case log_:
-            return log(::eval<double>(i,_son));
+            return log(poly_eval(_son,i));
             break;
         case exp_:
-            return exp(::eval<double>(i,_son));
+            return exp(poly_eval(_son,i));
             break;
         default:
             throw invalid_argument("Unsupported unary operator");
@@ -3048,102 +3214,7 @@ bool equals(const constant_* c1, const constant_* c2){/**< Checks if c2 equals c
     return false;
 }
 
-double eval(const constant_* c, size_t i){
-    if (!c) {
-        throw invalid_argument("Cannot evaluate nullptr!");
-    }
-    switch (c->get_type()) {
-        case binary_c: {
-            return ((constant<bool>*)(c))->eval();
-            break;
-        }
-        case short_c: {
-            return ((constant<short>*)(c))->eval();
-            break;
-        }
-        case integer_c: {
-            return ((constant<int>*)(c))->eval();
-            break;
-        }
-        case float_c: {
-            return ((constant<float>*)(c))->eval();
-            break;
-        }
-        case double_c: {
-            return ((constant<double>*)(c))->eval();
-            break;
-        }
-        case long_c: {
-            return (double)((constant<long double>*)(c))->eval();
-            break;
-        }
-        case par_c:{
-            auto p_c2 = (param_*)(c);
-            switch (p_c2->get_intype()) {
-                case binary_:
-                    return ((param<bool>*)p_c2)->eval(i);
-                    break;
-                case short_:
-                    return ((param<short>*)p_c2)->eval(i);
-                    break;
-                case integer_:
-                    return ((param<int>*)p_c2)->eval(i);
-                    break;
-                case float_:
-                    return ((param<float>*)p_c2)->eval(i);
-                    break;
-                case double_:
-                    return ((param<double>*)p_c2)->eval(i);
-                    break;
-                case long_:
-                    return (double)((param<long double>*)p_c2)->eval(i);
-                    break;
-                default:
-                    break;
-            }
-            break;
-        }
-        case var_c:{
-            auto p_c2 = (param_*)(c);
-            switch (p_c2->get_intype()) {
-                case binary_:
-                    return ((var<bool>*)p_c2)->eval(i);
-                    break;
-                case short_:
-                    return ((var<short>*)p_c2)->eval(i);
-                    break;
-                case integer_:
-                    return ((var<int>*)p_c2)->eval(i);
-                    break;
-                case float_:
-                    return ((var<float>*)p_c2)->eval(i);
-                    break;
-                case double_:
-                    return ((var<double>*)p_c2)->eval(i);
-                    break;
-                case long_:
-                    return (double)((var<long double>*)p_c2)->eval(i);
-                    break;
-                default:
-                    break;
-            }
-            break;
-        }
 
-        case uexp_c: {
-            return ((uexpr*)c)->eval(i);
-            break;
-        }
-        case bexp_c: {
-            return ((bexpr*)c)->eval(i);
-            break;
-        }
-            
-        default:
-            break;
-    }
-    return 0;
-}
 
 template<typename type> type  eval(const constant_* c1){
     return eval<type>(0,c1);
@@ -3155,19 +3226,19 @@ double  bexpr::eval(ind i) const{
     }
     switch (_otype) {
         case plus_:
-            return ::eval<double>(i,_lson) + ::eval<double>(i,_rson);
+            return poly_eval(_lson,i) + poly_eval(_rson,i);
             break;
         case minus_:
-            return ::eval<double>(i,_lson) + ::eval<double>(i,_rson);
+            return poly_eval(_lson,i) + poly_eval(_rson,i);
             break;
         case product_:
-            return ::eval<double>(i,_lson) * ::eval<double>(i,_rson);
+            return poly_eval(_lson,i) * poly_eval(_rson,i);
             break;
         case div_:
-            return ::eval<double>(i,_lson)/::eval<double>(i,_rson);
+            return poly_eval(_lson,i)/poly_eval(_rson,i);
             break;
         case power_:
-            return powl(::eval<double>(i,_lson),::eval<double>(i,_rson));
+            return powl(poly_eval(_lson,i),poly_eval(_rson,i));
             break;
         default:
             throw invalid_argument("Unsupported binary operator");
@@ -3944,7 +4015,8 @@ double func_::eval(size_t i) const{
     for (auto &pair:*_lterms) {
         res += pair.second.eval(i);
     }
-    res += ::eval(_cst,i);
+    res += poly_eval(_cst,i);
+    return res;
 }
 
 string func_::to_string() const{

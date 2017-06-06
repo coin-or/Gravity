@@ -23,22 +23,27 @@ using namespace std;
 /** Backbone class for parameter */
 class param_: public constant_{
 protected:
-    string              _name;
-    NType               _intype;
-    map<string,int>*    _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
+    string                      _name;
+    size_t                      _id = 0;
+    NType                       _intype;
+    map<string,unsigned>*       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                    vectors */
-    size_t              _dim = 0; /*<< dimension of current parameter */
+    size_t                      _dim = 0; /*<< dimension of current parameter */
     
 public:
     
     
     virtual ~param_(){};
     
+    void set_id(size_t idx){ _id = idx;};
+    
+    size_t get_id() const{return _id;};
+    
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const { return _dim;}
     
-    map<string,int>* get_indices() const {
+    map<string,unsigned>* get_indices() const {
         return _indices;
     }
     
@@ -145,7 +150,7 @@ public:
         _intype = p._intype;
         _val = p._val;
         _name = p._name;
-        _indices = new map<string, int>(*p._indices);
+        _indices = new map<string, unsigned>(*p._indices);
         _range = p._range;
         _is_transposed = p._is_transposed;
         _dim = p._dim;
@@ -208,7 +213,7 @@ public:
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();
-        _indices = new map<string,int>();
+        _indices = new map<string,unsigned>();
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -338,62 +343,62 @@ public:
         return *this;
     }
     
+//    template<typename... Args>
+//    param operator()(char t1, Args&&... args){
+//        auto res(*this);
+//        
+//        list<char> indices;
+//        indices = {forward<char>(args)...};
+//        indices.push_front(t1);
+//        string key;
+//        auto it = indices.begin();
+//        for (int i= 0; i<indices.size(); i++) {
+//            key += (*it++);
+//            if (i<indices.size()-1) {
+//                key += ",";
+//            }
+//        }
+//        res._indices->insert(make_pair<>(key,0));
+//        return res;
+//    }
+    
     template<typename... Args>
-    param operator()(char t1, Args&&... args){
-        auto res(*this);
-        
-        list<char> indices;
-        indices = {forward<char>(args)...};
+    void insert_index(size_t t1, Args&&... args){
+        list<size_t> indices;
+        indices = {forward<size_t>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
+        for (size_t i= 0; i<indices.size(); i++) {
             key += (*it++);
             if (i<indices.size()-1) {
                 key += ",";
             }
         }
-        res._indices->insert(make_pair<>(key,0));
-        return res;
+        if (!_indices) {
+            _indices = new map<string,unsigned>();
+        }
+        assert(_indices->count(key)==0);
+        _indices->insert(make_pair<>(key,_indices->size()));
     }
     
-    
     template<typename... Args>
-    param operator()(string t1, Args&&... args){
+    param operator()(size_t t1, Args&&... args){
         auto res(*this);
         
-        list<string> indices;
-        indices = {forward<string>(args)...};
+        list<size_t> indices;
+        indices = {forward<size_t>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
+        for (size_t i= 0; i<indices.size(); i++) {
             key += (*it++);
             if (i<indices.size()-1) {
                 key += ",";
             }
         }
-        res._indices->insert(make_pair<>(key,0));
-        return res;
-    }
-    
-    
-    template<typename... Args>
-    param operator()(int t1, Args&&... args){
-        auto res(*this);
-        
-        list<string> indices;
-        indices = {forward<string>(std::to_string(args))...};
-        indices.push_front(std::to_string(t1));
-        string key;
-        auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
-            key += (*it++);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-        }
-        res._indices->insert(make_pair<>(key,0));
+        size_t idx = _indices->at(key);
+        res._indices->insert(make_pair<>(key,idx));
         return res;
     }
 

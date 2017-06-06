@@ -55,44 +55,6 @@ public:
     
     
     
-    template<typename... Args>
-    var operator()(char t1, Args&&... args){
-        auto res(*this);
-        
-        list<char> indices;
-        indices = {forward<char>(args)...};
-        indices.push_front(t1);
-        string key;
-        auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
-            key += (*it++);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-        }
-        res._indices->insert(make_pair<>(key,0));
-        return res;
-    }
-    
-    
-    template<typename... Args>
-    var operator()(string t1, Args&&... args){
-        auto res(*this);
-        
-        list<string> indices;
-        indices = {forward<string>(args)...};
-        indices.push_front(t1);
-        string key;
-        auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
-            key += (*it++);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-        }
-        res._indices->insert(make_pair<>(key,0));
-        return res;
-    }
     
     
     template<typename... Args>

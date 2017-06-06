@@ -86,7 +86,7 @@ public:
         return unknown_;// TO UPDATE
     }
     
-    double eval(ind i) const;
+    double eval(size_t i) const;
     
     double eval() const{
         return eval(0);
@@ -232,6 +232,8 @@ public:
         _sign = ! _sign;
     }
     
+    double eval(size_t) const;
+    
     ~lterm(){
         delete _coef;
     };
@@ -296,6 +298,8 @@ public:
     void reverse_sign() {
         _sign = ! _sign;
     }
+    
+    double eval(size_t) const;
     
     ~qterm(){
         delete _coef;
@@ -377,6 +381,8 @@ public:
         _sign = ! _sign;
     }
     
+    double eval(size_t) const;
+    
     ~pterm(){
         delete _coef;
         if (_l) {
@@ -439,6 +445,8 @@ public:
 
     ~func_();
 
+    map<string, pair<param_*, int>>& get_vars(){ return *_vars;};
+    
     bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
     bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
     bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
@@ -935,6 +943,7 @@ public:
     }
     
     double eval(size_t i) const;
+    double eval() const{ return eval(0);};
     string to_string() const;
     void print(bool endline=true) const;
     

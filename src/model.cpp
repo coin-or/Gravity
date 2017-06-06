@@ -28,7 +28,14 @@ Model::Model(){
 //@}
 
 /* Destructor */
-Model::~Model(){};
+Model::~Model(){
+    for (auto &vp:_vars) {
+        delete vp.second;
+    }
+    for (auto &cp:_cons) {
+        delete cp.second;
+    }
+};
 
 
 /* Accessors */
@@ -41,7 +48,7 @@ size_t Model::get_nb_vars() const{
 size_t Model::get_nb_cons() const{
     size_t n = 0;
     for (auto &cp:_cons) {
-        n+= cp.second.get_nb_instances();
+        n += cp.second->get_nb_instances();
     }
     return n;
 };
@@ -112,6 +119,19 @@ param_* Model::get_var(const string& vname) const{
 
 /* Modifiers */
 
+void Model::init_indices(){// Initialize the indices of all variables involved in the model
+    param_* v= nullptr;
+    size_t idx = 0;
+    for(auto& v_p: _vars)
+    {
+        v = v_p.second;
+        v->set_id(idx);
+        for (int i = 0; i < v->get_dim(); i++) {
+            idx++;
+        }
+    }
+}
+
 void Model::add_var(const param_& v){
     if (v.is_transposed()) {
         _nb_vars += v.get_dim();
@@ -140,7 +160,7 @@ void Model::del_var(const param_& v){
 void Model::add_constraint(const Constraint& c){
     _nb_cons += c.get_nb_instances();
     if (_cons.count(c.get_name())!=0) {
-        _cons[c.get_name()] = c;
+        _cons[c.get_name()] = new Constraint(c);
     }
     //UPDATE HESSIAN
     //    c->print();
@@ -324,7 +344,7 @@ void Model::check_feasible(const double* x){
 }
 
 
-void Model::fill_in_param_bounds(double* x_l ,double* x_u) {
+void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
     size_t idx = 0;
     param_* v;
     for(auto& v_p: _vars)
@@ -388,69 +408,155 @@ void Model::fill_in_param_bounds(double* x_l ,double* x_u) {
             default:
                 break;
         } ;
-        idx++;
     }
     //    cout << "idx = " << idx << endl;
 }
 
-void Model::fill_in_obj(const double* x , double& res){
-    res = _obj.eval(x);
+void Model::set_x(const double* x){
+    size_t idx = 0;
+    param_* v;
+    for(auto& v_p: _vars)
+    {
+        v = v_p.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[idx]);
+                    idx++;
+                }
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+}
+
+void Model::fill_in_obj(const double* x , double& res, bool new_x){
+    if (new_x) {
+        set_x(x);
+    }
+    res = _obj.eval();
 }
 
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
-    int idx=0;
-    
-    for(auto& c: _cons)
+    size_t idx=0;
+    if (new_x) {
+        set_x(x);
+    }
+    Constraint* c = nullptr;
+    for(auto& c_p: _cons)
     {
-//        res[idx] = c->eval(x);
-        idx++;
+        c = c_p.second;
+        auto nb_ins = c->get_nb_instances();
+        for (int i = 0; i< nb_ins; i++){
+            res[idx] = c->eval(i);
+            idx++;
+        }
     }
 }
 
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
-    int idx=0;
-    int cid = 0;
-    int vid = 0;
-    //    Constraint* c = NULL;
-    param_* v = NULL;
-    func_* dfdx = NULL;
-    int meta_link = -1;
-
-    /* return the values of the jacobian of the constraints */
-    for(auto& c :_cons)
+    size_t idx=0;
+    if (new_x) {
+        set_x(x);
+    }
+    Constraint* c = nullptr;
+    for(auto& c_p: _cons)
     {
-//        for(auto itv = c->_vars->cbegin(); itv != c->_vars->cend(); ++itv)
-//        {
-//            vid = itv->first;
-//            v = itv->second;
-//                res[idx] = c->eval_dfdx(vid, x);
-            //                res[idx] = c->eval_dfdx(vid, x);
-//            idx++;
-//        }
+        c = c_p.second;
+        auto nb_ins = c->get_nb_instances();
+        for (int i = 0; i< nb_ins; i++){
+            res[idx] = c->eval(i);
+            idx++;
+        }
     }
 }
 
 
 void Model::fill_in_jac_nnz(int* iRow , int* jCol){
-    int idx=0;
-    int cid = 0;
-    int vid = 0;
-    //    Constraint* c = NULL;
+    size_t idx=0, inst = 0;
+    size_t cid = 0;
+    size_t vid = 0;
+    Constraint* c = NULL;
     param_* v = NULL;
     /* return the structure of the jacobian */
-    for(auto& c :_cons)
+    for(auto& c_p :_cons)
     {
-//        cid = c->get_idx();
-//        assert(cid==c->get_idx());
-//        for(auto itv = c->_vars.cbegin(); itv != c->_vars.cend(); ++itv)
-//        {
-//            vid = itv->first;
-//            v = itv->second;
-//            assert(vid==v->get_idx());
-//            iRow[idx] = cid;
-//            jCol[idx] = vid;
-//            idx++;
-//        }
+        c = c_p.second;
+        auto nb_ins = c->get_nb_instances();
+        inst = 0;
+        for (int i = 0; i< nb_ins; i++){
+            for (auto &v_p: c->get_vars()){
+                v = v_p.second.first;
+                vid = v->get_id();
+                auto indices = v->get_indices();
+                if (!indices || indices->empty()) {
+                    if (v->is_transposed()) {
+                        for (int j = 0; j<v->get_dim(); j++) {
+                            iRow[idx] = cid;
+                            jCol[idx] = vid + j;
+                            idx++;
+                        }
+                    }
+                    else {
+                        iRow[idx] = cid;
+                        jCol[idx] = vid + inst;
+                        idx++;
+                    }
+                }
+                else {
+                    for (auto &id_p: *indices) {
+                        iRow[idx] = cid;
+                        jCol[idx] = vid + id_p.second;
+                        idx++;
+                    }
+                }
+            }
+            cid++;
+            inst++;
+        }
     }
 }
 
@@ -478,7 +584,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
 
 #ifdef USE_IPOPT
-void Model::fill_in_param_linearity(Ipopt::TNLP::LinearityType* param_types){
+void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* param_types){
     int vid = 0, cid = 0;
     Constraint* c = NULL;
     bool linear = true;
@@ -501,16 +607,29 @@ void Model::fill_in_param_linearity(Ipopt::TNLP::LinearityType* param_types){
 
 
 void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
-    int cid = 0;
-    for(auto& c :_cons)
+    Constraint* c = nullptr;
+    bool lin = false;
+    size_t cid = 0;
+    for(auto& c_p :_cons)
     {
-//        cid = c->get_idx();
-//        if (c->get_ftype()<=lin_) {
-//            const_types[cid]=Ipopt::TNLP::LINEAR;
-//        }
-//        else {
-//            const_types[cid] = Ipopt::TNLP::NON_LINEAR;
-//        }
+        c = c_p.second;
+        if (c->get_ftype()<=lin_) {
+            lin = true;
+        }
+        else {
+            lin = false;
+        }
+        auto nb_ins = c->get_nb_instances();
+        for (int i = 0; i< nb_ins; i++){
+            if (lin) {
+                const_types[cid]=Ipopt::TNLP::LINEAR;
+            }
+            else {
+                const_types[cid] = Ipopt::TNLP::NON_LINEAR;
+            }
+            cid++;
+        }
+
     }
 }
 #endif
@@ -618,98 +737,78 @@ void Model::fill_in_grad_obj(const double* x , double* res){
 }
 
 
-void Model::fill_in_param_init(double* x) {
-    var<int>* int_var = NULL;
-    var<bool>* bin_var = NULL;
-    var<float>* real_var = NULL;
-    var<>* long_real_var = NULL;
-    int idx=0;
-    int vid = 0;
-    for(auto& vi: _vars)
-    {
-//        vid = vi->get_idx();
-//        
-//        switch (vi->get_type()) {
-//            case real:
-//                real_var = (var<float>*)vi;
-//                x[idx] = (double)real_var->get_value();
-//                break;
-//            case longreal:
-//                long_real_var = (var<>*)vi;
-//                x[idx] = long_real_var->get_value();
-//                break;
-//            case integ:
-//                int_var = (var<int>*)vi;
-//                x[idx] = (double)int_var->get_value();
-//                break;
-//            case binary:
-//                bin_var = (var<bool>*)vi;
-//                x[idx] = (double)bin_var->get_value();
-//                break;
-//            default:
-//                exit(-1);
-//                break;
-//        } ;
-        idx++;
-    }
+void Model::fill_in_var_init(double* x) {
+    set_x(x);
 }
 
 void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
-    int idx=0;
-    int cid = 0;
-    //    Constraint* c = NULL;
-    for(auto& c : _cons)
+    size_t cid = 0;
+    Constraint* c = NULL;
+    for(auto& c_p :_cons)
     {
-//        cid = c->get_idx();
-//        switch (c->get_type()) {
-//            case eq:
-//                g_l[idx] = c->_rhs;
-//                g_u[idx] = c->_rhs;
-//                //                g_l[idx] = 0;
-//                //                g_u[idx] = 0;
-//                break;
-//            case leq:
-//                g_l[idx] = -INFINITY;
-//                g_u[idx] = c->_rhs;
-//                //                g_u[idx] = -c->get_const();
-//                //                cout << "gl[idx] = " <<g_l[idx];
-//                //                cout << ", gu[idx] = " <<g_u[idx] << endl;
-//                break;
-//            case geq:
-//                g_l[idx] = c->_rhs;
-//                //                g_l[idx] = -c->get_const();
-//                g_u[idx] = INFINITY;
-//                break;                
-//                
-//            default:
-//                exit(-1);
-//                break;
-//        }
-        idx++;
+        c = c_p.second;
+        switch (c->get_type()) {
+            case eq:{
+                auto nb_ins = c->get_nb_instances();
+                for (int i = 0; i< nb_ins; i++){
+                    g_l[cid] = c->_rhs;
+                    g_u[cid] = c->_rhs;
+                    cid++;
+                }
+                break;
+            }
+            case leq:{
+                auto nb_ins = c->get_nb_instances();
+                for (int i = 0; i< nb_ins; i++){
+                    g_l[cid] = numeric_limits<double>::lowest();
+                    g_u[cid] = c->_rhs;
+                    cid++;
+                }
+                break;
+            }
+            case geq:{
+                auto nb_ins = c->get_nb_instances();
+                for (int i = 0; i< nb_ins; i++){
+                    g_l[cid] = c->_rhs;
+                    g_u[cid] = numeric_limits<double>::max();
+                    cid++;
+                }
+                break;
+            }
+            default:
+                throw invalid_argument("Undefined constraint type!\n");
+                exit(-1);
+                break;
+        }
     }
 }
 
 #ifdef USE_BONMIN
 void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
-    int vid = 0;
-    for(auto& vi: _vars){
-//        vid = vi->get_idx();
-//        switch (vi->get_type()) {
-//            case real:
-//                param_types[vid] = Bonmin::TMINLP::CONTINUOUS;
-//                break;
-//            case longreal:
-//                param_types[vid] = Bonmin::TMINLP::CONTINUOUS;
-//                break;
-//            case integ:
-//                param_types[vid] = Bonmin::TMINLP::INTEGER;
-//                break;
-//            case binary:
-//                param_types[vid] = Bonmin::TMINLP::BINARY;
-//                break;
-//            default:
-//                break;
-//        } ;
+    size_t idx = 0;
+    param_* v;
+    for(auto& v_p: _vars)
+    {
+        v = v_p.second;
+        if (v->get_intype()== short_ || v->get_intype() == integer_) {
+            for (int i = 0; i < real_var->get_dim(); i++) {
+                param_types[idx] = Bonmin::TMINLP::INTEGER;
+                idx++;
+            }
+            
+        }
+        else if (v->get_intype()== binary_) {
+            for (int i = 0; i < real_var->get_dim(); i++) {
+                param_types[idx] = Bonmin::TMINLP::BINARY;
+                idx++;
+            }
+        }
+        else {
+            for (int i = 0; i < real_var->get_dim(); i++) {
+                param_types[idx] = Bonmin::TMINLP::CONTINUOUS;
+                idx++;
+            }
+        }
     }
 }
 
@@ -726,41 +825,11 @@ void Model::print_functions() const{
 }
 
 void Model::print_solution() const{
-    var<int>* int_var = NULL;
-    var<bool>* bin_var = NULL;
-    var<float>* real_var = NULL;
-    var<double>* long_real_var = NULL;
-    int idx=0;
-    int vid = 0;
-    for(auto& v: _vars ) {
-//        vid = v->get_idx();
-//        //        assert(vid==idx);
-//        switch (v->get_type()) {
-//            case real:
-//                real_var = (var<float>*)v;
-//                real_var->print();
-//                break;
-//            case longreal:
-//                long_real_var = (var<double>*)v;
-//                long_real_var->print();
-//                break;
-//            case integ:
-//                int_var = (var<int>*)v;
-//                int_var->print();
-//                break;
-//            case binary:
-//                bin_var = (var<bool>*)v;
-//                bin_var->print();
-//                break;
-//            default:
-//                break;
-//        } ;
-        idx++;
-    }
+    
 }
 
 void Model::print_constraints() const{
     for(auto& p: _cons){
-        p.second.print();
+        p.second->print();
     }
 }

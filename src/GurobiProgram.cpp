@@ -158,7 +158,7 @@ void GurobiProgram::create_grb_constraints(){
     double coeff;
     Constraint* c;
     for(auto& p: model->_cons){
-        c = &p.second;
+        c = p.second;
         switch(c->get_type()) {
             case geq:
                 sense = GRB_GREATER_EQUAL;
