@@ -1,11 +1,10 @@
 //  Net.h
 //  Network
-//  adapted from Net.h in powertools
 //  Copyright (c) All rights reserved
 //
 
-#ifndef Cycle_Basis_PF_Path_h
-#define Cycle_Basis_PF_Path_h
+#ifndef Cycle_Basis_PF_Net_h
+#define Cycle_Basis_PF_Net_h
 #include <map>
 #include <set>
 #include <math.h>

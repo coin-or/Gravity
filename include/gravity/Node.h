@@ -11,9 +11,9 @@
 #include <vector>
 #include <string>
 
-class Path;
+//class Path;
 class Arc;
-class Net;
+//class Net;
 
 class Node{
     

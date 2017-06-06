@@ -8,7 +8,7 @@
 
 #include <Gravity/Path.h>
 #include <fstream>
-#include <Gravity/Net.h>
+
 
 /* @brief Returns true if the pair (n1,n2) is a source-destination pair for this path */
 bool Path::source_dest(Node* n1, Node* n2){
