@@ -1,5 +1,5 @@
 if(APPLE)
-file(GLOB dirs /Applications/IBM/ILOG/CPLEX_Studio*)
+file(GLOB dirs /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio*)
 foreach(d in ${dirs})
 	string(REGEX MATCH "[0-9]+" CPLEX_VERSION "${d}")
 endforeach(d)
@@ -20,7 +20,7 @@ message("Looking for Cplex in ${CPLEX_DIR}")
 
 string(SUBSTRING ${CPLEX_VERSION} 0 2 CPLEX_VERSION_SHORT)
 
-find_path(CPLEX_INCLUDE_DIR ilocplex.h HINTS "${CPLEX_DIR}/include/ilcplex")
+find_path(CPLEX_INCLUDE_DIR ilocplex.h HINTS "${CPLEX_DIR}/include/ilcplex/")
 find_library(CPLEX_CPP_LIBRARY libcplex.a HINTS ${CPLEX_DIR}/lib/x86-64_osx/static_pic)
 
 include(FindPackageHandleStandardArgs)

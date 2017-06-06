@@ -13,9 +13,12 @@ if (NOT ENABLE_GUROBI)
   list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/GurobiProgram.cpp)
 endif()
 
+if (NOT ENABLE_CPLEX)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexProgram.cpp)
+endif()
 
 add_library(gravity ${SOURCES} ${HEADERS})
-target_link_libraries(gravity ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES})
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES})
 
 add_executable(gravity_test main.cpp)
 target_link_libraries(gravity_test gravity)
