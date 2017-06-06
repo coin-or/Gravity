@@ -36,7 +36,7 @@ public:
     
     
     /* Boolean Requests */
-    bool has_meta() const;/**< returns true if constraint was build from a meta-constraint */
+    
     
     /* Operators */
     Constraint& operator<=(double rhs);

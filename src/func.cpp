@@ -3048,7 +3048,7 @@ bool equals(const constant_* c1, const constant_* c2){/**< Checks if c2 equals c
     return false;
 }
 
-template<typename type> type eval(ind i, const constant_* c){
+double eval(const constant_* c, size_t i){
     if (!c) {
         throw invalid_argument("Cannot evaluate nullptr!");
     }
@@ -3138,6 +3138,7 @@ template<typename type> type eval(ind i, const constant_* c){
             return ((bexpr*)c)->eval(i);
             break;
         }
+            
         default:
             break;
     }
@@ -3930,6 +3931,20 @@ func_ func_::get_dfdx(const param_ &v) const{
     }
     //Compute NONLINEAR part missing.
     return res;
+}
+
+double func_::eval(size_t i) const{
+    double res = 0;
+    for (auto &pair:*_pterms) {
+        res += pair.second.eval(i);
+    }
+    for (auto &pair:*_qterms) {
+        res += pair.second.eval(i);
+    }
+    for (auto &pair:*_lterms) {
+        res += pair.second.eval(i);
+    }
+    res += ::eval(_cst,i);
 }
 
 string func_::to_string() const{

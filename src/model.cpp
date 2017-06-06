@@ -35,22 +35,13 @@ Model::~Model(){};
 
 
 size_t Model::get_nb_vars() const{
-    size_t n = 0;
-    for (auto &vp:_vars) {
-        if (vp.second->is_transposed()) {
-            n += vp.second->get_dim();
-        }
-        else {
-            n++;
-        }
-    }
-    return n;
+    return _nb_vars;
 };
 
 size_t Model::get_nb_cons() const{
     size_t n = 0;
     for (auto &cp:_cons) {
-        n+= cp.second.get_
+        n+= cp.second.get_nb_instances();
     }
     return n;
 };
@@ -82,7 +73,7 @@ std::vector<int> bounds(int parts, int mem) {
 
 
 
-int Model::get_nb_nnz_h() const{
+size_t Model::get_nb_nnz_h() const{
     size_t idx=0;
     /* return the structure of the hessian */
     for(auto& v: _vars)
@@ -101,7 +92,7 @@ int Model::get_nb_nnz_h() const{
 //            }
 //        }
         //        cout << "\n";
-//    }
+    }
     //        cout << "Hessian nnz = " << idx << endl;
     //    exit(-1);
     return idx;
@@ -110,95 +101,48 @@ int Model::get_nb_nnz_h() const{
 //
 
 Constraint* Model::get_constraint(const string& cname) const{
-//    return _cons[cid];
-    return nullptr;
+    return (Constraint*)&_cons.at(cname);
 }
 
-var_* Model::get_var(const string& vname) const{
-    //    return _cons[cid];
-    return nullptr;
+param_* Model::get_var(const string& vname) const{
+        return _vars.at(vname);
 }
 
 
 
 /* Modifiers */
 
-void Model::add_var(const var_& v){
-//    _vars.push_back(&v);
-//    v.set_idx(_idx_var++);
-    //    var<float>* real_var = NULL;
-    //    var<>* long_real_var = NULL;
-    //    switch (v.get_type()) {
-    //        case real:
-    //            real_var = (var<float>*)&v;
-    //            real_var->print();
-    //            break;
-    //        case longreal:
-    //            long_real_var = (var<>*)&v;
-    //            long_real_var->print();
-    //            break;
-    //        default:
-    //            break;
-    //    }
+void Model::add_var(const param_& v){
+    if (v.is_transposed()) {
+        _nb_vars += v.get_dim();
+    }
+    else {
+        _nb_vars++;
+    }
+    if (_vars.count(v.get_name())!=0) {
+        _vars[v.get_name()] = (param_*)copy(v);
+    }
 };
 
 
-void Model::del_var(const var_& v){
-    //    _vars.erase(v->get_idx());
-    assert(false);
+void Model::del_var(const param_& v){
+    if (v.is_transposed()) {
+        _nb_vars -= v.get_dim();
+    }
+    else {
+        _nb_vars--;
+    }
+    auto it = _vars.find(v.get_name());
+    delete it->second;
+    _vars.erase(it);
 };
 
 void Model::add_constraint(const Constraint& c){
-    var_* vi = NULL;
-    int vid = 0;
-    //var<> v;
-    //    Function* dfdx = NULL;
-    /*   if(c_.get_ftype()==lin_){
-     for(auto it = c_._vars.cbegin(); it != c_._vars.end(); it++) {
-     vid = it->first;
-     if (fabs(c_.get_coeff(vid)) <= 0.0001) {
-     //cout << "\nIgnoring constraint " << c_._name;
-     return;
-     } // Ignoring constraints with very small coefficients
-     }
-     }*/
-//    Constraint* c = new Constraint(c_);
-//    _cons.push_back(c);
-//    c->set_idx(_idx_con++);
-//    
-//    for(auto it = c->_vars.cbegin(); it != c->_vars.end(); it++) {
-//        vid = it->first;
-//        vi = it->second;
-//        vi->addConstraint(c);
-//        
-//        //        if (c->get_ftype()==nlin_) {
-//        //            dfdx = c->get_dfdx(vi);
-//        //                    c->print();
-//        //                    vi->print();
-//        //                    cout << " : ";
-//        //                    dfdx->print(true);
-//        //            c->set_dfdx(vid, dfdx);
-//        //                    if (c->_hess.count(vid)==1) {
-//        //                        for (int vjd : *c->_hess[vid]){
-//        ////                            if(dfdx->has_var(vjd) && dfdx->_exp && !dfdx->_exp->is_leaf() && dfdx->_exp->has_var(vjd))
-//        //                            if(dfdx->has_var(vjd))
-//        //                                dfdx->set_dfdx(vjd, dfdx->get_dfdx(vjd));
-//        ////                                    c->print();
-//        ////                                    vi->print();
-//        ////                                    cout << " : ";
-//        ////                                    dfdx->print(true);
-//        ////                                    getVar(vjd)->print();
-//        ////                                    cout << " : ";
-//        ////                                    dfdx->get_dfdx(vjd)->print(true);
-//        //
-//        //
-//        //                        }
-//        //                    }
-//        
-//        //        }
-//    }
-//    _nnz_g+=c->get_nb_vars();
-    
+    _nb_cons += c.get_nb_instances();
+    if (_cons.count(c.get_name())!=0) {
+        _cons[c.get_name()] = c;
+    }
+    //UPDATE HESSIAN
     //    c->print();
 };
 
@@ -213,7 +157,7 @@ void Model::add_on_off(const Constraint& c, var<bool>& on){
     Constraint res(c.get_name() + "_on/off");
     double b;
 //    for(auto it: orig_q->_coefs) {
-//        v = getVar_<double>(it.first);
+//        v = getparam_<double>(it.first);
 //        if (!v->is_bounded_below() || !v->is_bounded_above()) {
 //            cerr << "Variable " << v->_name << " in constraint " << c._name << " does not have finite bounds.\n";
 //            exit(1);
@@ -230,7 +174,7 @@ void Model::add_on_off(const Constraint& c, var<bool>& on){
 //    if (c.get_type() == eq) {
 //        Constraint res2(c.get_name() + "_on/off2");
 //        for(auto it: orig_q->_coefs) {
-//            v = getVar_<double>(it.first);
+//            v = getparam_<double>(it.first);
 //            if (it.second < 0) res2 -= it.second*v->get_ub_off()*(1-on);
 //            else res2 -= it.second*v->get_lb_off()*(1-on);
 //        }
@@ -330,13 +274,13 @@ void Model::set_objective_type(ObjectiveType t) {
 
 void Model::check_feasible(const double* x){
     int vid = 0;
-    //    var_* v = NULL;
+    //    param_* v = NULL;
     var<>* var = NULL;
     /* return the structure of the hessian */
 //    for(auto& v: _vars)
 //    {
 //        vid = v->get_idx();
-//        var = getVar_<double>(vid);
+//        var = getparam_<double>(vid);
 //        if ((x[vid] - var->get_ub())>1e-6) {
 //            cerr << "violated upper bound constraint: ";
 //            var->print();
@@ -380,47 +324,77 @@ void Model::check_feasible(const double* x){
 }
 
 
-void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
-    var<int>* int_var = NULL;
-    var<bool>* bin_var = NULL;
-    var<float>* real_var = NULL;
-    var<>* long_real_var = NULL;
-    int idx=0;
-    for(auto& v: _vars)
+void Model::fill_in_param_bounds(double* x_l ,double* x_u) {
+    size_t idx = 0;
+    param_* v;
+    for(auto& v_p: _vars)
     {
-//        switch (v->get_type()) {
-//            case real:
-//                real_var = (var<float>*)v;
-//                //                real_var->print();
-//                x_l[idx] = (double)min(real_var->get_lb(), real_var->get_lb_off());
-//                x_u[idx] = (double)max(real_var->get_ub(), real_var->get_ub_off());
-//                break;
-//            case longreal:
-//                long_real_var = (var<>*)v;
-//                //                long_real_var->print();
-//                x_l[idx] = min(long_real_var->get_lb(), long_real_var->get_lb_off());
-//                x_u[idx] = max(long_real_var->get_ub(), long_real_var->get_ub_off());
-//                break;
-//            case integ:
-//                int_var = (var<int>*)v;
-//                x_l[idx] = (double)int_var->get_lb();
-//                x_u[idx] = (double)int_var->get_ub();
-//                break;
-//            case binary:
-//                bin_var = (var<bool>*)v;
-//                x_l[idx] = bin_var->get_lb();
-//                x_u[idx] = bin_var->get_ub();
-//                break;
-//            default:
-//                break;
-//        } ;
+        v = v_p.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[idx] = (double)real_var->get_lb();
+                    x_u[idx] = (double)real_var->get_ub();
+                    idx++;
+                }
+                break;
+            }
+            default:
+                break;
+        } ;
         idx++;
     }
     //    cout << "idx = " << idx << endl;
 }
 
 void Model::fill_in_obj(const double* x , double& res){
-//    res = _obj->eval(x);
+    res = _obj.eval(x);
 }
 
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
@@ -438,7 +412,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     int cid = 0;
     int vid = 0;
     //    Constraint* c = NULL;
-    var_* v = NULL;
+    param_* v = NULL;
     func_* dfdx = NULL;
     int meta_link = -1;
 
@@ -462,7 +436,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     int cid = 0;
     int vid = 0;
     //    Constraint* c = NULL;
-    var_* v = NULL;
+    param_* v = NULL;
     /* return the structure of the jacobian */
     for(auto& c :_cons)
     {
@@ -483,7 +457,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
 void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     int idx=0;
     int vid = 0, vjd = 0;
-    //    var_* v = NULL;
+    //    param_* v = NULL;
     /* return the structure of the hessian */
     for(auto& v: _vars)
     {
@@ -504,7 +478,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
 
 #ifdef USE_IPOPT
-void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* var_types){
+void Model::fill_in_param_linearity(Ipopt::TNLP::LinearityType* param_types){
     int vid = 0, cid = 0;
     Constraint* c = NULL;
     bool linear = true;
@@ -520,8 +494,8 @@ void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* var_types){
 //                linear=false;
 //            }
 //        }
-        if (linear) var_types[vid]=Ipopt::TNLP::LINEAR;
-        else var_types[vid] = Ipopt::TNLP::NON_LINEAR;
+        if (linear) param_types[vid]=Ipopt::TNLP::LINEAR;
+        else param_types[vid] = Ipopt::TNLP::NON_LINEAR;
     }
 }
 
@@ -544,7 +518,7 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
     int vid = 0, vjd = 0, cid = 0, idx = 0;
-    var_* vi = NULL;
+    param_* vi = NULL;
     func_* obj_dfdx = NULL;
     func_* dfdx = NULL;
     double hess = 0;
@@ -627,7 +601,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 void Model::fill_in_grad_obj(const double* x , double* res){
     int idx=0;
-    //    var_* v = NULL;
+    //    param_* v = NULL;
     int vid = 0;
     for(auto& vi: _vars)
     {
@@ -644,7 +618,7 @@ void Model::fill_in_grad_obj(const double* x , double* res){
 }
 
 
-void Model::fill_in_var_init(double* x) {
+void Model::fill_in_param_init(double* x) {
     var<int>* int_var = NULL;
     var<bool>* bin_var = NULL;
     var<float>* real_var = NULL;
@@ -716,22 +690,22 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
 }
 
 #ifdef USE_BONMIN
-void Model::fill_in_var_types(Bonmin::TMINLP::VariableType* var_types){
+void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
     int vid = 0;
     for(auto& vi: _vars){
 //        vid = vi->get_idx();
 //        switch (vi->get_type()) {
 //            case real:
-//                var_types[vid] = Bonmin::TMINLP::CONTINUOUS;
+//                param_types[vid] = Bonmin::TMINLP::CONTINUOUS;
 //                break;
 //            case longreal:
-//                var_types[vid] = Bonmin::TMINLP::CONTINUOUS;
+//                param_types[vid] = Bonmin::TMINLP::CONTINUOUS;
 //                break;
 //            case integ:
-//                var_types[vid] = Bonmin::TMINLP::INTEGER;
+//                param_types[vid] = Bonmin::TMINLP::INTEGER;
 //                break;
 //            case binary:
-//                var_types[vid] = Bonmin::TMINLP::BINARY;
+//                param_types[vid] = Bonmin::TMINLP::BINARY;
 //                break;
 //            default:
 //                break;

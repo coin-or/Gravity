@@ -471,6 +471,11 @@ public:
         return n;
     }
     
+    size_t get_nb_instances() const{
+        return _nb_instances;
+    }
+    
+    
     constant_* get_cst() {
         return _cst;
     }
@@ -928,7 +933,8 @@ public:
 //            }
 //        }
     }
-        
+    
+    double eval(size_t i) const;
     string to_string() const;
     void print(bool endline=true) const;
     
