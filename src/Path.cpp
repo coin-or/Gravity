@@ -6,9 +6,9 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include "Path.h"
+#include <Gravity/Path.h>
 #include <fstream>
-#include "Net.h"
+#include <Gravity/Net.h>
 
 /* @brief Returns true if the pair (n1,n2) is a source-destination pair for this path */
 bool Path::source_dest(Node* n1, Node* n2){

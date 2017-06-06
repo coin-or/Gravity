@@ -18,8 +18,9 @@ class Net;
 class Node{
     
 public:
-    int ID;
+    
     std::string _name;
+    int ID;
     std::vector<Arc*> branches;
 
     

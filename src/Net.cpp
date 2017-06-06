@@ -5,9 +5,7 @@
 //  Created by Guagnlei on 03/06/2017.
 //
 
-#include "Net.h"
-#include "Node.h"
-#include "Path.h"
+#include <Gravity/Net.h>
 #include <algorithm>
 #include <map>
 #define _USE_MATH_DEFINES

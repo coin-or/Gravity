@@ -61,7 +61,11 @@ public:
     
     int get_nb_nnz_h() const;
     
-    bool has_var(const var_& v) const;
+    template<typename type>
+    bool has_var(const var<type>& v) const{
+        return (_vars.count(v.get_name())!=0);
+    };
+
     
     
     /* Modifiers */

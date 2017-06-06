@@ -9,13 +9,13 @@
 #include <map>
 #include <set>
 #include <math.h>
-#include "Arc.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "Node.h"
-#include "Path.h"
 #include <assert.h>
+#include <Gravity/Node.h>
+#include <Gravity/Arc.h>
+#include <Gravity/Path.h>
 
 class Net{
 public:

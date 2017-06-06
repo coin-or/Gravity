@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include "Arc.h"
+#include <Gravity/Arc.h>
 #include <iostream>
 
 using namespace std;

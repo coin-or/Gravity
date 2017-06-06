@@ -7,6 +7,14 @@
 //
 
 #include <Gravity/model.h>
+//#define USEDEBUG
+#ifdef USEDEBUG
+#define Debug(x) cout << x
+#else
+#define Debug(x)
+#endif
+#define DebugOn(x) cout << x
+#define DebugOff(x)
 
 
 using namespace std;
@@ -36,14 +44,7 @@ int Model::get_nb_cons() const{
 
 
 int Model::get_nb_nnz_g() const{
-    //    return _nnz_g;
-    int idx = 0;
-    for(auto &c: _cons)
-    {
-//        idx += c->get_nb_vars();
-    }
-    //    cout << "Jacobian nnz = " << idx << endl;
-    return idx;
+    return _nnz_g;
 };
 
 //Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
@@ -94,11 +95,6 @@ int Model::get_nb_nnz_h() const{
     return idx;
 };
 
-
-bool Model::has_var(const var_& v) const{
-//    return (v->get_idx()<_vars.size());
-    return false;
-};
 //
 
 Constraint* Model::get_constraint(const string& cname) const{

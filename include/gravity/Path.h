@@ -14,6 +14,8 @@
 class Path{
 public:
 
+    Path(){};
+    ~Path(){};
     std::list<Node*> nodes;
     
     /* @brief Returns true if the pair (n1,n2) is a source-destination pair for this path */

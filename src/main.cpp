@@ -231,13 +231,9 @@ int main (int argc, const char * argv[])
 //    SVM.print();
 //    auto f1 = sum(alpha,n,ni);
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
-<<<<<<< HEAD
-    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+//    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     
-    
-=======
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
->>>>>>> adcedd785856259adbaa2b3ad971ac011b587a2c
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
@@ -245,7 +241,6 @@ int main (int argc, const char * argv[])
     f2 = sin((ip/dp)*p);
     f2.print();
     f2 -= 2.2;
-<<<<<<< HEAD
 //  f2.print();
     
 //  assuming a vector of coefficients are given, try to generate the graph structure.
@@ -361,10 +356,8 @@ int main (int argc, const char * argv[])
     string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
     graph.readFile(fname);
     
-=======
     f2 *= 2;
     f2.print();
->>>>>>> adcedd785856259adbaa2b3ad971ac011b587a2c
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);

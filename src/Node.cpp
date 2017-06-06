@@ -6,9 +6,10 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include "Node.h"
-#include "Net.h"
-#include "Path.h"
+#include <Gravity/Node.h>
+#include <Gravity/Arc.h>
+#include <Gravity/Net.h>
+#include <Gravity/Path.h>
 #include <iostream>
 #include <limits.h>
 
