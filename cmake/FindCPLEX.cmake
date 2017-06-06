@@ -1,0 +1,38 @@
+if(APPLE)
+file(GLOB dirs /Applications/IBM/ILOG/CPLEX_Studio*)
+foreach(d in ${dirs})
+	string(REGEX MATCH "[0-9]+" CPLEX_VERSION "${d}")
+endforeach(d)
+elseif(UNIX)
+file(GLOB dirs /opt/applications/cplex/cplex*)
+foreach(d in ${dirs})
+	string(REGEX MATCH "[0-9]+" CPLEX_VERSION "${d}")
+endforeach(d)
+endif()
+
+message("Cplex version ${CPLEX_VERSION}")
+if(APPLE)
+string(CONCAT CPLEX_DIR /Applications/IBM/ILOG/CPLEX_Studio;${CPLEX_VERSION};/cplex)
+elseif(UNIX)
+string(CONCAT CPLEX_DIR /opt/applications/cplex/cplex;${CPLEX_VERSION};/linux64)
+endif()
+message("Looking for Cplex in ${CPLEX_DIR}")
+
+string(SUBSTRING ${CPLEX_VERSION} 0 2 CPLEX_VERSION_SHORT)
+
+find_path(CPLEX_INCLUDE_DIR ilocplex.h HINTS "${CPLEX_DIR}/include/ilcplex")
+find_library(CPLEX_CPP_LIBRARY libcplex.a HINTS ${CPLEX_DIR}/lib/x86-64_osx/static_pic)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(CPLEX DEFAULT_MSG CPLEX_LIBRARY CPLEX_CPP_LIBRARY CPLEX_INCLUDE_DIR)
+
+if(CPLEX_FOUND)
+    set(CPX_LICENSE_FILE "~/cplex.research.lic")
+    set(CPLEX_INCLUDE_DIRS ${CPLEX_INCLUDE_DIR})
+    set(CPLEX_LIBRARIES ${CPLEX_CPP_LIBRARY} ${CPLEX_LIBRARY})
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(CPLEX_LIBRARIES "${CPLEX_LIBRARIES};m;pthread")
+    endif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+endif(CPLEX_FOUND)
+
+mark_as_advanced(CPLEX_LIBRARY CPLEX_CPP_LIBRARY CPLEX_INCLUDE_DIR)

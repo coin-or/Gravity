@@ -692,6 +692,19 @@ public:
         return *this /= constant<T>(c);
     };
 
+//    size_t get_nnz_h() const{// returns number of nonzeros in the second derivatives of c
+//        size_t n =0;
+//        for (auto &qtp: *_qterms){
+//            if (qtp.second._p->first->is_transposed()) {
+//                n += qtp.second._p->first->get_dim();
+//            }
+//            else {
+//                n++;
+//            }
+//        }
+//        // MISSING NONLINEAR PART!
+//        return n;
+//    }
     
     qterm* get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
         for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {

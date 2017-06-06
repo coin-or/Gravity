@@ -34,16 +34,29 @@ Model::~Model(){};
 /* Accessors */
 
 
-int Model::get_nb_vars() const{
-    return (int)_vars.size();
+size_t Model::get_nb_vars() const{
+    size_t n = 0;
+    for (auto &vp:_vars) {
+        if (vp.second->is_transposed()) {
+            n += vp.second->get_dim();
+        }
+        else {
+            n++;
+        }
+    }
+    return n;
 };
 
-int Model::get_nb_cons() const{
-    return (int)_cons.size();
+size_t Model::get_nb_cons() const{
+    size_t n = 0;
+    for (auto &cp:_cons) {
+        n+= cp.second.get_
+    }
+    return n;
 };
 
 
-int Model::get_nb_nnz_g() const{
+size_t Model::get_nb_nnz_g() const{
     return _nnz_g;
 };
 
@@ -70,8 +83,7 @@ std::vector<int> bounds(int parts, int mem) {
 
 
 int Model::get_nb_nnz_h() const{
-    int idx=0;
-    int vid = 0, vjd = 0;
+    size_t idx=0;
     /* return the structure of the hessian */
     for(auto& v: _vars)
     {
@@ -89,7 +101,7 @@ int Model::get_nb_nnz_h() const{
 //            }
 //        }
         //        cout << "\n";
-    }
+//    }
     //        cout << "Hessian nnz = " << idx << endl;
     //    exit(-1);
     return idx;
