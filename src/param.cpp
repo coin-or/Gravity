@@ -22,6 +22,9 @@ string param_::get_name(bool indices) const {
         name += (*iter).first;
         name += ")";
     }
+    if (is_transposed()) {
+        name += "^T";
+    }
     return name;
 };
 

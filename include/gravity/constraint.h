@@ -15,7 +15,7 @@
 class Constraint :public func_{
     
 protected:
-    string                      _name;
+    string                      _name = "no_name";
     
 public:
     

@@ -31,7 +31,7 @@ protected:
     
 public:
     
-    bool                _is_transposed = false;
+    
     virtual ~param_(){};
     
     string get_name(bool indices=true) const;
@@ -45,9 +45,7 @@ public:
     void set_type(NType type){ _intype = type;}
     
     /** Querries */
-    bool is_transposed() const{ /**< Returns true if the vector is transposed **/
-        return _is_transposed;
-    }
+    
 
     bool is_binary() const{
         return (_intype==binary_);
