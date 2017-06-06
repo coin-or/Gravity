@@ -42,6 +42,7 @@ public:
     /** Clone network */
     // To get the chordal extension of the network.
     Net* _clone;
+    
     /** Cloning */
     Net* clone();
     
@@ -92,7 +93,9 @@ public:
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags();
     
+   // int test(std::string fname);
     int test();
-        
+
+    
 };
 #endif
