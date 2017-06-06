@@ -8,8 +8,6 @@
 
 #include <Gravity/Node.h>
 #include <Gravity/Arc.h>
-#include <Gravity/Net.h>
-#include <Gravity/Path.h>
 #include <iostream>
 #include <limits.h>
 

@@ -1,15 +1,10 @@
 //
 //  Path.h
-//  Cycle_Basis_PF
-//
-//  Created by Sumiran on 17/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
-//
 
 #ifndef Cycle_Basis_PF_Path_h
 #define Cycle_Basis_PF_Path_h
 #include <list>
-#include "Node.h"
+#include <Gravity/Node.h>
 
 class Path{
 public:
