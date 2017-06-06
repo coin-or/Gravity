@@ -6,9 +6,7 @@
 //
 //
 
-#include <Gravity/var.h>
-
-
+#include <gravity/var.h>
 
 template<typename type> var<type>::var():param<type>(){
     _id = 0;

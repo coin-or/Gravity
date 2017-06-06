@@ -25,11 +25,10 @@ public:
     
 };
 
-
-
-
 /** A variable can be a bool, a short, an int, a float or a double*/
 template<typename type = int>
+
+// define variable as a parameter with bounds
 class var: public param<type>, public var_{
     
 public:
@@ -47,7 +46,6 @@ public:
     var(const char* name);
     var(const var<type>& v);
     //@}
-    
     
     //@{
     /** Bounded variable constructor */

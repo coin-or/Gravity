@@ -14,12 +14,13 @@
 #include <sstream>
 #include <vector>
 #include <set>
-#include <Gravity/constant.h>
+#include <gravity/constant.h>
 
 using namespace std;
 
 
 /** Backbone class for parameter */
+
 class param_: public constant_{
 protected:
     string              _name;
@@ -170,7 +171,7 @@ public:
         string key;
         for (int i= 0; i<indices.size(); i++) {
             key += std::to_string(indices[i]);
-            if (i<indices.size()-1) {
+            if (i < indices.size() - 1) {
                 key += ",";
             }
         }

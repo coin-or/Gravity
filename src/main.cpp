@@ -6,13 +6,17 @@
 //
 //
 
+
 #include <stdio.h>
 #include <iostream>
 #include <string>
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
+#include <gravity/Net.h>
 #include <gravity/func.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -66,8 +70,8 @@ int main (int argc, const char * argv[])
 {
 
     //  Start Timers
-    cout << "HELLO!\n";
-    cout << "Understanding the numerical limits of your machine:" << endl;
+    std::cout << "HELLO!\n";
+    std::cout << "Understanding the numerical limits of your machine:" << endl;
     std::cout << "type\tlowest\thighest\n";
     std::cout << "short\t"
     << std::numeric_limits<short>::lowest() << '\t'
@@ -90,7 +94,7 @@ int main (int argc, const char * argv[])
 //    param<> p;
     param<int> ip("ip");
     ip = 2;
-//    ip.print();
+   ip.print();
     ip = 5;
 //    ip.print();
     for (int i = 0; i<100000; i++) {
@@ -115,12 +119,14 @@ int main (int argc, const char * argv[])
     var<float> q("q");
     p.set_size(200);
     q.set_size(200);
-//    auto c1 = (p_ij^2) + (q_ij^2) - (dp^2);
-//    func_ f(constant<>(2));
-//    func_ f(2);
+    
+//  auto c1 = (p_ij^2)+(q_ij^2)-(dp^2);
+//  func_ f(constant<>(2));
+//  func_ f(2);
+    
     p(1).print(true);
     q.print(true);
-    auto f = dp*p;
+    auto f = dp*p*p;
     f.print(true);
     auto c1 = p + q - dp + 1;
     c1.print(true);
@@ -220,13 +226,129 @@ int main (int argc, const char * argv[])
 //    auto f1 = sum(alpha,n,ni);
 //    auto f1 = sqrt(v1.tr()*v1) + p*q;
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+    
+    
     f1.print();
     auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
     f2.print();
     f2 = v1/3 + sin(dp*q(2)) + 3;
     f2.print();
     f2 -= 2.2;
-    f2.print();
+//  f2.print();
+    
+//  assuming a vector of coefficients are given, try to generate the graph structure.
+//  1: (a, b)  1
+//  2: (a, c)  1
+//  3: (b, c)  1
+    
+    
+    Net graph;
+    /*
+    // add nodes
+    Node* node1= nullptr;
+    Node* node2 = nullptr;
+    Node* node3 = nullptr;
+
+    int id = 0;
+    int id2 = 1;
+    int id3 = 2;
+    
+    node1 = new Node(to_string(id),id);
+    node2 = new Node(to_string(id2),id2);
+    node3 = new Node(to_string(id3),id3);
+    
+    Node* nodeclone1 = new Node(to_string(id),id);
+    Node* nodeclone2 = new Node(to_string(id2),id2);
+    Node* nodeclone3 = new Node(to_string(id3),id3);
+    
+    graph.add_node(node1);
+    graph.add_node(node2);
+    graph.add_node(node3);
+    
+    Arc* arc1 = NULL;
+    Arc* arc2 = NULL;
+    Arc* arc3 = NULL;
+
+    string src, dest;
+    arc1 = new Arc(node1, node2);
+    arc2 = new Arc(node1, node3);
+    arc3 = new Arc(node2, node3);
+    
+    
+    //arc1_clone = new Arc(nodeclone1, nodeclone2);
+    //arc2_clone = new Arc(nodeclone1, nodeclone3);
+    //arc3_clone = new Arc(nodeclone2, nodeclone3);
+    
+    //Net* clone;
+    graph._clone = new Net();
+    graph._clone->add_node(nodeclone1);
+    graph._clone->add_node(nodeclone2);
+    graph._clone->add_node(nodeclone3);
+    //graph.add_arc(arc1);
+    //graph.add_arc(arc2);
+    //graph.add_arc(arc3);
+    
+    //arc_clone->src = _clone->get_node(src);
+    //arc_clone->dest = _clone->get_node(dest);
+    
+    
+    graph._clone->add_arc(arc1);
+    graph._clone->add_arc(arc2);
+    graph._clone->add_arc(arc3);
+    */
+    /*
+    graph._clone = new Net();
+
+    for (unsigned i=0; i<3; i++){
+        Node* node = NULL;
+        Node* node_clone = NULL;
+        node = new Node(to_string(i), i);
+        node_clone = new Node(to_string(i),i);
+        //node->vs = vs;
+        graph.add_node(node);
+        graph._clone->add_node(node_clone);
+    }
+    
+    Arc* arc = NULL;
+    Arc* arc_clone = NULL;
+    string src, dest;
+    int id;
+    for (unsigned i=0; i<3; i++){
+        for (unsigned j=i+1; j<3;j++){
+            src = to_string(i);
+            dest = to_string(j);
+            id = (int)graph.arcs.size() + 1;
+            arc = new Arc(to_string(id));
+            arc_clone = new Arc(to_string(id));
+            arc->id = id;
+            arc_clone->id = id;
+            arc->src = graph.get_node(src);
+            arc->dest= graph.get_node(dest);
+            arc_clone->src = graph._clone->get_node(src);
+            arc_clone->dest = graph._clone->get_node(dest);
+            graph._clone->add_arc(arc_clone);
+        }
+    }
+*/
+    
+    //get the chordal extension
+    //graph.get_tree_decomp_bags();
+    //string filename = "/Users/guangleiwang/ANU/nesta/nesta_case30_ieee.m";
+
+    
+    
+    //graph.test(filename);
+    graph.test();
+    
+    
+    // arc1->print();
+    // populate the graph:
+    
+    
+    
+    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
+    graph.readFile(fname);
+    
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);
@@ -526,6 +648,9 @@ int main (int argc, const char * argv[])
 //    q += c*(t*y);
 //    q.print();
 
+    
+    
+    
     //  Stop timers
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();

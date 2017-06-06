@@ -6,7 +6,7 @@
 //
 //
 
-#include <Gravity/param.h>
+#include <gravity/param.h>
 
 
 string param_::get_name(bool indices) const {
