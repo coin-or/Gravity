@@ -23,10 +23,11 @@ class constant_{
 protected:
     CType               _type;
     
+
+    
 public:
     bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */
     bool                _is_vector = false; /**< True if the constant is considered as a vector */
-    
     
     virtual ~constant_(){};
     CType get_type() const { return _type;}
@@ -139,6 +140,8 @@ public:
     constant(const constant& c){ /**< Copy constructor */
         _type = c._type;
         _val = c._val;
+        _is_transposed = c._is_transposed;
+        _is_vector = c._is_vector;
     };
 
     constant(type val):constant(){

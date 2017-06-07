@@ -11,24 +11,27 @@
 
 string param_::get_name(bool indices) const {
     string name = _name;
-    int nb = _indices->size() - 1;
-    if (indices && nb==1) {
-        name += "[";
-        auto iter = _indices->begin();
-        for (auto i = 0; i < nb; i++) {
-            name += "(";
-            name += iter->first;
-            name += ")";
-            name += ",";
-            iter++;
-        }
-        name += "(";
-        name += iter->first;
-        name += ")";
-        name += "]";
-    }
-    if (_is_transposed || _is_vector) {
+//    int nb = _indices->size() - 1;
+//    if (indices && nb==0) {
+//        name += "[";
+//        auto iter = _indices->begin();
+//        for (auto i = 0; i < nb; i++) {
+//            name += "(";
+//            name += iter->first;
+//            name += ")";
+//            name += ",";
+//            iter++;
+//        }
+//        name += "(";
+//        name += iter->first;
+//        name += ")";
+//        name += "]";
+//    }
+    if (_is_transposed) {
         name += "^T";
+    }
+    else if (_is_vector) {
+        name += "'";
     }
     return name;
 };

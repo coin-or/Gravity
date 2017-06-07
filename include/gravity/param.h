@@ -39,6 +39,8 @@ public:
     
     size_t get_id() const{return _id;};
     
+    size_t get_id_inst() const{return _indices->begin()->second;};
+    
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const { return _dim;}
@@ -246,6 +248,7 @@ public:
     void    set_size(size_t s, type val = 0){
         _val->resize(s,val);
         _dim = s;
+        indexed_in(make_pair<>(0,s));
     };
     
     void add_val(type val){
@@ -343,6 +346,11 @@ public:
         return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && *_indices==*p._indices && *_val==*p._val);
     }
     
+    param& operator^(size_t d){
+        set_size(d);
+        return *this;
+    }    
+    
     param& operator=(type v){
         _val->push_back(v);
         update_range(v);
@@ -385,14 +393,46 @@ public:
         if (!_indices) {
             _indices = new map<string,unsigned>();
         }
-        assert(_indices->count(key)==0);
+//        assert(_indices->count(key)==0);
         _indices->insert(make_pair<>(key,_indices->size()));
+        _dim++;
+    }
+    
+    template<typename... Args>
+    void indexed_in(pair<size_t,size_t> t1, Args&&... args){
+        if (!_indices) {
+            _indices = new map<string,unsigned>();
+        }
+        list<pair<size_t,size_t>> indices;
+        indices = {forward<pair<size_t,size_t>>(args)...};
+        indices.push_front(t1);
+        string key;
+        auto it = indices.begin();
+        for (size_t i = 0; i<indices.size(); i++) {
+            for (size_t n = it->first; n<it->second; n++) {
+                key = to_string(n);
+                for (size_t j = i+1; j<indices.size(); j++) {
+                    auto it2 = next(it,j-i);
+                    for (size_t m = it2->first; m < it2->second; m++) {
+                        key = to_string(n);
+                        key += ",";
+                        key += to_string(m);
+                        _indices->insert(make_pair<>(key,param_::_indices->size()));
+                    }
+                }
+                if (i+1 >= indices.size()) {
+                    _indices->insert(make_pair<>(key,param_::_indices->size()));
+                }
+            }
+            it++;
+        }
+//        assert(_indices->count(key)==0);
     }
     
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         auto res(*this);
-        //        res._indices->clear();
+        res._indices->clear();
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
@@ -407,13 +447,16 @@ public:
         }
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
-            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+//            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+//            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
             size_t idx = param_::_indices->at(key);
             res._indices->insert(make_pair<>(key,idx));
+            res._dim = 1;
         }
+        res._name += "["+key+"]";
         return res;
     }
 
@@ -424,6 +467,22 @@ public:
     
     string to_str(bool vals=false) const{
         string str = get_name();
+            int nb = _indices->size() - 1;
+            if (nb==0) {
+                str += "[";
+                auto iter = _indices->begin();
+                for (auto i = 0; i < nb; i++) {
+                    str += "(";
+                    str += iter->first;
+                    str += ")";
+                    str += ",";
+                    iter++;
+                }
+                str += "(";
+                str += iter->first;
+                str += ")";
+                str += "]";
+            }
         if(vals){
             str += " = [ ";
             for(auto v: *_val){

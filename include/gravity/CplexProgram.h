@@ -24,7 +24,8 @@ private:
     
     IloModel* _cplex_model;
     IloEnv* _cplex_env;
-    vector<IloNumVar> _cplex_vars; /** Mapping variables to Cplex variables */
+    vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
+    IloObjective        _cplex_obj;
 public:
     Model* _model;
     int _output;
@@ -32,6 +33,10 @@ public:
     CplexProgram(Model* m);
     ~CplexProgram();
     void reset_model();
+    
+    IloModel& get_cplex_model() const{
+        return *_cplex_model;
+    }
     
     bool solve(bool relax);
     void prepare_model();

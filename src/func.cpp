@@ -852,6 +852,8 @@ func_::func_(const constant_& c){
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
+    _is_transposed = c._is_transposed;
+    _is_vector = c._is_vector;
 
     switch (c.get_type()) {
         case binary_c: {
@@ -897,7 +899,6 @@ func_::func_(const constant_& c){
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
-            _is_transposed = p_c2->_is_transposed;
             break;
         }
         case var_c:{
@@ -908,7 +909,6 @@ func_::func_(const constant_& c){
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
-            _is_transposed = p_c2->_is_transposed;
             break;
         }
         case uexp_c: {
@@ -1523,24 +1523,12 @@ func_& func_::operator*=(const constant_& c){
          }
         for (auto &pair:*_lterms) {
             pair.second._coef = multiply(pair.second._coef, c);
-            if (pair.second._coef->_is_transposed) {
-                pair.second._p->_is_vector = true;
-            }
         }
         for (auto &pair:*_qterms) {
             pair.second._coef = multiply(pair.second._coef, c);
-            if (pair.second._coef->_is_transposed) {
-                pair.second._p->first->_is_vector = true;
-                pair.second._p->second->_is_vector = true;
-            }
         }
         for (auto &pair:*_pterms) {
             pair.second._coef = multiply(pair.second._coef, c);
-            if (pair.second._coef->_is_transposed) {
-                for (auto &pp: *pair.second._l) {
-                    pp.first->_is_vector = true;
-                }
-            }
         }
         if (c.is_negative()) {
             reverse_sign();
@@ -3114,22 +3102,22 @@ string to_str(const constant_* c){/**< printing c, detecting the right class, i.
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    return ((param<bool>*)p_c)->to_str();
+                    return ((param<bool>*)p_c)->get_name();
                     break;
                 case short_:
-                    return ((param<short>*)p_c)->to_str();
+                    return ((param<short>*)p_c)->get_name();
                     break;
                 case integer_:
-                    return ((param<int>*)p_c)->to_str();
+                    return ((param<int>*)p_c)->get_name();
                     break;
                 case float_:
-                    return ((param<float>*)p_c)->to_str();
+                    return ((param<float>*)p_c)->get_name();
                     break;
                 case double_:
-                    return ((param<double>*)p_c)->to_str();
+                    return ((param<double>*)p_c)->get_name();
                     break;
                 case long_:
-                    return ((param<long double>*)p_c)->to_str();
+                    return ((param<long double>*)p_c)->get_name();
                     break;
                 default:
                     break;
@@ -3148,22 +3136,22 @@ string to_str(const constant_* c){/**< printing c, detecting the right class, i.
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    return ((var<bool>*)p_c)->to_str();
+                    return ((var<bool>*)p_c)->get_name();
                     break;
                 case short_:
-                    return ((var<short>*)p_c)->to_str();
+                    return ((var<short>*)p_c)->get_name();
                     break;
                 case integer_:
-                    return ((var<int>*)p_c)->to_str();
+                    return ((var<int>*)p_c)->get_name();
                     break;
                 case float_:
-                    return ((var<float>*)p_c)->to_str();
+                    return ((var<float>*)p_c)->get_name();
                     break;
                 case double_:
-                    return ((var<double>*)p_c)->to_str();
+                    return ((var<double>*)p_c)->get_name();
                     break;
                 case long_:
-                    return ((var<long double>*)p_c)->to_str();
+                    return ((var<long double>*)p_c)->get_name();
                     break;
                 default:
                     break;
@@ -3306,10 +3294,28 @@ func_ operator-(const constant_& c, func_&& f){
 
 func_ operator*(const constant_& c1, const constant_& c2){
     if(c1.is_number()) {
-        return func_(c2) *= c1;
+        auto new_c2 = copy(c2);
+        if (c1._is_transposed) {
+            new_c2->_is_vector = true;
+            auto res = func_(c1) *= move(*new_c2);
+            delete new_c2;
+            return res;
+        }
+        else {
+            return func_(c2) *= c1;
+        }
     }
     else {
-        return func_(c1) *= c2;
+        if (c1._is_transposed) {
+            auto new_c2 = copy(c2);
+            new_c2->_is_vector = true;
+            auto res = func_(c1) *= move(*new_c2);
+            delete new_c2;
+            return res;
+        }
+        else {
+            return func_(c1) *= c2;
+        }
     }
 }
 

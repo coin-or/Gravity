@@ -19,14 +19,12 @@ template<typename type> var<type>::var(const string& name):param<type>(name){
 };
 
 template<typename type> var<type>::var(const var<type>& v):param<type>(v){
-    _id = v._id;
     param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
 };
 
-template<typename type> var<type>::var(var<type>&& v):param<type>(v){
-    _id = v._id;
+template<typename type> var<type>::var(var<type>&& v):param<type>(v){    
     param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;

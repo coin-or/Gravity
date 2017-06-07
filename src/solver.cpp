@@ -52,6 +52,7 @@ solver::solver(Model& model, SolverType stype){
 #else
             cplexNotAvailable();
 #endif
+            break;
         case ipopt:
 #ifdef USE_IPOPT
             prog.ipopt_prog = new IpoptProgram(&model);
@@ -90,6 +91,7 @@ solver::~solver(){
 #else
             cplexNotAvailable();
 #endif
+            break;
         case ipopt:
 #ifdef USE_IPOPT
             delete prog.ipopt_prog;
@@ -124,6 +126,7 @@ void solver::set_model(Model& m) {
 #else
             cplexNotAvailable();
 #endif
+        break;
         case ipopt:
 #ifdef USE_IPOPT
             prog.ipopt_prog->_model = &m;
@@ -211,6 +214,24 @@ int solver::run(int output, bool relax){
         }
 #else
         gurobiNotAvailable();
+#endif
+    }
+    else if(_stype==cplex)
+    {
+#ifdef USE_CPLEX
+        try{
+            //                prog.grbprog = new GurobiProgram();
+            prog.cplex_prog->_output = output;
+            //            prog.grb_prog->reset_model();
+            prog.cplex_prog->prepare_model();            
+            bool ok = prog.cplex_prog->solve(relax);
+            return ok ? 100 : -1;
+        }
+        catch(IloException e) {
+            cerr << e.getMessage() << endl;
+        }
+#else
+        cplexNotAvailable();
 #endif
     }
     else if(_stype==bonmin) {

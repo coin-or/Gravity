@@ -74,6 +74,10 @@ int main (int argc, const char * argv[])
     std::cout << "HELLO!\n";
     std::cout << "Understanding the numerical limits of your machine:" << endl;
     std::cout << "type\tlowest\thighest\n";
+    
+    std::cout << "bool\t"
+    << std::numeric_limits<bool>::lowest() << '\t'
+    << std::numeric_limits<bool>::max() << '\n';
     std::cout << "short\t"
     << std::numeric_limits<short>::lowest() << '\t'
     << std::numeric_limits<short>::max() << '\n';
@@ -122,13 +126,14 @@ int main (int argc, const char * argv[])
     p.add_bounds(10, 60);
     var<float> q("q");
     p.set_size(200);
+    p.indexed_in(make_pair<>(1,10),make_pair<>(1,10));
     q.set_size(200);
     
 //  auto c1 = (p_ij^2)+(q_ij^2)-(dp^2);
 //  func_ f(constant<>(2));
 //  func_ f(2);
     
-    p(1).print(true);
+    p(1,2).print(true);
     q.print(true);
     auto f = dp*p*p;
     f.print(true);
@@ -206,7 +211,7 @@ int main (int argc, const char * argv[])
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
-    auto l00 = 2*p(3,1) + q(1)+ p(3);
+    auto l00 = 2*p(3,1) + q+ p(3,1);
     l00.print();
     (l00.get_dfdx(p(3,1))).print();
     auto f0 = 0.1*q;
@@ -214,11 +219,11 @@ int main (int argc, const char * argv[])
     f0 -= (0.1+1e-7)*q;
     f0.print();
 //    ip.print(true);
-    auto vec_prod = (aa+ip).tr()*v1;
+    auto vec_prod = (aa+ip).tr()*v1;//fix print!
     vec_prod.print();
     vec_prod += ip.tr()*p;
     vec_prod.print();
-    auto quad = (aa+ip)*(v1.tr()*v1) + q;
+    auto quad = (aa+ip)*(v1.tr()*v1) + q;//FIX _is_vector for v1!
     quad.print();
 //    int C = 10;
 //    int n = 10, ni = 3;
@@ -236,12 +241,15 @@ int main (int argc, const char * argv[])
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
     f1.print();
 //    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
-    auto f2 = sin(dp(2));
+    auto f2 = sin(dp);
     f2.print();
 //    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
     f2 = sin((ip/dp)*p);
     f2.print();
     f2 -= 2.2;
+    f2 *= 2;
+    f2.print();
+
 //  f2.print();
     
 //  assuming a vector of coefficients are given, try to generate the graph structure.
@@ -256,28 +264,27 @@ int main (int argc, const char * argv[])
     Model model;
     auto n = graph.nodes.size();
     auto m = graph.arcs.size();
-    constant<int> ones = 1;
     
     
     // IP model for stable set problem.
     var<bool> x("x");
-    x.set_size(n);
-    func_ obj;
-    obj = ones.tr()*all(x);
-    model.set_objective(obj);
+    model.add_var(x^n);
+    constant<int> ones(1);
+    func_ obj = ones.tr()*x;
+    model.set_objective(obj,maximize);
     
-    Constraint c("Stable_Set");
     int i, j;
     for (int l=0; l<m;l++){
         Arc* a = graph.arcs[l];
         i = (a->src)->ID;
         j = (a->dest)->ID;
+        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
         c =x(i) + x(j);
         c <= 1;
 //        c.print();
         model.add_constraint(c);
     }
-    SolverType stype = gurobi;
+    SolverType stype = cplex;
     solver s(model,stype);    
     s.run();
     
@@ -314,8 +321,6 @@ int main (int argc, const char * argv[])
     // string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
     // graph.readFile(fname);
     
-    f2 *= 2;
-    f2.print();
     
     
     return 0;

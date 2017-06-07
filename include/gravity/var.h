@@ -32,8 +32,7 @@ template<typename type = int>
 // define variable as a parameter with bounds
 class var: public param<type>, public var_{
     
-public:
-    ind                         _id;
+public:    
     shared_ptr<vector<type>>    _lb; /**< Lower Bound */
     shared_ptr<vector<type>>    _ub; /**< Upper Bound */
     
@@ -61,7 +60,7 @@ public:
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
         auto res(*this);
-//        res._indices->clear();
+        res._indices->clear();
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
@@ -76,13 +75,16 @@ public:
         }
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
-            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            //            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+            //            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
             size_t idx = param_::_indices->at(key);
             res._indices->insert(make_pair<>(key,idx));
+            res._dim = 1;
         }
+        res._name += "["+key+"]";
         return res;
     }
     
@@ -108,18 +110,18 @@ public:
     
     /* Querries */
     
-    type    get_lb(size_t i) const{
+    type    get_lb(size_t i = 0) const{
         if (_lb->size() <= i) {
             throw out_of_range("get_lb(size_t i, index: " + to_string(i) + ")\n");
         }
         return _lb->at(i);
     };
     
-    type    get_ub(size_t i) const{
+    type    get_ub(size_t i = 0) const{
         if (_ub->size() <= i) {
             throw out_of_range("get_ub(size_t i), index: " + to_string(i)+ ")\n");
         }
-        return _lb->at(i);
+        return _ub->at(i);
     };
 
     
@@ -170,6 +172,11 @@ public:
     /* Operators */
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
+    var& operator^(size_t d){
+        set_size(d);
+        return *this;
+    }
+    
     var tr() const{
         auto v = var(*this);
         v._is_transposed = true;

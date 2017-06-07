@@ -99,7 +99,7 @@ public:
     void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
     
     void del_constraint(const Constraint& c);
-    void set_objective(const func_& f);
+    void set_objective(const func_& f, ObjectiveType t = minimize);
     void set_objective_type(ObjectiveType);
     void init_indices();// Initialize the indices of all variables involved in the model
     void check_feasible(const double* x);

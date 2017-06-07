@@ -133,86 +133,95 @@ void Model::init_indices(){// Initialize the indices of all variables involved i
 }
 
 void Model::add_var(param_* v){
-    if (v->_is_transposed) {
-        _nb_vars += v->get_dim();
-    }
-    else {
-        _nb_vars++;
-    }
+//    if (v->_is_transposed) {
+//    }
+//    else {
+//        _nb_vars++;
+//    }
     if (_vars.count(v->get_name())==0) {
+        _nb_vars += v->get_dim();
+        v->set_id(_vars.size());
         _vars[v->get_name()] = v;
     }
 };
 
 void Model::add_var(const param_& v){
-    if (v._is_transposed) {
+//    if (v._is_transposed) {
+//    }
+//    else {
+//        _nb_vars++;
+//    }
+    if (_vars.count(v.get_name())==0) {
         _nb_vars += v.get_dim();
-    }
-    else {
-        _nb_vars++;
-    }
-    if (_vars.count(v.get_name())!=0) {
-        _vars[v.get_name()] = (param_*)copy(v);
+        auto newv = (param_*)copy(v);
+        newv->set_id(_vars.size());
+        _vars[v.get_name()] = newv;
     }
 };
 
 
 void Model::del_var(const param_& v){
-    if (v._is_transposed) {
-        _nb_vars -= v.get_dim();
-    }
-    else {
-        _nb_vars--;
-    }
+//    if (v._is_transposed) {
+//    }
+//    else {
+//        _nb_vars--;
+//    }
     auto it = _vars.find(v.get_name());
-    delete it->second;
-    _vars.erase(it);
+    if (it!=_vars.end()) {
+        _nb_vars -= v.get_dim();
+        delete it->second;
+        _vars.erase(it);
+    }
 };
 
 
 void Model::add_param(param_* v){
-    if (v->_is_transposed) {
+//    if (v->_is_transposed) {
+    
+//    }
+//    else {
+//        _nb_params++;
+//    }
+    if (_params.count(v->get_name())==0) {
         _nb_params += v->get_dim();
-    }
-    else {
-        _nb_params++;
-    }
-    if (_params.count(v->get_name())!=0) {
+        v->set_id(_params.size());
         _params[v->get_name()] = v;
     }
 };
 
 void Model::add_param(const param_& v){
-    if (v._is_transposed) {
+//    if (v._is_transposed) {
+//        
+//    }
+//    else {
+//        _nb_params++;
+//    }
+    if (_params.count(v.get_name())==0) {
         _nb_params += v.get_dim();
-    }
-    else {
-        _nb_params++;
-    }
-    if (_params.count(v.get_name())!=0) {
-        _params[v.get_name()] = (param_*)copy(v);
+        auto newv = (param_*)copy(v);
+        newv->set_id(_params.size());
+        _params[v.get_name()] = newv;
     }
 };
 
 
 void Model::del_param(const param_& v){
-    if (v._is_transposed) {
-        _nb_params -= v.get_dim();
-    }
-    else {
-        _nb_params--;
-    }
     auto it = _params.find(v.get_name());
-    delete it->second;
-    _params.erase(it);
+    if (it!=_params.end()) {
+        _nb_params -= v.get_dim();
+        delete it->second;
+        _params.erase(it);
+    }
 };
 
 void Model::add_constraint(const Constraint& c){
     _nb_cons += c.get_nb_instances();
-    if (_cons.count(c.get_name())!=0) {
+    if (_cons.count(c.get_name())==0) {
         auto newc = new Constraint(c);
-        embed(*newc);
-        newc->compute_derivatives();
+//        embed(*newc);
+        if (newc->is_nonlinear()) {
+            newc->compute_derivatives();
+        }
         _cons[c.get_name()] = newc;
     }
 };
@@ -334,9 +343,10 @@ void Model::del_constraint(const Constraint& c){
     assert(false);
 };
 
-void Model::set_objective(const func_& f) {
+void Model::set_objective(const func_& f, ObjectiveType t) {
     _obj = f;
-    embed(_obj);
+    _objt = t;
+//    embed(_obj);
 }
 
 void Model::set_objective_type(ObjectiveType t) {
@@ -1059,7 +1069,9 @@ void Model::embed(func_& f){
         }
     }
     
-    f.compute_derivatives();
+    if (f.is_nonlinear()) {
+        f.compute_derivatives();
+    }
 //    f.embed_derivatives();
     
 }

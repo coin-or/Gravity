@@ -516,11 +516,11 @@ public:
     void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         assert(_vars->count(v->get_name())==0);
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (!v->_is_transposed) {
-            _nb_instances = max(_nb_instances, v->get_dim());
+        if (v->_is_transposed || v->_is_vector) {
+            _nb_instances = max(_nb_instances, (size_t)1);
         }
         else{
-            _nb_instances = max(_nb_instances, (size_t)1);
+            _nb_instances = max(_nb_instances, v->get_dim());
         }
     }
     
