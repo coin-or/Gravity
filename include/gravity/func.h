@@ -428,10 +428,8 @@ protected:
     
     size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
     
-    bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
-    bool                                   _is_transposed = false;
-
 public:
+    bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
     
     func_();
     
@@ -446,6 +444,8 @@ public:
     ~func_();
 
     map<string, pair<param_*, int>>& get_vars(){ return *_vars;};
+    map<string, pair<param_*, int>>& get_params(){ return *_params;};
+    
     
     bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
     bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
@@ -513,10 +513,10 @@ public:
         assert(_vars->count(v->get_name())==0);
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
         if (!v->is_transposed()) {
-            _nb_instances =max(_nb_instances, v->get_dim());
+            _nb_instances = max(_nb_instances, v->get_dim());
         }
         else{
-            _nb_instances =max(_nb_instances, (size_t)1);
+            _nb_instances = max(_nb_instances, (size_t)1);
         }
     }
     
@@ -524,8 +524,34 @@ public:
     void add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         assert(_params->count(p->get_name())==0);
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
+        if (!p->is_transposed()) {
+            _nb_instances = max(_nb_instances, p->get_dim());
+        }
+        else{
+            _nb_instances = max(_nb_instances, (size_t)1);
+        }
     }
     
+    
+    
+    void delete_var(const string& vname){
+        auto it = _vars->find(vname);
+        if (!_embedded) {
+            delete _vars->at(vname).first;
+        }
+        _vars->erase(it);
+    }
+    
+    void delete_param(const string& vname){
+        auto it = _params->find(vname);
+        if (!_embedded) {
+            delete _params->at(vname).first;
+        }
+        _params->erase(it);
+    }
+
+    
+
     
     int nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
         auto pair_it = _vars->find(name);
@@ -924,6 +950,22 @@ public:
                 _all_convexity = conv;
             }
         }
+    }
+    
+    map<string, lterm>& get_lterms() const{
+        return *_lterms;
+    }
+    
+    map<string, qterm>& get_qterms() const{
+        return *_qterms;
+    }
+    
+    map<string, pterm>& get_pterms() const{
+        return *_pterms;
+    }
+    
+    expr& get_expr() const{
+        return *_expr;
     }
     
     func_ get_dfdx(const param_& v) const;

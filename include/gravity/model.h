@@ -37,12 +37,16 @@ protected:
     vector<shared_ptr<func_>>       _functions;
 
 public:
-    size_t                        _nb_vars = 0;
-    size_t                        _nb_cons = 0;
-    size_t                        _nnz_g = 0; /* Number of non zeros in the Jacobian */
-    size_t                        _nnz_h = 0; /* Number of non zeros in the Hessian */
-    map<string,param_*>             _vars; /**< Sorted map pointing to all variables contained in this model */
-    map<string,Constraint*>          _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    size_t                          _nb_vars = 0;
+    size_t                          _nb_params = 0;
+    size_t                          _nb_cons = 0;
+    size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
+    size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
+    map<string,param_*>             _params; /**< Sorted map pointing to all parameters contained in this model */
+    map<string,param_*>             _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+    map<string,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    vector<set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
+    vector<set<param_*>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
     
@@ -64,8 +68,11 @@ public:
     
     size_t get_nb_nnz_h() const;
     
-    template<typename type>
-    bool has_var(const var<type>& v) const{
+    param_* get_var(const string& vname) const;
+    
+    Constraint* get_constraint(const string& name) const;
+    
+    bool has_var(const param_& v) const{
         return (_vars.count(v.get_name())!=0);
     };
 
@@ -75,18 +82,21 @@ public:
     
     void set_x(const double* x); // Assign values to all variables based on array x.
     
-    void add_var(const param_& v);
-    param_* get_var(const string& vname) const;
-    Constraint* get_constraint(const string& name) const;
-    
+    void add_var(param_* v);//Add variables without reallocating memory
+    void add_var(const param_& v); //Add variables by copying variable
     void del_var(const param_& v);
+    
+    void add_param(param_* v);//Add variables without reallocating memory
+    void add_param(const param_& v); //Add variables by copying variable
+    void del_param(const param_& v);
+    
+    
+    
     void add_constraint(const Constraint& c);
-    void add_on_off(const Constraint& c, var<bool>& on);
-    void add_on_off(var<>& v, var<bool>& on);
     
-    void add_on_off_McCormick(string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on);
-    void add_McCormick(string name, var<>& v, var<>& v1, var<>& v2);
+    void embed(func_& f);
     
+    void embed(expr& e);
     
     void del_constraint(const Constraint& c);
     void set_objective(const func_& f);
@@ -97,7 +107,7 @@ public:
     void fill_in_var_init(double* x);
     void fill_in_cstr_bounds(double* g_l ,double* g_u);
     void fill_in_obj(const double* x , double& res, bool new_x);
-    void fill_in_grad_obj(const double* x , double* res);
+    void fill_in_grad_obj(const double* x , double* res, bool new_x);
     void fill_in_cstr(const double* x , double* res, bool new_x);
     void fill_in_jac(const double* x , double* res, bool new_x);
     void fill_in_jac_nnz(int* iRow , int* jCol);
@@ -113,6 +123,14 @@ public:
     void fill_in_param_types(Bonmin::TMINLP::VariableType* param_types);
 #endif
     void solve();
+    
+    void add_on_off(const Constraint& c, var<bool>& on);
+    void add_on_off(var<>& v, var<bool>& on);
+    
+    void add_on_off_McCormick(string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on);
+    void add_McCormick(string name, var<>& v, var<>& v1, var<>& v2);
+
+    
     friend std::vector<int> bounds(int parts, int mem);
     
     /* Operators */

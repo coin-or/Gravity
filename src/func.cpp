@@ -1935,7 +1935,9 @@ void func_::embed(expr& e){
                 embed(*(expr*)ue->_son);
             }
             else if (ue->_son->is_var()){
-                add_var((param_*)copy(*ue->_son));
+                if (_vars->count(((param_*)ue->_son)->get_name())==0) {
+                    add_var((param_*)copy(*ue->_son));
+                }
             }
             break;
         }
@@ -1949,7 +1951,9 @@ void func_::embed(expr& e){
                 embed(*(expr*)be->_lson);
             }
             else if (be->_lson->is_var()){
-                add_var((param_*)copy(*be->_lson));
+                if (_vars->count(((param_*)be->_lson)->get_name())==0) {
+                    add_var((param_*)copy(*be->_lson));
+                }
             }
             if (be->_rson->is_function()) {
                 auto f = (func_*)be->_rson;
@@ -1959,7 +1963,9 @@ void func_::embed(expr& e){
                 embed(*(expr*)be->_rson);
             }
             else if (be->_rson->is_var()){
-                add_var((param_*)copy(*be->_rson));
+                if (_vars->count(((param_*)be->_rson)->get_name())==0) {
+                    add_var((param_*)copy(*be->_rson));
+                }
             }
             break;
         }
@@ -2032,7 +2038,7 @@ void func_::embed(func_& f){
                 it1->second.second++;
             }
             auto it2 = _params->find(p2->get_name());
-            if (it2==_vars->end()) {
+            if (it2==_params->end()) {
                 add_param(p2);
             }
             else{

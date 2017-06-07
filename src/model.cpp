@@ -132,6 +132,18 @@ void Model::init_indices(){// Initialize the indices of all variables involved i
     }
 }
 
+void Model::add_var(param_* v){
+    if (v->is_transposed()) {
+        _nb_vars += v->get_dim();
+    }
+    else {
+        _nb_vars++;
+    }
+    if (_vars.count(v->get_name())!=0) {
+        _vars[v->get_name()] = v;
+    }
+};
+
 void Model::add_var(const param_& v){
     if (v.is_transposed()) {
         _nb_vars += v.get_dim();
@@ -155,6 +167,44 @@ void Model::del_var(const param_& v){
     auto it = _vars.find(v.get_name());
     delete it->second;
     _vars.erase(it);
+};
+
+
+void Model::add_param(param_* v){
+    if (v->is_transposed()) {
+        _nb_params += v->get_dim();
+    }
+    else {
+        _nb_params++;
+    }
+    if (_params.count(v->get_name())!=0) {
+        _params[v->get_name()] = v;
+    }
+};
+
+void Model::add_param(const param_& v){
+    if (v.is_transposed()) {
+        _nb_params += v.get_dim();
+    }
+    else {
+        _nb_params++;
+    }
+    if (_params.count(v.get_name())!=0) {
+        _params[v.get_name()] = (param_*)copy(v);
+    }
+};
+
+
+void Model::del_param(const param_& v){
+    if (v.is_transposed()) {
+        _nb_params -= v.get_dim();
+    }
+    else {
+        _nb_params--;
+    }
+    auto it = _params.find(v.get_name());
+    delete it->second;
+    _params.erase(it);
 };
 
 void Model::add_constraint(const Constraint& c){
@@ -718,7 +768,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 
-void Model::fill_in_grad_obj(const double* x , double* res){
+void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     int idx=0;
     //    param_* v = NULL;
     int vid = 0;
@@ -813,6 +863,178 @@ void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
 }
 
 #endif
+
+
+void Model::embed(expr& e){
+    switch (e.get_type()) {
+        case uexp_c:{
+            auto ue = (uexpr*)&e;
+            if (ue->_son->is_function()) {
+                auto f = (func_*)ue->_son;
+                embed(*f);
+            }
+            else if(ue->_son->is_expr()){
+                embed(*(expr*)ue->_son);
+            }
+            else if (ue->_son->is_var()){
+                if (_vars.count(((param_*)ue->_son)->get_name())==0) {
+                    add_var((param_*)copy(*ue->_son));
+                }
+            }
+            break;
+        }
+        case bexp_c:{
+            auto be = (bexpr*)&e;
+            if (be->_lson->is_function()) {
+                auto f = (func_*)be->_lson;
+                embed(*f);
+            }
+            else if(be->_lson->is_expr()){
+                embed(*(expr*)be->_lson);
+            }
+            else if (be->_lson->is_var()){
+                if (_vars.count(((param_*)be->_lson)->get_name())==0) {
+                    add_var((param_*)copy(*be->_lson));
+                }
+            }
+            if (be->_rson->is_function()) {
+                auto f = (func_*)be->_rson;
+                embed(*f);
+            }
+            else if(be->_rson->is_expr()){
+                embed(*(expr*)be->_rson);
+            }
+            else if (be->_rson->is_var()){
+                if (_vars.count(((param_*)be->_rson)->get_name())==0) {
+                    add_var((param_*)copy(*be->_rson));
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void Model::embed(func_& f){
+    f._embedded = true;
+    param_* p = nullptr;
+    param_* p1 = nullptr;
+    param_* p2 = nullptr;
+    for (auto &pair:f.get_lterms()) {
+        p = pair.second._p;
+        if (p->is_var()) {
+            auto it = _vars.find(p->get_name());
+            if (it==_vars.end()) {
+                add_var(p);
+            }
+            else{
+                p = it->second;
+                pair.second._p = p;                
+            }
+        }
+        else {
+            auto it = _params.find(p->get_name());
+            if (it==_params.end()) {
+                add_param(p);
+            }
+            else{
+                p = it->second;
+                pair.second._p = p;
+            }
+        }
+    }
+    for (auto &pair:f.get_qterms()) {
+        p1 = pair.second._p->first;
+        p2 = pair.second._p->second;
+        if (p1->is_var()) {
+            auto it1 = _vars.find(p1->get_name());
+            if (it1==_vars.end()) {
+                add_var(p1);
+            }
+            else{
+                p1 = it1->second;
+                pair.second._p->first = p1;
+            }
+            auto it2 = _vars.find(p2->get_name());
+            if (it2==_vars.end()) {
+                add_var(p2);
+            }
+            else{
+                p2 = it2->second;
+                pair.second._p->second = p2;
+            }
+        }
+        else {
+            auto it1 = _params.find(p1->get_name());
+            if (it1==_params.end()) {
+                add_param(p1);
+            }
+            else{
+                p1 = it1->second;
+                pair.second._p->first = p1;
+            }
+            auto it2 = _params.find(p2->get_name());
+            if (it2==_params.end()) {
+                add_param(p2);
+            }
+            else{
+                p2 = it2->second;
+                pair.second._p->second = p2;
+            }
+        }
+    }
+    for (auto &pair:f.get_pterms()) {
+        auto list = pair.second._l;
+        for (auto &ppi: *list) {
+            p = ppi.first;
+            if (p->is_var()) {
+                auto it = _vars.find(p->get_name());
+                if (it==_vars.end()) {
+                    add_var(p);
+                }
+                else{
+                    p = it->second;
+                    ppi.first = p;
+                }
+            }
+            else {
+                auto it = _params.find(p->get_name());
+                if (it==_params.end()) {
+                    add_param(p);
+                }
+                else{
+                    p = it->second;
+                    ppi.first = p;                    
+                }
+            }
+        }
+    }
+    if (f.is_nonlinear()) {
+        embed(f.get_expr());
+    }
+    auto old_vars = f.get_vars();
+    for (auto &vp: old_vars) {
+        auto vv = _vars[vp.first];
+        if (vv != vp.second.first) {
+            delete vp.second.first;
+            f.delete_var(vp.first);
+            f.add_var(vv);
+        }
+    }
+    auto old_params = f.get_params();
+    for (auto &pp: old_params) {
+        auto p = _params[pp.first];
+        if (p != pp.second.first) {
+            delete pp.second.first;
+            f.delete_param(pp.first);
+            f.add_param(p);
+        }
+    }
+    
+}
+
+
 
 void Model::print_functions() const{
     cout << "Number of atomic functions = " << _functions.size();
