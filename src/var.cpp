@@ -47,8 +47,8 @@ template<typename type> var<type>::var(const string& name, type lb, type ub):var
 /* Modifiers */
 template<typename type> void   var<type>::set_size(size_t s, type val){
     param<type>::set_size(s,val);
-    _lb->reserve(s);
-    _ub->reserve(s);
+    _lb->resize(s, numeric_limits<type>::lowest());
+    _ub->resize(s, numeric_limits<type>::max());
 };
 
 

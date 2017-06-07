@@ -135,8 +135,7 @@ public:
     
     param(){
         _type = par_c;
-        _name = "noname";
-        _is_transposed = false;
+        _name = "noname";        
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
     
@@ -154,6 +153,7 @@ public:
         _indices = new map<string, unsigned>(*p._indices);
         _range = p._range;
         _is_transposed = p._is_transposed;
+        _is_vector = p._is_vector;
         _dim = p._dim;
     }
     
@@ -167,9 +167,10 @@ public:
         p._indices = nullptr;
         _range = p._range;
         _is_transposed = p._is_transposed;
+        _is_vector = p._is_vector;
         _dim = p._dim;
     }
-
+    
 
     param tr() const{
         auto p = param(*this);
@@ -431,6 +432,14 @@ public:
     }
     
 
-
 };
+
+template<typename type>
+param<type> all(const param<type>& p){
+    auto pp = param<type>(p);
+    pp._is_vector = true;
+    return pp;
+}
+
+
 #endif /* defined(____param__) */

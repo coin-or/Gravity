@@ -108,8 +108,19 @@ public:
     
     /* Querries */
     
-    type    get_lb() const;
-    type    get_ub() const;
+    type    get_lb(size_t i) const{
+        if (_lb->size() <= i) {
+            throw out_of_range("get_lb(size_t i, index: " + to_string(i) + ")\n");
+        }
+        return _lb->at(i);
+    };
+    
+    type    get_ub(size_t i) const{
+        if (_ub->size() <= i) {
+            throw out_of_range("get_ub(size_t i), index: " + to_string(i)+ ")\n");
+        }
+        return _lb->at(i);
+    };
 
     
     bool is_bounded_above(int i = 0) const{
@@ -171,5 +182,12 @@ public:
 
     
 };
+
+template<typename type>
+var<type> all(const var<type>& p){
+    auto pp = var<type>(p);
+    pp._is_vector = true;
+    return pp;
+}
 
 #endif /* var_h */

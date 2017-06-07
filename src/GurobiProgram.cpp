@@ -123,42 +123,42 @@ void GurobiProgram::fill_in_grb_vmap(){
             case float_: {
                 auto real_var = (var<float>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
             case double_:{
                 auto real_var = (var<double>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_BINARY, v->get_name()+"_"+to_string(i))));
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_BINARY, v->get_name()+"_"+to_string(i))));
                 }
                 break;
             }
@@ -204,7 +204,7 @@ void GurobiProgram::create_grb_constraints(){
                         lterm = 0;
                         idx = it1.second._p->get_id();
                         gvar1 = _grb_vars[idx];
-                        if (it1.second._coef->is_transposed()) {
+                        if (it1.second._coef->_is_transposed) {
                             for (int j = 0; j<it1.second._p->get_dim(); j++) {
                                 coeff = poly_eval(it1.second._coef,j);
                                 gvar1 = _grb_vars[idx+j];

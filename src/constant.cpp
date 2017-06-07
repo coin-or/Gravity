@@ -7,6 +7,3 @@
 //#include <Gravity/func.h>
 #include <sstream>
 
-
-
-

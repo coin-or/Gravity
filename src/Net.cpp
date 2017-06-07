@@ -22,8 +22,21 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
+//#define USEDEBUG
+#ifdef USEDEBUG
+#define Debug(x) cout << x
+#else
+#define Debug(x)
+#endif
+#define DebugOn(x) cout << x
+#define DebugOff(x)
 
 using namespace std;
+
+
+static int max_line_len;
+static char* line = nullptr;
+
 
 Net::Net(){
     //horton_net = nullptr;
@@ -198,8 +211,6 @@ void Net::remove_arc(Arc* a){
 char* Net::readline(FILE *input)
 {
     size_t len;
-    int max_line_len=1024;
-    char* line = new char[max_line_len];
     if(std::fgets(line,max_line_len,input)==NULL) return NULL;
     
     while(strrchr(line,'\n') == NULL)
@@ -233,7 +244,7 @@ void Net::readFile(string fn){
     
     vector<vector<int>> matrix;
     int temp;
-    while((line = readline(fp))!=NULL)
+    while(readline(fp)!=NULL)
     {
        vector<int> row;
        stringstream linestream(line);
@@ -257,12 +268,12 @@ void Net::topology(string fn){
         exit(1);
     }
     
-    size_t max_line_len = 1024;
-    char* line = new char[max_line_len];
+    max_line_len = 1024;
+    line = new char[max_line_len];
     
     vector<vector<int>> matrix;
     int temp;
-    while((line = readline(fp))!=NULL)
+    while(readline(fp)!=NULL)
     {
         vector<int> row;
         stringstream linestream(line);
@@ -317,7 +328,7 @@ void Net::topology(string fn){
     delete[] line;
     fclose(fp);
     cout<< "Edges: " << arcs.size() << endl;
-    get_tree_decomp_bags();
+//    get_tree_decomp_bags();
 }
 
 /*  @brief Remove node and all incident arcs from the network
@@ -355,14 +366,14 @@ void Net::get_tree_decomp_bags(){
     while (_clone->nodes.size()>2) {
         sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare);
         n = _clone->nodes.back();
-        cout << n->_name << endl;
-        cout<<_clone->nodes.size() << endl;
+        Debug(n->_name << endl);
+        Debug(_clone->nodes.size() << endl);
         bag = new vector<Node*>();
-                cout << "new bag = { ";
+        Debug("new bag = { ");
         for (auto a: n->branches) {
             nn = a->neighbour(n);
             bag->push_back(nn);
-            cout << nn->_name << ", ";
+            Debug(nn->_name << ", ");
         }
         _clone->remove_end_node();
         for (int i = 0; i<bag->size(); i++) {
@@ -383,7 +394,7 @@ void Net::get_tree_decomp_bags(){
             }
         }
         bag->push_back(n);
-               cout << n->_name << "}\n";
+        Debug(n->_name << "}\n");
         _bags->push_back(bag);
         if (bag->size()==3) {
             nb3++;
@@ -418,6 +429,8 @@ Net::~Net(){
     for (pair<string,set<Arc*>*> it:lineID) {
         delete it.second;
     }
+    delete _bags;
+    delete _clone;
 }
 
 int Net::test(){
@@ -477,6 +490,6 @@ int Net::test(){
     arc_clone->connect();
 
 
-    get_tree_decomp_bags();
+//    get_tree_decomp_bags();
     return 0;
 }

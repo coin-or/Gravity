@@ -250,29 +250,27 @@ int main (int argc, const char * argv[])
     
     
     Net graph;
-    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
+    string fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.topology(fname);
     Model model;
     auto n = graph.nodes.size();
     auto m = graph.arcs.size();
-    param<int> ones;
-    for (int i = 0; i<n; i++) {
-        ones = 1;
-    }
+    constant<int> ones = 1;
+    
     
     // IP model for stable set problem.
     var<bool> x("x");
     x.set_size(n);
     func_ obj;
-    obj = ones.tr()*x;
+    obj = ones.tr()*all(x);
     model.set_objective(obj);
     
-    Constraint c;
+    Constraint c("Stable_Set");
     int i, j;
     for (int l=0; l<m;l++){
-        Arc* temparc = graph.arcs[l];
-        i = (temparc->src)->ID;
-        j = (temparc->dest)->ID;
+        Arc* a = graph.arcs[l];
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
         c =x(i) + x(j);
         c <= 1;
         c.print();

@@ -133,19 +133,19 @@ void Model::init_indices(){// Initialize the indices of all variables involved i
 }
 
 void Model::add_var(param_* v){
-    if (v->is_transposed()) {
+    if (v->_is_transposed) {
         _nb_vars += v->get_dim();
     }
     else {
         _nb_vars++;
     }
-    if (_vars.count(v->get_name())!=0) {
+    if (_vars.count(v->get_name())==0) {
         _vars[v->get_name()] = v;
     }
 };
 
 void Model::add_var(const param_& v){
-    if (v.is_transposed()) {
+    if (v._is_transposed) {
         _nb_vars += v.get_dim();
     }
     else {
@@ -158,7 +158,7 @@ void Model::add_var(const param_& v){
 
 
 void Model::del_var(const param_& v){
-    if (v.is_transposed()) {
+    if (v._is_transposed) {
         _nb_vars -= v.get_dim();
     }
     else {
@@ -171,7 +171,7 @@ void Model::del_var(const param_& v){
 
 
 void Model::add_param(param_* v){
-    if (v->is_transposed()) {
+    if (v->_is_transposed) {
         _nb_params += v->get_dim();
     }
     else {
@@ -183,7 +183,7 @@ void Model::add_param(param_* v){
 };
 
 void Model::add_param(const param_& v){
-    if (v.is_transposed()) {
+    if (v._is_transposed) {
         _nb_params += v.get_dim();
     }
     else {
@@ -196,7 +196,7 @@ void Model::add_param(const param_& v){
 
 
 void Model::del_param(const param_& v){
-    if (v.is_transposed()) {
+    if (v._is_transposed) {
         _nb_params -= v.get_dim();
     }
     else {
@@ -278,54 +278,54 @@ void Model::add_on_off(var<>& v, var<bool>& on){
 }
 
 void Model::add_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2) {
-    Constraint MC1(name+"_McCormick1");
-    MC1 += v;
-    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
-    MC1 >= 0;
-    add_constraint(MC1);
-    //    MC1.print();
-    Constraint MC2(name+"_McCormick2");
-    MC2 += v;
-    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
-    MC2 >= 0;
-    add_constraint(MC2);
-    //    MC2.print();
-    Constraint MC3(name+"_McCormick3");
-    MC3 += v;
-    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
-    MC3 <= 0;
-    add_constraint(MC3);
-    //    MC3.print();
-    Constraint MC4(name+"_McCormick4");
-    MC4 += v;
-    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
-    MC4 <= 0;
-    add_constraint(MC4);
+//    Constraint MC1(name+"_McCormick1");
+//    MC1 += v;
+//    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
+//    MC1 >= 0;
+//    add_constraint(MC1);
+//    //    MC1.print();
+//    Constraint MC2(name+"_McCormick2");
+//    MC2 += v;
+//    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
+//    MC2 >= 0;
+//    add_constraint(MC2);
+//    //    MC2.print();
+//    Constraint MC3(name+"_McCormick3");
+//    MC3 += v;
+//    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
+//    MC3 <= 0;
+//    add_constraint(MC3);
+//    //    MC3.print();
+//    Constraint MC4(name+"_McCormick4");
+//    MC4 += v;
+//    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
+//    MC4 <= 0;
+//    add_constraint(MC4);
     //    MC4.print();
 }
 
 
 void Model::add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on) {
-    Constraint MC1(name+"_McCormick1");
-    MC1 += v;
-    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
-    MC1 >= 0;
-    add_on_off(MC1, on);
-    Constraint MC2(name+"_McCormick2");
-    MC2 += v;
-    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
-    MC2 >= 0;
-    add_on_off(MC2, on);
-    Constraint MC3(name+"_McCormick3");
-    MC3 += v;
-    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
-    MC3 <= 0;
-    add_on_off(MC3, on);
-    Constraint MC4(name+"_McCormick4");
-    MC4 += v;
-    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
-    MC4 <= 0;
-    add_on_off(MC4, on);
+//    Constraint MC1(name+"_McCormick1");
+//    MC1 += v;
+//    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
+//    MC1 >= 0;
+//    add_on_off(MC1, on);
+//    Constraint MC2(name+"_McCormick2");
+//    MC2 += v;
+//    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
+//    MC2 >= 0;
+//    add_on_off(MC2, on);
+//    Constraint MC3(name+"_McCormick3");
+//    MC3 += v;
+//    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
+//    MC3 <= 0;
+//    add_on_off(MC3, on);
+//    Constraint MC4(name+"_McCormick4");
+//    MC4 += v;
+//    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
+//    MC4 <= 0;
+//    add_on_off(MC4, on);
 }
 
 
@@ -406,8 +406,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case float_: {
                 auto real_var = (var<float>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -415,8 +415,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case long_:{
                 auto real_var = (var<long double>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -424,8 +424,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case double_:{
                 auto real_var = (var<double>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -433,8 +433,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case integer_:{
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -442,8 +442,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case short_:{
                 auto real_var = (var<short>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -451,8 +451,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case binary_:{
                 auto real_var = (var<bool>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[idx] = (double)real_var->get_lb();
-                    x_u[idx] = (double)real_var->get_ub();
+                    x_l[idx] = (double)real_var->get_lb(i);
+                    x_u[idx] = (double)real_var->get_ub(i);
                     idx++;
                 }
                 break;
@@ -567,7 +567,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                 vid = v->get_id();
                 auto indices = v->get_indices();
                 if (!indices || indices->empty()) {
-                    if (v->is_transposed()) {
+                    if (v->_is_transposed) {
                         for (int j = 0; j<v->get_dim(); j++) {
                             res[idx] = 0;
                             idx++;
@@ -610,7 +610,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 vid = v->get_id();
                 auto indices = v->get_indices();
                 if (!indices || indices->empty()) {
-                    if (v->is_transposed()) {
+                    if (v->_is_transposed) {
                         for (int j = 0; j<v->get_dim(); j++) {
                             iRow[idx] = cid;
                             jCol[idx] = vid + j;

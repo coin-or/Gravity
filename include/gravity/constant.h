@@ -22,9 +22,10 @@ using namespace std;
 class constant_{
 protected:
     CType               _type;
-    bool                _is_transposed = false;
+    
 public:
-
+    bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */
+    bool                _is_vector = false; /**< True if the constant is considered as a vector */
     
     
     virtual ~constant_(){};
@@ -84,9 +85,6 @@ public:
         return (_type==func_c);
     };
     
-    bool is_transposed() const{ /**< Returns true if the vector is transposed **/
-        return _is_transposed;
-    }
     
     Sign get_all_sign() const;
     Sign get_sign(int idx=0) const;
@@ -98,6 +96,9 @@ public:
     bool is_non_positive() const; /**< Returns true if constant is non positive */
     bool is_non_negative() const; /**< Returns true if constant is non negative */
 };
+
+template<typename type>
+class param;
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
 template<typename type = int>
@@ -147,6 +148,12 @@ public:
 
 
     ~constant(){};
+    
+    constant tr(){
+        auto newc(*this);
+        newc._is_transposed = true;
+        return newc;
+    };
     
     type eval() const { return _val;}
     
@@ -301,6 +308,7 @@ public:
 
     
 };
+
 
 
 #endif //GRAVITY_CONSTANT_H

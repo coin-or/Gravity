@@ -511,7 +511,7 @@ constant_* copy(const constant_& c2){/**< Copy c2 into c1 detecting the right cl
 
 double lterm::eval(size_t i) const{
     double res = 0;
-    if (_coef->is_transposed()) {
+    if (_coef->_is_transposed) {
         for (int j = 0; j<_p->get_dim(); j++) {
             res += poly_eval(_coef,j) * poly_eval(_p, j);
         }
@@ -528,12 +528,12 @@ double lterm::eval(size_t i) const{
 
 double qterm::eval(size_t i) const{
     double res = 0;
-    if (_coef->is_transposed()) {
+    if (_coef->_is_transposed) {
         for (int j = 0; j<_p->first->get_dim(); j++) {
             res += poly_eval(_coef,j) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
         }
     }
-    else if(_p->first->is_transposed()){
+    else if(_p->first->_is_transposed){
         for (int j = 0; j<_p->first->get_dim(); j++) {
             res += poly_eval(_coef,i) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
         }
@@ -550,7 +550,7 @@ double qterm::eval(size_t i) const{
 
 double pterm::eval(size_t i) const{
     double res = 0;
-    if (_coef->is_transposed()) {
+    if (_coef->_is_transposed) {
         double pterm = 0;
         for (int j = 0; j<_l->front().first->get_dim(); j++) {
             pterm = 1;
@@ -580,7 +580,7 @@ lterm::lterm(bool sign, constant_* coef, param_* p){
     _coef = coef;
     _p = p;
     _sign = sign;
-    if (coef->is_transposed() && p->is_transposed()) {
+    if (coef->_is_transposed && p->_is_transposed) {
         throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
     }
     if (coef->is_function()) {
@@ -800,7 +800,7 @@ func_::func_(constant_&& c){
                 _cst = new constant<int>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
-                _is_transposed = p_c2->is_transposed();
+                _is_transposed = p_c2->_is_transposed;
                 break;
             }
             case var_c:{
@@ -811,7 +811,7 @@ func_::func_(constant_&& c){
                 _cst = new constant<int>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
-                _is_transposed = p_c2->is_transposed();
+                _is_transposed = p_c2->_is_transposed;
                 break;
             }
             case uexp_c: {
@@ -897,7 +897,7 @@ func_::func_(const constant_& c){
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
-            _is_transposed = p_c2->is_transposed();
+            _is_transposed = p_c2->_is_transposed;
             break;
         }
         case var_c:{
@@ -908,7 +908,7 @@ func_::func_(const constant_& c){
             _cst = new constant<int>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
-            _is_transposed = p_c2->is_transposed();
+            _is_transposed = p_c2->_is_transposed;
             break;
         }
         case uexp_c: {
@@ -1523,12 +1523,24 @@ func_& func_::operator*=(const constant_& c){
          }
         for (auto &pair:*_lterms) {
             pair.second._coef = multiply(pair.second._coef, c);
+            if (pair.second._coef->_is_transposed) {
+                pair.second._p->_is_vector = true;
+            }
         }
         for (auto &pair:*_qterms) {
             pair.second._coef = multiply(pair.second._coef, c);
+            if (pair.second._coef->_is_transposed) {
+                pair.second._p->first->_is_vector = true;
+                pair.second._p->second->_is_vector = true;
+            }
         }
         for (auto &pair:*_pterms) {
             pair.second._coef = multiply(pair.second._coef, c);
+            if (pair.second._coef->_is_transposed) {
+                for (auto &pp: *pair.second._l) {
+                    pp.first->_is_vector = true;
+                }
+            }
         }
         if (c.is_negative()) {
             reverse_sign();
@@ -1560,7 +1572,7 @@ func_& func_::operator*=(const constant_& c){
         vector<bool>* is_sum = nullptr;
         func_ res;
         for (auto& t1: *_pterms) {
-            if (t1.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
+            if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
                 bexpr e;
                 e += *this;
                 e *= c;
@@ -1569,7 +1581,7 @@ func_& func_::operator*=(const constant_& c){
             }
             for (auto& t2: *f->_pterms) {
                 is_sum = nullptr;
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1586,7 +1598,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1602,7 +1614,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_lterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial function)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1626,7 +1638,7 @@ func_& func_::operator*=(const constant_& c){
         }
 
         for (auto& t1: *_qterms) {
-            if (t1.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(Quadratic term)
+            if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
                 bexpr e;
                 e += *this;
                 e *= c;
@@ -1635,7 +1647,7 @@ func_& func_::operator*=(const constant_& c){
             }
             for (auto& t2: *f->_pterms) {
                 is_sum = nullptr;
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1651,7 +1663,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1670,7 +1682,7 @@ func_& func_::operator*=(const constant_& c){
             }
             for (auto& t2: *f->_lterms) {
                 is_sum = nullptr;
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1695,7 +1707,7 @@ func_& func_::operator*=(const constant_& c){
             
         }
         for (auto& t1: *_lterms) {
-            if (t1.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(Quadratic term)
+            if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
                 bexpr e;
                 e += *this;
                 e *= c;
@@ -1704,7 +1716,7 @@ func_& func_::operator*=(const constant_& c){
             }
             for (auto& t2: *f->_pterms) {
                 is_sum = nullptr;
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1719,7 +1731,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1736,7 +1748,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_lterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1757,7 +1769,7 @@ func_& func_::operator*=(const constant_& c){
         }
         if (!_cst->is_zero()) {
             for (auto& t2: *f->_pterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1770,7 +1782,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_qterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -1783,7 +1795,7 @@ func_& func_::operator*=(const constant_& c){
                 delete coef;
             }
             for (auto& t2: *f->_lterms) {
-                if (t2.second._coef->is_transposed()) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                     bexpr e;
                     e += *this;
                     e *= c;
@@ -3293,7 +3305,12 @@ func_ operator-(const constant_& c, func_&& f){
 
 
 func_ operator*(const constant_& c1, const constant_& c2){
-    return func_(c1) *= c2;
+    if(c1.is_number()) {
+        return func_(c2) *= c1;
+    }
+    else {
+        return func_(c1) *= c2;
+    }
 }
 
 func_ operator*(func_&& f, const constant_& c){

@@ -282,15 +282,15 @@ public:
         _coef = coef;
         _p = new pair<param_*, param_*>(make_pair(p1,p2));
         _sign = sign;
-        if (coef->is_transposed() && p1->is_transposed()) {
+        if (coef->_is_transposed && p1->_is_transposed) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
-        if (p1->is_transposed()) {
+        if (p1->_is_transposed) {
             if (p1->get_dim() != p2->get_dim()) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
         }
-        if (p2->is_transposed()) {
+        if (p2->_is_transposed) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
     };
@@ -336,10 +336,10 @@ public:
     
     pterm(bool sign, constant_* coef, param_* p, int exp){
         _coef = coef;
-        if (coef->is_transposed() && p->is_transposed()) {
+        if (coef->_is_transposed && p->_is_transposed) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
-        if (p->is_transposed()) {
+        if (p->_is_transposed) {
             throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
         }
         _l = new list<pair<param_*, int>>();
@@ -361,13 +361,13 @@ public:
         param_* p2 = nullptr;
         for (auto it = l->begin(); it != l->end(); it++){
             p1 = it->first;
-            if (p1->is_transposed() && next(it)!=l->end()) {
+            if (p1->_is_transposed && next(it)!=l->end()) {
                 p2 = next(it)->first;
                 if (p1->get_dim() != p2->get_dim()) {
                     throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
                 }
             }
-            if (p1->is_transposed() && next(it)==l->end()) {
+            if (p1->_is_transposed && next(it)==l->end()) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
         }
@@ -472,7 +472,7 @@ public:
     size_t get_nb_vars() const{
         size_t n = 0;
         for (auto &p: *_vars) {
-            if (p.second.first->is_transposed()) {
+            if (p.second.first->_is_transposed) {
                 n += p.second.first->get_dim();
             }
             else {
@@ -516,7 +516,7 @@ public:
     void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         assert(_vars->count(v->get_name())==0);
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (!v->is_transposed()) {
+        if (!v->_is_transposed) {
             _nb_instances = max(_nb_instances, v->get_dim());
         }
         else{
@@ -528,7 +528,7 @@ public:
     void add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         assert(_params->count(p->get_name())==0);
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->is_transposed()) {
+        if (!p->_is_transposed) {
             _nb_instances = max(_nb_instances, p->get_dim());
         }
         else{
@@ -738,7 +738,7 @@ public:
 //    size_t get_nnz_h() const{// returns number of nonzeros in the second derivatives of c
 //        size_t n =0;
 //        for (auto &qtp: *_qterms){
-//            if (qtp.second._p->first->is_transposed()) {
+//            if (qtp.second._p->first->_is_transposed) {
 //                n += qtp.second._p->first->get_dim();
 //            }
 //            else {
