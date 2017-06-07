@@ -76,12 +76,6 @@ void Net::add_node(Node* node){
   //  nodeID.insert(pair<string,Node*>(_name,node)).
 
     
-    if (nodeID.empty())
-        {cout << "empty nodeID" << endl;}
-    else
-        {cout << nodeID.size()<< endl;}
-
-    
     if(!nodeID.insert(pair<string,Node*>(node->_name, node)).second){
         cerr << "ERROR: adding the same node twice!";
     }
@@ -275,12 +269,55 @@ void Net::topology(string fn){
         while (linestream>>temp)
             row.push_back(temp);
         matrix.push_back(row);
-        
-        cout <<matrix.size()<< endl;
     }
-    rewind(fp);
+    int n=0;
+    n =matrix.size();
+    
+    string name;
+    int id = 0;
+    _clone = new Net();
+    
+    Node* node = NULL;
+    Node* node_clone = NULL;
+    for (int i= 0; i<n; i++){
+        name = to_string(i);
+        id = i;
+        node = new Node(name,id);
+        node_clone = new Node(name,i);
+        add_node(node);
+        _clone->add_node(node_clone);
+    }
+    
+    Arc* arc = NULL;
+    Arc* arc_clone = NULL;
+    string src, dest;
+    
+    for (int i = 0; i <(n-1); i++)
+        for (int j=i+1; j<n; j++){
+            if (matrix[i][j] > 0)
+            {
+                src = to_string(i);
+                dest = to_string(j);
+            
+                id = (int)arcs.size();
+                arc = new Arc(to_string(id));
+                arc_clone = new Arc(to_string(id));
+                arc->id = id;
+                arc_clone->id = id;
+                arc->src = get_node(src);
+                arc->dest= get_node(dest);
+                arc_clone->src = _clone->get_node(src);
+                arc_clone->dest = _clone->get_node(dest);
+                add_arc(arc);
+                arc->connect();
+                _clone->add_arc(arc_clone);
+                arc_clone->connect();
+            }
+        }
     delete[] line;
     fclose(fp);
+    cout<< "Edges: " << arcs.size() << endl;
+    get_tree_decomp_bags();
 }
 
 /*  @brief Remove node and all incident arcs from the network
@@ -321,7 +358,7 @@ void Net::get_tree_decomp_bags(){
         cout << n->_name << endl;
         cout<<_clone->nodes.size() << endl;
         bag = new vector<Node*>();
-              //  cout << "new bag = { ";
+                cout << "new bag = { ";
         for (auto a: n->branches) {
             nn = a->neighbour(n);
             bag->push_back(nn);
@@ -346,7 +383,7 @@ void Net::get_tree_decomp_bags(){
             }
         }
         bag->push_back(n);
-        //        cout << n->_name << "}\n";
+               cout << n->_name << "}\n";
         _bags->push_back(bag);
         if (bag->size()==3) {
             nb3++;
@@ -394,7 +431,7 @@ int Net::test(){
     for (int i= 0; i<3; i++){
         name = to_string(i);
         id = i;
-        cout << "name " << name << " ID: " << i << endl;
+  //      cout << "name " << name << " ID: " << i << endl;
         node = new Node(name,id);
         node_clone = new Node(name,i);
         add_node(node);

@@ -14,7 +14,7 @@
 #include <cstring>
 #include <fstream>
 #include <gravity/Net.h>
-#include <gravity/func.h>
+#include <gravity/model.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -250,114 +250,73 @@ int main (int argc, const char * argv[])
     
     
     Net graph;
-    /*
-    // add nodes
-    Node* node1= nullptr;
-    Node* node2 = nullptr;
-    Node* node3 = nullptr;
-
-    int id = 0;
-    int id2 = 1;
-    int id3 = 2;
-    
-    node1 = new Node(to_string(id),id);
-    node2 = new Node(to_string(id2),id2);
-    node3 = new Node(to_string(id3),id3);
-    
-    Node* nodeclone1 = new Node(to_string(id),id);
-    Node* nodeclone2 = new Node(to_string(id2),id2);
-    Node* nodeclone3 = new Node(to_string(id3),id3);
-    
-    graph.add_node(node1);
-    graph.add_node(node2);
-    graph.add_node(node3);
-    
-    Arc* arc1 = NULL;
-    Arc* arc2 = NULL;
-    Arc* arc3 = NULL;
-
-    string src, dest;
-    arc1 = new Arc(node1, node2);
-    arc2 = new Arc(node1, node3);
-    arc3 = new Arc(node2, node3);
-    
-    
-    //arc1_clone = new Arc(nodeclone1, nodeclone2);
-    //arc2_clone = new Arc(nodeclone1, nodeclone3);
-    //arc3_clone = new Arc(nodeclone2, nodeclone3);
-    
-    //Net* clone;
-    graph._clone = new Net();
-    graph._clone->add_node(nodeclone1);
-    graph._clone->add_node(nodeclone2);
-    graph._clone->add_node(nodeclone3);
-    //graph.add_arc(arc1);
-    //graph.add_arc(arc2);
-    //graph.add_arc(arc3);
-    
-    //arc_clone->src = _clone->get_node(src);
-    //arc_clone->dest = _clone->get_node(dest);
-    
-    
-    graph._clone->add_arc(arc1);
-    graph._clone->add_arc(arc2);
-    graph._clone->add_arc(arc3);
-    */
-    /*
-    graph._clone = new Net();
-
-    for (unsigned i=0; i<3; i++){
-        Node* node = NULL;
-        Node* node_clone = NULL;
-        node = new Node(to_string(i), i);
-        node_clone = new Node(to_string(i),i);
-        //node->vs = vs;
-        graph.add_node(node);
-        graph._clone->add_node(node_clone);
+    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
+    graph.topology(fname);
+    Model model;
+    auto n = graph.nodes.size();
+    auto m = graph.arcs.size();
+    param<int> ones;
+    for (int i = 0; i<n; i++) {
+        ones = 1;
     }
     
-    Arc* arc = NULL;
-    Arc* arc_clone = NULL;
-    string src, dest;
-    int id;
-    for (unsigned i=0; i<3; i++){
-        for (unsigned j=i+1; j<3;j++){
-            src = to_string(i);
-            dest = to_string(j);
-            id = (int)graph.arcs.size() + 1;
-            arc = new Arc(to_string(id));
-            arc_clone = new Arc(to_string(id));
-            arc->id = id;
-            arc_clone->id = id;
-            arc->src = graph.get_node(src);
-            arc->dest= graph.get_node(dest);
-            arc_clone->src = graph._clone->get_node(src);
-            arc_clone->dest = graph._clone->get_node(dest);
-            graph._clone->add_arc(arc_clone);
-        }
-    }
-*/
+    // IP model for stable set problem.
+    var<bool> x("x");
+    x.set_size(n);
+    func_ obj;
+    obj = ones.tr()*x;
+    model.set_objective(obj);
     
-    //get the chordal extension
-    //graph.get_tree_decomp_bags();
-    //string filename = "/Users/guangleiwang/ANU/nesta/nesta_case30_ieee.m";
+    Constraint c;
+    int i, j;
+    for (int l=0; l<m;l++){
+        Arc* temparc = graph.arcs[l];
+        i = (temparc->src)->ID;
+        j = (temparc->dest)->ID;
+        c =x(i) + x(j);
+        c <= 1;
+        c.print();
+        model.add_constraint(c);
+    }
+        
+    
+    
+//    vector<var<bool>> Xis;
+//    for (int i = 0; i<n; i++) {
+//        var<bool> Xi("X"+to_string(i)); // dimension
+//        Xi.set_size(n);
+//        Xis.push_back(Xi);
+//    }
+//    func_ obj;
 
+//    
+//    for (int i = 0; i<n; i++) {
+////        for (int j = 0; j<n; j++) {
+//        obj += ones.tr()*Xis[i];
+////        }
+//    }
+//    m.set_objective(obj);
+//    Constraint c;
+//    for (int i = 0; i<n; i++) {
+//        c += Xis[i](i);
+//    }
+//    c = 1;
+//    m.add_constraint(c);
     
     
     //graph.test(filename);
-    graph.test();
+    //graph.test();
     
     
     // arc1->print();
     // populate the graph:
-    
-    
-    
-//    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
-//    graph.readFile(fname);
+    // string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
+    // graph.readFile(fname);
     
     f2 *= 2;
     f2.print();
+    
+    
     return 0;
 //    l00.print();
 //    auto q00 = l00*q(1,2,3);

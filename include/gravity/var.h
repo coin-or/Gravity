@@ -44,13 +44,14 @@ public:
     /** Unbounded variable constructor */
     var();
     ~var(){};
-    var(const char* name);
+    var(const string& name);
     var(const var<type>& v);
+    var(var<type>&& v);
     //@}
     
     //@{
     /** Bounded variable constructor */
-    var(const char* name, type lb, type ub);
+    var(const string& name, type lb, type ub);
     //@}
     
     
