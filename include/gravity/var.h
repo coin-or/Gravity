@@ -145,7 +145,7 @@ public:
     }
     
     /* Modifiers */
-    void    set_size(int s);
+    void    set_size(size_t s, type val = 0);
     
     void    add_bounds(type lb, type ub);
     void    add_lb_only(type v); /**< Adds a new lower bound and infinity in the corresponding upper bound*/

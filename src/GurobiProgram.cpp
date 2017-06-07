@@ -15,11 +15,11 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model* m):GurobiProgram(){
     grb_mod = new GRBModel(*grb_env);
-    model = m;
+    _model = m;
 }
 
 GurobiProgram::~GurobiProgram() {
-    for (auto p : _grb_vars) delete p.second;
+//    for (auto p : _grb_vars) delete p.second;
     if (grb_mod) delete grb_mod;
     delete grb_env;
 }
@@ -82,7 +82,7 @@ void GurobiProgram::update_model(){
     var<double>* vr;
     var<int>* vi;
     std::map<int, GRBVar*>::iterator gvarit;
-    for (auto& it: model->_vars){
+    for (auto& it: _model->_vars){
 //        switch (it->get_type()) {
 //            case binary:
 //                vb =  (var<bool>*)it;
@@ -115,50 +115,72 @@ void GurobiProgram::relax_model(){
 }
 
 void GurobiProgram::fill_in_grb_vmap(){
-    var<bool>* vb = NULL;
-    var<double>* vr = NULL;
-    var<int>* vi = NULL;
-    GRBVar *gvar = NULL;
-    double lb, ub;
-    for (auto& it: model->_vars){
-//        switch (it->get_type()) {
-//            case binary:
-//                vb =  (var<bool>*)it;
-////                cout << "[" << vb->get_lb() << ", " << vb->get_ub() << "]\n";
-//                gvar = new GRBVar(grb_mod->addVar(vb->get_lb(), vb->get_ub(), 0.0, GRB_BINARY, vb->_name));
-//                break;
-//            case integ:
-//                vi =  (var<int>*)it;
-//                gvar = new GRBVar(grb_mod->addVar(vi->get_lb(), vi->get_ub(), 0.0, GRB_INTEGER, vi->_name));
-//                break;
-//            case real:
-//            case longreal:
-//                vr = (var<double>*)it;
-//                lb = min(vr->get_lb(), vr->get_lb_off());
-//                ub = max(vr->get_ub(), vr->get_ub_off());
-////                cout << "[" << lb << ", " << ub << "]\n";
-////                lb = vr->get_lb();
-////                ub = vr->get_ub();
-//                gvar = new GRBVar(grb_mod->addVar(lb, ub, 0.0, GRB_CONTINUOUS, vr->_name));
-//                break;
-//            default:
-//                break;
-//        }
-//        _grb_vars.insert(pair<int, GRBVar*>(it->get_idx(),gvar));
-//        cout << "\n\ngvar = " << gvar->get(GRB_StringAttr_VarName) << " vtype = " << gvar->get(GRB_CharAttr_VType);
+    param_* v;
+    for(auto& v_p: _model->_vars)
+    {
+        v = v_p.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    _grb_vars.push_back(GRBVar(grb_mod->addVar(real_var->get_lb(), real_var->get_ub(), 0.0, GRB_BINARY, v->get_name()+"_"+to_string(i))));
+                }
+                break;
+            }
+            default:
+                break;
+        }
     }
     grb_mod->update();
 }
 
 void GurobiProgram::create_grb_constraints(){
     char sense;
+    size_t idx = 0, inst = 0, nb_inst = 0;
     GRBLinExpr linlhs;
+    GRBLinExpr lterm;
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
     double coeff;
     Constraint* c;
-    for(auto& p: model->_cons){
+    for(auto& p: _model->_cons){
         c = p.second;
+        
         switch(c->get_type()) {
             case geq:
                 sense = GRB_GREATER_EQUAL;
@@ -172,19 +194,37 @@ void GurobiProgram::create_grb_constraints(){
             default:
                 break;
         }
-        switch(c->get_ftype()) { // constant?
+        nb_inst = c->get_nb_instances();
+        switch(c->get_ftype()) {
             case lin_:
-//                q = c->get_quad();
-                linlhs = 0;
-//                for (auto& it1: q->_coefs) {
-//                    auto gvit = _grb_vars.find(it1.first);
-//                    gvar1 = *(gvit->second);
-//                    coeff = it1.second;
-//                    linlhs += gvar1*coeff;
-//                }
-//                linlhs += q->get_const();
-//                cout << c->get_name() << linlhs << endl;
-                grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name());
+                inst = 0;
+                for (int i = 0; i< nb_inst; i++){
+                    linlhs = 0;
+                    for (auto& it1: c->get_lterms()) {
+                        lterm = 0;
+                        idx = it1.second._p->get_id();
+                        gvar1 = _grb_vars[idx];
+                        if (it1.second._coef->is_transposed()) {
+                            for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                                coeff = poly_eval(it1.second._coef,j);
+                                gvar1 = _grb_vars[idx+j];
+                                lterm += coeff*gvar1;
+                            }
+                        }
+                        else {
+                            coeff = poly_eval(it1.second._coef,i);
+                            gvar1 = _grb_vars[idx+i];
+                            lterm += coeff*gvar1;
+                        }
+                        if (!it1.second._sign) {
+                            lterm *= -1;
+                        }
+                        linlhs += lterm;
+                    }
+                    linlhs += poly_eval(c->get_cst(), inst);
+                    cout << c->get_name() << linlhs << endl;
+                    grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name());
+                }
                 break;
             case quad_:
 //                q = c->get_quad();
@@ -210,7 +250,7 @@ void GurobiProgram::create_grb_constraints(){
                 grb_mod->addQConstr(quadlhs,sense,c->get_rhs(),c->get_name());
                 break;
             case nlin_:
-                cerr << "Nonlinear constraint.\n";
+                cerr << "Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n";
                 exit(1);
             default:
                 break;
@@ -225,9 +265,9 @@ void GurobiProgram::set_grb_objective(){
     int objt;
     double coeff;
     const func_* q;
-    if (model->_objt == minimize) objt = GRB_MINIMIZE;
+    if (_model->_objt == minimize) objt = GRB_MINIMIZE;
     else objt = GRB_MAXIMIZE;
-    switch(model->_obj.get_type()){
+    switch(_model->_obj.get_type()){
         case lin_:
 //            q = model->_obj->get_quad();
 //            for (auto& it1: q->_coefs) {

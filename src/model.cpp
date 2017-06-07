@@ -550,18 +550,43 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 }
 
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
-    size_t idx=0;
-    if (new_x) {
-        set_x(x);
-    }
-    Constraint* c = nullptr;
-    for(auto& c_p: _cons)
+    size_t idx=0, inst = 0;
+    size_t cid = 0;
+    size_t vid = 0;
+    Constraint* c = NULL;
+    param_* v = NULL;
+    /* return the structure of the jacobian */
+    for(auto& c_p :_cons)
     {
         c = c_p.second;
         auto nb_ins = c->get_nb_instances();
+        inst = 0;
         for (int i = 0; i< nb_ins; i++){
-            res[idx] = c->eval(i);
-            idx++;
+            for (auto &v_p: c->get_vars()){
+                v = v_p.second.first;
+                vid = v->get_id();
+                auto indices = v->get_indices();
+                if (!indices || indices->empty()) {
+                    if (v->is_transposed()) {
+                        for (int j = 0; j<v->get_dim(); j++) {
+                            res[idx] = 0;
+                            idx++;
+                        }
+                    }
+                    else {
+                        res[idx] = 0;
+                        idx++;
+                    }
+                }
+                else {
+                    for (auto &id_p: *indices) {
+                        res[idx] = 0;
+                        idx++;
+                    }
+                }
+            }
+            cid++;
+            inst++;
         }
     }
 }

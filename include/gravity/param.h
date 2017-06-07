@@ -238,8 +238,8 @@ public:
     
     
     /* Modifiers */
-    void    set_size(int s){
-        _val->resize(s);
+    void    set_size(size_t s, type val = 0){
+        _val->resize(s,val);
         _dim = s;
     };
     

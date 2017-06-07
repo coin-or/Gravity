@@ -11,10 +11,10 @@ private:
 
     GRBModel* grb_mod;
     GRBEnv* grb_env;
-    std::map<string, GRBVar*> _grb_vars; /** Mapping variables to Gurobi variables */
+    vector<GRBVar> _grb_vars; /** Mapping variables to Gurobi variables */
 public:
-    Model *model;
-    int _output;
+    Model*  _model;
+    int     _output;
     GurobiProgram();
     GurobiProgram(Model* m);
     ~GurobiProgram();

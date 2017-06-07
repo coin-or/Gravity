@@ -38,8 +38,8 @@ template<typename type> var<type>::var(const char* name, type lb, type ub):var(n
 
 
 /* Modifiers */
-template<typename type> void   var<type>::set_size(int s){
-    param<type>::set_size(s);
+template<typename type> void   var<type>::set_size(size_t s, type val){
+    param<type>::set_size(s,val);
     _lb->reserve(s);
     _ub->reserve(s);
 };

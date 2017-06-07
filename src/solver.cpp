@@ -86,7 +86,7 @@ void PTSolver::set_model(Model* m) {
     
     if (_stype == gurobi){
 #ifdef USE_GUROBI
-        prog.grb_prog->model = m;
+        prog.grb_prog->_model = m;
 #else
         gurobiNotAvailable();
 #endif
