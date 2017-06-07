@@ -13,14 +13,19 @@ string param_::get_name(bool indices) const {
     string name = _name;
     int nb = _indices->size() - 1;
     if (indices && nb >= 0) {
-        name += "(";
+        name += "[";
         auto iter = _indices->begin();
         for (auto i = 0; i < nb; i++) {
-            name += (*iter++).first;
+            name += "(";
+            name += iter->first;
+            name += ")";
             name += ",";
+            iter++;
         }
-        name += (*iter).first;
+        name += "(";
+        name += iter->first;
         name += ")";
+        name += "]";
     }
     if (is_transposed()) {
         name += "^T";

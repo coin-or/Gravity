@@ -9,12 +9,10 @@
 #include <gravity/var.h>
 
 template<typename type> var<type>::var():param<type>(){
-    _id = 0;
     param<type>::set_type(var_c);
 };
 
 template<typename type> var<type>::var(const char* name):param<type>(name){
-    _id = 0;
     param<type>::set_type(var_c);
     _lb = make_shared<vector<type>>();
     _ub = make_shared<vector<type>>();

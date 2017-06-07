@@ -200,14 +200,14 @@ int main (int argc, const char * argv[])
     (ss.get_dfdx(p)).print();
     ss -= 2*ip*ppp + ppp;
     ss.print();
-    (ss.get_dfdx(p)).print();
+    (ss.get_dfdx(q)).print();
 //    auto exp = log(ff);
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
-    auto l00 = 2*p('i')*p(3,1) + q(1)+ p(3);
+    auto l00 = 2*p(3,1) + q(1)+ p(3);
     l00.print();
-    (l00.get_dfdx(p('i'))).print();
+    (l00.get_dfdx(p(3,1))).print();
     auto f0 = 0.1*q;
     f0.print();
     f0 -= (0.1+1e-7)*q;
@@ -234,7 +234,8 @@ int main (int argc, const char * argv[])
     
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
     f1.print();
-    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
+//    auto f2 = v11*sqrt(v1.tr()*v1) + ip + log(p) - p + expo(q) + cos(p+ip*q(1)) + sin(dp(2));
+    auto f2 = sin(dp(2));
     f2.print();
 //    f2 = v1/2 + sin((ip/dp)*p('i')) + 3;
     f2 = sin((ip/dp)*p);
@@ -352,8 +353,8 @@ int main (int argc, const char * argv[])
     
     
     
-    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
-    graph.readFile(fname);
+//    string fname = "/Users/guangleiwang/Downloads/Stable_set_instances/p.3n150.txt";
+//    graph.readFile(fname);
     
     f2 *= 2;
     f2.print();

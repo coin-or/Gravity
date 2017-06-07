@@ -78,7 +78,7 @@ public:
     
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_type==p._type && _intype==p._intype && get_name()==p.get_name());
+        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
 
@@ -148,6 +148,7 @@ public:
     param (const param& p) {
         _type = par_c;
         _intype = p._intype;
+        _id = p._id;
         _val = p._val;
         _name = p._name;
         _indices = new map<string, unsigned>(*p._indices);
@@ -159,6 +160,7 @@ public:
     param (param&& p) {
         _type = par_c;
         _intype = p._intype;
+        _id = p._id;
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
@@ -370,7 +372,7 @@ public:
         string key;
         auto it = indices.begin();
         for (size_t i= 0; i<indices.size(); i++) {
-            key += (*it++);
+            key += to_string(*it++);
             if (i<indices.size()-1) {
                 key += ",";
             }
@@ -385,20 +387,28 @@ public:
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         auto res(*this);
-        
+        //        res._indices->clear();
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
         for (size_t i= 0; i<indices.size(); i++) {
-            key += (*it++);
+            key += to_string(*it);
             if (i<indices.size()-1) {
                 key += ",";
             }
+            it++;
         }
-        size_t idx = _indices->at(key);
-        res._indices->insert(make_pair<>(key,idx));
+        auto it2 = param_::_indices->find(key);
+        if (it2 == param_::_indices->end()) {
+            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+            //            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        }
+        else {
+            size_t idx = param_::_indices->at(key);
+            res._indices->insert(make_pair<>(key,idx));
+        }
         return res;
     }
 
@@ -407,7 +417,7 @@ public:
         cout << to_string(vals);
     }
     
-    string to_string(bool vals=false) const{
+    string to_str(bool vals=false) const{
         string str = get_name();
         if(vals){
             str += " = [ ";

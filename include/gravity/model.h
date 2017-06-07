@@ -94,9 +94,9 @@ public:
     
     void add_constraint(const Constraint& c);
     
-    void embed(func_& f);
+    void embed(func_& f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
     
-    void embed(expr& e);
+    void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
     
     void del_constraint(const Constraint& c);
     void set_objective(const func_& f);

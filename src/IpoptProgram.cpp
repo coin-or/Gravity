@@ -137,7 +137,7 @@ bool IpoptProgram::eval_f(Index n, const Number* x, bool new_x, Number& obj_valu
 bool IpoptProgram::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f){
     
     assert(n==model->get_nb_vars());
-    model->fill_in_grad_obj(x, grad_f);
+    model->fill_in_grad_obj(x, grad_f, new_x);
     return true;
 }
 

@@ -210,10 +210,11 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     _nb_cons += c.get_nb_instances();
     if (_cons.count(c.get_name())!=0) {
-        _cons[c.get_name()] = new Constraint(c);
+        auto newc = new Constraint(c);
+        embed(*newc);
+        newc->compute_derivatives();
+        _cons[c.get_name()] = newc;
     }
-    //UPDATE HESSIAN
-    //    c->print();
 };
 
 
@@ -335,6 +336,7 @@ void Model::del_constraint(const Constraint& c){
 
 void Model::set_objective(const func_& f) {
     _obj = f;
+    embed(_obj);
 }
 
 void Model::set_objective_type(ObjectiveType t) {
@@ -1031,6 +1033,9 @@ void Model::embed(func_& f){
             f.add_param(p);
         }
     }
+    
+    f.compute_derivatives();
+//    f.embed_derivatives();
     
 }
 

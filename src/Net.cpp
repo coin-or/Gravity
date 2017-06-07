@@ -404,9 +404,10 @@ int Net::test(){
     Arc* arc = NULL;
     Arc* arc_clone = NULL;
     string src, dest;
-    for (int i= 0; i<3; i++){
-        for (int j = i; j<i+1; j++)
-        id = (int)arcs.size() + 1;
+    for (int i= 0; i<2; i++){
+        src = to_string(i);
+        dest = to_string(i+1);
+        id = (int)arcs.size();
         //arc = new Arc(src+dest);
         //arc_clone = new Arc(src+dest);
         arc = new Arc(to_string(id));
@@ -417,10 +418,27 @@ int Net::test(){
         arc->dest= get_node(dest);
         arc_clone->src = _clone->get_node(src);
         arc_clone->dest = _clone->get_node(dest);
+        add_arc(arc);
         arc->connect();
-        arc_clone->connect();
         _clone->add_arc(arc_clone);
+        arc_clone->connect();
     }
+    id = (int)arcs.size();
+    //arc = new Arc(src+dest);
+    //arc_clone = new Arc(src+dest);
+    arc = new Arc(to_string(id));
+    arc_clone = new Arc(to_string(id));
+    arc->id = id;
+    arc_clone->id = id;
+    arc->src = get_node("2");
+    arc->dest= get_node("0");
+    arc_clone->src = _clone->get_node("2");
+    arc_clone->dest = _clone->get_node("0");
+    add_arc(arc);
+    arc->connect();
+    _clone->add_arc(arc_clone);
+    arc_clone->connect();
+
 
     get_tree_decomp_bags();
     return 0;

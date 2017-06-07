@@ -58,21 +58,30 @@ public:
     
     
     template<typename... Args>
-    var operator()(int t1, Args&&... args){
+    var operator()(size_t t1, Args&&... args){
         auto res(*this);
-        
-        list<string> indices;
-        indices = {forward<string>(std::to_string(args))...};
-        indices.push_front(std::to_string(t1));
+//        res._indices->clear();
+        list<size_t> indices;
+        indices = {forward<size_t>(args)...};
+        indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (int i= 0; i<indices.size(); i++) {
-            key += (*it++);
+        for (size_t i= 0; i<indices.size(); i++) {
+            key += to_string(*it);
             if (i<indices.size()-1) {
                 key += ",";
             }
+            it++;
         }
-        res._indices->insert(make_pair<>(key,0));
+        auto it2 = param_::_indices->find(key);
+        if (it2 == param_::_indices->end()) {
+            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+//            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        }
+        else {
+            size_t idx = param_::_indices->at(key);
+            res._indices->insert(make_pair<>(key,idx));
+        }
         return res;
     }
     

@@ -92,7 +92,7 @@ public:
         return eval(0);
     }
     
-    string to_string() const;
+    string to_str() const;
     void print(bool endline = true) const;
     
 };
@@ -180,7 +180,7 @@ public:
     template<typename other_type> bexpr& operator/=(const other_type& v);
     
     
-    string to_string() const;
+    string to_str() const;
     
     void print(bool endline = true) const;
     
@@ -244,7 +244,7 @@ public:
     lterm& operator=(const lterm& l);
     lterm& operator=(lterm&& l);
     
-    string to_string(int ind) const;
+    string to_str(int ind) const;
     void print(int ind) const;
 };
 
@@ -315,7 +315,7 @@ public:
     qterm& operator=(const qterm& l);
     qterm& operator=(qterm&& l);
     
-    string to_string(int ind) const;
+    string to_str(int ind) const;
     void print(int ind) const;
 };
 
@@ -396,7 +396,7 @@ public:
     pterm& operator=(const pterm& l);
     pterm& operator=(pterm&& l);
     
-    string to_string(int ind) const;
+    string to_str(int ind) const;
     void print(int ind) const;
     
 };
@@ -417,7 +417,7 @@ protected:
     expr*                                  _expr; /**< Nonlinear part of the function, this points to the root node in _DAG */
     map<string, expr*>*                    _DAG; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
     queue<expr*>*                          _queue; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
-    
+    map<unsigned,func_*>                   _dfdx;/**< A map storing the first derivatives of f per variable index*/
     Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
     Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
     pair<constant_*, constant_*>*          _all_range; /**< Range of the return value considering all instances of the current function. >>**/
@@ -426,7 +426,11 @@ protected:
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
     vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
+    map<unsigned, set<param_*>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
+    
     size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
+    size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
+    size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Jacobian **/
     
 public:
     bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
@@ -968,7 +972,11 @@ public:
         return *_expr;
     }
     
-    func_ get_dfdx(const param_& v) const;
+    func_ get_dfdx(const param_& v) const; /**< Computes and returns the derivative of with respect to variable v. */
+    
+    func_* compute_dfdx(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+    
+    void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
     
     void update_sign(){
 //        _sign = get_sign(_qterms->begin()->second);
@@ -986,7 +994,7 @@ public:
     
     double eval(size_t i) const;
     double eval() const{ return eval(0);};
-    string to_string() const;
+    string to_str() const;
     void print(bool endline=true) const;
     
 };
@@ -1003,7 +1011,7 @@ public:
 
 void poly_print(const constant_* c);
 
-string to_string(const constant_* c);
+string to_str(const constant_* c);
 
 
 func_ operator+(const constant_& c1, const constant_& c2);
@@ -1955,7 +1963,7 @@ func_ log(constant_&& c);
 //    res._otype = plus_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " + " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -1964,7 +1972,7 @@ func_ log(constant_&& c);
 //    res._otype = plus_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " + " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " + " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -1974,7 +1982,7 @@ func_ log(constant_&& c);
 //    res._otype = minus_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " - " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -1983,7 +1991,7 @@ func_ log(constant_&& c);
 //    res._otype = minus_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " - " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " - " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -1993,7 +2001,7 @@ func_ log(constant_&& c);
 //    res._otype = product_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " * " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -2002,7 +2010,7 @@ func_ log(constant_&& c);
 //    res._otype = product_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " * " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " * " + ::to_str(res._rson);
 //    return res;
 //}
 //
@@ -2013,7 +2021,7 @@ func_ log(constant_&& c);
 //    res._otype = div_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " / " + ::to_str(res._rson);
 //    return res;
 //}
 //template<typename other_type> bexpr operator/(const expr& c1, const other_type& c2){
@@ -2021,7 +2029,7 @@ func_ log(constant_&& c);
 //    res._otype = div_;
 //    res._lson = copy((constant_*)&c1);
 //    res._rson =  copy((constant_*)&c2);
-//    res._to_str = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    res._to_str = ::to_str(res._lson) + " / " + ::to_str(res._rson);
 //    return res;
 //}
 

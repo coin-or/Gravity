@@ -8,6 +8,16 @@
 #include <math.h>
 #include <Gravity/func.h>
 
+//#define USEDEBUG
+#ifdef USEDEBUG
+#define Debug(x) cout << x
+#else
+#define Debug(x)
+#endif
+#define DebugOn(x) cout << x
+#define DebugOff(x)
+
+
 
 double poly_eval(const constant_* c, size_t i){
     if (!c) {
@@ -1055,7 +1065,7 @@ bool func_::operator==(const func_& f) const{
     if (_ftype!=f._ftype || _all_sign!=f._all_sign || _vars->size()!=f._vars->size() || _pterms->size() != f._pterms->size()|| _qterms->size() != f._qterms->size() || _lterms->size() != f._lterms->size()) {
         return false;
     }
-    if (this->to_string()!=f.to_string()) {
+    if (this->to_str()!=f.to_str()) {
         return false;
     }
     return true;
@@ -1260,6 +1270,9 @@ func_::~func_(){
             delete elem.second;
         }
     }
+    for (auto &f_p: _dfdx) {
+        delete f_p.second;
+    }
     delete _range;
     delete _convexity;
     delete _sign;    
@@ -1284,7 +1297,7 @@ bool all_zeros(const string& s){
 }
 
 bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
-    if (is_number() && all_zeros(to_string(this))){
+    if (is_number() && all_zeros(to_str(this))){
         return true;
     }
     if (is_param() || is_var()) {
@@ -1302,7 +1315,7 @@ bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
 }
 
 bool constant_::is_unit() const{ /**< Returns true if constant equals 1 */
-    if(is_number() && to_string(this)=="1"){
+    if(is_number() && to_str(this)=="1"){
         return true;
     }
     if (is_param()) {
@@ -1876,7 +1889,7 @@ func_& func_::operator/=(const constant_& c){
 //    res._otype = div_;
 //    res._lson = copy((constant_*)this);
 //    res._rson =  copy((constant_*)&c);
-//    res.get_str() = ::to_string(res._lson) + " / " + ::to_string(res._rson);
+//    res.get_str() = ::to_str(res._lson) + " / " + ::to_str(res._rson);
 //    *this = func_(res);
     return *this;
 }
@@ -2575,10 +2588,10 @@ void func_::insert(expr& e){
 string expr::get_str(){
     if (_to_str=="" || _to_str=="null") {
         if (is_uexpr()) {
-            return _to_str = ((uexpr*)this)->to_string();
+            return _to_str = ((uexpr*)this)->to_str();
         }
         else {
-            return _to_str = ((bexpr*)this)->to_string();
+            return _to_str = ((bexpr*)this)->to_str();
         }
     }
     else {
@@ -2925,7 +2938,7 @@ bexpr::bexpr(OperatorType otype, constant_* lson, constant_* rson){
     _lson = lson;
     _rson = rson;
     _type = bexp_c;
-    _to_str = ::to_string(_lson);
+    _to_str = ::to_str(_lson);
     switch (otype) {
         case plus_:
             _to_str += " + ";
@@ -2942,7 +2955,7 @@ bexpr::bexpr(OperatorType otype, constant_* lson, constant_* rson){
         default:
             break;
     }
-    _to_str += ::to_string(_rson);
+    _to_str += ::to_str(_rson);
 };
 
 bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
@@ -3051,60 +3064,60 @@ template<typename other_type> bexpr& bexpr::operator/=(const other_type& v){
 //}
 
 void poly_print(const constant_* c){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
-    cout << to_string(c);
+    cout << to_str(c);
 }
 
 
-string to_string(const constant_* c){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+string to_str(const constant_* c){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
     
     if (!c) {
         return "null";
     }    
     switch (c->get_type()) {
         case binary_c: {
-            return ((constant<bool>*)(c))->to_string();
+            return ((constant<bool>*)(c))->to_str();
             break;
         }
         case short_c: {
-            return ((constant<short>*)(c))->to_string();
+            return ((constant<short>*)(c))->to_str();
             break;
         }
         case integer_c: {
-            return ((constant<int>*)(c))->to_string();
+            return ((constant<int>*)(c))->to_str();
             break;
         }
         case float_c: {
-            return ((constant<float>*)(c))->to_string();
+            return ((constant<float>*)(c))->to_str();
             break;
         }
         case double_c: {
-            return ((constant<double>*)(c))->to_string();
+            return ((constant<double>*)(c))->to_str();
             break;
         }
         case long_c: {
-            return ((constant<long double>*)(c))->to_string();
+            return ((constant<long double>*)(c))->to_str();
             break;
         }
         case par_c:{
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    return ((param<bool>*)p_c)->to_string();
+                    return ((param<bool>*)p_c)->to_str();
                     break;
                 case short_:
-                    return ((param<short>*)p_c)->to_string();
+                    return ((param<short>*)p_c)->to_str();
                     break;
                 case integer_:
-                    return ((param<int>*)p_c)->to_string();
+                    return ((param<int>*)p_c)->to_str();
                     break;
                 case float_:
-                    return ((param<float>*)p_c)->to_string();
+                    return ((param<float>*)p_c)->to_str();
                     break;
                 case double_:
-                    return ((param<double>*)p_c)->to_string();
+                    return ((param<double>*)p_c)->to_str();
                     break;
                 case long_:
-                    return ((param<long double>*)p_c)->to_string();
+                    return ((param<long double>*)p_c)->to_str();
                     break;
                 default:
                     break;
@@ -3112,33 +3125,33 @@ string to_string(const constant_* c){/**< printing c, detecting the right class,
             break;
         }
         case uexp_c: {
-            return ((uexpr*)c)->to_string();
+            return ((uexpr*)c)->to_str();
             break;
         }
         case bexp_c: {
-            return ((bexpr*)c)->to_string();
+            return ((bexpr*)c)->to_str();
             break;
         }
         case var_c: {
             auto p_c = (param_*)(c);
             switch (p_c->get_intype()) {
                 case binary_:
-                    return ((var<bool>*)p_c)->to_string();
+                    return ((var<bool>*)p_c)->to_str();
                     break;
                 case short_:
-                    return ((var<short>*)p_c)->to_string();
+                    return ((var<short>*)p_c)->to_str();
                     break;
                 case integer_:
-                    return ((var<int>*)p_c)->to_string();
+                    return ((var<int>*)p_c)->to_str();
                     break;
                 case float_:
-                    return ((var<float>*)p_c)->to_string();
+                    return ((var<float>*)p_c)->to_str();
                     break;
                 case double_:
-                    return ((var<double>*)p_c)->to_string();
+                    return ((var<double>*)p_c)->to_str();
                     break;
                 case long_:
-                    return ((var<long double>*)p_c)->to_string();
+                    return ((var<long double>*)p_c)->to_str();
                     break;
                 default:
                     break;
@@ -3147,7 +3160,7 @@ string to_string(const constant_* c){/**< printing c, detecting the right class,
         }
         case func_c: {
             auto f = (func_*)c;
-            return f->to_string();
+            return f->to_str();
             break;
         }
         default:
@@ -3765,11 +3778,11 @@ constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, upd
         return nullptr;
     }
     
-string pterm::to_string(int ind) const{
+string pterm::to_str(int ind) const{
     string str;
     constant_* c_new = _coef;
     if (c_new->is_number()){
-        string v = ::to_string(c_new);
+        string v = ::to_str(c_new);
         if (_sign) {
             if (v=="-1") {
                 str += " - ";
@@ -3810,29 +3823,29 @@ string pterm::to_string(int ind) const{
             str += " + ";
         }
         str += "(";
-        str += ::to_string(c_new);
+        str += ::to_str(c_new);
         str += ")";
     }
     for (auto& p: *_l) {
-        str += ::to_string(p.first);
+        str += ::to_str(p.first);
         if (p.second != 1) {
-            str += "^" + std::to_string(p.second);
+            str += "^" + to_string(p.second);
         }
     }
     return str;
 }
 
 void pterm::print(int ind) const{
-    cout << this->to_string(ind);
+    cout << this->to_str(ind);
 }
 
-string qterm::to_string(int ind) const {
+string qterm::to_str(int ind) const {
     string str;
     constant_* c_new = _coef;
     param_* p_new1 = (param_*)_p->first;
     param_* p_new2 = (param_*)_p->second;
     if (c_new->is_number()){
-        string v = ::to_string(c_new);
+        string v = ::to_str(c_new);
         if (_sign) {
             if (v=="-1") {
                 str += " - ";
@@ -3873,32 +3886,32 @@ string qterm::to_string(int ind) const {
             str += " + ";
         }
         str += "(";
-        str += ::to_string(c_new);
+        str += ::to_str(c_new);
         str += ")";
     }
-    str += ::to_string(p_new1);
+    str += ::to_str(p_new1);
     if (p_new1==p_new2) {
         str += "^2";
     }
     else {
         str += ".";
-        str += ::to_string(p_new2);
+        str += ::to_str(p_new2);
     }
     return str;
 }
 
 
 void qterm::print(int ind) const {
-    cout << this->to_string(ind);
+    cout << this->to_str(ind);
 }
 
 
-string lterm::to_string(int ind) const{
+string lterm::to_str(int ind) const{
     string str;
     constant_* c_new = _coef;
     param_* p_new = (param_*)_p;
     if (c_new->is_number()){
-        string v = ::to_string(c_new);
+        string v = ::to_str(c_new);
         if (_sign) {
             if (v=="-1") {
                 str += " - ";
@@ -3939,16 +3952,45 @@ string lterm::to_string(int ind) const{
             str += " + ";
         }
         str += "(";
-        str += ::to_string(c_new);
+        str += ::to_str(c_new);
         str += ")";
     }
-    str += ::to_string(p_new);
+    str += ::to_str(p_new);
     return str;
 }
 
 void lterm::print(int ind) const{
-    cout << this->to_string(ind);
+    cout << this->to_str(ind);
 }
+
+func_* func_::compute_dfdx(const param_ &v){
+    auto df = new func_(get_dfdx(v));
+    embed(*df);
+    _nnz_j += df->get_nb_vars()*_nb_instances;
+    _dfdx[v.get_id()] = df;
+    DebugOn( "First derivative with respect to " << v.get_name() << " = ");
+    df->print();
+    return df;
+}
+
+void func_::compute_derivatives(){ /**< Computes and stores the derivative of f with respect to all variables. */
+    size_t vid = 0, vjd = 0;
+    for (auto &vp: *_vars) {
+        vid = vp.second.first->get_id();
+        auto df = compute_dfdx(*vp.second.first);
+        for (auto &vp2: *_vars) {
+            vjd = vp.second.first->get_id();
+            if (vid <= vjd) { //only store lower left part of hessian matrix since it is symmetric.
+                _hess_link[vid].insert(vp2.second.first);
+                auto d2f = df->compute_dfdx(*vp2.second.first);
+                DebugOn( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
+                d2f->print();
+            }
+        }
+        
+    }
+};
+
 
 func_ func_::get_dfdx(const param_ &v) const{
     if (is_constant() || _vars->count(v.get_name())==0) {
@@ -4025,7 +4067,7 @@ double func_::eval(size_t i) const{
     return res;
 }
 
-string func_::to_string() const{
+string func_::to_str() const{
     string str;
     int ind = 0;
     string sign = " + ";
@@ -4046,24 +4088,24 @@ string func_::to_string() const{
         str += ") = ";
     }
     for (auto &pair:*_pterms) {
-        str += pair.second.to_string(ind++);
+        str += pair.second.to_str(ind++);
     }
     if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
         str += " + ";
     }
     ind = 0;
     for (auto &pair:*_qterms) {
-        str += pair.second.to_string(ind++);
+        str += pair.second.to_str(ind++);
     }
     if (!_qterms->empty() && !_lterms->empty()) {
         str += " + ";
     }
     ind = 0;
     for (auto &pair:*_lterms) {
-        str += pair.second.to_string(ind++);
+        str += pair.second.to_str(ind++);
     }
     if (_cst->is_number()) {
-        auto val = ::to_string(_cst);
+        auto val = ::to_str(_cst);
         if (val.front()=='-') {
             str += " - " + val.substr(1);
         }
@@ -4079,7 +4121,7 @@ string func_::to_string() const{
             str += " + ";
         }
         str += "(";
-        str += ::to_string(_cst);
+        str += ::to_str(_cst);
         str += ")";
     }
     if (!_queue->empty() && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
@@ -4093,7 +4135,7 @@ string func_::to_string() const{
 
 
 void func_::print(bool endline) const{
-    cout << this->to_string();
+    cout << this->to_str();
     if (endline)
         cout << endl;
 }
@@ -4108,36 +4150,36 @@ uexpr::uexpr(){
     _to_str = "null";
 }
 
-string uexpr::to_string() const{
+string uexpr::to_str() const{
     string str;
     switch (_otype) {
         case log_:
             str += "log(";
-            str += ::to_string(_son);
+            str += ::to_str(_son);
             str += ")";
             break;
             
         case exp_:
             str += "exp(";
-            str += ::to_string(_son);
+            str += ::to_str(_son);
             str += ")";
             break;
             
         case cos_:
             str += "cos(";
-            str += ::to_string(_son);
+            str += ::to_str(_son);
             str += ")";
             break;
             
         case sin_:
             str += "sin(";
-            str += ::to_string(_son);
+            str += ::to_str(_son);
             str += ")";
             break;
             
         case sqrt_:
             str += "sqrt(";
-            str += ::to_string(_son);
+            str += ::to_str(_son);
             str += ")";
             break;
         default:
@@ -4153,15 +4195,15 @@ void uexpr::print(bool endline) const{
 
 }
 
-string bexpr::to_string() const{
+string bexpr::to_str() const{
     string str;
     if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
         str += "(";
-        str+= ::to_string(_lson);
+        str+= ::to_str(_lson);
         str += ")";
     }
     else
-        str+= ::to_string(_lson);
+        str+= ::to_str(_lson);
 
     if (_otype==plus_) {
         str+= " + ";
@@ -4181,11 +4223,11 @@ string bexpr::to_string() const{
     }
 
     if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
-        str+= ::to_string(_rson);
+        str+= ::to_str(_rson);
     }
     else {
         str+= "(";
-        str+= ::to_string(_rson);
+        str+= ::to_str(_rson);
         str+= ")";
     }
     return str;

@@ -286,7 +286,7 @@ public:
         cout << _val;
     }
     
-    string to_string() const{
+    string to_str() const{
         char buffer [50];
         if(typeid(type)==typeid(float) || typeid(type)==typeid(double) || typeid(type)==typeid(long double)){
             sprintf (buffer, "%g", _val);
