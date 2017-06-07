@@ -16,19 +16,26 @@
 namespace {
     void gurobiNotAvailable()
     {
-        cerr << "Can't use Gurobi for solver: this version of Gravity "
+        cerr << "Can't use Gurobi as a solver: this version of Gravity "
         "was compiled without Gurobi support." << endl;
         exit(1);
     }
+    void cplexNotAvailable()
+    {
+        cerr << "Can't use Cplex as a solver: this version of Gravity "
+        "was compiled without Cplex support." << endl;
+        exit(1);
+    }
+    
     void bonminNotAvailable()
     {
-        cerr << "Can't use Bonmin for solver: this version of Gravity "
+        cerr << "Can't use Bonmin as a solver: this version of Gravity "
         "was compiled without Bonmin support." << endl;
         exit(1);
     }
     void ipoptNotAvailable()
     {
-        cerr << "Can't use Ipopt for solver: this version of Gravity "
+        cerr << "Can't use Ipopt as a solver: this version of Gravity "
         "was compiled without Ipopt support." << endl;
         exit(1);
     }
@@ -39,6 +46,12 @@ namespace {
 solver::solver(Model& model, SolverType stype){
     _stype = stype;
     switch (stype) {
+        case cplex:
+#ifdef USE_CPLEX
+            prog.cplex_prog = new CplexProgram(&model);
+#else
+            cplexNotAvailable();
+#endif
         case ipopt:
 #ifdef USE_IPOPT
             prog.ipopt_prog = new IpoptProgram(&model);
@@ -70,30 +83,69 @@ solver::solver(Model& model, SolverType stype){
 }
 
 solver::~solver(){
-    if (_stype == gurobi) {
-#ifdef USE_GUROBI
-        delete prog.grb_prog;
+    switch (_stype) {
+        case cplex:
+#ifdef USE_CPLEX
+            delete prog.cplex_prog;
 #else
-        gurobiNotAvailable();
-#endif        
-    }
-#ifdef USE_IPOPT
-    if (_stype == ipopt) delete prog.ipopt_prog;
+            cplexNotAvailable();
 #endif
+        case ipopt:
+#ifdef USE_IPOPT
+            delete prog.ipopt_prog;
+#else
+            ipoptNotAvailable();
+#endif
+            break;
+        case gurobi:
+#ifdef USE_GUROBI
+            delete prog.grb_prog;
+#else
+            gurobiNotAvailable();
+#endif
+            break;
+        case bonmin:
+#ifdef USE_BONMIN
+            delete prog.bonmin_prog;
+#else
+            bonminNotAvailable();
+#endif
+            break;
+    }
+
 }
 
 void solver::set_model(Model& m) {
     
-    if (_stype == gurobi){
-#ifdef USE_GUROBI
-        prog.grb_prog->_model = &m;
+    switch (_stype) {
+        case cplex:
+#ifdef USE_CPLEX
+            prog.cplex_prog->_model = &m;
 #else
-        gurobiNotAvailable();
+            cplexNotAvailable();
 #endif
-    }
+        case ipopt:
 #ifdef USE_IPOPT
-    if (_stype == ipopt) prog.ipopt_prog->model = &m;
+            prog.ipopt_prog->_model = &m;
+#else
+            ipoptNotAvailable();
 #endif
+            break;
+        case gurobi:
+#ifdef USE_GUROBI
+            prog.grb_prog->_model = &m;
+#else
+            gurobiNotAvailable();
+#endif
+            break;
+        case bonmin:
+#ifdef USE_BONMIN
+            prog.bonmin_prog->_model = &m;
+#else
+            bonminNotAvailable();
+#endif
+            break;
+    }
 }
 
 
@@ -110,10 +162,10 @@ int solver::run(int output, bool relax){
                 return (int) status;
             }
 
-        if(prog.ipopt_prog->model->_objt==maximize){
+        if(prog.ipopt_prog->_model->_objt==maximize){
 //            *prog.ipopt_prog->model->_obj *= -1;
         }
-        SmartPtr<TNLP> tmp = new IpoptProgram(prog.ipopt_prog->model);
+        SmartPtr<TNLP> tmp = new IpoptProgram(prog.ipopt_prog->_model);
 //        prog.ipopt_prog;
             //            iapp.Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp.Options()->SetStringValue("derivative_test", "second-order");
@@ -125,7 +177,7 @@ int solver::run(int output, bool relax){
             
             //            iapp.Options()->SetStringValue("derivative_test_print_all", "yes");
         status = iapp.OptimizeTNLP(tmp);
-        if(prog.ipopt_prog->model->_objt==maximize){
+        if(prog.ipopt_prog->_model->_objt==maximize){
 //            *prog.ipopt_prog->model->_obj *= -1;
         }
             if (status == Solve_Succeeded) {

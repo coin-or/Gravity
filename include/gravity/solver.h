@@ -23,6 +23,9 @@
 #ifdef USE_BONMIN
 #include <Gravity/BonminProgram.h>
 #endif
+#ifdef USE_CPLEX
+#include <Gravity/CplexProgram.h>
+#endif
 
 class solver {
     
@@ -34,6 +37,10 @@ protected:
 #ifdef USE_GUROBI
         GurobiProgram* grb_prog;
 #endif
+#ifdef USE_CPLEX
+        CplexProgram* cplex_prog;
+#endif
+
 #ifdef USE_BONMIN
         BonminProgram* bonmin_prog;
 #endif

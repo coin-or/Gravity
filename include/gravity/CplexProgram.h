@@ -22,11 +22,11 @@
 class CplexProgram {
 private:
     
-    IloModel cplex_model;
-    IloEnv cplex_env;
-    vector<IloNumVar> _Cplex_vars; /** Mapping variables to Cplex variables */
+    IloModel* _cplex_model;
+    IloEnv* _cplex_env;
+    vector<IloNumVar> _cplex_vars; /** Mapping variables to Cplex variables */
 public:
-    Model *model;
+    Model* _model;
     int _output;
     CplexProgram();
     CplexProgram(Model* m);
@@ -38,9 +38,9 @@ public:
     void update_model();
     void relax_model();
     
-    void fill_in_Cplex_vars();
-    void create_Cplex_constraints();
-    void set_Cplex_objective();
+    void fill_in_cplex_vars();
+    void create_cplex_constraints();
+    void set_cplex_objective();
     
     void print_constraints();
 };

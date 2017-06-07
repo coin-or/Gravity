@@ -25,9 +25,9 @@ class IpoptProgram : public TNLP {
 
     
 public:
-    Model* model;
+    Model* _model;
     
-    IpoptProgram(Model* m):model(m){}
+    IpoptProgram(Model* m):_model(m){}
     
     ~IpoptProgram(){}
     

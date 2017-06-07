@@ -13,7 +13,7 @@ using namespace Bonmin;
 
 class BonminProgram : public TMINLP {
 public:
-    Model* model;
+    Model* _model;
 
     //BonminProgram(Model* m):model(m){}
     BonminProgram(Model* m);

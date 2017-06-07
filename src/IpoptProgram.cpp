@@ -13,14 +13,14 @@ using namespace std;
 bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
     index_style = Ipopt::TNLP::C_STYLE;
-    n = (Index)model->get_nb_vars();
+    n = (Index)_model->get_nb_vars();
 //    printf("n = %d;\n", n);
-    m = (Index)model->get_nb_cons();
-    nnz_jac_g = (Index)model->get_nb_nnz_g();
+    m = (Index)_model->get_nb_cons();
+    nnz_jac_g = (Index)_model->get_nb_nnz_g();
 //    cout << "\n############## CALLING update_hess_link ##############\n";
 
-    nnz_h_lag = (Index)model->get_nb_nnz_h();
-    model->_nnz_h = nnz_h_lag;
+    nnz_h_lag = (Index)_model->get_nb_nnz_h();
+    _model->_nnz_h = nnz_h_lag;
     return true;
 }
 
@@ -43,7 +43,7 @@ void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               statu
     var<float>* real_var = NULL;
     var<>* long_real_var = NULL;
     for (int i = 0; i<n; i++) {
-//        v = model->getVar(i);
+//        v = _model->getVar(i);
 //        switch (v->get_type()) {
 //            case real:
 //                real_var = (var<float>*)v;
@@ -65,13 +65,13 @@ void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               statu
 //                break;
 //        } ;
     }
-//    if (model->_store_duals) {
-//        auto &cons = model->get_cons();
+//    if (_model->_store_duals) {
+//        auto &cons = _model->get_cons();
 //        for (size_t i=0; i<m; i++)
 //            cons[i]->_dual = lambda[i];
 //        for (int i = 0; i<n; i++) {
 //            double dual = z_U[i] - z_L[i]; // upper bound active is +ve dual
-//            v = model->getVar(i);
+//            v = _model->getVar(i);
 //            switch (v->get_type()) {
 //                case real:
 //                    static_cast<var<float> *>(v)->_dual = dual;
@@ -90,23 +90,23 @@ void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               statu
 //            } ;
 //        }
 //    }
-//    model->check_feasible(x);
-//    model->_opt = model->_obj->eval(x);
-//    cout << "\n************** Objective Function Value = " << model->_opt << " **************" << endl;
+//    _model->check_feasible(x);
+//    _model->_opt = _model->_obj->eval(x);
+//    cout << "\n************** Objective Function Value = " << _model->_opt << " **************" << endl;
 }
 
 bool IpoptProgram::get_bounds_info(Index n, Number* x_l, Number* x_u,
                                  Index m, Number* g_l, Number* g_u){
 //    printf("n = %d;\n", n);
-    assert(n==model->get_nb_vars());
-    assert(m==model->get_nb_cons());
-    model->fill_in_var_bounds(x_l , x_u);
+    assert(n==_model->get_nb_vars());
+    assert(m==_model->get_nb_cons());
+    _model->fill_in_var_bounds(x_l , x_u);
     for (int i = 0; i<n; i++) {
 //        if (x_l[i]==x_u[i]) {
 //            printf("%f <= x[%d] <= %f\n",x_l[i], i, x_u[i]);
 //        }
     }
-    model->fill_in_cstr_bounds(g_l , g_u);
+    _model->fill_in_cstr_bounds(g_l , g_u);
 //    for (int i = 0; i<m; i++) {
 //        printf("%f <= g[%d] <= %f\n",g_l[i], i, g_u[i]);
 //    }
@@ -118,34 +118,34 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
                                     bool init_z, Number* z_L, Number* z_U,
                                     Index m, bool init_lambda,
                                     Number* lambda){
-    assert(n==model->get_nb_vars());
-    assert(m==model->get_nb_cons());
+    assert(n==_model->get_nb_vars());
+    assert(m==_model->get_nb_cons());
     
     if (init_x) {
-        model->fill_in_var_init(x);
+        _model->fill_in_var_init(x);
     }
     return true;
 }
 
 bool IpoptProgram::eval_f(Index n, const Number* x, bool new_x, Number& obj_value){
     
-    assert(n==model->get_nb_vars());
-    model->fill_in_obj(x, obj_value,new_x);
+    assert(n==_model->get_nb_vars());
+    _model->fill_in_obj(x, obj_value,new_x);
     return true;
 }
 
 bool IpoptProgram::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f){
     
-    assert(n==model->get_nb_vars());
-    model->fill_in_grad_obj(x, grad_f, new_x);
+    assert(n==_model->get_nb_vars());
+    _model->fill_in_grad_obj(x, grad_f, new_x);
     return true;
 }
 
 bool IpoptProgram::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g){
     
-    assert(n==model->get_nb_vars());
+    assert(n==_model->get_nb_vars());
 //    if (!new_x)
-        model->fill_in_cstr(x, g, new_x);
+        _model->fill_in_cstr(x, g, new_x);
     return true;
 }
 
@@ -153,14 +153,14 @@ bool IpoptProgram::eval_jac_g(Index n, const Number* x, bool new_x,
                             Index m, Index nele_jac, Index* iRow, Index *jCol,
                             Number* values){
     
-    assert(n==model->get_nb_vars());
-    assert(m==model->get_nb_cons());
-    assert(nele_jac==model->get_nb_nnz_g());
+    assert(n==_model->get_nb_vars());
+    assert(m==_model->get_nb_cons());
+    assert(nele_jac==_model->get_nb_nnz_g());
     if (values == NULL){
-        model->fill_in_jac_nnz(iRow, jCol);
+        _model->fill_in_jac_nnz(iRow, jCol);
     } else {
 //        if (!new_x) {
-            model->fill_in_jac(x, values, new_x);
+            _model->fill_in_jac(x, values, new_x);
 //        }
     }
     
@@ -189,21 +189,21 @@ bool IpoptProgram::eval_h(Index n, const Number* x, bool new_x,
                         Index* jCol, Number* values){
     
     
-    assert(n==model->get_nb_vars());
-    assert(m==model->get_nb_cons());
-    assert(nele_hess==model->get_nb_nnz_h());
+    assert(n==_model->get_nb_vars());
+    assert(m==_model->get_nb_cons());
+    assert(nele_hess==_model->get_nb_nnz_h());
     if (values == NULL){
-        model->fill_in_hess_nnz(iRow, jCol);
+        _model->fill_in_hess_nnz(iRow, jCol);
     } else {
 //        if(!new_x)
-            model->fill_in_hess(x, obj_factor, lambda, values, new_x);
+            _model->fill_in_hess(x, obj_factor, lambda, values, new_x);
 //        int nr_threads = 6;
 //        std::vector<std::thread> threads;
 //            //Split constraints into nr_threads parts
 //        std::vector<int> limits = bounds2(nr_threads, (int)n);
 //            //Launch nr_threads threads:
 //        for (int i = 0; i < nr_threads; ++i) {
-//            threads.push_back(std::thread(&Model::fill_in_hess_multithread, model, x, obj_factor, lambda, values, limits[i], limits[i+1]));
+//            threads.push_back(std::thread(&_model::fill_in_hess_multithread, _model, x, obj_factor, lambda, values, limits[i], limits[i+1]));
 //        }
 //            //Join the threads with the main thread
 //        for(auto &t : threads){
@@ -215,15 +215,15 @@ bool IpoptProgram::eval_h(Index n, const Number* x, bool new_x,
 }
 
 bool IpoptProgram::get_variables_linearity(Index n, LinearityType* var_types){
-    assert(n==model->get_nb_vars());
-    model->fill_in_var_linearity(var_types);
+    assert(n==_model->get_nb_vars());
+    _model->fill_in_var_linearity(var_types);
     return true;
 //    return false;
 }
 
 bool IpoptProgram::get_constraints_linearity(Index m, LinearityType* const_types){
-    assert(m==model->get_nb_cons());
-    model->fill_in_cstr_linearity(const_types);
+    assert(m==_model->get_nb_cons());
+    _model->fill_in_cstr_linearity(const_types);
     return true;
 //    return false;
 }
