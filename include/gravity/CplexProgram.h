@@ -19,18 +19,18 @@
 #endif
 #include <Gravity/model.h>
 
-class CPLEXProgram {
+class CplexProgram {
 private:
     
-    GRBModel* grb_mod;
-    GRBEnv* grb_env;
-    std::map<string, GRBVar*> _grb_vars; /** Mapping variables to CPLEX variables */
+    IloModel cplex_model;
+    IloEnv cplex_env;
+    vector<IloNumVar> _Cplex_vars; /** Mapping variables to Cplex variables */
 public:
     Model *model;
     int _output;
-    CPLEXProgram();
-    CPLEXProgram(Model* m);
-    ~CPLEXProgram();
+    CplexProgram();
+    CplexProgram(Model* m);
+    ~CplexProgram();
     void reset_model();
     
     bool solve(bool relax);
@@ -38,15 +38,15 @@ public:
     void update_model();
     void relax_model();
     
-    void fill_in_grb_vmap();
-    void create_grb_constraints();
-    void set_grb_objective();
+    void fill_in_Cplex_vars();
+    void create_Cplex_constraints();
+    void set_Cplex_objective();
     
     void print_constraints();
 };
 
 
-#endif /* defined(__PowerTools____CPLEXProgram) */
+#endif /* defined(__PowerTools____CplexProgram) */
 
 
 

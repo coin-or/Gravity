@@ -1,5 +1,5 @@
 //
-//  PTSolver.h
+//  solver.h
 //  PowerTools++
 //
 //  Created by Hassan on 30/01/2015.
@@ -24,7 +24,7 @@
 #include <Gravity/BonminProgram.h>
 #endif
 
-class PTSolver {
+class solver {
     
 protected:
     union {
@@ -43,15 +43,15 @@ public:
     SolverType                      _stype;
     /** Constructor */
     //@{
-    PTSolver();
+    solver();
 
-    PTSolver(Model* model, SolverType stype);
+    solver(Model& model, SolverType stype);
     //@}
-    void set_model(Model* m);
+    void set_model(Model& m);
     
     /* Destructor */
-    ~PTSolver();
+    ~solver();
     
-    int run(int output, bool relax);
+    int run(int output = 0, bool relax = false);
 };
 #endif /* defined(__PowerTools____Solver__) */

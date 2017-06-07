@@ -1,5 +1,5 @@
 //
-//  PTSolver.cpp
+//  solver.cpp
 //  PowerTools++
 //
 //  Created by Hassan on 30/01/2015.
@@ -36,12 +36,12 @@ namespace {
 }
 
 
-PTSolver::PTSolver(Model* model, SolverType stype){
+solver::solver(Model& model, SolverType stype){
     _stype = stype;
     switch (stype) {
         case ipopt:
 #ifdef USE_IPOPT
-            prog.ipopt_prog = new IpoptProgram(model);
+            prog.ipopt_prog = new IpoptProgram(&model);
 #else
             ipoptNotAvailable();
 #endif
@@ -49,7 +49,7 @@ PTSolver::PTSolver(Model* model, SolverType stype){
         case gurobi:
 #ifdef USE_GUROBI
             try{
-                prog.grb_prog = new GurobiProgram(model);
+                prog.grb_prog = new GurobiProgram(&model);
             }catch(GRBException e) {
                 cerr << "\nError code = " << e.getErrorCode() << endl;
                 cerr << e.getMessage() << endl;
@@ -69,7 +69,7 @@ PTSolver::PTSolver(Model* model, SolverType stype){
     }
 }
 
-PTSolver::~PTSolver(){
+solver::~solver(){
     if (_stype == gurobi) {
 #ifdef USE_GUROBI
         delete prog.grb_prog;
@@ -82,22 +82,22 @@ PTSolver::~PTSolver(){
 #endif
 }
 
-void PTSolver::set_model(Model* m) {
+void solver::set_model(Model& m) {
     
     if (_stype == gurobi){
 #ifdef USE_GUROBI
-        prog.grb_prog->_model = m;
+        prog.grb_prog->_model = &m;
 #else
         gurobiNotAvailable();
 #endif
     }
 #ifdef USE_IPOPT
-    if (_stype == ipopt) prog.ipopt_prog->model = m;
+    if (_stype == ipopt) prog.ipopt_prog->model = &m;
 #endif
 }
 
 
-int PTSolver::run(int output, bool relax){
+int solver::run(int output, bool relax){
     //GurobiProgram* grbprog;
     // Initialize the IpoptApplication and process the options
 
@@ -149,7 +149,7 @@ int PTSolver::run(int output, bool relax){
         try{
             //                prog.grbprog = new GurobiProgram();
             prog.grb_prog->_output = output;
-            prog.grb_prog->reset_model();
+//            prog.grb_prog->reset_model();
             prog.grb_prog->prepare_model();
             bool ok = prog.grb_prog->solve(relax);
             return ok ? 100 : -1;

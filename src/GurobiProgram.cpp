@@ -171,7 +171,7 @@ void GurobiProgram::fill_in_grb_vmap(){
 
 void GurobiProgram::create_grb_constraints(){
     char sense;
-    size_t idx = 0, inst = 0, nb_inst = 0;
+    size_t idx = 0, p_idx = 0, inst = 0, nb_inst = 0;
     GRBLinExpr linlhs;
     GRBLinExpr lterm;
     GRBQuadExpr quadlhs;
@@ -180,7 +180,9 @@ void GurobiProgram::create_grb_constraints(){
     Constraint* c;
     for(auto& p: _model->_cons){
         c = p.second;
-        
+        if (c->is_nonlinear()) {
+            throw invalid_argument("Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n");
+        }
         switch(c->get_type()) {
             case geq:
                 sense = GRB_GREATER_EQUAL;
@@ -195,40 +197,36 @@ void GurobiProgram::create_grb_constraints(){
                 break;
         }
         nb_inst = c->get_nb_instances();
-        switch(c->get_ftype()) {
-            case lin_:
-                inst = 0;
-                for (int i = 0; i< nb_inst; i++){
-                    linlhs = 0;
-                    for (auto& it1: c->get_lterms()) {
-                        lterm = 0;
-                        idx = it1.second._p->get_id();
-                        gvar1 = _grb_vars[idx];
-                        if (it1.second._coef->_is_transposed) {
-                            for (int j = 0; j<it1.second._p->get_dim(); j++) {
-                                coeff = poly_eval(it1.second._coef,j);
-                                gvar1 = _grb_vars[idx+j];
-                                lterm += coeff*gvar1;
-                            }
-                        }
-                        else {
-                            coeff = poly_eval(it1.second._coef,i);
-                            gvar1 = _grb_vars[idx+i];
-                            lterm += coeff*gvar1;
-                        }
-                        if (!it1.second._sign) {
-                            lterm *= -1;
-                        }
-                        linlhs += lterm;
+        inst = 0;
+        for (int i = 0; i< nb_inst; i++){
+            linlhs = 0;
+            for (auto& it1: c->get_lterms()) {
+                lterm = 0;
+                idx = it1.second._p->get_id();                
+                gvar1 = _grb_vars[idx];
+                if (it1.second._coef->_is_transposed) {
+                    for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                        coeff = poly_eval(it1.second._coef,j);
+                        gvar1 = _grb_vars[idx+j];
+                        lterm += coeff*gvar1;
                     }
-                    linlhs += poly_eval(c->get_cst(), inst);
-                    cout << c->get_name() << linlhs << endl;
-                    grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name());
                 }
-                break;
-            case quad_:
+                else {
+                    coeff = poly_eval(it1.second._coef,i);
+                    gvar1 = _grb_vars[idx+i];
+                    lterm += coeff*gvar1;
+                }
+                if (!it1.second._sign) {
+                    lterm *= -1;
+                }
+                linlhs += lterm;
+            }
+            linlhs += poly_eval(c->get_cst(), inst);
+            cout << c->get_name() << linlhs << endl;
+            grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name());
+            }
 //                q = c->get_quad();
-                quadlhs = 0;
+            quadlhs = 0;
 //                for (auto& it1: q->_qmatrix) {
 //                    auto gvit = _grb_vars.find(it1.first);
 //                    gvar1 = *(gvit->second);
@@ -247,39 +245,45 @@ void GurobiProgram::create_grb_constraints(){
 //                }
 //                quadlhs += q->get_const();
 //                cout << c->get_name() << quadlhs << endl;
-                grb_mod->addQConstr(quadlhs,sense,c->get_rhs(),c->get_name());
-                break;
-            case nlin_:
-                cerr << "Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n";
-                exit(1);
-            default:
-                break;
-        }
+            grb_mod->addQConstr(quadlhs,sense,c->get_rhs(),c->get_name());
     }
 }
 
 void GurobiProgram::set_grb_objective(){
+    size_t idx = 0;
+    GRBLinExpr lterm;
     GRBLinExpr lobj;
     GRBQuadExpr qobj;
     GRBVar gvar1, gvar2;
     int objt;
     double coeff;
-    const func_* q;
+//    const func_* q;
     if (_model->_objt == minimize) objt = GRB_MINIMIZE;
     else objt = GRB_MAXIMIZE;
-    switch(_model->_obj.get_type()){
-        case lin_:
-//            q = model->_obj->get_quad();
-//            for (auto& it1: q->_coefs) {
-//                auto gvit = _grb_vars.find(it1.first);
-//                gvar1 = *(gvit->second);
-//                coeff = it1.second;
-//                lobj += gvar1*coeff;
-//            }
-//            lobj += q->get_const();
-            grb_mod->setObjective(lobj,objt);
-            break;
-        case quad_:
+        lobj = 0;
+        for (auto& it1: _model->_obj.get_lterms()) {
+            lterm = 0;
+            idx = it1.second._p->get_id();
+            gvar1 = _grb_vars[idx];
+            if (it1.second._coef->_is_transposed) {
+                for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                    coeff = poly_eval(it1.second._coef,j);
+                    gvar1 = _grb_vars[idx+j];
+                    lterm += coeff*gvar1;
+                }
+            }
+            else {
+                coeff = poly_eval(it1.second._coef);
+                gvar1 = _grb_vars[idx];
+                lterm += coeff*gvar1;
+            }
+            if (!it1.second._sign) {
+                lterm *= -1;
+            }
+            lobj += lterm;
+        }
+        lobj += poly_eval(_model->_obj.get_cst());
+        cout << lobj << endl;
 //            q = model->_obj->get_quad();
 //            for (auto& it1: q->_qmatrix) {
 //                auto gvit = _grb_vars.find(it1.first);
@@ -301,11 +305,7 @@ void GurobiProgram::set_grb_objective(){
 //             }
 ////            cout << "\n";
 //            qobj += model->_obj->get_const();
-            grb_mod->setObjective(qobj,objt);
-            break;
-        default:
-            break;
-    }
+    grb_mod->setObjective(lobj,objt);
 }
 
 void GurobiProgram::print_constraints(){

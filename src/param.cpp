@@ -12,7 +12,7 @@
 string param_::get_name(bool indices) const {
     string name = _name;
     int nb = _indices->size() - 1;
-    if (indices && nb >= 0) {
+    if (indices && nb==1) {
         name += "[";
         auto iter = _indices->begin();
         for (auto i = 0; i < nb; i++) {

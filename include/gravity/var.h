@@ -77,7 +77,7 @@ public:
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
             res._indices->insert(make_pair<>(key,param_::_indices->size()));
-//            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         }
         else {
             size_t idx = param_::_indices->at(key);

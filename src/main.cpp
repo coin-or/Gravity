@@ -15,6 +15,7 @@
 #include <fstream>
 #include <gravity/Net.h>
 #include <gravity/model.h>
+#include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -273,10 +274,12 @@ int main (int argc, const char * argv[])
         j = (a->dest)->ID;
         c =x(i) + x(j);
         c <= 1;
-        c.print();
+//        c.print();
         model.add_constraint(c);
     }
-        
+    SolverType stype = gurobi;
+    solver s(model,stype);    
+    s.run();
     
     
 //    vector<var<bool>> Xis;

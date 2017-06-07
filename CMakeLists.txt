@@ -14,7 +14,7 @@ option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 # Find BONMIN (optional).
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
 
 # configure a header file to pass some of the CMake settings
@@ -59,6 +59,7 @@ if (ENABLE_CPLEX)
     find_package(CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIL_STD")
 endif()
 
 
@@ -88,4 +89,3 @@ install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravi
 add_subdirectory(src/external/catch)
 include_directories(${CATCH_INCLUDE_DIR} ${COMMON_INCLUDES})
 enable_testing(true)  # Enables unit-testing.
-

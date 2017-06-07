@@ -231,8 +231,12 @@ public:
     }
     
     type eval(int i) const{
+        if (_indices && _indices->size()!=_dim) {
+            return _val->at(_indices->begin()->second);
+        }
         if (_val->size() <= i) {
             throw out_of_range("get_val(int i)");
+//            return _val->at(0);
         }
         return _val->at(i);
     }
@@ -404,7 +408,7 @@ public:
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
             res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            //            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         }
         else {
             size_t idx = param_::_indices->at(key);

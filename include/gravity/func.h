@@ -1006,7 +1006,7 @@ public:
 
 
 
-double poly_eval(const constant_* c, size_t i);
+double poly_eval(const constant_* c, size_t i=0);
 
 
 void poly_print(const constant_* c);

@@ -121,8 +121,7 @@ public:
     
 #ifdef USE_BONMIN
     void fill_in_param_types(Bonmin::TMINLP::VariableType* param_types);
-#endif
-    void solve();
+#endif    
     
     void add_on_off(const Constraint& c, var<bool>& on);
     void add_on_off(var<>& v, var<bool>& on);
