@@ -211,7 +211,7 @@ public:
     }
     
     
-    param(const char* s){
+    param(const string& s){
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();

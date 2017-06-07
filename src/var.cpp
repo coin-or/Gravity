@@ -12,7 +12,7 @@ template<typename type> var<type>::var():param<type>(){
     param<type>::set_type(var_c);
 };
 
-template<typename type> var<type>::var(const char* name):param<type>(name){
+template<typename type> var<type>::var(const string& name):param<type>(name){
     param<type>::set_type(var_c);
     _lb = make_shared<vector<type>>();
     _ub = make_shared<vector<type>>();
@@ -25,7 +25,14 @@ template<typename type> var<type>::var(const var<type>& v):param<type>(v){
     _ub = v._ub;
 };
 
-template<typename type> var<type>::var(const char* name, type lb, type ub):var(name){
+template<typename type> var<type>::var(var<type>&& v):param<type>(v){
+    _id = v._id;
+    param<type>::set_type(var_c);
+    _lb = v._lb;
+    _ub = v._ub;
+};
+
+template<typename type> var<type>::var(const string& name, type lb, type ub):var(name){
     _lb->push_back(lb);
     _ub->push_back(ub);
     if (lb < param<type>::_range.first) {
