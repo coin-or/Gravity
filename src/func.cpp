@@ -109,7 +109,10 @@ double poly_eval(const constant_* c, size_t i){
             return ((bexpr*)c)->eval(i);
             break;
         }
-            
+        case func_c: {
+            return ((func_*)c)->eval(i);
+            break;
+        }
         default:
             break;
     }

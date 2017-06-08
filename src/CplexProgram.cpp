@@ -21,11 +21,23 @@ bool CplexProgram::solve(bool relax){
     try {
 //        _cplex_model->M
         IloCplex cplex(*_cplex_env);
-        cplex.extract(*_cplex_model);
+        
 //        cplex.setOut(_cplex_env->getNullStream());
 //        cplex.setWarning(_cplex_env->getNullStream());
-        
-        cplex.exportModel("StableSet.lp");
+//        _cplex_model->setIntProperty("Threads", 1);
+//        cplex.setParam(IloCplex::Threads, 1);
+//        cplex.exportModel("StableSet.lp");
+        if(relax){
+            IloModel relax(*_cplex_env);
+            relax.add(*_cplex_model);
+            for (auto &vv: _cplex_vars) {
+                relax.add(IloConversion(*_cplex_env, vv, ILOFLOAT));
+            }
+            cplex.extract(relax);
+        }
+        else {
+            cplex.extract(*_cplex_model);
+        }
         cplex.solve();
         if (cplex.getStatus() == IloAlgorithm::Infeasible)
             _cplex_env->out() << "No Solution" << endl;
@@ -109,16 +121,22 @@ void CplexProgram::fill_in_cplex_vars(){
 
 void CplexProgram::set_cplex_objective(){
     size_t idx = 0, idx_inst = 0;
+    size_t c_idx = 0, c_idx_inst = 0;
     IloNumExpr lobj(*_cplex_env);
 //    GRBQuadExpr qobj;
     double coeff;
     //    const func_* q;
 //    lobj = 0;
     for (auto& it1: _model->_obj.get_lterms()) {
-        idx = it1.second._p->get_id();
+        idx = it1.second._p->get_id();        
         IloNumExpr lterm(*_cplex_env);
         if (it1.second._coef->_is_transposed) {
-            lobj = IloSum(_cplex_vars[idx]);
+            IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
+            for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                coefs[j] = poly_eval(it1.second._coef,j);
+            }
+            lobj = IloScalProd(coefs, _cplex_vars[idx]);
+//            lobj = IloSum(_cplex_vars[idx]);
 //            for (int j = 0; j<it1.second._p->get_dim(); j++) {
 //                coeff = poly_eval(it1.second._coef,j);
 //                lterm += coeff*_cplex_vars[idx+j];

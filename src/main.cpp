@@ -286,7 +286,7 @@ int main (int argc, const char * argv[])
     }
     SolverType stype = cplex;
     solver s(model,stype);    
-    s.run();
+    s.run(0,true);
     
     
 //    vector<var<bool>> Xis;
