@@ -65,6 +65,9 @@ public:
     /** returns the arc formed by node ids n1 and n2 */
     Arc* get_arc(Node* n1, Node* n2);
     
+    bool has_arc(unsigned n1, unsigned n2) {
+        return get_arc(n1,n2)!=nullptr;
+    }
     /** returns the arc formed by node ids n1 and n2 */
     Arc* get_arc(int n1, int n2);
     

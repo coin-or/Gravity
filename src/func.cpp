@@ -18,6 +18,27 @@
 #define DebugOff(x)
 
 
+bool is_indexed(const constant_* c){
+    if (c->is_var() || c->is_param()) {
+        return (((param_*)c)->_is_indexed);
+    }
+    return true;
+}
+
+size_t get_poly_id(const constant_* c){
+    if (c->is_var() || c->is_param()) {
+        return ((param_*)c)->get_id();
+    }
+    return 0;
+}
+
+size_t get_poly_id_inst(const constant_* c){
+    if (c->is_var() || c->is_param()) {
+        return ((param_*)c)->get_id_inst();
+    }
+    return 0;
+}
+
 
 double poly_eval(const constant_* c, size_t i){
     if (!c) {
@@ -515,7 +536,7 @@ constant_* copy(const constant_& c2){/**< Copy c2 into c1 detecting the right cl
 double lterm::eval(size_t i) const{
     double res = 0;
     if (_coef->_is_transposed) {
-        for (int j = 0; j<_p->get_dim(); j++) {
+        for (int j = 0; j<_p->_dim; j++) {
             res += poly_eval(_coef,j) * poly_eval(_p, j);
         }
     }
@@ -532,12 +553,12 @@ double lterm::eval(size_t i) const{
 double qterm::eval(size_t i) const{
     double res = 0;
     if (_coef->_is_transposed) {
-        for (int j = 0; j<_p->first->get_dim(); j++) {
+        for (int j = 0; j<_p->first->_dim; j++) {
             res += poly_eval(_coef,j) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
         }
     }
     else if(_p->first->_is_transposed){
-        for (int j = 0; j<_p->first->get_dim(); j++) {
+        for (int j = 0; j<_p->first->_dim; j++) {
             res += poly_eval(_coef,i) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
         }
     }
@@ -555,7 +576,7 @@ double pterm::eval(size_t i) const{
     double res = 0;
     if (_coef->_is_transposed) {
         double pterm = 0;
-        for (int j = 0; j<_l->front().first->get_dim(); j++) {
+        for (int j = 0; j<_l->front().first->_dim; j++) {
             pterm = 1;
             for (auto &pair: *_l) {
                 pterm *= pow(poly_eval(pair.first, j), pair.second);
@@ -628,7 +649,7 @@ qterm& qterm::operator=(const qterm &q){
         delete _p;
     }
     _coef = copy(*q._coef);
-    _p = new pair<param_*, param_*>(make_pair((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
+    _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
     _sign = q._sign;
     return *this;
 }
@@ -1275,7 +1296,7 @@ func_::~func_(){
     }
     for (auto &f_p: _dfdx) {
         delete f_p.second;
-    }
+    }    
     delete _range;
     delete _convexity;
     delete _sign;    
@@ -2449,6 +2470,7 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
     int i = 0;
     for (auto &pair:l) {
         name += pair.first->get_name();
+        name += "^"+to_string(pair.second);
         name += ",";
     }
     auto pair_it = _pterms->find(name);
@@ -3989,13 +4011,24 @@ void lterm::print(int ind) const{
     cout << this->to_str(ind);
 }
 
-func_* func_::compute_dfdx(const param_ &v){
-    auto df = new func_(get_dfdx(v));
+func_* func_::get_stored_derivative(const param_ &v) const{
+    auto it = _dfdx.find(v.get_id_inst());
+    if (it!=_dfdx.end()) {
+        return it->second;
+    }
+    else {
+        throw invalid_argument("No derivatives stored!\n");
+    }
+}
+
+ func_* func_::compute_derivative(const param_ &v){
+    
+    auto df = new func_(get_derivative(v));
     embed(*df);
     _nnz_j += df->get_nb_vars()*_nb_instances;
-    _dfdx[v.get_id()] = df;
-    DebugOn( "First derivative with respect to " << v.get_name() << " = ");
-    df->print();
+    _dfdx[v.get_id()+v.get_id_inst()] = df;
+    Debug( "First derivative with respect to " << v.get_name() << " = ");
+//    df->print();
     return df;
 }
 
@@ -4003,46 +4036,64 @@ void func_::compute_derivatives(){ /**< Computes and stores the derivative of f 
     size_t vid = 0, vjd = 0;
     for (auto &vp: *_vars) {
         vid = vp.second.first->get_id();
-        auto df = compute_dfdx(*vp.second.first);
+        auto df = compute_derivative(*vp.second.first);
         for (auto &vp2: *_vars) {
-            vjd = vp.second.first->get_id();
-            if (vid <= vjd) { //only store lower left part of hessian matrix since it is symmetric.
-                _hess_link[vid].insert(vp2.second.first);
-                auto d2f = df->compute_dfdx(*vp2.second.first);
-                DebugOn( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
-                d2f->print();
+            vjd = vp2.second.first->get_id();
+            if (vid <= vjd && df->has_var(*vp2.second.first)) { //only store lower left part of hessian matrix since it is symmetric.
+                _hess_link[vid].insert(vjd);
+                df->compute_derivative(*vp2.second.first);
+                Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
+//                d2f->print();
             }
         }
         
     }
 };
 
+bool func_::has_var(const param_& v) const{
+    return _vars->count(v.get_name())>0;
+}
 
-func_ func_::get_dfdx(const param_ &v) const{
-    if (is_constant() || _vars->count(v.get_name())==0) {
-        return func_(constant<>(0));
-    }
+func_ func_::get_derivative(const param_ &v) const{
     func_ res;
     for (auto &lt: *_lterms) {
         if (*lt.second._p == v) {
-            if(lt.second._sign)
-                res += (*lt.second._coef);
-            else
-                res -= (*lt.second._coef);
+            if(lt.second._coef->_is_transposed){
+                lt.second._coef->_dim = v._dim;
+                constant<int> ones(1);
+                if(lt.second._sign){
+                    res += ones.tr()*(*lt.second._coef);
+                }
+                else {
+                    res -= ones.tr()*(*lt.second._coef);
+                }
+            }
+            else {
+                if(lt.second._sign){
+                    res += (*lt.second._coef);
+                }
+                else {
+                    res -= (*lt.second._coef);
+                }
+            }
         }
     }
     for (auto &lt: *_qterms) {
         if (*lt.second._p->first == v) {
-            if(lt.second._sign)
+            if(lt.second._sign) {
                 res += *lt.second._coef*(*lt.second._p->second);
-            else
+            }
+            else {
                 res -= *lt.second._coef*(*lt.second._p->second);
+            }
         }
         if (*lt.second._p->second == v) {
-            if(lt.second._sign)
+            if(lt.second._sign) {
                 res += *lt.second._coef*(*lt.second._p->first);
-            else
+            }
+            else {
                 res -= *lt.second._coef*(*lt.second._p->first);
+            }
         }
     }
     for (auto &lt: *_pterms) {

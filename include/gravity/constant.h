@@ -28,6 +28,7 @@ protected:
 public:
     bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */
     bool                _is_vector = false; /**< True if the constant is considered as a vector */
+    size_t              _dim = 0; /*<< dimension of current vector */
     
     virtual ~constant_(){};
     CType get_type() const { return _type;}

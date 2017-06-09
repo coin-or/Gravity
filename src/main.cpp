@@ -125,8 +125,7 @@ int main (int argc, const char * argv[])
     p.add_bounds(0.1, 20);
     p.add_bounds(10, 60);
     var<float> q("q");
-    p.set_size(200);
-    p.indexed_in(make_pair<>(1,10),make_pair<>(1,10));
+    p.set_size(200);    
     q.set_size(200);
     
 //  auto c1 = (p_ij^2)+(q_ij^2)-(dp^2);
@@ -134,7 +133,7 @@ int main (int argc, const char * argv[])
 //  func_ f(2);
     
     p(1,2).print(true);
-    q.print(true);
+    q(1,1).print(true);
     auto f = dp*p*p;
     f.print(true);
     auto c1 = p + q - dp + 1;
@@ -153,7 +152,7 @@ int main (int argc, const char * argv[])
     l4.print();
     l4 -= 2*ip - 2 + p;
     l4.print();
-    constant<> zero = 0;
+//    constant<> zero = 0;
     auto l5 = l4*1;
     l5.print();
 //    l3 *= -1;
@@ -200,20 +199,20 @@ int main (int argc, const char * argv[])
     qqq.print();
     auto ss = ppp + qqq;
     ss.print();
-    (ss.get_dfdx(p)).print();
+    (ss.get_derivative(p)).print();
     ss += 2*ip*ppp;
     ss.print();
-    (ss.get_dfdx(p)).print();
+    (ss.get_derivative(p)).print();
     ss -= 2*ip*ppp + ppp;
     ss.print();
-    (ss.get_dfdx(q)).print();
+    (ss.get_derivative(q)).print();
 //    auto exp = log(ff);
 //    exp.print();
 //    l11 *= -2;
 //    l11.print();
     auto l00 = 2*p(3,1) + q+ p(3,1);
     l00.print();
-    (l00.get_dfdx(p(3,1))).print();
+    (l00.get_derivative(p(3,1))).print();
     auto f0 = 0.1*q;
     f0.print();
     f0 -= (0.1+1e-7)*q;
@@ -257,6 +256,26 @@ int main (int argc, const char * argv[])
 //  2: (a, c)  1
 //  3: (b, c)  1
     
+//    var<int> x("x");
+//    var<int> y("y");
+//    var<int> z("z");
+//    
+//    auto poly = -2*x - y*z + y*y*z + y*z*z + x*x*y;
+////    auto poly = y*y*z + y*z*z;
+//    poly.print();
+//    auto dfdx = poly.get_dfdx(x);
+//    
+//    auto df2dx = dfdx.get_dfdx(x);
+//    auto dfdy = poly.get_dfdx(y);
+//    auto dfdydz = dfdy.get_dfdx(z);
+//    
+////    dfdy.print();
+//    auto df2dy = dfdy.get_dfdx(y);
+//    
+//    df2dx.print();
+//    df2dy.print();
+//    dfdydz.print();
+//    return 0;
     
     Net graph;
     string fname = "../../data_sets/stable_set/p.3n150.txt";
@@ -264,7 +283,6 @@ int main (int argc, const char * argv[])
     Model model;
     auto n = graph.nodes.size();
     auto m = graph.arcs.size();
-    
     
     // IP model for stable set problem.
     var<bool> x("x");
@@ -285,9 +303,46 @@ int main (int argc, const char * argv[])
         model.add_constraint(c);
     }
     SolverType stype = cplex;
-    solver s(model,stype);    
+    solver s(model,stype);
+//    s.run();
     s.run(0,true);
     
+    /* Shriver's SDP relaxation for the stable set problem */
+    Model SDP;
+    /* Variable declaration */
+    var<float> Xii("Xii", 0, 1);
+    var<float> Xij("Xij", 0, 1);
+    SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
+    SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
+    
+    /* Constraints declaration */
+    for (int i = 0; i < n-1; i++){
+        for (int j = i+1; j < n; j++){
+            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+            SOCP = Xii(i)*Xii(j) - Xij(i,j)*Xij(i,j);
+            SDP.add_constraint(SOCP>=0);
+        }
+    }
+    Constraint diag("diag");
+    diag = ones.tr()*Xii;
+    SDP.add_constraint(diag=1);
+    for(auto a: graph.arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
+        zeros = Xij(i,j);
+        SDP.add_constraint(zeros=0);        
+    }
+    cout << "number of Xij indices = " << Xij.get_indices()->size() << endl;
+    
+    /* Objective declaration */
+    constant<int> twos(2);
+    auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
+    SDP.set_objective(max(obj_SDP));
+    
+    solver s1(SDP,ipopt);
+    //    s.run();
+    s1.run();
     
 //    vector<var<bool>> Xis;
 //    for (int i = 0; i<n; i++) {

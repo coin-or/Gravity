@@ -403,7 +403,12 @@ public:
 
 /** Backbone class for function */
 class func_ : public constant_{
+private:
+    
+    func_* compute_derivative(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+    
 protected:
+    
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
@@ -426,7 +431,7 @@ protected:
     vector<Sign>*                          _sign; /**< vector storing the sign of return value if known. >>**/
     vector<pair<constant_*, constant_*>>*  _range; /**< Bounds of the return value if known. >>**/
     
-    map<unsigned, set<param_*>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
+    map<unsigned, set<unsigned>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
     
     size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
     size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
@@ -447,9 +452,11 @@ public:
 
     ~func_();
 
+    map<unsigned, set<unsigned>>& get_hessian_link(){ return _hess_link;};
     map<string, pair<param_*, int>>& get_vars(){ return *_vars;};
     map<string, pair<param_*, int>>& get_params(){ return *_params;};
     
+    bool has_var(const param_& v) const;
     
     bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
     bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
@@ -460,7 +467,7 @@ public:
         f._is_transposed = true;
         return f;
     }
-    
+        
     void insert(const lterm& term);
     
     void insert(const qterm& term);
@@ -468,6 +475,10 @@ public:
     void insert(const pterm& term);
     
     void insert(expr& e);
+    
+    map<string, pair<param_*, int>>& get_vars() const{
+        return *_vars;
+    }
     
     size_t get_nb_vars() const{
         size_t n = 0;
@@ -972,9 +983,10 @@ public:
         return *_expr;
     }
     
-    func_ get_dfdx(const param_& v) const; /**< Computes and returns the derivative of with respect to variable v. */
+    func_* get_stored_derivative(const param_& v) const; /**< Returns the stored derivative with respect to variable v. */
     
-    func_* compute_dfdx(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+    func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
+    
     
     void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
     
@@ -1001,10 +1013,11 @@ public:
 
 
 
+bool is_indexed(const constant_* c);
 
+size_t get_poly_id(const constant_* c);
 
-
-
+size_t get_poly_id_inst(const constant_* c);
 
 double poly_eval(const constant_* c, size_t i=0);
 

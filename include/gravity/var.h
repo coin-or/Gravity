@@ -59,8 +59,13 @@ public:
     
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
-        auto res(*this);
-        res._indices->clear();
+        var res(this->_name);
+        res._id = this->_id;        
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
@@ -75,9 +80,10 @@ public:
         }
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
-            //            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            //            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
+            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            
+            //            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
             size_t idx = param_::_indices->at(key);
@@ -85,8 +91,10 @@ public:
             res._dim = 1;
         }
         res._name += "["+key+"]";
+        res._is_indexed = true;
         return res;
     }
+
     
 //    var operator()(int idx...){
 //        auto res(*this);

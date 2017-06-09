@@ -24,14 +24,14 @@ using namespace std;
 class param_: public constant_{
 protected:
     string                      _name;
-    size_t                      _id = 0;
+    int                         _id = -1;
     NType                       _intype;
     map<string,unsigned>*       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
-                                   vectors */
-    size_t                      _dim = 0; /*<< dimension of current parameter */
+                                   vectors */    
     
 public:
     
+    bool                        _is_indexed = false;
     
     virtual ~param_(){};
     
@@ -39,11 +39,23 @@ public:
     
     size_t get_id() const{return _id;};
     
-    size_t get_id_inst() const{return _indices->begin()->second;};
+    size_t get_id_inst() const{
+        if (_is_indexed) {
+            return _indices->begin()->second;
+        }
+        return 0;
+    };
     
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
-    size_t get_dim() const { return _dim;}
+    size_t get_dim() const {
+        if (_indices->size()==0) {
+            return _dim;
+        }
+        else {
+            return _indices->size();
+        }
+    }
     
     map<string,unsigned>* get_indices() const {
         return _indices;
@@ -80,7 +92,8 @@ public:
     
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
+        return (_id==p._id);
+//        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
 
@@ -156,6 +169,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_indexed = p._is_indexed;
         _dim = p._dim;
     }
     
@@ -170,6 +184,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_indexed = p._is_indexed;
         _dim = p._dim;
     }
     
@@ -233,7 +248,7 @@ public:
     }
     
     type eval(int i) const{
-        if (_indices && _indices->size()!=_dim) {
+        if (_is_indexed) {
             return _val->at(_indices->begin()->second);
         }
         if (_val->size() <= i) {
@@ -247,8 +262,7 @@ public:
     /* Modifiers */
     void    set_size(size_t s, type val = 0){
         _val->resize(s,val);
-        _dim = s;
-        indexed_in(make_pair<>(0,s));
+        _dim = s;        
     };
     
     void add_val(type val){
@@ -377,62 +391,14 @@ public:
 //        return res;
 //    }
     
-    template<typename... Args>
-    void insert_index(size_t t1, Args&&... args){
-        list<size_t> indices;
-        indices = {forward<size_t>(args)...};
-        indices.push_front(t1);
-        string key;
-        auto it = indices.begin();
-        for (size_t i= 0; i<indices.size(); i++) {
-            key += to_string(*it++);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-        }
-        if (!_indices) {
-            _indices = new map<string,unsigned>();
-        }
-//        assert(_indices->count(key)==0);
-        _indices->insert(make_pair<>(key,_indices->size()));
-        _dim++;
-    }
-    
-    template<typename... Args>
-    void indexed_in(pair<size_t,size_t> t1, Args&&... args){
-        if (!_indices) {
-            _indices = new map<string,unsigned>();
-        }
-        list<pair<size_t,size_t>> indices;
-        indices = {forward<pair<size_t,size_t>>(args)...};
-        indices.push_front(t1);
-        string key;
-        auto it = indices.begin();
-        for (size_t i = 0; i<indices.size(); i++) {
-            for (size_t n = it->first; n<it->second; n++) {
-                key = to_string(n);
-                for (size_t j = i+1; j<indices.size(); j++) {
-                    auto it2 = next(it,j-i);
-                    for (size_t m = it2->first; m < it2->second; m++) {
-                        key = to_string(n);
-                        key += ",";
-                        key += to_string(m);
-                        _indices->insert(make_pair<>(key,param_::_indices->size()));
-                    }
-                }
-                if (i+1 >= indices.size()) {
-                    _indices->insert(make_pair<>(key,param_::_indices->size()));
-                }
-            }
-            it++;
-        }
-//        assert(_indices->count(key)==0);
-    }
     
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
-        auto res(*this);
-        res._indices->clear();
+        param res(this->_name);
+        res._id = this->_id;        
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
@@ -447,9 +413,10 @@ public:
         }
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
-//            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-//            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
+            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            
+//            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
             size_t idx = param_::_indices->at(key);
@@ -457,36 +424,26 @@ public:
             res._dim = 1;
         }
         res._name += "["+key+"]";
+        res._is_indexed = true;
         return res;
     }
 
     /** Output */
     void print(bool vals=false) const{
-        cout << to_string(vals);
+        cout << this->to_str(vals);
     }
     
     string to_str(bool vals=false) const{
         string str = get_name();
-            int nb = _indices->size() - 1;
-            if (nb==0) {
-                str += "[";
-                auto iter = _indices->begin();
-                for (auto i = 0; i < nb; i++) {
-                    str += "(";
-                    str += iter->first;
-                    str += ")";
-                    str += ",";
-                    iter++;
-                }
-                str += "(";
-                str += iter->first;
-                str += ")";
-                str += "]";
-            }
-        if(vals){
+        if (_is_indexed) {
             str += " = [ ";
-            for(auto v: *_val){
-                str += std::to_string(v);
+            str += std::to_string(_val->at(_indices->begin()->second));
+            str += "];";
+        }
+        else if(vals){
+            str += " = [ ";
+            for(int i = 0 ; i < param_::get_dim(); i++){
+                str += std::to_string(_val->at(i));
                 str += " ";
             }
             str += "];";

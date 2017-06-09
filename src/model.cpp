@@ -133,11 +133,6 @@ void Model::init_indices(){// Initialize the indices of all variables involved i
 }
 
 void Model::add_var(param_* v){
-//    if (v->_is_transposed) {
-//    }
-//    else {
-//        _nb_vars++;
-//    }
     if (_vars.count(v->get_name())==0) {
         _nb_vars += v->get_dim();
         v->set_id(_vars.size());
@@ -145,15 +140,11 @@ void Model::add_var(param_* v){
     }
 };
 
-void Model::add_var(const param_& v){
-//    if (v._is_transposed) {
-//    }
-//    else {
-//        _nb_vars++;
-//    }
+void Model::add_var(param_& v){
     if (_vars.count(v.get_name())==0) {
         _nb_vars += v.get_dim();
         auto newv = (param_*)copy(v);
+        v.set_id(_vars.size());
         newv->set_id(_vars.size());
         _vars[v.get_name()] = newv;
     }
@@ -161,11 +152,6 @@ void Model::add_var(const param_& v){
 
 
 void Model::del_var(const param_& v){
-//    if (v._is_transposed) {
-//    }
-//    else {
-//        _nb_vars--;
-//    }
     auto it = _vars.find(v.get_name());
     if (it!=_vars.end()) {
         _nb_vars -= v.get_dim();
@@ -176,12 +162,6 @@ void Model::del_var(const param_& v){
 
 
 void Model::add_param(param_* v){
-//    if (v->_is_transposed) {
-    
-//    }
-//    else {
-//        _nb_params++;
-//    }
     if (_params.count(v->get_name())==0) {
         _nb_params += v->get_dim();
         v->set_id(_params.size());
@@ -189,16 +169,11 @@ void Model::add_param(param_* v){
     }
 };
 
-void Model::add_param(const param_& v){
-//    if (v._is_transposed) {
-//        
-//    }
-//    else {
-//        _nb_params++;
-//    }
+void Model::add_param(param_& v){
     if (_params.count(v.get_name())==0) {
         _nb_params += v.get_dim();
         auto newv = (param_*)copy(v);
+        v.set_id(_params.size());
         newv->set_id(_params.size());
         _params[v.get_name()] = newv;
     }
@@ -215,6 +190,7 @@ void Model::del_param(const param_& v){
 };
 
 void Model::add_constraint(const Constraint& c){
+    _v_in_cons.resize(_nb_vars);
     _nb_cons += c.get_nb_instances();
     if (_cons.count(c.get_name())==0) {
         auto newc = new Constraint(c);
@@ -223,6 +199,9 @@ void Model::add_constraint(const Constraint& c){
             newc->compute_derivatives();
         }
         _cons[c.get_name()] = newc;
+    }
+    else {
+        throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
     }
 };
 
@@ -347,6 +326,11 @@ void Model::set_objective(const func_& f, ObjectiveType t) {
     _obj = f;
     _objt = t;
 //    embed(_obj);
+}
+
+void Model::set_objective(pair<func_*, ObjectiveType> p){
+    _obj = *p.first;
+    _objt = p.second;
 }
 
 void Model::set_objective_type(ObjectiveType t) {
@@ -560,6 +544,9 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 }
 
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
+    if (new_x) {
+        set_x(x);
+    }
     size_t idx=0, inst = 0;
     size_t cid = 0;
     size_t vid = 0;
@@ -575,24 +562,16 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
                 vid = v->get_id();
-                auto indices = v->get_indices();
-                if (!indices || indices->empty()) {
-                    if (v->_is_transposed) {
-                        for (int j = 0; j<v->get_dim(); j++) {
-                            res[idx] = 0;
-                            idx++;
-                        }
-                    }
-                    else {
-                        res[idx] = 0;
+                if (v->_is_transposed) {
+                    for (int j = 0; j<v->get_dim(); j++) {
+                        res[idx] = (c->get_stored_derivative(*v))->eval(inst);
                         idx++;
                     }
+
                 }
                 else {
-                    for (auto &id_p: *indices) {
-                        res[idx] = 0;
-                        idx++;
-                    }
+                    res[idx] = (c->get_stored_derivative(*v))->eval(inst);
+                    idx++;
                 }
             }
             cid++;
@@ -618,25 +597,22 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
                 vid = v->get_id();
-                auto indices = v->get_indices();
-                if (!indices || indices->empty()) {
-                    if (v->_is_transposed) {
-                        for (int j = 0; j<v->get_dim(); j++) {
-                            iRow[idx] = cid;
-                            jCol[idx] = vid + j;
-                            idx++;
-                        }
-                    }
-                    else {
+                if (v->_is_transposed) {
+                    for (int j = 0; j<v->get_dim(); j++) {
                         iRow[idx] = cid;
-                        jCol[idx] = vid + inst;
+                        jCol[idx] = vid + j;
                         idx++;
                     }
                 }
                 else {
-                    for (auto &id_p: *indices) {
+                    if (v->_is_indexed) {
                         iRow[idx] = cid;
-                        jCol[idx] = vid + id_p.second;
+                        jCol[idx] = vid + v->get_id_inst();
+                        idx++;
+                    }                    
+                    else {
+                        iRow[idx] = cid;
+                        jCol[idx] = vid + inst;
                         idx++;
                     }
                 }
@@ -672,21 +648,18 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 
 #ifdef USE_IPOPT
 void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* param_types){
-    int vid = 0, cid = 0;
-    Constraint* c = NULL;
+    size_t vid = 0;
     bool linear = true;
     for(auto& vi: _vars)
     {
-//        vid = vi->get_idx();
-//        linear = true;
-//        for(auto itc = vi->_cstrs.cbegin(); itc != vi->_cstrs.cend(); ++itc)
-//        {
-//            cid = itc->first;
-//            c = itc->second;
-//            if (c->get_ftype()>lin_) {
-//                linear=false;
-//            }
-//        }
+        vid = vi.second->get_id();
+        linear = true;
+        for(auto &c: _v_in_cons[vid])
+        {
+            if (!c->is_linear()) {
+                linear=false;
+            }
+        }
         if (linear) param_types[vid]=Ipopt::TNLP::LINEAR;
         else param_types[vid] = Ipopt::TNLP::NON_LINEAR;
     }
@@ -700,7 +673,7 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
     for(auto& c_p :_cons)
     {
         c = c_p.second;
-        if (c->get_ftype()<=lin_) {
+        if (c->is_linear() || c->is_constant()) {
             lin = true;
         }
         else {
@@ -716,7 +689,6 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
             }
             cid++;
         }
-
     }
 }
 #endif
@@ -806,20 +778,33 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
+    if (new_x) {
+        set_x(x);
+    }
     int idx=0;
-    //    param_* v = NULL;
-    int vid = 0;
-    for(auto& vi: _vars)
+    for(auto& vi_p: _vars)
     {
-//        vid = vi->get_idx();
-//        
-//        if (!_obj->has_var(vid)) {
-//            res[idx] = 0;
-//            idx++;
-//            continue;
-//        }
-//        res[idx] = _obj->eval_dfdx(vid, x);
+        res[idx] = 0;
+        if (_obj.get_vars().count(vi_p.first)!=0) {
+            res[idx] = _obj.get_stored_derivative(*vi_p.second)->eval();
+        }
         idx++;
+    }
+}
+
+void Model::fill_in_maps() {
+    Constraint* c = NULL;
+    for(auto& c_p :_cons)
+    {
+        c = c_p.second;
+        for (auto &v_p: c->get_vars()) {
+            _v_in_cons[v_p.second.first->get_id()+v_p.second.first->get_id_inst()].insert(c);
+        }
+        for (auto &vec: c->get_hessian_link()) {
+            for (auto &set: vec.second) {
+//                _hess_link[vec.first].insert(set);
+            }
+        }
     }
 }
 
@@ -1097,3 +1082,11 @@ void Model::print_constraints() const{
         p.second->print();
     }
 }
+
+pair<func_*, ObjectiveType> max(const func_& f){
+    return make_pair<>((func_*)&f,maximize);
+};
+
+pair<func_*, ObjectiveType> min(const func_& f){
+    return make_pair<>((func_*)&f,minimize);
+};

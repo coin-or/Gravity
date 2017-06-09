@@ -33,7 +33,7 @@ class Model {
     
 protected:
     string                          _name;
-    set<pair<string,string>>        _hess; /* A set representing pairs of variables linked in the hessian */
+    set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
     vector<shared_ptr<func_>>       _functions;
 
 public:
@@ -83,11 +83,11 @@ public:
     void set_x(const double* x); // Assign values to all variables based on array x.
     
     void add_var(param_* v);//Add variables without reallocating memory
-    void add_var(const param_& v); //Add variables by copying variable
+    void add_var(param_& v); //Add variables by copying variable
     void del_var(const param_& v);
     
     void add_param(param_* v);//Add variables without reallocating memory
-    void add_param(const param_& v); //Add variables by copying variable
+    void add_param(param_& v); //Add variables by copying variable
     void del_param(const param_& v);
     
     
@@ -100,9 +100,11 @@ public:
     
     void del_constraint(const Constraint& c);
     void set_objective(const func_& f, ObjectiveType t = minimize);
+    void set_objective(pair<func_*, ObjectiveType> p);
     void set_objective_type(ObjectiveType);
     void init_indices();// Initialize the indices of all variables involved in the model
     void check_feasible(const double* x);
+    void fill_in_maps();/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */
     void fill_in_var_bounds(double* x_l ,double* x_u);
     void fill_in_var_init(double* x);
     void fill_in_cstr_bounds(double* g_l ,double* g_u);
@@ -145,6 +147,8 @@ public:
 };
 
 
+pair<func_*, ObjectiveType> max(const func_& f);
+pair<func_*, ObjectiveType> min(const func_& f);
 
 
 #endif /* model_hpp */

@@ -13,6 +13,8 @@ using namespace std;
 bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
     index_style = Ipopt::TNLP::C_STYLE;
+    
+    _model->fill_in_maps();
     n = (Index)_model->get_nb_vars();
 //    printf("n = %d;\n", n);
     m = (Index)_model->get_nb_cons();
