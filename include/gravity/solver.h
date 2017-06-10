@@ -28,25 +28,8 @@
 #endif
 
 class solver {
-    
-protected:
-    union {
-#ifdef USE_IPOPT
-        IpoptProgram* ipopt_prog;
-#endif
-#ifdef USE_GUROBI
-        GurobiProgram* grb_prog;
-#endif
-#ifdef USE_CPLEX
-        CplexProgram* cplex_prog;
-#endif
-
-#ifdef USE_BONMIN
-        BonminProgram* bonmin_prog;
-#endif
-    } prog;
-
 public:
+    Model*                          _model;
     SolverType                      _stype;
     /** Constructor */
     //@{

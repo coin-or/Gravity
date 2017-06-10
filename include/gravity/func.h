@@ -483,10 +483,10 @@ public:
     size_t get_nb_vars() const{
         size_t n = 0;
         for (auto &p: *_vars) {
-            if (p.second.first->_is_transposed) {
+            if (p.second.first->_is_vector) {
                 n += p.second.first->get_dim();
             }
-            else if (!p.second.first->_is_vector){
+            else if (!p.second.first->_is_transposed){
                 n += 1;
             }            
         }

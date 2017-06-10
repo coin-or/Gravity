@@ -49,7 +49,7 @@ public:
     map<unsigned, set<unsigned>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
-    
+    double                          _obj_val = 0;/** Objective function value */
     /** Constructor */
     //@{
     Model();

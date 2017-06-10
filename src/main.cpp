@@ -281,36 +281,35 @@ int main (int argc, const char * argv[])
     string fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.topology(fname);
     Model model;
-//    auto n = graph.nodes.size();
-    auto n = 4;
+    auto n = graph.nodes.size();    
     auto m = graph.arcs.size();
     
     // IP model for stable set problem.
     var<float> x("x", 0, 1);
-    x = 1;
+//    var<bool> x("x");
     model.add_var(x^n);
     constant<float> ones(1);
     func_ obj = ones.tr()*x;
-    model.set_objective(obj,maximize);
+    model.set_objective(max(obj));
     
     int i, j;
-    for (int l=0; l<3;l++){
+    for (int l=0; l<m;l++){
         Arc* a = graph.arcs[l];
         i = (a->src)->ID;
         j = (a->dest)->ID;
         Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
-        c =x(i) + x(j);
+        c = x(i) + x(j);
         c <= 1;
         c.print();
         model.add_constraint(c);
     }
-    for(auto &p: *model._vars.begin()->second->get_indices()){
-        cout <<" Pair (" << p.first << "," << p.second << ")\n";
-    }
-    SolverType stype = cplex;
-    solver s(model,ipopt);
-//    s.run();
-    s.run(0,true);
+//    for(auto &p: *model._vars.begin()->second->get_indices()){
+//        cout <<" Pair (" << p.first << "," << p.second << ")\n";
+//    }
+    SolverType stype = ipopt;
+    solver s(model,stype);
+    s.run();
+//    s.run(0,true);
     return 0;
     /* Shriver's SDP relaxation for the stable set problem */
     Model SDP;

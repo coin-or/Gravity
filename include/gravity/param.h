@@ -370,6 +370,16 @@ public:
         return *this;
     }    
     
+    void initialize_all(type v){
+        for (int i = 0; i<_val->size(); i++) {
+            _val[i] = v;
+        }
+    }
+    
+    void initialize(size_t i, type v){
+        set_val(i,v);
+    }
+    
     param& operator=(type v){
         _val->push_back(v);
         update_range(v);

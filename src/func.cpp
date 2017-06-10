@@ -761,6 +761,15 @@ func_::func_(constant_&& c){
         f->_sign = nullptr;
         _is_transposed = f->_is_transposed;
         _embedded = f->_embedded;
+        for (auto &df:f->_dfdx) {
+            _dfdx[df.first] = df.second;
+        }
+        f->_dfdx.clear();
+        _nb_instances = f->_nb_instances;
+        _nnz_j = f->_nnz_j;
+        _nnz_h = f->_nnz_h;
+        _hess_link = f->_hess_link;
+        
     }
     else {
         set_type(func_c);
@@ -1035,6 +1044,7 @@ func_::func_(func_&& f){
     _nnz_j = f._nnz_j;
     _nnz_h = f._nnz_h;
     _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
 }
 
 func_::func_(const func_& f){
@@ -1096,6 +1106,7 @@ func_::func_(const func_& f){
     _nnz_j = f._nnz_j;
     _nnz_h = f._nnz_h;
     _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
 
 }
 
@@ -1210,7 +1221,7 @@ func_& func_::operator=(const func_& f){
     _nnz_j = f._nnz_j;
     _nnz_h = f._nnz_h;
     _hess_link = f._hess_link;
-
+    _nb_instances = f._nb_instances;
     return *this;
 }
 
@@ -1297,7 +1308,7 @@ func_& func_::operator=(func_&& f){
     _nnz_j = f._nnz_j;
     _nnz_h = f._nnz_h;
     _hess_link = f._hess_link;
-
+    _nb_instances = f._nb_instances;
     return *this;
 }
 
@@ -2206,6 +2217,7 @@ void func_::reset(){
         delete df.second;
     }
     _dfdx.clear();
+    _hess_link.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -2223,6 +2235,9 @@ void func_::reset(){
     _pterms->clear();
     delete _cst;
     _cst = new constant<float>(0);
+    _nb_instances = 1;
+    _nnz_h = 0;
+    _nnz_j = 0;
 };
 
 //void func_::reverse_sign(){ /*<< Reverse the sign of all terms in the function */
@@ -4066,7 +4081,7 @@ func_* func_::get_stored_derivative(unsigned vid) const{
     
     auto df = new func_(get_derivative(v));
 //    embed(*df);
-    _nnz_j += df->get_nb_vars()*_nb_instances;
+     assert(_dfdx.count(v.get_ipopt_id())==0);
     _dfdx[v.get_ipopt_id()] = df;
     Debug( "First derivative with respect to " << v.get_name() << " = ");
 //    df->print();

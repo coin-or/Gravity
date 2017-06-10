@@ -393,9 +393,9 @@ void Model::set_x(const double* x){
 }
 
 void Model::fill_in_obj(const double* x , double& res, bool new_x){
-//    if (new_x) {
+    if (new_x) {
         set_x(x);
-//    }
+    }
     res = _obj.eval();
 }
 
@@ -403,11 +403,11 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //    if (new_x) {
         set_x(x);
 //    }
-    Debug("x = [ ");
-    for (int i = 0; i<_nb_vars; i++) {
-        Debug(to_string(x[i]) << " ");
-    }
-    Debug("]");
+//    Debug("x = [ ");
+//    for (int i = 0; i<_nb_vars; i++) {
+//        Debug(to_string(x[i]) << " ");
+//    }
+//    Debug("]");
     Constraint* c = nullptr;
     for(auto& c_p: _cons)
     {
@@ -415,6 +415,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         auto nb_ins = c->get_nb_instances();
         for (int i = 0; i< nb_ins; i++){
             res[c->_id+i] = c->eval(i);
+            Debug("g[" << to_string(c->_id+i) << "] = " << to_string(res[c->_id+i]) << endl);
 //            c->print();
             Debug("Value of c = " << to_string(res[c->_id+i]) << endl);
         }
@@ -423,9 +424,9 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 
 /* Fill the nonzero values in the jacobian */
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
-//    if (new_x) {
+    if (new_x) {
         set_x(x);
-//    }
+    }
     size_t idx=0, inst = 0;
     size_t cid = 0;
     size_t vid = 0;
@@ -609,9 +610,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
-//    if (new_x) {
+    if (new_x) {
         set_x(x);
-//    }
+    }
     param_* v;
     func_* df;
     size_t vid;
@@ -750,7 +751,14 @@ void Model::fill_in_maps() {
         }
         //MISSING NONLINEAR PART!!!
         for (auto &v_p: c->get_vars()) {
-            _v_in_cons[v_p.second.first->get_id()+v_p.second.first->get_id_inst()].insert(c);
+            if(!v_p.second.first->_is_indexed){
+                for (auto &ind: *v_p.second.first->get_indices()) {
+                    _v_in_cons[v_p.second.first->get_id()+ind.second].insert(c);
+                }
+            }
+            else {
+                _v_in_cons[v_p.second.first->get_id()+v_p.second.first->get_id_inst()].insert(c);
+            }
         }
     }
     _nnz_h = 0;
@@ -772,7 +780,8 @@ void Model::fill_in_var_init(double* x) {
                 auto real_var = (var<float>*)v;
                 for (auto &ind: *v->get_indices()) {
                     vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+//                    x[vid_inst] = (double)real_var->eval(ind.second);
+                    x[vid_inst] = 0;
                 }
                 break;
             }
@@ -1062,7 +1071,7 @@ void Model::embed(func_& f){
     }
     
     if (f.is_nonlinear()) {
-        f.compute_derivatives();
+//        f.compute_derivatives();
     }
 //    f.embed_derivatives();
     

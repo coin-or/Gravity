@@ -13,16 +13,13 @@ using namespace std;
 bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
     index_style = Ipopt::TNLP::C_STYLE;
-    
-//    _model->fill_in_maps();
     n = (Index)_model->get_nb_vars();
-//    printf("n = %d;\n", n);
+    printf("n = %d;\n", n);
     m = (Index)_model->get_nb_cons();
     nnz_jac_g = (Index)_model->get_nb_nnz_g();
-//    cout << "\n############## CALLING update_hess_link ##############\n";
-
+    printf("number of non zeros in Jacobian = %d;\n", nnz_jac_g);
     nnz_h_lag = (Index)_model->get_nb_nnz_h();
-    _model->_nnz_h = nnz_h_lag;
+    printf("number of non zeros in Hessian = %d;\n", nnz_h_lag);
     return true;
 }
 
@@ -39,62 +36,13 @@ void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               statu
                                    Ipopt::IpoptCalculatedQuantities* ip_cq
                                    )
 {
-    var_* v = NULL;
-    var<int>* int_var = NULL;
-    var<bool>* bin_var = NULL;
-    var<float>* real_var = NULL;
-    var<>* long_real_var = NULL;
-    for (int i = 0; i<n; i++) {
-//        v = _model->getVar(i);
-//        switch (v->get_type()) {
-//            case real:
-//                real_var = (var<float>*)v;
-//                real_var->set_val((float)x[i]);
-//                break;
-//            case longreal:
-//                long_real_var = (var<>*)v;
-//                long_real_var->set_val(x[i]);
-//                break;
-//            case integ:
-//                int_var = (var<int>*)v;
-//                int_var->set_val((int)x[i]);
-//                break;
-//            case binary:
-//                bin_var = (var<bool>*)v;
-//                bin_var->set_val((bool)x[i]);
-//                break;
-//            default:
-//                break;
-//        } ;
+    _model->set_x(x);
+    //    _model->check_feasible(x);
+    if(_model->_objt==maximize){
+                _model->_obj *= -1;
     }
-//    if (_model->_store_duals) {
-//        auto &cons = _model->get_cons();
-//        for (size_t i=0; i<m; i++)
-//            cons[i]->_dual = lambda[i];
-//        for (int i = 0; i<n; i++) {
-//            double dual = z_U[i] - z_L[i]; // upper bound active is +ve dual
-//            v = _model->getVar(i);
-//            switch (v->get_type()) {
-//                case real:
-//                    static_cast<var<float> *>(v)->_dual = dual;
-//                    break;
-//                case longreal:
-//                    static_cast<var<> *>(v)->_dual = dual;
-//                    break;
-//                case integ:
-//                    static_cast<var<int> *>(v)->_dual = dual;
-//                    break;
-//                case binary:
-//                    static_cast<var<bool> *>(v)->_dual = dual;
-//                    break;
-//                default:
-//                    break;
-//            } ;
-//        }
-//    }
-//    _model->check_feasible(x);
-//    _model->_opt = _model->_obj->eval(x);
-//    cout << "\n************** Objective Function Value = " << _model->_opt << " **************" << endl;
+    _model->_obj_val = _model->_obj.eval();
+    cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
 }
 
 bool IpoptProgram::get_bounds_info(Index n, Number* x_l, Number* x_u,
@@ -123,9 +71,9 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
     assert(n==_model->get_nb_vars());
     assert(m==_model->get_nb_cons());
     
-    if (init_x) {
+//    if (init_x) {
         _model->fill_in_var_init(x);
-    }
+//    }
     return true;
 }
 
