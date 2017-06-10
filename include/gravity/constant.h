@@ -103,7 +103,7 @@ template<typename type>
 class param;
 
 /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
-template<typename type = int>
+template<typename type = float>
 class constant: public constant_{
 protected:
     type        _val;

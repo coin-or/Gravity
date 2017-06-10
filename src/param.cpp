@@ -30,9 +30,9 @@ string param_::get_name(bool indices) const {
     if (_is_transposed) {
         name += "^T";
     }
-    else if (_is_vector) {
-        name += "'";
-    }
+//    else if (_is_vector) {
+//        name += "'";
+//    }
     return name;
 };
 

@@ -452,7 +452,7 @@ public:
 
     ~func_();
 
-    map<unsigned, set<unsigned>>& get_hessian_link(){ return _hess_link;};
+    map<unsigned, set<unsigned>>& get_hess_link(){ return _hess_link;};
     map<string, pair<param_*, int>>& get_vars(){ return *_vars;};
     map<string, pair<param_*, int>>& get_params(){ return *_params;};
     
@@ -486,10 +486,9 @@ public:
             if (p.second.first->_is_transposed) {
                 n += p.second.first->get_dim();
             }
-            else {
+            else if (!p.second.first->_is_vector){
                 n += 1;
-            }
-            
+            }            
         }
         return n;
     }
@@ -983,7 +982,7 @@ public:
         return *_expr;
     }
     
-    func_* get_stored_derivative(const param_& v) const; /**< Returns the stored derivative with respect to variable v. */
+    func_* get_stored_derivative(unsigned vid) const; /**< Returns the stored derivative with respect to variable v. */
     
     func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
     

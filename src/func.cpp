@@ -710,7 +710,7 @@ func_::func_(){
     set_type(func_c);
     _params = new map<string, pair<param_*, int>>();
     _vars = new map<string, pair<param_*, int>>();
-    _cst = new constant<int>(0);
+    _cst = new constant<float>(0);
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
@@ -821,7 +821,7 @@ func_::func_(constant_&& c){
                 auto p_c2 = (param_*)copy(move(c));
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_param(p_c2);
-                _cst = new constant<int>(0);
+                _cst = new constant<float>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -832,7 +832,7 @@ func_::func_(constant_&& c){
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_var(p_c2);
                 _ftype = lin_;
-                _cst = new constant<int>(0);
+                _cst = new constant<float>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -920,7 +920,7 @@ func_::func_(const constant_& c){
             auto p_c2 = (param_*)copy(c);
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_param(p_c2);
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
@@ -930,13 +930,13 @@ func_::func_(const constant_& c){
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_var(p_c2);
             _ftype = lin_;
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
         }
         case uexp_c: {
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             auto ue = (uexpr*)(&c);
             switch (ue->_otype) {
                 case sin_:
@@ -974,7 +974,7 @@ func_::func_(const constant_& c){
         }
         case bexp_c: {
             auto be = (bexpr*)&c;
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _expr = new bexpr(*(bexpr*)&c);
             _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
             _all_sign = be->get_all_sign();
@@ -1028,6 +1028,13 @@ func_::func_(func_&& f){
     f._sign = nullptr;
     _is_transposed = f._is_transposed;
     _embedded = f._embedded;
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = df.second;
+    }
+    f._dfdx.clear();
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
 }
 
 func_::func_(const func_& f){
@@ -1083,6 +1090,13 @@ func_::func_(const func_& f){
         _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = new func_(*df.second);
+    }
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+
 }
 
 bool func_::operator==(const func_& f) const{
@@ -1123,6 +1137,10 @@ func_& func_::operator=(const func_& f){
             delete elem.second;
         }
     }
+    for (auto &f_p: _dfdx) {
+        delete f_p.second;
+    }
+    _dfdx.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -1186,6 +1204,13 @@ func_& func_::operator=(const func_& f){
         _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
+    for (auto &df:_dfdx) {
+        _dfdx[df.first] = new func_(*df.second);
+    }
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+
     return *this;
 }
 
@@ -1218,6 +1243,10 @@ func_& func_::operator=(func_&& f){
             delete elem.second;
         }
     }
+    for (auto &f_p: _dfdx) {
+        delete f_p.second;
+    }
+    _dfdx.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -1261,6 +1290,14 @@ func_& func_::operator=(func_&& f){
     f._sign = nullptr;
     _is_transposed = f._is_transposed;
     _embedded = f._embedded;
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = df.second;
+    }
+    f._dfdx.clear();
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+
     return *this;
 }
 
@@ -2165,6 +2202,10 @@ void func_::reset(){
             delete elem.second;
         }
     }
+    for (auto &df:_dfdx) {
+        delete df.second;
+    }
+    _dfdx.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -2181,7 +2222,7 @@ void func_::reset(){
     _qterms->clear();
     _pterms->clear();
     delete _cst;
-    _cst = new constant<int>(0);
+    _cst = new constant<float>(0);
 };
 
 //void func_::reverse_sign(){ /*<< Reverse the sign of all terms in the function */
@@ -4011,8 +4052,8 @@ void lterm::print(int ind) const{
     cout << this->to_str(ind);
 }
 
-func_* func_::get_stored_derivative(const param_ &v) const{
-    auto it = _dfdx.find(v.get_id_inst());
+func_* func_::get_stored_derivative(unsigned vid) const{
+    auto it = _dfdx.find(vid);
     if (it!=_dfdx.end()) {
         return it->second;
     }
@@ -4024,9 +4065,9 @@ func_* func_::get_stored_derivative(const param_ &v) const{
  func_* func_::compute_derivative(const param_ &v){
     
     auto df = new func_(get_derivative(v));
-    embed(*df);
+//    embed(*df);
     _nnz_j += df->get_nb_vars()*_nb_instances;
-    _dfdx[v.get_id()+v.get_id_inst()] = df;
+    _dfdx[v.get_ipopt_id()] = df;
     Debug( "First derivative with respect to " << v.get_name() << " = ");
 //    df->print();
     return df;
@@ -4034,14 +4075,17 @@ func_* func_::get_stored_derivative(const param_ &v) const{
 
 void func_::compute_derivatives(){ /**< Computes and stores the derivative of f with respect to all variables. */
     size_t vid = 0, vjd = 0;
+    param_* vi;
+    param_* vj;
     for (auto &vp: *_vars) {
-        vid = vp.second.first->get_id();
+        vi = vp.second.first;
+        vid = vi->get_ipopt_id();
         auto df = compute_derivative(*vp.second.first);
         for (auto &vp2: *_vars) {
-            vjd = vp2.second.first->get_id();
-            if (vid <= vjd && df->has_var(*vp2.second.first)) { //only store lower left part of hessian matrix since it is symmetric.
-                _hess_link[vid].insert(vjd);
-                df->compute_derivative(*vp2.second.first);
+            vj = vp2.second.first;
+            vjd = vj->get_ipopt_id();
+            if (vid <= vjd && df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
+                df->compute_derivative(*vj);
                 Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
 //                d2f->print();
             }
@@ -4060,7 +4104,7 @@ func_ func_::get_derivative(const param_ &v) const{
         if (*lt.second._p == v) {
             if(lt.second._coef->_is_transposed){
                 lt.second._coef->_dim = v._dim;
-                constant<int> ones(1);
+                constant<float> ones(1);
                 if(lt.second._sign){
                     res += ones.tr()*(*lt.second._coef);
                 }
@@ -4157,10 +4201,13 @@ string func_::to_str() const{
     if (!_embedded && !is_constant()) {
         str += "f(";
         for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-            str += pair_it->second.first->get_name();
-            if (++pair_it != _vars->end()) {
-                str += ",";
+            if (!pair_it->second.first->_is_vector) {
+                str += pair_it->second.first->get_name();
+                if (pair_it != _vars->end()) {
+                    str += ",";
+                }
             }
+            pair_it++;
         }
         str += ") = ";
     }

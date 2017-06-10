@@ -27,7 +27,9 @@ class IpoptProgram : public TNLP {
 public:
     Model* _model;
     
-    IpoptProgram(Model* m):_model(m){}
+    IpoptProgram(Model* m):_model(m){
+        m->fill_in_maps();
+    }
     
     ~IpoptProgram(){}
     

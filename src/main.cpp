@@ -281,32 +281,37 @@ int main (int argc, const char * argv[])
     string fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.topology(fname);
     Model model;
-    auto n = graph.nodes.size();
+//    auto n = graph.nodes.size();
+    auto n = 4;
     auto m = graph.arcs.size();
     
     // IP model for stable set problem.
-    var<bool> x("x");
+    var<float> x("x", 0, 1);
+    x = 1;
     model.add_var(x^n);
-    constant<int> ones(1);
+    constant<float> ones(1);
     func_ obj = ones.tr()*x;
     model.set_objective(obj,maximize);
     
     int i, j;
-    for (int l=0; l<m;l++){
+    for (int l=0; l<3;l++){
         Arc* a = graph.arcs[l];
         i = (a->src)->ID;
         j = (a->dest)->ID;
         Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
         c =x(i) + x(j);
         c <= 1;
-//        c.print();
+        c.print();
         model.add_constraint(c);
     }
+    for(auto &p: *model._vars.begin()->second->get_indices()){
+        cout <<" Pair (" << p.first << "," << p.second << ")\n";
+    }
     SolverType stype = cplex;
-    solver s(model,stype);
+    solver s(model,ipopt);
 //    s.run();
     s.run(0,true);
-    
+    return 0;
     /* Shriver's SDP relaxation for the stable set problem */
     Model SDP;
     /* Variable declaration */
@@ -333,15 +338,12 @@ int main (int argc, const char * argv[])
         zeros = Xij(i,j);
         SDP.add_constraint(zeros=0);        
     }
-    cout << "number of Xij indices = " << Xij.get_indices()->size() << endl;
-    
     /* Objective declaration */
     constant<int> twos(2);
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
     SDP.set_objective(max(obj_SDP));
     
     solver s1(SDP,ipopt);
-    //    s.run();
     s1.run();
     
 //    vector<var<bool>> Xis;

@@ -158,20 +158,23 @@ int solver::run(int output, bool relax){
 
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
-            IpoptApplication iapp;
-            ApplicationReturnStatus status = iapp.Initialize();
+        SmartPtr<IpoptApplication> iapp = new IpoptApplication();
+            iapp->RethrowNonIpoptException(true);
+            ApplicationReturnStatus status = iapp->Initialize();
+        
             if (status != Solve_Succeeded) {
                 std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
                 return (int) status;
             }
 
         if(prog.ipopt_prog->_model->_objt==maximize){
-//            *prog.ipopt_prog->model->_obj *= -1;
+            prog.ipopt_prog->_model->_obj *= -1;
         }
         SmartPtr<TNLP> tmp = new IpoptProgram(prog.ipopt_prog->_model);
 //        prog.ipopt_prog;
             //            iapp.Options()->SetStringValue("hessian_constant", "yes");
-//                        iapp.Options()->SetStringValue("derivative_test", "second-order");
+                        iapp->Options()->SetStringValue("derivative_test", "first-order");
+//                        iapp->Options()->SetStringValue("derivative_test", "second-order");
             //            iapp->Options()->SetNumericValue("tol", 1e-6);
 //                        iapp.Options()->SetNumericValue("tol", 1e-6);
             //            iapp->Options()->SetStringValue("derivative_test", "second-order");
@@ -179,9 +182,9 @@ int solver::run(int output, bool relax){
             //            iapp.Options()->SetIntegerValue("print_level", 5);
             
             //            iapp.Options()->SetStringValue("derivative_test_print_all", "yes");
-        status = iapp.OptimizeTNLP(tmp);
+        status = iapp->OptimizeTNLP(tmp);
         if(prog.ipopt_prog->_model->_objt==maximize){
-//            *prog.ipopt_prog->model->_obj *= -1;
+            prog.ipopt_prog->_model->_obj *= -1;
         }
             if (status == Solve_Succeeded) {
                 // Retrieve some statistics about the solve

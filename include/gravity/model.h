@@ -45,8 +45,8 @@ public:
     map<string,param_*>             _params; /**< Sorted map pointing to all parameters contained in this model */
     map<string,param_*>             _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
     map<string,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-    vector<set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
-    vector<set<param_*>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
+    map<unsigned, set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
+    map<unsigned, set<unsigned>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
     

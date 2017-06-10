@@ -27,7 +27,7 @@ public:
 };
 
 /** A variable can be a bool, a short, an int, a float or a double*/
-template<typename type = int>
+template<typename type = float>
 
 // define variable as a parameter with bounds
 class var: public param<type>, public var_{
@@ -178,6 +178,14 @@ public:
 
     
     /* Operators */
+    
+    var& operator=(type v){
+        param<type>::_val->push_back(v);
+        param<type>::update_range(v);
+        param<type>::_dim++;
+        return *this;
+    }
+    
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
     var& operator^(size_t d){

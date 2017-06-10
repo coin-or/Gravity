@@ -14,7 +14,7 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
     index_style = Ipopt::TNLP::C_STYLE;
     
-    _model->fill_in_maps();
+//    _model->fill_in_maps();
     n = (Index)_model->get_nb_vars();
 //    printf("n = %d;\n", n);
     m = (Index)_model->get_nb_cons();
@@ -103,11 +103,11 @@ bool IpoptProgram::get_bounds_info(Index n, Number* x_l, Number* x_u,
     assert(n==_model->get_nb_vars());
     assert(m==_model->get_nb_cons());
     _model->fill_in_var_bounds(x_l , x_u);
-    for (int i = 0; i<n; i++) {
+//    for (int i = 0; i<n; i++) {
 //        if (x_l[i]==x_u[i]) {
 //            printf("%f <= x[%d] <= %f\n",x_l[i], i, x_u[i]);
 //        }
-    }
+//    }
     _model->fill_in_cstr_bounds(g_l , g_u);
 //    for (int i = 0; i<m; i++) {
 //        printf("%f <= g[%d] <= %f\n",g_l[i], i, g_u[i]);

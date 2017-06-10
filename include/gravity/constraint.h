@@ -19,6 +19,7 @@ protected:
     
 public:
     
+    unsigned                    _id = -1;
     ConstraintType              _ctype; /**< Constraint type: leq, geq or eq */
     double _rhs;
     /** Constructor */
