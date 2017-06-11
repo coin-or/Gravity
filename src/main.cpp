@@ -250,12 +250,6 @@ int main (int argc, const char * argv[])
     f2.print();
 
 //  f2.print();
-    
-//  assuming a vector of coefficients are given, try to generate the graph structure.
-//  1: (a, b)  1
-//  2: (a, c)  1
-//  3: (b, c)  1
-    
 //    var<int> x("x");
 //    var<int> y("y");
 //    var<int> z("z");
@@ -278,8 +272,24 @@ int main (int argc, const char * argv[])
 //    return 0;
     
     Net graph;
-    string fname = "../../data_sets/stable_set/p.3n150.txt";
-    graph.topology(fname);
+   // Net graph_complement;
+    string fname = "../../data_sets/stable_set/p.8n200.txt";
+   //string fname = "../../data_sets/stable_set/toy.txt";
+
+    graph.topology(fname, false); // get the topology of the (complement) graph
+   // graph.topology(fname,false);
+    
+    
+    graph.get_tree_decomp_bags();
+    cout << "total bags: " << graph._bags->size() << endl;
+  
+
+    
+    //Net complement;
+    //complement = graph.get_complement(fname);
+    
+
+    
     Model model;
     auto n = graph.nodes.size();
     auto m = graph.arcs.size();

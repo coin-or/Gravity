@@ -36,14 +36,15 @@ public:
     
     
     bool duplicate(int n1, int n2, int id1);
-
     
     /** Clone network */
     // To get the chordal extension of the network.
     Net* _clone;
     
+    
     /** Cloning */
     Net* clone();
+    
     
     /* Constructors */
     Net();
@@ -75,7 +76,8 @@ public:
     char* readline(FILE *input);
     void exit_input_error(int line_num);
     void readFile(std::string fname);
-    void topology(std::string fname);
+    void topology(std::string fname,bool complement);
+    Net get_complement(std::string fname);//  (i, j): i<j \E
     
     /**  @brief Remove node and all incident arcs from the network
      @note Does not remove the incident arcs from the list of arcs in the network!
