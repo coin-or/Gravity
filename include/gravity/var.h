@@ -27,7 +27,7 @@ public:
 };
 
 /** A variable can be a bool, a short, an int, a float or a double*/
-template<typename type = float>
+template<typename type = double>
 
 // define variable as a parameter with bounds
 class var: public param<type>, public var_{
@@ -54,8 +54,7 @@ public:
     //@}
     
     
-    
-    
+        
     
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){

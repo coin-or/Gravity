@@ -288,7 +288,7 @@ int main (int argc, const char * argv[])
 //    var<float> x("x", 0, 1);
 ////    var<bool> x("x");
 //    model.add_var(x^n);
-    constant<float> ones(1);
+    constant<int> ones(1);
 //    func_ obj = ones.tr()*x;
 //    model.set_objective(max(obj));
 //    
@@ -327,6 +327,19 @@ int main (int argc, const char * argv[])
             SDP.add_constraint(SOCP>=0);
         }
     }
+    for (int i = 0; i < graph._bags->size(); i++){
+        auto bag = *graph._bags->at(i);
+        Constraint SDP3("SDP3("+to_string(i)+")");
+//        2*x[1,2]*x[2,3]*x[1,3] + x[1,1]*x[2,2]*x[3,3] - (x[1,2]**2)*x[3,3] + (x[1,3]**2)*x[2,2] + (x[2,3]**2)*x[1,1]
+        SDP3 = 2*Xij(bag[1]->ID,bag[2]->ID)*Xij(bag[2]->ID,bag[3]->ID)*Xij(bag[1]->ID,bag[3]->ID);
+        SDP3 += Xii(bag[1]->ID)*Xii(bag[2]->ID)*Xii(bag[3]->ID);
+        SDP3 -= power(Xij(bag[1]->ID,bag[2]->ID),2)*Xii(bag[3]->ID);
+        SDP3 -= power(Xij(bag[1]->ID,bag[3]->ID),2)*Xii(bag[2]->ID);
+        SDP3 -= power(Xij(bag[2]->ID,bag[3]->ID),2)*Xii(bag[1]->ID);
+        SDP.add_constraint(SDP3>=0);
+        SDP3.print();
+    }
+    
     Constraint diag("diag");
     diag = ones.tr()*Xii;
     SDP.add_constraint(diag=1);

@@ -149,7 +149,7 @@ public:
 
 
 /** A parameter can be a bool, a short, an int, a float or a double*/
-template<typename type = float>
+template<typename type = double>
 class param: public param_{
 protected:
     shared_ptr<vector<type>>                _val;

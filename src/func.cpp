@@ -712,7 +712,7 @@ func_::func_(){
     _vars = new map<unsigned, pair<param_*, int>>();
     _params_name = new map<string, pair<param_*, int>>();
     _vars_name = new map<string, pair<param_*, int>>();
-    _cst = new constant<float>(0);
+    _cst = new constant<double>(0);
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
@@ -721,7 +721,7 @@ func_::func_(){
     _queue = new queue<expr*>();
     _all_sign = zero_;
     _all_convexity = linear_;
-    _all_range = new pair<constant_*, constant_*>(new constant<float>(0), new constant<float>(0));
+    _all_range = new pair<constant_*, constant_*>(new constant<double>(0), new constant<double>(0));
     _sign = nullptr;
     _convexity = nullptr;
     _range = nullptr;
@@ -838,7 +838,7 @@ func_::func_(constant_&& c){
                 auto p_c2 = (param_*)copy(move(c));
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_param(p_c2);
-                _cst = new constant<float>(0);
+                _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -849,7 +849,7 @@ func_::func_(constant_&& c){
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_var(p_c2);
                 _ftype = lin_;
-                _cst = new constant<float>(0);
+                _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -939,7 +939,7 @@ func_::func_(const constant_& c){
             auto p_c2 = (param_*)copy(c);
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_param(p_c2);
-            _cst = new constant<float>(0);
+            _cst = new constant<double>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
@@ -949,33 +949,33 @@ func_::func_(const constant_& c){
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_var(p_c2);
             _ftype = lin_;
-            _cst = new constant<float>(0);
+            _cst = new constant<double>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
         }
         case uexp_c: {
-            _cst = new constant<float>(0);
+            _cst = new constant<double>(0);
             auto ue = (uexpr*)(&c);
             switch (ue->_otype) {
                 case sin_:
-                    _all_range = new pair<constant_*, constant_*>(new constant<float>(-1),new constant<float>(1)); // TO UPDATE
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
                     _all_sign = unknown_;
                     break;
                 case cos_:
-                    _all_range = new pair<constant_*, constant_*>(new constant<float>(-1),new constant<float>(1)); // TO UPDATE
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
                     _all_sign = unknown_;
                     break;
                 case sqrt_:
-                    _all_range = new pair<constant_*, constant_*>(new constant<float>(0),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                     _all_sign = non_neg_;
                     break;
                 case exp_:
-                    _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                     _all_sign = pos_;
                     break;
                 case log_:
-                    _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                     _all_sign = unknown_;
                     break;
                 default:
@@ -993,9 +993,9 @@ func_::func_(const constant_& c){
         }
         case bexp_c: {
             auto be = (bexpr*)&c;
-            _cst = new constant<float>(0);
+            _cst = new constant<double>(0);
             _expr = new bexpr(*(bexpr*)&c);
-            _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
+            _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
             _all_sign = be->get_all_sign();
             embed(*_expr);
             if (!_vars->empty()) {
@@ -1491,7 +1491,7 @@ func_& func_::operator+=(const constant_& c){
         return *this;
     }
     if (c.is_param() || c.is_var()) {
-        this->insert(true, constant<float>(1), *(param_*)&c);
+        this->insert(true, constant<double>(1), *(param_*)&c);
     }
     if (c.is_function()) {
         func_* f = (func_*)&c;
@@ -1541,7 +1541,7 @@ func_& func_::operator-=(const constant_& c){
         return *this;
     }
     if (c.is_param() || c.is_var()) {
-        this->insert(false, constant<float>(1), *(param_*)&c);
+        this->insert(false, constant<double>(1), *(param_*)&c);
     }
     if (c.is_function()) {
         func_* f = (func_*)&c;
@@ -2236,7 +2236,7 @@ void func_::reset(){
         delete _all_range->first;
         delete _all_range->second;
     }
-    *_all_range = make_pair<>(new constant<float>(0), new constant<float>(0));
+    *_all_range = make_pair<>(new constant<double>(0), new constant<double>(0));
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -2282,7 +2282,7 @@ void func_::reset(){
     _qterms->clear();
     _pterms->clear();
     delete _cst;
-    _cst = new constant<float>(0);
+    _cst = new constant<double>(0);
     _nb_instances = 1;
     _nnz_h = 0;
     _nnz_j = 0;
@@ -3527,7 +3527,7 @@ constant_* add(constant_* c1, const func_& f){
         case par_c:{
             auto res = new func_(f);
             if (f.is_constant()) {
-                res->insert(true, constant<float>(1), *(param_*)c1);
+                res->insert(true, constant<double>(1), *(param_*)c1);
             }
             else{
                 auto cst = res->get_cst();
@@ -3540,7 +3540,7 @@ constant_* add(constant_* c1, const func_& f){
         case var_c:{
             auto res = new func_(f);
             delete c1;
-            res->insert(true, constant<float>(1), *(param_*)c1);
+            res->insert(true, constant<double>(1), *(param_*)c1);
             return c1 = res;
             break;
         }
@@ -4867,7 +4867,20 @@ Convexity func_::get_convexity(const qterm& q) {
     return undet_;
 }
 
-
+template<typename type>
+func_ power(const var<type>& v, unsigned p){
+    func_ res(v);
+    for (int i = 1; i<p; i++) {
+        res *= v;
+    }
+    return res;
+}
+template func_ power<double>(const var<double>& v, unsigned p);
+template func_ power<float>(const var<float>& v, unsigned p);
+template func_ power<int>(const var<int>& v, unsigned p);
+template func_ power<long double>(const var<long double>& v, unsigned p);
+template func_ power<short>(const var<short>& v, unsigned p);
+template func_ power<bool>(const var<bool>& v, unsigned p);
 
 void func_::update_convexity(){
     if (!_pterms->empty()) {
@@ -4890,3 +4903,5 @@ void func_::update_convexity(){
         }
     }
 }
+
+

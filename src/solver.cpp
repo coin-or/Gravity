@@ -137,7 +137,7 @@ int solver::run(int output, bool relax){
         }
         SmartPtr<TNLP> tmp = new IpoptProgram(_model);
 //        prog.ipopt_prog;
-//                        iapp.Options()->SetStringValue("hessian_constant", "yes");
+//                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "first-order");
 //                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 0.001);
         
