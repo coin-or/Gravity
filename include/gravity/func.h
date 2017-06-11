@@ -412,8 +412,11 @@ protected:
     FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
     NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
-    map<string, pair<param_*, int>>*       _params;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-    map<string, pair<param_*, int>>*       _vars;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+    map<unsigned, pair<param_*, int>>*       _params;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+    map<unsigned, pair<param_*, int>>*       _vars;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+    
+    map<string, pair<param_*, int>>*       _params_name;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+    map<string, pair<param_*, int>>*       _vars_name;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
     
     constant_*                             _cst;/**< Constant part of the function */
     map<string, lterm>*                    _lterms; /**< Set of linear terms, stored as a map <string describing term, term>. */
@@ -452,9 +455,9 @@ public:
 
     ~func_();
 
-    map<unsigned, set<unsigned>>& get_hessian_link(){ return _hess_link;};
-    map<string, pair<param_*, int>>& get_vars(){ return *_vars;};
-    map<string, pair<param_*, int>>& get_params(){ return *_params;};
+    map<unsigned, set<unsigned>>& get_hess_link() { return _hess_link;};
+    map<unsigned, pair<param_*, int>>& get_vars() { return *_vars;};
+    map<unsigned, pair<param_*, int>>& get_params() { return *_params;};
     
     bool has_var(const param_& v) const;
     
@@ -476,220 +479,56 @@ public:
     
     void insert(expr& e);
     
-    map<string, pair<param_*, int>>& get_vars() const{
-        return *_vars;
-    }
+    size_t get_nb_vars() const;
     
-    size_t get_nb_vars() const{
-        size_t n = 0;
-        for (auto &p: *_vars) {
-            if (p.second.first->_is_transposed) {
-                n += p.second.first->get_dim();
-            }
-            else {
-                n += 1;
-            }
-            
-        }
-        return n;
-    }
+    size_t get_nb_instances() const;
     
-    size_t get_nb_instances() const{
-        return _nb_instances;
-    }
+    constant_* get_cst();
+    
+    param_* get_var(string name);
+    
+    param_* get_param(string name);
+    
+    void add_var(param_* v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
     
     
-    constant_* get_cst() {
-        return _cst;
-    }
-    
-    param_* get_var(string name){
-        auto pair_it = _vars->find(name);
-        if (pair_it==_vars->end()) {
-            return nullptr;
-        }
-        else {
-            return get<1>(*pair_it).first;
-        }
-    }
-    
-    param_* get_param(string name){
-        auto pair_it = _params->find(name);
-        if (pair_it==_params->end()) {
-            return nullptr;
-        }
-        else {
-            return get<1>(*pair_it).first;
-        }
-    }
-    
-    
-    void add_var(param_* v, int nb = 1){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
-        assert(_vars->count(v->get_name())==0);
-        _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (v->_is_transposed || v->_is_vector) {
-            _nb_instances = max(_nb_instances, (size_t)1);
-        }
-        else{
-            _nb_instances = max(_nb_instances, v->get_dim());
-        }
-    }
-    
-    
-    void add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
-        assert(_params->count(p->get_name())==0);
-        _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->_is_transposed) {
-            _nb_instances = max(_nb_instances, p->get_dim());
-        }
-        else{
-            _nb_instances = max(_nb_instances, (size_t)1);
-        }
-    }
+    void add_param(param_* p);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
     
     
     
-    void delete_var(const string& vname){
-        auto it = _vars->find(vname);
-        if (!_embedded) {
-            delete _vars->at(vname).first;
-        }
-        _vars->erase(it);
-    }
+    void delete_var(const unsigned& vid);
     
-    void delete_param(const string& vname){
-        auto it = _params->find(vname);
-        if (!_embedded) {
-            delete _params->at(vname).first;
-        }
-        _params->erase(it);
-    }
-
+    void delete_param(const unsigned& vid);
     
 
     
-    int nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
-        auto pair_it = _vars->find(name);
-        if (pair_it==_vars->end()) {
-            return 0;
-        }
-        else {
-            return get<1>(*pair_it).second;
-        }
-    }
+    int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
     
-    int nb_occ_param(string name) const{/**< Returns the number of occurences the parameter has in this function. */
-        auto pair_it = _params->find(name);
-        if (pair_it==_params->end()) {
-            return 0;
-        }
-        else {
-            return get<1>(*pair_it).second;
-        }
-    }
+    int nb_occ_param(string name) const;/**< Returns the number of occurences the parameter has in this function. */
     
-    void incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
-        auto pair_it = _vars->find(str);
-        if (pair_it==_vars->end()) {
-            throw invalid_argument("Non-existing variable in function!\n");
-        }
-        else {
-            get<1>(*pair_it).second++;
-        }
-    }
+    void incr_occ_var(string str);/**< Increases the number of occurences the variable has in this function. */
     
-    void incr_occ_param(string str){/**< Increases the number of occurences the parameter has in this function. */
-        auto pair_it = _params->find(str);
-        if (pair_it==_params->end()) {
-            throw invalid_argument("Non-existing variable in function!\n");
-        }
-        else {
-            get<1>(*pair_it).second++;
-        }
-    }
+    void incr_occ_param(string str);/**< Increases the number of occurences the parameter has in this function. */
     
-    void decr_occ_var(string str, int nb=1){/**< Decreases the number of occurences the variable has in this function by nb. */
-        auto pair_it = _vars->find(str);
-        if (pair_it==_vars->end()) {
-            return;
-        }
-        else {
-            get<1>(*pair_it).second-=nb;
-            if (get<1>(*pair_it).second==0) {
-                delete get<1>(*pair_it).first;
-                _vars->erase(pair_it);
-            }
-        }
-    }
-    
-    void decr_occ_param(string str, int nb=1){/**< Decreases the number of occurences the parameter has in this function by nb. */
-        auto pair_it = _params->find(str);
-        if (pair_it==_params->end()) {
-            return;
-        }
-        else {
-            get<1>(*pair_it).second -= nb;
-            if (get<1>(*pair_it).second==0) {
-                delete get<1>(*pair_it).first;
-                _params->erase(pair_it);
-            }
-        }
-    }
+    void decr_occ_var(string str, int nb=1);/**< Decreases the number of occurences the variable has in this function by nb. */
+
+    void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
     
     
     pair<ind,func_*> operator[](ind i);
     
-    bool is_convex(int idx=0) const{
-        return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
-    };
+    bool is_convex(int idx=0) const;
+    bool is_concave(int idx=0) const;
+    bool is_number() const;
+    bool is_constant() const;
+    bool is_linear() const;
+    bool is_quadratic() const;
+    bool is_polynome() const;
+    bool is_nonlinear() const;
+    bool is_zero();/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
     
-    bool is_concave(int idx=0) const{
-        return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
-    };
-    
-    
-    bool is_number() const{
-        return (_vars->empty() && _params->empty());
-    }
-    
-    bool is_constant() const{
-        return (_ftype==const_);
-    }
-    
-    bool is_linear() const{
-        return (_ftype==lin_);
-    };
-    
-    bool is_quadratic() const{
-        return (_ftype==quad_);
-    };
-    
-    bool is_polynome() const{
-        return (_ftype==pol_);
-    };
-    
-    bool is_nonlinear() const{
-        return (_ftype==nlin_);
-    };
-    
-    bool is_zero(){/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
-        if (_ftype==const_ && _cst->is_zero()){
-            for (auto& it:*_params) {
-                if (!it.second.first->is_zero()) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-    
-    bool is_transposed() const {
-        return _is_transposed;
-    }
-    
-    FType get_ftype() const { return _ftype;}
-    
+    bool is_transposed() const;
+    FType get_ftype() const;
     void embed(func_& f);
     void embed(expr& e);
     
@@ -737,203 +576,26 @@ public:
     template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator-=(T c){
         return *this -= constant<T>(c);
     };
-
+    
     template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator*=(T c){
         return *this *= constant<T>(c);
     };
-
+    
     template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator/=(T c){
         return *this /= constant<T>(c);
     };
-
-//    size_t get_nnz_h() const{// returns number of nonzeros in the second derivatives of c
-//        size_t n =0;
-//        for (auto &qtp: *_qterms){
-//            if (qtp.second._p->first->_is_transposed) {
-//                n += qtp.second._p->first->get_dim();
-//            }
-//            else {
-//                n++;
-//            }
-//        }
-//        // MISSING NONLINEAR PART!
-//        return n;
-//    }
     
-    qterm* get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
-        for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
-            if (pair_it->second._p->first==p && pair_it->second._p->second==p) {
-                return &pair_it->second;
-            }
-        }
-        return nullptr;
-    }
+    qterm* get_square(param_* p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+  
     
-    Sign get_all_sign() const{
-        return _all_sign;
-    }
-    
-    Sign get_sign(int idx=0) const{
-        return _sign->at(idx);
-    }
-    
-    Sign get_all_sign(const lterm& l) {
-        if (l._coef->is_zero()) {
-            return zero_;
-        }
-        if (l._coef->get_all_sign()==unknown_ || l._p->get_all_sign()==unknown_) {
-            return unknown_;
-        }
-        auto s = l._coef->get_all_sign() * l._p->get_all_sign();
-        if(s == 1 || s == 2) {
-            if (l._sign) {
-                return non_neg_;
-            }
-            else {
-                return non_pos_;
-            }
-        }
-        if(s == 4) {
-            if (l._sign) {
-                return pos_;
-            }
-            else {
-                return neg_;
-            }
-        }
-        if(s == -1 || s == -2) {
-            if (l._sign) {
-                return non_pos_;
-            }
-            else{
-                return non_neg_;
-            }
-        }
-        if(s == -4) {
-            if (l._sign) {
-                return neg_;
-            }
-            else {
-                return pos_;
-            }
-        }
-        return unknown_;
-    }
-    
-    Sign get_all_sign(const qterm& l) {
-        if (l._coef->is_zero()) {
-            return zero_;
-        }
-        if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
-            return unknown_;
-        }
-        auto s = l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign();
-        if(s == 1 || s == 2 || s == 4) {
-            if (l._sign) {
-                return non_neg_;
-            }
-            else {
-                return non_pos_;
-            }
-        }
-        if(s == 8) {
-            if (l._sign) {
-                return pos_;
-            }
-            else {
-                return neg_;
-            }
-        }
-        if(s == -1 || s == -2 || s == -4) {
-            if (l._sign) {
-                return non_pos_;
-            }
-            else{
-                return non_neg_;
-            }
-        }
-        if(s == -8) {
-            if (l._sign) {
-                return neg_;
-            }
-            else {
-                return pos_;
-            }
-        }
-        return unknown_;
-    }
-    
-    Sign get_all_sign(const pterm& l) {
-        if (l._coef->is_zero()) {
-            return zero_;
-        }
-//        if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
-//            return unknown_;
-//        }
-//        if (l._sign) {
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
-//                return non_neg_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
-//                return pos_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
-//                return non_pos_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
-//                return neg_;
-//            }
-//        }
-//        else {
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
-//                return non_pos_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
-//                return neg_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
-//                return non_neg_;
-//            }
-//            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
-//                return pos_;
-//            }
-//        }
-        return unknown_;
-    }
-
+    Sign get_all_sign() const;
+    Sign get_sign(int idx=0) const;
+    Sign get_all_sign(const lterm& l);
+    Sign get_all_sign(const qterm& l);
+    Sign get_all_sign(const pterm& l);
 
     
-    Convexity get_convexity(const qterm& q) {
-        if(q._p->first == q._p->second){
-            if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
-                return convex_;
-            }
-            if (q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-                return concave_;
-            }
-            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-                return convex_;
-            }
-            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-                return concave_;
-            }
-        }
-        // At this stage, we know that q._p->first !=q._p->second
-        // Checking if the product can be factorized
-        auto sqr1 = get_square(q._p->first);
-        auto sqr2 = get_square(q._p->second);
-        if (sqr1 && sqr2){
-            auto c1 = sqr1->_coef;
-            auto c2 = sqr2->_coef;
-            if (!(sqr1->_sign^c1->is_positive())==!(sqr2->_sign^c2->is_positive())) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
-                if (!(sqr1->_sign^c1->is_positive())) {
-                    return convex_;
-                }
-                return concave_;
-            }
-        }
-        return undet_;
-    }
+    Convexity get_convexity(const qterm& q);
     
     void update_sign(const constant_& c);
     
@@ -945,27 +607,7 @@ public:
     
     void update_convexity(const qterm& q);
     
-    void update_convexity(){
-        if (!_pterms->empty()) {
-            _all_convexity = undet_;
-            return;
-        }
-        if (_qterms->empty()) {
-            _all_convexity = linear_;
-            return;
-        }
-        _all_convexity = get_convexity(_qterms->begin()->second);
-        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-            Convexity conv = get_convexity(pair_it->second);
-            if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
-                _all_convexity = undet_;
-                return;
-            }
-            else {
-                _all_convexity = conv;
-            }
-        }
-    }
+    void update_convexity();
     
     map<string, lterm>& get_lterms() const{
         return *_lterms;
@@ -983,26 +625,14 @@ public:
         return *_expr;
     }
     
-    func_* get_stored_derivative(const param_& v) const; /**< Returns the stored derivative with respect to variable v. */
+    func_* get_stored_derivative(unsigned vid) const; /**< Returns the stored derivative with respect to variable v. */
     
     func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
     
     
     void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
     
-    void update_sign(){
-//        _sign = get_sign(_qterms->begin()->second);
-//        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-//            Sign sign = get_sign(pair_it->second);
-//            if (_convex==undet_ || conv ==undet_ || (_convex==convex_ && conv==concave_) || (_convex==concave_ && conv==convex_)) {
-//                _convex = undet_;
-//                return;
-//            }
-//            else {
-//                _convex = conv;
-//            }
-//        }
-    }
+    void update_sign();
     
     double eval(size_t i) const;
     double eval() const{ return eval(0);};

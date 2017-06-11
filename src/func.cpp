@@ -27,7 +27,7 @@ bool is_indexed(const constant_* c){
 
 size_t get_poly_id(const constant_* c){
     if (c->is_var() || c->is_param()) {
-        return ((param_*)c)->get_id();
+        return ((param_*)c)->get_vec_id();
     }
     return 0;
 }
@@ -708,9 +708,11 @@ pterm& pterm::operator=(pterm&& p){
 
 func_::func_(){
     set_type(func_c);
-    _params = new map<string, pair<param_*, int>>();
-    _vars = new map<string, pair<param_*, int>>();
-    _cst = new constant<int>(0);
+    _params = new map<unsigned, pair<param_*, int>>();
+    _vars = new map<unsigned, pair<param_*, int>>();
+    _params_name = new map<string, pair<param_*, int>>();
+    _vars_name = new map<string, pair<param_*, int>>();
+    _cst = new constant<float>(0);
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
@@ -751,6 +753,10 @@ func_::func_(constant_&& c){
         f->_vars = nullptr;
         _params = f->_params;
         f->_params = nullptr;
+        _vars_name = f->_vars_name;
+        f->_vars_name = nullptr;
+        _params_name = f->_params_name;
+        f->_params_name = nullptr;
         _cst = f->_cst;
         f->_cst = nullptr;
         _range = f->_range;
@@ -761,11 +767,22 @@ func_::func_(constant_&& c){
         f->_sign = nullptr;
         _is_transposed = f->_is_transposed;
         _embedded = f->_embedded;
+        for (auto &df:f->_dfdx) {
+            _dfdx[df.first] = df.second;
+        }
+        f->_dfdx.clear();
+        _nb_instances = f->_nb_instances;
+        _nnz_j = f->_nnz_j;
+        _nnz_h = f->_nnz_h;
+        _hess_link = f->_hess_link;
+        
     }
     else {
         set_type(func_c);
-        _params = new map<string, pair<param_*, int>>();
-        _vars = new map<string, pair<param_*, int>>();
+        _params = new map<unsigned, pair<param_*, int>>();
+        _vars = new map<unsigned, pair<param_*, int>>();
+        _params_name = new map<string, pair<param_*, int>>();
+        _vars_name = new map<string, pair<param_*, int>>();
         _cst = nullptr;
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
@@ -821,7 +838,7 @@ func_::func_(constant_&& c){
                 auto p_c2 = (param_*)copy(move(c));
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_param(p_c2);
-                _cst = new constant<int>(0);
+                _cst = new constant<float>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -832,7 +849,7 @@ func_::func_(constant_&& c){
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
                 add_var(p_c2);
                 _ftype = lin_;
-                _cst = new constant<int>(0);
+                _cst = new constant<float>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 _is_transposed = p_c2->_is_transposed;
@@ -861,8 +878,10 @@ func_::func_(constant_&& c){
 
 func_::func_(const constant_& c){
     set_type(func_c);
-    _params = new map<string, pair<param_*, int>>();
-    _vars = new map<string, pair<param_*, int>>();
+    _params = new map<unsigned, pair<param_*, int>>();
+    _vars = new map<unsigned, pair<param_*, int>>();
+    _params_name = new map<string, pair<param_*, int>>();
+    _vars_name = new map<string, pair<param_*, int>>();
     _cst = nullptr;
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
@@ -920,7 +939,7 @@ func_::func_(const constant_& c){
             auto p_c2 = (param_*)copy(c);
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_param(p_c2);
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
@@ -930,13 +949,13 @@ func_::func_(const constant_& c){
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_var(p_c2);
             _ftype = lin_;
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _all_sign = p_c2->get_all_sign();
             _all_range = p_c2->get_range();
             break;
         }
         case uexp_c: {
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             auto ue = (uexpr*)(&c);
             switch (ue->_otype) {
                 case sin_:
@@ -974,7 +993,7 @@ func_::func_(const constant_& c){
         }
         case bexp_c: {
             auto be = (bexpr*)&c;
-            _cst = new constant<int>(0);
+            _cst = new constant<float>(0);
             _expr = new bexpr(*(bexpr*)&c);
             _all_range = new pair<constant_*, constant_*>(new constant<float>(numeric_limits<float>::min()),new constant<float>(numeric_limits<float>::max())); // TO UPDATE
             _all_sign = be->get_all_sign();
@@ -1018,6 +1037,10 @@ func_::func_(func_&& f){
     f._vars = nullptr;
     _params = f._params;
     f._params = nullptr;
+    _vars_name = f._vars_name;
+    f._vars_name = nullptr;
+    _params_name = f._params_name;
+    f._params_name = nullptr;
     _cst = f._cst;
     f._cst = nullptr;
     _range = f._range;
@@ -1028,12 +1051,22 @@ func_::func_(func_&& f){
     f._sign = nullptr;
     _is_transposed = f._is_transposed;
     _embedded = f._embedded;
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = df.second;
+    }
+    f._dfdx.clear();
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
 }
 
 func_::func_(const func_& f){
     set_type(func_c);
-    _params = new map<string, pair<param_*, int>>();
-    _vars = new map<string, pair<param_*, int>>();
+    _params = new map<unsigned, pair<param_*, int>>();
+    _vars = new map<unsigned, pair<param_*, int>>();
+    _params_name = new map<string, pair<param_*, int>>();
+    _vars_name = new map<string, pair<param_*, int>>();
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
@@ -1083,6 +1116,14 @@ func_::func_(const func_& f){
         _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = new func_(*df.second);
+    }
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
+
 }
 
 bool func_::operator==(const func_& f) const{
@@ -1117,12 +1158,18 @@ func_& func_::operator=(const func_& f){
         }
         delete _params;
     }
+    delete _vars_name;
+    delete _params_name;
     if (_range) {
         for (auto &elem: *_range) {
             delete elem.first;
             delete elem.second;
         }
     }
+    for (auto &f_p: _dfdx) {
+        delete f_p.second;
+    }
+    _dfdx.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -1135,8 +1182,10 @@ func_& func_::operator=(const func_& f){
     delete _cst;
     
     set_type(func_c);
-    _params = new map<string, pair<param_*, int>>();
-    _vars = new map<string, pair<param_*, int>>();
+    _params = new map<unsigned, pair<param_*, int>>();
+    _vars = new map<unsigned, pair<param_*, int>>();
+    _params_name = new map<string, pair<param_*, int>>();
+    _vars_name = new map<string, pair<param_*, int>>();
     _lterms = new map<string, lterm>();
     _qterms = new map<string, qterm>();
     _pterms = new map<string, pterm>();
@@ -1186,6 +1235,13 @@ func_& func_::operator=(const func_& f){
         _DAG->insert(make_pair<>(_expr->get_str(), _expr));
         _queue->push(_expr);
     }
+    for (auto &df:_dfdx) {
+        _dfdx[df.first] = new func_(*df.second);
+    }
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
     return *this;
 }
 
@@ -1204,6 +1260,7 @@ func_& func_::operator=(func_&& f){
         }
         delete _vars;
     }
+    delete _vars_name;
     if (_params) {
         if (!_embedded) {
             for (auto &elem: *_params) {
@@ -1212,12 +1269,17 @@ func_& func_::operator=(func_&& f){
         }
         delete _params;
     }
+    delete _params_name;
     if (_range) {
         for (auto &elem: *_range) {
             delete elem.first;
             delete elem.second;
         }
     }
+    for (auto &f_p: _dfdx) {
+        delete f_p.second;
+    }
+    _dfdx.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -1251,6 +1313,10 @@ func_& func_::operator=(func_&& f){
     f._vars = nullptr;
     _params = f._params;
     f._params = nullptr;
+    _vars_name = f._vars_name;
+    f._vars_name = nullptr;
+    _params_name = f._params_name;
+    f._params_name = nullptr;
     _cst = f._cst;
     f._cst = nullptr;
     _range = f._range;
@@ -1261,6 +1327,14 @@ func_& func_::operator=(func_&& f){
     f._sign = nullptr;
     _is_transposed = f._is_transposed;
     _embedded = f._embedded;
+    for (auto &df:f._dfdx) {
+        _dfdx[df.first] = df.second;
+    }
+    f._dfdx.clear();
+    _nnz_j = f._nnz_j;
+    _nnz_h = f._nnz_h;
+    _hess_link = f._hess_link;
+    _nb_instances = f._nb_instances;
     return *this;
 }
 
@@ -1280,6 +1354,7 @@ func_::~func_(){
         }
         delete _vars;
     }
+    delete _vars_name;
     if (_params) {
         if (!_embedded) {
             for (auto &elem: *_params) {
@@ -1288,6 +1363,7 @@ func_::~func_(){
         }
         delete _params;
     }
+    delete _params_name;
     if (_range) {
         for (auto &elem: *_range) {
             delete elem.first;
@@ -1400,7 +1476,9 @@ bool constant_::is_negative() const{
     return false;
 }
 
-
+ void func_::update_sign(){
+     
+ }
 
 
 func_& func_::operator+=(const constant_& c){
@@ -1972,7 +2050,7 @@ void func_::embed(expr& e){
                 embed(*(expr*)ue->_son);
             }
             else if (ue->_son->is_var()){
-                if (_vars->count(((param_*)ue->_son)->get_name())==0) {
+                if (_vars_name->count(((param_*)ue->_son)->get_name())==0) {
                     add_var((param_*)copy(*ue->_son));
                 }
             }
@@ -1988,7 +2066,7 @@ void func_::embed(expr& e){
                 embed(*(expr*)be->_lson);
             }
             else if (be->_lson->is_var()){
-                if (_vars->count(((param_*)be->_lson)->get_name())==0) {
+                if (_vars_name->count(((param_*)be->_lson)->get_name())==0) {
                     add_var((param_*)copy(*be->_lson));
                 }
             }
@@ -2000,7 +2078,7 @@ void func_::embed(expr& e){
                 embed(*(expr*)be->_rson);
             }
             else if (be->_rson->is_var()){
-                if (_vars->count(((param_*)be->_rson)->get_name())==0) {
+                if (_vars_name->count(((param_*)be->_rson)->get_name())==0) {
                     add_var((param_*)copy(*be->_rson));
                 }
             }
@@ -2019,8 +2097,8 @@ void func_::embed(func_& f){
     for (auto &pair:*f._lterms) {
         p = pair.second._p;
         if (p->is_var()) {
-            auto it = _vars->find(p->get_name());
-            if (it==_vars->end()) {
+            auto it = _vars_name->find(p->get_name());
+            if (it==_vars_name->end()) {
                 add_var(p);
             }
             else{
@@ -2030,8 +2108,8 @@ void func_::embed(func_& f){
             }
         }
         else {
-            auto it = _params->find(p->get_name());
-            if (it==_params->end()) {
+            auto it = _params_name->find(p->get_name());
+            if (it==_params_name->end()) {
                 add_param(p);
             }
             else{
@@ -2045,8 +2123,8 @@ void func_::embed(func_& f){
         p1 = pair.second._p->first;
         p2 = pair.second._p->second;
         if (p1->is_var()) {
-            auto it1 = _vars->find(p1->get_name());
-            if (it1==_vars->end()) {
+            auto it1 = _vars_name->find(p1->get_name());
+            if (it1==_vars_name->end()) {
                 add_var(p1);
             }
             else{
@@ -2054,8 +2132,8 @@ void func_::embed(func_& f){
                 pair.second._p->first = p1;
                 it1->second.second++;
             }
-            auto it2 = _vars->find(p2->get_name());
-            if (it2==_vars->end()) {
+            auto it2 = _vars_name->find(p2->get_name());
+            if (it2==_vars_name->end()) {
                 add_var(p2);
             }
             else{
@@ -2065,8 +2143,8 @@ void func_::embed(func_& f){
             }
         }
         else {
-            auto it1 = _params->find(p1->get_name());
-            if (it1==_params->end()) {
+            auto it1 = _params_name->find(p1->get_name());
+            if (it1==_params_name->end()) {
                 add_param(p1);
             }
             else{
@@ -2074,8 +2152,8 @@ void func_::embed(func_& f){
                 pair.second._p->first = p1;
                 it1->second.second++;
             }
-            auto it2 = _params->find(p2->get_name());
-            if (it2==_params->end()) {
+            auto it2 = _params_name->find(p2->get_name());
+            if (it2==_params_name->end()) {
                 add_param(p2);
             }
             else{
@@ -2090,8 +2168,8 @@ void func_::embed(func_& f){
         for (auto &ppi: *list) {
             p = ppi.first;
             if (p->is_var()) {
-                auto it = _vars->find(p->get_name());
-                if (it==_vars->end()) {
+                auto it = _vars_name->find(p->get_name());
+                if (it==_vars_name->end()) {
                     add_var(p);
                 }
                 else{
@@ -2101,8 +2179,8 @@ void func_::embed(func_& f){
                 }
             }
             else {
-                auto it = _params->find(p->get_name());
-                if (it==_params->end()) {
+                auto it = _params_name->find(p->get_name());
+                if (it==_params_name->end()) {
                     add_param(p);
                 }
                 else{
@@ -2120,18 +2198,34 @@ void func_::embed(func_& f){
     for (auto &vp: old_vars) {
         auto vv = (*_vars)[vp.first].first;
         if (vv != vp.second.first) {
-            delete vp.second.first;
             f._vars->erase(vp.first);
             f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
+        }
+    }
+    auto old_vars_name = *f._vars_name;
+    for (auto &vp: old_vars_name) {
+        auto vv = (*_vars_name)[vp.first].first;
+        if (vv != vp.second.first) {
+            delete vp.second.first;
+            f._vars_name->erase(vp.first);
+            f._vars_name->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
         }
     }
     auto old_params = *f._params;
     for (auto &pp: old_params) {
         auto p = (*_params)[pp.first].first;
-        if (p != pp.second.first) {
-            delete pp.second.first;
+        if (p != pp.second.first) {            
             f._params->erase(pp.first);
             f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
+        }
+    }
+    auto old_params_name = *f._params_name;
+    for (auto &pp: old_params_name) {
+        auto p = (*_params_name)[pp.first].first;
+        if (p != pp.second.first) {
+            delete pp.second.first;
+            f._params_name->erase(pp.first);
+            f._params_name->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
         }
     }
 
@@ -2151,6 +2245,7 @@ void func_::reset(){
         }
         _vars->clear();
     }
+    _vars_name->clear();
     if (_params) {
         if (!_embedded) {
             for (auto &elem: *_params) {
@@ -2159,12 +2254,18 @@ void func_::reset(){
         }
         _params->clear();
     }
+    _params_name->clear();
     if (_range) {
         for (auto &elem: *_range) {
             delete elem.first;
             delete elem.second;
         }
     }
+    for (auto &df:_dfdx) {
+        delete df.second;
+    }
+    _dfdx.clear();
+    _hess_link.clear();
     delete _range;
     delete _convexity;
     delete _sign;
@@ -2181,7 +2282,10 @@ void func_::reset(){
     _qterms->clear();
     _pterms->clear();
     delete _cst;
-    _cst = new constant<int>(0);
+    _cst = new constant<float>(0);
+    _nb_instances = 1;
+    _nnz_h = 0;
+    _nnz_j = 0;
 };
 
 //void func_::reverse_sign(){ /*<< Reverse the sign of all terms in the function */
@@ -2333,9 +2437,6 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds 
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -2425,9 +2526,6 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -2526,9 +2624,6 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -3184,8 +3279,7 @@ string to_str(const constant_* c){/**< printing c, detecting the right class, i.
             break;
         }
         case func_c: {
-            auto f = (func_*)c;
-            return f->to_str();
+            return ((func_*)c)->to_str();
             break;
         }
         default:
@@ -3319,8 +3413,8 @@ func_ operator-(const constant_& c, func_&& f){
 
 func_ operator*(const constant_& c1, const constant_& c2){
     if(c1.is_number()) {
-        auto new_c2 = copy(c2);
         if (c1._is_transposed) {
+            auto new_c2 = copy(c2);
             new_c2->_is_vector = true;
             auto res = func_(c1) *= move(*new_c2);
             delete new_c2;
@@ -4002,6 +4096,9 @@ string lterm::to_str(int ind) const{
         str += "(";
         str += ::to_str(c_new);
         str += ")";
+        if (c_new->_is_transposed && c_new->is_function() && ((func_*)c_new)->get_params().size()>1) {
+            str += "^T";
+        }
     }
     str += ::to_str(p_new);
     return str;
@@ -4011,8 +4108,8 @@ void lterm::print(int ind) const{
     cout << this->to_str(ind);
 }
 
-func_* func_::get_stored_derivative(const param_ &v) const{
-    auto it = _dfdx.find(v.get_id_inst());
+func_* func_::get_stored_derivative(unsigned vid) const{
+    auto it = _dfdx.find(vid);
     if (it!=_dfdx.end()) {
         return it->second;
     }
@@ -4024,9 +4121,11 @@ func_* func_::get_stored_derivative(const param_ &v) const{
  func_* func_::compute_derivative(const param_ &v){
     
     auto df = new func_(get_derivative(v));
-    embed(*df);
-    _nnz_j += df->get_nb_vars()*_nb_instances;
-    _dfdx[v.get_id()+v.get_id_inst()] = df;
+//    embed(*df);
+     if(_dfdx.count(v.get_id())!=0){
+         throw invalid_argument("storing same df twice! " + ::to_str(&v) + this->to_str());
+     }
+    _dfdx[v.get_id()] = df;
     Debug( "First derivative with respect to " << v.get_name() << " = ");
 //    df->print();
     return df;
@@ -4034,14 +4133,17 @@ func_* func_::get_stored_derivative(const param_ &v) const{
 
 void func_::compute_derivatives(){ /**< Computes and stores the derivative of f with respect to all variables. */
     size_t vid = 0, vjd = 0;
+    param_* vi;
+    param_* vj;
     for (auto &vp: *_vars) {
-        vid = vp.second.first->get_id();
+        vi = vp.second.first;
+        vid = vi->get_id();
         auto df = compute_derivative(*vp.second.first);
         for (auto &vp2: *_vars) {
-            vjd = vp2.second.first->get_id();
-            if (vid <= vjd && df->has_var(*vp2.second.first)) { //only store lower left part of hessian matrix since it is symmetric.
-                _hess_link[vid].insert(vjd);
-                df->compute_derivative(*vp2.second.first);
+            vj = vp2.second.first;
+            vjd = vj->get_id();
+            if (vid <= vjd && df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
+                df->compute_derivative(*vj);
                 Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
 //                d2f->print();
             }
@@ -4051,7 +4153,7 @@ void func_::compute_derivatives(){ /**< Computes and stores the derivative of f 
 };
 
 bool func_::has_var(const param_& v) const{
-    return _vars->count(v.get_name())>0;
+    return _vars->count(v.get_id())>0;
 }
 
 func_ func_::get_derivative(const param_ &v) const{
@@ -4060,7 +4162,7 @@ func_ func_::get_derivative(const param_ &v) const{
         if (*lt.second._p == v) {
             if(lt.second._coef->_is_transposed){
                 lt.second._coef->_dim = v._dim;
-                constant<int> ones(1);
+                constant<float> ones(1);
                 if(lt.second._sign){
                     res += ones.tr()*(*lt.second._coef);
                 }
@@ -4157,10 +4259,13 @@ string func_::to_str() const{
     if (!_embedded && !is_constant()) {
         str += "f(";
         for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-            str += pair_it->second.first->get_name();
-            if (++pair_it != _vars->end()) {
-                str += ",";
+            if (!pair_it->second.first->_is_vector) {
+                str += pair_it->second.first->get_name();
+                if (next(pair_it) != _vars->end()) {
+                    str += ",";
+                }
             }
+            pair_it++;
         }
         str += ") = ";
     }
@@ -4347,4 +4452,441 @@ void bexpr::print(bool endline) const {
 //    }
     if(endline)
         cout << endl;
+}
+
+
+size_t func_::get_nb_vars() const{
+    size_t n = 0;
+    for (auto &p: *_vars) {
+        if (p.second.first->_is_vector) {
+            n += p.second.first->get_dim();
+        }
+        else if (!p.second.first->_is_transposed){
+            n += 1;
+        }
+    }
+    return n;
+}
+
+size_t func_::get_nb_instances() const{
+    return _nb_instances;
+}
+
+
+constant_* func_::get_cst() {
+    return _cst;
+}
+
+param_* func_::get_var(string name){
+    auto pair_it = _vars_name->find(name);
+    if (pair_it==_vars_name->end()) {
+        return nullptr;
+    }
+    else {
+        return get<1>(*pair_it).first;
+    }
+}
+
+param_* func_::get_param(string name){
+    auto pair_it = _params_name->find(name);
+    if (pair_it==_params_name->end()) {
+        return nullptr;
+    }
+    else {
+        return get<1>(*pair_it).first;
+    }
+}
+
+
+void func_::add_var(param_* v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+    if (_vars->count(v->get_id())!=0) {
+        v->set_id(_vars->size());
+    }
+    _vars->insert(make_pair<>(v->get_id(), make_pair<>(v, nb)));
+    _vars_name->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
+    if (v->_is_transposed || v->_is_vector) {
+        _nb_instances = max(_nb_instances, (size_t)1);
+    }
+    else{
+        _nb_instances = max(_nb_instances, v->get_dim());
+    }
+}
+
+
+void func_::add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+    if (_params->count(p->get_id())!=0) {
+        p->set_id(_params->size());
+    }
+    _params->insert(make_pair<>(p->get_id(), make_pair<>(p, 1)));
+    _params_name->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
+    if (!p->_is_transposed) {
+        _nb_instances = max(_nb_instances, p->get_dim());
+    }
+    else{
+        _nb_instances = max(_nb_instances, (size_t)1);
+    }
+}
+
+
+
+void func_::delete_var(const unsigned& vid){
+    auto vit = _vars->find(vid);
+    if (vit==_vars->end()) {
+        return;
+    }
+    auto vname = vit->second.first->get_name();
+    auto it = _vars_name->find(vname);
+    if (!_embedded) {
+        delete _vars_name->at(vname).first;
+    }
+    _vars_name->erase(it);
+    _vars->erase(vit);
+}
+
+void func_::delete_param(const unsigned& vid){
+    auto vit = _params->find(vid);
+    if (vit==_params->end()) {
+        return;
+    }
+    auto vname = vit->second.first->get_name();
+    auto it = _params_name->find(vname);
+    if (!_embedded) {
+        delete _params_name->at(vname).first;
+    }
+    _params_name->erase(it);
+    _params->erase(vit);
+}
+
+
+
+
+int func_::nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
+    auto pair_it = _vars_name->find(name);
+    if (pair_it==_vars_name->end()) {
+        return 0;
+    }
+    else {
+        return get<1>(*pair_it).second;
+    }
+}
+
+int func_::nb_occ_param(string name) const{/**< Returns the number of occurences the parameter has in this function. */
+    auto pair_it = _params_name->find(name);
+    if (pair_it==_params_name->end()) {
+        return 0;
+    }
+    else {
+        return get<1>(*pair_it).second;
+    }
+}
+
+void func_::incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
+    auto pair_it = _vars_name->find(str);
+    if (pair_it==_vars_name->end()) {
+        throw invalid_argument("Non-existing variable in function!\n");
+    }
+    else {
+        auto pair_it2 = _vars->find(pair_it->second.first->get_id());
+        get<1>(*pair_it2).second++;
+        get<1>(*pair_it).second++;
+    }
+}
+
+void func_::incr_occ_param(string str){/**< Increases the number of occurences the parameter has in this function. */
+    auto pair_it = _params_name->find(str);
+    if (pair_it==_params_name->end()) {
+        throw invalid_argument("Non-existing variable in function!\n");
+    }
+    else {
+        auto pair_it2 = _params->find(pair_it->second.first->get_id());
+        get<1>(*pair_it2).second++;
+        get<1>(*pair_it).second++;
+    }
+}
+
+void func_::decr_occ_var(string str, int nb){/**< Decreases the number of occurences the variable has in this function by nb. */
+    auto pair_it = _vars_name->find(str);
+    if (pair_it==_vars_name->end()) {
+        return;
+    }
+    else {
+        auto pair_it2 = _vars->find(pair_it->second.first->get_id());
+        get<1>(*pair_it).second-=nb;
+        get<1>(*pair_it2).second-=nb;
+        if (get<1>(*pair_it).second==0) {
+            delete get<1>(*pair_it).first;
+            _vars_name->erase(pair_it);
+            _vars->erase(pair_it2);
+        }
+    }
+}
+
+void func_::decr_occ_param(string str, int nb){/**< Decreases the number of occurences the parameter has in this function by nb. */
+    auto pair_it = _params_name->find(str);
+    if (pair_it==_params_name->end()) {
+        return;
+    }
+    else {
+        auto pair_it2 = _params->find(pair_it->second.first->get_id());
+        get<1>(*pair_it).second -= nb;
+        get<1>(*pair_it2).second -= nb;
+        if (get<1>(*pair_it).second==0) {
+            delete get<1>(*pair_it).first;
+            _params_name->erase(pair_it);
+            _params->erase(pair_it2);
+        }
+    }
+}
+
+
+
+bool func_::is_convex(int idx) const{
+    return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
+};
+
+bool func_::is_concave(int idx) const{
+    return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
+};
+
+
+bool func_::is_number() const{
+    return (_vars->empty() && _params->empty());
+}
+
+bool func_::is_constant() const{
+    return (_ftype==const_);
+}
+
+bool func_::is_linear() const{
+    return (_ftype==lin_);
+};
+
+bool func_::is_quadratic() const{
+    return (_ftype==quad_);
+};
+
+bool func_::is_polynome() const{
+    return (_ftype==pol_);
+};
+
+bool func_::is_nonlinear() const{
+    return (_ftype==nlin_);
+};
+
+bool func_::is_zero(){/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
+    if (_ftype==const_ && _cst->is_zero()){
+        for (auto& it:*_params) {
+            if (!it.second.first->is_zero()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool func_::is_transposed() const {
+    return _is_transposed;
+}
+
+FType func_::get_ftype() const { return _ftype;}
+
+
+qterm* func_::get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+    for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
+        if (pair_it->second._p->first==p && pair_it->second._p->second==p) {
+            return &pair_it->second;
+        }
+    }
+    return nullptr;
+}
+
+Sign func_::get_all_sign() const{
+    return _all_sign;
+}
+
+Sign func_::get_sign(int idx) const{
+    return _sign->at(idx);
+}
+
+Sign func_::get_all_sign(const lterm& l) {
+    if (l._coef->is_zero()) {
+        return zero_;
+    }
+    if (l._coef->get_all_sign()==unknown_ || l._p->get_all_sign()==unknown_) {
+        return unknown_;
+    }
+    auto s = l._coef->get_all_sign() * l._p->get_all_sign();
+    if(s == 1 || s == 2) {
+        if (l._sign) {
+            return non_neg_;
+        }
+        else {
+            return non_pos_;
+        }
+    }
+    if(s == 4) {
+        if (l._sign) {
+            return pos_;
+        }
+        else {
+            return neg_;
+        }
+    }
+    if(s == -1 || s == -2) {
+        if (l._sign) {
+            return non_pos_;
+        }
+        else{
+            return non_neg_;
+        }
+    }
+    if(s == -4) {
+        if (l._sign) {
+            return neg_;
+        }
+        else {
+            return pos_;
+        }
+    }
+    return unknown_;
+}
+
+Sign func_::get_all_sign(const qterm& l) {
+    if (l._coef->is_zero()) {
+        return zero_;
+    }
+    if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
+        return unknown_;
+    }
+    auto s = l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign();
+    if(s == 1 || s == 2 || s == 4) {
+        if (l._sign) {
+            return non_neg_;
+        }
+        else {
+            return non_pos_;
+        }
+    }
+    if(s == 8) {
+        if (l._sign) {
+            return pos_;
+        }
+        else {
+            return neg_;
+        }
+    }
+    if(s == -1 || s == -2 || s == -4) {
+        if (l._sign) {
+            return non_pos_;
+        }
+        else{
+            return non_neg_;
+        }
+    }
+    if(s == -8) {
+        if (l._sign) {
+            return neg_;
+        }
+        else {
+            return pos_;
+        }
+    }
+    return unknown_;
+}
+
+Sign func_::get_all_sign(const pterm& l) {
+    if (l._coef->is_zero()) {
+        return zero_;
+    }
+    //        if (l._coef->get_all_sign()==unknown_ || l._p->first->get_all_sign()==unknown_ || l._p->second->get_all_sign()==unknown_) {
+    //            return unknown_;
+    //        }
+    //        if (l._sign) {
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+    //                return non_neg_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+    //                return pos_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+    //                return non_pos_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+    //                return neg_;
+    //            }
+    //        }
+    //        else {
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 2) {
+    //                return non_pos_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == 4) {
+    //                return neg_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -2) {
+    //                return non_neg_;
+    //            }
+    //            if(l._coef->get_all_sign() * l._p->first->get_all_sign() * l._p->second->get_all_sign() == -4) {
+    //                return pos_;
+    //            }
+    //        }
+    return unknown_;
+}
+
+
+
+Convexity func_::get_convexity(const qterm& q) {
+    if(q._p->first == q._p->second){
+        if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
+            return convex_;
+        }
+        if (q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+            return concave_;
+        }
+        if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+            return convex_;
+        }
+        if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+            return concave_;
+        }
+    }
+    // At this stage, we know that q._p->first !=q._p->second
+    // Checking if the product can be factorized
+    auto sqr1 = get_square(q._p->first);
+    auto sqr2 = get_square(q._p->second);
+    if (sqr1 && sqr2){
+        auto c1 = sqr1->_coef;
+        auto c2 = sqr2->_coef;
+        if (!(sqr1->_sign^c1->is_positive())==!(sqr2->_sign^c2->is_positive())) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
+            if (!(sqr1->_sign^c1->is_positive())) {
+                return convex_;
+            }
+            return concave_;
+        }
+    }
+    return undet_;
+}
+
+
+
+void func_::update_convexity(){
+    if (!_pterms->empty()) {
+        _all_convexity = undet_;
+        return;
+    }
+    if (_qterms->empty()) {
+        _all_convexity = linear_;
+        return;
+    }
+    _all_convexity = get_convexity(_qterms->begin()->second);
+    for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+        Convexity conv = get_convexity(pair_it->second);
+        if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+            _all_convexity = undet_;
+            return;
+        }
+        else {
+            _all_convexity = conv;
+        }
+    }
 }

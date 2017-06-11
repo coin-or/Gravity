@@ -25,8 +25,9 @@ class param_: public constant_{
 protected:
     string                      _name;
     int                         _id = -1;
+    int                         _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
-    map<string,unsigned>*       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
+    shared_ptr<map<string,unsigned>>       _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                    vectors */    
     
 public:
@@ -37,7 +38,16 @@ public:
     
     void set_id(size_t idx){ _id = idx;};
     
-    size_t get_id() const{return _id;};
+    void set_vec_id(size_t idx){ _vec_id = idx;};
+    
+    size_t get_id() const{
+        if (_is_indexed) {
+            return _id + _indices->begin()->second;
+        }
+        return _id;
+    };
+    
+    size_t get_vec_id() const{return _vec_id;};
     
     size_t get_id_inst() const{
         if (_is_indexed) {
@@ -49,15 +59,15 @@ public:
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const {
-        if (_indices->size()==0) {
+//        if (_indices->size()==0) {
             return _dim;
-        }
-        else {
-            return _indices->size();
-        }
+//        }
+//        else {
+//            return _indices->size();
+//        }
     }
     
-    map<string,unsigned>* get_indices() const {
+    shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
     }
     
@@ -92,7 +102,7 @@ public:
     
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_id==p._id);
+        return (_id==p._id && get_id_inst()==p.get_id_inst());
 //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
@@ -139,7 +149,7 @@ public:
 
 
 /** A parameter can be a bool, a short, an int, a float or a double*/
-template<typename type = int>
+template<typename type = float>
 class param: public param_{
 protected:
     shared_ptr<vector<type>>                _val;
@@ -155,7 +165,6 @@ public:
     }
     
     ~param(){
-        delete _indices;
     }
     
 
@@ -163,9 +172,10 @@ public:
         _type = par_c;
         _intype = p._intype;
         _id = p._id;
+        _vec_id = p._vec_id;
         _val = p._val;
         _name = p._name;
-        _indices = new map<string, unsigned>(*p._indices);
+        _indices = p._indices;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -177,10 +187,10 @@ public:
         _type = par_c;
         _intype = p._intype;
         _id = p._id;
+        _vec_id = p._vec_id;
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        p._indices = nullptr;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -233,7 +243,7 @@ public:
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();
-        _indices = new map<string,unsigned>();
+        _indices = make_shared<map<string,unsigned>>();
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -280,7 +290,7 @@ public:
         }
     }
     
-    void set_val(int i, type val){
+    void set_val(unsigned i, type val){
         if (_val->size() <= i) {
             throw out_of_range("set_val(int i, type val)");
         }
@@ -357,13 +367,23 @@ public:
 
     /** Operators */
     bool operator==(const param& p) const {
-        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && *_indices==*p._indices && *_val==*p._val);
+        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
     }
     
     param& operator^(size_t d){
         set_size(d);
         return *this;
     }    
+    
+    void initialize_all(type v){
+        for (int i = 0; i<_val->size(); i++) {
+            _val[i] = v;
+        }
+    }
+    
+    void initialize(size_t i, type v){
+        set_val(i,v);
+    }
     
     param& operator=(type v){
         _val->push_back(v);
@@ -395,7 +415,8 @@ public:
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         param res(this->_name);
-        res._id = this->_id;        
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;

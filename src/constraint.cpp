@@ -22,6 +22,7 @@ Constraint::Constraint(const Constraint& c):func_(c){
     _name = c._name;
     _ctype = c._ctype;
     _rhs = c._rhs;
+    _id = c._id;    
 }
 
 //@}

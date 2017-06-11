@@ -248,7 +248,7 @@ int main (int argc, const char * argv[])
     f2 -= 2.2;
     f2 *= 2;
     f2.print();
-
+//    return 0;
 //  f2.print();
 //    var<int> x("x");
 //    var<int> y("y");
@@ -291,37 +291,41 @@ int main (int argc, const char * argv[])
 
     
     Model model;
-    auto n = graph.nodes.size();
+    auto n = graph.nodes.size();    
     auto m = graph.arcs.size();
     
-    // IP model for stable set problem.
-    var<bool> x("x");
-    model.add_var(x^n);
-    constant<int> ones(1);
-    func_ obj = ones.tr()*x;
-    model.set_objective(obj,maximize);
-    
+//    // IP model for stable set problem.
+//    var<float> x("x", 0, 1);
+////    var<bool> x("x");
+//    model.add_var(x^n);
+    constant<float> ones(1);
+//    func_ obj = ones.tr()*x;
+//    model.set_objective(max(obj));
+//    
     int i, j;
-    for (int l=0; l<m;l++){
-        Arc* a = graph.arcs[l];
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
-        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
-        c =x(i) + x(j);
-        c <= 1;
+//    for (int l=0; l<m;l++){
+//        Arc* a = graph.arcs[l];
+//        i = (a->src)->ID;
+//        j = (a->dest)->ID;
+//        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
+//        c = x(i) + x(j);
+//        c <= 1;
 //        c.print();
-        model.add_constraint(c);
-    }
-    SolverType stype = cplex;
-    solver s(model,stype);
+//        model.add_constraint(c);
+//    }
+////    for(auto &p: *model._vars.begin()->second->get_indices()){
+////        cout <<" Pair (" << p.first << "," << p.second << ")\n";
+////    }
+//    SolverType stype = ipopt;
+//    solver s(model,stype);
 //    s.run();
-    s.run(0,true);
-    
+//    s.run(0,true);
+//    return 0;
     /* Shriver's SDP relaxation for the stable set problem */
     Model SDP;
     /* Variable declaration */
-    var<float> Xii("Xii", 0, 1);
-    var<float> Xij("Xij", 0, 1);
+    var<double> Xii("Xii", 0, 1);
+    var<double> Xij("Xij", 0, 1);
     SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
@@ -343,17 +347,20 @@ int main (int argc, const char * argv[])
         zeros = Xij(i,j);
         SDP.add_constraint(zeros=0);        
     }
-    cout << "number of Xij indices = " << Xij.get_indices()->size() << endl;
-    
     /* Objective declaration */
     constant<int> twos(2);
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
     SDP.set_objective(max(obj_SDP));
     
     solver s1(SDP,ipopt);
-    //    s.run();
+    double wall0 = get_wall_time();
+    double cpu0  = get_cpu_time();
     s1.run();
-    
+    double wall1 = get_wall_time();
+    double cpu1  = get_cpu_time();
+    cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
+    cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
+
 //    vector<var<bool>> Xis;
 //    for (int i = 0; i<n; i++) {
 //        var<bool> Xi("X"+to_string(i)); // dimension
@@ -423,8 +430,6 @@ int main (int argc, const char * argv[])
 //    exp = 2;
 //    exp = 3.455;
 //    vector<constant*> constants;
-    double wall0 = get_wall_time();
-    double cpu0  = get_cpu_time();
 //    constant a("a");
 //    constant b("b");
 //    constant c("c");
@@ -691,10 +696,6 @@ int main (int argc, const char * argv[])
     
     
     //  Stop timers
-    double wall1 = get_wall_time();
-    double cpu1  = get_cpu_time();
-    cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
-    cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
 
     return 0;
     

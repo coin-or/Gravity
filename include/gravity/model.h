@@ -35,21 +35,26 @@ protected:
     string                          _name;
     set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
     vector<shared_ptr<func_>>       _functions;
-
+    void add_var(param_* v);//Add variables without reallocating memory
+    void add_param(param_* v);//Add variables without reallocating memory
+    
 public:
     size_t                          _nb_vars = 0;
     size_t                          _nb_params = 0;
     size_t                          _nb_cons = 0;
     size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
     size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
-    map<string,param_*>             _params; /**< Sorted map pointing to all parameters contained in this model */
-    map<string,param_*>             _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-    map<string,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-    vector<set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
-    vector<set<param_*>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
+    map<unsigned,param_*>           _params; /**< Sorted map pointing to all parameters contained in this model */
+    map<unsigned,param_*>           _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+    map<string,param_*>             _params_name; /**< Sorted map pointing to all parameters contained in this model */
+    map<string,param_*>             _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+    map<unsigned,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    map<string,Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    map<unsigned, set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
+    map<unsigned, map<unsigned,set<int>>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids. The second set contains indices of constraints where both variables appear */
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
-    
+    double                          _obj_val = 0;/** Objective function value */
     /** Constructor */
     //@{
     Model();
@@ -73,7 +78,7 @@ public:
     Constraint* get_constraint(const string& name) const;
     
     bool has_var(const param_& v) const{
-        return (_vars.count(v.get_name())!=0);
+        return (_vars.count(v.get_vec_id())!=0);
     };
 
     
@@ -82,11 +87,11 @@ public:
     
     void set_x(const double* x); // Assign values to all variables based on array x.
     
-    void add_var(param_* v);//Add variables without reallocating memory
+    
     void add_var(param_& v); //Add variables by copying variable
     void del_var(const param_& v);
     
-    void add_param(param_* v);//Add variables without reallocating memory
+    
     void add_param(param_& v); //Add variables by copying variable
     void del_param(const param_& v);
     
