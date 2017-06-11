@@ -60,7 +60,8 @@ public:
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
         var res(this->_name);
-        res._id = this->_id;        
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;

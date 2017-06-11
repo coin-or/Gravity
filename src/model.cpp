@@ -117,8 +117,9 @@ void Model::add_var(param_* v){
     }
     if (_vars_name.count(v->get_name())==0) {
         v->set_id(_nb_vars);
+        v->set_vec_id(_vars.size());
         _vars_name[v->get_name()] = v;
-        _vars[v->get_id()] = v;
+        _vars[v->get_vec_id()] = v;
         _nb_vars += v->get_dim();
     }
 };
@@ -128,11 +129,11 @@ void Model::add_var(param_& v){
         return;
     }
     if (_vars_name.count(v.get_name())==0) {
-        auto newv = (param_*)copy(v);
         v.set_id(_nb_vars);
-        newv->set_id(_nb_vars);
+        v.set_vec_id(_vars.size());
+        auto newv = (param_*)copy(v);
         _vars_name[v.get_name()] = newv;
-        _vars[v.get_id()] = newv;
+        _vars[v.get_vec_id()] = newv;
         _nb_vars += v.get_dim();
     }
 };
@@ -152,8 +153,9 @@ void Model::add_param(param_* v){
     if (_params.count(v->get_id())==0) {
         _nb_params += v->get_dim();
         v->set_id(_params.size());
+        v->set_vec_id(_vars.size());
         _params_name[v->get_name()] = v;
-        _params[v->get_id()] = v;
+        _params[v->get_vec_id()] = v;
     }
 };
 
@@ -162,9 +164,11 @@ void Model::add_param(param_& v){
         _nb_params += v.get_dim();
         auto newv = (param_*)copy(v);
         v.set_id(_params.size());
+        v.set_vec_id(_vars.size());
         newv->set_id(_params.size());
+        newv->set_vec_id(_vars.size());
         _params_name[v.get_name()] = newv;
-        _params[v.get_id()] = newv;
+        _params[v.get_vec_id()] = newv;
     }
 };
 
@@ -273,7 +277,7 @@ void Model::check_feasible(const double* x){
 
 
 void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
-    size_t vid, vid_inst;
+    unsigned vid;
     param_* v;
     for(auto& v_p: _vars)
     {
@@ -282,55 +286,49 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
             case double_:{
                 auto real_var = (var<double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x_l[vid_inst] = (double)real_var->get_lb(ind.second);
-                    x_u[vid_inst] = (double)real_var->get_ub(ind.second);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
                 }
                 break;
             }
@@ -342,7 +340,7 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
 }
 
 void Model::set_x(const double* x){
-    size_t vid = 0;
+    unsigned vid;
     param_* v;
     for(auto& v_p: _vars)
     {
@@ -351,43 +349,43 @@ void Model::set_x(const double* x){
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
             case double_:{
                 auto real_var = (var<double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    real_var->set_val(ind.second, x[vid+ind.second]);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    real_var->set_val(i, x[vid+i]);
                 }
                 break;
             }
@@ -457,7 +455,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
                 vid = v->get_id();
-                if (v->_is_transposed) {
+                if (v->_is_vector) {
                     dfdx = c->get_stored_derivative(vid);
                     for (int j = 0; j<v->get_dim(); j++) {
                         res[idx] = dfdx->eval(i);
@@ -493,7 +491,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
                 vid = v->get_id();
-                if (v->_is_transposed) {
+                if (v->_is_vector) {
                     for (int j = 0; j<v->get_dim(); j++) {
                         iRow[idx] = cid;
                         jCol[idx] = vid + j;
@@ -527,16 +525,16 @@ void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* param_types){
     for(auto& vi: _vars)
     {
         vid = vi.second->get_id();
-        for (auto &ind: *vi.second->get_indices()) {
+        for (int i = 0; i < vi.second->get_dim(); i++) {
             linear = true;
-            for(auto &c: _v_in_cons[vid + ind.second])
+            for(auto &c: _v_in_cons[vid + i])
             {
                 if (!c->is_linear()) {
                     linear=false;
                 }
             }
-            if (linear) param_types[vid + ind.second]=Ipopt::TNLP::LINEAR;
-            else param_types[vid + ind.second] = Ipopt::TNLP::NON_LINEAR;
+            if (linear) param_types[vid + i]=Ipopt::TNLP::LINEAR;
+            else param_types[vid + i] = Ipopt::TNLP::NON_LINEAR;
         }
     }
 }
@@ -574,9 +572,9 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     size_t idx=0;
     for (auto &hess_i: _hess_link) {
 //        if (!hess_i.empty()) {
-            for (auto &vjd: hess_i.second) {
+            for (auto &hess_j: hess_i.second) {
                 iRow[idx] = hess_i.first;
-                jCol[idx] = vjd;
+                jCol[idx] = hess_j.first;
                 idx++;
             }
 //        }
@@ -584,33 +582,32 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
-    size_t idx=0, vid = 0, cid = 0;
+    size_t idx = 0, vid, vjd;
     double hess = 0;
     Constraint* c;
     for (auto &hess_i: _hess_link) {
-        if (!hess_i.second.empty()) {
-            vid = hess_i.first;
-            for (auto &vjd: hess_i.second) {
-                res[idx] = 0;
-                auto it = _obj.get_hess_link().find(vid);
-                if (it != _obj.get_hess_link().end() && it->second.count(vjd)!=0) {
+        assert(!hess_i.second.empty());
+        vid = hess_i.first;
+        for (auto &hess_j: hess_i.second) {
+            vjd = hess_j.first;
+            res[idx] = 0;
+            for (auto cid: hess_j.second){
+                if (cid==-1) {
                     hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
-                    res[idx] = obj_factor * hess;
+                    res[idx] += obj_factor * hess;
                 }
-                for (auto &c_it: _cons){
-                    c = c_it.second;
-                    auto it = c->get_hess_link().find(vid);
-                    if (it != c->get_hess_link().end() && it->second.count(vjd)!=0) {
-                        auto nb_ins = c->get_nb_instances();
-                        for (int i = 0; i< nb_ins; i++){
-                            cid = c->_id+i;
-                            hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(i);
-                            res[idx] += lambda[cid] * hess;
-                        }
+                else {
+                    c = _cons[cid];
+                    for (int i = 0; i< c->get_nb_instances(); i++){
+                        hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(i);
+//                        if (hess!=1) {
+//                            cout << "ok" << endl;
+//                        }
+                        res[idx] += lambda[cid] * hess;
                     }
                 }
-                idx++;
             }
+            idx++;
         }
     }
 }
@@ -637,8 +634,8 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
         vid = v->get_id();
         df = _obj.get_stored_derivative(vid);
         if (!v->_is_indexed) {
-            for (auto &id: *v->get_indices()) {
-                res[vid+id.second] = df->eval(id.second);
+            for (int i = 0; i < v->get_dim(); i++) {
+                res[vid+i] = df->eval(i);
             }
         }
         else {
@@ -648,7 +645,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
 }
 
 void Model::fill_in_maps() {
-    unsigned vid, vjd, expo;
+    unsigned vid, vjd, expo, temp;
     param_* vi;
     param_* vj;
     
@@ -658,17 +655,20 @@ void Model::fill_in_maps() {
         vid = vi->get_id();
         vj = qt_p.second._p->second;
         vjd = vj->get_id();
-        if (vid <= vjd) {
-            if (!vi->_is_indexed) {
-                for (int i = 0; i<vi->get_dim(); i++) {
-                    _hess_link[vid+i].insert(vjd+i);
-                    _obj.get_hess_link()[vid+i].insert(vjd+i);
-                }
+        if (vid > vjd) {
+            temp = vid;
+            vid = vjd;
+            vjd = temp;
+        }
+        if (!vi->_is_indexed) {
+            for (int i = 0; i<vi->get_dim(); i++) {
+                _hess_link[vid+i][vjd+i].insert(-1);//"-1" indicates a hessian link in the objective
+                _obj.get_hess_link()[vid+i].insert(vjd+i);
             }
-            else {
-                _hess_link[vid].insert(vjd);
-                _obj.get_hess_link()[vid].insert(vjd);
-            }
+        }
+        else {
+            _hess_link[vid][vjd].insert(-1);//"-1" indicates a hessian link in the objective
+            _obj.get_hess_link()[vid].insert(vjd);
         }
     }
     
@@ -678,65 +678,72 @@ void Model::fill_in_maps() {
             vid = vi->get_id();
             expo = v_it->second;
             if (expo>1) {
-                _hess_link[vid].insert(vid);
+                _hess_link[vid][vid].insert(-1);//"-1" indicates a hessian link in the objective
                 _obj.get_hess_link()[vid].insert(vid);
             }
             for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
                 vj = v_jt->first;
                 vjd = vj->get_id();
-                if (vid <= vjd) {
-                    _hess_link[vid].insert(vjd);
-                    _obj.get_hess_link()[vid].insert(vjd);
+                if (vid > vjd) {
+                    temp = vid;
+                    vid = vjd;
+                    vjd = temp;
                 }
+                _hess_link[vid][vjd].insert(-1);//"-1" indicates a hessian link in the objective
+                _obj.get_hess_link()[vid].insert(vjd);
+                
             }
         }
     }
     
     Constraint* c = NULL;
-    
+    unsigned cid = 0;
     for(auto& c_p :_cons)
     {
         c = c_p.second;
         c->compute_derivatives();
-        for (auto &qt_p: c->get_qterms()) {
-            vi = qt_p.second._p->first;
-            vid = vi->get_id();
-            vj = qt_p.second._p->second;
-            vjd = vj->get_id();
-            if (vj->_is_indexed) {
-                vjd += vj->get_id_inst();
-            }
-            if (vid <= vjd) {
+        for (int i = 0; i<c->get_nb_instances(); i++) {
+            cid = c->_id + i;
+            for (auto &qt_p: c->get_qterms()) {
+                vi = qt_p.second._p->first;
+                vid = vi->get_id();
+                vj = qt_p.second._p->second;
+                vjd = vj->get_id();
+                if (vid > vjd) {
+                    temp = vid;
+                    vid = vjd;
+                    vjd = temp;
+                }
                 if (!vi->_is_indexed) {
                     for (int i = 0; i<vi->get_dim(); i++) {
-                        _hess_link[vid+i].insert(vjd+i);
+                        _hess_link[vid+i][vjd+i].insert(cid);
                         c->get_hess_link()[vid+i].insert(vjd+i);
                     }
                 }
                 else {
-                    _hess_link[vid].insert(vjd);
-                    c->get_hess_link()[vid].insert(vjd);
+                    _hess_link[vid][vjd].insert(cid);
+                    c->get_hess_link()[vid].insert(vjd);                
                 }
             }
-        }
-        
-        for (auto &pt_p: c->get_pterms()) {
-            for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
-                vi = v_it->first;
-                vid = vi->get_id();
-                expo = v_it->second;
-                if (expo>1) {
-                    _hess_link[vid].insert(vid);
-                    c->get_hess_link()[vid].insert(vid);
-                }
-                for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
-                    vj = v_jt->first;
-                    vjd = vj->get_id();
-                    if (vj->_is_indexed) {
-                        vjd += vj->get_id_inst();
+            
+            for (auto &pt_p: c->get_pterms()) {
+                for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
+                    vi = v_it->first;
+                    vid = vi->get_id();
+                    expo = v_it->second;
+                    if (expo>1) {
+                        _hess_link[vid][vid].insert(cid);
+                        c->get_hess_link()[vid].insert(vid);
                     }
-                    if (vid <= vjd) {
-                        _hess_link[vid].insert(vjd);
+                    for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
+                        vj = v_jt->first;
+                        vjd = vj->get_id();
+                        if (vid > vjd) {
+                            temp = vid;
+                            vid = vjd;
+                            vjd = temp;
+                        }
+                        _hess_link[vid][vjd].insert(cid);
                         c->get_hess_link()[vid].insert(vjd);
                     }
                 }
@@ -745,12 +752,12 @@ void Model::fill_in_maps() {
         //MISSING NONLINEAR PART!!!
         for (auto &v_p: c->get_vars()) {
             if(!v_p.second.first->_is_indexed){
-                for (auto &ind: *v_p.second.first->get_indices()) {
-                    _v_in_cons[v_p.second.first->get_id()+ind.second].insert(c);
+                for (int i = 0; i < v_p.second.first->get_dim(); i++) {
+                    _v_in_cons[v_p.second.first->get_id()+i].insert(c);
                 }
             }
             else {
-                _v_in_cons[v_p.second.first->get_id()+v_p.second.first->get_id_inst()].insert(c);
+                _v_in_cons[v_p.second.first->get_id()].insert(c);
             }
         }
     }
@@ -771,49 +778,49 @@ void Model::fill_in_var_init(double* x) {
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
             case double_:{
                 auto real_var = (var<double>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
-                for (auto &ind: *v->get_indices()) {
-                    vid_inst = vid + ind.second;
-                    x[vid_inst] = (double)real_var->eval(ind.second);
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    x[vid_inst] = (double)real_var->eval(i);
                 }
                 break;
             }
@@ -874,19 +881,19 @@ void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
         v = v_p.second;
         vid = v->get_id();
         if (v->get_intype()== short_ || v->get_intype() == integer_) {
-            for (auto &ind: *v->get_indices()) {
-                param_types[vid + ind.second] = Bonmin::TMINLP::INTEGER;
+            for (int i = 0; i < v->get_dim(); i++) {
+                param_types[vid + i] = Bonmin::TMINLP::INTEGER;
             }
             
         }
         else if (v->get_intype()== binary_) {
-            for (auto &ind: *v->get_indices()) {
-                param_types[vid + ind.second] = Bonmin::TMINLP::BINARY;
+            for (int i = 0; i < v->get_dim(); i++) {
+                param_types[vid + i] = Bonmin::TMINLP::BINARY;
             }
         }
         else {
-            for (auto &ind: *v->get_indices()) {
-                param_types[vid + ind.second] = Bonmin::TMINLP::CONTINUOUS;
+            for (int i = 0; i < v->get_dim(); i++) {
+                param_types[vid + i] = Bonmin::TMINLP::CONTINUOUS;
             }
         }
     }

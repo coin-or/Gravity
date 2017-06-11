@@ -2437,9 +2437,6 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds 
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -2529,9 +2526,6 @@ bool func_::insert(bool sign, const constant_& coef, const param_& p1, const par
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -2630,9 +2624,6 @@ bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, in
     else {
         if (pair_it->second._sign == sign) {
             pair_it->second._coef = add(pair_it->second._coef, coef);
-            if (!pair_it->second._sign) { // both negative
-                pair_it->second._sign = true;
-            }
         }
         else{
             pair_it->second._coef = substract(pair_it->second._coef, coef);
@@ -3422,8 +3413,8 @@ func_ operator-(const constant_& c, func_&& f){
 
 func_ operator*(const constant_& c1, const constant_& c2){
     if(c1.is_number()) {
-        auto new_c2 = copy(c2);
         if (c1._is_transposed) {
+            auto new_c2 = copy(c2);
             new_c2->_is_vector = true;
             auto res = func_(c1) *= move(*new_c2);
             delete new_c2;
@@ -4131,7 +4122,9 @@ func_* func_::get_stored_derivative(unsigned vid) const{
     
     auto df = new func_(get_derivative(v));
 //    embed(*df);
-     assert(_dfdx.count(v.get_id())==0);
+     if(_dfdx.count(v.get_id())!=0){
+         throw invalid_argument("storing same df twice! " + ::to_str(&v) + this->to_str());
+     }
     _dfdx[v.get_id()] = df;
     Debug( "First derivative with respect to " << v.get_name() << " = ");
 //    df->print();

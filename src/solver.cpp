@@ -124,7 +124,7 @@ int solver::run(int output, bool relax){
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
         SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
-//            iapp->RethrowNonIpoptException(true);
+            iapp->RethrowNonIpoptException(true);
             ApplicationReturnStatus status = iapp->Initialize();
         
             if (status != Solve_Succeeded) {

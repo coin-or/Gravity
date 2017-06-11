@@ -25,6 +25,7 @@ class param_: public constant_{
 protected:
     string                      _name;
     int                         _id = -1;
+    int                         _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
     shared_ptr<map<string,unsigned>>       _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                    vectors */    
@@ -37,6 +38,8 @@ public:
     
     void set_id(size_t idx){ _id = idx;};
     
+    void set_vec_id(size_t idx){ _vec_id = idx;};
+    
     size_t get_id() const{
         if (_is_indexed) {
             return _id + _indices->begin()->second;
@@ -44,7 +47,7 @@ public:
         return _id;
     };
     
-    size_t get_vec_id() const{return _id;};
+    size_t get_vec_id() const{return _vec_id;};
     
     size_t get_id_inst() const{
         if (_is_indexed) {
@@ -56,12 +59,12 @@ public:
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const {
-        if (_indices->size()==0) {
+//        if (_indices->size()==0) {
             return _dim;
-        }
-        else {
-            return _indices->size();
-        }
+//        }
+//        else {
+//            return _indices->size();
+//        }
     }
     
     shared_ptr<map<string,unsigned>> get_indices() const {
@@ -169,6 +172,7 @@ public:
         _type = par_c;
         _intype = p._intype;
         _id = p._id;
+        _vec_id = p._vec_id;
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
@@ -183,6 +187,7 @@ public:
         _type = par_c;
         _intype = p._intype;
         _id = p._id;
+        _vec_id = p._vec_id;
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
@@ -410,7 +415,8 @@ public:
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         param res(this->_name);
-        res._id = this->_id;        
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;

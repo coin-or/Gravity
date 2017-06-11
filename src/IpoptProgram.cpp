@@ -53,7 +53,7 @@ bool IpoptProgram::get_bounds_info(Index n, Number* x_l, Number* x_u,
     _model->fill_in_var_bounds(x_l , x_u);
 //    for (int i = 0; i<n; i++) {
 //        if (x_l[i]==x_u[i]) {
-//            printf("%f <= x[%d] <= %f\n",x_l[i], i, x_u[i]);
+//            printf("%f <= x[%d] <= %f\n",x_l[i], i, x_u[i]);        
 //        }
 //    }
     _model->fill_in_cstr_bounds(g_l , g_u);
@@ -73,7 +73,7 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
     
 //    if (init_x) {
         _model->fill_in_var_init(x);
-    cout << "initial point = \n";
+//    DebugOn("initial point = \n");
 //    DebugOn("x = [ ");
 //    for (int i = 0; i<n; i++) {
 //        DebugOn(to_string(x[i]) << " ");
