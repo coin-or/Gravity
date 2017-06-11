@@ -248,7 +248,7 @@ int main (int argc, const char * argv[])
     f2 -= 2.2;
     f2 *= 2;
     f2.print();
-
+//    return 0;
 //  f2.print();
     
 //  assuming a vector of coefficients are given, try to generate the graph structure.

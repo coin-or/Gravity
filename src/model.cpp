@@ -87,11 +87,11 @@ size_t Model::get_nb_nnz_h() const{
 
 
 Constraint* Model::get_constraint(const string& cname) const{
-    return (Constraint*)&_cons.at(cname);
+    return (Constraint*)&_cons_name.at(cname);
 }
 
 param_* Model::get_var(const string& vname) const{
-        return _vars.at(vname);
+        return _vars_name.at(vname);
 }
 
 
@@ -115,9 +115,10 @@ void Model::add_var(param_* v){
     if (v->_is_indexed) {
         return;
     }
-    if (_vars.count(v->get_name())==0) {
+    if (_vars_name.count(v->get_name())==0) {
         v->set_id(_nb_vars);
-        _vars[v->get_name()] = v;
+        _vars_name[v->get_name()] = v;
+        _vars[v->get_id()] = v;
         _nb_vars += v->get_dim();
     }
 };
@@ -126,18 +127,19 @@ void Model::add_var(param_& v){
     if (v._is_indexed) { // We do not add indexed vars
         return;
     }
-    if (_vars.count(v.get_name())==0) {
+    if (_vars_name.count(v.get_name())==0) {
         auto newv = (param_*)copy(v);
         v.set_id(_nb_vars);
         newv->set_id(_nb_vars);
-        _vars[v.get_name()] = newv;
+        _vars_name[v.get_name()] = newv;
+        _vars[v.get_id()] = newv;
         _nb_vars += v.get_dim();
     }
 };
 
 
 void Model::del_var(const param_& v){
-    auto it = _vars.find(v.get_name());
+    auto it = _vars.find(v.get_id());
     if (it!=_vars.end()) {
         _nb_vars -= v.get_dim();
         delete it->second;
@@ -147,26 +149,28 @@ void Model::del_var(const param_& v){
 
 
 void Model::add_param(param_* v){
-    if (_params.count(v->get_name())==0) {
+    if (_params.count(v->get_id())==0) {
         _nb_params += v->get_dim();
         v->set_id(_params.size());
-        _params[v->get_name()] = v;
+        _params_name[v->get_name()] = v;
+        _params[v->get_id()] = v;
     }
 };
 
 void Model::add_param(param_& v){
-    if (_params.count(v.get_name())==0) {
+    if (_params.count(v.get_id())==0) {
         _nb_params += v.get_dim();
         auto newv = (param_*)copy(v);
         v.set_id(_params.size());
         newv->set_id(_params.size());
-        _params[v.get_name()] = newv;
+        _params_name[v.get_name()] = newv;
+        _params[v.get_id()] = newv;
     }
 };
 
 
 void Model::del_param(const param_& v){
-    auto it = _params.find(v.get_name());
+    auto it = _params.find(v.get_id());
     if (it!=_params.end()) {
         _nb_params -= v.get_dim();
         delete it->second;
@@ -175,11 +179,12 @@ void Model::del_param(const param_& v){
 };
 
 void Model::add_constraint(const Constraint& c){
-    if (_cons.count(c.get_name())==0) {
+    if (_cons_name.count(c.get_name())==0) {
         auto newc = new Constraint(c);
 //        embed(*newc);
         newc->_id = _nb_cons;
-        _cons[c.get_name()] = newc;
+        _cons_name[c.get_name()] = newc;
+        _cons[newc->_id] = newc;
     }
     else {
         throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
@@ -394,20 +399,29 @@ void Model::set_x(const double* x){
 
 void Model::fill_in_obj(const double* x , double& res, bool new_x){
     if (new_x) {
+        Debug("new_x!" << endl);
         set_x(x);
+#ifdef USEDEBUG
+        Debug("x = [ ");
+        for (int i = 0; i<_nb_vars; i++) {
+            Debug(to_string(x[i]) << " ");
+        }
+        Debug("]\n");
+#endif
     }
     res = _obj.eval();
+    Debug("Objective = " << to_string(res) << endl);
 }
 
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
-//    if (new_x) {
+    if (new_x) {
         set_x(x);
-//    }
-//    Debug("x = [ ");
+    }
+//    DebugOn("x = [ ");
 //    for (int i = 0; i<_nb_vars; i++) {
-//        Debug(to_string(x[i]) << " ");
+//        DebugOn(to_string(x[i]) << " ");
 //    }
-//    Debug("]");
+//    DebugOn("]");
     Constraint* c = nullptr;
     for(auto& c_p: _cons)
     {
@@ -415,9 +429,9 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         auto nb_ins = c->get_nb_instances();
         for (int i = 0; i< nb_ins; i++){
             res[c->_id+i] = c->eval(i);
-            Debug("g[" << to_string(c->_id+i) << "] = " << to_string(res[c->_id+i]) << endl);
+//            DebugOn("g[" << to_string(c->_id+i) << "] = " << to_string(res[c->_id+i]) << endl);
 //            c->print();
-            Debug("Value of c = " << to_string(res[c->_id+i]) << endl);
+//            DebugOn("Value of c = " << to_string(res[c->_id+i]) << endl);
         }
     }
 }
@@ -452,9 +466,6 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
 
                 }
                 else {
-                    if (v->_is_indexed) {
-                        vid +=v->get_id_inst();
-                    }
                     res[idx] = c->get_stored_derivative(vid)->eval(i);
                     idx++;
                 }
@@ -492,7 +503,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 else {
                     if (v->_is_indexed) {
                         iRow[idx] = cid;
-                        jCol[idx] = vid + v->get_id_inst();
+                        jCol[idx] = vid;
                         idx++;
                     }                    
                     else {
@@ -623,7 +634,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     for(auto& vi_p: _obj.get_vars())
     {
         v = vi_p.second.first;
-        vid = v->get_ipopt_id();
+        vid = v->get_id();
         df = _obj.get_stored_derivative(vid);
         if (!v->_is_indexed) {
             for (auto &id: *v->get_indices()) {
@@ -645,14 +656,8 @@ void Model::fill_in_maps() {
     for (auto &qt_p: _obj.get_qterms()) {
         vi = qt_p.second._p->first;
         vid = vi->get_id();
-        if (vi->_is_indexed) {
-            vid += vi->get_id_inst();
-        }
         vj = qt_p.second._p->second;
         vjd = vj->get_id();
-        if (vj->_is_indexed) {
-            vjd += vj->get_id_inst();
-        }
         if (vid <= vjd) {
             if (!vi->_is_indexed) {
                 for (int i = 0; i<vi->get_dim(); i++) {
@@ -671,9 +676,6 @@ void Model::fill_in_maps() {
         for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
             vi = v_it->first;
             vid = vi->get_id();
-            if (vi->_is_indexed) {
-                vid += vi->get_id_inst();
-            }
             expo = v_it->second;
             if (expo>1) {
                 _hess_link[vid].insert(vid);
@@ -682,9 +684,6 @@ void Model::fill_in_maps() {
             for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
                 vj = v_jt->first;
                 vjd = vj->get_id();
-                if (vj->_is_indexed) {
-                    vjd += vj->get_id_inst();
-                }
                 if (vid <= vjd) {
                     _hess_link[vid].insert(vjd);
                     _obj.get_hess_link()[vid].insert(vjd);
@@ -702,9 +701,6 @@ void Model::fill_in_maps() {
         for (auto &qt_p: c->get_qterms()) {
             vi = qt_p.second._p->first;
             vid = vi->get_id();
-            if (vi->_is_indexed) {
-                vid += vi->get_id_inst();
-            }
             vj = qt_p.second._p->second;
             vjd = vj->get_id();
             if (vj->_is_indexed) {
@@ -728,9 +724,6 @@ void Model::fill_in_maps() {
             for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
                 vi = v_it->first;
                 vid = vi->get_id();
-                if (vi->_is_indexed) {
-                    vid += vi->get_id_inst();
-                }
                 expo = v_it->second;
                 if (expo>1) {
                     _hess_link[vid].insert(vid);
@@ -780,8 +773,7 @@ void Model::fill_in_var_init(double* x) {
                 auto real_var = (var<float>*)v;
                 for (auto &ind: *v->get_indices()) {
                     vid_inst = vid + ind.second;
-//                    x[vid_inst] = (double)real_var->eval(ind.second);
-                    x[vid_inst] = 0;
+                    x[vid_inst] = (double)real_var->eval(ind.second);
                 }
                 break;
             }
@@ -915,7 +907,7 @@ void Model::embed(expr& e){
                 embed(*(expr*)ue->_son);
             }
             else if (ue->_son->is_var()){
-                if (_vars.count(((param_*)ue->_son)->get_name())==0) {
+                if (_vars.count(((param_*)ue->_son)->get_id())==0) {
                     add_var((param_*)copy(*ue->_son));
                 }
             }
@@ -931,7 +923,7 @@ void Model::embed(expr& e){
                 embed(*(expr*)be->_lson);
             }
             else if (be->_lson->is_var()){
-                if (_vars.count(((param_*)be->_lson)->get_name())==0) {
+                if (_vars.count(((param_*)be->_lson)->get_id())==0) {
                     add_var((param_*)copy(*be->_lson));
                 }
             }
@@ -943,7 +935,7 @@ void Model::embed(expr& e){
                 embed(*(expr*)be->_rson);
             }
             else if (be->_rson->is_var()){
-                if (_vars.count(((param_*)be->_rson)->get_name())==0) {
+                if (_vars.count(((param_*)be->_rson)->get_id())==0) {
                     add_var((param_*)copy(*be->_rson));
                 }
             }
@@ -962,7 +954,7 @@ void Model::embed(func_& f){
     for (auto &pair:f.get_lterms()) {
         p = pair.second._p;
         if (p->is_var()) {
-            auto it = _vars.find(p->get_name());
+            auto it = _vars.find(p->get_id());
             if (it==_vars.end()) {
                 add_var(p);
             }
@@ -972,7 +964,7 @@ void Model::embed(func_& f){
             }
         }
         else {
-            auto it = _params.find(p->get_name());
+            auto it = _params.find(p->get_id());
             if (it==_params.end()) {
                 add_param(p);
             }
@@ -986,7 +978,7 @@ void Model::embed(func_& f){
         p1 = pair.second._p->first;
         p2 = pair.second._p->second;
         if (p1->is_var()) {
-            auto it1 = _vars.find(p1->get_name());
+            auto it1 = _vars.find(p1->get_id());
             if (it1==_vars.end()) {
                 add_var(p1);
             }
@@ -994,7 +986,7 @@ void Model::embed(func_& f){
                 p1 = it1->second;
                 pair.second._p->first = p1;
             }
-            auto it2 = _vars.find(p2->get_name());
+            auto it2 = _vars.find(p2->get_id());
             if (it2==_vars.end()) {
                 add_var(p2);
             }
@@ -1004,7 +996,7 @@ void Model::embed(func_& f){
             }
         }
         else {
-            auto it1 = _params.find(p1->get_name());
+            auto it1 = _params.find(p1->get_id());
             if (it1==_params.end()) {
                 add_param(p1);
             }
@@ -1012,7 +1004,7 @@ void Model::embed(func_& f){
                 p1 = it1->second;
                 pair.second._p->first = p1;
             }
-            auto it2 = _params.find(p2->get_name());
+            auto it2 = _params.find(p2->get_id());
             if (it2==_params.end()) {
                 add_param(p2);
             }
@@ -1027,7 +1019,7 @@ void Model::embed(func_& f){
         for (auto &ppi: *list) {
             p = ppi.first;
             if (p->is_var()) {
-                auto it = _vars.find(p->get_name());
+                auto it = _vars.find(p->get_id());
                 if (it==_vars.end()) {
                     add_var(p);
                 }
@@ -1037,7 +1029,7 @@ void Model::embed(func_& f){
                 }
             }
             else {
-                auto it = _params.find(p->get_name());
+                auto it = _params.find(p->get_id());
                 if (it==_params.end()) {
                     add_param(p);
                 }
@@ -1062,7 +1054,7 @@ void Model::embed(func_& f){
     }
     auto old_params = f.get_params();
     for (auto &pp: old_params) {
-        auto p = _params[pp.first];
+        auto p = _vars[pp.first];
         if (p != pp.second.first) {
             delete pp.second.first;
             f.delete_param(pp.first);

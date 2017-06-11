@@ -5,7 +5,7 @@
 //  Created by Hassan on 30/01/2015.
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
-
+#define DebugOn(x) cout << x
 #include <Gravity/IpoptProgram.h>
 
 using namespace std;
@@ -73,6 +73,12 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
     
 //    if (init_x) {
         _model->fill_in_var_init(x);
+    cout << "initial point = \n";
+//    DebugOn("x = [ ");
+//    for (int i = 0; i<n; i++) {
+//        DebugOn(to_string(x[i]) << " ");
+//    }
+//    DebugOn("]\n");
 //    }
     return true;
 }

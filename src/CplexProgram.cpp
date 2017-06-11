@@ -67,7 +67,7 @@ void CplexProgram::fill_in_cplex_vars(){
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second;
-        if(v->get_id()==-1){
+        if(v->get_vec_id()==-1){
             throw invalid_argument("Variable needs to be added to model first: use add_var(v) function:" + v->get_name());
         }
         switch (v->get_intype()) {
@@ -150,8 +150,8 @@ void CplexProgram::set_cplex_objective(){
     size_t c_idx_inst = 0;
     IloNumExpr obj(*_cplex_env);
     for (auto& it1: _model->_obj.get_qterms()) {
-        idx1 = it1.second._p->first->get_id();
-        idx2 = it1.second._p->second->get_id();
+        idx1 = it1.second._p->first->get_vec_id();
+        idx2 = it1.second._p->second->get_vec_id();
         IloNumExpr lterm(*_cplex_env);
         if (it1.second._coef->_is_transposed) {
             IloNumArray coefs(*_cplex_env,it1.second._p->first->get_dim());
@@ -175,7 +175,7 @@ void CplexProgram::set_cplex_objective(){
     }
     
     for (auto& it1: _model->_obj.get_lterms()) {
-        idx = it1.second._p->get_id();
+        idx = it1.second._p->get_vec_id();
         if (it1.second._coef->_is_transposed) {
             IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
             for (int j = 0; j<it1.second._p->get_dim(); j++) {
@@ -224,8 +224,8 @@ void CplexProgram::create_cplex_constraints(){
         for (int i = 0; i< nb_inst; i++){
             IloNumExpr cc(*_cplex_env);
             for (auto& it1: c->get_qterms()) {
-                idx1 = it1.second._p->first->get_id();
-                idx2 = it1.second._p->second->get_id();
+                idx1 = it1.second._p->first->get_vec_id();
+                idx2 = it1.second._p->second->get_vec_id();
                 IloNumExpr lterm(*_cplex_env);
                 if (it1.second._coef->_is_transposed) {
                     IloNumArray coefs(*_cplex_env,it1.second._p->first->get_dim());
@@ -264,7 +264,7 @@ void CplexProgram::create_cplex_constraints(){
             }
             
             for (auto& it1: c->get_lterms()) {
-                idx = it1.second._p->get_id();
+                idx = it1.second._p->get_vec_id();
                 if (it1.second._coef->_is_transposed) {
                     IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
                     for (int j = 0; j<it1.second._p->get_dim(); j++) {

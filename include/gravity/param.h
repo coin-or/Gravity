@@ -37,14 +37,14 @@ public:
     
     void set_id(size_t idx){ _id = idx;};
     
-    size_t get_ipopt_id() const{
+    size_t get_id() const{
         if (_is_indexed) {
             return _id + _indices->begin()->second;
         }
         return _id;
     };
     
-    size_t get_id() const{return _id;};
+    size_t get_vec_id() const{return _id;};
     
     size_t get_id_inst() const{
         if (_is_indexed) {
