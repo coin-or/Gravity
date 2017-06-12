@@ -251,20 +251,23 @@ public:
     NType get_intype() const { return _intype;}
     
     type eval() const{
-        if (_val->size() == 0) {
-            throw "No values stored!";
+//        if (_val->size() == 0) {
+//            throw invalid_argument("No values stored!");
+//        }
+        if (_is_indexed) {
+            return _val->at(_indices->begin()->second);
         }
-        return _val->at(_val->size()-1);
+        return _val->at(0);
     }
     
     type eval(int i) const{
         if (_is_indexed) {
             return _val->at(_indices->begin()->second);
         }
-        if (_val->size() <= i) {
-            throw out_of_range("get_val(int i)");
-//            return _val->at(0);
-        }
+//        if (_val->size() <= i) {
+//            throw out_of_range("get_val(int i)");
+////            return _val->at(0);
+//        }
         return _val->at(i);
     }
     

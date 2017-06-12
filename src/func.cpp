@@ -2236,7 +2236,8 @@ void func_::reset(){
         delete _all_range->first;
         delete _all_range->second;
     }
-    *_all_range = make_pair<>(new constant<double>(0), new constant<double>(0));
+    delete _all_range;
+    _all_range = new pair<constant_*, constant_*>(new constant<double>(0), new constant<double>(0));
     if (_vars) {
         if (!_embedded) {
             for (auto &elem: *_vars) {
@@ -2267,11 +2268,17 @@ void func_::reset(){
     _dfdx.clear();
     _hess_link.clear();
     delete _range;
+    _range = nullptr;
     delete _convexity;
+    _convexity = nullptr;
     delete _sign;
+    _sign = nullptr;
     delete _expr;
+    _expr = nullptr;
     delete _DAG;
+    _DAG = nullptr;
     delete _queue;
+    _queue = nullptr;
     set_type(func_c);
     _ftype = const_;
     _return_type = integer_;
@@ -4143,7 +4150,7 @@ void func_::compute_derivatives(){ /**< Computes and stores the derivative of f 
             vj = vp2.second.first;
             vjd = vj->get_id();
             if (vid <= vjd && df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
-                df->compute_derivative(*vj);
+                auto d2f = df->compute_derivative(*vj);
                 Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
 //                d2f->print();
             }
@@ -4699,6 +4706,17 @@ qterm* func_::get_square(param_* p){ /**< Returns the quadratic term containing 
         }
     }
     return nullptr;
+}
+
+func_ func_::get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+    func_ res; // res = gradf(x*)*(x-x*) + f(x*)
+    param_* v;
+    for(auto &it: *_vars){
+        v = it.second.first;
+        res += (get_stored_derivative(v->get_id())->eval())*((*v) - poly_eval(v));
+    }
+    res += eval();
+    return res;
 }
 
 Sign func_::get_all_sign() const{

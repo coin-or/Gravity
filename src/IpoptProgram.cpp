@@ -16,6 +16,7 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     n = (Index)_model->get_nb_vars();
     printf("n = %d;\n", n);
     m = (Index)_model->get_nb_cons();
+    printf("m = %d;\n", m);
     nnz_jac_g = (Index)_model->get_nb_nnz_g();
     printf("number of non zeros in Jacobian = %d;\n", nnz_jac_g);
     nnz_h_lag = (Index)_model->get_nb_nnz_h();
@@ -42,6 +43,9 @@ void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               statu
                 _model->_obj *= -1;
     }
     _model->_obj_val = _model->_obj.eval();
+    for (size_t i=0; i<m; i++) {
+        _model->_cons[i]->_dual = lambda[i];
+    }
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
 }
 

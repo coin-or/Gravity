@@ -20,8 +20,9 @@ protected:
 public:
     
     unsigned                    _id = -1;
-    ConstraintType              _ctype; /**< Constraint type: leq, geq or eq */
-    double _rhs;
+    ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
+    double                      _rhs = 0;
+    double                      _dual = 0; /**< Lagrange multipliers at a KKT point */
     /** Constructor */
     //@{
     Constraint();

@@ -22,7 +22,7 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
-#define USEDEBUG
+//#define USEDEBUG
 #ifdef USEDEBUG
 #define Debug(x) cout << x
 #else
@@ -41,7 +41,6 @@ static char* line = nullptr;
 Net::Net(){
     //horton_net = nullptr;
     _clone = nullptr;
-    _bags = nullptr;
 }
 
 /* returns true if an arc is already present between the given nodes */
@@ -446,14 +445,13 @@ string Net::remove_end_node(){
             }
         }
     }
+//    delete nodes.back();
     nodes.pop_back();
     return n_id;
 }
 
 
 void Net::get_tree_decomp_bags(){
-    _bags = new vector<vector<Node*>*>();
-    vector<Node*>* bag = nullptr;
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -465,18 +463,18 @@ void Net::get_tree_decomp_bags(){
         n = _clone->nodes.back();
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
-        bag = new vector<Node*>();
+        vector<Node*> bag;
         Debug("new bag = { ");
         for (auto a: n->branches) {
             nn = a->neighbour(n);
-            bag->push_back(nn);
+            bag.push_back(nn);
             Debug(nn->_name << ", ");
         }
-        _clone->remove_end_node();
-        for (int i = 0; i<bag->size(); i++) {
-            u = bag->at(i);
-            for (int j = i+1; j<bag->size(); j++) {
-                nn = bag->at(j);
+        _clone->remove_end_node();  
+        for (int i = 0; i<bag.size(); i++) {
+            u = bag.at(i);
+            for (int j = i+1; j<bag.size(); j++) {
+                nn = bag.at(j);
                 if (u->is_connected(nn)) {
                     continue;
                 }
@@ -490,14 +488,22 @@ void Net::get_tree_decomp_bags(){
                 _clone->add_arc(arc);
             }
         }
-        bag->push_back(n);
+        bag.push_back(n);
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
         Debug(n->_name << "}\n");
-        _bags->push_back(bag);
-        if (bag->size()==3) {
+        Debug("bag = {");
+#ifdef USEDEBUG
+        for (int i=0; i<bag.size(); i++) {
+            cout << bag.at(i) << " ";
+        }
+#endif
+        Debug("}" << endl);
+        _bags.push_back(bag);
+        if (bag.size()==3) {
             nb3++;
         }
     }
-       cout << "\nNumber of 3D bags = " << nb3 << endl;
+       Debug("\nNumber of 3D bags = " << nb3 << endl);
 }
 
 
@@ -525,8 +531,7 @@ Net::~Net(){
     }
     for (pair<string,set<Arc*>*> it:lineID) {
         delete it.second;
-    }
-    delete _bags;
+    }    
     delete _clone;
 }
 

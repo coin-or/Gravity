@@ -603,7 +603,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 //                        if (hess!=1) {
 //                            cout << "ok" << endl;
 //                        }
-                        res[idx] += lambda[cid] * hess;
+                        res[idx] += lambda[cid+i] * hess;
                     }
                 }
             }

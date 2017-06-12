@@ -40,7 +40,7 @@ void Node::addArc(Arc* a){
 int Node::removeArc(Arc* a){
     vector<Arc*>::iterator it = branches.begin();
     while (it != branches.end()) {
-        if((*it) == a){
+        if((*it) == a){            
             it = branches.erase(it);
             return 0;
         }

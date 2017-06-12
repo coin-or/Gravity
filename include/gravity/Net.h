@@ -53,7 +53,7 @@ public:
     ~Net();
    
     /** Tree decomposition bags */
-    std::vector<std::vector<Node*>*>* _bags;
+    std::vector<std::vector<Node*>> _bags;
     
     /** Modifiers */
 

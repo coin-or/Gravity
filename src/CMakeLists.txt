@@ -20,5 +20,3 @@ endif()
 add_library(gravity ${SOURCES} ${HEADERS})
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES})
 
-add_executable(gravity_test main.cpp)
-target_link_libraries(gravity_test gravity)

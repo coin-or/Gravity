@@ -138,14 +138,25 @@ int solver::run(int output, bool relax){
         SmartPtr<TNLP> tmp = new IpoptProgram(_model);
 //        prog.ipopt_prog;
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
-//                        iapp->Options()->SetStringValue("derivative_test", "first-order");
+//                        iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 0.001);
         
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-            //            iapp->Options()->SetNumericValue("tol", 1e-6);
+                        iapp->Options()->SetNumericValue("tol", 1e-6);
+                        iapp->Options()->SetIntegerValue("max_iter", 50);
+        
+//                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
+//                        iapp->Options()->SetNumericValue("ma27_pivtol", 1e-6);
+//                        iapp->Options()->SetNumericValue("ma27_la_init_factor", 100);
+//                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
+        
+        
+        
+        
+//                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
 //                        iapp.Options()->SetNumericValue("tol", 1e-6);
             //            iapp->Options()->SetStringValue("derivative_test", "second-order");
-            //            iapp.Options()->SetNumericValue("bound_relax_factor", 0);
+//                        iapp->Options()->SetNumericValue("bound_relax_factor", 0);
             //            iapp.Options()->SetIntegerValue("print_level", 5);
             
 //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
