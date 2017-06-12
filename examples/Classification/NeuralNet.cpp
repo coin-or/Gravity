@@ -18,6 +18,7 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "DataSet.h"
 
 using namespace std;
 #define EPS 0.00001
@@ -98,7 +99,9 @@ int main (int argc, const char * argv[])
     std::cout << "long double\t"
     << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
     unsigned i, j, i1, i2, i3;
-    `
+    Model SoftPlus("SoftPlus");
+    param<> feature;
+    
     SolverType stype = cplex;
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();

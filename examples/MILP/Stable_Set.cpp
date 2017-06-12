@@ -20,7 +20,7 @@
 #include <stdlib.h>
 
 using namespace std;
-#define EPS 0.00001
+#define EPS 0.000001
 #define DebugOn(x) cout << x
 #define DebugOff(x)
 //  Windows
@@ -213,7 +213,7 @@ int main (int argc, const char * argv[])
     OA.add_var(Xii);
     OA.add_var(Xij);
     for (auto &cs_p: SDP._cons) {
-        if (!cs_p.second->is_linear() && abs(cs_p.second->_dual) > EPS) { //Active nonlinear constraint
+        if (!cs_p.second->is_linear() && cs_p.second->is_active())) { //Active nonlinear constraint
             DebugOff("Active constraint:" << cs_p.second->to_str() << endl);
             Constraint oa("OA_"+cs_p.second->get_name());
             oa = cs_p.second->get_outer_app();
