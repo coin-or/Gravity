@@ -5,8 +5,9 @@
 //  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
 //
 //
-
+#include <math.h>
 #include <Gravity/constraint.h>
+#define EPS 0.000001
 
 /** Constructor */
 //@{
@@ -67,6 +68,9 @@ int Constraint::get_type() const{
     return _ctype;
 };
 
+bool Constraint::is_active() const{
+    return fabs(_dual) >  EPS;
+}
 
 /* Modifiers */
 

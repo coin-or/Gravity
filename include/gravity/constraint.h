@@ -54,6 +54,7 @@ public:
     string get_name() const;
     int get_type() const;
     double get_rhs() const;
+    bool is_active() const;
     
     
     

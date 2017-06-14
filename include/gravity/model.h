@@ -58,6 +58,9 @@ public:
     /** Constructor */
     //@{
     Model();
+    Model(const string& name){
+        _name = name;
+    };
     //@}
     
     /* Destructor */
