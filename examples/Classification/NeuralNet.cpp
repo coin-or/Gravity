@@ -98,9 +98,29 @@ int main (int argc, const char * argv[])
     << std::numeric_limits<double>::max() << '\n';
     std::cout << "long double\t"
     << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
-    unsigned i, j, i1, i2, i3;
+    
+    
+    string file = "../data_sets/classification/pendigits";
+    if (argc>1) {
+        file = argv[argc-1];
+    }
+    
+    DataSet<> training_set;
+    training_set.parse(file);
+    training_set.print_stats();
+    
     Model SoftPlus("SoftPlus");
     param<> feature;
+    unsigned bound = 10;
+    vector<unsigned> nb_nn = {1,2,1}; /*<Number of neurons per layer */
+    unsigned nb_layers = nb_nn.size();
+    var<> x("x", 0, 1);
+    var<> alpha("alpha", -bound, bound);
+    var<> beta("beta", -bound, bound);
+    var<> teta("beta", -bound, bound);
+//    x.indexed_in({1..5});
+//    SoftPlus.add_var(x^(x_dim));
+    
     
     SolverType stype = cplex;
     double wall0 = get_wall_time();
