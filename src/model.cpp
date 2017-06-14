@@ -199,10 +199,6 @@ void Model::add_constraint(const Constraint& c){
 
 
 
-
-
-
-
 void Model::del_constraint(const Constraint& c){
     //    _cons.erase(c->get_idx());
     assert(false);

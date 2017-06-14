@@ -18,7 +18,7 @@ public:
     std::string _name;
     Node* src;
     Node* dest;
-  //  double weight;
+    double weight;
     
     /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
     Node* neighbour(Node* n);
@@ -33,6 +33,7 @@ public:
     Arc(std::string name);
     ~Arc();
     Arc(Node* s, Node* d);
+    Arc(Node* s, Node* d, double weight);
     Arc* clone();
     
     /* Connects the current arc to its source and destination, adding itself to the list of branches in these nodes */

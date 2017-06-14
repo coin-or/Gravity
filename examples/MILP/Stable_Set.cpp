@@ -211,7 +211,7 @@ int main (int argc, const char * argv[])
     OA.add_var(Xii);
     OA.add_var(Xij);
     for (auto &cs_p: SDP._cons) {
-        if (!cs_p.second->is_linear() && cs_p.second->is_active())) { //Active nonlinear constraint
+        if (!cs_p.second->is_linear() && cs_p.second->is_active()){ //Active nonlinear constraint
             DebugOff("Active constraint:" << cs_p.second->to_str() << endl);
             Constraint oa("OA_"+cs_p.second->get_name());
             oa = cs_p.second->get_outer_app();

@@ -19,15 +19,23 @@ Arc::Arc(string name):src(NULL), dest(NULL){}
 Arc::Arc(Node* s, Node* d){
     src = s;
     dest = d;
+    weight = 1;
  //   in_cycle = false;
   //  parallel = false;
   //  connect();
+}
+
+Arc::Arc(Node*s, Node* d, double w){
+    src = s;
+    dest = d;
+    weight = w;
 }
 
 Arc* Arc::clone(){
     Arc* copy = new Arc(_name);
     copy->src = src;
     copy->dest = dest;
+    copy->weight = weight;
  //   copy->in_cycle = in_cycle;
     return copy;
 }

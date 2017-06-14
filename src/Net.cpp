@@ -241,19 +241,95 @@ void Net::readFile(string fn){
     
     vector<vector<int>> matrix;
     int temp;
+    
+    stringstream linestream(line);
+    
     while(readline(fp)!=NULL)
     {
-       vector<int> row;
-       stringstream linestream(line);
-       while (linestream>>temp)
-           row.push_back(temp);
+        vector<int> row;
+        stringstream linestream(line);
+        while (linestream>>temp)
+            row.push_back(temp);
         matrix.push_back(row);
-       // cout <<matrix.size()<< endl;
+        // cout <<matrix.size()<< endl;
     }
     rewind(fp);
     delete[] line;
     fclose(fp);
 }
+
+// read rudy
+void Net::readrudy(string fn){
+    auto fname = fn.c_str();
+    FILE *fp = fopen(fname,"r");
+    if(fp == NULL)
+    {
+        fprintf(stderr,"can’t open input file %s\n",fname);
+        exit(1);
+    }
+    
+    size_t max_line_len = 1024;
+    char* line = new char[max_line_len];
+    
+    int Num_nodes=0;
+    int Num_edges=0;
+    
+    if (readline(fp)!=NULL){
+        stringstream linestream(line);
+        linestream >> Num_nodes;
+        linestream >> Num_edges;
+    }
+    
+    
+    // get nodes
+    string name;
+    int id = 0;
+    _clone = new Net();
+    Node* node = NULL;
+    Node* node_clone = NULL;
+    for (int i= 0; i<Num_nodes; i++){
+        name = to_string(i);
+        node = new Node(name,i);
+        node_clone = new Node(name,i);
+        add_node(node);
+        _clone->add_node(node_clone);
+    }
+    
+    
+    // get arcs
+    Arc* arc = NULL;
+    Arc* arc_clone = NULL;
+    string src, dest;
+    double weight;
+    while(readline(fp)!=NULL)
+    {
+        stringstream linestream(line);
+        
+        linestream >> src;
+        linestream >> dest;
+        linestream >> weight;
+        id = (int)arcs.size();
+        arc = new Arc(to_string(id));
+        arc_clone = new Arc(to_string(id));
+        arc->id = id;
+        arc_clone->id = id;
+        arc->src = get_node(src);
+        arc->dest= get_node(dest);
+        arc->weight=weight;
+        arc_clone->src = _clone->get_node(src);
+        arc_clone->dest = _clone->get_node(dest);
+        arc_clone->weight =weight;
+        add_arc(arc);
+        arc->connect();
+        _clone->add_arc(arc_clone);
+        arc_clone->connect();
+    }
+    rewind(fp);
+    delete[] line;
+    fclose(fp);
+}
+
+
 
 // populates the graph
 void Net::topology(string fn, bool complement){
@@ -351,7 +427,6 @@ void Net::topology(string fn, bool complement){
     delete[] line;
     fclose(fp);
     cout<< "Edges: " << arcs.size() << endl;
-//    get_tree_decomp_bags();
 }
 
 Net Net::get_complement(string fn){

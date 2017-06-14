@@ -77,6 +77,7 @@ public:
     void exit_input_error(int line_num);
     void readFile(std::string fname);
     void topology(std::string fname,bool complement);
+    void readrudy(std::string fname);
     Net get_complement(std::string fname);//  (i, j): i<j \E
     
     /**  @brief Remove node and all incident arcs from the network

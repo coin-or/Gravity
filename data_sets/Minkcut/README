@@ -1,0 +1,7 @@
+rudy.c was written by Giovanni Rinaldi from IASI at Rome, Italy. 
+
+* To compile rudy use
+      cc rudy.c gb_lib.c -lm -o rudy
+* Calling rudy without arguments
+      rudy
+  displays and explains all available options.
