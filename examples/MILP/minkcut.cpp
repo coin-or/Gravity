@@ -73,38 +73,49 @@ double get_cpu_time(){
 int main (int argc, const char * argv[])
 {
     auto k = 2; // input
-    auto n=10; // number of nodes.
+    auto n = 3; // number of nodes.
     
-    /*
-     /**  relaxation model for Minmum k-cut probelm . **/
+    /** MLP model by Chopra and Rao (1995)**/
+    Model MIP;
+    var<bool> zij("z");
+    MIP.add_var(zij^(n*(n-1)/2));
+    constant<int> ones(1);
+    func_ obj_MIP = ones.tr()*zij;
+    
+    /** constraints **/
+    for (auto i=1; i<n-2; i++)
+        for (auto h=i+1; h<n-1; h++)
+            for (auto j=h+1; j<n;j++)
+                
+
+
+    /**  relaxation model for Minmum k-cut probelm **/
+    
     Model relax;
     var<float> Xii("Xii", 1, 1);
     var<int> Xij("Xij", -1/(k-1),INFINITY); // i<j
     relax.add_var(Xii^n);
     relax.add_var(Xij^(n*(n-1)/2));
     
-    constant<int> ones(1);
     
-    /*constraint declaration */
-    // Xii = 1, for all i in V
-    //    Constraint diag("diag_Xii");
-    //    diag=Xii;
-    //   relax.add_constraint(diag=1);
-    
-    
-    
-    // objective function wij*[(k-1)*xij+1]/k
     constant<float> weight(1*(k-1)/k);
     func_ obj = weight.tr()*Xij+n*(n-1)/(2*k);
+
     relax.set_objective(min(obj));
     solver s(relax,cplex);
+    
+    
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     cout << "Running the LP relaxation\n";
     s.run();
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
+    relax.print_solution(); //
+    
+    
     cout << "Done running the LP relaxation\n";
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
 }
+
