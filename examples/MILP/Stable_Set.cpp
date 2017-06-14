@@ -5,8 +5,6 @@
 //  Created by Hijazi, Hassan (Data61, Canberra City) on 6/12/17.
 //
 //
-
-
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -100,7 +98,7 @@ int main (int argc, const char * argv[])
     unsigned i, j, i1, i2, i3;
     
     Net graph;
-    string fname = "../data_sets/stable_set/p.8n150.txt";
+    string fname = "/Users/guangleiwang/phD/kernel/Gravity/data_sets/stable_set/p.3n150.txt";
     graph.topology(fname, false); // get the topology of the graph
     Net complement_graph;
     complement_graph.topology(fname, true);
@@ -185,7 +183,7 @@ int main (int argc, const char * argv[])
     }
     Constraint diag("diag");
     diag = ones.tr()*Xii;
-    SDP.add_constraint(diag=1);
+    SDP.add_constraint(diag=1); // diagonal sum is 1
     for(auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -240,8 +238,6 @@ int main (int argc, const char * argv[])
     cout << "Done running the OA-SDP relaxation\n";
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    
-    
     
     return 0;
 };
