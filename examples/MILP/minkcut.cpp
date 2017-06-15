@@ -105,7 +105,7 @@ int main (int argc, const char * argv[])
         i = (a->src)->ID;
         j = (a->dest)->ID;
 //        w1=a->weight;
-        if (i < j)
+        if (i <= j)
             obj_MIP += (a->weight)*zij(i,j);
         else
             obj_MIP += (a->weight)*zij(j,i);
@@ -114,9 +114,9 @@ int main (int argc, const char * argv[])
     obj_MIP.print();
     
     /** constraints **/
-    for (auto i=1; i<n-1; i++)
+    for (auto i=0; i<n-1; i++)
         for (auto h=i+1; h<n; h++)
-            for (auto j=h+1; j<n+1;j++){
+            for (auto j=h+1; j<n    ;j++){
                 Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle1 = zij(i,h)+zij(h,j)-zij(i,j);
                 Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
@@ -131,9 +131,9 @@ int main (int argc, const char * argv[])
     // K+1 subsets.
  //   MIP.print_constraints();
     
-    for (auto i=1; i<n-1; i++)
+    for (auto i=0; i<n-1; i++)
         for (auto h=i+1; h<n; h++)
-            for (auto j=h+1; j<n+1;j++){
+            for (auto j=h+1; j<n;j++){
                 Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Clique = zij(i,h) + zij(h,j) + zij(i,j);
                 MIP.add_constraint(Clique >=1);
@@ -147,35 +147,90 @@ int main (int argc, const char * argv[])
     /**  relaxation model for Minmum k-cut probelm **/
     
     Model relax;
-    var<double> Xii("Xii", 1, 1);
-    var<double> Xij("Xij", -1/(k-1),INFINITY); // i<j
-    relax.add_var(Xii^n);
+//    var<double> Xii("Xii", 1, 1);
+    var<double> Xij("Xij", -1/(k-1),1); // i<j
+//    relax.add_var(Xii^n);
     relax.add_var(Xij^(n*(n-1)/2));
     
-    constant<float> weight(1*(k-1)/k);
-    
+//    constant<float> weight(1*(k-1)/k);
+    graph.get_tree_decomp_bags();
+    cout << "total bags: " << graph._bags.size() << endl;
      func_ obj;
     for (auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i < j)
+        if (i <= j)
             obj += a->weight*((k-1)*Xij(i,j) + 1)/k;
         else
             obj += a->weight*((k-1)*Xij(j,i) + 1)/k;
     }
-        
+    unsigned i1, i2, i3;
+    set<tuple<int,int,int>> ids;
+    for (i = 0; i < graph._bags.size(); i++){
+        auto bag = graph._bags.at(i);
+        if (bag.size()<3) {
+            continue;
+        }
+        for (int j = 0; j < bag.size()-2; j++){
+            i1 = bag[j]->ID;
+            i2 = bag[j+1]->ID;
+            i3 = bag[j+2]->ID;
+            assert(i2>i1 && i3>i2);
+            if(ids.count(make_tuple(i1, i2, i3))==0){
+                ids.insert(make_tuple(i1, i2, i3));
+            }
+            else {
+                continue;
+            }
+            Constraint SDP3("SDP3("+to_string(i1)+","+to_string(i2)+","+to_string(i3)+")");
+            SDP3 = -2*Xij(i1,i2)*Xij(i2,i3)*Xij(i1,i3);
+            SDP3 -= 1;
+            SDP3 += power(Xij(i1,i2),2);
+            SDP3 += power(Xij(i1,i3),2);
+            SDP3 += power(Xij(i2,i3),2);
+//            SDP3.print();
+//            relax.add_constraint(SDP3);
+        }
+    }
+    
+    /** constraints **/
+    for (auto i=0; i<n-1; i++)
+        for (auto h=i+1; h<n; h++)
+            for (auto j=h+1; j<n    ;j++){
+                Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
+                Triangle1 = Xij(i,h)+Xij(h,j)-Xij(i,j);
+                Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
+                Triangle2 = Xij(i,h)+Xij(i,j)-Xij(h,j);
+                Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
+                Triangle3 = Xij(i,j)+Xij(h,j)- Xij(i,h);
+//                relax.add_constraint(Triangle1 <=1);
+//                relax.add_constraint(Triangle2 <=1);
+//                relax.add_constraint(Triangle3 <=1);
+            }
+    
+    // K+1 subsets.
+    //   MIP.print_constraints();
+    
+    for (auto i=0; i<n-1; i++)
+        for (auto h=i+1; h<n; h++)
+            for (auto j=h+1; j<n;j++){
+                Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
+                Clique = Xij(i,h) + Xij(h,j) + Xij(i,j);
+                relax.add_constraint(Clique >=-k/2);
+            }
     relax.set_objective(min(obj));
     
     /* Constraints declaration */
-    for (int i = 0; i < n; i++){
-        for (int j = i+1; j < n; j++){
-            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
-            relax.add_constraint(SOCP<=0);
-        }
-    }
+//    for (int i = 0; i < n; i++){
+//        for (int j = i+1; j < n; j++){
+//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+////            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+//            SOCP =  Xij(i,j)*Xij(i,j) - 1;
+//            relax.add_constraint(SOCP<=0);
+//        }
+//    }
 
-    solver s_relax(relax,cplex);
+    solver s_relax(relax,ipopt);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     cout << "Running the SOCP relaxation\n";

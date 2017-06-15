@@ -95,7 +95,7 @@ public:
     void remove_arc(Arc* a);
     
     /** Compute the tree decomposition bags **/
-    void get_tree_decomp_bags();
+    void get_tree_decomp_bags(bool print_bags = false);
     
    // int test(std::string fname);
     int test();

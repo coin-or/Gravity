@@ -517,7 +517,7 @@ string Net::remove_end_node(){
 }
 
 
-void Net::get_tree_decomp_bags(){
+void Net::get_tree_decomp_bags(bool print_bags){
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -556,14 +556,14 @@ void Net::get_tree_decomp_bags(){
         }
         bag.push_back(n);
         sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
-        Debug(n->_name << "}\n");
-        Debug("bag = {");
-#ifdef USEDEBUG
-        for (int i=0; i<bag.size(); i++) {
-            cout << bag.at(i) << " ";
+        if (print_bags) {
+            DebugOn(n->_name << "}\n");
+            DebugOn("bag = {");
+            for (int i=0; i<bag.size(); i++) {
+                cout << bag.at(i) << " ";
+            }
+            DebugOn("}" << endl);
         }
-#endif
-        Debug("}" << endl);
         _bags.push_back(bag);
         if (bag.size()==3) {
             nb3++;
