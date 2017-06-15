@@ -49,7 +49,6 @@ double get_cpu_time(){
         return 0;
     }
 }
-
 //  Posix/Linux
 #else
 #include <time.h>
@@ -69,7 +68,6 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    
     //  Start Timers
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF THE STABLE SET PROBLEM AND SOME OF ITS RELAXATIONS IN GRAVITY\n";
     std::cout << "Understanding the numerical limits of your machine:" << endl;
@@ -151,7 +149,7 @@ int main (int argc, const char * argv[])
     for (int i = 0; i < n; i++){
         for (int j = i+1; j < n; j++){
             Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j); // really?
             SDP.add_constraint(SOCP<=0);
         }
     }

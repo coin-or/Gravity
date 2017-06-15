@@ -73,12 +73,11 @@ int main (int argc, const char * argv[])
     auto k = 2; // input
     
     // instance generation.
-    auto n = 3; // number of nodes.
-    string fname = "/Users/guangleiwang/phD/kernel/Gravity/data_sets/stable_set/p.3n150.txt";
-
-    
-    
-    
+    Net graph;
+    string fname = "../../data_sets/Minkcut/grid2d_33.txt";
+    graph.readrudy(fname);
+    cout<< "Num_nodes: " << graph.nodes.size() << endl;
+    int n = graph.nodes.size();
     
     
 //    vector<constant<int>> weights;
@@ -98,23 +97,31 @@ int main (int argc, const char * argv[])
     MIP.add_var(zij^(n*(n-1)/2));
     constant<int> ones(1);
     func_ obj_MIP;
-//    for (auto i=0; i<(0.5*n*(n-1)); i++){
-//        obj_MIP+= weights[i]*zij(i+1);
-//    }
-    obj_MIP = ones.tr()*zij;
+    int i=0, j=0;
+    int index = 0;
+//    param<double> w1("weight");
+//    MIP.add_param(w1^(graph.arcs.size()));
+    for (auto a: graph.arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+//        w1=a->weight;
+        if (i < j)
+            obj_MIP += (a->weight)*zij(i,j);
+        else
+            obj_MIP += (a->weight)*zij(j,i);
+    }
+//   obj_MIP = w1.tr()*zij;
     obj_MIP.print();
-    
-    
     
     /** constraints **/
     for (auto i=1; i<n-1; i++)
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n+1;j++){
-                Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(i)+")");
+                Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle1 = zij(i,h)+zij(h,j)-zij(i,j);
-                Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(i)+ ","+to_string(h)+")");
+                Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle2 = zij(i,h)+zij(i,j)-zij(h,j);
-                Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(h)+")");
+                Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = zij(i,j)+zij(h,j)- zij(i,h);
                 MIP.add_constraint(Triangle1 <=1);
                 MIP.add_constraint(Triangle2 <=1);
@@ -146,7 +153,17 @@ int main (int argc, const char * argv[])
     relax.add_var(Xij^(n*(n-1)/2));
     
     constant<float> weight(1*(k-1)/k);
-    func_ obj = weight.tr()*Xij+n*(n-1)/(2*k);
+    
+     func_ obj;
+    for (auto a: graph.arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i < j)
+            obj += a->weight*((k-1)*Xij(i,j) + 1)/k;
+        else
+            obj += a->weight*((k-1)*Xij(j,i) + 1)/k;
+    }
+        
     relax.set_objective(min(obj));
     
     /* Constraints declaration */

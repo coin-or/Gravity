@@ -98,7 +98,6 @@ Node* Net::get_node(string id){
     return nodeID.find(id)->second;
 }
 
-
 /* returns the arc formed by node ids n1 and n2 */
 Arc* Net::get_arc(Node* n1, Node* n2){
     string src, dest, key, inv_key;
@@ -208,6 +207,7 @@ void Net::remove_arc(Arc* a){
 char* Net::readline(FILE *input)
 {
     size_t len;
+    // line, max_line_len have been declared
     if(std::fgets(line,max_line_len,input)==NULL) return NULL;
     
     while(strrchr(line,'\n') == NULL)
@@ -261,33 +261,28 @@ void Net::readFile(string fn){
 // read rudy
 void Net::readrudy(string fn){
     auto fname = fn.c_str();
-    FILE *fp = fopen(fname,"r");
-    if(fp == NULL)
-    {
-        fprintf(stderr,"can’t open input file %s\n",fname);
-        exit(1);
-    }
-    
-    size_t max_line_len = 1024;
-    char* line = new char[max_line_len];
-    
     int Num_nodes=0;
     int Num_edges=0;
     
-    if (readline(fp)!=NULL){
-        stringstream linestream(line);
-        linestream >> Num_nodes;
-        linestream >> Num_edges;
+    
+    ifstream infile(fname);
+    string sLine;
+    
+    if (infile.good())
+    {
+        getline(infile, sLine);
+        istringstream iss(sLine);
+        iss >> Num_nodes;
+        iss >> Num_edges;
     }
-    
-    
     // get nodes
+    
     string name;
     int id = 0;
     _clone = new Net();
     Node* node = NULL;
     Node* node_clone = NULL;
-    for (int i= 0; i<Num_nodes; i++){
+    for (int i= 1; i<Num_nodes+1; i++){
         name = to_string(i);
         node = new Node(name,i);
         node_clone = new Node(name,i);
@@ -301,13 +296,11 @@ void Net::readrudy(string fn){
     Arc* arc_clone = NULL;
     string src, dest;
     double weight;
-    while(readline(fp)!=NULL)
+    while(getline(infile,sLine,'\n'))
     {
-        stringstream linestream(line);
-        
-        linestream >> src;
-        linestream >> dest;
-        linestream >> weight;
+        istringstream iss(sLine);
+        iss >> src >> dest >> weight;
+        cout << src  << ", " << dest << ", " << weight << endl;
         id = (int)arcs.size();
         arc = new Arc(to_string(id));
         arc_clone = new Arc(to_string(id));
@@ -324,9 +317,7 @@ void Net::readrudy(string fn){
         _clone->add_arc(arc_clone);
         arc_clone->connect();
     }
-    rewind(fp);
-    delete[] line;
-    fclose(fp);
+    infile.close();
 }
 
 
