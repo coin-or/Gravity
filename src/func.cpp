@@ -4133,8 +4133,8 @@ func_* func_::get_stored_derivative(unsigned vid) const{
          throw invalid_argument("storing same df twice! " + ::to_str(&v) + this->to_str());
      }
     _dfdx[v.get_id()] = df;
-    DebugOn( "First derivative with respect to " << v.get_name() << " = ");
-    df->print();
+    Debug( "First derivative with respect to " << v.get_name() << " = ");
+//    df->print();
     return df;
 }
 
