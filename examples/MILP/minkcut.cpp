@@ -74,22 +74,10 @@ int main (int argc, const char * argv[])
     
     // instance generation.
     Net graph;
-    string fname = "../../data_sets/Minkcut/grid2d_33.txt";
+    string fname = "../../data_sets/Minkcut/grid2d_22.txt";
     graph.readrudy(fname);
     cout<< "Num_nodes: " << graph.nodes.size() << endl;
     int n = graph.nodes.size();
-    
-    
-//    vector<constant<int>> weights;
-//    
-//    int min_val = 0;
-//    int max_val = 9;
-//    double output = 0;
-//    for (auto i=0; i<(0.5*n*(n-1)); i++)
-//    {
-//        output = min_val + (rand() % static_cast<int>(max_val - min_val + 1));
-//        weights.push_back(output);
-//    }
     
     /** MLP model by Chopra and Rao (1995)**/
     Model MIP;
@@ -98,19 +86,14 @@ int main (int argc, const char * argv[])
     constant<int> ones(1);
     func_ obj_MIP;
     int i=0, j=0;
-    int index = 0;
-//    param<double> w1("weight");
-//    MIP.add_param(w1^(graph.arcs.size()));
     for (auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
-//        w1=a->weight;
         if (i <= j)
             obj_MIP += (a->weight)*zij(i,j);
         else
             obj_MIP += (a->weight)*zij(j,i);
     }
-//   obj_MIP = w1.tr()*zij;
     obj_MIP.print();
     
     /** constraints **/
@@ -145,17 +128,14 @@ int main (int argc, const char * argv[])
     s_mip.run();
     
     /**  relaxation model for Minmum k-cut probelm **/
-    
     Model relax;
-//    var<double> Xii("Xii", 1, 1);
-    var<double> Xij("Xij", -1/(k-1),1); // i<j
-//    relax.add_var(Xii^n);
+    var<double> Xij("Xij", -1/(k-1), 1); // i<j
     relax.add_var(Xij^(n*(n-1)/2));
     
-//    constant<float> weight(1*(k-1)/k);
     graph.get_tree_decomp_bags();
     cout << "total bags: " << graph._bags.size() << endl;
-     func_ obj;
+    func_ obj;
+    
     for (auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -164,6 +144,10 @@ int main (int argc, const char * argv[])
         else
             obj += a->weight*((k-1)*Xij(j,i) + 1)/k;
     }
+    
+    obj.print();
+    relax.set_objective(min(obj));
+    
     unsigned i1, i2, i3;
     set<tuple<int,int,int>> ids;
     for (i = 0; i < graph._bags.size(); i++){
@@ -188,13 +172,13 @@ int main (int argc, const char * argv[])
             SDP3 += power(Xij(i1,i2),2);
             SDP3 += power(Xij(i1,i3),2);
             SDP3 += power(Xij(i2,i3),2);
-//            SDP3.print();
-//            relax.add_constraint(SDP3);
+     //       SDP3.print();
+     //       relax.add_constraint(SDP3);
         }
     }
     
     /** constraints **/
-    for (auto i=0; i<n-1; i++)
+    for (auto i=0; i<n; i++)
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n    ;j++){
                 Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
@@ -203,37 +187,38 @@ int main (int argc, const char * argv[])
                 Triangle2 = Xij(i,h)+Xij(i,j)-Xij(h,j);
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = Xij(i,j)+Xij(h,j)- Xij(i,h);
-//                relax.add_constraint(Triangle1 <=1);
-//                relax.add_constraint(Triangle2 <=1);
-//                relax.add_constraint(Triangle3 <=1);
+                Triangle3.print();
+                relax.add_constraint(Triangle1 <= 1);
+                relax.add_constraint(Triangle2 <=1);
+                relax.add_constraint(Triangle3 <=1);
             }
     
-    // K+1 subsets.
-    //   MIP.print_constraints();
-    
+  
     for (auto i=0; i<n-1; i++)
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n;j++){
                 Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Clique = Xij(i,h) + Xij(h,j) + Xij(i,j);
+                Clique.print();
                 relax.add_constraint(Clique >=-k/2);
             }
-    relax.set_objective(min(obj));
+
     
     /* Constraints declaration */
-//    for (int i = 0; i < n; i++){
-//        for (int j = i+1; j < n; j++){
-//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-////            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
-//            SOCP =  Xij(i,j)*Xij(i,j) - 1;
-//            relax.add_constraint(SOCP<=0);
-//        }
-//    }
+    for (int i = 0; i < n; i++){
+        for (int j = i+1; j < n; j++){
+            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+//            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+            SOCP =  Xij(i,j)*Xij(i,j) -1 ;
+  //          SOCP.print();
+ //           relax.add_constraint(SOCP<=0);
+        }
+    }
 
-    solver s_relax(relax,ipopt);
+    solver s_relax(relax,cplex);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    cout << "Running the SOCP relaxation\n";
+    cout << "Running the SOCP+SDP cut relaxation\n";
     s_relax.run();
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();

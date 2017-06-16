@@ -45,11 +45,11 @@ bool CplexProgram::solve(bool relax){
         
         // Print results
         _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
-//        for (auto i = 0; i < _cplex_vars.size(); i++) {
-//            IloNumArray vals(*_cplex_env);
-//            cplex.getValues(vals,_cplex_vars[i]);
-//            cout << "  x" << i << " = " <<  vals << endl;
-//        }
+        for (auto i = 0; i < _cplex_vars.size(); i++) {
+            IloNumArray vals(*_cplex_env);
+            cplex.getValues(vals,_cplex_vars[i]);
+            cout << "  x" << i << " = " <<  vals << endl;
+        }
     }
     catch (IloException& ex) {
         cerr << "Error: " << ex << endl;
