@@ -25,7 +25,10 @@ bool CplexProgram::solve(bool relax){
 //        cplex.setOut(_cplex_env->getNullStream());
 //        cplex.setWarning(_cplex_env->getNullStream());
 //        _cplex_model->setIntProperty("Threads", 1);
-//        cplex.setParam(IloCplex::Threads, 1);
+        cplex.setParam(IloCplex::Threads, 1);
+        cplex.setParam(IloCplex::EpRHS, 1e-8);
+        cplex.setParam(IloCplex::EpOpt, 1e-8);
+        cplex.setParam(IloCplex::EpInt, 1e-8);
         if(relax){
             IloModel relax(*_cplex_env);
             relax.add(*_cplex_model);
