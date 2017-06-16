@@ -101,12 +101,12 @@ int main (int argc, const char * argv[])
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n    ;j++){
                 Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
-                Triangle1 = zij(i,h)+zij(h,j)-zij(i,j) - 1;
+                Triangle1 = zij(i,h)+zij(h,j)-zij(i,j);
                 Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle2 = zij(i,h)+zij(i,j)-zij(h,j);
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = zij(i,j)+zij(h,j)- zij(i,h);
-                MIP.add_constraint(Triangle1 <=0);
+                MIP.add_constraint(Triangle1 <=1);
                 MIP.add_constraint(Triangle2 <=1);
                 MIP.add_constraint(Triangle3 <=1);
             }
@@ -172,8 +172,8 @@ int main (int argc, const char * argv[])
             SDP3 += power(Xij(i1,i2),2);
             SDP3 += power(Xij(i1,i3),2);
             SDP3 += power(Xij(i2,i3),2);
-     //       SDP3.print();
-     //       relax.add_constraint(SDP3);
+            SDP3.print();
+            relax.add_constraint(SDP3);
         }
     }
     
@@ -188,7 +188,7 @@ int main (int argc, const char * argv[])
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = Xij(i,j)+Xij(h,j)- Xij(i,h);
                 Triangle3.print();
-                relax.add_constraint(Triangle1 <= 1);
+                relax.add_constraint(Triangle1 <=1);
                 relax.add_constraint(Triangle2 <=1);
                 relax.add_constraint(Triangle3 <=1);
             }
@@ -205,17 +205,17 @@ int main (int argc, const char * argv[])
 
     
     /* Constraints declaration */
-    for (int i = 0; i < n; i++){
-        for (int j = i+1; j < n; j++){
-            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-//            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
-            SOCP =  Xij(i,j)*Xij(i,j) -1 ;
-  //          SOCP.print();
- //           relax.add_constraint(SOCP<=0);
-        }
-    }
+//    for (int i = 0; i < n; i++){
+//        for (int j = i+1; j < n; j++){
+//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+////            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+//            SOCP =  Xij(i,j)*Xij(i,j) -1 ;
+//  //          SOCP.print();
+////            relax.add_constraint(SOCP<=0);
+//        }
+//    }
 
-    solver s_relax(relax,cplex);
+    solver s_relax(relax,ipopt);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     cout << "Running the SOCP+SDP cut relaxation\n";

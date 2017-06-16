@@ -139,11 +139,11 @@ int solver::run(int output, bool relax){
 //        prog.ipopt_prog;
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-//                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 0.001);
+//                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 0.00001);
         
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
                         iapp->Options()->SetNumericValue("tol", 1e-6);
-                        iapp->Options()->SetIntegerValue("max_iter", 50);
+//                        iapp->Options()->SetIntegerValue("max_iter", 50);
         
 //                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
 //                        iapp->Options()->SetNumericValue("ma27_pivtol", 1e-6);

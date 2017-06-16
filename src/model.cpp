@@ -731,9 +731,12 @@ void Model::fill_in_maps() {
                         _hess_link[vid][vid].insert(cid);
                         c->get_hess_link()[vid].insert(vid);
                     }
-                    for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
+                    for (auto v_jt = pt_p.second._l->begin(); v_jt != pt_p.second._l->end(); v_jt++) {
                         vj = v_jt->first;
                         vjd = vj->get_id();
+                        if (vid==vjd) {
+                            continue;
+                        }
                         if (vid > vjd) {
                             temp = vid;
                             vid = vjd;
