@@ -101,12 +101,12 @@ int main (int argc, const char * argv[])
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n    ;j++){
                 Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
-                Triangle1 = zij(i,h)+zij(h,j)-zij(i,j);
+                Triangle1 = zij(i,h)+zij(h,j)-zij(i,j) - 1;
                 Constraint Triangle2("Triangle2("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle2 = zij(i,h)+zij(i,j)-zij(h,j);
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = zij(i,j)+zij(h,j)- zij(i,h);
-                MIP.add_constraint(Triangle1 <=1);
+                MIP.add_constraint(Triangle1 <=0);
                 MIP.add_constraint(Triangle2 <=1);
                 MIP.add_constraint(Triangle3 <=1);
             }

@@ -293,7 +293,7 @@ void CplexProgram::create_cplex_constraints(){
                     lterm.end();
                 }
             }
-            cc += poly_eval(_model->_obj.get_cst());
+            cc += poly_eval(c->get_cst());
             
             if(c->get_type()==geq){
                 _cplex_model->add(cc >= c->get_rhs());
