@@ -70,11 +70,10 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    auto k = 2; // input
-    
-    // instance generation.
+    auto k = 3;
+
     Net graph;
-    string fname = "../../data_sets/Minkcut/grid2d_22.txt";
+    string fname = "../../data_sets/Minkcut/spinglass2g_99.txt";
     graph.readrudy(fname);
     cout<< "Num_nodes: " << graph.nodes.size() << endl;
     int n = graph.nodes.size();
@@ -94,7 +93,7 @@ int main (int argc, const char * argv[])
         else
             obj_MIP += (a->weight)*zij(j,i);
     }
-    obj_MIP.print();
+  //  obj_MIP.print();
     
     /** constraints **/
     for (auto i=0; i<n-1; i++)
@@ -121,7 +120,7 @@ int main (int argc, const char * argv[])
                 Clique = zij(i,h) + zij(h,j) + zij(i,j);
                 MIP.add_constraint(Clique >=1);
             }
-    MIP.print_constraints();
+  //  MIP.print_constraints();
     MIP.set_objective(min(obj_MIP));
     
     solver s_mip(MIP,cplex);
@@ -145,7 +144,7 @@ int main (int argc, const char * argv[])
             obj += a->weight*((k-1)*Xij(j,i) + 1)/k;
     }
     
-    obj.print();
+   // obj.print();
     relax.set_objective(min(obj));
     
     unsigned i1, i2, i3;
@@ -172,8 +171,8 @@ int main (int argc, const char * argv[])
             SDP3 += power(Xij(i1,i2),2);
             SDP3 += power(Xij(i1,i3),2);
             SDP3 += power(Xij(i2,i3),2);
-            SDP3.print();
-            relax.add_constraint(SDP3);
+          //  SDP3.print();
+          //  relax.add_constraint(SDP3);
         }
     }
     
@@ -187,7 +186,7 @@ int main (int argc, const char * argv[])
                 Triangle2 = Xij(i,h)+Xij(i,j)-Xij(h,j);
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = Xij(i,j)+Xij(h,j)- Xij(i,h);
-                Triangle3.print();
+               // Triangle3.print();
                 relax.add_constraint(Triangle1 <=1);
                 relax.add_constraint(Triangle2 <=1);
                 relax.add_constraint(Triangle3 <=1);
@@ -199,23 +198,22 @@ int main (int argc, const char * argv[])
             for (auto j=h+1; j<n;j++){
                 Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Clique = Xij(i,h) + Xij(h,j) + Xij(i,j);
-                Clique.print();
+              // Clique.print();
                 relax.add_constraint(Clique >=-k/2);
             }
-
     
     /* Constraints declaration */
 //    for (int i = 0; i < n; i++){
 //        for (int j = i+1; j < n; j++){
 //            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-////            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+//            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
 //            SOCP =  Xij(i,j)*Xij(i,j) -1 ;
-//  //          SOCP.print();
-////            relax.add_constraint(SOCP<=0);
+//            SOCP.print();
+//            relax.add_constraint(SOCP<=0);
 //        }
 //    }
-
-    solver s_relax(relax,ipopt);
+    
+    solver s_relax(relax,cplex);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     cout << "Running the SOCP+SDP cut relaxation\n";
