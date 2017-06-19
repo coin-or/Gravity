@@ -70,7 +70,7 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    auto k = 3;
+    double k = 3;
 
     Net graph;
     string fname = "../../data_sets/Minkcut/spinglass2g_44.txt";
@@ -79,7 +79,9 @@ int main (int argc, const char * argv[])
     int n = graph.nodes.size();
     /** MLP model by Chopra and Rao (1995)**/
     Model MIP;
-    var<bool> zij("z");
+   // var<bool> zij("z");
+    var<double> zij("z",0,1);
+
     MIP.add_var(zij^(n*(n-1)/2));
     constant<int> ones(1);
     func_ obj_MIP;
@@ -139,13 +141,12 @@ int main (int argc, const char * argv[])
     
     /**  relaxation model for Minmum k-cut probelm **/
     Model relax;
-    var<double> Xij("Xij", -1/(k-1), 1); // i<j
+    var<double> Xij("Xij", -1/(k-1),1); // i<j
     relax.add_var(Xij^(n*(n-1)/2));
-    
     graph.get_tree_decomp_bags();
     cout << "total bags: " << graph._bags.size() << endl;
-    func_ obj;
     
+    func_ obj;
     for (auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -154,7 +155,6 @@ int main (int argc, const char * argv[])
         else
             obj += a->weight*((k-1)*Xij(j,i) + 1)/k;
     }
-    
    // obj.print();
     relax.set_objective(min(obj));
     
@@ -182,8 +182,8 @@ int main (int argc, const char * argv[])
             SDP3 += power(Xij(i1,i2),2);
             SDP3 += power(Xij(i1,i3),2);
             SDP3 += power(Xij(i2,i3),2);
-            SDP3.print();
-//            relax.add_constraint(SDP3);
+           // SDP3.print();
+         // relax.add_constraint(SDP3);
         }
     }
     
@@ -197,18 +197,18 @@ int main (int argc, const char * argv[])
                 Triangle2 = Xij(i,h)+Xij(i,j)-Xij(h,j);
                 Constraint Triangle3("Triangle3("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
                 Triangle3 = Xij(i,j)+Xij(h,j)- Xij(i,h);
-//                relax.add_constraint(Triangle1<=1);
-//                relax.add_constraint(Triangle2<=1);
-//                relax.add_constraint(Triangle3<=1);
+                relax.add_constraint(Triangle1<=1);
+                relax.add_constraint(Triangle2<=1);
+                relax.add_constraint(Triangle3<=1);
             }
-//    for (auto i=0; i<n-1; i++)
-//        for (auto h=i+1; h<n; h++)
-//            for (auto j=h+1; j<n;j++){
-//                Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
-//                Clique = Xij(i,h) + Xij(h,j) + Xij(i,j);
-//              // Clique.print();
-//                relax.add_constraint(Clique >=-k/2);
-//            }
+    for (auto i=0; i<n-1; i++)
+        for (auto h=i+1; h<n; h++)
+            for (auto j=h+1; j<n;j++){
+                Constraint Clique("Clique("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
+                Clique = Xij(i,h) + Xij(h,j) + Xij(i,j);
+              // Clique.print();
+                relax.add_constraint(Clique >=-k/2);
+            }
     
     /* Constraints declaration */
 //    for (int i = 0; i < n; i++){
