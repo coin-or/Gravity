@@ -26,7 +26,7 @@ void Sort(T &a, T &b, T &c){
 
 
 Minkmodel::Minkmodel(){};
-Minkmodel::~Minkmodel(){};
+Minkmodel::~Minkmodel(){ _graph->~Net(); _model.~Model();};
 
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_graph(graph),_K(K),_solver(cplex),zij("zij"),Xij("Xij"){};
 
@@ -49,7 +49,7 @@ void Minkmodel::build(){
         case MIP_tree:
             add_vars_origin();
             add_triangle_tree();
-            add_clique();
+           // add_clique();
         case SDP_tree:
             add_vars_lifted();
             add_triangle_lifted_tree();
@@ -205,6 +205,7 @@ void Minkmodel::tree_decompose(){
                     }
                 }
     }
+    cout << "size of ids: " << _ids.size() << endl;
 }
 
 void Minkmodel::add_3Dcuts(){
@@ -273,5 +274,3 @@ int Minkmodel::solve(){
     // relax.print_solution();
     return 1;
 }
-
-

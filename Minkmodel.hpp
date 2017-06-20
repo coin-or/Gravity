@@ -69,7 +69,6 @@ public:
     
     /** Presolve */
     //    void propagate_bounds();
-    
     /** Solve */
     int solve();
     void print();
