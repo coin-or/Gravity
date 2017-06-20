@@ -69,14 +69,17 @@ double get_cpu_time(){
 int main (int argc, const char * argv[])
 {
     double k = 3;   
-    string fname = "../../data_sets/Minkcut/spinglass2g_99.txt";
+    string fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
+    graph->get_tree_decomp_bags();
     
-    ModelType mt = MIP_tree;
+    //ModelType mt = SDP_tree;
+    ModelType mt = SDP_tree;
+
     SolverType solver= cplex;
+    
     Minkmodel mymodel(mt,graph,k,solver);
-    mymodel.tree_decompose();
     mymodel.build();
     
     double wall0 = get_wall_time();

@@ -48,12 +48,16 @@ void Minkmodel::build(){
             break;
         case MIP_tree:
             add_vars_origin();
+            tree_decompose();
             add_triangle_tree();
-           // add_clique();
+            add_clique();
+            break;
         case SDP_tree:
             add_vars_lifted();
+            tree_decompose();
             add_triangle_lifted_tree();
             add_clique_lifted();
+            break;
         default:
             break;
     }
@@ -61,6 +65,7 @@ void Minkmodel::build(){
 void Minkmodel::reset(){};
 
 void Minkmodel::add_vars_origin(){
+    zij.add_bounds(0,1);
     _model.add_var(zij^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
     
     func_ obj_MIP;
@@ -68,14 +73,12 @@ void Minkmodel::add_vars_origin(){
     for (auto a: _graph->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i <= j)
+        if (i <= j &&a->weight !=0)
             obj_MIP += (a->weight)*zij(i,j);
         else
             obj_MIP += (a->weight)*zij(j,i);
     }
     _model.set_objective(min(obj_MIP));
-
-    
 }
 
 void Minkmodel::add_vars_lifted(){
@@ -180,7 +183,7 @@ void Minkmodel::add_clique_lifted(){
 }
 
 void Minkmodel::tree_decompose(){
-    _graph->get_tree_decomp_bags();
+    //_graph->get_tree_decomp_bags();
     int i1,i2,i3;
     for (int i = 0; i < _graph->_bags.size(); i++){
         auto bag = _graph->_bags.at(i);
@@ -244,6 +247,7 @@ void Minkmodel::add_triangle_tree(){
 }
 
 void Minkmodel::add_triangle_lifted_tree(){
+    cout << "Warning: something is wrong !!" << endl;
     int i1,i2,i3;
     for (auto it: _ids){
         i1 = get<0>(it);
