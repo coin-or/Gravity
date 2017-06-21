@@ -28,9 +28,8 @@ public:
     Net*        _graph;
     var<double> zij;
     var<double> Xij;
-    
-    set<tuple<int,int,int>> _ids; // 
-
+    set<tuple<int,int,int>> _ids; //
+    set<tuple<int,int,int,int>> _ids4; //
     
     arma::mat _eigvec;
     Minkmodel();
@@ -40,8 +39,6 @@ public:
     ~Minkmodel();
     void reset();
     void build();
-    //    /** Accessors */
-    //    Function* objective();
     
     /** Variables */
     void add_vars_origin();
@@ -53,10 +50,12 @@ public:
     //void add_obj_lifted();
     void add_triangle();
     void add_clique();
+    void add_clique_tree();
     void add_triangle_lifted();
     void add_triangle_tree();
     void add_triangle_lifted_tree();
     void add_clique_lifted();
+    void add_clique_lifted_tree();
     void add_3Dcuts();
     void tree_decompose();
 

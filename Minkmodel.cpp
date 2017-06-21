@@ -24,7 +24,6 @@ void Sort(T &a, T &b, T &c){
 }
 
 
-
 Minkmodel::Minkmodel(){};
 Minkmodel::~Minkmodel(){ _graph->~Net(); _model.~Model();};
 
@@ -50,13 +49,15 @@ void Minkmodel::build(){
             add_vars_origin();
             tree_decompose();
             add_triangle_tree();
-            add_clique();
+            add_clique_tree();
+            //add_clique();
             break;
         case SDP_tree:
             add_vars_lifted();
             tree_decompose();
             add_triangle_lifted_tree();
-            add_clique_lifted();
+            //add_clique_lifted();
+            add_clique_lifted_tree();
             break;
         default:
             break;
@@ -184,7 +185,8 @@ void Minkmodel::add_clique_lifted(){
 
 void Minkmodel::tree_decompose(){
     //_graph->get_tree_decomp_bags();
-    int i1,i2,i3;
+    int i1,i2,i3,i4;
+    int j1,j2,j3,j4;
     for (int i = 0; i < _graph->_bags.size(); i++){
         auto bag = _graph->_bags.at(i);
         if (bag.size()<3) {
@@ -193,22 +195,41 @@ void Minkmodel::tree_decompose(){
         
         for (int j = 0; j < bag.size()-2;j++)
             for (int h=j+1; h<bag.size()-1;h++)
-                for (int l=j+1; l<bag.size();l++){
+                for (int l=h+1; l<bag.size();l++){
                     i1 = bag[j]->ID;
                     i2 = bag[h]->ID;
                     i3 = bag[l]->ID;
-                    if (i1 != i2 && i2 !=i3 &&i3!= i1){
-                        Sort(i1,i2,i3);
+                    //cout << "(i1, i2, i3) " << i1 << " " << i2 << " " << i3 << endl;
+                       // Sort(i1,i2,i3);
                         if(_ids.count(make_tuple(i1, i2, i3))==0){
                             _ids.insert(make_tuple(i1, i2, i3));
                         }
                         else {
                             continue;
                         }
-                    }
                 }
+        if (bag.size()>3){
+            for(j1 = 0; j1 < bag.size()-3;j1++)
+                for(j2=j1+1; j2<bag.size()-2;j2++)
+                    for(j3=j2+1; j3<bag.size()-1;j3++)
+                        for(j4=j3+1;j4<bag.size();j4++){
+                            i1 = bag[j1]->ID;
+                            i2 = bag[j2]->ID;
+                            i3 = bag[j3]->ID;
+                            i4 = bag[j4]->ID;
+                       // cout << "(i1, i2, i3, i4) " << i1 << " " << i2 << " " << i3 <<" " << i4<< endl;
+                         //   Sort(i1,i2,i3,i4);
+                            if(_ids4.count(make_tuple(i1, i2, i3,i4))==0){
+                                _ids4.insert(make_tuple(i1, i2,i3,i4));
+                            }
+                            else {
+                                continue;
+                            }
+                    }
+        }
     }
-    cout << "size of ids: " << _ids.size() << endl;
+    cout << "size of 3D ids: " << _ids.size() << endl;
+    cout << "size of 4D ids: " << _ids4.size() << endl;
 }
 
 void Minkmodel::add_3Dcuts(){
@@ -233,7 +254,7 @@ void Minkmodel::add_triangle_tree(){
         i1 = get<0>(it);
         i2 = get<1>(it);
         i3 = get<2>(it);
-        cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3 << endl;
+       //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3 << endl;
         Constraint Triangle1("ZTriangle1("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
         Triangle1 = zij(i1,i2)+zij(i1,i3)-zij(i2,i3);
         Constraint Triangle2("ZTriangle2("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
@@ -247,13 +268,12 @@ void Minkmodel::add_triangle_tree(){
 }
 
 void Minkmodel::add_triangle_lifted_tree(){
-    cout << "Warning: something is wrong !!" << endl;
     int i1,i2,i3;
     for (auto it: _ids){
         i1 = get<0>(it);
         i2 = get<1>(it);
         i3 = get<2>(it);
-        cout << "(i1, i2, i3): " << i1 << ", " << i2 <<", " << i3 <<endl;
+        //cout << "(i1, i2, i3): " << i1 << ", " << i2 <<", " << i3 <<endl;
         Constraint Triangle1("Triangle1("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
         Triangle1 = Xij(i1,i2)+Xij(i1,i3)-Xij(i2,i3);
         Constraint Triangle2("Triangle2("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
@@ -265,6 +285,57 @@ void Minkmodel::add_triangle_lifted_tree(){
         _model.add_constraint(Triangle3<=1);
     }
 
+}
+void Minkmodel::add_clique_tree(){
+    int i1,i2,i3,i4;
+    if (_K>2)
+        for (auto it: _ids4){
+            i1 = get<0>(it);
+            i2 = get<1>(it);
+            i3 = get<2>(it);
+            i4 = get<3> (it);
+            //cout << "(i1, i2, i3, i4): " << i1 << ", " << i2 << ", " << i3 << ", " << i4<< endl;
+            Constraint Clique("ZClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+ ", "+to_string(i4)+")");
+            Clique = zij(i1,i2) +zij(i1,i3) + zij(i1,i4) + zij(i2,i3) + zij(i2,i4) +zij(i3,i4);
+            _model.add_constraint(Clique >=1);
+        }
+    else{
+        for (auto it: _ids){
+            i1 = get<0>(it);
+            i2 = get<1>(it);
+            i3 = get<2>(it);
+            //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3<< endl;
+            Constraint Clique("ZClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
+            Clique = zij(i1,i2) +zij(i1,i3) + zij(i2,i3);
+            _model.add_constraint(Clique >=1);
+        }
+    }
+}
+
+void Minkmodel::add_clique_lifted_tree(){
+    int i1,i2,i3,i4;
+    if (_K>2)
+        for (auto it: _ids4){
+            i1 = get<0>(it);
+            i2 = get<1>(it);
+            i3 = get<2>(it);
+            i4 = get<3> (it);
+            //cout << "(i1, i2, i3, i4): " << i1 << ", " << i2 << ", " << i3 << ", " << i4<< endl;
+            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+ ", "+to_string(i4)+")");
+            Clique = Xij(i1,i2) +Xij(i1,i3) + Xij(i1,i4) + Xij(i2,i3) + Xij(i2,i4) +Xij(i3,i4);
+            _model.add_constraint(Clique >= -0.5*_K);
+        }
+    else{
+        for (auto it: _ids){
+            i1 = get<0>(it);
+            i2 = get<1>(it);
+            i3 = get<2>(it);
+            //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3<< endl;
+            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
+            Clique = Xij(i1,i2) +Xij(i1,i3) + Xij(i2,i3);
+            _model.add_constraint(Clique >= -0.5*_K);
+        }
+    }
 }
 
 int Minkmodel::solve(){

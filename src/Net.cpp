@@ -300,7 +300,7 @@ void Net::readrudy(string fn){
     {
         istringstream iss(sLine);
         iss >> src >> dest >> weight;
-        cout << src  << ", " << dest << ", " << weight << endl;
+       // cout << src  << ", " << dest << ", " << weight << endl;
         id = (int)arcs.size();
         arc = new Arc(to_string(id));
         arc_clone = new Arc(to_string(id));
