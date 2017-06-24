@@ -70,12 +70,13 @@ int main (int argc, const char * argv[])
 {
     double k = 3;   
     string fname = "../../data_sets/Minkcut/spinglass2g_99.txt";
+    //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_tree_decomp_bags();
     
-    //ModelType mt = MIP;
-    ModelType mt = MIP_tree;
+    ModelType mt = MIP;
+    //ModelType mt = MIP_tree;
     SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);
@@ -83,7 +84,9 @@ int main (int argc, const char * argv[])
     
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    mymodel.solve();
+    bool relax = false;
+    int output = 1;
+    mymodel.solve(output,relax);
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";

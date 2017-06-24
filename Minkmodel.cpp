@@ -338,14 +338,14 @@ void Minkmodel::add_clique_lifted_tree(){
     }
 }
 
-int Minkmodel::solve(){
+int Minkmodel::solve(int output, bool relax){
     solver s(_model,_solver);
     //double wall0 = get_wall_time();
     //double cpu0  = get_cpu_time();
     cout << "Running the relaxation model \n";
-    s.run();
+    s.run(output,relax);
     //double wall1 = get_wall_time();
     //double cpu1  = get_cpu_time();
-    // relax.print_solution();
+    //relax.print_solution();
     return 1;
 }
