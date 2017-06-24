@@ -69,7 +69,7 @@ double get_cpu_time(){
 int main (int argc, const char * argv[])
 {
     double k = 3;   
-    string fname = "../../data_sets/Minkcut/spinglass2g_99.txt";
+    string fname = "../../data_sets/Minkcut/spinglass2g_33.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_tree_decomp_bags();
