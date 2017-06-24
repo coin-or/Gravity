@@ -24,13 +24,16 @@ void Sort(T &a, T &b, T &c){
 }
 
 
-Minkmodel::Minkmodel(){};
-Minkmodel::~Minkmodel(){ _graph->~Net(); _model.~Model();};
+Minkmodel::Minkmodel(){
+};
 
-Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_graph(graph),_K(K),_solver(cplex),zij("zij"),Xij("Xij"){};
+Minkmodel::~Minkmodel(){
+};
+
+Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph),zij("zij"),Xij("Xij"){};
 
 
-Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_graph(graph),_K(K),_solver(solver),zij("zij"),Xij("Xij"){};
+Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph),zij("zij"),Xij("Xij"){};
 
 
 void Minkmodel::build(){
