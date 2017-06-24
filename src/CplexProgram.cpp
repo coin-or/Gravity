@@ -318,5 +318,3 @@ void CplexProgram::prepare_model(){
     set_cplex_objective();    
     //    print_constraints();
 }
-
-
