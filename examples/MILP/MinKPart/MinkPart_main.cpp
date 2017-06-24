@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include "../../Minkmodel.hpp"
+#include "Minkmodel.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 
