@@ -557,10 +557,10 @@ void Net::get_tree_decomp_bags(bool print_bags){
         bag.push_back(n);
         sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
         if (print_bags) {
-            DebugOn(n->_name << "}\n");
+//            DebugOn(n->_name << ":\n");
             DebugOn("bag = {");
             for (int i=0; i<bag.size(); i++) {
-                cout << bag.at(i) << " ";
+                cout << bag.at(i)->_name << " ";
             }
             DebugOn("}" << endl);
         }
