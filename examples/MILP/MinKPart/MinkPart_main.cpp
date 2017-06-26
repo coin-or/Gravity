@@ -68,13 +68,11 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    double k = 3;   
-//<<<<<<< HEAD:examples/MILP/minkcut.cpp
-    string fname = "../../data_sets/Minkcut/spinglass2g_99.txt";
+    double k = 3;
+    //string fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
+    string fname = "../../data_sets/Minkcut/toy.txt";
+
     //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
-//=======
-    string fname = "../../data_sets/Minkcut/spinglass2g_33.txt";
-//>>>>>>> 2ee6365aa75052747ecf04aee40b12a86eb04826:examples/MILP/MinKPart/MinkPart_main.cpp
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_tree_decomp_bags();
