@@ -352,3 +352,32 @@ int Minkmodel::solve(int output, bool relax){
     //relax.print_solution();
     return 1;
 }
+
+bool Minkmodel::check_eigenvalues(){
+   arma::SpMat<double> A(_graph->nodes.size(), _graph->nodes.size());
+    //for (i= 0; i < _data->nbV[0]*nbServers; i++)
+      //  for (j= 0; j < _data->nbV[0]*nbServers; j++){
+        // matrix A contain values of X - x*x^T.
+            //A(i,j) = (double)val_M[0][i][j];
+        //}
+    arma::vec eigval;
+    arma::eigs_sym(eigval,_eigvec,A, 1,"sa",0.000001);
+    if (eigval(0) < -0.0001)
+    {
+        cout << "there exists negative eigenvalue: " << eigval << endl;
+        return true;
+    }
+    else{
+        cout << "The solution x satisfy SDP constraint  X>=0" << endl;
+        return false;
+    }
+}
+
+
+
+
+
+
+
+
+
