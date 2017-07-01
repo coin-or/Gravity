@@ -95,7 +95,7 @@ void Minkmodel::add_vars_origin_tree(){
     for (auto a: _graph->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i <= j &&a->weight !=0)
+        if (i <= j)
             obj_MIP += (a->weight)*zij(i,j);
         else
             obj_MIP += (a->weight)*zij(j,i);
@@ -287,9 +287,7 @@ void Minkmodel::add_triangle_tree(){
     }
     Constraint redudant("redudant");
     redudant = zij(2,3);
-    _model.add_constraint(redudant <= 1);
-    redudant.print();
-    cout << "zij size = " << zij.get_dim() << endl;
+    _model.add_constraint(redudant <= 1);    
 }
 
 void Minkmodel::add_triangle_lifted_tree(){
