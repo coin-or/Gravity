@@ -462,10 +462,16 @@ public:
         }
         else if(vals){
             str += " = [ ";
-            for(int i = 0 ; i < param_::get_dim(); i++){
-                str += std::to_string(_val->at(i));
+            for(auto &pi: *_indices){
+                str += "("+pi.first+")";
+                str += "=";
+                str += to_string(_val->at(pi.second));
                 str += " ";
             }
+//            for(int i = 0 ; i < param_::get_dim(); i++){
+//                str += std::to_string(_val->at(i));
+//                str += " ";
+//            }
             str += "];";
         }
         return str;

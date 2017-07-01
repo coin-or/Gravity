@@ -1,0 +1,152 @@
+========================
+  The SDPA-Data-Format
+========================
+
+SDP-solvers typically use the sparse sdpa-format (*.dat-s) for the problem 
+instances. For solving mixed-integer SDPs we need to extend the format. The 
+format is a sparse format, so zeros can be omitted. 
+The format models problems in the following standard form:
+
+    min  c^T*y
+    s.t. sum_i A_i*y_i - A_0 =  Z
+                           Z >= 0
+
+To allow for a more efficient solving strategy, a known block structure
+of Z may also be given, meaning that there are matrices Z_1 to Z_k which
+should be positive semidefinite and also an LP-block Z_(k+1), which has a
+diagonal structure. As the LP-block is diagonal, positive semidefiniteness
+is equivalent to all diagonal entries being non-negative, so
+sum_i (A_i)_(jj)*y_i - (A_0)_(jj) >= 0 
+is an LP-constraint.
+
+The first line of the sdpa-format states the number of variables, the
+second line the number of blocks, including an LP-block if one exists. 
+The third line lists the sizes of the blocks seperated by spaces and with
+a negative sign for the LP-block. The third line lists the objective values 
+of all variables, again seperated by spaces. The rest of the lines each give
+one entry of the matrices A_0 or A_i.
+
+Matrix entries are given in the following format:
+n b i j v
+n = index of variable (0 stands for the rhs, i.e. the constant terms)
+b = index of block
+i j = position in matrix
+v = coefficient or value
+
+All inequalities are >= .
+A detailled description of the SDPA-format can be found here: 
+http://euler.nmt.edu/~brian/sdplib/FORMAT. 
+
+All matrices must be symmetric, so only the upper or the lower triangle of a 
+matrix should be given. Only one entry per variable and position is allowed.
+
+*-------------*
+*  EXTENSION  *
+*-------------*
+Our extension starts with '*INTEGER'. This signals a new section in the 
+sdpa-file. Afterwards there is one line per integer variable, beginning with 
+a '*'. Be careful as the format is 1-based. If your variables are binary, you  
+have to model the bounds on the variables in an lp-block, i.e. x_i >=0 and  
+-x_i>=-1. Lines beginning with '*' are treated as comments by common  
+SDPA-readers, so most should have no problem with our files. Our extension will be
+ignored.
+
+________________________________________________________________________________
+References:
+
+[1] Borchers, Brian. SDPLIB 1.2, a library of semidefinite programming test 
+	problems. Optimization Methods and Software, volume 11, number 1-4, 
+    pages 683-690, 1999, doi = 10.1080/10556789908805769.
+________________________________________________________________________________
+
+*---------------------------------------------------------------------------------------------*
+* EXAMPLE (the sdpa-File is found at instances/example_small.dat-s in the SCIPSDP directory): *
+*---------------------------------------------------------------------------------------------*
+Suppose we want to solve the following MISDP:
+
+ max   	-y_1 + 2*y_2 + y_3
+
+ s.t.  	( y_1 y_2 )
+      	( y_2 y_3 ) 
+	>= 0
+
+	( y_3 y_1 )
+	( y_1 2.1 )
+	>= 0
+	
+	y_1 + y_2 + y_3 >= 1
+	y_1 + y_2 + y_3 <= 8
+
+	y_1, y_2, y_3 integer.
+
+Then this reads in standard form with two SDP- and one LP-block (note that 
+since we are now minimizing, the optimal objective value needs to be multiplied 
+by -1 afterwards):
+
+ min 	1*y_1 + (-2)*y_2 + (-1)*y_3
+
+ s.t.	( 1.000000 0.000000 )
+	( 0.000000 0.000000 )
+	* y_1
+	+
+	( 0.000000 1.000000 )
+	( 1.000000 0.000000 )
+	* y_2
+	+
+	( 0.000000 0.000000 )
+	( 0.000000 1.000000 )
+	* y_3
+	-
+	( 0.000000 0.000000 )
+	( 0.000000 0.000000 )
+	>=0
+
+	( 0.000000 1.000000 )
+	( 1.000000 0.000000 )
+	* y_1
+	+
+	( 0.000000 0.000000 )
+	( 0.000000 0.000000 )
+	* y_2
+	+
+	( 1.000000 0.000000 )
+	( 0.000000 0.000000 )
+	* y_3
+	-
+	( 0.000000 0.000000 )
+	( 0.000000 -2.100000 )
+	>=0
+
+	y_1 + y_2 + y_3 >= 1
+	(-1)*y_1 + (-1)*y_2 + (-1)*y_3 >= -8
+
+	y_1, y_2, y_3 integer
+
+and the corresponding sdpa-File reads:
+
+3 = number of variables
+3 = number of blocks
+2 2 -2 = blocksizes (negative sign for LP-block, size of LP-block equals the number of LP-constraints)
+* the next line gives the objective values in the order of the variables
+1 -2 -1
+* the remaining lines give the nonzeroes of the constraints with variable (0 meaning the constant part) block row column value
+1 1 1 1 1 * first variable in block one, row one, column one has coefficient one
+2 1 1 2 1 * variable two in block one, row one, column two has coefficient one (note that because we expect the matrix to be symmetric, we don't need to give the entry for row two and column one)
+3 1 2 2 1
+1 2 1 2 1
+3 2 1 1 1
+0 2 2 2 -2.1 * the constant part (variable zero) in block two, row two, column two equals -2.1 (which we are substracting from the A_i, so in the combined matrix it will have a positive sign)
+1 3 1 1 1 * block three is the LP block, the LP constraints appear as diagonal entries in this block
+2 3 1 1 1
+3 3 1 1 1
+0 3 1 1 1
+1 3 2 2 -1
+2 3 2 2 -1
+3 3 2 2 -1
+0 3 2 2 -8
+*INTEGER
+*1
+*2
+*3
+
+--------------------------------------------------------------------------------

@@ -49,7 +49,7 @@ void Minkmodel::build(){
             add_clique_lifted();
             break;
         case MIP_tree:
-            add_vars_origin();
+            add_vars_origin_tree();
             tree_decompose();
             add_triangle_tree();
             add_clique_tree();
@@ -71,6 +71,24 @@ void Minkmodel::reset(){};
 void Minkmodel::add_vars_origin(){
     zij.add_bounds(0,1);
     _model.add_var(zij^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
+    
+    func_ obj_MIP;
+    int i=0, j=0;
+    for (auto a: _graph->arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j &&a->weight !=0)
+            obj_MIP += (a->weight)*zij(i,j);
+        else
+            obj_MIP += (a->weight)*zij(j,i);
+    }
+    _model.set_objective(min(obj_MIP));
+}
+
+void Minkmodel::add_vars_origin_tree(){
+    zij.add_bounds(0,1);
+    
+    _model.add_var(zij^(_graph->arcs.size()));
     
     func_ obj_MIP;
     int i=0, j=0;
@@ -195,7 +213,6 @@ void Minkmodel::tree_decompose(){
         if (bag.size()<3) {
             continue;
         }
-        
         for (int j = 0; j < bag.size()-2;j++)
             for (int h=j+1; h<bag.size()-1;h++)
                 for (int l=h+1; l<bag.size();l++){
@@ -231,8 +248,8 @@ void Minkmodel::tree_decompose(){
                     }
         }
     }
-    cout << "size of 3D ids: " << _ids.size() << endl;
-    cout << "size of 4D ids: " << _ids4.size() << endl;
+    cout << "size of 3d ids: " << _ids.size() << endl;
+    cout << "size of 4d ids: " << _ids4.size() << endl;
 }
 
 void Minkmodel::add_3Dcuts(){
@@ -268,6 +285,11 @@ void Minkmodel::add_triangle_tree(){
         _model.add_constraint(Triangle2 <=1);
         _model.add_constraint(Triangle3 <=1);
     }
+    Constraint redudant("redudant");
+    redudant = zij(2,3);
+    _model.add_constraint(redudant <= 1);
+    redudant.print();
+    cout << "zij size = " << zij.get_dim() << endl;
 }
 
 void Minkmodel::add_triangle_lifted_tree(){
@@ -315,6 +337,71 @@ void Minkmodel::add_clique_tree(){
     }
 }
 
+void Minkmodel::add_general_clique(){
+//  t=1, q=2,...,k-1
+    for (int i = 0; i < _graph->_bags.size(); i++){
+        auto bag = _graph->_bags.at(i);
+        if (bag.size() > _K+1) {
+            Constraint GClique("General_Clique"+to_string(i));
+            int t = floor(bag.size()/_K);
+            int q = (bag.size()-t*_K);
+            for (int j= 0; j< bag.size()-1; j++){
+                int idj=bag[j]->ID;
+                for (int k=j+1; k< bag.size(); k++){
+                    int idk=bag[k]->ID;
+                    if (idj < idk)
+                        GClique +=zij(idj,idk);
+                    else
+                        GClique +=zij(idk,idj);
+                        
+                }
+            }
+            _model.add_constraint(GClique >= 0.5*t*(t-1)*(t-q)+0.5*t*(t+1)*q);
+        }
+    }
+}
+
+void Minkmodel::add_wheel(){
+//    int q = 5;
+//    for (int i = 0; i < _graph->_bags.size(); i++){
+//        auto bag = _graph->_bags.at(i);
+//        if (bag.size()>q+1) {
+//            for (int j= 0; j< bag.size(); j++){
+//                Constraint GClique("General_Clique: bag "+to_string(i)+" constr: "+to_string(j));
+//                 // wheel center
+//                int idfirst=bag[j]->ID;
+//                // the spokes part
+//                for (int k=0; k< j; k++){
+//                    int idsec=bag[k]->ID;
+//                    if (idfirst < idsec)
+//                        GClique += zij(idfirst,idsec);
+//                    else
+//                        GClique += zij(idsec,idfirst);
+//
+//                }
+//                for (int k=j+1; k< bag.size(); k++){
+//                    int idsec=bag[k]->ID;
+//                    GClique += zij(idfirst,idsec);
+//                }
+//                // the wheel part
+//                // generate the wheel set
+//                vector<int> wheel;
+//                for (int k=0; k < bag.size(); k++)
+//                    if (k!=j) wheel.push_back(k);
+//                
+//                for (auto iter: wheel){
+//                    
+//                
+//                }
+//                    
+//             
+//            }
+//        }
+//    }
+}
+
+void Minkmodel::add_bicycle(){}
+
 void Minkmodel::add_clique_lifted_tree(){
     int i1,i2,i3,i4;
     if (_K>2)
@@ -341,14 +428,34 @@ void Minkmodel::add_clique_lifted_tree(){
     }
 }
 
-int Minkmodel::solve(){
+int Minkmodel::solve(int output, bool relax){
     solver s(_model,_solver);
     //double wall0 = get_wall_time();
     //double cpu0  = get_cpu_time();
     cout << "Running the relaxation model \n";
-    s.run();
+    s.run(output,relax);
     //double wall1 = get_wall_time();
     //double cpu1  = get_cpu_time();
-    // relax.print_solution();
+    //relax.print_solution();
     return 1;
 }
+
+//bool Minkmodel::check_eigenvalues(){
+//   arma::SpMat<double> A(_graph->nodes.size(), _graph->nodes.size());
+//    //for (i= 0; i < _data->nbV[0]*nbServers; i++)
+//    //  for (j= 0; j < _data->nbV[0]*nbServers; j++){
+//    // matrix A contain values of X - x*x^T.
+//    //A(i,j) = (double)val_M[0][i][j];
+//    //}
+//    arma::vec eigval;
+//    arma::eigs_sym(eigval,_eigvec,A, 1,"sa",0.000001);
+//    if (eigval(0) < -0.0001)
+//    {
+//        cout << "there exists negative eigenvalue: " << eigval << endl;
+//        return true;
+//    }
+//    else{
+//        cout << "The solution x satisfy SDP constraint  X>=0" << endl;
+//        return false;
+//    }
+//}

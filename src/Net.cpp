@@ -83,7 +83,7 @@ const bool node_compare(const Node* n1, const Node* n2) {
 }
 
 void Net::add_node(Node* node){
-    node->ID = (int)nodes.size();
+    node->ID = (int)nodes.size(); // depends on the size. 
     
   //  nodeID.insert(pair<string,Node*>(_name,node)).
 

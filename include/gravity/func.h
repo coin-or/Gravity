@@ -23,6 +23,8 @@ void reverse_sign(constant_* c); /**< Reverses the sign of the constant. */
 constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
 constant_* copy(constant_&& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
 bool equals(const constant_* c1, const constant_* c2);
+void poly_set_val(unsigned i, double val, param_* p);
+
 template<typename type> type eval(ind i, const constant_* c1);
 template<typename type> type eval(const constant_* c1);
 template<typename type> param<type> vec(type t, int n); /**< Returns a vector of dimension n and storing the value t */

@@ -1,0 +1,150 @@
+SCIP-SDP version 3.0.0
+==================
+
+fixed bugs:
+- the SDPA interface incorrectly reused the settings of the last node instead of the parent node
+- fixed fast/penalty/unsolved display columns to divide by number of interface calls instead of
+  number of solver calls (which includes multiple calls for penalty formulation etc.)
+- in SDPA interface if parent node used default settings, now continue with stable settings
+  afterwards instead of directly moving to penalty formulation
+- fixed memory leaks for fixed and (multi-)aggregated variables and in sdp-obbt
+- input values are now checked against epsilon instead of feastol for detecting nonzeros
+- only fix variables locally if lb-ub < epsilon instead of feastol
+- feasibility is no longer checked against sdpsolverfeastol but instead against feastol everywhere
+  (sdpsolverfeastol is now only used internally for the SDP-solver)
+- immediately resolve SDP-relaxations if the required tolerance was not met by the solver
+- fixed a problem which could lead to errors when the sdpredcost-propagator asked for information
+  after the SDP-solver hit the SCIP-timelimit
+
+features:
+- readded "diagzeroimpl" cuts in presolving which enforce nonzero diagonal entries if a nonzero
+  entry exists in the constant matrix for the corresponding row or column (under some prerequisites)
+
+interface:
+- added interface to MOSEK
+- added reader for CBF format
+
+parameters:
+- The "diagzeroimpl" and diagonal >= 0 cuts of the SDP constraint handler can now be disabled through
+  the parameters "constraints/SDP/diagzeroimplcuts" and "constraints/SDP/diaggezerocuts".
+- "sdpsolverepsilon" has been renamed to "sdpsolvergaptol" to make the usage clearer
+- The number of threads for MOSEK can be set via "relaxing/SDP/sdpsolverthreads"
+- The maximum number of increases of the penaltyparameter and maximum number of decreases of the feasibility
+  tolerance before declaring a problem unsolvable and continueing with the bound of the parent node can now
+  be set via "relaxing/SDP/npenaltyincr"
+
+core:
+- adjusted SCIP-SDP to new enforelax callback in SCIP; this now allows to combine SCIP-SDP with other nonlinear
+  constraints/constraint handlers
+
+makefile:
+- set links to mumps libraries instead of library folder
+- All internal and external libraries are placed in lib/static and lib/shared, the include files are in lib/include.
+- Current check scripts are now copied directly from the chosen SCIP directory.
+
+SCIP-SDP version 2.1.0
+==================
+
+fixed bugs:
+- current iterate is now correctly reset when changing parameters in SDPA
+- parameters for SDPA are now set before inserting the problem so that they are also used for computing the initial point
+- changed default lambda star parameter in SDPA to reduce aborts in infeasible subproblems
+- changed default penalty parameter in DSDP to prevent cases where optimal solutions within the feasibility tolerance
+  where cut off by DSDP
+- fixed bug in reader that resulted in wrong computation of LP-row-indices when using multiple LP-blocks and could lead
+  to segmentation faults
+- infeasibility-status for presolving was not correctly reset after changing bounds
+- check again for all variables fixed after local presolving, problems without variables may not be given to SDPA
+- fixed some wrong asserts that used epsilon instead of feasibility tolerance
+- one array in the SDPA interface was not properly resized after loading a second, bigger problem into the same SCIP shell
+- number of SDP iterations now includes all solved SDPs, including those which were later resolved with different settings
+  or the penalty formulation
+
+features:
+- added possibility to also check primal slater condition and output statistics in the end
+- added diving heuristic for SDPs (disabled by default) [please note: This requires SCIP version 4.0 or higher and is 
+  disabled for SCIP version 3.2.1 or lower]
+- added randomized rounding heuristic for SDPs [please note: This requires SCIP version 4.0 or higher and is 
+  disabled for SCIP version 3.2.1 or lower]
+- added optimization-based bound tightening for SDPs (disabled by default) [please note: This requires SCIP version 4.0 
+  or higher and is disabled for SCIP version 3.2.1 or lower]
+
+performance improvements:
+- in case of numerical problems in SDPA, child nodes are no longer tried to solve with fast settings in SDPA, but instead with
+  whatever settings worked for the parent node (this can be controlled via parameter)
+
+interface:
+- added possibility to read and write in .cip format
+- when using DSDP, the time limit is now checked after each iteration
+
+parameters:
+- penalty parameter to be used for numerically hard relaxations can now be changed by a parameter
+- lambda star parameter for initial point in SDPA can now be changed by a parameter
+- frequency of parameter resets in SDPA can be set by a parameter
+- number of threads for SDPA/Openblas can now be changed via parameter if OpenMP is installed
+- slatercheck is now an int parameter that also determines whether Slater results should be printed to console or
+  only displayed as statistics in the end
+- added parameter to control output of statistics after quitting SCIP-SDP
+
+core:
+- if an SDP relaxation cannot be solved, it is first checked for feasibility using an adjusted penalty formulation
+  and only if the problem cannot be shown to be infeasible this way, a different penalty formulation is used to 
+  solve the problem with the original objective function
+- in the penalty formulation the primal bound added by the penalty parameter is now also checked to decide between
+  increasing the penalty parameter or decreasing the feasibility tolerance, also the best lower bound computed by the
+  penalty formulation is now used in SCIP even if the corresponding solution is not feasible in the original
+  formulation
+
+misc:
+- percentage of unsolved SDP relaxations are now displayed in the shell; percentage of instances solved using the fastest
+  settings (for SDPA, for DSDP this is the number of problems solved with the original formulation) and solved using the
+  penalty formulation can also be displayed but are disabled by default
+- statistics about number of SDP iterations, percentage of solved SDPs and (if enabled via parameter) percentage of 
+  problems satisfying the Slater condition are now displayed after quitting SCIP-SDP
+
+
+SCIP-SDP version 2.0.0
+==================
+
+fixed bugs:
+- if DSDP does not converge but produces primal and dual feasible solutions, these are no longer accepted as optimal
+- reader no longer crashes because of comment-lines between SDP/LP-block-lines
+- value 0 in the last LP-block-line no longer causes an infinite loop
+- non-numbers in the SDP/LP-block-lines and lines with more or less than five entries no longer cause infinite loops
+  or get cut off or combined with others rows, but cause exits with meaningful error messages
+- removed the diagDominant-cuts that are only correct for general MISDPs under some prerequisites
+
+data structures:
+- now uses arrays for the nonzeros instead of the SDP-cone class
+
+features:
+- dual/reduced cost fixing for SDPs
+- added branching rules, as some of the SCIP branching rules only work on LP-solutions
+
+performance improvements:
+
+interface:
+- added a more modular SDP-Interface and removed direct DSDP-references from the SCIPSDP-core-code
+- added beta version of interface to SDPA
+
+parameters:
+- can now specify epsilon and feasibility tolerance for the SDP-solver specifically
+- can specify whether an objective limit should be set for the SDP-solver
+- can choose to display output of SDP-solver
+- can choose to check slater condition in the dual problem ahead of solving the SDPs
+- for a full list check the parameters tab in the documentation
+
+core:
+- transferred all code except for reader and SDPA-interface from C++ to C
+- now uses the SCIP shell
+- added SCIP 3.2.0 support
+- bounds from SCIP are no longer transformed into LP-rows but are given to the SDP Solver (specifically DSDP, for SDPA 
+  they still need to be transformed) as bounds
+
+Makefile:
+- creates extra directory sdpi for SDP-Interface
+- SDP-solver is now specified via make option SDPS=...
+- links are now set via console when calling make instead of the make.local file
+
+misc:
+- total and average SDP-iterations are displayed in the shell

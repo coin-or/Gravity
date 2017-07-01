@@ -51,7 +51,10 @@ bool CplexProgram::solve(bool relax){
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             IloNumArray vals(*_cplex_env);
             cplex.getValues(vals,_cplex_vars[i]);
-            cout << "  x" << i << " = " <<  vals << endl;
+//            cout << "  x" << i << " = " <<  vals << endl;
+            for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+                poly_set_val(j, vals[j], _model->_vars[i]);
+            }
         }
     }
     catch (IloException& ex) {

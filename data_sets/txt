@@ -1,0 +1,12 @@
+8
+new bag = { 6, 8, bag = {6 7 8 }
+7
+new bag = { 4, 6, bag = {4 5 6 }
+6
+new bag = { 2, 4, bag = {2 3 4 }
+5
+new bag = { 2, 8, bag = {1 2 8 }
+4
+new bag = { 2, 8, 4, bag = {2 4 6 8 }
+3
+new bag = { 8, 2, bag = {2 4 8 }
