@@ -185,6 +185,7 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
         auto newc = new Constraint(c);
+        newc->print();
 //        embed(*newc);
         newc->_id = _nb_cons;
         _cons_name[c.get_name()] = newc;

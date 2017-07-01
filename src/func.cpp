@@ -40,6 +40,31 @@ size_t get_poly_id_inst(const constant_* c){
 }
 
 
+void poly_set_val(unsigned i, double val, param_* p){
+    switch (p->get_intype()) {
+        case binary_:
+            ((param<bool>*)p)->set_val(i, val);
+            break;
+        case short_:
+            ((param<short>*)p)->set_val(i, val);
+            break;
+        case integer_:
+            ((param<int>*)p)->set_val(i, val);
+            break;
+        case float_:
+            ((param<float>*)p)->set_val(i, val);
+            break;
+        case double_:
+            ((param<double>*)p)->set_val(i, val);
+            break;
+        case long_:
+            ((param<long double>*)p)->set_val(i, val);
+            break;
+        default:
+            break;
+    }
+}
+
 double poly_eval(const constant_* c, size_t i){
     if (!c) {
         throw invalid_argument("Cannot evaluate nullptr!");

@@ -42,6 +42,7 @@ public:
     
     /** Variables */
     void add_vars_origin();
+    void add_vars_origin_tree();
     void add_vars_lifted();
     
     /** Constraints */
@@ -56,6 +57,9 @@ public:
     void add_triangle_lifted_tree();
     void add_clique_lifted();
     void add_clique_lifted_tree();
+    void add_general_clique();
+    void add_wheel();
+    void add_bicycle();
     void add_3Dcuts();
     void tree_decompose();
 

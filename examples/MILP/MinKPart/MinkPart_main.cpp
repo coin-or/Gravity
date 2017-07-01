@@ -68,17 +68,18 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    double k = 3;
+    double k = 2;
     //string fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
     string fname = "../../data_sets/Minkcut/toy.txt";
 
     //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
-    graph->get_tree_decomp_bags();
+    graph->get_tree_decomp_bags(true);
+  
     
-    ModelType mt = MIP;
-    //ModelType mt = MIP_tree;
+    //ModelType mt = MIP;
+    ModelType mt = MIP_tree;
     SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);
@@ -89,8 +90,21 @@ int main (int argc, const char * argv[])
     bool relax = false;
     int output = 1;
     mymodel.solve(output,relax);
+    mymodel.zij.param<int>::print(true);
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
+    
+//    for (int i=0; i< mymodel.zij.get_dim(); i++){
+    
+//    }
+//    for (auto &v: mymodel._model._vars) {
+//        poly_print(v.second);
+//    }
+//    for (int i=0; i< graph->nodes.size(); i++)
+//        for (int j=i+1; j< graph->nodes.size();j++){
+//            mymodel.zij(i,j).print();
+//            cout << endl;
+//        }
 }
