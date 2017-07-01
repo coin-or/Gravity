@@ -95,7 +95,6 @@ int main (int argc, const char * argv[])
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    
 //    for (int i=0; i< mymodel.zij.get_dim(); i++){
     
 //    }
