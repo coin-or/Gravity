@@ -178,17 +178,19 @@ int main (int argc, const char * argv[])
     cc1.print();//SHOULD PRINT CONCAVE
     cc1 += 2*p*q;
     cc1.print();
-    param<> aa("aa");
+    
+    param<int> aa("aa");
     aa = -1;
-//    aa = 0;
-//    auto ff = (aa*-1)*p*p - (ip + dp)*q*q;
-    auto ff = (aa*-1)*p*p;
-//    auto ff = -1*aa*v11*v11;
+    aa = -3;
+    auto ff = (aa)*p*p;
     ff.print();
     ff *= aa;
     ff.print();
-    ff *= aa*aa;
+    ff *= -1;
     ff.print();
+    
+    
+    return 0;
     ff *= aa;
     ff.print();
 //    ff += aa*(ip + dp)*q*q;
