@@ -7,6 +7,16 @@
 //
 
 #include "Minkmodel.hpp"
+//#define USEDEBUG
+#ifdef USEDEBUG
+#define Debug(x) cout << x
+#else
+#define Debug(x)
+#endif
+#define DebugOn(x) cout << x
+#define DebugOff(x)
+
+
 using namespace std;
 
 
@@ -24,11 +34,9 @@ void Sort(T &a, T &b, T &c){
 }
 
 
-Minkmodel::Minkmodel(){
-};
+Minkmodel::Minkmodel(){};
 
-Minkmodel::~Minkmodel(){
-};
+Minkmodel::~Minkmodel(){};
 
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph),zij("zij"),Xij("Xij"){};
 
@@ -67,7 +75,6 @@ void Minkmodel::build(){
     }
 }
 void Minkmodel::reset(){};
-
 void Minkmodel::add_vars_origin(){
     zij.add_bounds(0,1);
     _model.add_var(zij^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
@@ -77,7 +84,7 @@ void Minkmodel::add_vars_origin(){
     for (auto a: _graph->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i <= j &&a->weight !=0)
+        if (i <= j)
             obj_MIP += (a->weight)*zij(i,j);
         else
             obj_MIP += (a->weight)*zij(j,i);
@@ -87,8 +94,11 @@ void Minkmodel::add_vars_origin(){
 
 void Minkmodel::add_vars_origin_tree(){
     zij.add_bounds(0,1);
-    
-    _model.add_var(zij^(_graph->arcs.size()));
+    // the number of arcs in the chordal extension
+    //_model.add_var(zij^(_graph->arcs.size()));//
+    _model.add_var(zij^((_graph->_chordalextension)->arcs.size()));//
+
+    //cout << _graph->arcs.size() << endl;
     
     func_ obj_MIP;
     int i=0, j=0;
@@ -122,7 +132,7 @@ void Minkmodel::add_vars_lifted(){
 
 void Minkmodel::add_triangle(){
     auto n = _graph->nodes.size();
-    for (auto i=0; i<n-1; i++)
+    for (auto i=0; i<n; i++)
         for (auto h=i+1; h<n; h++)
             for (auto j=h+1; j<n; j++){
                 Constraint Triangle1("Triangle1("+to_string(i)+","+to_string(h)+ ","+to_string(j)+")");
@@ -157,7 +167,7 @@ void Minkmodel::add_triangle_lifted(){
 void Minkmodel::add_clique(){
     auto n = _graph->nodes.size();
     if (_K >2) {
-        for (auto i=0; i<n-1; i++)
+        for (auto i=0; i<n; i++)
             for (auto h=i+1; h<n; h++)
                 for (auto j=h+1; j<n;j++)
                     for (auto l=j+1;l<n;l++)
@@ -216,7 +226,7 @@ void Minkmodel::tree_decompose(){
         for (int j = 0; j < bag.size()-2;j++)
             for (int h=j+1; h<bag.size()-1;h++)
                 for (int l=h+1; l<bag.size();l++){
-                    i1 = bag[j]->ID;
+                    i1 = bag[j]->ID; // zero index. 
                     i2 = bag[h]->ID;
                     i3 = bag[l]->ID;
                     //cout << "(i1, i2, i3) " << i1 << " " << i2 << " " << i3 << endl;
@@ -285,9 +295,9 @@ void Minkmodel::add_triangle_tree(){
         _model.add_constraint(Triangle2 <=1);
         _model.add_constraint(Triangle3 <=1);
     }
-    Constraint redudant("redudant");
-    redudant = zij(2,3);
-    _model.add_constraint(redudant <= 1);    
+    //Constraint redudant("redudant");
+    //redudant = zij(2,3);
+    //_model.add_constraint(redudant <= 1);
 }
 
 void Minkmodel::add_triangle_lifted_tree(){
@@ -428,14 +438,128 @@ void Minkmodel::add_clique_lifted_tree(){
 
 int Minkmodel::solve(int output, bool relax){
     solver s(_model,_solver);
-    //double wall0 = get_wall_time();
-    //double cpu0  = get_cpu_time();
     cout << "Running the relaxation model \n";
     s.run(output,relax);
-    //double wall1 = get_wall_time();
-    //double cpu1  = get_cpu_time();
-    //relax.print_solution();
     return 1;
+}
+
+void Minkmodel::construct_fsol(){
+// construct a feasible solution from z
+    param<int> sol("sol");
+//  int  T = (_graph->nodes.size()*(_graph->nodes.size()-1)/2);
+//  sol^T;
+//  sol(0,1)=1;
+//  sol(0,1).print();
+    int i=0,j=0;
+    for (auto a: _graph->_chordalextension->arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j){
+            sol(i,j)=zij(i,j).getvalue();
+            //cout << sol(i,j).to_str() << endl;
+        }
+        else{
+            // generally, will never enter
+            cerr << "something wrong with lables of chordal extension graph";
+            sol(j,i)=zij(j,i).getvalue();
+        }
+    }
+    
+    Node* n = nullptr;
+    Node* nn = nullptr;
+    Arc* arc_chordal=nullptr;
+    bool allzeros=true;
+    double temp=0;
+    
+    for (i=0; i < _graph->_chordalextension->nodes.size()-1; i++){
+        n=(_graph->_chordalextension->get_node(to_string(i+1)));
+        for (j = i+1; j< _graph->_chordalextension->nodes.size(); j++){
+            nn=_graph->_chordalextension->get_node(to_string(j+1));
+            //cout<< "(n, nn): " << n->ID << ", " << nn->ID << endl;
+            if (n->is_connected(nn)){
+                cout << sol(i,j).to_str() << endl;
+            }
+            else
+            {
+                string name = to_string(_graph->_chordalextension->arcs.size()+1);
+                arc_chordal = new Arc(name);
+                arc_chordal->id = _graph->_chordalextension->arcs.size();
+                arc_chordal->src = n;
+                arc_chordal->dest = nn;
+                arc_chordal->weight = 0;
+                arc_chordal->connect();
+                // now find the maximal clique containing edge (i,j)
+                
+                // for neigbour i intersect neighbour j
+                set<int> idi;
+                set<int> idj;
+                Debug("neighbours of " << i << ": ");
+
+                for (auto a: n->branches){
+                    idi.insert(a->neighbour(n)->ID);
+                    Debug(a->neighbour(n)->ID << ", ");
+                }
+                Debug(endl << "neighbours of " << j << ": ");
+
+                for (auto a: nn->branches){
+                    idj.insert(a->neighbour(nn)->ID);
+                    Debug(a->neighbour(nn)->ID << ", ");
+                }
+                Debug(endl);
+
+                // intersection of idi and idj.
+                std::vector<int> inter;
+                set_intersection(idi.begin(), idi.end(), idj.begin(),idj.end(),std::back_inserter(inter));
+                
+                // how to get values of zij
+                if (inter.size()==0){
+                    sol(i,j)=1;
+                }
+                else{
+                    allzeros=true;
+                    for (auto h: inter){
+                        temp=0;
+                        Debug("(i, j, h): " << i << " " << j << " " << h <<endl);
+                        if (h <= i){
+                            temp += sol(h,i).getvalue();
+                           // cout << sol(h,i).getvalue() << endl;
+                        }
+                        else{
+                            temp += sol(i,h).getvalue();
+                           //cout << sol(i, h).getvalue() << endl;
+                        }
+                        if (h<=j){
+                            temp += sol(h,j).getvalue();
+                            //cout << sol(h,j).getvalue() << endl;
+                        }
+                        else{
+                            temp += sol(j,h).getvalue();
+                            //cout << sol(j,h).getvalue() << endl;
+                        }
+                        
+                        //cout << "temp: " << temp << endl;
+                        //DebugOn("xhi + xhj = " << temp);
+                        
+                        if (temp==2)
+                        {sol(i,j)=1; allzeros=false; break;}
+                        else if (temp==1)
+                        {sol(i,j)=0; allzeros=false; break;}
+                        else
+                            continue;
+                    }
+                    
+                    if (allzeros){
+                        if (inter.size()>=_K)
+                            sol(i,j) = 1;
+                        else
+                            sol(i,j) = 0;
+                    }
+                }
+                cout << sol(i,j).to_str() << endl;
+                (_graph->_chordalextension)->add_arc(arc_chordal);
+            }
+        }
+    }
 }
 
 //bool Minkmodel::check_eigenvalues(){

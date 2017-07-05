@@ -28,7 +28,7 @@ public:
     /** Mapping the arcs to their source-destination */
     std::map<std::string, std::set<Arc*>*> lineID;
     
-    /** Mapping the node id to its position in the vector, key = node id */
+    /** Mapping the node name to its position in the vector, key = node id */
     std::map<std::string, Node*> nodeID;
     
     /** Vector of cycles forming a cycle basis */
@@ -40,6 +40,8 @@ public:
     /** Clone network */
     // To get the chordal extension of the network.
     Net* _clone;
+    // get a chordal extension
+    Net* _chordalextension;
     
     
     /** Cloning */

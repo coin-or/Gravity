@@ -66,6 +66,7 @@ public:
     //  post root node relaxation
     bool check_eigenvalues();
     void add_eigcut();
+    void construct_fsol();
     //    void post_AC_Rect();
     //    void post_QC_OTS(bool lin_cos_cuts, bool quad_cos);
     //    void post_SOCP_OTS();

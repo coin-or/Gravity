@@ -79,7 +79,7 @@ Net* Net::clone(){
 
 
 const bool node_compare(const Node* n1, const Node* n2) {
-    return n1->fill_in > n2->fill_in;
+    return n1->fill_in > n2->fill_in; 
 }
 
 void Net::add_node(Node* node){
@@ -94,8 +94,8 @@ void Net::add_node(Node* node){
     nodes.push_back(node);
 }
 
-Node* Net::get_node(string id){
-    return nodeID.find(id)->second;
+Node* Net::get_node(string name){
+    return nodeID.find(name)->second;
 }
 
 /* returns the arc formed by node ids n1 and n2 */
@@ -278,22 +278,30 @@ void Net::readrudy(string fn){
     // get nodes
     
     string name;
-    int id = 0;
     _clone = new Net();
-    Node* node = NULL;
-    Node* node_clone = NULL;
+    _chordalextension = new Net();
+    Node* node = nullptr;
+    Node* node_clone = nullptr;
+    Node* node_chordal = nullptr;
+
     for (int i= 1; i<Num_nodes+1; i++){
         name = to_string(i);
-        node = new Node(name,i);
-        node_clone = new Node(name,i);
+        node = new Node(name,i-1);
+        node_clone = new Node(name,i-1);
+        node_chordal = new Node(name,i-1);
         add_node(node);
         _clone->add_node(node_clone);
+        _chordalextension->add_node(node_chordal);
+       // cout << "size of chordal extension is: " << _chordalextension->nodes.size() << endl;
     }
     
     
     // get arcs
     Arc* arc = NULL;
     Arc* arc_clone = NULL;
+    Arc* arc_chordal = NULL;
+    
+    // note that src, dest are names of nodes.
     string src, dest;
     double weight;
     while(getline(infile,sLine,'\n'))
@@ -301,21 +309,35 @@ void Net::readrudy(string fn){
         istringstream iss(sLine);
         iss >> src >> dest >> weight;
        // cout << src  << ", " << dest << ", " << weight << endl;
-        id = (int)arcs.size();
-        arc = new Arc(to_string(id));
-        arc_clone = new Arc(to_string(id));
-        arc->id = id;
-        arc_clone->id = id;
+        
+        name = (int)arcs.size()+1; //
+        
+        arc = new Arc(name);
+        arc_clone = new Arc(name);
+        arc_chordal = new Arc(name);
+
+        arc->id = (int)arcs.size();
+        arc_clone->id = (int)_clone->arcs.size();
+        arc_chordal->id = (int)_chordalextension->arcs.size();
+        
         arc->src = get_node(src);
         arc->dest= get_node(dest);
         arc->weight=weight;
+        add_arc(arc);
+        arc->connect();
+        
+        
         arc_clone->src = _clone->get_node(src);
         arc_clone->dest = _clone->get_node(dest);
         arc_clone->weight =weight;
-        add_arc(arc);
-        arc->connect();
         _clone->add_arc(arc_clone);
         arc_clone->connect();
+        
+        arc_chordal->src = _chordalextension->get_node(src);
+        arc_chordal->dest = _chordalextension->get_node(dest);
+        arc_chordal->weight =weight;
+        _chordalextension->add_arc(arc_chordal);
+        arc_chordal->connect();
     }
     infile.close();
 }
@@ -516,17 +538,24 @@ string Net::remove_end_node(){
     return n_id;
 }
 
-
 void Net::get_tree_decomp_bags(bool print_bags){
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
     Arc* arc = nullptr;
-    int id = 0;
+    Arc* arc_chordal = nullptr;
+    
+    Node* u_chordal = nullptr;
+    Node* nn_chordal = nullptr;
+
+    string name="";
+    string name_chordal="";
     int nb3 = 0;
+    //_chordalextension = Net::clone();
+    //clique less than 3 nodes are useless for us.
     while (_clone->nodes.size()>2) {
-        sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare);
-        n = _clone->nodes.back();
+        sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare); //descending
+        n = _clone->nodes.back();//last element, the minimum fill-in.
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
         vector<Node*> bag;
@@ -536,30 +565,50 @@ void Net::get_tree_decomp_bags(bool print_bags){
             bag.push_back(nn);
             Debug(nn->_name << ", ");
         }
-        _clone->remove_end_node();  
-        for (int i = 0; i<bag.size(); i++) {
+        _clone->remove_end_node();
+        bag.push_back(n);
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
+        
+        // update the clone graph  and construct chordal extension.
+        for (int i = 0; i<bag.size()-1; i++) {
             u = bag.at(i);
+           // cout << "uid" << u->ID << " uname" << u->_name << endl;
+            u_chordal = _chordalextension->get_node(u->_name);
+           // cout << "ID_U: " << u_chordal->ID << endl;
             for (int j = i+1; j<bag.size(); j++) {
                 nn = bag.at(j);
+                nn_chordal=_chordalextension->get_node(nn->_name);
+             //   cout << "ID_nn: " << nn_chordal->ID << endl;
+
                 if (u->is_connected(nn)) {
                     continue;
                 }
-                id = (int)_clone->arcs.size() + 1;
+                name = to_string((int)_clone->arcs.size()+1);
+                name_chordal = to_string((int)_chordalextension->arcs.size()+1);
+
                 //arc = new Arc(u->_name+nn->_name);
-                arc = new Arc(to_string(id));
-                arc->id = id;
+                arc = new Arc(name);
+                arc_chordal = new Arc(name_chordal);
+
+                arc->id = arcs.size();
                 arc->src = u;
                 arc->dest = nn;
                 arc->connect();
                 _clone->add_arc(arc);
+                
+                arc_chordal->id = _chordalextension->arcs.size();
+                arc_chordal->src = u_chordal;
+                arc_chordal->dest = nn_chordal;
+                arc_chordal->connect();
+                _chordalextension->add_arc(arc_chordal);
+
             }
         }
-        bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
+      
         if (print_bags) {
 //            DebugOn(n->_name << ":\n");
             DebugOn("bag = {");
-            for (int i=0; i<bag.size(); i++) {
+            for (int i=0; i<bag.size();     i++) {
                 cout << bag.at(i)->_name << " ";
             }
             DebugOn("}" << endl);

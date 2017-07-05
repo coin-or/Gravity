@@ -49,8 +49,6 @@ int Node::removeArc(Arc* a){
     return -1;
 }
 
-
-
 bool Node::is_connected(Node* n){
     for (auto a:branches) {
         if (n->ID==a->neighbour(this)->ID) {
@@ -68,12 +66,13 @@ bool Node::is_connected(Node* n){
 void Node::update_fill_in(Node* n){
     Node * nn = nullptr;
     for(auto a:branches){
-        nn = a->neighbour(this);
+        nn = a->neighbour(this); //this node.
+        // if nn is null
         if (nn->ID==n->ID) {
-            continue;
+            continue; //self connect
         }
         if (!n->is_connected(nn)) {
-            fill_in++;
+            fill_in++; // if this node is connected to node.
         }
         
     }

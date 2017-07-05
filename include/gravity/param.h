@@ -27,9 +27,7 @@ protected:
     int                         _id = -1;
     int                         _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
-    shared_ptr<map<string,unsigned>>       _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
-                                   vectors */    
-    
+    shared_ptr<map<string,unsigned>>  _indices;/*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
 public:
     
     bool                        _is_indexed = false;
@@ -390,7 +388,6 @@ public:
         _dim++;
         return *this;
     }
-    
 //    template<typename... Args>
 //    param operator()(char t1, Args&&... args){
 //        auto res(*this);
@@ -409,8 +406,6 @@ public:
 //        res._indices->insert(make_pair<>(key,0));
 //        return res;
 //    }
-    
-    
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         param res(this->_name);
@@ -435,8 +430,7 @@ public:
         if (it2 == param_::_indices->end()) {
             res._indices->insert(make_pair<>(key,param_::_indices->size()));
             param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            
-//            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
+//          throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
             size_t idx = param_::_indices->at(key);
@@ -456,7 +450,7 @@ public:
     string to_str(bool vals=false) const{
         string str = get_name();
         if (_is_indexed) {
-            str += " = [ ";
+            str += " = [";
             str += std::to_string(_val->at(_indices->begin()->second));
             str += "];";
         }
@@ -468,16 +462,27 @@ public:
                 str += to_string(_val->at(pi.second));
                 str += " ";
             }
-//            for(int i = 0 ; i < param_::get_dim(); i++){
-//                str += std::to_string(_val->at(i));
-//                str += " ";
-//            }
+             str += "];";
+        }
+        else{
+             str += " = [ ";
+            for(int i = 0 ; i < param_::get_dim(); i++){
+                str += std::to_string(_val->at(i));
+                str += " ";
+            }
             str += "];";
         }
         return str;
     }
     
-
+    type getvalue() const{
+        if (_is_indexed) {
+           return (_val->at(_indices->begin()->second));
+        }
+        else{
+            return _val->at(0);
+            }
+    }
 };
 
 template<typename type>
