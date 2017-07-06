@@ -547,7 +547,6 @@ void Minkmodel::construct_fsol(){
                         else
                             continue;
                     }
-                    
                     if (allzeros){
                         if (inter.size()>=_K)
                             sol(i,j) = 1;
