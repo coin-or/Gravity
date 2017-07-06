@@ -1,0 +1,9 @@
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/pooling.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/gravity101.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/stable_set.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/src/CMakeFiles/gravity.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/min_k_part.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/CMakeFiles/ALL_BUILD.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/svm.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/examples/CMakeFiles/neuralnet.dir
+/Users/guangleiwang/phD/kernel/Gravity/build/CMakeFiles/ZERO_CHECK.dir

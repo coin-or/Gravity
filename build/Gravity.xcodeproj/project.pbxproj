@@ -1,0 +1,2211 @@
+// !$*UTF8*$!
+{
+       archiveVersion = 1;
+       classes = {
+       };
+       objectVersion = 46;
+       objects = {
+
+/* Begin PBXAggregateTarget section */
+              A1547775F3B34F6DB0EB30C3 /* ALL_BUILD */ = {
+                     isa = PBXAggregateTarget;
+                     buildConfigurationList = 5FABE515A67140E99C42C2A2 /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */;
+                     buildPhases = (
+                            C534507CB443442BA95C5D5A /* CMake Rules */,
+                     );
+                     dependencies = (
+                            4A6338AC67A34D158B03B145 /* PBXTargetDependency */,
+                            B84337D7687A479AA5EAF0E6 /* PBXTargetDependency */,
+                            698ADF6A550440B7A83DCBB8 /* PBXTargetDependency */,
+                            8624FF0D2A6A4018A13312C0 /* PBXTargetDependency */,
+                            57B8A87D2B5B4F52A19C9D2D /* PBXTargetDependency */,
+                            D9DE0EB1F98446568ED165CA /* PBXTargetDependency */,
+                            19BA6BFAC7E649539662D92C /* PBXTargetDependency */,
+                            4657B1A1237242FC81739C01 /* PBXTargetDependency */,
+                     );
+                     name = ALL_BUILD;
+                     productName = ALL_BUILD;
+              };
+              386CE861D61749B6B565E28E /* ZERO_CHECK */ = {
+                     isa = PBXAggregateTarget;
+                     buildConfigurationList = 5147077AEF80495E89188327 /* Build configuration list for PBXAggregateTarget "ZERO_CHECK" */;
+                     buildPhases = (
+                            644349A42C3740BEA6EF1621 /* CMake Rules */,
+                     );
+                     dependencies = (
+                     );
+                     name = ZERO_CHECK;
+                     productName = ZERO_CHECK;
+              };
+              880FA585160242F585A0E93A /* install */ = {
+                     isa = PBXAggregateTarget;
+                     buildConfigurationList = 5E16AE52D08942599627A291 /* Build configuration list for PBXAggregateTarget "install" */;
+                     buildPhases = (
+                            49733C399C35433E95B749A5 /* CMake PostBuild Rules */,
+                     );
+                     dependencies = (
+                            0FE25AB30FD240D9BE7DDAC6 /* PBXTargetDependency */,
+                     );
+                     name = install;
+                     productName = install;
+              };
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+876EFF6E7CAC40E18B4326A1 /* /Users/guangleiwang/phD/kernel/Gravity/include */ = {isa = PBXBuildFile; fileRef = 266FE32C035A4D7884BE446F /* /Users/guangleiwang/phD/kernel/Gravity/include */; settings = { COMPILER_FLAGS = ""; }; };
+532E846BBEA04C9D8493BDC4 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Arc.h */ = {isa = PBXBuildFile; fileRef = 276EF68840EA46D8A8FA2805 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Arc.h */; settings = { COMPILER_FLAGS = ""; }; };
+12F350E2436F41658734FC5E /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/BonminProgram.h */ = {isa = PBXBuildFile; fileRef = 21D0E8D0FF6A45A18D02E05B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/BonminProgram.h */; settings = { COMPILER_FLAGS = ""; }; };
+B7BD82EE98CE4185B0327C3A /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/CplexProgram.h */ = {isa = PBXBuildFile; fileRef = 54EDC61DC8544BB6B91ED5FD /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/CplexProgram.h */; settings = { COMPILER_FLAGS = ""; }; };
+A559FD9211814B388ED24265 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GravityConfig.h */ = {isa = PBXBuildFile; fileRef = 8C28EEB0961940638D595285 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GravityConfig.h */; settings = { COMPILER_FLAGS = ""; }; };
+88E288E53A504230B93303F3 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GurobiProgram.h */ = {isa = PBXBuildFile; fileRef = 59936B2E868F4A2C9EAA1FC1 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GurobiProgram.h */; settings = { COMPILER_FLAGS = ""; }; };
+A1B7FD9C74E345C9869DBE94 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/IpoptProgram.h */ = {isa = PBXBuildFile; fileRef = A65973F995B6440A96A18740 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/IpoptProgram.h */; settings = { COMPILER_FLAGS = ""; }; };
+81AC3196B4CC4FDF91F8ED84 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Net.h */ = {isa = PBXBuildFile; fileRef = 31ADB261CC7D4019B154A2FC /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Net.h */; settings = { COMPILER_FLAGS = ""; }; };
+C42C128DA7C24F43AC899C8E /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Node.h */ = {isa = PBXBuildFile; fileRef = D7EFD284B9BA4BC08CE89866 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Node.h */; settings = { COMPILER_FLAGS = ""; }; };
+8D8DF54A08744089AC398FAA /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Path.h */ = {isa = PBXBuildFile; fileRef = 64940E898B744C069ECF5C9B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Path.h */; settings = { COMPILER_FLAGS = ""; }; };
+D643F5EB76A24B85A7A6DC42 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constant.h */ = {isa = PBXBuildFile; fileRef = D80CD205DAC14E229865D948 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constant.h */; settings = { COMPILER_FLAGS = ""; }; };
+BE0929A570EC4A7289DBE252 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constraint.h */ = {isa = PBXBuildFile; fileRef = 9FAAB744F6F846A5B4395BA0 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constraint.h */; settings = { COMPILER_FLAGS = ""; }; };
+63F457CA76AF4BCAB45D42C0 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/func.h */ = {isa = PBXBuildFile; fileRef = E9D83ECB6AAF496ABB56A968 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/func.h */; settings = { COMPILER_FLAGS = ""; }; };
+A49180CF97EB4BDAB78FE676 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/model.h */ = {isa = PBXBuildFile; fileRef = D1AAF7C02B58403F9E107183 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/model.h */; settings = { COMPILER_FLAGS = ""; }; };
+E8AD46E1035A455F95241949 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/param.h */ = {isa = PBXBuildFile; fileRef = 9A8AF676E5D541F48A98AB92 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/param.h */; settings = { COMPILER_FLAGS = ""; }; };
+058B4AE219EF43F0B541A75A /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/solver.h */ = {isa = PBXBuildFile; fileRef = 33C927E02B5C4612B74EBC4B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/solver.h */; settings = { COMPILER_FLAGS = ""; }; };
+46F2DB02D6C548BFB67023FA /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/types.h */ = {isa = PBXBuildFile; fileRef = 037E5E6388C94F9C92DBD3E6 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/types.h */; settings = { COMPILER_FLAGS = ""; }; };
+BF85CA1022404E8BABD171D0 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/var.h */ = {isa = PBXBuildFile; fileRef = 58504B5BE3F54D269FF9162D /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/var.h */; settings = { COMPILER_FLAGS = ""; }; };
+CAFC047792F44939AA39C3D8 /* /Users/guangleiwang/phD/kernel/Gravity/src/Arc.cpp */ = {isa = PBXBuildFile; fileRef = F5036BE9ACBC4058BA4EF49A /* /Users/guangleiwang/phD/kernel/Gravity/src/Arc.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+C2D120C7729047B5A0A74F41 /* /Users/guangleiwang/phD/kernel/Gravity/src/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 68DB8B1DB7134249BDD6AF09 /* /Users/guangleiwang/phD/kernel/Gravity/src/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+3C56E187D248497C914C2EF1 /* /Users/guangleiwang/phD/kernel/Gravity/src/CplexProgram.cpp */ = {isa = PBXBuildFile; fileRef = 017FAA69205B4CC7B0773D9C /* /Users/guangleiwang/phD/kernel/Gravity/src/CplexProgram.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+32F20FE9392D4EC5BEB90427 /* /Users/guangleiwang/phD/kernel/Gravity/src/GurobiProgram.cpp */ = {isa = PBXBuildFile; fileRef = C081EC39487642ADB3091545 /* /Users/guangleiwang/phD/kernel/Gravity/src/GurobiProgram.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+5262EF7D228844D088F22324 /* /Users/guangleiwang/phD/kernel/Gravity/src/IpoptProgram.cpp */ = {isa = PBXBuildFile; fileRef = 3D046B6A11A847DEA93B7091 /* /Users/guangleiwang/phD/kernel/Gravity/src/IpoptProgram.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+DAB8AC8244944D029299D2E0 /* /Users/guangleiwang/phD/kernel/Gravity/src/Net.cpp */ = {isa = PBXBuildFile; fileRef = 1A5E45BB72C74969B4958AA0 /* /Users/guangleiwang/phD/kernel/Gravity/src/Net.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+27092F881AB54CBDB41E70F3 /* /Users/guangleiwang/phD/kernel/Gravity/src/Node.cpp */ = {isa = PBXBuildFile; fileRef = 5C6C1A77CE904E8E8AF88200 /* /Users/guangleiwang/phD/kernel/Gravity/src/Node.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+1A2ECB162DD84B27AE4DAD64 /* /Users/guangleiwang/phD/kernel/Gravity/src/Path.cpp */ = {isa = PBXBuildFile; fileRef = E37817C533E644D5BDD85508 /* /Users/guangleiwang/phD/kernel/Gravity/src/Path.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+E180179ECB724E4393DC696D /* /Users/guangleiwang/phD/kernel/Gravity/src/constant.cpp */ = {isa = PBXBuildFile; fileRef = 3281E23D4B53404B9E5E9A84 /* /Users/guangleiwang/phD/kernel/Gravity/src/constant.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+7571D7F21B6A4B0BA7555ACC /* /Users/guangleiwang/phD/kernel/Gravity/src/constraint.cpp */ = {isa = PBXBuildFile; fileRef = D757761A8E4A43D7B8E79B23 /* /Users/guangleiwang/phD/kernel/Gravity/src/constraint.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+F426AC1E89F8493C9F51229B /* /Users/guangleiwang/phD/kernel/Gravity/src/func.cpp */ = {isa = PBXBuildFile; fileRef = C7FB2BE31D7B42839799E1CB /* /Users/guangleiwang/phD/kernel/Gravity/src/func.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+30F5C8BF3D1644379BA14CA7 /* /Users/guangleiwang/phD/kernel/Gravity/src/model.cpp */ = {isa = PBXBuildFile; fileRef = E2D1C85DCBED4108A50E1EE4 /* /Users/guangleiwang/phD/kernel/Gravity/src/model.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+9F8D18C9417848DB9216E90D /* /Users/guangleiwang/phD/kernel/Gravity/src/param.cpp */ = {isa = PBXBuildFile; fileRef = 81470A28D7C349F1BC1CC46C /* /Users/guangleiwang/phD/kernel/Gravity/src/param.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+30835BCEB5C14D78BFF59E13 /* /Users/guangleiwang/phD/kernel/Gravity/src/solver.cpp */ = {isa = PBXBuildFile; fileRef = EEAD3A3F9E2747BAA44E2614 /* /Users/guangleiwang/phD/kernel/Gravity/src/solver.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+2D2DE828F40D45FB9FF7FF7B /* /Users/guangleiwang/phD/kernel/Gravity/src/var.cpp */ = {isa = PBXBuildFile; fileRef = 0EFC6CCA7CF244A09912F3DE /* /Users/guangleiwang/phD/kernel/Gravity/src/var.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+9F68684D9F984DA6AC1174AC /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 7DDC704425BA47CABA977797 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+64C54C1631604B948D5CDBFF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Gravity101_main.cpp */ = {isa = PBXBuildFile; fileRef = 9A1B5E83B457457A8A6E5038 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Gravity101_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+3FA7942FA8E14FB0A5411B91 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 58E032BE158B45A1BE876784 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+7B2D4EDDFDD94F73A1E5DBE5 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/MinkPart_main.cpp */ = {isa = PBXBuildFile; fileRef = 3E9C5739E1BF461DA4B7BF0E /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/MinkPart_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+6E854173CAA24512AEF14348 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/Minkmodel.cpp */ = {isa = PBXBuildFile; fileRef = 10B5D5FB069B4C8AA42436DA /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/Minkmodel.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+1831EF37334B4823A353E1C9 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 27A401A96F2D4A4A8DD3497D /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+7506763B92BC4AF8ACB362BF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */ = {isa = PBXBuildFile; fileRef = 772862512D7F4148854645CD /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+C05ED24D7B9F4544BED60A64 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/NeuralNet_main.cpp */ = {isa = PBXBuildFile; fileRef = D5867AE05EA94EBCB810A3B6 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/NeuralNet_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+5D4ADA22DBFF46619B442D49 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 1AA177D3C4664885BC3F875C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+101F0A3675D44A14BE9DC69B /* /Users/guangleiwang/phD/kernel/Gravity/examples/MINLP/Pooling_main.cpp */ = {isa = PBXBuildFile; fileRef = C0281D6BA58F4C4FB92DB571 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MINLP/Pooling_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+D65A7401A07B42C2909786B1 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 6969EFC030DF4957A1E7964B /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+0DF57489EC9144C19F3B813D /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/StableSet/Stable_Set_main.cpp */ = {isa = PBXBuildFile; fileRef = F7D80B8B92CF438799415B75 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/StableSet/Stable_Set_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+B571608715914C1489D93203 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = E7CAD8CAA39144598C34A41C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */; settings = { COMPILER_FLAGS = ""; }; };
+0959C08047D74BFCAF900BAB /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */ = {isa = PBXBuildFile; fileRef = 89E837FCA6804ABCAD0D75CF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+4A9CE58EA9144434850C9B99 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/SVM_main.cpp */ = {isa = PBXBuildFile; fileRef = E59C3BB4B9B84EF5A49C269B /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/SVM_main.cpp */; settings = { COMPILER_FLAGS = ""; }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildStyle section */
+              7E59D485AB3B4EEDB3B9314B /*  */ = {
+                     isa = PBXBuildStyle;
+              };
+              067C73A0539D42219BEA862E /* Debug */ = {
+                     isa = PBXBuildStyle;
+                     buildSettings = {
+                            COPY_PHASE_STRIP = NO;
+                     };
+                     name = Debug;
+              };
+              81DBB055B04842088441F53B /* Release */ = {
+                     isa = PBXBuildStyle;
+                     buildSettings = {
+                            COPY_PHASE_STRIP = NO;
+                     };
+                     name = Release;
+              };
+              0B36A57C4917409B81DE694F /* MinSizeRel */ = {
+                     isa = PBXBuildStyle;
+                     buildSettings = {
+                            COPY_PHASE_STRIP = NO;
+                     };
+                     name = MinSizeRel;
+              };
+              40245FACB3B54E569E922BF9 /* RelWithDebInfo */ = {
+                     isa = PBXBuildStyle;
+                     buildSettings = {
+                            COPY_PHASE_STRIP = NO;
+                     };
+                     name = RelWithDebInfo;
+              };
+/* End PBXBuildStyle section */
+
+/* Begin PBXContainerItemProxy section */
+              F1581A549C6946AFB71C3A43 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              1DAF7FD2B621493492A2685B /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              ECE7FBA16F474F899F2CD5CA /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 6D663B8B03624EC6B22CB2F7;
+                     remoteInfo = pooling;
+              };
+              46B7E21E0F364659B85188A2 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = EEBD844D2AD44A748793DC99;
+                     remoteInfo = stable_set;
+              };
+              D1F55CA102514D25872E3ED6 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = A7BE8B718C4542B1BF237775;
+                     remoteInfo = min_k_part;
+              };
+              EDC0838627234421A97269DF /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 4BB8323DC9B6464A91CDF765;
+                     remoteInfo = svm;
+              };
+              99A4E731607D4B9AB6681368 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 71EFB841F7984926A63B2AE3;
+                     remoteInfo = neuralnet;
+              };
+              170FEFEBD8264A2390D7417A /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 45426574C63944CB9C07FE7F;
+                     remoteInfo = gravity101;
+              };
+              57140EBE24F0468784465D12 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = A1547775F3B34F6DB0EB30C3;
+                     remoteInfo = ALL_BUILD;
+              };
+              A5917C35B6EA432D9BEEF6F2 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              8BE3FDC0B6254AAFB75D9E32 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              8FC913AA7EC74CB99FB421CA /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              DF573713DB334794AFCCD7B3 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              D4F3A86D99A943E78782BFD2 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              ADE012721491421C80AA80AF /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              295E44A70B50427DBED7BD36 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              E9AC5C28BCBE4134B1CA29CD /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              98D9CCBDF6EA4051A5B764CE /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              11441C2713BB4A99B9E89F2E /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              B48812177BC44A80A08EF899 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+              716904A8A6E64DB1BFFC21D2 /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 386CE861D61749B6B565E28E;
+                     remoteInfo = ZERO_CHECK;
+              };
+              1DBA719EF0EA4FB5948E61BE /* PBXContainerItemProxy */ = {
+                     isa = PBXContainerItemProxy;
+                     containerPortal = 0E084C496F644323939585D1 /* Project object */;
+                     proxyType = 1;
+                     remoteGlobalIDString = 9E9C734C8CD240899B36283D;
+                     remoteInfo = gravity;
+              };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+EB9A884FE78141F395F0F240 /* /Users/guangleiwang/phD/kernel/Gravity/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+DC02F8B7E3CF434C9D18E6CF /* /Users/guangleiwang/phD/kernel/Gravity/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+266FE32C035A4D7884BE446F /* /Users/guangleiwang/phD/kernel/Gravity/include */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = folder; name = include; path = include; sourceTree = SOURCE_ROOT; };
+276EF68840EA46D8A8FA2805 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Arc.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "Arc.h"; path = "include/gravity/Arc.h"; sourceTree = SOURCE_ROOT; };
+21D0E8D0FF6A45A18D02E05B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/BonminProgram.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "BonminProgram.h"; path = "include/gravity/BonminProgram.h"; sourceTree = SOURCE_ROOT; };
+54EDC61DC8544BB6B91ED5FD /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/CplexProgram.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "CplexProgram.h"; path = "include/gravity/CplexProgram.h"; sourceTree = SOURCE_ROOT; };
+8C28EEB0961940638D595285 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GravityConfig.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "GravityConfig.h"; path = "include/gravity/GravityConfig.h"; sourceTree = SOURCE_ROOT; };
+59936B2E868F4A2C9EAA1FC1 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GurobiProgram.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "GurobiProgram.h"; path = "include/gravity/GurobiProgram.h"; sourceTree = SOURCE_ROOT; };
+A65973F995B6440A96A18740 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/IpoptProgram.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "IpoptProgram.h"; path = "include/gravity/IpoptProgram.h"; sourceTree = SOURCE_ROOT; };
+31ADB261CC7D4019B154A2FC /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Net.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "Net.h"; path = "include/gravity/Net.h"; sourceTree = SOURCE_ROOT; };
+D7EFD284B9BA4BC08CE89866 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Node.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "Node.h"; path = "include/gravity/Node.h"; sourceTree = SOURCE_ROOT; };
+64940E898B744C069ECF5C9B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Path.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "Path.h"; path = "include/gravity/Path.h"; sourceTree = SOURCE_ROOT; };
+D80CD205DAC14E229865D948 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constant.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "constant.h"; path = "include/gravity/constant.h"; sourceTree = SOURCE_ROOT; };
+9FAAB744F6F846A5B4395BA0 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constraint.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "constraint.h"; path = "include/gravity/constraint.h"; sourceTree = SOURCE_ROOT; };
+E9D83ECB6AAF496ABB56A968 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/func.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "func.h"; path = "include/gravity/func.h"; sourceTree = SOURCE_ROOT; };
+D1AAF7C02B58403F9E107183 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/model.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "model.h"; path = "include/gravity/model.h"; sourceTree = SOURCE_ROOT; };
+9A8AF676E5D541F48A98AB92 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/param.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "param.h"; path = "include/gravity/param.h"; sourceTree = SOURCE_ROOT; };
+33C927E02B5C4612B74EBC4B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/solver.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "solver.h"; path = "include/gravity/solver.h"; sourceTree = SOURCE_ROOT; };
+037E5E6388C94F9C92DBD3E6 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/types.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "types.h"; path = "include/gravity/types.h"; sourceTree = SOURCE_ROOT; };
+58504B5BE3F54D269FF9162D /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/var.h */ = {isa = PBXFileReference; explicitFileType = "sourcecode.c.h"; fileEncoding = 4; name = "var.h"; path = "include/gravity/var.h"; sourceTree = SOURCE_ROOT; };
+F5036BE9ACBC4058BA4EF49A /* /Users/guangleiwang/phD/kernel/Gravity/src/Arc.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Arc.cpp"; path = "src/Arc.cpp"; sourceTree = SOURCE_ROOT; };
+68DB8B1DB7134249BDD6AF09 /* /Users/guangleiwang/phD/kernel/Gravity/src/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "src/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+017FAA69205B4CC7B0773D9C /* /Users/guangleiwang/phD/kernel/Gravity/src/CplexProgram.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "CplexProgram.cpp"; path = "src/CplexProgram.cpp"; sourceTree = SOURCE_ROOT; };
+C081EC39487642ADB3091545 /* /Users/guangleiwang/phD/kernel/Gravity/src/GurobiProgram.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "GurobiProgram.cpp"; path = "src/GurobiProgram.cpp"; sourceTree = SOURCE_ROOT; };
+3D046B6A11A847DEA93B7091 /* /Users/guangleiwang/phD/kernel/Gravity/src/IpoptProgram.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "IpoptProgram.cpp"; path = "src/IpoptProgram.cpp"; sourceTree = SOURCE_ROOT; };
+1A5E45BB72C74969B4958AA0 /* /Users/guangleiwang/phD/kernel/Gravity/src/Net.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Net.cpp"; path = "src/Net.cpp"; sourceTree = SOURCE_ROOT; };
+5C6C1A77CE904E8E8AF88200 /* /Users/guangleiwang/phD/kernel/Gravity/src/Node.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Node.cpp"; path = "src/Node.cpp"; sourceTree = SOURCE_ROOT; };
+E37817C533E644D5BDD85508 /* /Users/guangleiwang/phD/kernel/Gravity/src/Path.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Path.cpp"; path = "src/Path.cpp"; sourceTree = SOURCE_ROOT; };
+3281E23D4B53404B9E5E9A84 /* /Users/guangleiwang/phD/kernel/Gravity/src/constant.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "constant.cpp"; path = "src/constant.cpp"; sourceTree = SOURCE_ROOT; };
+D757761A8E4A43D7B8E79B23 /* /Users/guangleiwang/phD/kernel/Gravity/src/constraint.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "constraint.cpp"; path = "src/constraint.cpp"; sourceTree = SOURCE_ROOT; };
+C7FB2BE31D7B42839799E1CB /* /Users/guangleiwang/phD/kernel/Gravity/src/func.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "func.cpp"; path = "src/func.cpp"; sourceTree = SOURCE_ROOT; };
+E2D1C85DCBED4108A50E1EE4 /* /Users/guangleiwang/phD/kernel/Gravity/src/model.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "model.cpp"; path = "src/model.cpp"; sourceTree = SOURCE_ROOT; };
+81470A28D7C349F1BC1CC46C /* /Users/guangleiwang/phD/kernel/Gravity/src/param.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "param.cpp"; path = "src/param.cpp"; sourceTree = SOURCE_ROOT; };
+EEAD3A3F9E2747BAA44E2614 /* /Users/guangleiwang/phD/kernel/Gravity/src/solver.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "solver.cpp"; path = "src/solver.cpp"; sourceTree = SOURCE_ROOT; };
+0EFC6CCA7CF244A09912F3DE /* /Users/guangleiwang/phD/kernel/Gravity/src/var.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "var.cpp"; path = "src/var.cpp"; sourceTree = SOURCE_ROOT; };
+0704772BB7F24345910C763B /* gravity */ = {isa = PBXFileReference; explicitFileType = "archive.ar"; path = "libgravity.a"; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+7DDC704425BA47CABA977797 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+9A1B5E83B457457A8A6E5038 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Gravity101_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Gravity101_main.cpp"; path = "examples/Gravity101_main.cpp"; sourceTree = SOURCE_ROOT; };
+FEC79DC7A0E74BE1BF0EF465 /* gravity101 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = gravity101; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+58E032BE158B45A1BE876784 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+3E9C5739E1BF461DA4B7BF0E /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/MinkPart_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "MinkPart_main.cpp"; path = "examples/MILP/MinKPart/MinkPart_main.cpp"; sourceTree = SOURCE_ROOT; };
+10B5D5FB069B4C8AA42436DA /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/Minkmodel.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Minkmodel.cpp"; path = "examples/MILP/MinKPart/Minkmodel.cpp"; sourceTree = SOURCE_ROOT; };
+53F614DF8FEE4934B62772E4 /* min_k_part */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = min_k_part; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+27A401A96F2D4A4A8DD3497D /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+772862512D7F4148854645CD /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "DataSet.cpp"; path = "examples/Classification/DataSet.cpp"; sourceTree = SOURCE_ROOT; };
+D5867AE05EA94EBCB810A3B6 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/NeuralNet_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "NeuralNet_main.cpp"; path = "examples/Classification/NeuralNet_main.cpp"; sourceTree = SOURCE_ROOT; };
+25A7302A85F3419AA061511C /* neuralnet */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = neuralnet; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+1AA177D3C4664885BC3F875C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+C0281D6BA58F4C4FB92DB571 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MINLP/Pooling_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Pooling_main.cpp"; path = "examples/MINLP/Pooling_main.cpp"; sourceTree = SOURCE_ROOT; };
+D40D2A82691746C3AEE43207 /* pooling */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = pooling; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+6969EFC030DF4957A1E7964B /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+F7D80B8B92CF438799415B75 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/StableSet/Stable_Set_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "Stable_Set_main.cpp"; path = "examples/MILP/StableSet/Stable_Set_main.cpp"; sourceTree = SOURCE_ROOT; };
+1AB7D617C222405097DA113C /* stable_set */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = stable_set; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+E7CAD8CAA39144598C34A41C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = "sourcecode.text"; fileEncoding = 4; name = "CMakeLists.txt"; path = "examples/CMakeLists.txt"; sourceTree = SOURCE_ROOT; };
+89E837FCA6804ABCAD0D75CF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "DataSet.cpp"; path = "examples/Classification/DataSet.cpp"; sourceTree = SOURCE_ROOT; };
+E59C3BB4B9B84EF5A49C269B /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/SVM_main.cpp */ = {isa = PBXFileReference; explicitFileType = "sourcecode.cpp.cpp"; fileEncoding = 4; name = "SVM_main.cpp"; path = "examples/Classification/SVM_main.cpp"; sourceTree = SOURCE_ROOT; };
+12EBFF688338420E831C581A /* svm */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; path = svm; refType = 0; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+              A69EEBA163C048A899A08AB3  = {
+                     isa = PBXGroup;
+                     children = (
+                            F5A8A18342874588B0140AE9 /* Sources */,
+                            CCFB0A3196F34951A6ADE738 /* Resources */,
+                            B97C573F979D49B586B8B0CF /* Products */,
+                     );
+                     sourceTree = "<group>";
+              };
+              F5A8A18342874588B0140AE9 /* Sources */ = {
+                     isa = PBXGroup;
+                     children = (
+                            5964689B0E434458957ED52E /* ALL_BUILD */,
+                            31BB0527FACB4CF69F519F27 /* ZERO_CHECK */,
+                            EF4CE00DABD44D559082E6AF /* gravity */,
+                            73D3036E5BB940BB99502135 /* pooling */,
+                            1C16222F71054620BCEC1283 /* gravity101 */,
+                            19359B697F014C47A34090CA /* stable_set */,
+                            2A30818F7AFD4F0ABDAAC2FE /* min_k_part */,
+                            D0003915F82C4A14A186D623 /* svm */,
+                            5AB760665E6642FA8D443A2D /* neuralnet */,
+                     );
+                     name = Sources;
+                     sourceTree = "<group>";
+              };
+              CCFB0A3196F34951A6ADE738 /* Resources */ = {
+                     isa = PBXGroup;
+                     children = (
+                     );
+                     name = Resources;
+                     sourceTree = "<group>";
+              };
+              5964689B0E434458957ED52E /* ALL_BUILD */ = {
+                     isa = PBXGroup;
+                     children = (
+                            BC37423D184D4224A750D3A5 /* CMake Rules */,
+                            EB9A884FE78141F395F0F240 /* /Users/guangleiwang/phD/kernel/Gravity/CMakeLists.txt */,
+                     );
+                     name = ALL_BUILD;
+                     sourceTree = "<group>";
+              };
+              BC37423D184D4224A750D3A5 /* CMake Rules */ = {
+                     isa = PBXGroup;
+                     children = (
+                     );
+                     name = "CMake Rules";
+                     sourceTree = "<group>";
+              };
+              31BB0527FACB4CF69F519F27 /* ZERO_CHECK */ = {
+                     isa = PBXGroup;
+                     children = (
+                            8627FFBBB1D04817ACB774B4 /* CMake Rules */,
+                            DC02F8B7E3CF434C9D18E6CF /* /Users/guangleiwang/phD/kernel/Gravity/CMakeLists.txt */,
+                     );
+                     name = ZERO_CHECK;
+                     sourceTree = "<group>";
+              };
+              8627FFBBB1D04817ACB774B4 /* CMake Rules */ = {
+                     isa = PBXGroup;
+                     children = (
+                     );
+                     name = "CMake Rules";
+                     sourceTree = "<group>";
+              };
+              EF4CE00DABD44D559082E6AF /* gravity */ = {
+                     isa = PBXGroup;
+                     children = (
+                            3D331246BF6A4EDFA63586A4 /* Source Files */,
+                            AE101B75ECEB48EBAAD17F4D /* Header Files */,
+                            266FE32C035A4D7884BE446F /* /Users/guangleiwang/phD/kernel/Gravity/include */,
+                            68DB8B1DB7134249BDD6AF09 /* /Users/guangleiwang/phD/kernel/Gravity/src/CMakeLists.txt */,
+                     );
+                     name = gravity;
+                     sourceTree = "<group>";
+              };
+              3D331246BF6A4EDFA63586A4 /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            F5036BE9ACBC4058BA4EF49A /* /Users/guangleiwang/phD/kernel/Gravity/src/Arc.cpp */,
+                            017FAA69205B4CC7B0773D9C /* /Users/guangleiwang/phD/kernel/Gravity/src/CplexProgram.cpp */,
+                            C081EC39487642ADB3091545 /* /Users/guangleiwang/phD/kernel/Gravity/src/GurobiProgram.cpp */,
+                            3D046B6A11A847DEA93B7091 /* /Users/guangleiwang/phD/kernel/Gravity/src/IpoptProgram.cpp */,
+                            1A5E45BB72C74969B4958AA0 /* /Users/guangleiwang/phD/kernel/Gravity/src/Net.cpp */,
+                            5C6C1A77CE904E8E8AF88200 /* /Users/guangleiwang/phD/kernel/Gravity/src/Node.cpp */,
+                            E37817C533E644D5BDD85508 /* /Users/guangleiwang/phD/kernel/Gravity/src/Path.cpp */,
+                            3281E23D4B53404B9E5E9A84 /* /Users/guangleiwang/phD/kernel/Gravity/src/constant.cpp */,
+                            D757761A8E4A43D7B8E79B23 /* /Users/guangleiwang/phD/kernel/Gravity/src/constraint.cpp */,
+                            C7FB2BE31D7B42839799E1CB /* /Users/guangleiwang/phD/kernel/Gravity/src/func.cpp */,
+                            E2D1C85DCBED4108A50E1EE4 /* /Users/guangleiwang/phD/kernel/Gravity/src/model.cpp */,
+                            81470A28D7C349F1BC1CC46C /* /Users/guangleiwang/phD/kernel/Gravity/src/param.cpp */,
+                            EEAD3A3F9E2747BAA44E2614 /* /Users/guangleiwang/phD/kernel/Gravity/src/solver.cpp */,
+                            0EFC6CCA7CF244A09912F3DE /* /Users/guangleiwang/phD/kernel/Gravity/src/var.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              AE101B75ECEB48EBAAD17F4D /* Header Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            276EF68840EA46D8A8FA2805 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Arc.h */,
+                            21D0E8D0FF6A45A18D02E05B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/BonminProgram.h */,
+                            54EDC61DC8544BB6B91ED5FD /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/CplexProgram.h */,
+                            8C28EEB0961940638D595285 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GravityConfig.h */,
+                            59936B2E868F4A2C9EAA1FC1 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/GurobiProgram.h */,
+                            A65973F995B6440A96A18740 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/IpoptProgram.h */,
+                            31ADB261CC7D4019B154A2FC /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Net.h */,
+                            D7EFD284B9BA4BC08CE89866 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Node.h */,
+                            64940E898B744C069ECF5C9B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/Path.h */,
+                            D80CD205DAC14E229865D948 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constant.h */,
+                            9FAAB744F6F846A5B4395BA0 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/constraint.h */,
+                            E9D83ECB6AAF496ABB56A968 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/func.h */,
+                            D1AAF7C02B58403F9E107183 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/model.h */,
+                            9A8AF676E5D541F48A98AB92 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/param.h */,
+                            33C927E02B5C4612B74EBC4B /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/solver.h */,
+                            037E5E6388C94F9C92DBD3E6 /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/types.h */,
+                            58504B5BE3F54D269FF9162D /* /Users/guangleiwang/phD/kernel/Gravity/include/gravity/var.h */,
+                     );
+                     name = "Header Files";
+                     sourceTree = "<group>";
+              };
+              73D3036E5BB940BB99502135 /* pooling */ = {
+                     isa = PBXGroup;
+                     children = (
+                            343986713F4043E2A5F00C45 /* Source Files */,
+                            1AA177D3C4664885BC3F875C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = pooling;
+                     sourceTree = "<group>";
+              };
+              343986713F4043E2A5F00C45 /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            C0281D6BA58F4C4FB92DB571 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MINLP/Pooling_main.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              1C16222F71054620BCEC1283 /* gravity101 */ = {
+                     isa = PBXGroup;
+                     children = (
+                            0D28CE456643492998CF949E /* Source Files */,
+                            7DDC704425BA47CABA977797 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = gravity101;
+                     sourceTree = "<group>";
+              };
+              0D28CE456643492998CF949E /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            9A1B5E83B457457A8A6E5038 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Gravity101_main.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              19359B697F014C47A34090CA /* stable_set */ = {
+                     isa = PBXGroup;
+                     children = (
+                            CAE996DBBCB24785B8537D7E /* Source Files */,
+                            6969EFC030DF4957A1E7964B /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = stable_set;
+                     sourceTree = "<group>";
+              };
+              CAE996DBBCB24785B8537D7E /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            F7D80B8B92CF438799415B75 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/StableSet/Stable_Set_main.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              2A30818F7AFD4F0ABDAAC2FE /* min_k_part */ = {
+                     isa = PBXGroup;
+                     children = (
+                            60E1AB387F2A402AAF89FBDC /* Source Files */,
+                            58E032BE158B45A1BE876784 /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = min_k_part;
+                     sourceTree = "<group>";
+              };
+              60E1AB387F2A402AAF89FBDC /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            3E9C5739E1BF461DA4B7BF0E /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/MinkPart_main.cpp */,
+                            10B5D5FB069B4C8AA42436DA /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/Minkmodel.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              D0003915F82C4A14A186D623 /* svm */ = {
+                     isa = PBXGroup;
+                     children = (
+                            66970D1178AC42CCA05D50BD /* Source Files */,
+                            E7CAD8CAA39144598C34A41C /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = svm;
+                     sourceTree = "<group>";
+              };
+              66970D1178AC42CCA05D50BD /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            89E837FCA6804ABCAD0D75CF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */,
+                            E59C3BB4B9B84EF5A49C269B /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/SVM_main.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              5AB760665E6642FA8D443A2D /* neuralnet */ = {
+                     isa = PBXGroup;
+                     children = (
+                            A7DB4110614C4B9CAAE5471C /* Source Files */,
+                            27A401A96F2D4A4A8DD3497D /* /Users/guangleiwang/phD/kernel/Gravity/examples/CMakeLists.txt */,
+                     );
+                     name = neuralnet;
+                     sourceTree = "<group>";
+              };
+              A7DB4110614C4B9CAAE5471C /* Source Files */ = {
+                     isa = PBXGroup;
+                     children = (
+                            772862512D7F4148854645CD /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */,
+                            D5867AE05EA94EBCB810A3B6 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/NeuralNet_main.cpp */,
+                     );
+                     name = "Source Files";
+                     sourceTree = "<group>";
+              };
+              B97C573F979D49B586B8B0CF /* Products */ = {
+                     isa = PBXGroup;
+                     children = (
+                            0704772BB7F24345910C763B /* gravity */,
+                            FEC79DC7A0E74BE1BF0EF465 /* gravity101 */,
+                            53F614DF8FEE4934B62772E4 /* min_k_part */,
+                            25A7302A85F3419AA061511C /* neuralnet */,
+                            D40D2A82691746C3AEE43207 /* pooling */,
+                            1AB7D617C222405097DA113C /* stable_set */,
+                            12EBFF688338420E831C581A /* svm */,
+                     );
+                     name = Products;
+                     sourceTree = "<group>";
+              };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+              9E9C734C8CD240899B36283D /* gravity */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = BB63EEC4C3D14AE9A6B7EC44 /* Build configuration list for PBXNativeTarget "gravity" */;
+                     buildPhases = (
+                            16F4CEC6A4404662A4E6F84F /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            8CC4B057A09B4A45A08734C5 /* PBXTargetDependency */,
+                     );
+                     name = gravity;
+                     productName = gravity;
+                     productReference = 0704772BB7F24345910C763B /* gravity */;
+                     productType = "com.apple.product-type.library.static";
+              };
+              45426574C63944CB9C07FE7F /* gravity101 */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = 691C2FCE29DC40309C0752A0 /* Build configuration list for PBXNativeTarget "gravity101" */;
+                     buildPhases = (
+                            D9CC6DBD42BE4755A99D9D2A /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            D26313E8E463468E8DBDA84A /* PBXTargetDependency */,
+                            2CDE7FC3582E4AA591D1860C /* PBXTargetDependency */,
+                     );
+                     name = gravity101;
+                     productName = gravity101;
+                     productReference = FEC79DC7A0E74BE1BF0EF465 /* gravity101 */;
+                     productType = "com.apple.product-type.tool";
+              };
+              A7BE8B718C4542B1BF237775 /* min_k_part */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = E431AD6889244698991F4432 /* Build configuration list for PBXNativeTarget "min_k_part" */;
+                     buildPhases = (
+                            5A802ED2476B4600A8B00459 /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            C49836B49A0F4893A8FD43F8 /* PBXTargetDependency */,
+                            E65967331650423CAE6BE95B /* PBXTargetDependency */,
+                     );
+                     name = min_k_part;
+                     productName = min_k_part;
+                     productReference = 53F614DF8FEE4934B62772E4 /* min_k_part */;
+                     productType = "com.apple.product-type.tool";
+              };
+              71EFB841F7984926A63B2AE3 /* neuralnet */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = A6F3DD612D454A0584F2EB61 /* Build configuration list for PBXNativeTarget "neuralnet" */;
+                     buildPhases = (
+                            E406CD0DF1864FA1B366ABB5 /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            3C17490E263E47429088D366 /* PBXTargetDependency */,
+                            E97D2B88202647668E285D75 /* PBXTargetDependency */,
+                     );
+                     name = neuralnet;
+                     productName = neuralnet;
+                     productReference = 25A7302A85F3419AA061511C /* neuralnet */;
+                     productType = "com.apple.product-type.tool";
+              };
+              6D663B8B03624EC6B22CB2F7 /* pooling */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = 9F99DC2E7869483AA8753C84 /* Build configuration list for PBXNativeTarget "pooling" */;
+                     buildPhases = (
+                            2D678CF894EC46D48432836E /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            01F71C713E654DEDB384352C /* PBXTargetDependency */,
+                            0E601098C8AE4837956A2826 /* PBXTargetDependency */,
+                     );
+                     name = pooling;
+                     productName = pooling;
+                     productReference = D40D2A82691746C3AEE43207 /* pooling */;
+                     productType = "com.apple.product-type.tool";
+              };
+              EEBD844D2AD44A748793DC99 /* stable_set */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = BFAF57431B7B4BEAACC187BC /* Build configuration list for PBXNativeTarget "stable_set" */;
+                     buildPhases = (
+                            64E7C4427BD241E98A3CB61D /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            2538CE516C7748BF870A0FB8 /* PBXTargetDependency */,
+                            B41F3EF6EAE24FB284B6A5C3 /* PBXTargetDependency */,
+                     );
+                     name = stable_set;
+                     productName = stable_set;
+                     productReference = 1AB7D617C222405097DA113C /* stable_set */;
+                     productType = "com.apple.product-type.tool";
+              };
+              4BB8323DC9B6464A91CDF765 /* svm */ = {
+                     isa = PBXNativeTarget;
+                     buildConfigurationList = 42DBA642BED941F0871E7221 /* Build configuration list for PBXNativeTarget "svm" */;
+                     buildPhases = (
+                            590E0A4A4A7B40CB85CE633C /* Sources */,
+                     );
+                     buildRules = (
+                     );
+                     dependencies = (
+                            676A65E5F2A24785935F3C9A /* PBXTargetDependency */,
+                            8618E2A22E4040258AF542AA /* PBXTargetDependency */,
+                     );
+                     name = svm;
+                     productName = svm;
+                     productReference = 12EBFF688338420E831C581A /* svm */;
+                     productType = "com.apple.product-type.tool";
+              };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+              0E084C496F644323939585D1 /* Project object */ = {
+                     isa = PBXProject;
+                     attributes = {
+                            BuildIndependentTargetsInParallel = YES;
+                     };
+                     buildConfigurationList = 4B226BD98F734668A893B217 /* Build configuration list for PBXProject  "Gravity" */;
+                     buildSettings = {
+                     };
+                     buildStyles = (
+                            067C73A0539D42219BEA862E /* Debug */,
+                            81DBB055B04842088441F53B /* Release */,
+                            0B36A57C4917409B81DE694F /* MinSizeRel */,
+                            40245FACB3B54E569E922BF9 /* RelWithDebInfo */,
+                     );
+                     compatibilityVersion = "Xcode 3.2";
+                     hasScannedForEncodings = 0;
+                     mainGroup = A69EEBA163C048A899A08AB3;
+                     projectDirPath = "..";
+                     projectRoot = "";
+                     targets = (
+                            A1547775F3B34F6DB0EB30C3 /* ALL_BUILD */,
+                            386CE861D61749B6B565E28E /* ZERO_CHECK */,
+                            880FA585160242F585A0E93A /* install */,
+                            9E9C734C8CD240899B36283D /* gravity */,
+                            45426574C63944CB9C07FE7F /* gravity101 */,
+                            A7BE8B718C4542B1BF237775 /* min_k_part */,
+                            71EFB841F7984926A63B2AE3 /* neuralnet */,
+                            6D663B8B03624EC6B22CB2F7 /* pooling */,
+                            EEBD844D2AD44A748793DC99 /* stable_set */,
+                            4BB8323DC9B6464A91CDF765 /* svm */,
+                     );
+              };
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+              9DF46A236B814E9BA5DC0763 /*  */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     inputPaths = (
+                     );
+                     outputPaths = (
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "# shell script goes here
+exit 0";
+                     showEnvVarsInLog = 0;
+              };
+              C534507CB443442BA95C5D5A /* CMake Rules */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     name = "CMake Rules";
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "make -C /Users/guangleiwang/phD/kernel/Gravity/build -f /Users/guangleiwang/phD/kernel/Gravity/build/CMakeScripts/ALL_BUILD_cmakeRulesBuildPhase.make$CONFIGURATION all";
+                     showEnvVarsInLog = 0;
+              };
+              F86D369FDD3842B894E16A58 /*  */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     inputPaths = (
+                     );
+                     outputPaths = (
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "# shell script goes here
+exit 0";
+                     showEnvVarsInLog = 0;
+              };
+              644349A42C3740BEA6EF1621 /* CMake Rules */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     name = "CMake Rules";
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "make -C /Users/guangleiwang/phD/kernel/Gravity/build -f /Users/guangleiwang/phD/kernel/Gravity/build/CMakeScripts/ZERO_CHECK_cmakeRulesBuildPhase.make$CONFIGURATION all";
+                     showEnvVarsInLog = 0;
+              };
+              05906718E6A148A295C3C987 /*  */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     inputPaths = (
+                     );
+                     outputPaths = (
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "# shell script goes here
+exit 0";
+                     showEnvVarsInLog = 0;
+              };
+              49733C399C35433E95B749A5 /* CMake PostBuild Rules */ = {
+                     isa = PBXShellScriptBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                     );
+                     name = "CMake PostBuild Rules";
+                     runOnlyForDeploymentPostprocessing = 0;
+                     shellPath = /bin/sh;
+                     shellScript = "make -C /Users/guangleiwang/phD/kernel/Gravity/build -f /Users/guangleiwang/phD/kernel/Gravity/build/CMakeScripts/install_postBuildPhase.make$CONFIGURATION all";
+                     showEnvVarsInLog = 0;
+              };
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+              16F4CEC6A4404662A4E6F84F /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            CAFC047792F44939AA39C3D8 /* /Users/guangleiwang/phD/kernel/Gravity/src/Arc.cpp */,
+                            3C56E187D248497C914C2EF1 /* /Users/guangleiwang/phD/kernel/Gravity/src/CplexProgram.cpp */,
+                            32F20FE9392D4EC5BEB90427 /* /Users/guangleiwang/phD/kernel/Gravity/src/GurobiProgram.cpp */,
+                            5262EF7D228844D088F22324 /* /Users/guangleiwang/phD/kernel/Gravity/src/IpoptProgram.cpp */,
+                            DAB8AC8244944D029299D2E0 /* /Users/guangleiwang/phD/kernel/Gravity/src/Net.cpp */,
+                            27092F881AB54CBDB41E70F3 /* /Users/guangleiwang/phD/kernel/Gravity/src/Node.cpp */,
+                            1A2ECB162DD84B27AE4DAD64 /* /Users/guangleiwang/phD/kernel/Gravity/src/Path.cpp */,
+                            E180179ECB724E4393DC696D /* /Users/guangleiwang/phD/kernel/Gravity/src/constant.cpp */,
+                            7571D7F21B6A4B0BA7555ACC /* /Users/guangleiwang/phD/kernel/Gravity/src/constraint.cpp */,
+                            F426AC1E89F8493C9F51229B /* /Users/guangleiwang/phD/kernel/Gravity/src/func.cpp */,
+                            30F5C8BF3D1644379BA14CA7 /* /Users/guangleiwang/phD/kernel/Gravity/src/model.cpp */,
+                            9F8D18C9417848DB9216E90D /* /Users/guangleiwang/phD/kernel/Gravity/src/param.cpp */,
+                            30835BCEB5C14D78BFF59E13 /* /Users/guangleiwang/phD/kernel/Gravity/src/solver.cpp */,
+                            2D2DE828F40D45FB9FF7FF7B /* /Users/guangleiwang/phD/kernel/Gravity/src/var.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              D9CC6DBD42BE4755A99D9D2A /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            64C54C1631604B948D5CDBFF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Gravity101_main.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              5A802ED2476B4600A8B00459 /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            7B2D4EDDFDD94F73A1E5DBE5 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/MinkPart_main.cpp */,
+                            6E854173CAA24512AEF14348 /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/MinKPart/Minkmodel.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              E406CD0DF1864FA1B366ABB5 /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            7506763B92BC4AF8ACB362BF /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */,
+                            C05ED24D7B9F4544BED60A64 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/NeuralNet_main.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              2D678CF894EC46D48432836E /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            101F0A3675D44A14BE9DC69B /* /Users/guangleiwang/phD/kernel/Gravity/examples/MINLP/Pooling_main.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              64E7C4427BD241E98A3CB61D /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            0DF57489EC9144C19F3B813D /* /Users/guangleiwang/phD/kernel/Gravity/examples/MILP/StableSet/Stable_Set_main.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+              590E0A4A4A7B40CB85CE633C /* Sources */ = {
+                     isa = PBXSourcesBuildPhase;
+                     buildActionMask = 2147483647;
+                     files = (
+                            0959C08047D74BFCAF900BAB /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/DataSet.cpp */,
+                            4A9CE58EA9144434850C9B99 /* /Users/guangleiwang/phD/kernel/Gravity/examples/Classification/SVM_main.cpp */,
+                     );
+                     runOnlyForDeploymentPostprocessing = 0;
+              };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+              4A6338AC67A34D158B03B145 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = F1581A549C6946AFB71C3A43 /* PBXContainerItemProxy */;
+              };
+              B84337D7687A479AA5EAF0E6 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = 1DAF7FD2B621493492A2685B /* PBXContainerItemProxy */;
+              };
+              698ADF6A550440B7A83DCBB8 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 6D663B8B03624EC6B22CB2F7 /* pooling */;
+                     targetProxy = ECE7FBA16F474F899F2CD5CA /* PBXContainerItemProxy */;
+              };
+              8624FF0D2A6A4018A13312C0 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = EEBD844D2AD44A748793DC99 /* stable_set */;
+                     targetProxy = 46B7E21E0F364659B85188A2 /* PBXContainerItemProxy */;
+              };
+              57B8A87D2B5B4F52A19C9D2D /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = A7BE8B718C4542B1BF237775 /* min_k_part */;
+                     targetProxy = D1F55CA102514D25872E3ED6 /* PBXContainerItemProxy */;
+              };
+              D9DE0EB1F98446568ED165CA /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 4BB8323DC9B6464A91CDF765 /* svm */;
+                     targetProxy = EDC0838627234421A97269DF /* PBXContainerItemProxy */;
+              };
+              19BA6BFAC7E649539662D92C /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 71EFB841F7984926A63B2AE3 /* neuralnet */;
+                     targetProxy = 99A4E731607D4B9AB6681368 /* PBXContainerItemProxy */;
+              };
+              4657B1A1237242FC81739C01 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 45426574C63944CB9C07FE7F /* gravity101 */;
+                     targetProxy = 170FEFEBD8264A2390D7417A /* PBXContainerItemProxy */;
+              };
+              0FE25AB30FD240D9BE7DDAC6 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = A1547775F3B34F6DB0EB30C3 /* ALL_BUILD */;
+                     targetProxy = 57140EBE24F0468784465D12 /* PBXContainerItemProxy */;
+              };
+              8CC4B057A09B4A45A08734C5 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = A5917C35B6EA432D9BEEF6F2 /* PBXContainerItemProxy */;
+              };
+              D26313E8E463468E8DBDA84A /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = 8BE3FDC0B6254AAFB75D9E32 /* PBXContainerItemProxy */;
+              };
+              2CDE7FC3582E4AA591D1860C /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = 8FC913AA7EC74CB99FB421CA /* PBXContainerItemProxy */;
+              };
+              C49836B49A0F4893A8FD43F8 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = DF573713DB334794AFCCD7B3 /* PBXContainerItemProxy */;
+              };
+              E65967331650423CAE6BE95B /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = D4F3A86D99A943E78782BFD2 /* PBXContainerItemProxy */;
+              };
+              3C17490E263E47429088D366 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = ADE012721491421C80AA80AF /* PBXContainerItemProxy */;
+              };
+              E97D2B88202647668E285D75 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = 295E44A70B50427DBED7BD36 /* PBXContainerItemProxy */;
+              };
+              01F71C713E654DEDB384352C /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = E9AC5C28BCBE4134B1CA29CD /* PBXContainerItemProxy */;
+              };
+              0E601098C8AE4837956A2826 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = 98D9CCBDF6EA4051A5B764CE /* PBXContainerItemProxy */;
+              };
+              2538CE516C7748BF870A0FB8 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = 11441C2713BB4A99B9E89F2E /* PBXContainerItemProxy */;
+              };
+              B41F3EF6EAE24FB284B6A5C3 /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = B48812177BC44A80A08EF899 /* PBXContainerItemProxy */;
+              };
+              676A65E5F2A24785935F3C9A /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 386CE861D61749B6B565E28E /* ZERO_CHECK */;
+                     targetProxy = 716904A8A6E64DB1BFFC21D2 /* PBXContainerItemProxy */;
+              };
+              8618E2A22E4040258AF542AA /* PBXTargetDependency */ = {
+                     isa = PBXTargetDependency;
+                     target = 9E9C734C8CD240899B36283D /* gravity */;
+                     targetProxy = 1DBA719EF0EA4FB5948E61BE /* PBXContainerItemProxy */;
+              };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+              2E621505B28649CE8DC748B8 /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+                            ONLY_ACTIVE_ARCH = YES;
+                            SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/build;
+                     };
+                     name = Debug;
+              };
+              2A399A5CA058460D9467500A /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+                            ONLY_ACTIVE_ARCH = YES;
+                            SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/build;
+                     };
+                     name = Release;
+              };
+              462F0B794DDD41DEA4FCEA14 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+                            ONLY_ACTIVE_ARCH = YES;
+                            SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/build;
+                     };
+                     name = MinSizeRel;
+              };
+              238C657B55F247EA8AF8035F /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+                            ONLY_ACTIVE_ARCH = YES;
+                            SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/build;
+                     };
+                     name = RelWithDebInfo;
+              };
+              40C812C62DEC40A087975329 /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ALL_BUILD;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              6099B2072A4543B29017E0FE /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ALL_BUILD;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              1240A3C949904CAE813293AF /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ALL_BUILD;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              23EEDF58E9AC434F92161BD4 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ALL_BUILD;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              B2FD8AE4A4AF4BCF8341C4CE /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ZERO_CHECK;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              2C345BECB39F4AFCB0A0ED2D /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ZERO_CHECK;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              C807D9B3EB684241A1A9B639 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ZERO_CHECK;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              AEC3E06F1B48444180553159 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = ZERO_CHECK;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              FE55A776BAAF4342B6762D70 /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = install;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              24D8D7D001454C77A18EC8D4 /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = install;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              BC936722D5CB419388C4CEA2 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = install;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              1B4F6334323F49828406066B /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", );
+                            INSTALL_PATH = "";
+                            OTHER_CFLAGS = "  ";
+                            OTHER_LDFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = install;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              014FAB46837F45E0938A333C /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/lib/Debug;
+                            EXECUTABLE_PREFIX = lib;
+                            EXECUTABLE_SUFFIX = ".a";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_STYLE = STATIC;
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LIBTOOLFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/src;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              0513B9E98DB845698C6796DE /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/lib/Release;
+                            EXECUTABLE_PREFIX = lib;
+                            EXECUTABLE_SUFFIX = ".a";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_STYLE = STATIC;
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LIBTOOLFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/src;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              410CFC32AFD54B9AA7C28211 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel;
+                            EXECUTABLE_PREFIX = lib;
+                            EXECUTABLE_SUFFIX = ".a";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_STYLE = STATIC;
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LIBTOOLFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/src;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              0FB60D0477D04EBA988DF126 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = lib;
+                            EXECUTABLE_SUFFIX = ".a";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_STYLE = STATIC;
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LIBTOOLFLAGS = " ";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/src;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              F0D3A178768349C8B7FA684F /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity101;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              711A914E71A247F58F94D0A8 /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity101;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              45FCA0416A624957923B880B /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity101;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              9A21DFE9CF9E45F1AF375403 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = gravity101;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              D33FDC3B1AB845DA9D5FE04D /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = min_k_part;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              A4109FBC8E0D4CB9A53BBE76 /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = min_k_part;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              A7A80C4F62334C1184EB5F22 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = min_k_part;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              460160507E5A4A98B02EE339 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = min_k_part;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              29376645B19047CABEED740B /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = neuralnet;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              54D85D98A7144AAD885AC18C /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = neuralnet;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              9C6EE742ADC04E3F8CBB1457 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = neuralnet;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              3E551557FBF2431F8E71CB12 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = neuralnet;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              902D83A723094C7B9B09EE6E /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = pooling;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              EB5D1D3C259E45458719F67B /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = pooling;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              842CD5BEB5D04010BA86703C /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = pooling;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              2766805FED034BF5B6103155 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = pooling;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              3410066206154C9095047100 /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = stable_set;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              F96D37994914473AB7BFA6B7 /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = stable_set;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              3F2EBE24F49C4AF1A4C81161 /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = stable_set;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              3422D5B508C14EF19E219D29 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = stable_set;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+              B15C66A06F914988805522EC /* Debug */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Debug;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 0;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Debug/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = svm;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Debug;
+              };
+              388F13CC95CD43F0A31DBF4E /* Release */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/Release;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 3;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG         ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/Release/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = svm;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = Release;
+              };
+              8137C07F68E84180AE24079E /* MinSizeRel */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/MinSizeRel;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = s;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "    -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11     -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/MinSizeRel/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = svm;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = MinSizeRel;
+              };
+              4A02B4EA268E4DF7927A5E39 /* RelWithDebInfo */ = {
+                     isa = XCBuildConfiguration;
+                     buildSettings = {
+                            COMBINE_HIDPI_IMAGES = YES;
+                            CONFIGURATION_BUILD_DIR = /Users/guangleiwang/phD/kernel/Gravity/bin/RelWithDebInfo;
+                            EXECUTABLE_PREFIX = "";
+                            EXECUTABLE_SUFFIX = "";
+                            GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+                            GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+                            GCC_OPTIMIZATION_LEVEL = 2;
+                            GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'", USE_IPOPT, USE_GUROBI, USE_CPLEX, );
+                            GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+                            HEADER_SEARCH_PATHS = ("/Users/guangleiwang/Applications/Bonmin184/build/include/coin/..", /Library/gurobi702/mac64/include, "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/include/ilcplex/..", "/Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/include/ilconcert/..", /Users/guangleiwang/phD/kernel/Gravity/include, );
+                            INSTALL_PATH = "";
+                            LIBRARY_SEARCH_PATHS = "";
+                            OTHER_CFLAGS = "       -DNDEBUG  ";
+                            OTHER_CPLUSPLUSFLAGS = " -DIL_STD -std=c++11        -DNDEBUG  ";
+                            OTHER_LDFLAGS = " -Wl,-search_paths_first -Wl,-headerpad_max_install_names  /Users/guangleiwang/phD/kernel/Gravity/lib/RelWithDebInfo/libgravity.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libcplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/cplex/lib/x86-64_osx/static_pic/libilocplex.a /Users/guangleiwang/Applications/IBM/ILOG/CPLEX_Studio127/concert/lib/x86-64_osx/static_pic/libconcert.a /Library/gurobi702/mac64/lib/libgurobi_c++.a /Library/gurobi702/mac64/lib/libgurobi70.so /Users/guangleiwang/Applications/Bonmin184/build/lib/libipopt.dylib";
+                            OTHER_REZFLAGS = "";
+                            PRODUCT_NAME = svm;
+                            SECTORDER_FLAGS = "";
+                            SYMROOT = /Users/guangleiwang/phD/kernel/Gravity/build/examples;
+                            USE_HEADERMAP = NO;
+                            WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", "$(inherited)", );
+                     };
+                     name = RelWithDebInfo;
+              };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+              4B226BD98F734668A893B217 /* Build configuration list for PBXProject  "Gravity" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            2E621505B28649CE8DC748B8 /* Debug */,
+                            2A399A5CA058460D9467500A /* Release */,
+                            462F0B794DDD41DEA4FCEA14 /* MinSizeRel */,
+                            238C657B55F247EA8AF8035F /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              5FABE515A67140E99C42C2A2 /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            40C812C62DEC40A087975329 /* Debug */,
+                            6099B2072A4543B29017E0FE /* Release */,
+                            1240A3C949904CAE813293AF /* MinSizeRel */,
+                            23EEDF58E9AC434F92161BD4 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              5147077AEF80495E89188327 /* Build configuration list for PBXAggregateTarget "ZERO_CHECK" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            B2FD8AE4A4AF4BCF8341C4CE /* Debug */,
+                            2C345BECB39F4AFCB0A0ED2D /* Release */,
+                            C807D9B3EB684241A1A9B639 /* MinSizeRel */,
+                            AEC3E06F1B48444180553159 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              5E16AE52D08942599627A291 /* Build configuration list for PBXAggregateTarget "install" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            FE55A776BAAF4342B6762D70 /* Debug */,
+                            24D8D7D001454C77A18EC8D4 /* Release */,
+                            BC936722D5CB419388C4CEA2 /* MinSizeRel */,
+                            1B4F6334323F49828406066B /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              BB63EEC4C3D14AE9A6B7EC44 /* Build configuration list for PBXNativeTarget "gravity" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            014FAB46837F45E0938A333C /* Debug */,
+                            0513B9E98DB845698C6796DE /* Release */,
+                            410CFC32AFD54B9AA7C28211 /* MinSizeRel */,
+                            0FB60D0477D04EBA988DF126 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              691C2FCE29DC40309C0752A0 /* Build configuration list for PBXNativeTarget "gravity101" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            F0D3A178768349C8B7FA684F /* Debug */,
+                            711A914E71A247F58F94D0A8 /* Release */,
+                            45FCA0416A624957923B880B /* MinSizeRel */,
+                            9A21DFE9CF9E45F1AF375403 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              E431AD6889244698991F4432 /* Build configuration list for PBXNativeTarget "min_k_part" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            D33FDC3B1AB845DA9D5FE04D /* Debug */,
+                            A4109FBC8E0D4CB9A53BBE76 /* Release */,
+                            A7A80C4F62334C1184EB5F22 /* MinSizeRel */,
+                            460160507E5A4A98B02EE339 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              A6F3DD612D454A0584F2EB61 /* Build configuration list for PBXNativeTarget "neuralnet" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            29376645B19047CABEED740B /* Debug */,
+                            54D85D98A7144AAD885AC18C /* Release */,
+                            9C6EE742ADC04E3F8CBB1457 /* MinSizeRel */,
+                            3E551557FBF2431F8E71CB12 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              9F99DC2E7869483AA8753C84 /* Build configuration list for PBXNativeTarget "pooling" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            902D83A723094C7B9B09EE6E /* Debug */,
+                            EB5D1D3C259E45458719F67B /* Release */,
+                            842CD5BEB5D04010BA86703C /* MinSizeRel */,
+                            2766805FED034BF5B6103155 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              BFAF57431B7B4BEAACC187BC /* Build configuration list for PBXNativeTarget "stable_set" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            3410066206154C9095047100 /* Debug */,
+                            F96D37994914473AB7BFA6B7 /* Release */,
+                            3F2EBE24F49C4AF1A4C81161 /* MinSizeRel */,
+                            3422D5B508C14EF19E219D29 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+              42DBA642BED941F0871E7221 /* Build configuration list for PBXNativeTarget "svm" */ = {
+                     isa = XCConfigurationList;
+                     buildConfigurations = (
+                            B15C66A06F914988805522EC /* Debug */,
+                            388F13CC95CD43F0A31DBF4E /* Release */,
+                            8137C07F68E84180AE24079E /* MinSizeRel */,
+                            4A02B4EA268E4DF7927A5E39 /* RelWithDebInfo */,
+                     );
+                     defaultConfigurationIsVisible = 0;
+                     defaultConfigurationName = Debug;
+              };
+/* End XCConfigurationList section */
+       };
+       rootObject = 0E084C496F644323939585D1;
+}
