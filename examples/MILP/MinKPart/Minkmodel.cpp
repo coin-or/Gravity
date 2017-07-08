@@ -548,7 +548,9 @@ void Minkmodel::construct_fsol(){
                             continue;
                     }
                     if (allzeros){
-                        //if (inter.size()>=_K)
+                        // if inter.size() = _K-1, then the clique inequality is not implied in the chordal graph.. we need to enfore..
+                        // if inter.size() >= _K, then some of the clique inequality has been eforced by intersect + i/j, but 
+                        //if (inter.size()>=_K -1)
                             sol(i,j) = 1;
                         //else
                           //  sol(i,j) = 0;
