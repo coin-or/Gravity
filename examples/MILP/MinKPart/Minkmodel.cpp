@@ -548,10 +548,10 @@ void Minkmodel::construct_fsol(){
                             continue;
                     }
                     if (allzeros){
-                        if (inter.size()>=_K)
+                        //if (inter.size()>=_K)
                             sol(i,j) = 1;
-                        else
-                            sol(i,j) = 0;
+                        //else
+                          //  sol(i,j) = 0;
                     }
                 }
                 cout << sol(i,j).to_str() << endl;
