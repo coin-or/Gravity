@@ -70,8 +70,8 @@ int main (int argc, const char * argv[])
 {
     double k = 2;
     //string fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
-    //string fname = "../../data_sets/Minkcut/toy.txt";
-    string fname = "../../data_sets/Minkcut/toy_kojima.txt";
+    string fname = "../../data_sets/Minkcut/toy.txt";
+    //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
 
     //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
     Net* graph = new Net();
