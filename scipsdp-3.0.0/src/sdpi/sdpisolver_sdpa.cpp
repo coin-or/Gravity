@@ -2473,5 +2473,4 @@ SCIP_RETCODE SCIPsdpiSolverWriteSDP(
 
    return SCIP_OKAY;
 }
-
 /**@} */

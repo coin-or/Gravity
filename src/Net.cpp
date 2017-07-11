@@ -554,8 +554,10 @@ void Net::get_tree_decomp_bags(bool print_bags){
     //_chordalextension = Net::clone();
     //clique less than 3 nodes are useless for us.
     while (_clone->nodes.size()>2) {
-        sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare); //descending
-        n = _clone->nodes.back();//last element, the minimum fill-in.
+          //descending order.
+        // not sure.
+        sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare);
+        n = _clone->nodes.back(); //last element, the minimum fill-in.
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
         vector<Node*> bag;

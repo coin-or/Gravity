@@ -16,6 +16,8 @@ option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
 option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
+# Find SDPA (optional).
+option(ENABLE_SDPA "Link to SDPA libraries" ON)
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
@@ -32,6 +34,15 @@ if (ENABLE_IPOPT)
 	find_package(IPOPT REQUIRED)
 	include_directories(${IPOPT_INCLUDE_DIRS}/..)
 	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+endif()
+
+# Find SDPA.
+if (ENABLE_SDPA)
+	message(STATUS "Enable SDPA")
+	add_definitions(-DUSE_SDPA)
+	find_package(SDPA REQUIRED)
+	include_directories(${SDPA_INCLUDE_DIRS}/..)
+	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
 endif()
 
 # Find Gurobi?
