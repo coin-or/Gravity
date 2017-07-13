@@ -15,7 +15,7 @@
 #include <vector>
 #include <list>
 #include <set>
-#include <Gravity/constant.h>
+#include <gravity/constant.h>
 
 using namespace std;
 

@@ -6,7 +6,7 @@
 //
 //
 #include <math.h>
-#include <Gravity/func.h>
+#include <gravity/func.h>
 
 //#define USEDEBUG
 #ifdef USEDEBUG

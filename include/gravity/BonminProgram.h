@@ -68,7 +68,7 @@ public:
 
     /** Method called by Ipopt */
     virtual void finalize_solution(
-            TMINLP::SolverReturn               status    ,
+            TMINLP::SolverReturn              status    ,
             Index                             n         ,
             const Number*                     x         ,
             Number                            obj_value

@@ -6,7 +6,7 @@
 //
 //
 
-#include <Gravity/model.h>
+#include <gravity/model.h>
 //#define USEDEBUG
 #ifdef USEDEBUG
 #define Debug(x) cout << x

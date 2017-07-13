@@ -23,6 +23,7 @@ public:
     ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
     double                      _rhs = 0;
     double                      _dual = 0; /**< Lagrange multipliers at a KKT point */
+    
     /** Constructor */
     //@{
     Constraint();

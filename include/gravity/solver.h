@@ -26,11 +26,14 @@
 #ifdef USE_CPLEX
 #include <Gravity/CplexProgram.h>
 #endif
+#ifdef USE_SDPA
+#include "SdpaProgram.h"
+#endif
 
 class solver {
 public:
-    Model*                          _model;
-    SolverType                      _stype;
+    Model*                         _model;
+    SolverType                     _stype;
     /** Constructor */
     //@{
     solver();

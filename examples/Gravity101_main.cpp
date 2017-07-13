@@ -196,7 +196,6 @@ int main (int argc, const char * argv[])
 //    ff.print();
     
     
-    return 0;
     ff *= aa;
 //    ff.print();
 //    ff += aa*(ip + dp)*q*q;
@@ -233,6 +232,8 @@ int main (int argc, const char * argv[])
     vec_prod += ip.tr()*p;
     vec_prod.print();
     auto quad = (aa+ip)*(v1.tr()*v1) + q;//FIX _is_vector for v1!
+    
+    
 //    quad.print();
 //    int C = 10;
 //    int n = 10, ni = 3;
@@ -258,7 +259,6 @@ int main (int argc, const char * argv[])
     f2 -= 2.2;
     f2 *= 2;
 //    f2.print();
-//    return 0;
 //  f2.print();
 //    var<int> x("x");
 //    var<int> y("y");
@@ -279,5 +279,19 @@ int main (int argc, const char * argv[])
 //    df2dx.print();
 //    df2dy.print();
 //    dfdydz.print();
-//    return 0;
+    // test SDPA solver.
+    
+    auto sdpa_inst = new SdpaProgram();
+    string fname = "../../data_sets/Minkcut/toy.txt";
+    std::cout << "Let me test"<< endl;
+
+    std::string file_input ="../../data_sets/SDPs/example1.dat-s";
+    std::string file_param ="../../data_sets/SDPs/params.sdpa";
+    char* f_input=NULL;
+    char* f_param=NULL;
+    strcpy(f_input,file_input.c_str());
+    strcpy(f_param,file_param.c_str());
+    cout << file_input << endl;
+    sdpa_inst->read_model(f_input,f_param);
+    return 0;
    } 

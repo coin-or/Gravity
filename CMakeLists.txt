@@ -41,7 +41,7 @@ if (ENABLE_SDPA)
 	message(STATUS "Enable SDPA")
 	add_definitions(-DUSE_SDPA)
 	find_package(SDPA REQUIRED)
-	include_directories(${SDPA_INCLUDE_DIRS}/..)
+	include_directories(${SDPA_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
 endif()
 
