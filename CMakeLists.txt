@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.2)
 project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
-
-
 # Find Gurobi (optional).
 option(ENABLE_GUROBI "Link to Gurobi libraries" ON)
 
@@ -26,7 +24,6 @@ configure_file (
     "${PROJECT_BINARY_DIR}/include/gravity/GravityConfig.h")
 
 
-
 # Find Ipopt.
 if (ENABLE_IPOPT)
 	message(STATUS "Enable IPOPT")
@@ -43,6 +40,8 @@ if (ENABLE_SDPA)
 	find_package(SDPA REQUIRED)
 	include_directories(${SDPA_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-all-loops -Wall -fPIC -funroll-all-loops")
+    set(CMAKE_Fortran_FLAGS "-g -O2 -Wall -fPIC -funroll-all-loops")
 endif()
 
 # Find Gurobi?
@@ -75,7 +74,6 @@ endif()
 
 
 # Compiler options
-
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
 
 # Build options

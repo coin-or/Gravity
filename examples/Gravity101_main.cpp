@@ -4,8 +4,6 @@
 //
 //  Created by Hassan on 3 Jan 2016.
 //
-//
-
 
 #include <stdio.h>
 #include <iostream>
@@ -231,8 +229,7 @@ int main (int argc, const char * argv[])
     vec_prod.print();
     vec_prod += ip.tr()*p;
     vec_prod.print();
-    auto quad = (aa+ip)*(v1.tr()*v1) + q;//FIX _is_vector for v1!
-    
+    auto quad = (aa+ip)*(v1.tr()*v1) + q;// FIX _is_vector for v1!
     
 //    quad.print();
 //    int C = 10;
@@ -246,7 +243,7 @@ int main (int argc, const char * argv[])
 //    auto SVM = 5 - y -4*x -y + 4 -3*x - y + 3 - 3*x +4 -4*x + y + y -1 +x +y +2*x +y - 2 + 3*x;
 //    SVM.print();
 //    auto f1 = sum(alpha,n,ni);
-//    auto f1 = sqrt(v1.tr()*v1) + p*q;    auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
+//    auto f1 = sqrt(v1.tr()*v1) + p*q; auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad;
     
     auto f1 = sqrt(v1.tr()*v1) + ip + log(p) + quad + (p*p*p)/(q*q*dp);
 //    f1.print();
@@ -258,40 +255,39 @@ int main (int argc, const char * argv[])
 //    f2.print();
     f2 -= 2.2;
     f2 *= 2;
-//    f2.print();
 //  f2.print();
-//    var<int> x("x");
-//    var<int> y("y");
-//    var<int> z("z");
+//  f2.print();
+//  var<int> x("x");
+//  var<int> y("y");
+//  var<int> z("z");
 //    
-//    auto poly = -2*x - y*z + y*y*z + y*z*z + x*x*y;
-////    auto poly = y*y*z + y*z*z;
-//    poly.print();
-//    auto dfdx = poly.get_dfdx(x);
+//  auto poly = -2*x - y*z + y*y*z + y*z*z + x*x*y;
+//  auto poly = y*y*z + y*z*z;
+//  poly.print();
+//  auto dfdx = poly.get_dfdx(x);
 //    
-//    auto df2dx = dfdx.get_dfdx(x);
-//    auto dfdy = poly.get_dfdx(y);
-//    auto dfdydz = dfdy.get_dfdx(z);
+//  auto df2dx = dfdx.get_dfdx(x);
+//  auto dfdy = poly.get_dfdx(y);
+//  auto dfdydz = dfdy.get_dfdx(z);
 //    
-////    dfdy.print();
-//    auto df2dy = dfdy.get_dfdx(y);
+//  dfdy.print();
+//  auto df2dy = dfdy.get_dfdx(y);
 //    
-//    df2dx.print();
-//    df2dy.print();
-//    dfdydz.print();
-    // test SDPA solver.
+//  df2dx.print();
+//  df2dy.print();
+//  dfdydz.print();
+//  test SDPA solver.
     
     auto sdpa_inst = new SdpaProgram();
     string fname = "../../data_sets/Minkcut/toy.txt";
     std::cout << "Let me test"<< endl;
 
-    std::string file_input ="../../data_sets/SDPs/example1.dat-s";
-    std::string file_param ="../../data_sets/SDPs/params.sdpa";
-    char* f_input=NULL;
-    char* f_param=NULL;
+    std::string file_input = "../../data_sets/SDPs/example1.dat";
+    std::string file_param = "../../data_sets/SDPs/param.sdpa";
+    char* f_input= new char[file_input.length()+1];
+    char* f_param= new char[file_param.length()+1];
     strcpy(f_input,file_input.c_str());
     strcpy(f_param,file_param.c_str());
-    cout << file_input << endl;
     sdpa_inst->read_model(f_input,f_param);
     return 0;
    } 

@@ -17,6 +17,10 @@ if (NOT ENABLE_CPLEX)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexProgram.cpp)
 endif()
 
+if (NOT ENABLE_SDPA)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/SdpaProgram.cpp)
+endif()
+
 add_library(gravity ${SOURCES} ${HEADERS})
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES})
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES}  ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES})
 
