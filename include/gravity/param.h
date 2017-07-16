@@ -19,13 +19,12 @@
 
 using namespace std;
 
-
 /** Backbone class for parameter */
 class param_: public constant_{
 protected:
     string                      _name;
     int                         _id = -1;
-    int                         _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
+    int                         _vec_id = -1;   /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
     shared_ptr<map<string,unsigned>>  _indices;/*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
 public:
@@ -153,7 +152,7 @@ public:
     pair<type,type>                         _range; /**< (Min,Max) values in vals **/
     
     param(){
-        _type = par_c;
+        _type = par_c; 
         _name = "noname";        
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
@@ -267,7 +266,7 @@ public:
     
     
     /* Modifiers */
-    void    set_size(size_t s, type val = 0){
+    void   set_size(size_t s, type val = 0){
         _val->resize(s,val);
         _dim = s;        
     };

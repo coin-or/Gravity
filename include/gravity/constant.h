@@ -23,7 +23,6 @@ class constant_{
 protected:
     CType               _type;
     
-
     
 public:
     bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */

@@ -4486,7 +4486,6 @@ void bexpr::print(bool endline) const {
         cout << endl;
 }
 
-
 size_t func_::get_nb_vars() const{
     size_t n = 0;
     for (auto &p: *_vars) {

@@ -257,9 +257,9 @@ int main (int argc, const char * argv[])
     f2 *= 2;
 //  f2.print();
 //  f2.print();
-//  var<int> x("x");
-//  var<int> y("y");
-//  var<int> z("z");
+  var<int> x("x");
+  var<int> y("y");
+  var<int> z("z");
 //    
 //  auto poly = -2*x - y*z + y*y*z + y*z*z + x*x*y;
 //  auto poly = y*y*z + y*z*z;
@@ -278,6 +278,10 @@ int main (int argc, const char * argv[])
 //  dfdydz.print();
 //  test SDPA solver.
     
+    
+    func_ c;
+    c = 2*x;
+    // test SDPA
     auto sdpa_inst = new SdpaProgram();
     string fname = "../../data_sets/Minkcut/toy.txt";
     std::cout << "Let me test"<< endl;
@@ -289,5 +293,9 @@ int main (int argc, const char * argv[])
     strcpy(f_input,file_input.c_str());
     strcpy(f_param,file_param.c_str());
     sdpa_inst->read_model(f_input,f_param);
+    
+    // Now Test mosek.
+    
     return 0;
+    
    } 

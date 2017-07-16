@@ -17,6 +17,9 @@ option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 # Find SDPA (optional).
 option(ENABLE_SDPA "Link to SDPA libraries" ON)
 
+# Find MOSEK (optional).
+option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
+
 # configure a header file to pass some of the CMake settings
 # to the source code.
 configure_file (
@@ -42,6 +45,15 @@ if (ENABLE_SDPA)
 	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-all-loops -Wall -fPIC -funroll-all-loops")
     set(CMAKE_Fortran_FLAGS "-g -O2 -Wall -fPIC -funroll-all-loops")
+endif()
+
+# Find MOSEK.
+if (ENABLE_MOSEK)
+	message(STATUS "Enable MOSEK")
+	add_definitions(-DUSE_MOSEK)
+	find_package(MOSEK REQUIRED)
+	include_directories(${MOSEK_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${MOSEK_LIBRARIES})
 endif()
 
 # Find Gurobi?

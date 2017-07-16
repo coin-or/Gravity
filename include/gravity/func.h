@@ -203,8 +203,8 @@ public:
     bool                    _sign = true; /**< True if +, flase if - */    
     
     lterm(){
-        _coef = nullptr;
-        _p = nullptr;
+        _coef = nullptr; // coefficent
+        _p = nullptr; // terms. 
     }
     
     lterm(lterm&& t){
