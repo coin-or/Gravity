@@ -15,14 +15,15 @@ MosekProgram::MosekProgram() {
 
 MosekProgram::MosekProgram(Model* m) {
     _mosek_model = new fusion::Model("noname");
-    auto _M = monty::finally([&] () {
-        _mosek_model->dispose();
-    });
+    // move this to destructor. 
+    //auto __mosek_model = monty::finally([&] () {
+    //    _mosek_model->dispose();
+    //});
     _model = m;
 }
 
 MosekProgram::~MosekProgram() {
-    delete _mosek_model;
+    _mosek_model->dispose();
 }
 
 // remain to do
@@ -44,43 +45,45 @@ void MosekProgram::fill_in_mosek_vars() {
         case float_: {
             auto real_var = (var<float>*)v;
             for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
             }
             break;
         }
         case long_: {
             auto real_var = (var<long double>*)v;
             for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
             }
             break;
         }
         case double_: {
             auto real_var = (var<double>*)v;
             for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
             }
             break;
         }
         case integer_: {
             auto real_var = (var<int>*)v;
             for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::integral(fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i)))));
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::integral(fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i)))));
             }
             break;
         }
         case short_: {
             auto real_var = (var<short>*)v;
             for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
             }
             break;
         }
         case binary_: {
             auto real_var = (var<bool>*)v;
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                _mosek_vars.push_back(_mosek_model->variable(v->get_name()+"_"+to_string(i),fusion::Domain::binary()));
-            }
+//            for (unsigned int i = 0; i < real_var->get_dim(); i++) {
+//                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::binary()));
+//            }
+            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_",real_var->get_dim(), fusion::Domain::binary()));
+
             break;
         }
         default:
@@ -118,8 +121,10 @@ void MosekProgram::create_mosek_constraints() {
                     if (!it1.second._sign) {
                         expr = fusion::Expr::add(expr,fusion::Expr::mul(poly_eval(it1.second._coef), _mosek_vars[idx]));
                     }
-                    else
-                        expr = fusion::Expr::add(expr,fusion::Expr::mul(-poly_eval(it1.second._coef), _mosek_vars[idx]));
+                    else{
+                        fusion::Expr::mul(-poly_eval(it1.second._coef), _mosek_vars[idx]);
+                        fusion::Expr::add(expr,fusion::Expr::mul(-poly_eval(it1.second._coef), _mosek_vars[idx]));
+                    }
                 }
             }
 

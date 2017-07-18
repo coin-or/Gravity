@@ -3,21 +3,22 @@ cmake_minimum_required(VERSION 3.2)
 project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
-# Find Gurobi (optional).
+
+# Find Gurobi (optional)
 option(ENABLE_GUROBI "Link to Gurobi libraries" ON)
 
-# Find IPOPT (optional).
+# Find IPOPT (optional)
 option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 
-# Find BONMIN (optional).
+# Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
 option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
-# Find SDPA (optional).
+# Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" ON)
 
-# Find MOSEK (optional).
+# Find MOSEK (optional)
 option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
 
 # configure a header file to pass some of the CMake settings
@@ -54,9 +55,10 @@ if (ENABLE_MOSEK)
 	find_package(MOSEK REQUIRED)
 	include_directories(${MOSEK_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${MOSEK_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
-# Find Gurobi?
+# Find GUROBI?
 if (ENABLE_GUROBI)
     message(STATUS "Enable GUROBI")
     add_definitions(-DUSE_GUROBI)
@@ -83,7 +85,6 @@ if (ENABLE_CPLEX)
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIL_STD")
 endif()
-
 
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")

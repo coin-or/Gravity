@@ -40,7 +40,6 @@ Minkmodel::~Minkmodel(){};
 
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph),zij("zij"),Xij("Xij"){};
 
-
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph),zij("zij"),Xij("Xij"){};
 
 

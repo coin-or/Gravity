@@ -26,7 +26,7 @@ public:
     SolverType  _solver;
     double      _K;
     Net*        _graph;
-    var<int> zij;
+    var<bool> zij;
     var<double> Xij;
     set<tuple<int,int,int>> _ids; //
     set<tuple<int,int,int,int>> _ids4; //

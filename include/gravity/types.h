@@ -20,7 +20,7 @@ typedef enum { geq, leq, eq } ConstraintType;
 typedef enum { const_, lin_, quad_, pol_, nlin_ } FType;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */
 typedef enum { minimize, maximize } ObjectiveType;
 typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_} OperatorType;  /* Operation type in the expression tree */
-typedef enum { ipopt, gurobi, bonmin, cplex, sdpa_,mosek_} SolverType;  /* Solver type */
+typedef enum { ipopt, gurobi, bonmin, cplex, sdpa_, mosek_} SolverType;  /* Solver type */
 
 // settings of solvers. used by solvers like sdpa.
 typedef enum {unsolved = -1, penalty=0, fast=1, medium=2, stable=3} SolverSettings;

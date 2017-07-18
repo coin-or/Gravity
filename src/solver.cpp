@@ -226,7 +226,7 @@ int solver::run(int output, bool relax){
     }
     else if(_stype == mosek_)
     {
-#ifdef USE_CPLEX
+#ifdef USE_MOSEK
         try{
             auto mosek_prog = new MosekProgram(_model);
             mosek_prog->_output = output;

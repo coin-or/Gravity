@@ -1,4 +1,4 @@
-    //
+//
 //  MinKpartition.cpp
 //  Gravity
 //
@@ -78,19 +78,21 @@ int main (int argc, const char * argv[])
     graph->readrudy(fname);
     graph->get_tree_decomp_bags(true);
     //graph->get_tree_decomp_bags();
-    // print bags
-//    for (int i=0; i<graph->_bags.size();i++){
-//        auto bag = graph->_bags[i];
-//        int size=bag.size();
-//        cout << "bag" << i << "= {";
-//        for (int j=0; j< size; j++)
-//            cout << bag[j]->ID << ",";
-//        cout << "}" << endl;
-//    }
+    //print bags
+    //    for (int i=0; i<graph->_bags.size();i++){
+    //        auto bag = graph->_bags[i];
+    //        int size=bag.size();
+    //        cout << "bag" << i << "= {";
+    //        for (int j=0; j< size; j++)
+    //            cout << bag[j]->ID << ",";
+    //        cout << "}" << endl;
+    //    }
     
-  //  ModelType mt = MIP;
+    //ModelType mt = MIP;
+    
+    
     ModelType mt = MIP_tree;
-    SolverType solver= cplex;
+    SolverType solver= mosek_;
     
     Minkmodel mymodel(mt,graph,k,solver);
     mymodel.build();
@@ -99,12 +101,22 @@ int main (int argc, const char * argv[])
     double cpu0  = get_cpu_time();
     bool relax = false;
     int output = 1;
+   // mosek::fusion::Model::t M;
+   // M = new mosek::fusion::Model("abc");
+    
+    //auto _M = monty::finally([&]() { M->dispose(); });
+    //mosek::fusion::Variable::t x = M->variable("x", mosek::fusion::Domain::binary());
+    // M->variable("x", mosek::fusion::Domain::binary());
+
+    
     mymodel.solve(output,relax);
-    mymodel.zij.param<int>::print(true);
+    /*
+    mymodel.zij.param<bool>::print(true);
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
     cout << "The constructed feasible solution is: " << endl;
     mymodel.construct_fsol();
+     */
 }

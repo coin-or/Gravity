@@ -13,13 +13,14 @@
 #ifdef USE_MOSEK
 #include <fusion.h>
 #include <monty.h>
-#include <mosek.h>
 #endif
 #include <gravity/model.h>
 
 class MosekProgram {
 public:
     Model* _model;
+    mosek::fusion::Model::t _mosek_model;
+    vector<mosek::fusion::Variable::t> _mosek_vars;
     int _output;
     MosekProgram();
     MosekProgram(Model* m);
@@ -37,9 +38,7 @@ public:
     void set_mosek_objective();
     void print_constraints();
     
-private:
-    mosek::fusion::Model* _mosek_model;
-    vector<mosek::fusion::Variable::t> _mosek_vars;
+   
 };
 
 #endif /* MosekProgram_h */

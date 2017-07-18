@@ -15,7 +15,6 @@
 #include <typeinfo>
 #include "DataSet.h"
 
-
 //#define USEDEBUG
 #ifdef USEDEBUG
 #define Debug(x) cout << x
