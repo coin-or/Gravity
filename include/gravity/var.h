@@ -90,8 +90,6 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-    
 //    var operator()(int idx...){
 //        auto res(*this);
 //        res._indices.insert(idx);

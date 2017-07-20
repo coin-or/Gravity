@@ -19,26 +19,26 @@
 class MosekProgram {
 public:
     Model* _model;
-    mosek::fusion::Model::t _mosek_model;
-    vector<mosek::fusion::Variable::t> _mosek_vars;
     int _output;
     MosekProgram();
     MosekProgram(Model* m);
     ~MosekProgram();
-    void reset_model();
+    //void reset_model();
     
     
     bool solve(bool relax);
     void prepare_model();
-    void update_model();
-    void relax_model();
+    //void update_model();
+    //void relax_model();
     
     void fill_in_mosek_vars();
     void create_mosek_constraints();
     void set_mosek_objective();
-    void print_constraints();
+    //void print_constraints();
     
-   
+private: 
+    mosek::fusion::Model::t _mosek_model;
+    vector<mosek::fusion::Variable::t> _mosek_vars;
 };
 
 #endif /* MosekProgram_h */

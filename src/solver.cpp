@@ -235,8 +235,8 @@ int solver::run(int output, bool relax){
             delete mosek_prog;
             return ok ? 100 : -1;
         }
-        catch(IloException e) {
-            cerr << e.getMessage() << endl;
+        catch(mosek::fusion::FusionException e) {
+            cerr << e.toString() << endl;
         }
 #else
         mosekNotAvailable();

@@ -52,12 +52,4 @@ public:
 
 
 #endif /* defined(__PowerTools____CplexProgram) */
-
-
-
-
-
-
-
-
 #endif /* CplexProgram_hpp */
