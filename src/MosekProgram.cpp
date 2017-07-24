@@ -50,23 +50,22 @@ bool MosekProgram::solve(bool relax) {
     // variable.level(). It only returns double. Thus, we need to cast the
     // solution to required types.
     //std::cout << "Solution = " << std::endl;
-   // cout << "dim: " << _mosek_vars.size() << endl;
+    // cout << "dim: " << _mosek_vars.size() << endl;
     //auto sol = _mosek_vars[0]->level();
     mosek::fusion::Variable::t s= _mosek_vars[0];
     //cout << "size of s: " << s->size() << endl;
 
     for (auto i = 0; i < _mosek_vars.size(); i++) {
         auto sol = _mosek_vars[i]->level();
-        for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-            //cout << _model->_vars[i][j].get_intype().to_str() << endl;
-            if (_model->_vars[i][j].get_intype()== binary_ ||_model->_vars[i][j].get_intype()== integer_)
-            {
-                auto val = (*sol)(j);
+        if (_model->_vars[i]->get_intype()== binary_ ||_model->_vars[i]->get_intype()== integer_) {
+            for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+                auto val = (*sol)[j];
                 val = round(val);
-             //   cout <<"val: " << val <<endl;
                 poly_set_val(j, val , _model->_vars[i]);
             }
-            else
+        }
+        else {
+            for (auto j = 0; j < _model->_vars[i]->get_dim(); j++)
                 poly_set_val(j,(*sol)[j] , _model->_vars[i]);
         }
     }
@@ -91,8 +90,8 @@ void MosekProgram::fill_in_mosek_vars() {
             auto lb  = new_array_ptr<double,1>(real_var->get_dim());
             auto ub  = new_array_ptr<double,1>(real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)(i) = real_var->get_lb(i);
-                (*ub)(i) = real_var->get_ub(i);
+                (*lb)[i] = real_var->get_lb(i);
+                (*ub)[i] = real_var->get_ub(i);
             }
             _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             break;
@@ -105,8 +104,8 @@ void MosekProgram::fill_in_mosek_vars() {
             auto lb  = new_array_ptr<double,1>(real_var->get_dim());
             auto ub  = new_array_ptr<double,1>(real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)(i) = real_var->get_lb(i);
-                (*ub)(i) = real_var->get_ub(i);
+                (*lb)[i] = real_var->get_lb(i);
+                (*ub)[i] = real_var->get_ub(i);
             }
             _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             break;
@@ -119,8 +118,8 @@ void MosekProgram::fill_in_mosek_vars() {
             auto lb  = new_array_ptr<double,1>(real_var->get_dim());
             auto ub  = new_array_ptr<double,1>(real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)(i) = real_var->get_lb(i);
-                (*ub)(i) = real_var->get_ub(i);
+                (*lb)[i] = real_var->get_lb(i);
+                (*ub)[i] = real_var->get_ub(i);
             }
             _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             break;
@@ -130,8 +129,8 @@ void MosekProgram::fill_in_mosek_vars() {
             auto lb  = new_array_ptr<double,1>(real_var->get_dim());
             auto ub  = new_array_ptr<double,1>(real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)(i) = real_var->get_lb(i);
-                (*ub)(i) = real_var->get_ub(i);
+                (*lb)[i] = real_var->get_lb(i);
+                (*ub)[i] = real_var->get_ub(i);
             }
             _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
             break;
@@ -141,8 +140,8 @@ void MosekProgram::fill_in_mosek_vars() {
             auto lb  = new_array_ptr<double,1>(real_var->get_dim());
             auto ub  = new_array_ptr<double,1>(real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)(i) = real_var->get_lb(i);
-                (*ub)(i) = real_var->get_ub(i);
+                (*lb)[i] = real_var->get_lb(i);
+                (*ub)[i] = real_var->get_ub(i);
             }
             _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
             break;
@@ -169,7 +168,7 @@ void MosekProgram::create_mosek_constraints() {
     Constraint* c;
     for(auto& p: _model->_cons) {
         c = p.second;
-        c->print();
+        //c->print();
         if (c->is_nonlinear()) {
             cout <<  "We haven't implemented quadratic expressions interface for mosek" << endl;
             throw invalid_argument("Mosek cannot handle nonlinear constraints that are not convex quadratic.\n");
@@ -190,7 +189,7 @@ void MosekProgram::create_mosek_constraints() {
                         (*coefs)(j) = poly_eval(it1.second._coef,j);
                     }
                     expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
-                //    cout << "expr" << expr->toString() << endl;
+                    //    cout << "expr" << expr->toString() << endl;
                 }
                 else {
                     if (is_indexed(it1.second._p)) {

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <assert.h>
 #include <Gravity/Node.h>
 #include <Gravity/Arc.h>
@@ -98,6 +99,9 @@ public:
     
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false);
+
+    /** Compute the tree decomposition bags **/
+    void get_clique_tree (bool print_clique = false);
     
    // int test(std::string fname);
     int test();

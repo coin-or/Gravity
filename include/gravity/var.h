@@ -48,8 +48,6 @@ public:
     /** Bounded variable constructor */
     var(const string& name, type lb, type ub);
     //@}
-    
-    
         
     
     template<typename... Args>

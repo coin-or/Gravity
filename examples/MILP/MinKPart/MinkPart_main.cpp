@@ -76,7 +76,9 @@ int main (int argc, const char * argv[])
     //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
-    graph->get_tree_decomp_bags(true);
+    //graph->get_tree_decomp_bags(true);
+    graph->get_clique_tree();
+
     //graph->get_tree_decomp_bags();
     //print bags
     //    for (int i=0; i<graph->_bags.size();i++){
@@ -92,22 +94,22 @@ int main (int argc, const char * argv[])
     
     
     ModelType mt = MIP_tree;
-    SolverType solver= mosek_;
+    SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);
     mymodel.build();
     
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    bool relax = false;
+    bool relax = true;
     int output = 1;
    
     mymodel.solve(output,relax);
     
     //mymodel.zij.param<bool>::print(true);
-    //mymodel._model.get_var("zij")::param<bool>::print(true);
-    //param<bool>::print(true);
-
+    auto sol = (var<bool> *) mymodel._model.get_var("zij");
+    sol->param<bool>::print(true);
+    
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
