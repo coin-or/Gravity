@@ -74,7 +74,7 @@ void Minkmodel::build() {
 }
 void Minkmodel::reset() {};
 void Minkmodel::add_vars_origin() {
-    var<bool> zij("Zij");
+    var<bool> zij("zij");
     _model.add_var(zij^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
 
     func_ obj_MIP;

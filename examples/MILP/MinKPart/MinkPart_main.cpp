@@ -68,12 +68,12 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    double k = 2;
-    //string fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
-    string fname = "../../data_sets/Minkcut/toy.txt";
+    double k = 3;
+    //string fname = "../../data_sets/Minkcut/spinglass2g_44.txt";
+    //string fname = "../../data_sets/Minkcut/toy.txt";
     //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
 
-    //string fname = "../../data_sets/Minkcut/grid2d_55.txt";
+    string fname = "../../data_sets/Minkcut/grid2d_77.txt";
     Net* graph = new Net();
     graph->readrudy(fname);
     //graph->get_tree_decomp_bags(true);
@@ -90,10 +90,8 @@ int main (int argc, const char * argv[])
     //        cout << "}" << endl;
     //    }
     
-    //ModelType mt = MIP;
-    
-    
-    ModelType mt = MIP_tree;
+    ModelType mt = MIP;
+    //ModelType mt = MIP_tree;
     SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);
@@ -101,8 +99,8 @@ int main (int argc, const char * argv[])
     
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    bool relax = true;
-    int output = 1;
+    bool relax = false;
+    int output = 0;
    
     mymodel.solve(output,relax);
     
