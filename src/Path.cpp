@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include <Gravity/Path.h>
+#include <gravity/Path.h>
 #include <fstream>
 
 

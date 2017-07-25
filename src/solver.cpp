@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#include <Gravity/solver.h>
+#include <gravity/solver.h>
 
 #ifdef USE_BONMIN
 #include <coin/BonBonminSetup.hpp>

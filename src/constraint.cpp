@@ -6,7 +6,7 @@
 //
 //
 #include <math.h>
-#include <Gravity/constraint.h>
+#include <gravity/constraint.h>
 #define EPS 0.000001
 
 /** Constructor */

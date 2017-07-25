@@ -14,7 +14,7 @@
 #ifdef USE_SDPA
 #include <sdpa_call.h>     /* SDPA callable library interface */
 #endif
-#include <Gravity/model.h>
+#include <gravity/model.h>
 
 class SdpaProgram {
 public:

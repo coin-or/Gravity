@@ -11,20 +11,20 @@
 
 #include <stdio.h>
 
-#include <Gravity/GravityConfig.h>
+#include <gravity/GravityConfig.h>
 
-#include <Gravity/model.h>
+#include <gravity/model.h>
 #ifdef USE_IPOPT
-#include <Gravity/IpoptProgram.h>
+#include <gravity/IpoptProgram.h>
 #endif
 #ifdef USE_GUROBI
-#include <Gravity/GurobiProgram.h>
+#include <gravity/GurobiProgram.h>
 #endif
 #ifdef USE_BONMIN
-#include <Gravity/BonminProgram.h>
+#include <gravity/BonminProgram.h>
 #endif
 #ifdef USE_CPLEX
-#include <Gravity/CplexProgram.h>
+#include <gravity/CplexProgram.h>
 #endif
 #ifdef USE_SDPA
 #include "SdpaProgram.h"

@@ -5,10 +5,10 @@ project(Gravity)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 # Find Gurobi (optional)
-option(ENABLE_GUROBI "Link to Gurobi libraries" ON)
+option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
+option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
 
 # Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)

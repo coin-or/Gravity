@@ -13,9 +13,9 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
-#include <Gravity/Node.h>
-#include <Gravity/Arc.h>
-#include <Gravity/Path.h>
+#include <gravity/Node.h>
+#include <gravity/Arc.h>
+#include <gravity/Path.h>
 
 class Net{
 public:

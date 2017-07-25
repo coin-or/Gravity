@@ -1,4 +1,4 @@
-#include <Gravity/CplexProgram.h>
+#include <gravity/CplexProgram.h>
 
 CplexProgram::CplexProgram(Model* m){
     _cplex_env = new IloEnv();

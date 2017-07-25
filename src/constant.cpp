@@ -3,7 +3,7 @@
 //
 
 #include <math.h>
-#include <Gravity/constant.h>
+#include <gravity/constant.h>
 //#include <Gravity/func.h>
 #include <sstream>
 

@@ -4,7 +4,7 @@
 #ifndef Cycle_Basis_PF_Path_h
 #define Cycle_Basis_PF_Path_h
 #include <list>
-#include <Gravity/Node.h>
+#include <gravity/Node.h>
 
 class Path{
 public:

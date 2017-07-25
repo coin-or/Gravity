@@ -9,11 +9,12 @@
 #ifndef var_h
 #define var_h
 
-#include <Gravity/param.h>
+#include <gravity/param.h>
 #include <stdio.h>
 #include <string>
 #include <set>
 #include <list>
+#include <limits>
 
 //class func;
 using namespace std;

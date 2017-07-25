@@ -6,8 +6,8 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include <Gravity/Node.h>
-#include <Gravity/Arc.h>
+#include <gravity/Node.h>
+#include <gravity/Arc.h>
 #include <iostream>
 #include <limits.h>
 

@@ -10,7 +10,7 @@
 #define constraint_hpp
 
 #include <stdio.h>
-#include <Gravity/func.h>
+#include <gravity/func.h>
 
 class Constraint :public func_{
     

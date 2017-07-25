@@ -16,6 +16,7 @@
 #include <list>
 #include <set>
 #include <gravity/constant.h>
+#include <limits>
 
 using namespace std;
 

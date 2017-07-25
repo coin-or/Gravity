@@ -10,7 +10,7 @@
 #define model_hpp
 
 #include <stdio.h>
-#include <Gravity/constraint.h>
+#include <gravity/constraint.h>
 #include <map>
 #include <unordered_set>
 #include <math.h>
