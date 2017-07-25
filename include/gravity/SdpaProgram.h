@@ -9,10 +9,10 @@
 #ifndef SdpaProgram_h
 #define SdpaProgram_h
 
-#include <stdio.h>
-#include <assert.h>
 #ifdef USE_SDPA
 #include <sdpa_call.h>     /* SDPA callable library interface */
+#include <stdio.h>
+#include <assert.h>
 #endif
 #include <gravity/model.h>
 

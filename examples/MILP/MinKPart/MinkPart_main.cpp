@@ -68,15 +68,34 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    double k = 3;
+    double k = 2;
+    ModelType mt = MIP_tree;
+
     //string fname = "../../data_sets/Minkcut/spinglass2g_44.txt";
     //string fname = "../../data_sets/Minkcut/toy.txt";
     //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
-
-    string fname = "../../data_sets/Minkcut/grid2d_77.txt";
+    //graph->get_tree_decomp_bags(true);
+    
+    const char* fname;
+    const char* type;
+    if (argc > 2)
+    {
+        fname = argv[1];
+        k = atoi(argv[2]);
+        type = argv[3];
+        if (type == "MIP")
+            mt = MIP;
+        else
+            mt = MIP_tree;
+    }
+    else{
+        fname = "../../data_sets/Minkcut/grid2d_33.txt";
+        k = 2;
+        mt = MIP_tree;
+    }
+    
     Net* graph = new Net();
     graph->readrudy(fname);
-    //graph->get_tree_decomp_bags(true);
     graph->get_clique_tree();
 
     //graph->get_tree_decomp_bags();
@@ -89,9 +108,7 @@ int main (int argc, const char * argv[])
     //            cout << bag[j]->ID << ",";
     //        cout << "}" << endl;
     //    }
-    
-    ModelType mt = MIP;
-    //ModelType mt = MIP_tree;
+    //ModelType mt = MIP;
     SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);

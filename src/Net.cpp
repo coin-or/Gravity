@@ -642,7 +642,7 @@ void Net::get_clique_tree (bool print) {
                 j++;
         }
     }
-    cout << "Number of maximal cliques of the chordal extension =  " << _bags.size() << endl; 
+    cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
 }
 
 /* Destructors */

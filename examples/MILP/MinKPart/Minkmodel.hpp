@@ -17,7 +17,6 @@
 #include "/usr/local/include/armadillo"
 
 typedef enum {MIP,MIP_tree,SDP,SDP_tree} ModelType;
-//typedef enum {cplex,ipopt,gurobi} SolverType;
 
 class Minkmodel {
 public:
