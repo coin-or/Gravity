@@ -282,17 +282,17 @@ int main (int argc, const char * argv[])
     func_ c;
     c = 2*x;
     // test SDPA
-    auto sdpa_inst = new SdpaProgram();
-    string fname = "../../data_sets/Minkcut/toy.txt";
-    std::cout << "Let me test"<< endl;
+    //auto sdpa_inst = new SdpaProgram();
+    //string fname = "../../data_sets/Minkcut/toy.txt";
+    //std::cout << "Let me test"<< endl;
 
-    std::string file_input = "../../data_sets/SDPs/example1.dat";
-    std::string file_param = "../../data_sets/SDPs/param.sdpa";
-    char* f_input= new char[file_input.length()+1];
-    char* f_param= new char[file_param.length()+1];
-    strcpy(f_input,file_input.c_str());
-    strcpy(f_param,file_param.c_str());
-    sdpa_inst->read_model(f_input,f_param);
+    //std::string file_input = "../../data_sets/SDPs/example1.dat";
+    //std::string file_param = "../../data_sets/SDPs/param.sdpa";
+    //char* f_input= new char[file_input.length()+1];
+    //char* f_param= new char[file_param.length()+1];
+    //strcpy(f_input,file_input.c_str());
+    //strcpy(f_param,file_param.c_str());
+    //sdpa_inst->read_model(f_input,f_param);
     
     // Now Test mosek.
     
