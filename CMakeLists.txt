@@ -84,7 +84,7 @@ if (ENABLE_CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
     link_directories(${CPLEX_LINKS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIL_STD")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
 endif()
 
 # Compiler options
