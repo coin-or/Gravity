@@ -82,6 +82,7 @@ if (ENABLE_CPLEX)
     add_definitions(-DUSE_CPLEX)
     find_package(CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
+    link_directories(CPLEX_LINKS)
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIL_STD")
 endif()
@@ -105,7 +106,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 add_subdirectory(examples)
-
 # Install
 install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
 
