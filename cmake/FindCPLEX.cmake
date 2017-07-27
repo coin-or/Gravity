@@ -29,6 +29,7 @@ find_path(CPLEX_LINK libcplex.a x HINTS "${CPLEX_DIR}/lib/x86-64_osx/static_pic"
 find_library(CPLEX_CPP_LIBRARY libcplex.a HINTS "${CPLEX_DIR}/lib/x86-64_osx/static_pic")
 find_library(CONCERT_CPP_LIBRARY libconcert.a HINTS "${CONCERT_DIR}/lib/x86-64_osx/static_pic")
 find_library(CPLEX_ILO_CPP_LIBRARY libilocplex.a HINTS "${CPLEX_DIR}/lib/x86-64_osx/static_pic")
+find_library(CPLEX_DIST_CPP_LIBRARY libcplexdistmip.a HINTS "${CPLEX_DIR}/lib/x86-64_osx/static_pic")
 elseif(UNIX)
 find_path(CPLEX_INCLUDE_DIR ilocplex.h HINTS "${CPLEX_DIR}/include/ilcplex")
 find_path(CONCERT_INCLUDE_DIR iloalg.h HINTS "${CONCERT_DIR}/include/ilconcert")
