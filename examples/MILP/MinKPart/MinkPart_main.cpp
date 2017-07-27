@@ -78,15 +78,18 @@ int main (int argc, const char * argv[])
     
     const char* fname;
     const char* type;
-    if (argc > 2)
+    if (argc > 3)
     {
         fname = argv[1];
         k = atoi(argv[2]);
         type = argv[3];
-        if (type == "MIP")
+	cout << "type" << type << endl;
+        if (strcmp(type,"MIP")==0){
             mt = MIP;
-        else
+	}
+        else{
             mt = MIP_tree;
+	}
     }
     else{
         fname = "../data_sets/Minkcut/grid2d_33.txt";
