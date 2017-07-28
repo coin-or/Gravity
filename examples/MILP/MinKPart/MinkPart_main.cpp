@@ -92,7 +92,7 @@ int main (int argc, const char * argv[])
 	}
     }
     else{
-        fname = "../data_sets/Minkcut/grid2d_33.txt";
+        fname = "../../data_sets/Minkcut/grid2d_33.txt";
         k = 2;
         mt = MIP_tree;
     }

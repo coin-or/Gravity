@@ -138,8 +138,6 @@ public:
         return (is_bounded_below() && is_bounded_above() && _lb->at(i)==_ub->at(i));
     };
     
-    
-    
     Sign get_sign(int idx = 0) const{
         if (_lb->at(idx) == 0 && _ub->at(idx) == 0) {
             return zero_;
@@ -205,5 +203,4 @@ var<type> all(const var<type>& p){
     pp._is_vector = true;
     return pp;
 }
-
 #endif /* var_h */

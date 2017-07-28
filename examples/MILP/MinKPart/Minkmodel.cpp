@@ -31,7 +31,6 @@ using namespace std;
 //    }
 //}
 
-
 Minkmodel::Minkmodel() {};
 
 Minkmodel::~Minkmodel() {};

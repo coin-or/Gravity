@@ -266,6 +266,7 @@ void Net::readrudy(string fn) {
 
 
     ifstream infile(fname);
+
     string sLine;
 
     if (infile.good())
@@ -274,6 +275,10 @@ void Net::readrudy(string fn) {
         istringstream iss(sLine);
         iss >> Num_nodes;
         iss >> Num_edges;
+    }
+    else{
+        fprintf(stderr,"can’t open input file %s\n",fname);
+        exit(1);
     }
     // get nodes
 
