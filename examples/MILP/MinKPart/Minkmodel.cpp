@@ -456,147 +456,135 @@ void Minkmodel::construct_fsol() {
 // construct a feasible solution from z
     auto zij = (*(var<bool>*)(_model.get_var("zij")));
     param<int> sol("sol");
-//  int  T = (_graph->nodes.size()*(_graph->nodes.size()-1)/2);
-//  sol^T;
-//  sol(0,1)=1;
-//  sol(0,1).print();
     int i=0,j=0;
-    for (auto a: _graph->_chordalextension->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
-        if (i <= j) {
-            sol(i,j)=zij(i,j).getvalue();
-            //cout << sol(i,j).to_str() << endl;
-        }
-        else {
-            // generally, will never enter
-            cerr << "something wrong with lables of chordal extension graph";
-            sol(j,i)=zij(j,i).getvalue();
-        }
-    }
-
-    Node* n = nullptr;
-    Node* nn = nullptr;
-    Arc* arc_chordal=nullptr;
-    bool allzeros=true;
-    double temp=0;
-
-    for (i=0; i < _graph->_chordalextension->nodes.size()-1; i++) {
-        n=(_graph->_chordalextension->get_node(to_string(i+1)));
-        for (j = i+1; j< _graph->_chordalextension->nodes.size(); j++) {
-            nn=_graph->_chordalextension->get_node(to_string(j+1));
-            //cout<< "(n, nn): " << n->ID << ", " << nn->ID << endl;
-            if (n->is_connected(nn)) {
+    if (_type==MIP) {
+        cout << "The MIP solution is: " << endl;
+        for (i= 0; i < _graph->nodes.size()-1; i++) {
+            for (j= i+1; j < _graph->nodes.size(); j++) {
+                sol(i,j)=zij(i,j).getvalue();
                 cout << sol(i,j).to_str() << endl;
-            }
-            else
-            {
-                string name = to_string(_graph->_chordalextension->arcs.size()+1);
-                arc_chordal = new Arc(name);
-                arc_chordal->id = _graph->_chordalextension->arcs.size();
-                arc_chordal->src = n;
-                arc_chordal->dest = nn;
-                arc_chordal->weight = 0;
-                arc_chordal->connect();
-                // now find the maximal clique containing edge (i,j)
-
-                // for neigbour i intersect neighbour j
-                set<int> idi;
-                set<int> idj;
-                Debug("neighbours of " << i << ": ");
-
-                for (auto a: n->branches) {
-                    idi.insert(a->neighbour(n)->ID);
-                    Debug(a->neighbour(n)->ID << ", ");
-                }
-                Debug(endl << "neighbours of " << j << ": ");
-
-                for (auto a: nn->branches) {
-                    idj.insert(a->neighbour(nn)->ID);
-                    Debug(a->neighbour(nn)->ID << ", ");
-                }
-                Debug(endl);
-
-                // intersection of idi and idj.
-                std::vector<int> inter;
-                set_intersection(idi.begin(), idi.end(), idj.begin(),idj.end(),std::back_inserter(inter));
-
-                // how to get values of zij
-                if (inter.size()==0) {
-                    sol(i,j)=1;
-                }
-                else {
-                    allzeros=true;
-                    for (auto h: inter) {
-                        temp=0;
-                        Debug("(i, j, h): " << i << " " << j << " " << h <<endl);
-                        if (h <= i) {
-                            temp += sol(h,i).getvalue();
-                            // cout << sol(h,i).getvalue() << endl;
-                        }
-                        else {
-                            temp += sol(i,h).getvalue();
-                            //cout << sol(i, h).getvalue() << endl;
-                        }
-                        if (h<=j) {
-                            temp += sol(h,j).getvalue();
-                            //cout << sol(h,j).getvalue() << endl;
-                        }
-                        else {
-                            temp += sol(j,h).getvalue();
-                            //cout << sol(j,h).getvalue() << endl;
-                        }
-
-                        //cout << "temp: " << temp << endl;
-                        //DebugOn("xhi + xhj = " << temp);
-
-                        if (temp==2)
-                        {
-                            sol(i,j)=1;
-                            allzeros=false;
-                            break;
-                        }
-                        else if (temp==1)
-                        {
-                            sol(i,j)=0;
-                            allzeros=false;
-                            break;
-                        }
-                        else
-                            continue;
-                    }
-                    if (allzeros) {
-                        // if inter.size() = _K-1, then the clique inequality is not implied in the chordal graph.. we need to enfore..
-                        // if inter.size() >= _K, then some of the clique inequality has been eforced by intersect + i/j, but
-                        //if (inter.size()>=_K -1)
-                        sol(i,j) = 1;
-                        //else
-                        //  sol(i,j) = 0;
-                    }
-                }
-                cout << sol(i,j).to_str() << endl;
-                (_graph->_chordalextension)->add_arc(arc_chordal);
             }
         }
     }
-}
+   else{
+        cout << "The constructed solution is: " << endl;
+         for (auto a: _graph->_chordalextension->arcs) {
+             i = (a->src)->ID;
+             j = (a->dest)->ID;
+             if (i <= j) {
+                 sol(i,j)=zij(i,j).getvalue();
+             }
+             else {
+                 // generally, will never enter
+                 cerr << "something wrong with lables of chordal extension graph";
+                 exit(1);
+                 sol(j,i)=zij(j,i).getvalue();
+             }
+         }
 
-//bool Minkmodel::check_eigenvalues(){
-//   arma::SpMat<double> A(_graph->nodes.size(), _graph->nodes.size());
-//    //for (i= 0; i < _data->nbV[0]*nbServers; i++)
-//    //  for (j= 0; j < _data->nbV[0]*nbServers; j++){
-//    // matrix A contain values of X - x*x^T.
-//    //A(i,j) = (double)val_M[0][i][j];
-//    //}
-//    arma::vec eigval;
-//    arma::eigs_sym(eigval,_eigvec,A, 1,"sa",0.000001);
-//    if (eigval(0) < -0.0001)
-//    {
-//        cout << "there exists negative eigenvalue: " << eigval << endl;
-//        return true;
-//    }
-//    else{
-//        cout << "The solution x satisfy SDP constraint  X>=0" << endl;
-//        return false;
-//    }
-//}
+         Node* n = nullptr;
+         Node* nn = nullptr;
+         Arc* arc_chordal=nullptr;
+         bool allzeros=true;
+         double temp=0;
+
+         for (i=0; i < _graph->_chordalextension->nodes.size()-1; i++) {
+             n=(_graph->_chordalextension->get_node(to_string(i+1)));
+             for (j = i+1; j< _graph->_chordalextension->nodes.size(); j++) {
+                 nn=_graph->_chordalextension->get_node(to_string(j+1));
+                 //cout<< "(n, nn): " << n->ID << ", " << nn->ID << endl;
+                 if (n->is_connected(nn)) {
+                     cout << sol(i,j).to_str() << endl;
+                 }
+                 else
+                 {
+                     string name = to_string(_graph->_chordalextension->arcs.size()+1);
+                     arc_chordal = new Arc(name);
+                     arc_chordal->id = _graph->_chordalextension->arcs.size();
+                     arc_chordal->src = n;
+                     arc_chordal->dest = nn;
+                     arc_chordal->weight = 0;
+                     arc_chordal->connect();
+                     // now find the maximal clique containing edge (i,j)
+
+                     // for neigbour i intersect neighbour j
+                     set<int> idi;
+                     set<int> idj;
+                     Debug("neighbours of " << i << ": ");
+
+                     for (auto a: n->branches) {
+                         idi.insert(a->neighbour(n)->ID);
+                         Debug(a->neighbour(n)->ID << ", ");
+                     }
+                     Debug(endl << "neighbours of " << j << ": ");
+
+                     for (auto a: nn->branches) {
+                         idj.insert(a->neighbour(nn)->ID);
+                         Debug(a->neighbour(nn)->ID << ", ");
+                     }
+                     Debug(endl);
+
+                     // intersection of idi and idj.
+                     std::vector<int> inter;
+                     set_intersection(idi.begin(), idi.end(), idj.begin(),idj.end(),std::back_inserter(inter));
+
+                     // how to get values of zij
+                     if (inter.size()==0) {
+                         sol(i,j)=1;
+                     }
+                     else {
+                         allzeros=true;
+                         for (auto h: inter) {
+                             temp=0;
+                             Debug("(i, j, h): " << i << " " << j << " " << h <<endl);
+                             if (h <= i) {
+                                 temp += sol(h,i).getvalue();
+                                 // cout << sol(h,i).getvalue() << endl;
+                             }
+                             else {
+                                 temp += sol(i,h).getvalue();
+                                 //cout << sol(i, h).getvalue() << endl;
+                             }
+                             if (h<=j) {
+                                 temp += sol(h,j).getvalue();
+                                 //cout << sol(h,j).getvalue() << endl;
+                             }
+                             else {
+                                 temp += sol(j,h).getvalue();
+                                 //cout << sol(j,h).getvalue() << endl;
+                             }
+
+                             //cout << "temp: " << temp << endl;
+                             //DebugOn("xhi + xhj = " << temp);
+
+                             if (temp==2)
+                             {
+                                 sol(i,j)=1;
+                                 allzeros=false;
+                                 break;
+                             }
+                             else if (temp==1)
+                             {
+                                 sol(i,j)=0;
+                                 allzeros=false;
+                                 break;
+                             }
+                             else
+                                 continue;
+                         }
+                         if (allzeros) {
+                             // if inter.size() = _K-1, then the clique inequality is not implied in the chordal graph.. we need to enfore..
+                             // if inter.size() >= _K, then some of the clique inequality has been eforced by intersect + i/j, but
+                             //if (inter.size()>=_K -1)
+                             sol(i,j) = 1;
+                             //else
+                             //  sol(i,j) = 0;
+                         }
+                     }
+                     cout << sol(i,j).to_str() << endl;
+                     (_graph->_chordalextension)->add_arc(arc_chordal);
+                 }
+             }
+         }
+        }
+    }

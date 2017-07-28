@@ -92,9 +92,9 @@ int main (int argc, const char * argv[])
 	}
     }
     else{
-        fname = "../../data_sets/Minkcut/grid2d_33.txt";
-        k = 2;
-        mt = MIP_tree;
+        fname = "../../data_sets/Minkcut/grid2d_44.txt";
+        k = 3;
+        mt = MIP;
     }
     
     Net* graph = new Net();
@@ -132,6 +132,5 @@ int main (int argc, const char * argv[])
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    cout << "The constructed feasible solution is: " << endl;
     mymodel.construct_fsol();
 }
