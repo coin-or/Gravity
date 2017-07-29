@@ -14,7 +14,7 @@ typedef unsigned int ind; /* Index type */
 typedef enum { linear_, convex_, concave_, undet_} Convexity; /* Convexity Type */
 typedef enum { neg_ = -2, non_pos_ = -1, zero_ = 0, non_neg_ = 1, pos_ = 2, unknown_ = 3} Sign; /* Sign Type */
 typedef enum { binary_, short_, integer_, float_, double_, long_} NType; /* Number Type */
-typedef enum { binary_c, short_c, integer_c, float_c, double_c, long_c, par_c, uexp_c, bexp_c, var_c, func_c} CType; /* Constant type, ancestor to parameter, var and function */
+typedef enum { binary_c, short_c, integer_c, float_c, double_c, long_c, par_c, uexp_c, bexp_c, var_c, func_c, sdpvar_c} CType; /* Constant type, ancestor to parameter, var and function */
 typedef enum { infeasible, optimal, suboptimal, unbounded, error} Outcome;
 typedef enum { geq, leq, eq } ConstraintType;
 typedef enum { const_, lin_, quad_, pol_, nlin_ } FType;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */

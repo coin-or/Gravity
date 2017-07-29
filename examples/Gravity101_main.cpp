@@ -102,13 +102,22 @@ int main (int argc, const char * argv[])
 //    param<> p;
     param<int> ip("ip");
     std::cout << ip.to_str() << endl;
+    
    // ip.print();
     ip(2,3)=5;
+    
     cout<<ip(2,3).to_str()<<endl;
     cout<<ip(2,3).getvalue()<<endl;
     cout <<"dim: " << ip.get_dim()<<endl;
+    ip(1,2,3)=999;
+    cout<<ip(1,2,3).to_str()<<endl;
+    cout<<ip(1,2,3).getvalue()<<endl;
+    // dim of the parameter.
+    // 0 if it is not a vector.
+    // else it is considered as a vector.
+    cout <<"dim: " << ip.get_dim()<<endl;
 
-    ip.print();
+    ip.print(true);
     
     
     for (int i = 0; i<100000; i++) {
@@ -282,20 +291,36 @@ int main (int argc, const char * argv[])
     func_ c;
     c = 2*x;
     // test SDPA
-    auto sdpa_inst = new SdpaProgram();
-    string fname = "../data_sets/Minkcut/toy.txt";
-    std::cout << "Let me test"<< endl;
+//    auto sdpa_inst = new SdpaProgram();
+//    string fname = "../data_sets/Minkcut/toy.txt";
+//    std::cout << "Let me test"<< endl;
+//
+//    std::string file_input = "../data_sets/SDPs/example1.dat";
+//    std::string file_param = "../data_sets/SDPs/param.sdpa";
+//    char* f_input= new char[file_input.length()+1];
+//    char* f_param= new char[file_param.length()+1];
+//    strcpy(f_input,file_input.c_str());
+//    strcpy(f_param,file_param.c_str());
+//    sdpa_inst->read_model(f_input,f_param);
+    
+    var<double> testvar("testfunctor");
+    //auto b = testfunctor(5,3,3,3,3,3);
+    //b.param<double>::print(true);
+    testvar^3;
+    testvar.print();
+    auto t1 = (testvar(1,1)+testvar(2,2));
+    testvar(1,1).get_type();
 
-    std::string file_input = "../data_sets/SDPs/example1.dat";
-    std::string file_param = "../data_sets/SDPs/param.sdpa";
-    char* f_input= new char[file_input.length()+1];
-    char* f_param= new char[file_param.length()+1];
-    strcpy(f_input,file_input.c_str());
-    strcpy(f_param,file_param.c_str());
-    sdpa_inst->read_model(f_input,f_param);
     
-    // Now Test mosek.
     
+
+    sdpvar<double> X("X");
+    X^5;
+    X.print();
+    X(1,1).print();
+    X(2,2).print();
+    X(1,1).get_type();
+    X(2,2).get_type();
+     X(3,3)+X(4, 2);
     return 0;
-    
    } 
