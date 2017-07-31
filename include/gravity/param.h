@@ -27,7 +27,8 @@ protected:
     int                         _id = -1;
     int                         _vec_id = -1;   /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
-    shared_ptr<map<string,unsigned>>  _indices;/*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
+    shared_ptr<map<string,unsigned>>  _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
+    shared_ptr<map<string,pair<unsigned, unsigned>>> sdp_index;
 public:
     
     bool                        _is_indexed = false;
