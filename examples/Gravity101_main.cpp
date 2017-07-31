@@ -302,25 +302,11 @@ int main (int argc, const char * argv[])
 //    strcpy(f_input,file_input.c_str());
 //    strcpy(f_param,file_param.c_str());
 //    sdpa_inst->read_model(f_input,f_param);
-    
-    var<double> testvar("testfunctor");
-    //auto b = testfunctor(5,3,3,3,3,3);
-    //b.param<double>::print(true);
-    testvar^3;
-    testvar.print();
-    auto t1 = (testvar(1,1)+testvar(2,2));
-    testvar(1,1).get_type();
-
-    
-    
 
     sdpvar<double> X("X");
     X^5;
     X.print();
-    X(1,1).print();
-    X(2,2).print();
-    X(1,1).get_type();
-    X(2,2).get_type();
-     X(3,3)+X(4, 2);
+    auto t2 =X(3,3)+X(4, 2);
+    t2.print();
     return 0;
    } 

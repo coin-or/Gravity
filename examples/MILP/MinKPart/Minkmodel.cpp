@@ -30,7 +30,6 @@ using namespace std;
 //        std::swap(b, c);
 //    }
 //}
-
 Minkmodel::Minkmodel() {};
 
 Minkmodel::~Minkmodel() {};
@@ -50,8 +49,8 @@ void Minkmodel::build() {
         break;
     case SDP:
         add_vars_lifted();
-        add_triangle_lifted();
-        add_clique_lifted();
+        //add_triangle_lifted();
+        //add_clique_lifted();
         break;
     case MIP_tree:
         add_vars_origin_tree();
@@ -110,20 +109,53 @@ void Minkmodel::add_vars_origin_tree() {
 }
 
 void Minkmodel::add_vars_lifted() {
-    var<double> X("X");
-    _model.add_var(X^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
+//   sdpvar<double> X("X");
+//    _model.add_var(X^(_graph->nodes.size()));
+//
+//    int i=0, j=0;
+//    func_ obj;
+//    for (auto a: _graph->arcs) {
+//        i = (a->src)->ID;
+//        j = (a->dest)->ID;
+//        if (i <= j)
+//            obj += a->weight*((_K-1)*X(i,j) + 1)/_K;
+//        else
+//            obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
+//    }
+//    _model.set_objective(min(obj));
+    
+    
+    // mosek method.
+    mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink");
+    auto _M = monty::finally([&](){M->dispose();});
+    
+    
+    mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
+    int i = 0, j =0;
+    
+    M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
 
-    int i=0, j=0;
-    func_ obj;
+    for (i =0; i < _graph->nodes.size()-1; i++)
+        for (j = i+1; j< _graph->nodes.size(); j++){
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
+        }
+
+    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
+    // expr is a pointer to the Expression.
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
         j = (a->dest)->ID;
         if (i <= j)
-            obj += a->weight*((_K-1)*X(i,j) + 1)/_K;
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
         else
-            obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
     }
-    _model.set_objective(min(obj));
+    
+    M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
+    M->solve();
+    
+    std::cout << "Cost = " << M->primalObjValue() << std::endl;
 }
 
 void Minkmodel::add_triangle() {

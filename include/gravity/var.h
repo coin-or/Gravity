@@ -212,20 +212,22 @@ class sdpvar: public param<type>, public var_{
    // s.t.  X \ge 0
    //       AX ... 
 public:
+    size_t _symdim=0;
     //@{
     /** Unbounded sdpvariable constructor */
     sdpvar();
     ~sdpvar(){};
+
     sdpvar(const string& name);
     sdpvar(const sdpvar<type>& v);
     sdpvar(sdpvar<type>&& v);
     //@}
     
-    
     template<typename... Args>
     sdpvar operator()(size_t t1, Args&&... args){
         sdpvar res(this->_name);
         res._id = this->_id;
+        res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._val = this->_val;
         list<size_t> indices;
@@ -244,10 +246,12 @@ public:
 
         auto it2 = param_::_indices->find(key);
         if (it2 == param_::_indices->end()) {
+            //not defined before.  
             res._indices->insert(make_pair<>(key,param_::_indices->size()));
             param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         }
         else {
+            // 
             size_t idx = param_::_indices->at(key);
             res._indices->insert(make_pair<>(key,idx));
             res._dim = 1;
@@ -266,14 +270,13 @@ public:
         param<type>::_dim++;
         return *this;
     }
-    
     //bool operator==(const sdpvar& v) const;
     //bool operator>=(const sdpvar& v) const; // already sdpvar
     //bool operator!=(const sdpvar& v) const;
-
     sdpvar& operator^(size_t d){
         // the upper/lower triangular part. 
         set_size(d*(d-1)/2);
+        _symdim = d;
         return *this;
     }
     

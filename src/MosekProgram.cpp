@@ -74,7 +74,6 @@ bool MosekProgram::solve(bool relax) {
 
 void MosekProgram::fill_in_mosek_vars() {
     param_* v;
-
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second;
@@ -83,75 +82,113 @@ void MosekProgram::fill_in_mosek_vars() {
         }
         switch (v->get_intype()) {
         case float_: {
-            auto real_var = (var<float>*)v;
-            //for (int i = 0; i < real_var->get_dim(); i++) {
-            //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
-            //}
-            auto lb  = new_array_ptr<double,1>(real_var->get_dim());
-            auto ub  = new_array_ptr<double,1>(real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)[i] = real_var->get_lb(i);
-                (*ub)[i] = real_var->get_ub(i);
+            if (v->get_type() == var_c) {
+                auto real_var = (var<float>*)v;
+                //for (int i = 0; i < real_var->get_dim(); i++) {
+                //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                //}
+                auto lb  = new_array_ptr<double,1>(real_var->get_dim());
+                auto ub  = new_array_ptr<double,1>(real_var->get_dim());
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    (*lb)[i] = real_var->get_lb(i);
+                    (*ub)[i] = real_var->get_ub(i);
+                }
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             }
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+            else {
+                auto sdp_var = (sdpvar<float>*)v;
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->_symdim)));
+            }
             break;
         }
         case long_: {
-            auto real_var = (var<long double>*)v;
-            //for (int i = 0; i < real_var->get_dim(); i++) {
-            //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
-            //}
-            auto lb  = new_array_ptr<double,1>(real_var->get_dim());
-            auto ub  = new_array_ptr<double,1>(real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)[i] = real_var->get_lb(i);
-                (*ub)[i] = real_var->get_ub(i);
+            if (v->get_type() == var_c) {
+                auto real_var = (var<long double>*)v;
+                //for (int i = 0; i < real_var->get_dim(); i++) {
+                //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                //}
+                auto lb  = new_array_ptr<double,1>(real_var->get_dim());
+                auto ub  = new_array_ptr<double,1>(real_var->get_dim());
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    (*lb)[i] = real_var->get_lb(i);
+                    (*ub)[i] = real_var->get_ub(i);
+                }
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             }
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+            else {
+                auto sdp_var = (sdpvar<long double>*)v;
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
+            }
             break;
         }
         case double_: {
-            auto real_var = (var<double>*)v;
-            //for (int i = 0; i < real_var->get_dim(); i++) {
-            //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
-            //}
-            auto lb  = new_array_ptr<double,1>(real_var->get_dim());
-            auto ub  = new_array_ptr<double,1>(real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)[i] = real_var->get_lb(i);
-                (*ub)[i] = real_var->get_ub(i);
+            if (v->get_type() == var_c) {
+                auto real_var = (var<double>*)v;
+                //for (int i = 0; i < real_var->get_dim(); i++) {
+                //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::inRange(real_var->get_lb(i), real_var->get_ub(i))));
+                //}
+                auto lb  = new_array_ptr<double,1>(real_var->get_dim());
+                auto ub  = new_array_ptr<double,1>(real_var->get_dim());
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    (*lb)[i] = real_var->get_lb(i);
+                    (*ub)[i] = real_var->get_ub(i);
+                }
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
             }
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+            else {
+                auto sdp_var = (sdpvar<double>*)v;
+                auto num = sdp_var->get_dim();
+
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
+            }
             break;
         }
         case integer_: {
-            auto real_var = (var<int>*)v;
-            auto lb  = new_array_ptr<double,1>(real_var->get_dim());
-            auto ub  = new_array_ptr<double,1>(real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)[i] = real_var->get_lb(i);
-                (*ub)[i] = real_var->get_ub(i);
+            if (v->get_type() == var_c) {
+                auto real_var = (var<int>*)v;
+                auto lb  = new_array_ptr<double,1>(real_var->get_dim());
+                auto ub  = new_array_ptr<double,1>(real_var->get_dim());
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    (*lb)[i] = real_var->get_lb(i);
+                    (*ub)[i] = real_var->get_ub(i);
+                }
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
             }
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
+            else {
+                auto sdp_var = (sdpvar<int>*)v;
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
+            }
             break;
         }
         case short_: {
-            auto real_var = (var<short>*)v;
-            auto lb  = new_array_ptr<double,1>(real_var->get_dim());
-            auto ub  = new_array_ptr<double,1>(real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                (*lb)[i] = real_var->get_lb(i);
-                (*ub)[i] = real_var->get_ub(i);
+            if (v->get_type() == var_c) {
+                auto real_var = (var<short>*)v;
+                auto lb  = new_array_ptr<double,1>(real_var->get_dim());
+                auto ub  = new_array_ptr<double,1>(real_var->get_dim());
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    (*lb)[i] = real_var->get_lb(i);
+                    (*ub)[i] = real_var->get_ub(i);
+                }
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
             }
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::integral(fusion::Domain::inRange(lb,ub))));
+            else {
+                auto sdp_var = (sdpvar<short>*)v;
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
+            }
             break;
         }
         case binary_: {
-            auto real_var = (var<bool>*)v;
-            //for (unsigned int i = 0; i < real_var->get_dim(); i++) {
-            //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::binary()));
-            //}
-            _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::binary()));
+            if (v->get_type() == var_c) {
+                auto real_var = (var<bool>*)v;
+                //for (unsigned int i = 0; i < real_var->get_dim(); i++) {
+                //    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name()+"_"+to_string(i),fusion::Domain::binary()));
+                //}
+                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::binary()));
+            }
+            else {
+                auto sdp_var = (sdpvar<bool>*)v;
+                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
+            }
             break;
         }
         default:
@@ -163,7 +200,7 @@ void MosekProgram::fill_in_mosek_vars() {
 void MosekProgram::create_mosek_constraints() {
     //size_t idx = 0;
     //size_t nb_inst = 0;
-    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
+    size_t idx = 0, idx_inst = 0,idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     size_t c_idx_inst = 0;
     Constraint* c;
     for(auto& p: _model->_cons) {
@@ -249,32 +286,53 @@ void MosekProgram::set_mosek_objective() {
     for (auto& it1: _model->_obj.get_lterms()) {
         //idx = it1.second._p->get_id();
         idx = it1.second._p->get_vec_id();
-        if (it1.second._coef->_is_transposed) {
-            auto coefs = new_array_ptr<double,1>((it1.second._p->get_dim()));
-            for (int j = 0; j<it1.second._p->get_dim(); j++) {
-                (*coefs)(j)=poly_eval(it1.second._coef, j);
+        CType vartype = it1.second._p->get_type();
+        if (vartype == var_c){
+            if (it1.second._coef->_is_transposed) {
+                auto coefs = new_array_ptr<double,1>((it1.second._p->get_dim()));
+                for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                    (*coefs)(j)=poly_eval(it1.second._coef, j);
+                }
+                expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
             }
-            expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
+            else {
+                // get pos.
+                idx_inst = it1.second._p->get_id_inst();
+                c_idx_inst = get_poly_id_inst(it1.second._coef);
+                //auto t = _mosek_vars[idx]->index
+                auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(idx_inst));
+                if (!it1.second._sign) {
+                    lterm = fusion::Expr::mul(-1, lterm);
+                }
+                expr = fusion::Expr::add(expr,lterm);
+            }
         }
         else {
-            idx_inst = it1.second._p->get_id_inst();
-            c_idx_inst = get_poly_id_inst(it1.second._coef);
-            auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(idx_inst));
-            if (!it1.second._sign) {
-                lterm = fusion::Expr::mul(-1, lterm);
+            // sdpvar_c
+            if (it1.second._coef->_is_transposed) {
+                auto coefs = new_array_ptr<double,1>((it1.second._p->get_dim()));
+                for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                    (*coefs)(j)=poly_eval(it1.second._coef, j);
+                }
+                expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
             }
-            expr = fusion::Expr::add(expr,lterm);
-        }
-        //else {
-        //    idx = it1.second._p->get_id();
-        //    if (!it1.second._sign) {
-        //        expr = fusion::Expr::add(expr,fusion::Expr::mul(-poly_eval(it1.second._coef), _mosek_vars[idx]));
-        //    }
-        //    else
-        //        expr = fusion::Expr::add(expr,fusion::Expr::mul(poly_eval(it1.second._coef), _mosek_vars[idx]));
-        //}
-    }
+            else {
+                // get pos
+                // a mapping between: n(n-1)/2 to triangular matrix. 
+                idx_inst = it1.second._p->get_id_inst();
+                
+                c_idx_inst = get_poly_id_inst(it1.second._coef);
+                //auto t = _mosek_vars[idx]->index
+                // this is not possible. 
+                auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(0,0));
 
+                if (!it1.second._sign) {
+                    lterm = fusion::Expr::mul(-1, lterm);
+                }
+                expr = fusion::Expr::add(expr,lterm);
+            }
+        }
+    }
     if (_model->_objt == maximize) {
         _mosek_model->objective("obj", mosek::fusion::ObjectiveSense::Maximize, expr);
     }

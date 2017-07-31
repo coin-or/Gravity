@@ -184,10 +184,12 @@ template<typename type> sdpvar<type>::sdpvar(const string& name):param<type>(nam
 
 template<typename type> sdpvar<type>::sdpvar(const sdpvar<type>& v):param<type>(v){
     param<type>::set_type(sdpvar_c);
+    _symdim = v._symdim;
 };
 
 template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):param<type>(v){    
     param<type>::set_type(sdpvar_c);
+    _symdim = v._symdim;
 };
 
 
