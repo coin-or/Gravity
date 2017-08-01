@@ -138,6 +138,8 @@ int main (int argc, const char * argv[])
 //    v1.print(true);
     var<double> p("p", 1, 50);
     p.add_bounds(0.1, 20);
+    p.param<double>::print(true);
+    
     p.add_bounds(10, 60);
     var<float> q("q");
     p.set_size(200);    

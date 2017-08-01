@@ -97,7 +97,7 @@ int main (int argc, const char * argv[])
 
     }
     else{
-        fname = "../../data_sets/Minkcut/grid2d_1010.txt";
+        fname = "../../data_sets/Minkcut/grid2d_33.txt";
         k = 3;
         mt = SDP;
     }
@@ -106,17 +106,6 @@ int main (int argc, const char * argv[])
     graph->readrudy(fname);
     graph->get_clique_tree();
 
-    //graph->get_tree_decomp_bags();
-    //print bags
-    //    for (int i=0; i<graph->_bags.size();i++){
-    //        auto bag = graph->_bags[i];
-    //        int size=bag.size();
-    //        cout << "bag" << i << "= {";
-    //        for (int j=0; j< size; j++)
-    //            cout << bag[j]->ID << ",";
-    //        cout << "}" << endl;
-    //    }
-    //ModelType mt = MIP;
     SolverType solver= mosek_;
     
     Minkmodel mymodel(mt,graph,k,solver);
@@ -125,11 +114,10 @@ int main (int argc, const char * argv[])
     
     mymodel.build();
     
-   
     bool relax = false;
     int output = 0;
    
-    //mymodel.solve(output,relax);
+    mymodel.solve(output,relax);
     
     //mymodel.zij.param<bool>::print(true);
     //auto sol = (var<bool> *) mymodel._model.get_var("zij");

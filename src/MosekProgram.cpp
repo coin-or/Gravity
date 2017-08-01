@@ -137,9 +137,11 @@ void MosekProgram::fill_in_mosek_vars() {
             }
             else {
                 auto sdp_var = (sdpvar<double>*)v;
-                auto num = sdp_var->get_dim();
+                size_t num = sdp_var->_symdim;
+                auto c  = _mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(num));
+                _mosek_vars.push_back(c);
+                std::cout << c->toString() << endl;
 
-                _mosek_vars.push_back(_mosek_model->variable(sdp_var->get_name(), fusion::Domain::inPSDCone(sdp_var->get_dim())));
             }
             break;
         }
@@ -220,49 +222,67 @@ void MosekProgram::create_mosek_constraints() {
                 //cout << "get_id: " << it1.second._p->get_id() << endl;
                 //cout << "get_vec_id: " << it1.second._p->get_vec_id() << endl;
 
-                if (it1.second._coef->_is_transposed) {
-                    auto coefs = new_array_ptr<double,1>(it1.second._p->get_dim());
-                    for (int j = 0; j<it1.second._p->get_dim(); j++) {
-                        (*coefs)(j) = poly_eval(it1.second._coef,j);
+                CType vartype = it1.second._p->get_type();
+                if (vartype == var_c) {
+                    if (it1.second._coef->_is_transposed) {
+                        auto coefs = new_array_ptr<double,1>(it1.second._p->get_dim());
+                        for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                            (*coefs)(j) = poly_eval(it1.second._coef,j);
+                        }
+                        expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
+                        //    cout << "expr" << expr->toString() << endl;
                     }
-                    expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
-                    //    cout << "expr" << expr->toString() << endl;
+                    else {
+                        if (is_indexed(it1.second._p)) {
+                            idx_inst = it1.second._p->get_id_inst();
+                        }
+                        else {
+                            idx_inst = inst;
+                        }
+                        if (is_indexed(it1.second._coef)) {
+                            c_idx_inst = get_poly_id_inst(it1.second._coef);
+                        }
+                        else {
+                            c_idx_inst = inst;
+                        }
+                        auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(idx_inst));
+                        if (!it1.second._sign) {
+                            lterm = fusion::Expr::mul(-1, lterm);
+                        }
+                        expr = fusion::Expr::add(expr,lterm);
+                    }
                 }
                 else {
-                    if (is_indexed(it1.second._p)) {
-                        idx_inst = it1.second._p->get_id_inst();
+                    if (it1.second._coef->_is_transposed) {
+                        auto coefs = new_array_ptr<double,1>(it1.second._p->get_dim());
+                        for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                            (*coefs)(j) = poly_eval(it1.second._coef,j);
+                        }
+                        expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
                     }
                     else {
-                        idx_inst = inst;
+                        pair<size_t, size_t>  pair = make_pair(0, 0);
+
+                        if (is_indexed(it1.second._p)) {
+                            pair = it1.second._p->get_sdpid();
+                        }
+                      
+                        if (is_indexed(it1.second._coef)) {
+                            c_idx_inst = get_poly_id_inst(it1.second._coef);
+                        }
+                        else {
+                            c_idx_inst = inst;
+                        }
+                        auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(pair.first, pair.second));
+                        if (!it1.second._sign) {
+                            lterm = fusion::Expr::mul(-1, lterm);
+                        }
+                        expr = fusion::Expr::add(expr,lterm);
                     }
-                    if (is_indexed(it1.second._coef)) {
-                        c_idx_inst = get_poly_id_inst(it1.second._coef);
-                    }
-                    else {
-                        c_idx_inst = inst;
-                    }
-                    //cout << "lterm: " << _mosek_vars[idx]->index(idx_inst)->toString() << endl;
-                    auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(idx_inst));
-                    if (!it1.second._sign) {
-                        lterm = fusion::Expr::mul(-1, lterm);
-                    }
-                    expr = fusion::Expr::add(expr,lterm);
+
                 }
-                //   else {
-                //       if (!it1.second._sign) {
-                //           auto ex = fusion::Expr::mul(-poly_eval(it1.second._coef),_mosek_vars[idx]);
-                //           //cout << expr->toString()<< endl;
-                //       }
-                //       else{
-                //           //cout <<"poly_eval " << poly_eval(it1.second._coef)<< endl;
-                //           auto ex = fusion::Expr::mul(poly_eval(it1.second._coef),_mosek_vars[idx]);
-                //           expr = fusion::Expr::add(expr,ex);
-                //           //cout << expr->toString()<< endl;
-                //       }
-                //   }
             }
 
-            //cout << "expr: " << expr->toString() << endl;
 
             if(c->get_type()==geq) {
                 _mosek_model->constraint(c->get_name(), expr, fusion::Domain::greaterThan(c->get_rhs()));
@@ -287,7 +307,7 @@ void MosekProgram::set_mosek_objective() {
         //idx = it1.second._p->get_id();
         idx = it1.second._p->get_vec_id();
         CType vartype = it1.second._p->get_type();
-        if (vartype == var_c){
+        if (vartype == var_c) {
             if (it1.second._coef->_is_transposed) {
                 auto coefs = new_array_ptr<double,1>((it1.second._p->get_dim()));
                 for (int j = 0; j<it1.second._p->get_dim(); j++) {
@@ -317,14 +337,11 @@ void MosekProgram::set_mosek_objective() {
                 expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
             }
             else {
-                // get pos
-                // a mapping between: n(n-1)/2 to triangular matrix. 
-                idx_inst = it1.second._p->get_id_inst();
-                
+                // retrive the index of the parameter.
+                // This is quite different from the general variable definition.
+                pair<size_t, size_t>  pair = it1.second._p->get_sdpid();
                 c_idx_inst = get_poly_id_inst(it1.second._coef);
-                //auto t = _mosek_vars[idx]->index
-                // this is not possible. 
-                auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(0,0));
+                auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(pair.first,pair.second));
 
                 if (!it1.second._sign) {
                     lterm = fusion::Expr::mul(-1, lterm);
@@ -339,6 +356,7 @@ void MosekProgram::set_mosek_objective() {
     else {
         _mosek_model->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
     }
+    cout << expr->toString() << endl;
 }
 
 void MosekProgram::prepare_model() {

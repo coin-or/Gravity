@@ -28,7 +28,9 @@ protected:
     int                         _vec_id = -1;   /**< index in the vector array (useful for Cplex). **/
     NType                       _intype;
     shared_ptr<map<string,unsigned>>  _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
-    shared_ptr<map<string,pair<unsigned, unsigned>>> sdp_index;
+    
+    /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
+   shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
 public:
     
     bool                        _is_indexed = false;
@@ -48,12 +50,19 @@ public:
     
     size_t get_vec_id() const{return _vec_id;};
    
-    // get 
     size_t get_id_inst() const{
         if (_is_indexed) {
             return _indices->begin()->second;
         }
         return 0;
+    };
+    
+    // newly added part by guanglei
+    pair<size_t,size_t> get_sdpid() const{
+        if (_is_indexed) {
+            return _sdpindices->begin()->second;
+        }
+        return make_pair(0, 0);
     };
     
     string get_name(bool indices=true) const;
@@ -69,6 +78,11 @@ public:
     
     shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
+    }
+    //
+//(guanglei) added..
+    shared_ptr<map<string, pair<unsigned, unsigned>>> get_sdpindices() const {
+        return _sdpindices;
     }
     
     void set_type(NType type){ _intype = type;}
@@ -172,6 +186,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
+        _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -187,6 +202,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
+        _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -240,6 +256,7 @@ public:
         update_type();
         _val = make_shared<vector<type>>();
         _indices = make_shared<map<string,unsigned>>();
+        _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -366,7 +383,8 @@ public:
 
     /** Operators */
     bool operator==(const param& p) const {
-        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
+        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _sdpindices==p._sdpindices && _val==p._val);
+        //return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
     }
     
     param& operator^(size_t d){

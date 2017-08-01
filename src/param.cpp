@@ -62,8 +62,3 @@ pair<constant_*, constant_*>* param_::get_range() const{
     
 }
 
-
-
-
-
-

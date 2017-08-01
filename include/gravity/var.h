@@ -80,7 +80,6 @@ public:
         if (it2 == param_::_indices->end()) {
             res._indices->insert(make_pair<>(key,param_::_indices->size()));
             param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            
             //            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
         }
         else {
@@ -92,25 +91,6 @@ public:
         res._is_indexed = true;
         return res;
     }
-//    var operator()(int idx...){
-//        auto res(*this);
-//        res._indices.insert(idx);
-//        va_list arg_list;
-//        va_start(arg_list, idx);
-//        int i = 0;
-//        while (*idx != '\0') {
-//            if (*idx == 'd') {
-//                i = va_arg(arg_list, int);
-//                res._indices.insert(i);
-//            }
-//            else {
-//                throw invalid_argument("indices can only be integers");
-//            }
-//            ++idx;
-//        }
-//        va_end(arg_list);
-//    }
-    
     
     /* Querries */
     
@@ -169,10 +149,8 @@ public:
     
     void    set_lb(int i, type v);
     void    set_ub(int i, type v);
-
     
     /* Operators */
-    
     var& operator=(type v){
         param<type>::_val->push_back(v);
         param<type>::update_range(v);
@@ -205,16 +183,17 @@ var<type> all(const var<type>& p){
     return pp;
 }
 
+
+// In contrast to a general variable, indices of an SDP variable should be
+// recorded using _sdpindices, moreover the size of an SDP variable is d.  
 template<typename type = double>
-class sdpvar: public param<type>, public var_{
-   // following mosek, where the standard format is 
-   // min c^Tx
-   // s.t.  X \ge 0
-   //       AX ... 
+//class sdpvar: public param<type>, public var_{
+class sdpvar: public var<type>{
+
 public:
     size_t _symdim=0;
     //@{
-    /** Unbounded sdpvariable constructor */
+    /** Unbounded sdp-variable constructor */
     sdpvar();
     ~sdpvar(){};
 
@@ -222,6 +201,9 @@ public:
     sdpvar(const sdpvar<type>& v);
     sdpvar(sdpvar<type>&& v);
     //@}
+
+    /** bounded sdp-variable constructor */
+    var(const string& name, type lb, type ub);
     
     template<typename... Args>
     sdpvar operator()(size_t t1, Args&&... args){
@@ -230,12 +212,15 @@ public:
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._val = this->_val;
+        res._range = this->_range;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        // key is composed by args...
+
         for (size_t i= 0; i<indices.size(); i++) {
             key += to_string(*it);
             if (i<indices.size()-1) {
@@ -244,17 +229,18 @@ public:
             it++;
         }
 
-        auto it2 = param_::_indices->find(key);
-        if (it2 == param_::_indices->end()) {
+        auto it2 = param_::_sdpindices->find(key);
+        if (it2 == param_::_sdpindices->end()) {
             //not defined before.  
-            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            auto temp = make_pair<>(t1, (*(++indices.begin())));
+            res._sdpindices->insert(make_pair<>(key,temp));
+            param_::_sdpindices->insert(make_pair<>(key,temp));
         }
         else {
-            // 
-            size_t idx = param_::_indices->at(key);
-            res._indices->insert(make_pair<>(key,idx));
+            auto temp = param_::_sdpindices->at(key);
+            res._sdpindices->insert(make_pair<>(key,temp));
             res._dim = 1;
+            res._symdim = 1;
         }
         res._name += "["+key+"]";
         res._is_indexed = true;
@@ -262,7 +248,7 @@ public:
     }
 
     /* Modifiers */
-    void    set_size(size_t s, type val = 0);
+    //void    set_size(size_t s, type val = 0);
 
     /* Operators */
     sdpvar& operator=(type v){
@@ -270,16 +256,17 @@ public:
         param<type>::_dim++;
         return *this;
     }
-    //bool operator==(const sdpvar& v) const;
-    //bool operator>=(const sdpvar& v) const; // already sdpvar
-    //bool operator!=(const sdpvar& v) const;
+
+    bool operator==(const sdpvar& v) const;
+    bool operator>=(const sdpvar& v) const; 
+    bool operator!=(const sdpvar& v) const;
     sdpvar& operator^(size_t d){
         // the upper/lower triangular part. 
-        set_size(d*(d-1)/2);
+        var::set_size(d*(d+1)/2);
         _symdim = d;
         return *this;
     }
-    
+
     sdpvar tr() const{
         auto v = sdpvar(*this);
         v._is_transposed = true;

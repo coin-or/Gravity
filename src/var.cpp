@@ -3,7 +3,7 @@
 //  Gravity
 //
 //  Created by Hijazi, Hassan on 21/10/16.
-// note: sdpvar needs to be tested (Guanglei). 
+//  note: Sdpvar needs to be tested (Guanglei). 
 //
 
 #include <gravity/var.h>
@@ -60,7 +60,7 @@ template<typename type> void   var<type>::set_size(size_t s, type val){
 };
 
 
-template<typename type> void   var<type>::add_bounds(type lb, type ub){
+template<typename type> void  var<type>::add_bounds(type lb, type ub){
     if (ub<lb) {
         throw invalid_argument("add_bounds(lb, ub): Invalid bounds!");
     }
@@ -131,7 +131,7 @@ template<typename type> void var<type>::print(bool bounds) const{
     }
     size_t idx = 0;
     cout << " in ";
-    
+
     if(_lb==nullptr && _ub!=nullptr){
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
@@ -193,16 +193,22 @@ template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):param<type>(v){
 };
 
 
-// need to overload set_size(s, val); 
-template<typename type> void   sdpvar<type>::set_size(size_t s, type val){
-    param<type>::set_size(s,val);
+//template<typename type> void   sdpvar<type>::set_size(size_t s, type val){
+//    param<type>::set_size(s,val);
+//};
+
+// Operators
+template<typename type> bool sdpvar<type>::operator==(const sdpvar& v) const{
+    return (param<type>::operator==(v));
 };
+
+template<typename type> bool sdpvar<type>::operator!=(const sdpvar& v) const{
+    return !(*this==v);
+}
 
 /* output */
 template<typename type> void sdpvar<type>::print() const{
     param<type>::print(false);
-    size_t idx = 0;
-//    cout << "SDP variable in vectorized form (the triangular part) R^" << param<type>::get_dim() << endl;
 };
 
 template class var<bool>;
