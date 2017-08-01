@@ -146,7 +146,33 @@ double poly_eval(const constant_* c, size_t i){
             }
             break;
         }
-            
+        // newly added sdpvar_c (guanglei)    
+        case sdpvar_c:{
+            auto p_c2 = (param_*)(c);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return ((sdpvar<bool>*)p_c2)->eval(i);
+                    break;
+                case short_:
+                    return ((sdpvar<short>*)p_c2)->eval(i);
+                    break;
+                case integer_:
+                    return ((sdpvar<int>*)p_c2)->eval(i);
+                    break;
+                case float_:
+                    return ((sdpvar<float>*)p_c2)->eval(i);
+                    break;
+                case double_:
+                    return ((sdpvar<double>*)p_c2)->eval(i);
+                    break;
+                case long_:
+                    return (double)((sdpvar<long double>*)p_c2)->eval(i);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
         case uexp_c: {
             return ((uexpr*)c)->eval(i);
             break;
@@ -208,6 +234,11 @@ Sign constant_::get_all_sign() const{
             return ((param_*)this)->get_all_sign();
             break;
         }
+                   //newly added sdpvar (Guanglei)
+        case sdpvar_c:{
+            return ((param_*)this)->get_all_sign();
+            break;
+        }
             
         case func_c: {
             return ((func_*)this)->get_all_sign();
@@ -260,6 +291,11 @@ Sign constant_::get_sign(int idx) const{
             break;
         }
         case var_c:{
+            return ((param_*)this)->get_sign(idx);
+            break;
+        }
+                   //newly added sdpvar (guanglei)
+        case sdpvar_c:{
             return ((param_*)this)->get_sign(idx);
             break;
         }
@@ -447,6 +483,33 @@ constant_* copy(constant_&& c2){/**< Copy c2 into c1 detecting the right class, 
             }
             break;
         }
+// new added sdpvar
+        case sdpvar_c:{
+            auto p_c2 = (param_*)(&c2);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return new sdpvar<bool>(*(sdpvar<bool>*)move(p_c2));
+                    break;
+                case short_:
+                    return new sdpvar<short>(*(sdpvar<short>*)move(p_c2));
+                    break;
+                case integer_:
+                    return new sdpvar<int>(*(sdpvar<int>*)move(p_c2));
+                    break;
+                case float_:
+                    return new sdpvar<float>(*(sdpvar<float>*)move(p_c2));
+                    break;
+                case double_:
+                    return new sdpvar<double>(*(sdpvar<double>*)move(p_c2));
+                    break;
+                case long_:
+                    return new sdpvar<long double>(*(sdpvar<long double>*)move(p_c2));
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
             
         case func_c: {
             return new func_(move(c2));
@@ -540,6 +603,32 @@ constant_* copy(const constant_& c2){/**< Copy c2 into c1 detecting the right cl
                     break;
                 case long_:
                     return new var<long double>(*(var<long double>*)p_c2);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        case sdpvar_c:{
+            auto p_c2 = (param_*)(&c2);
+            switch (p_c2->get_intype()) {
+                case binary_:
+                    return new sdpvar<bool>(*(sdpvar<bool>*)p_c2);
+                    break;
+                case short_:
+                    return new sdpvar<short>(*(sdpvar<short>*)p_c2);
+                    break;
+                case integer_:
+                    return new sdpvar<int>(*(sdpvar<int>*)p_c2);
+                    break;
+                case float_:
+                    return new sdpvar<float>(*(sdpvar<float>*)p_c2);
+                    break;
+                case double_:
+                    return new sdpvar<double>(*(sdpvar<double>*)p_c2);
+                    break;
+                case long_:
+                    return new sdpvar<long double>(*(sdpvar<long double>*)p_c2);
                     break;
                 default:
                     break;
@@ -880,6 +969,18 @@ func_::func_(constant_&& c){
                 _is_transposed = p_c2->_is_transposed;
                 break;
             }
+                       // newly added
+            case sdpvar_c:{
+                auto p_c2 = (param_*)copy(move(c));
+                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                add_var(p_c2);
+                _ftype = lin_;
+                _cst = new constant<double>(0);
+                _all_sign = p_c2->get_all_sign();
+                _all_range = p_c2->get_range();
+                _is_transposed = p_c2->_is_transposed;
+                break;
+            }
             case uexp_c: {
                 _expr = new uexpr(*(uexpr*)move(&c));
                 _DAG->insert(make_pair<>(_expr->get_str(), _expr));
@@ -970,6 +1071,16 @@ func_::func_(const constant_& c){
             break;
         }
         case var_c:{
+            auto p_c2 = (param_*)copy(c);
+            _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+            add_var(p_c2);
+            _ftype = lin_;
+            _cst = new constant<double>(0);
+            _all_sign = p_c2->get_all_sign();
+            _all_range = p_c2->get_range();
+            break;
+        }
+        case sdpvar_c:{
             auto p_c2 = (param_*)copy(c);
             _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
             add_var(p_c2);
@@ -1413,7 +1524,7 @@ func_::~func_(){
 bool all_zeros(const string& s){
     auto it = s.begin();
     while (it != s.end()) {
-        if (*it!='0' && *it!='.') {
+        if ((*it)!='0' && (*it)!='.') {
             return false;
         }
         it++;
@@ -1422,6 +1533,7 @@ bool all_zeros(const string& s){
 }
 
 bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
+    auto a = to_str(this);
     if (is_number() && all_zeros(to_str(this))){
         return true;
     }
@@ -3310,6 +3422,33 @@ string to_str(const constant_* c){/**< printing c, detecting the right class, i.
             }
             break;
         }
+
+        case sdpvar_c: {
+            auto p_c = (param_*)(c);
+            switch (p_c->get_intype()) {
+                case binary_:
+                    return ((sdpvar<bool>*)p_c)->get_name();
+                    break;
+                case short_:
+                    return ((sdpvar<short>*)p_c)->get_name();
+                    break;
+                case integer_:
+                    return ((sdpvar<int>*)p_c)->get_name();
+                    break;
+                case float_:
+                    return ((sdpvar<float>*)p_c)->get_name();
+                    break;
+                case double_:
+                    return ((sdpvar<double>*)p_c)->get_name();
+                    break;
+                case long_:
+                    return ((sdpvar<long double>*)p_c)->get_name();
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
         case func_c: {
             return ((func_*)c)->to_str();
             break;
@@ -3367,6 +3506,10 @@ bool equals(const constant_* c1, const constant_* c2){/**< Checks if c2 equals c
         }
         case var_c:{
             return (c1->is_var() && *(param_ *)c1 == *(param_ *)c2);
+            break;
+        }
+        case sdpvar_c:{
+            return (c1->is_sdpvar() && *(param_ *)c1 == *(param_ *)c2);
             break;
         }
         case func_c:{
@@ -3576,6 +3719,13 @@ constant_* add(constant_* c1, const func_& f){
             return c1 = res;
             break;
         }
+        case sdpvar_c:{
+            auto res = new func_(f);
+            delete c1;
+            res->insert(true, constant<double>(1), *(param_*)c1);
+            return c1 = res;
+            break;
+        }
         case uexp_c: {
 //            auto res = new bexpr(*(uexpr*)c1 + c2);
 //            delete c1;
@@ -3681,6 +3831,32 @@ constant_* add(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates 
             }
             break;
         }
+        case sdpvar_c:{
+            auto pc2 = (param_*)(&c2);
+            switch (pc2->get_intype()) {
+                case binary_:
+                    return add(c1, *(sdpvar<bool>*)pc2);
+                    break;
+                case short_:
+                    return add(c1, *(sdpvar<short>*)pc2);
+                    break;
+                case integer_:
+                    return add(c1, *(sdpvar<int>*)pc2);
+                    break;
+                case float_:
+                    return add(c1, *(sdpvar<float>*)pc2);
+                    break;
+                case double_:
+                    return add(c1, *(sdpvar<double>*)pc2);
+                    break;
+                case long_:
+                    return add(c1, *(sdpvar<long double>*)pc2);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
 //        case uexp_c: {
 //            auto res = new bexpr(*(uexpr*)c1 + c2);
 //            delete c1;
@@ -3777,6 +3953,32 @@ constant_* substract(constant_* c1, const constant_& c2){ /**< adds c2 to c1, up
                     break;
                 case long_:
                     return substract(c1, *(var<long double>*)pc2);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        case sdpvar_c:{
+            auto pc2 = (param_*)(&c2);
+            switch (pc2->get_intype()) {
+                case binary_:
+                    return substract(c1, *(sdpvar<bool>*)pc2);
+                    break;
+                case short_:
+                    return substract(c1, *(sdpvar<short>*)pc2);
+                    break;
+                case integer_:
+                    return substract(c1, *(sdpvar<int>*)pc2);
+                    break;
+                case float_:
+                    return substract(c1, *(sdpvar<float>*)pc2);
+                    break;
+                case double_:
+                    return substract(c1, *(sdpvar<double>*)pc2);
+                    break;
+                case long_:
+                    return substract(c1, *(sdpvar<long double>*)pc2);
                     break;
                 default:
                     break;
@@ -3895,6 +4097,32 @@ constant_* multiply(constant_* c1, const constant_& c2){ /**< adds c2 to c1, upd
                     break;
                 case long_:
                     return multiply(c1, *(var<long double>*)pc2);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+        case sdpvar_c:{
+            auto pc2 = (param_*)(&c2);
+            switch (pc2->get_intype()) {
+                case binary_:
+                    return multiply(c1, *(sdpvar<bool>*)pc2);
+                    break;
+                case short_:
+                    return multiply(c1, *(sdpvar<short>*)pc2);
+                    break;
+                case integer_:
+                    return multiply(c1, *(sdpvar<int>*)pc2);
+                    break;
+                case float_:
+                    return multiply(c1, *(sdpvar<float>*)pc2);
+                    break;
+                case double_:
+                    return multiply(c1, *(sdpvar<double>*)pc2);
+                    break;
+                case long_:
+                    return multiply(c1, *(sdpvar<long double>*)pc2);
                     break;
                 default:
                     break;

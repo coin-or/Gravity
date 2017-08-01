@@ -3,7 +3,7 @@
 //  Gravity
 //
 //  Created by Hijazi, Hassan on 21/10/16.
-//
+// note: sdpvar needs to be tested (Guanglei). 
 //
 
 #include <gravity/var.h>
@@ -174,6 +174,36 @@ template<typename type> void var<type>::print(bool bounds) const{
     }    
 };
 
+template<typename type> sdpvar<type>::sdpvar():param<type>(){
+    param<type>::set_type(sdpvar_c);
+};
+
+template<typename type> sdpvar<type>::sdpvar(const string& name):param<type>(name){
+    param<type>::set_type(sdpvar_c);
+};
+
+template<typename type> sdpvar<type>::sdpvar(const sdpvar<type>& v):param<type>(v){
+    param<type>::set_type(sdpvar_c);
+    _symdim = v._symdim;
+};
+
+template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):param<type>(v){    
+    param<type>::set_type(sdpvar_c);
+    _symdim = v._symdim;
+};
+
+
+// need to overload set_size(s, val); 
+template<typename type> void   sdpvar<type>::set_size(size_t s, type val){
+    param<type>::set_size(s,val);
+};
+
+/* output */
+template<typename type> void sdpvar<type>::print() const{
+    param<type>::print(false);
+    size_t idx = 0;
+//    cout << "SDP variable in vectorized form (the triangular part) R^" << param<type>::get_dim() << endl;
+};
 
 template class var<bool>;
 template class var<short>;
@@ -181,3 +211,10 @@ template class var<int>;
 template class var<float>;
 template class var<double>;
 template class var<long double>;
+
+template class sdpvar<bool>;
+template class sdpvar<short>;
+template class sdpvar<int>;
+template class sdpvar<float>;
+template class sdpvar<double>;
+template class sdpvar<long double>;

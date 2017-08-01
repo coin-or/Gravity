@@ -69,8 +69,8 @@ double get_cpu_time(){
 int main (int argc, const char * argv[])
 {
     double k = 2;
-    ModelType mt = MIP_tree;
-
+    ModelType mt = MIP;
+    
     //string fname = "../../data_sets/Minkcut/spinglass2g_44.txt";
     //string fname = "../../data_sets/Minkcut/toy.txt";
     //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
@@ -83,18 +83,23 @@ int main (int argc, const char * argv[])
         fname = argv[1];
         k = atoi(argv[2]);
         type = argv[3];
-	cout << "type" << type << endl;
-        if (strcmp(type,"MIP")==0){
+        cout << "type" << type << endl;
+        if (strcmp(type,"MIP")==0)
             mt = MIP;
-	}
-        else{
+        else if (strcmp(type,"SDP")==0)
+            mt = SDP;
+        else if (strcmp(type,"MIP_tree")==0)
             mt = MIP_tree;
-	}
+        else{
+            cout << "invalid input" << endl;
+            exit(1);
+        }
+
     }
     else{
-        fname = "../../data_sets/Minkcut/grid2d_44.txt";
+        fname = "../../data_sets/Minkcut/grid2d_1010.txt";
         k = 3;
-        mt = MIP;
+        mt = SDP;
     }
     
     Net* graph = new Net();
@@ -112,25 +117,27 @@ int main (int argc, const char * argv[])
     //        cout << "}" << endl;
     //    }
     //ModelType mt = MIP;
-    SolverType solver= cplex;
+    SolverType solver= mosek_;
     
     Minkmodel mymodel(mt,graph,k,solver);
-    mymodel.build();
-    
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
+    
+    mymodel.build();
+    
+   
     bool relax = false;
     int output = 0;
    
-    mymodel.solve(output,relax);
+    //mymodel.solve(output,relax);
     
     //mymodel.zij.param<bool>::print(true);
-    auto sol = (var<bool> *) mymodel._model.get_var("zij");
-    sol->param<bool>::print(true);
+    //auto sol = (var<bool> *) mymodel._model.get_var("zij");
+    //sol->param<bool>::print(true);
     
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    mymodel.construct_fsol();
+    //mymodel.construct_fsol();
 }

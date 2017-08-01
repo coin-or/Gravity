@@ -82,6 +82,10 @@ public:
         return (_type==var_c);
     };
     
+    bool is_sdpvar() const{
+        return (_type==sdpvar_c);
+    };
+    
     bool is_function() const{
         return (_type==func_c);
     };

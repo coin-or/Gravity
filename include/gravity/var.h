@@ -35,7 +35,6 @@ public:
     shared_ptr<vector<type>>    _lb; /**< Lower Bound */
     shared_ptr<vector<type>>    _ub; /**< Upper Bound */
     /* Constructors */
-    
     //@{
     /** Unbounded variable constructor */
     var();
@@ -50,7 +49,6 @@ public:
     var(const string& name, type lb, type ub);
     //@}
         
-    
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
         var res(this->_name);
@@ -63,6 +61,11 @@ public:
         res._ub = this->_ub;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
+        //cout << "indices: "  << endl;
+        //for(list<size_t>::iterator iter = indices.begin(); iter != indices.end(); iter++){
+        //    cout<<*iter<<endl;
+        //}
+
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
@@ -193,8 +196,6 @@ public:
     /* Output */
     void print(bool bounds=false) const;
     
-
-    
 };
 
 template<typename type>
@@ -203,4 +204,88 @@ var<type> all(const var<type>& p){
     pp._is_vector = true;
     return pp;
 }
-#endif /* var_h */
+
+template<typename type = double>
+class sdpvar: public param<type>, public var_{
+   // following mosek, where the standard format is 
+   // min c^Tx
+   // s.t.  X \ge 0
+   //       AX ... 
+public:
+    size_t _symdim=0;
+    //@{
+    /** Unbounded sdpvariable constructor */
+    sdpvar();
+    ~sdpvar(){};
+
+    sdpvar(const string& name);
+    sdpvar(const sdpvar<type>& v);
+    sdpvar(sdpvar<type>&& v);
+    //@}
+    
+    template<typename... Args>
+    sdpvar operator()(size_t t1, Args&&... args){
+        sdpvar res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._val = this->_val;
+        list<size_t> indices;
+        indices = {forward<size_t>(args)...};
+        indices.push_front(t1);
+        string key;
+        auto it = indices.begin();
+        // key is composed by args...
+        for (size_t i= 0; i<indices.size(); i++) {
+            key += to_string(*it);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+            it++;
+        }
+
+        auto it2 = param_::_indices->find(key);
+        if (it2 == param_::_indices->end()) {
+            //not defined before.  
+            res._indices->insert(make_pair<>(key,param_::_indices->size()));
+            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        }
+        else {
+            // 
+            size_t idx = param_::_indices->at(key);
+            res._indices->insert(make_pair<>(key,idx));
+            res._dim = 1;
+        }
+        res._name += "["+key+"]";
+        res._is_indexed = true;
+        return res;
+    }
+
+    /* Modifiers */
+    void    set_size(size_t s, type val = 0);
+
+    /* Operators */
+    sdpvar& operator=(type v){
+        param<type>::_val->push_back(v);
+        param<type>::_dim++;
+        return *this;
+    }
+    //bool operator==(const sdpvar& v) const;
+    //bool operator>=(const sdpvar& v) const; // already sdpvar
+    //bool operator!=(const sdpvar& v) const;
+    sdpvar& operator^(size_t d){
+        // the upper/lower triangular part. 
+        set_size(d*(d-1)/2);
+        _symdim = d;
+        return *this;
+    }
+    
+    sdpvar tr() const{
+        auto v = sdpvar(*this);
+        v._is_transposed = true;
+        return v;
+    }
+    /* Output */
+    void print() const;
+};
+#endif /* sdpvar_h */

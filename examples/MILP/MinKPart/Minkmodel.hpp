@@ -25,8 +25,7 @@ public:
     SolverType  _solver;
     double      _K;
     Net*        _graph;
-    //var<bool> zij;
-    //var<double> Xij;
+
     set<tuple<int,int,int>> _ids; //
     set<tuple<int,int,int,int>> _ids4; //
     
@@ -66,9 +65,6 @@ public:
     bool check_eigenvalues();
     void add_eigcut();
     void construct_fsol();
-    //    void post_AC_Rect();
-    //    void post_QC_OTS(bool lin_cos_cuts, bool quad_cos);
-    //    void post_SOCP_OTS();
     
     /** Presolve */
     //    void propagate_bounds();
