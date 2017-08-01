@@ -203,7 +203,7 @@ public:
     //@}
 
     /** bounded sdp-variable constructor */
-    var(const string& name, type lb, type ub);
+    sdpvar(const string& name, type lb, type ub);
     
     template<typename... Args>
     sdpvar operator()(size_t t1, Args&&... args){
@@ -262,7 +262,7 @@ public:
     bool operator!=(const sdpvar& v) const;
     sdpvar& operator^(size_t d){
         // the upper/lower triangular part. 
-        var::set_size(d*(d+1)/2);
+        param<type>::set_size(d*(d+1)/2);
         _symdim = d;
         return *this;
     }
