@@ -74,5 +74,4 @@ public:
 };
 
 
-
 #endif /* model_hpp */

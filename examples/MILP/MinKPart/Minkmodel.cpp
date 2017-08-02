@@ -128,39 +128,6 @@ void Minkmodel::add_vars_lifted() {
         diag = X(i,i)-1;
         _model.add_constraint(diag=0);
     }
-    
-    // mosek method.
-    mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink");
-//    auto _M = monty::finally([&](){M->dispose();});
-//    
-//    
-//    mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
-    //int i = 0, j =0;
-
-//    M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
-//
-//    for (i =0; i < _graph->nodes.size()-1; i++)
-//        for (j = i+1; j< _graph->nodes.size(); j++){
-//            M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
-//            M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
-//        }
-//    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
-//    // expr is a pointer to the Expression.
-//    for (auto a: _graph->arcs) {
-//        i = (a->src)->ID;
-//        j = (a->dest)->ID;
-//        if (i <= j)
-//            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
-//        else
-//            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
-//    }
-//    
-//    M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
-//    M->solve();
-//    std::cout << Y->toString() << endl;
-//    std::cout << expr->toString() <<endl;
-//    
-//    std::cout << "Cost = " << M->primalObjValue() << std::endl;
 }
 
 void Minkmodel::add_triangle() {
@@ -625,3 +592,5 @@ void Minkmodel::construct_fsol() {
          }
         }
     }
+
+

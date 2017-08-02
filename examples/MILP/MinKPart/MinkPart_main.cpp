@@ -66,6 +66,54 @@ double get_cpu_time(){
 }
 #endif
 
+
+void mosekcode(Net* _graph, double _K) {
+    mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink");
+    auto _M = monty::finally([&](){M->dispose();});
+    mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
+    
+    int i = 0, j =0;
+    M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
+    for (i =0; i < _graph->nodes.size()-1; i++)
+        for (j = i+1; j< _graph->nodes.size(); j++){
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
+        }
+//    for (i =0; i < _graph->nodes.size()-1; i++)
+//        for (j = i+1; j< _graph->nodes.size(); j++){
+//            M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
+//            M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
+//        }
+    
+    for (auto a: _graph->arcs) {
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j){
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
+            M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
+        }
+    }
+    
+    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
+    // expr is a pointer to the Expression.
+    for (auto a: _graph->arcs) {
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j)
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
+        else
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
+    }
+    
+    M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
+    M->solve();
+    std::cout << Y->toString() << endl;
+    std::cout << expr->toString() <<endl;
+    
+    std::cout << "Cost = " << M->primalObjValue() << std::endl;
+}
+
+
 int main (int argc, const char * argv[])
 {
     double k = 2;
@@ -97,24 +145,27 @@ int main (int argc, const char * argv[])
 
     }
     else{
-        fname = "../../data_sets/Minkcut/grid2d_33.txt";
-        k = 3;
-        mt = SDP;
+        //fname = "../../data_sets/Minkcut/grid2d_88.txt";
+        //fname = "../../data_sets/Minkcut/toy_kojima.txt";
+        fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
+        k = 2;
+        mt = MIP_tree;
     }
     
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_clique_tree();
 
-    SolverType solver= mosek_;
+    SolverType solver= cplex;
     
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     
+    mosekcode(graph, k);
     mymodel.build();
     
-    bool relax = false;
+    bool relax = true;
     int output = 0;
    
     mymodel.solve(output,relax);

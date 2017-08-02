@@ -41,7 +41,6 @@ template<typename type> var<type>::var(const string& name, type lb, type ub):var
     }
 };
 
-
 /* Modifiers */
 template<typename type> void   var<type>::set_size(size_t s, type val){
     param<type>::set_size(s,val);
@@ -112,7 +111,6 @@ template<typename type> void   var<type>::set_ub(int i, type val){
     }
 }
 
-
 /* Operators */
 template<typename type> bool var<type>::operator==(const var& v) const{
     return (param<type>::operator==(v));
@@ -174,24 +172,29 @@ template<typename type> void var<type>::print(bool bounds) const{
     }    
 };
 
-template<typename type> sdpvar<type>::sdpvar():param<type>(){
-    param<type>::set_type(sdpvar_c);
+template<typename type> sdpvar<type>::sdpvar():var<type>(){
+    var<type>::set_type(sdpvar_c);
 };
 
-template<typename type> sdpvar<type>::sdpvar(const string& name):param<type>(name){
-    param<type>::set_type(sdpvar_c);
+template<typename type> sdpvar<type>::sdpvar(const string& name):var<type>(name){
+    var<type>::set_type(sdpvar_c);
 };
 
-template<typename type> sdpvar<type>::sdpvar(const sdpvar<type>& v):param<type>(v){
-    param<type>::set_type(sdpvar_c);
+template<typename type> sdpvar<type>::sdpvar(const sdpvar<type>& v):var<type>(v){
+    var<type>::set_type(sdpvar_c);
     _symdim = v._symdim;
 };
 
-template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):param<type>(v){    
-    param<type>::set_type(sdpvar_c);
+template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):var<type>(v){    
+    var<type>::set_type(sdpvar_c);
     _symdim = v._symdim;
 };
 
+// sdpvar 
+
+template<typename type> sdpvar<type>::sdpvar(const string& name, type lb, type ub):sdpvar<type>(name){
+    var<type>(name, lb, ub);
+};
 
 //template<typename type> void   sdpvar<type>::set_size(size_t s, type val){
 //    param<type>::set_size(s,val);
