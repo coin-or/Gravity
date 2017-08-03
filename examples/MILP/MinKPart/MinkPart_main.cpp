@@ -118,19 +118,21 @@ int main (int argc, const char * argv[])
 {
     double k = 2;
     ModelType mt = MIP;
+    bool relax = false;
     
-    //string fname = "../../data_sets/Minkcut/spinglass2g_44.txt";
     //string fname = "../../data_sets/Minkcut/toy.txt";
     //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
     //graph->get_tree_decomp_bags(true);
     
     const char* fname;
     const char* type;
+    const char* relaxation;
     if (argc > 3)
     {
         fname = argv[1];
         k = atoi(argv[2]);
         type = argv[3];
+        relaxation = argv[4];
         cout << "type" << type << endl;
         if (strcmp(type,"MIP")==0)
             mt = MIP;
@@ -143,6 +145,11 @@ int main (int argc, const char * argv[])
             exit(1);
         }
 
+        if (strcmp(relaxation,"true")==0)
+            relax = true;
+        else{
+            relax = false;
+        }
     }
     else{
         //fname = "../../data_sets/Minkcut/grid2d_88.txt";
@@ -162,10 +169,9 @@ int main (int argc, const char * argv[])
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     
-    mosekcode(graph, k);
+   // mosekcode(graph, k);
     mymodel.build();
     
-    bool relax = true;
     int output = 0;
    
     mymodel.solve(output,relax);
