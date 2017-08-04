@@ -113,7 +113,6 @@ void mosekcode(Net* _graph, double _K) {
     std::cout << "Cost = " << M->primalObjValue() << std::endl;
 }
 
-
 int main (int argc, const char * argv[])
 {
     double k = 2;
@@ -154,7 +153,7 @@ int main (int argc, const char * argv[])
     else{
         //fname = "../../data_sets/Minkcut/grid2d_88.txt";
         //fname = "../../data_sets/Minkcut/toy_kojima.txt";
-        fname = "../../data_sets/Minkcut/spinglass2g_66.txt";
+        fname = "../../data_sets/Minkcut/spinglass3g_234.txt";
         k = 2;
         mt = MIP_tree;
     }

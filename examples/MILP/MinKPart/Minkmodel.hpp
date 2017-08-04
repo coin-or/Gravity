@@ -59,7 +59,7 @@ public:
     void add_wheel();
     void add_bicycle();
     void add_3Dcuts();
-    void tree_decompose();
+    void cliquetree_decompose();
 
     //  post root node relaxation
     bool check_eigenvalues();

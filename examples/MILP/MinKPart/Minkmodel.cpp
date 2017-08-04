@@ -54,14 +54,14 @@ void Minkmodel::build() {
         break;
     case MIP_tree:
         add_vars_origin_tree();
-        tree_decompose();
+        cliquetree_decompose();
         add_triangle_tree();
         add_clique_tree();
         //add_clique();
         break;
     case SDP_tree:
         add_vars_lifted();
-        tree_decompose();
+        cliquetree_decompose();
         add_triangle_lifted_tree();
         //add_clique_lifted();
         add_clique_lifted_tree();
@@ -220,7 +220,7 @@ void Minkmodel::add_clique_lifted() {
     }
 }
 
-void Minkmodel::tree_decompose() {
+void Minkmodel::cliquetree_decompose() {
     //_graph->get_tree_decomp_bags();
     int i1,i2,i3,i4;
     int j1,j2,j3,j4;

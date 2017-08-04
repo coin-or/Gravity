@@ -188,8 +188,9 @@ bool Net::add_arc(Arc* a) {
         if(lineID.find(inv_key)!=lineID.end())
             s = lineID[inv_key];
         s->insert(a);
-        cout << "\nWARNING: adding another line between same nodes!\n";
+        cout << "\nWARNING: adding another line between same nodes! \n Node name: " << src << " and Node name: " << dest << endl;
         //  a->parallel = true;
+        
         parallel = true;
     }
     arcs.push_back(a);
@@ -313,7 +314,7 @@ void Net::readrudy(string fn) {
     {
         istringstream iss(sLine);
         iss >> src >> dest >> weight;
-        // cout << src  << ", " << dest << ", " << weight << endl;
+        cout << src  << ", " << dest << ", " << weight << endl;
 
         name = (int)arcs.size()+1; //
 
