@@ -69,16 +69,14 @@ double get_cpu_time(){
 void mosek_reduce(Net* _graph, double _K) {
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink_reduce");
     auto _M = monty::finally([&](){M->dispose();});
-    
+    M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
+
     //vector<mosek::fusion::Variable::t> _mosek_vars;
     mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
-
-
 //
 //    for (auto b: _graph->_bags){
 //        auto t = M->variable(" ", mosek::fusion::Domain::inPSDCone(b.size()));
 //        _mosek_vars.push_back(t);
-//        M->constraint(t->diag(), mosek::fusion::Domain::equalsTo(1.0));
 //    }
     
 int i = 0, j =0;
@@ -115,6 +113,9 @@ int i = 0, j =0;
 void mosekcode(Net* _graph, double _K) {
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink");
     auto _M = monty::finally([&](){M->dispose();});
+    M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
+    
+    
     mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
     
     int i = 0, j =0;

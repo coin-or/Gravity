@@ -10,10 +10,13 @@ using namespace mosek;
 using namespace monty;
 MosekProgram::MosekProgram() {
     _mosek_model = new fusion::Model("noname");
+    _mosek_model->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
+
 }
 
 MosekProgram::MosekProgram(Model* m) {
     _mosek_model = new fusion::Model("noname");
+    _mosek_model->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
     _model = m;
 }
 
