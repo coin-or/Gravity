@@ -183,7 +183,7 @@ int main (int argc, const char * argv[])
         }
     }
     else{
-        fname = "../../data_sets/Minkcut/random_100.txt";
+        fname = "../../data_sets/Minkcut/random_55.txt";
         //fname = "../../data_sets/Minkcut/spinglass2g_55.txt";
 
         //fname = "../../data_sets/Minkcut/toy_kojima.txt";
@@ -197,7 +197,9 @@ int main (int argc, const char * argv[])
     graph->readrudy(fname);
     graph->get_clique_tree();
 
-    SolverType solver= cplex;
+    //SolverType solver= cplex;
+    SolverType solver= mosek_;
+
     
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();

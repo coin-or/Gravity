@@ -52,7 +52,7 @@ bool MosekProgram::solve(bool relax) {
     //std::cout << "Solution = " << std::endl;
     // cout << "dim: " << _mosek_vars.size() << endl;
     //auto sol = _mosek_vars[0]->level();
-    mosek::fusion::Variable::t s= _mosek_vars[0];
+    //mosek::fusion::Variable::t s= _mosek_vars[0];
     //cout << "size of s: " << s->size() << endl;
 
     for (auto i = 0; i < _mosek_vars.size(); i++) {
