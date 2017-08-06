@@ -314,7 +314,7 @@ void Net::readrudy(string fn) {
     {
         istringstream iss(sLine);
         iss >> src >> dest >> weight;
-        cout << src  << ", " << dest << ", " << weight << endl;
+        //cout << src  << ", " << dest << ", " << weight << endl;
 
         name = (int)arcs.size()+1; //
 
