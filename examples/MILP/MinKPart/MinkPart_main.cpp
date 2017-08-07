@@ -198,21 +198,21 @@ int main (int argc, const char * argv[])
     graph->readrudy(fname);
     graph->get_clique_tree();
 
-    //SolverType solver= cplex;
-    SolverType solver= mosek_;
+    SolverType solver= cplex;
+    //SolverType solver= mosek_;
 
     
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     
-    mosekcode(graph, k);
-    //mosek_reduce(graph, k);
+    //mosekcode(graph, k);
+    // SDP 
+    mosek_reduce(graph, k);
 
-    //mymodel.build();
-    
+    // CPLEX
+    mymodel.build();
     int output = 0;
-   
     mymodel.solve(output,relax);
     
     //mymodel.zij.param<bool>::print(true);
