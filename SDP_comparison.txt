@@ -20,3 +20,6 @@ SDP_clique CPU: 0.499373	 Value: 2.52984	 ILP_clique CPU: 3.74745	 Value: 4.0166
 SDP_clique CPU: 1.09662	 Value: 3.47099	 ILP_clique CPU: 12.4361	 Value: 4.94074
 SDP_clique CPU: 1.69402	 Value: 9.85832	 ILP_clique CPU: 24.4577	 Value: 10.964
 SDP_clique CPU: 3.73994	 Value: 16.4488	 ILP_clique CPU: 49.7609	 Value: 14.6784
+SDP_clique CPU: 5.62098	 Value: 26.1128	 ILP_clique CPU: 85.1286	 Value: 23.5387
+SDP_clique CPU: 12.2149	 Value: 35.5272	 ILP_clique CPU: 209.22	 Value: 28.8629
+SDP_clique CPU: 21.0662	 Value: 48.5747	 ILP_clique CPU: 326.671	 Value: 37.0024
