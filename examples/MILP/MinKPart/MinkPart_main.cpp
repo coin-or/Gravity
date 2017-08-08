@@ -210,16 +210,17 @@ int main (int argc, const char * argv[])
     
     //mosekcode(graph, k);
     // SDP 
-    double Val_sdp;
+    double Val_sdp, Val_sdp2;
     Val_sdp = mosek_reduce(graph, k);
     double wall_mosekreduce = get_wall_time();
     double cpu_mosekreduce  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
     cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
     // CPLEX
-    mymodel.build();
-    int output = 0;
-    mymodel.solve(output,relax);
+    //mymodel.build();
+    //int output = 0;
+    //mymodel.solve(output,relax);
+    Val_sdp2 = mosekcode(graph, k);
     
     //mymodel.zij.param<bool>::print(true);
     //auto sol = (var<bool> *) mymodel._model.get_var("zij");
@@ -238,7 +239,6 @@ int main (int argc, const char * argv[])
         outfile << "SDP_clique CPU: " << (cpu_mosekreduce - cpu0)
                 << "\t Value: "        << Val_sdp
                 << "\t ILP_clique CPU: " << (cpu1 - cpu_mosekreduce)
-                << "\t Value: "          << mymodel._model._obj_val
+                << "\t Value: "          << Val_sdp2
                 << endl;
-    
 }
