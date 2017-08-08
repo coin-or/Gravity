@@ -48,6 +48,10 @@ bool CplexProgram::solve(bool relax){
         
         // Print results
         _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
+        
+        // set the optimal value. 
+        _model->_obj_val = cplex.getObjValue();
+        
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             IloNumArray vals(*_cplex_env);
             cplex.getValues(vals,_cplex_vars[i]);

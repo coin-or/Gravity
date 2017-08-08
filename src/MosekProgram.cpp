@@ -48,6 +48,10 @@ bool MosekProgram::solve(bool relax) {
     }
 
     std::cout << "Cost = " << _mosek_model->primalObjValue() << std::endl;
+    
+    // set the optimal value.
+    _model->_obj_val = _mosek_model->primalObjValue();
+
 
     // Note that there is only one way to retrieve solutions, i.e.,
     // variable.level(). It only returns double. Thus, we need to cast the

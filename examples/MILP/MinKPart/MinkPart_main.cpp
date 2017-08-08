@@ -66,7 +66,7 @@ double get_cpu_time(){
 }
 #endif
 
-void mosek_reduce(Net* _graph, double _K) {
+double mosek_reduce(Net* _graph, double _K) {
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink_reduce");
     auto _M = monty::finally([&](){M->dispose();});
     M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
@@ -106,11 +106,12 @@ int i = 0, j =0;
     std::cout << expr->toString() <<endl;
     
     std::cout << "Cost = " << M->primalObjValue() << std::endl;
+    return M->primalObjValue();
 }
 
 
 
-void mosekcode(Net* _graph, double _K) {
+double mosekcode(Net* _graph, double _K) {
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink");
     auto _M = monty::finally([&](){M->dispose();});
     M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
@@ -144,6 +145,7 @@ void mosekcode(Net* _graph, double _K) {
     std::cout << expr->toString() <<endl;
     
     std::cout << "Cost = " << M->primalObjValue() << std::endl;
+    return M->primalObjValue();
 }
 
 int main (int argc, const char * argv[])
@@ -208,8 +210,12 @@ int main (int argc, const char * argv[])
     
     //mosekcode(graph, k);
     // SDP 
-    mosek_reduce(graph, k);
-
+    double Val_sdp;
+    Val_sdp = mosek_reduce(graph, k);
+    double wall_mosekreduce = get_wall_time();
+    double cpu_mosekreduce  = get_cpu_time();
+    cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
+    cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
     // CPLEX
     mymodel.build();
     int output = 0;
@@ -221,7 +227,18 @@ int main (int argc, const char * argv[])
     
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
-    cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
-    cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
+    cout << "\nWall clock computing time =  " << wall1 - wall_mosekreduce << "\n";
+    cout << "CPU computing time =  " << cpu1 - cpu_mosekreduce << "\n";
     //mymodel.construct_fsol();
+    
+    ofstream outfile("SDP_comparison.txt", ios_base::app);
+    if (!outfile)
+        cerr << "Oops! Uable to save session data! \n";
+    else
+        outfile << "SDP_clique CPU: " << (cpu_mosekreduce - cpu0)
+                << "\t Value: "        << Val_sdp
+                << "\t ILP_clique CPU: " << (cpu1 - cpu_mosekreduce)
+                << "\t Value: "          << mymodel._model._obj_val
+                << endl;
+    
 }
