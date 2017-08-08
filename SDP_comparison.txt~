@@ -1,0 +1,22 @@
+SDP_clique CPU: 0.030989	 Value: 1.2588	 ILP_clique CPU: 0.012461	 Value: 2
+SDP_clique CPU: 0.020549	 Value: 1.2588	 ILP_clique CPU: 0.009904	 Value: 1.57143
+SDP_clique CPU: 0.043086	 Value: 11.883	 ILP_clique CPU: 0.493732	 Value: 12.5104
+SDP_clique CPU: 0.124164	 Value: 30.1162	 ILP_clique CPU: 1.71158	 Value: 32.0563
+SDP_clique CPU: 0.365894	 Value: 65.1107	 ILP_clique CPU: 5.97072	 Value: 63.5221
+SDP_clique CPU: 0.980858	 Value: 110.292	 ILP_clique CPU: 13.8668	 Value: 102.167
+SDP_clique CPU: 1.83289	 Value: 168.016	 ILP_clique CPU: 34.0001	 Value: 147.5
+SDP_clique CPU: 3.53153	 Value: 241.719	 ILP_clique CPU: 75.8156	 Value: 201.333
+SDP_clique CPU: 6.47845	 Value: 333.444	 ILP_clique CPU: 190.999	 Value: 263.333
+SDP_clique CPU: 12.8309	 Value: 428.372	 ILP_clique CPU: 340.378	 Value: 333.833
+
+//density 10%
+SDP_clique CPU: 0.060984	 Value: 2.00186e-09	 ILP_clique CPU: 0.013213	 Value: 0
+SDP_clique CPU: 0.027867	 Value: 1.81414e-08	 ILP_clique CPU: 0.001737	 Value: 0
+SDP_clique CPU: 0.031847	 Value: 9.91843e-07	 ILP_clique CPU: 0.012454	 Value: 0
+SDP_clique CPU: 0.058973	 Value: 0.142852	 ILP_clique CPU: 0.068402	 Value: 0.666667
+SDP_clique CPU: 0.120936	 Value: 3.29488e-06	 ILP_clique CPU: 0.608164	 Value: 0
+SDP_clique CPU: 0.251527	 Value: 0.413193	 ILP_clique CPU: 1.96604	 Value: 1.11307
+SDP_clique CPU: 0.499373	 Value: 2.52984	 ILP_clique CPU: 3.74745	 Value: 4.01667
+SDP_clique CPU: 1.09662	 Value: 3.47099	 ILP_clique CPU: 12.4361	 Value: 4.94074
+SDP_clique CPU: 1.69402	 Value: 9.85832	 ILP_clique CPU: 24.4577	 Value: 10.964
+SDP_clique CPU: 3.73994	 Value: 16.4488	 ILP_clique CPU: 49.7609	 Value: 14.6784
