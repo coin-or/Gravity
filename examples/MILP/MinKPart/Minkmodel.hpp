@@ -42,6 +42,7 @@ public:
     void add_vars_origin();
     void add_vars_origin_tree();
     void add_vars_lifted();
+    void add_vars_lifted_tree();
     
     /** Constraints */
     // different formulations

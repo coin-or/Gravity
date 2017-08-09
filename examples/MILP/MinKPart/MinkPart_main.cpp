@@ -71,26 +71,18 @@ double mosek_reduce(Net* _graph, double _K) {
     auto _M = monty::finally([&](){M->dispose();});
     M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
 
-    //vector<mosek::fusion::Variable::t> _mosek_vars;
     mosek::fusion::Variable::t Y = M->variable("Y", mosek::fusion::Domain::inPSDCone(_graph->nodes.size()));
-//
-//    for (auto b: _graph->_bags){
-//        auto t = M->variable(" ", mosek::fusion::Domain::inPSDCone(b.size()));
-//        _mosek_vars.push_back(t);
-//    }
-    
+
 int i = 0, j =0;
  M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
     for (auto a: _graph->_chordalextension->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
         M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
-            //M->constraint("", Y->index(i, j), mosek::fusion::Domain::lessThan((1.0)));
     }
     
     monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
 // expr is a pointer to the Expression.
-//    int i, j;
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -150,9 +142,11 @@ double mosekcode(Net* _graph, double _K) {
 
 int main (int argc, const char * argv[])
 {
-    double k = 2;
+    double k = 3;
     ModelType mt = MIP;
     bool relax = false;
+    SolverType solver= cplex;
+
     
     //string fname = "../../data_sets/Minkcut/toy.txt";
     //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
@@ -168,12 +162,22 @@ int main (int argc, const char * argv[])
         type = argv[3];
         relaxation = argv[4];
         cout << "type" << type << endl;
-        if (strcmp(type,"MIP")==0)
+        if (strcmp(type,"MIP")==0){
             mt = MIP;
-        else if (strcmp(type,"SDP")==0)
+            solver = cplex;
+        }
+        else if (strcmp(type,"SDP")==0){
             mt = SDP;
-        else if (strcmp(type,"MIP_tree")==0)
+            solver = mosek_;
+        }
+        else if (strcmp(type,"MIP_tree")==0){
             mt = MIP_tree;
+            solver = cplex;
+        }
+        else if (strcmp(type,"SDP_tree")==0){
+            mt = SDP_tree;
+            solver = mosek_;
+        }
         else{
             cout << "invalid input" << endl;
             exit(1);
@@ -186,41 +190,34 @@ int main (int argc, const char * argv[])
         }
     }
     else{
-        fname = "../../data_sets/Minkcut/random_10.txt";
-        //fname = "../../data_sets/Minkcut/spinglass2g_55.txt";
-
-        //fname = "../../data_sets/Minkcut/toy_kojima.txt";
-        //fname = "../../data_sets/Minkcut/spinglass3g_234.txt";
+        fname = "../../data_sets/Minkcut/random_50.txt";
         k = 3;
         relax = true;
-        mt = MIP_tree;
+        mt = SDP_tree;
+        solver= mosek_;
     }
     
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_clique_tree();
 
-    SolverType solver= cplex;
-    //SolverType solver= mosek_;
+   
 
     
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    
-    //mosekcode(graph, k);
-    // SDP 
-    double Val_sdp, Val_sdp2;
-    Val_sdp = mosek_reduce(graph, k);
-    double wall_mosekreduce = get_wall_time();
-    double cpu_mosekreduce  = get_cpu_time();
-    cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
-    cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
-    // CPLEX
-    //mymodel.build();
-    //int output = 0;
-    //mymodel.solve(output,relax);
-    Val_sdp2 = mosekcode(graph, k);
+
+//    double Val_sdp, Val_sdp2;
+//    Val_sdp = mosek_reduce(graph, k);
+//    double wall_mosekreduce = get_wall_time();
+//    double cpu_mosekreduce  = get_cpu_time();
+//    cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
+//    cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
+
+    mymodel.build();
+    int output = 0;
+    mymodel.solve(output,relax);
     
     //mymodel.zij.param<bool>::print(true);
     //auto sol = (var<bool> *) mymodel._model.get_var("zij");
@@ -228,17 +225,15 @@ int main (int argc, const char * argv[])
     
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
-    cout << "\nWall clock computing time =  " << wall1 - wall_mosekreduce << "\n";
-    cout << "CPU computing time =  " << cpu1 - cpu_mosekreduce << "\n";
+    cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
+    cout << "CPU computing time =  " << cpu1 -cpu0<< "\n";
     //mymodel.construct_fsol();
     
     ofstream outfile("SDP_comparison.txt", ios_base::app);
-    if (!outfile)
-        cerr << "Oops! Uable to save session data! \n";
-    else
-        outfile << "SDP_clique CPU: " << (cpu_mosekreduce - cpu0)
-                << "\t Value: "        << Val_sdp
-                << "\t ILP_clique CPU: " << (cpu1 - cpu_mosekreduce)
-                << "\t Value: "          << Val_sdp2
-                << endl;
+//    if (!outfile)
+//        cerr << "Oops! Uable to save session data! \n";
+//    else
+//        outfile << "SDP_clique CPU: " << (cpu1 - cpu0)
+//                << "\t Value: "          << mymodel._model._obj_val
+//                << endl;
 }
