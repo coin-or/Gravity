@@ -145,6 +145,7 @@ int main (int argc, const char * argv[])
     double k = 3;
     ModelType mt = MIP;
     bool relax = false;
+    int output = 0;
     SolverType solver= cplex;
 
     
@@ -207,34 +208,10 @@ int main (int argc, const char * argv[])
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-<<<<<<< HEAD
-    
-    //mosekcode(graph, k);
-    // SDP 
-    double Val_sdp, Val_sdp2;
-    Val_sdp = mosek_reduce(graph, k);
-    double wall_mosekreduce = get_wall_time();
-    double cpu_mosekreduce  = get_cpu_time();
-    cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
-    cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
-    // CPLEX
-    mymodel.build();
-    int output = 0;
-    mymodel.solve(output,relax);
-    //Val_sdp2 = mosekcode(graph, k);
-=======
 
-//    double Val_sdp, Val_sdp2;
-//    Val_sdp = mosek_reduce(graph, k);
-//    double wall_mosekreduce = get_wall_time();
-//    double cpu_mosekreduce  = get_cpu_time();
-//    cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
-//    cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
 
     mymodel.build();
-    int output = 0;
     mymodel.solve(output,relax);
->>>>>>> d5881b0058e978b13deb3417c0cf46b746a3a28b
     
     //mymodel.zij.param<bool>::print(true);
     //auto sol = (var<bool> *) mymodel._model.get_var("zij");
@@ -242,20 +219,7 @@ int main (int argc, const char * argv[])
     
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
-<<<<<<< HEAD
-    cout << "\nWall clock computing time =  " << wall1 - wall_mosekreduce << "\n";
-    cout << "CPU computing time =  " << cpu1 - cpu_mosekreduce << "\n";
     
-    ofstream outfile("SDP_comparison.txt", ios_base::app);
-    if (!outfile)
-        cerr << "Oops! Uable to save session data! \n";
-    else
-        outfile << "SDP_clique CPU: " << (cpu_mosekreduce - cpu0)
-                << "\t Value: "        << Val_sdp
-                << "\t ILP_clique CPU: " << (cpu1 - cpu_mosekreduce)
-                << "\t Value: "          <<  mymodel._model._obj_val  //Val_sdp2
-                << endl;
-=======
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 -cpu0<< "\n";
     //mymodel.construct_fsol();
@@ -267,5 +231,4 @@ int main (int argc, const char * argv[])
 //        outfile << "SDP_clique CPU: " << (cpu1 - cpu0)
 //                << "\t Value: "          << mymodel._model._obj_val
 //                << endl;
->>>>>>> d5881b0058e978b13deb3417c0cf46b746a3a28b
 }
