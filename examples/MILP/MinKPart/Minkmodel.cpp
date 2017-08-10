@@ -57,14 +57,12 @@ void Minkmodel::build() {
         cliquetree_decompose();
         add_triangle_tree();
         add_clique_tree();
-        //add_clique();
         break;
     case SDP_tree:
-        add_vars_lifted();
-        cliquetree_decompose();
-        add_triangle_lifted_tree();
-        //add_clique_lifted();
-        add_clique_lifted_tree();
+        add_vars_lifted_tree();
+        //cliquetree_decompose();
+        //add_triangle_lifted_tree();
+        //add_clique_lifted_tree();
         break;
     default:
         break;
@@ -92,7 +90,6 @@ void Minkmodel::add_vars_origin_tree() {
     var<bool> zij("zij");
     // the number of arcs in the chordal extension
     _model.add_var(zij^((_graph->_chordalextension)->arcs.size()));//
-
     //cout << _graph->arcs.size() << endl;
 
     func_ obj_MIP;
@@ -110,7 +107,7 @@ void Minkmodel::add_vars_origin_tree() {
 
 void Minkmodel::add_vars_lifted() {
    sdpvar<double> X("X");
-    _model.add_var(X^(_graph->nodes.size()));
+    _model.add_var(X^(_graph->nodes.size())); // S^n.
 
     int i=0, j=0;
     func_ obj;
@@ -123,10 +120,50 @@ void Minkmodel::add_vars_lifted() {
             obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
     }
     _model.set_objective(min(obj));
+    
     for (i = 0; i < _graph->nodes.size(); i++){
         Constraint diag("("+to_string(i)+")");
         diag = X(i,i)-1;
         _model.add_constraint(diag=0);
+    }
+    
+    for (i= 0; i < _graph->nodes.size(); i ++)
+        for (j = i+1; j< _graph->nodes.size(); j++){
+            Constraint bound("("+to_string(i)+ "," + to_string(j) +")");
+            bound = X(i,j) + 1/(_K-1);
+            _model.add_constraint(bound >=0);
+        }
+}
+
+void Minkmodel::add_vars_lifted_tree() {
+    sdpvar<double> X("X");
+    _model.add_var(X^(_graph->nodes.size()));
+    
+    int i=0, j=0;
+    func_ obj;
+    for (auto a: _graph->arcs) {
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j)
+            obj += a->weight*((_K-1)*X(i,j) + 1)/_K;
+        else
+            obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
+    }
+    _model.set_objective(min(obj));
+    
+    for (i = 0; i < _graph->nodes.size(); i++){
+        Constraint diag("("+to_string(i)+")");
+        diag = X(i,i)-1;
+        _model.add_constraint(diag=0);
+    }
+    
+    for (auto a: _graph->_chordalextension->arcs){
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        Constraint bound("("+to_string(i)+ "," + to_string(j) +")");
+        bound = X(i,j) + 1/(_K-1);
+        _model.add_constraint(bound >=0);
+
     }
 }
 
