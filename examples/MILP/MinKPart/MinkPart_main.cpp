@@ -217,10 +217,10 @@ int main (int argc, const char * argv[])
     cout << "\nWall clock computing time =  " << wall_mosekreduce - wall0 << "\n";
     cout << "CPU computing time =  " << cpu_mosekreduce - cpu0 << "\n";
     // CPLEX
-    //mymodel.build();
-    //int output = 0;
-    //mymodel.solve(output,relax);
-    Val_sdp2 = mosekcode(graph, k);
+    mymodel.build();
+    int output = 0;
+    mymodel.solve(output,relax);
+    //Val_sdp2 = mosekcode(graph, k);
     
     //mymodel.zij.param<bool>::print(true);
     //auto sol = (var<bool> *) mymodel._model.get_var("zij");
@@ -230,7 +230,6 @@ int main (int argc, const char * argv[])
     double cpu1  = get_cpu_time();
     cout << "\nWall clock computing time =  " << wall1 - wall_mosekreduce << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu_mosekreduce << "\n";
-    //mymodel.construct_fsol();
     
     ofstream outfile("SDP_comparison.txt", ios_base::app);
     if (!outfile)
@@ -239,6 +238,6 @@ int main (int argc, const char * argv[])
         outfile << "SDP_clique CPU: " << (cpu_mosekreduce - cpu0)
                 << "\t Value: "        << Val_sdp
                 << "\t ILP_clique CPU: " << (cpu1 - cpu_mosekreduce)
-                << "\t Value: "          << Val_sdp2
+                << "\t Value: "          <<  mymodel._model._obj_val  //Val_sdp2
                 << endl;
 }
