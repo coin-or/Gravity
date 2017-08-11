@@ -270,7 +270,7 @@ vector<unsigned> temp;
 
 void Minkmodel::nchoosek(int bag_id, int offset, int K){
     if (K == 0) {
-x        std::string key;
+        std::string key;
         for (unsigned i = 0; i < temp.size(); ++i) {
             key += to_string(temp[i]);
             if(i<temp.size()-1) {
@@ -641,12 +641,7 @@ void Minkmodel::construct_fsol() {
                                  continue;
                          }
                          if (allzeros) {
-                             // if inter.size() = _K-1, then the clique inequality is not implied in the chordal graph.. we need to enfore..
-                             // if inter.size() >= _K, then some of the clique inequality has been eforced by intersect + i/j, but
-                             //if (inter.size()>=_K -1)
                              sol(i,j) = 1;
-                             //else
-                             //  sol(i,j) = 0;
                          }
                      }
                      cout << sol(i,j).to_str() << endl;
