@@ -26,8 +26,10 @@ public:
     double      _K;
     Net*        _graph;
 
-    set<tuple<int,int,int>> _ids; //
-    set<tuple<int,int,int,int>> _ids4; //
+    set<tuple<int,int,int>> _ids; 
+    shared_ptr<map<std::string,vector<unsigned>>> _cliqueid;
+    //set<tuple<int,int,int,int>> _ids4; //
+    //set<tuple<int,int,int,int>> _ids4; //
     
     arma::mat _eigvec;
     Minkmodel();
@@ -61,7 +63,7 @@ public:
     void add_bicycle();
     void add_3Dcuts();
     void cliquetree_decompose();
-
+    void nchoosek(int, int, int);
     //  post root node relaxation
     bool check_eigenvalues();
     void add_eigcut();

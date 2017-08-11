@@ -22,6 +22,7 @@ using namespace std;
 
 /** Backbone class for parameter */
 class param_: public constant_{
+
 protected:
     string                      _name;
     int                         _id = -1;
@@ -511,6 +512,5 @@ param<type> all(const param<type>& p){
     pp._is_vector = true;
     return pp;
 }
-
 
 #endif /* defined(____param__) */

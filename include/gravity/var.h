@@ -231,7 +231,6 @@ public:
 
         auto it2 = param_::_sdpindices->find(key);
         if (it2 == param_::_sdpindices->end()) {
-            //not defined before.  
             auto temp = make_pair<>(t1, (*(++indices.begin())));
             res._sdpindices->insert(make_pair<>(key,temp));
             param_::_sdpindices->insert(make_pair<>(key,temp));

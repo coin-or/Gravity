@@ -82,7 +82,6 @@ int i = 0, j =0;
     }
     
     monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
-// expr is a pointer to the Expression.
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -100,7 +99,6 @@ int i = 0, j =0;
     std::cout << "Cost = " << M->primalObjValue() << std::endl;
     return M->primalObjValue();
 }
-
 
 
 double mosekcode(Net* _graph, double _K) {
@@ -191,24 +189,20 @@ int main (int argc, const char * argv[])
         }
     }
     else{
-        fname = "../../data_sets/Minkcut/random_50.txt";
+        fname = "../../data_sets/Minkcut/random_10.txt";
         k = 3;
         relax = true;
-        mt = SDP_tree;
-        solver= mosek_;
+        mt = MIP_tree;
+        solver= cplex;
     }
     
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_clique_tree();
-
-   
-
     
     Minkmodel mymodel(mt,graph,k,solver);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-
 
     mymodel.build();
     mymodel.solve(output,relax);

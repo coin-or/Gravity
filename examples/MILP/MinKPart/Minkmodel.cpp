@@ -30,15 +30,22 @@ using namespace std;
 //        std::swap(b, c);
 //    }
 //}
+
+
+
 Minkmodel::Minkmodel() {};
 
 Minkmodel::~Minkmodel() {};
 
 //Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph),zij("zij"),X("X"){};
-Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph) {};
+Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph) {
+    _cliqueid = make_shared<map<string,vector<unsigned>>>();
+};
 
 //Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph),zij("zij"),X("X"){};
-Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph) {};
+Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph) {
+    _cliqueid = make_shared<map<string,vector<unsigned>>>();
+};
 
 void Minkmodel::build() {
     switch (_type) {
@@ -257,6 +264,40 @@ void Minkmodel::add_clique_lifted() {
     }
 }
 
+// construct a temporary container;
+vector<unsigned> temp;
+
+
+void Minkmodel::nchoosek(int bag_id, int offset, int K){
+    if (K == 0) {
+        static int count = 0;
+        cout << "combination no " << (++count) << ": [ ";
+        for (int i = 0; i < temp.size(); ++i) { cout << temp[i] << " "; }
+        cout << "] " << endl;
+        std::string key;
+        for (unsigned i = 0; i < temp.size(); ++i) {
+            key += to_string(temp[i]);
+            if(i<temp.size()-1) {
+                key+=",";
+            }
+        }
+        
+        auto iter = _cliqueid->find(key);
+        if (iter == _cliqueid->end()) {
+            _cliqueid->insert(make_pair<>(key,temp));
+        }
+        return;
+    }
+    auto bag= _graph->_bags.at(bag_id);
+    for (int i = offset; i <= bag.size() - K; i++) {
+        temp.push_back(bag[i]->ID);
+        //cout << "bag_id: " << bag_id << " i+1: " << i+1 << " K-1 " << K-1 << endl;
+        nchoosek(bag_id, i+1, K-1);
+        temp.pop_back();
+    }
+}
+
+
 void Minkmodel::cliquetree_decompose() {
     //_graph->get_tree_decomp_bags();
     int i1,i2,i3,i4;
@@ -281,28 +322,27 @@ void Minkmodel::cliquetree_decompose() {
                         continue;
                     }
                 }
-        if (bag.size()>3) {
-            for(j1 = 0; j1 < bag.size()-3; j1++)
-                for(j2=j1+1; j2<bag.size()-2; j2++)
-                    for(j3=j2+1; j3<bag.size()-1; j3++)
-                        for(j4=j3+1; j4<bag.size(); j4++) {
-                            i1 = bag[j1]->ID;
-                            i2 = bag[j2]->ID;
-                            i3 = bag[j3]->ID;
-                            i4 = bag[j4]->ID;
-                            // cout << "(i1, i2, i3, i4) " << i1 << " " << i2 << " " << i3 <<" " << i4<< endl;
-                            //   Sort(i1,i2,i3,i4);
-                            if(_ids4.count(make_tuple(i1, i2, i3,i4))==0) {
-                                _ids4.insert(make_tuple(i1, i2,i3,i4));
-                            }
-                            else {
-                                continue;
-                            }
-                        }
+        if (bag.size()> _K+1 && _K > 2) {
+            nchoosek(i,0,_K+1);
+//            for(j1 = 0; j1 < bag.size()-3; j1++)
+//                for(j2=j1+1; j2<bag.size()-2; j2++)
+//                    for(j3=j2+1; j3<bag.size()-1; j3++)
+//                        for(j4=j3+1; j4<bag.size(); j4++) {
+//                            i1 = bag[j1]->ID;
+//                            i2 = bag[j2]->ID;
+//                            i3 = bag[j3]->ID;
+//                            i4 = bag[j4]->ID;
+//                // cout << "(i1, i2, i3, i4) " << i1 << " " << i2 << " " << i3 <<" " << i4<< endl; Sort(i1,i2,i3,i4);
+//                            if(_ids4.count(make_tuple(i1, i2, i3,i4))==0) {
+//                                _ids4.insert(make_tuple(i1, i2,i3,i4));
+//                            }
+//                            else {
+//                                continue;
+//                            }
+//                        }
         }
     }
-    cout << "size of 3d ids: " << _ids.size() << endl;
-    cout << "size of 4d ids: " << _ids4.size() << endl;
+   // cout << "size of 3d ids: " << _ids.size() << endl;
 }
 
 void Minkmodel::add_3Dcuts() {
@@ -340,9 +380,6 @@ void Minkmodel::add_triangle_tree() {
         _model.add_constraint(Triangle2 <=1);
         _model.add_constraint(Triangle3 <=1);
     }
-    //Constraint redudant("redudant");
-    //redudant = zij(2,3);
-    //_model.add_constraint(redudant <= 1);
 }
 
 void Minkmodel::add_triangle_lifted_tree() {
@@ -365,25 +402,34 @@ void Minkmodel::add_triangle_lifted_tree() {
     }
 
 }
+
 void Minkmodel::add_clique_tree() {
-    int i1,i2,i3,i4;
-    auto zij = (*(var<bool>*)(_model.get_var("zij")));
-    if (_K>2)
-        for (auto it: _ids4) {
-            i1 = get<0>(it);
-            i2 = get<1>(it);
-            i3 = get<2>(it);
-            i4 = get<3> (it);
-            //cout << "(i1, i2, i3, i4): " << i1 << ", " << i2 << ", " << i3 << ", " << i4<< endl;
-            Constraint Clique("ZClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+ ", "+to_string(i4)+")");
-            Clique = zij(i1,i2) +zij(i1,i3) + zij(i1,i4) + zij(i2,i3) + zij(i2,i4) +zij(i3,i4);
-            _model.add_constraint(Clique >=1);
+//    int i1,i2,i3,i4;
+   auto zij = (*(var<bool>*)(_model.get_var("zij")));
+    if (_K>2){
+        for (auto it: (*_cliqueid)) {
+            auto key = it.first;
+            auto value = it.second;
+            Constraint Clique("ZClique["+ key +"]");
+            for (int i = 0; i < value.size()-1; i++){
+                auto id1 = value[i];
+                for (int j = i+1 ; j< value.size(); j++){
+                    auto id2 = value[j];
+                    if (id1 <= id2)
+                        Clique += zij(id1,id2);
+                    else
+                        Clique += zij(id2,id1);
+                }
+            }
+           _model.add_constraint(Clique >=1);
+            //Clique.print();
         }
+    }
     else {
         for (auto it: _ids) {
-            i1 = get<0>(it);
-            i2 = get<1>(it);
-            i3 = get<2>(it);
+            auto i1 = get<0>(it);
+            auto i2 = get<1>(it);
+            auto i3 = get<2>(it);
             //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3<< endl;
             Constraint Clique("ZClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
             Clique = zij(i1,i2) +zij(i1,i3) + zij(i2,i3);
@@ -459,32 +505,32 @@ void Minkmodel::add_wheel() {
 
 void Minkmodel::add_bicycle() {}
 
-void Minkmodel::add_clique_lifted_tree() {
-    auto X = (*(var<bool>*)(_model.get_var("X")));
-    int i1,i2,i3,i4;
-    if (_K>2)
-        for (auto it: _ids4) {
-            i1 = get<0>(it);
-            i2 = get<1>(it);
-            i3 = get<2>(it);
-            i4 = get<3> (it);
-            //cout << "(i1, i2, i3, i4): " << i1 << ", " << i2 << ", " << i3 << ", " << i4<< endl;
-            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+ ", "+to_string(i4)+")");
-            Clique = X(i1,i2) +X(i1,i3) + X(i1,i4) + X(i2,i3) + X(i2,i4) +X(i3,i4);
-            _model.add_constraint(Clique >= -0.5*_K);
-        }
-    else {
-        for (auto it: _ids) {
-            i1 = get<0>(it);
-            i2 = get<1>(it);
-            i3 = get<2>(it);
-            //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3<< endl;
-            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
-            Clique = X(i1,i2) +X(i1,i3) + X(i2,i3);
-            _model.add_constraint(Clique >= -0.5*_K);
-        }
-    }
-}
+//void Minkmodel::add_clique_lifted_tree() {
+//    auto X = (*(var<bool>*)(_model.get_var("X")));
+//    int i1,i2,i3,i4;
+//    if (_K>2)
+//        for (auto it: _ids4) {
+//            i1 = get<0>(it);
+//            i2 = get<1>(it);
+//            i3 = get<2>(it);
+//            i4 = get<3> (it);
+//            //cout << "(i1, i2, i3, i4): " << i1 << ", " << i2 << ", " << i3 << ", " << i4<< endl;
+//            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+ ", "+to_string(i4)+")");
+//            Clique = X(i1,i2) +X(i1,i3) + X(i1,i4) + X(i2,i3) + X(i2,i4) +X(i3,i4);
+//            _model.add_constraint(Clique >= -0.5*_K);
+//        }
+//    else {
+//        for (auto it: _ids) {
+//            i1 = get<0>(it);
+//            i2 = get<1>(it);
+//            i3 = get<2>(it);
+//            //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3<< endl;
+//            Constraint Clique("XClique("+to_string(i1)+","+to_string(i2)+ ","+to_string(i3)+")");
+//            Clique = X(i1,i2) +X(i1,i3) + X(i2,i3);
+//            _model.add_constraint(Clique >= -0.5*_K);
+//        }
+//    }
+//}
 
 int Minkmodel::solve(int output, bool relax) {
     solver s(_model,_solver);

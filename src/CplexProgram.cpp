@@ -16,7 +16,7 @@ CplexProgram::~CplexProgram() {
 bool CplexProgram::solve(bool relax){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
-//    if (relax) relax_model();
+    //if (relax) relax_model();
     //    relax_model();
     try {
 //        _cplex_model->M

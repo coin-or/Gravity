@@ -5,7 +5,6 @@
 //  Created by Hijazi, Hassan on 21/10/16.
 //  note: Sdpvar needs to be tested (Guanglei). 
 //
-
 #include <gravity/var.h>
 
 template<typename type> var<type>::var():param<type>(){
