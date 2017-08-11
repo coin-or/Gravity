@@ -342,7 +342,9 @@ void Minkmodel::cliquetree_decompose() {
 //                        }
         }
     }
-   // cout << "size of 3d ids: " << _ids.size() << endl;
+    cout << "size of triangle inequalties: " << _ids.size() << endl;
+    cout << "size of clique inequalties: " << _cliqueid->size() << endl;
+
 }
 
 void Minkmodel::add_3Dcuts() {
