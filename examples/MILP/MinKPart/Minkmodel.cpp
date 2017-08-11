@@ -270,11 +270,7 @@ vector<unsigned> temp;
 
 void Minkmodel::nchoosek(int bag_id, int offset, int K){
     if (K == 0) {
-        static int count = 0;
-        cout << "combination no " << (++count) << ": [ ";
-        for (int i = 0; i < temp.size(); ++i) { cout << temp[i] << " "; }
-        cout << "] " << endl;
-        std::string key;
+x        std::string key;
         for (unsigned i = 0; i < temp.size(); ++i) {
             key += to_string(temp[i]);
             if(i<temp.size()-1) {
