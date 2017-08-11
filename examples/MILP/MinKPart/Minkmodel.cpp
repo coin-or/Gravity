@@ -324,26 +324,27 @@ void Minkmodel::cliquetree_decompose() {
                 }
         if (bag.size()> _K+1 && _K > 2) {
             nchoosek(i,0,_K+1);
-//            for(j1 = 0; j1 < bag.size()-3; j1++)
-//                for(j2=j1+1; j2<bag.size()-2; j2++)
-//                    for(j3=j2+1; j3<bag.size()-1; j3++)
-//                        for(j4=j3+1; j4<bag.size(); j4++) {
-//                            i1 = bag[j1]->ID;
-//                            i2 = bag[j2]->ID;
-//                            i3 = bag[j3]->ID;
-//                            i4 = bag[j4]->ID;
-//                // cout << "(i1, i2, i3, i4) " << i1 << " " << i2 << " " << i3 <<" " << i4<< endl; Sort(i1,i2,i3,i4);
-//                            if(_ids4.count(make_tuple(i1, i2, i3,i4))==0) {
-//                                _ids4.insert(make_tuple(i1, i2,i3,i4));
-//                            }
-//                            else {
-//                                continue;
-//                            }
-//                        }
+            for(j1 = 0; j1 < bag.size()-3; j1++)
+                for(j2=j1+1; j2<bag.size()-2; j2++)
+                    for(j3=j2+1; j3<bag.size()-1; j3++)
+                        for(j4=j3+1; j4<bag.size(); j4++) {
+                            i1 = bag[j1]->ID;
+                            i2 = bag[j2]->ID;
+                            i3 = bag[j3]->ID;
+                            i4 = bag[j4]->ID;
+                // cout << "(i1, i2, i3, i4) " << i1 << " " << i2 << " " << i3 <<" " << i4<< endl; Sort(i1,i2,i3,i4);
+                            if(_ids4.count(make_tuple(i1, i2, i3,i4))==0) {
+                                _ids4.insert(make_tuple(i1, i2,i3,i4));
+                            }
+                            else {
+                                continue;
+                            }
+                        }
         }
     }
     cout << "size of triangle inequalties: " << _ids.size() << endl;
     cout << "size of clique inequalties: " << _cliqueid->size() << endl;
+    cout << "size of clique inequalties_ids4 " << _ids4.size() << endl;
 
 }
 

@@ -28,8 +28,7 @@ public:
 
     set<tuple<int,int,int>> _ids; 
     shared_ptr<map<std::string,vector<unsigned>>> _cliqueid;
-    //set<tuple<int,int,int,int>> _ids4; //
-    //set<tuple<int,int,int,int>> _ids4; //
+    set<tuple<int,int,int,int>> _ids4; //
     
     arma::mat _eigvec;
     Minkmodel();
