@@ -148,9 +148,6 @@ int main (int argc, const char * argv[])
 
     
     //string fname = "../../data_sets/Minkcut/toy.txt";
-    //string fname = "../../data_sets/Minkcut/toy_kojima.txt";
-    //graph->get_tree_decomp_bags(true);
-    
     const char* fname;
     const char* type;
     const char* relaxation;
@@ -196,6 +193,7 @@ int main (int argc, const char * argv[])
         solver= cplex;
     }
     
+    // Graph generation and clique-tree generation.
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_clique_tree();
