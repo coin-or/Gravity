@@ -207,9 +207,6 @@ int main (int argc, const char * argv[])
     mymodel.build();
     mymodel.solve(output,relax);
     
-    //mymodel.zij.param<bool>::print(true);
-    //auto sol = (var<bool> *) mymodel._model.get_var("zij");
-    //sol->param<bool>::print(true);
     
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
