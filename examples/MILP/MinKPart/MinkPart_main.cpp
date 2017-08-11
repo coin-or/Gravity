@@ -213,11 +213,11 @@ int main (int argc, const char * argv[])
     cout << "CPU computing time =  " << cpu1 -cpu0<< "\n";
     //mymodel.construct_fsol();
     
-    ofstream outfile("SDP_comparison.txt", ios_base::app);
-//    if (!outfile)
-//        cerr << "Oops! Uable to save session data! \n";
-//    else
-//        outfile << "SDP_clique CPU: " << (cpu1 - cpu0)
-//                << "\t Value: "          << mymodel._model._obj_val
-//                << endl;
+    ofstream outfile("MIP_tree.txt", ios_base::app);
+    if (!outfile)
+        cerr << "Oops! Uable to save session data! \n";
+    else
+        outfile << "CUP " << (cpu1 - cpu0)
+                << "\t Value: "<< mymodel._model._obj_val
+                << endl;
 }
