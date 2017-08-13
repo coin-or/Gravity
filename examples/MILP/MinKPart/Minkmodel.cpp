@@ -576,6 +576,10 @@ void Minkmodel::node_edge_formulation(){
                 Consistency2 = x(i,c) - x(j,c) + y(j,i);
                 Consistency3 = x(j,c) - x(i,c) + y(j,i);
             }
+            _model.add_constraint(Consistency1);
+            _model.add_constraint(Consistency2);
+            _model.add_constraint(Consistency3);
+
         }
     }
 }
