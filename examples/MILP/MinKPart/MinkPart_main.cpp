@@ -218,7 +218,7 @@ int main (int argc, const char * argv[])
     cout << "CPU computing time =  " << cpu1 -cpu0<< "\n";
     //mymodel.construct_fsol();
     
-    ofstream outfile("MIP_tree.txt", ios_base::app);
+    ofstream outfile("Node_edge.txt", ios_base::app);
     if (!outfile)
         cerr << "Oops! Uable to save session data! \n";
     else
