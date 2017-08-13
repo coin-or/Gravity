@@ -190,7 +190,7 @@ int main (int argc, const char * argv[])
         }
     }
     else{
-        fname = "../../data_sets/Minkcut/random10_60.txt";
+        fname = "../../data_sets/Minkcut/random10_40.txt";
         k = 3;
         relax = false;
         //mt = MIP_tree;
