@@ -552,10 +552,8 @@ void Minkmodel::node_edge_formulation(){
     
     for (i =0 ; i< _graph->nodes.size(); i++){
         Constraint Assign("Assignment" + to_string(i));
-            for (int c= 0; c< _K; c++){
-                Assign += x(i, c);
-        }
-        _model.add_constraint(Assign);
+            for (int c= 0; c< _K; c++) Assign += x(i, c);
+        _model.add_constraint(Assign =1);
     }
     
     // add consistency constraints
@@ -569,16 +567,16 @@ void Minkmodel::node_edge_formulation(){
             if (i <=j){
                 Consistency1 = x(i,c) + x(j,c) - y(i,j);
                 Consistency2 = x(i,c) - x(j,c) + y(i,j);
-                Consistency3 = x(j,c)-x(i,c) + y(i,j);
+                Consistency3 = -1*x(i,c)+x(j,c) + y(i,j);
             }
             else{
                 Consistency1 = x(i,c) + x(j,c) - y(j,i);
                 Consistency2 = x(i,c) - x(j,c) + y(j,i);
                 Consistency3 = x(j,c) - x(i,c) + y(j,i);
             }
-            _model.add_constraint(Consistency1);
-            _model.add_constraint(Consistency2);
-            _model.add_constraint(Consistency3);
+            _model.add_constraint(Consistency1 <= 1);
+            _model.add_constraint(Consistency2 <= 1);
+            _model.add_constraint(Consistency3 <= 1);
 
         }
     }
