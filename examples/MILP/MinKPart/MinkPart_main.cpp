@@ -186,10 +186,11 @@ int main (int argc, const char * argv[])
         }
     }
     else{
-        fname = "../../data_sets/Minkcut/random_10.txt";
+        fname = "../../data_sets/Minkcut/random10_30.txt";
         k = 3;
-        relax = true;
-        mt = MIP_tree;
+        relax = false;
+        //mt = MIP_tree;
+        mt = Node_edge;
         solver= cplex;
     }
     
