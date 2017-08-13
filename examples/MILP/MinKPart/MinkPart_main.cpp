@@ -174,6 +174,10 @@ int main (int argc, const char * argv[])
             mt = SDP_tree;
             solver = mosek_;
         }
+        else if (strcmp(type,"Node_edge")==0){
+            mt = Node_edge;
+            solver = cplex;
+        }
         else{
             cout << "invalid input" << endl;
             exit(1);
