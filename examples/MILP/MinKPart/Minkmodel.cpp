@@ -563,9 +563,9 @@ void Minkmodel::node_edge_formulation(){
         for (auto a: _graph->arcs) {
             i = (a->src)->ID;
             j = (a->dest)->ID;
-            Constraint Consistency1("Consistency1["+ to_string(i) + "," + to_string(j) + "]");
-            Constraint Consistency2("Consistency2["+ to_string(i) + "," + to_string(j) + "]");
-            Constraint Consistency3("Consistency3["+ to_string(i) + "," + to_string(j) + "]");
+            Constraint Consistency1("Consistency1["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
+            Constraint Consistency2("Consistency2["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
+            Constraint Consistency3("Consistency3["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
             if (i <=j){
                 Consistency1 = x(i,c) + x(j,c) - y(i,j);
                 Consistency2 = x(i,c) - x(j,c) + y(i,j);
