@@ -31,8 +31,6 @@ using namespace std;
 //    }
 //}
 
-
-
 Minkmodel::Minkmodel() {};
 
 Minkmodel::~Minkmodel() {};
@@ -71,6 +69,8 @@ void Minkmodel::build() {
         //add_triangle_lifted_tree();
         //add_clique_lifted_tree();
         break;
+    case Node_edge:
+         node_edge_formulation();
     default:
         break;
     }
@@ -529,6 +529,57 @@ void Minkmodel::add_bicycle() {}
 //        }
 //    }
 //}
+void Minkmodel::node_edge_formulation(){
+     var<bool> x("x");
+     _model.add_var(x^((int)(_K*_graph->nodes.size())));
+     var<bool> y("y");
+    // the number of arcs in the chordal extension
+    _model.add_var(y^(_graph->arcs.size()));
+    
+    func_ obj_node_edge;
+    int i=0, j=0;
+    for (auto a: _graph->arcs) {
+        i = (a->src)->ID;
+        j = (a->dest)->ID;
+        if (i <= j)
+            obj_node_edge += (a->weight)*y(i,j);
+        else
+            obj_node_edge += (a->weight)*y(j,i);
+    }
+    _model.set_objective(min(obj_node_edge));
+    
+    // add assignment constraints
+    
+    for (i =0 ; i< _graph->nodes.size(); i++){
+        Constraint Assign("Assignment" + to_string(i));
+            for (int c= 0; c< _K; c++){
+                Assign += x(i, c);
+        }
+        _model.add_constraint(Assign);
+    }
+    
+    // add consistency constraints
+    for (int c= 0; c< _K; c++){
+        for (auto a: _graph->arcs) {
+            i = (a->src)->ID;
+            j = (a->dest)->ID;
+            Constraint Consistency1("Consistency1["+ to_string(i) + "," + to_string(j) + "]");
+            Constraint Consistency2("Consistency2["+ to_string(i) + "," + to_string(j) + "]");
+            Constraint Consistency3("Consistency3["+ to_string(i) + "," + to_string(j) + "]");
+            if (i <=j){
+                Consistency1 = x(i,c) + x(j,c) - y(i,j);
+                Consistency2 = x(i,c) - x(j,c) + y(i,j);
+                Consistency3 = x(j,c)-x(i,c) + y(i,j);
+            }
+            else{
+                Consistency1 = x(i,c) + x(j,c) - y(j,i);
+                Consistency2 = x(i,c) - x(j,c) + y(j,i);
+                Consistency3 = x(j,c) - x(i,c) + y(j,i);
+            }
+        }
+    }
+}
+
 
 int Minkmodel::solve(int output, bool relax) {
     solver s(_model,_solver);

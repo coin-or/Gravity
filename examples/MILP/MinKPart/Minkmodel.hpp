@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include "/usr/local/include/armadillo"
 
-typedef enum {MIP,MIP_tree,SDP,SDP_tree} ModelType;
+typedef enum {MIP,MIP_tree,SDP,SDP_tree, Node_edge} ModelType;
 
 class Minkmodel {
 public:
@@ -63,6 +63,7 @@ public:
     void add_3Dcuts();
     void cliquetree_decompose();
     void nchoosek(int, int, int);
+    void node_edge_formulation();
     //  post root node relaxation
     bool check_eigenvalues();
     void add_eigcut();
@@ -74,6 +75,4 @@ public:
     int solve(int output,bool relax);
     void print();
 };
-
-
 #endif /* model_hpp */
