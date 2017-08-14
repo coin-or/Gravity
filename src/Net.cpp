@@ -544,6 +544,7 @@ string Net::remove_end_node() {
     return n_id;
 }
 
+// use greedy fill-in algorithm.
 void Net::get_tree_decomp_bags(bool print_bags) {
     Node* n = nullptr;
     Node* u = nullptr;
@@ -627,12 +628,14 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     }
     Debug("\nNumber of 3D bags = " << nb3 << endl);
 }
+    
+
+
 
 // get cliques from the tree decomposition
 // Two methods
 // first one: check the inclusion relationship
-// second one: use the RIP property of the tree decomposition, thus just need to
-// check every leaf
+// second one: use the RIP property of the tree decomposition, thus just need to check every leaf
 void Net::get_clique_tree (bool print) {
     get_tree_decomp_bags(print);
     // we need to create a new data structure to store cliques?
