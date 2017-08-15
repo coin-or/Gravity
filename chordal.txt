@@ -1,0 +1,28 @@
+100 CUP 0.187223	 Value: -75
+200 CUP 0.317241	 Value: -150
+300 CUP 0.48911	         Value: -225
+400 CUP 0.716639	 Value: -300
+500 CUP 0.754328	 Value: -375
+
+
+
+
+
+// chordal
+50 CUP 0.14193	         Value: -38    CUP 0.028289	    Value: -41.5556
+100 CUP 0.158864	 Value: -75    CUP 0.035931         Value: -83.2222
+150 CUP 0.269541	 Value: -113   CUP 0.055098         Value: -124.889
+200 CUP 0.354452	 Value: -150   CUP 0.075917         Value: -166.556
+250 CUP 0.438137	 Value: -188   CUP 0.076638         Value: -208.222
+
+	 
+	 
+	 
+	 
+
+// Node
+50 CUP 0.051889	         Value: -72 50 CUP 1088.65	 Value: -38
+100 CUP 0.084957	 Value: -147
+150 CUP 0.133632	 Value: -222
+200 CUP 0.218884	 Value: -297
+250 CUP 0.306439	 Value: -372
