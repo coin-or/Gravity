@@ -40,17 +40,40 @@ CUP 0.150155	 Value: 0
 
 	 
 	 
+ 60 CUP 3.51067	 Value: 0
+ 70 CUP 11.2123	 Value: 0
+ 80 CUP 60.1711	 Value: 0
+ 
+ 60 CUP 0.06579	 Value: 0
+ 70 CUP 0.07425  Value: 0
+ 80 CUP 0.0925	 Value: 0
+ 90 CUP 0.12600	 Value: 0
 	 
 	 
+// spinglass
+100 CUP 10.2814	 Value: -6.6918e+06
+121 CUP 17.6397	 Value: -8.20972e+06
+144 CUP 16.2055	 Value: -1.03987e+07
+169 CUP 34.4466	 Value: -1.17265e+07
+196 CUP 67.5547	 Value: -1.38515e+07
+225 CUP 77.1735	 Value: -1.7647e+07
 	 
 	 
-         
+// spinglass k =4    Node_edge 
 	 
+100 CUP 0.076151	 Value: -7.44048e+06
+121 CUP 0.099624	 Value: -8.98281e+06
+144 CUP 0.119734	 Value: -1.14436e+07
+169 CUP 0.145782	 Value: -1.28616e+07
+196 CUP 0.176598	 Value: -1.50521e+07
+225 CUP 0.343501	 Value: -1.90529e+07
 	 
+// spinglass k = 4 MIP_tree
+100 CUP 6.9896	 Value: -6.74722e+06
+121 CUP 15.2122	 Value: -8.27075e+06
+144 CUP 24.6963	 Value: -1.04507e+07
+169 CUP 76.6706	 Value: -1.1779e+07
+196 CUP 76.9403	 Value: -1.39293e+07
+225 CUP 279.981	 Value: -1.7766e+07
 	 
-	 
-	 
-	 
-	 
-
 
