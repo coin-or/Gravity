@@ -6,7 +6,7 @@
 
 * Creation Date : 15-08-2017
 
-* Last Modified : Tue 15 Aug 09:26:36 2017
+* Last Modified : Tue 15 Aug 10:33:07 2017
 
 * Created By : Guanglei Wang
 _._._._._._._._._._._._._._._._._._._._._.*/
@@ -28,9 +28,18 @@ int main (int argc, const char * argv[])
     if (!outfile)
         cerr << "Oops! Uable to save session data! \n";
     else {
-        outfile << dim << " " << dim -1 << "\n";
-        for (int i = 1; i < dim; i++)
-            outfile << i << " " << i+1 << " " << 1 << "\n";
+        outfile << dim << " " << 3*dim -6 << "\n";
+        int a = 1;
+        for (int i = 1; i < dim - 2; i++){
+            outfile << i << " " << i+1 << " " << a << "\n";
+            outfile << i << " " << i+2 << " " << a << "\n";
+            outfile << i << " " << i+3 << " " << a << "\n";
+            a = -1*a;
+        }
+            outfile << dim - 2 << " " << dim - 1 << " " << a << "\n";
+            outfile << dim - 2 << " " << dim  << " " << a << "\n";
+            outfile << dim -1 << " " << dim  << " " << a << "\n";
     }
     }
+    return 0;
 }
