@@ -23,7 +23,6 @@ CUP 0.150155	 Value: 0
  CUP 0.124726   Value: 0     CUP 2116.87	 Value: 26
 
 // relaxation and root node
-
  CUP 0.016937  Value: -402781          CUP 0.084975	 Value: -393880 
  CUP 0.011021  Value: -1.19644e+06     CUP 0.076888	 Value: -1.07042e+06 
  CUP 0.022143  Value: -1.85758e+06     CUP 0.235348	 Value: -1.6282e+06 
