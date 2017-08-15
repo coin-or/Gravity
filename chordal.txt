@@ -36,11 +36,17 @@
 
 
 //k =4 MIP_tree
-50 CUP 0.022928	         Value: -41.5556       CUP 0.078319        Value: -38
-100 CUP 0.036631	 Value: -83.2222       CUP 0.168765        Value: -75
-150 CUP 0.055619	 Value: -124.889       CUP 0.294348        Value: -113
-200 CUP 0.080736	 Value: -166.556       CUP 0.349477        Value: -150
-250 CUP 0.07605	         Value: -208.222       CUP 0.419094        Value: -188
+50 CUP 0.04025	         Value: -52.1602 CUP 0.234874	Value: -48
+100 CUP 0.082961	 Value: -107.16  CUP 0.55834	Value: -98
+150 CUP 0.09058	         Value: -162.16  CUP 0.87067	Value: -148
+200 CUP 0.162356	 Value: -217.16  CUP 1.33126	Value: -198
+250 CUP 0.216938	 Value: -272.16  CUP 1.63496	Value: -248
+
+  
+  
+  
+  
+  
 
  	 
  	 
