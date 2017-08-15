@@ -1,0 +1,57 @@
+
+CUP 0.014604	 Value: 0
+CUP 0.010433	 Value: 0
+CUP 0.022419	 Value: 0
+CUP 0.031963	 Value: 0
+CUP 0.043216	 Value: 0
+CUP 0.05611	 Value: 0
+CUP 0.070816	 Value: 0
+CUP 0.089136	 Value: 0
+CUP 0.124726	 Value: 0
+CUP 0.150155	 Value: 0
+
+
+// rndgraph
+ CUP 0.014604   Value: 0     CUP 0.00507	 Value: 0
+ CUP 0.010433   Value: 0     CUP 0.021889	 Value: 0
+ CUP 0.022419   Value: 0     CUP 0.03341	 Value: 0
+ CUP 0.031963   Value: 0     CUP 0.190096	 Value: 1
+ CUP 0.043216   Value: 0     CUP 0.575765	 Value: 1
+ CUP 0.05611    Value: 0     CUP 2.54795	 Value: 5
+ CUP 0.070816   Value: 0     CUP 84.0872	 Value: 12
+ CUP 0.089136   Value: 0     CUP 300.1	         Value: 17
+ CUP 0.124726   Value: 0     CUP 2116.87	 Value: 26
+
+// relaxation and root node
+
+ CUP 0.016937  Value: -402781          CUP 0.084975	 Value: -393880 
+ CUP 0.011021  Value: -1.19644e+06     CUP 0.076888	 Value: -1.07042e+06 
+ CUP 0.022143  Value: -1.85758e+06     CUP 0.235348	 Value: -1.6282e+06 
+ CUP 0.021341  Value: -2.4785e+06      CUP 0.439086	 Value: -2.14607e+06 
+ CUP 0.035235  Value: -3.33691e+06     CUP 2.1113	 Value: -2.9827e+06 
+ CUP 0.049947  Value: -4.68716e+06     CUP 4.13227	 Value: -4.19659e+06 
+ CUP 0.05164   Value: -5.71334e+06     CUP 6.94916	 Value: -5.17558e+06 
+ CUP 0.062628  Value: -7.44048e+06     CUP 9.51517	 Value: -6.6918e+06 
+ CUP 0.078151  Value: -8.98281e+06     CUP 18.2909	 Value: -8.20972e+06 
+ CUP 0.094614  Value: -1.14436e+07     CUP 17.4824	 Value: -1.03987e+07 
+ CUP 0.116464  Value: -1.28616e+07     CUP 36.4605	 Value: -1.17265e+07 
+ CUP 0.134582  Value: -1.50521e+07     CUP 68.8735	 Value: -1.38515e+07 
+ CUP 0.155898  Value: -1.90529e+07     CUP 79.4372	 Value: -1.7647e+07 
+ CUP 0.189774  Value: -2.12912e+07     CUP 639.873	 Value: -1.93297e+07 
+
+	 
+	 
+	 
+	 
+	 
+	 
+         
+	 
+	 
+	 
+	 
+	 
+	 
+	 
+
+
