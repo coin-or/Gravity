@@ -12,7 +12,10 @@
 _._._._._._._._._._._._._._._._._._._._._.*/
 #include<iostream>
 #include<fstream>
+#include<string>
+#include<string.h>
 #include<stdio.h>
+#include<stdlib.h>
 
 using namespace std;
 
@@ -24,7 +27,7 @@ int main (int argc, const char * argv[])
     }
     else {
        dim = atoi(argv[1]); 
-    ofstream outfile("band"+to_string(dim)+".txt");
+    	ofstream outfile("band"+to_string(dim)+".txt", ios_base::out);
     if (!outfile)
         cerr << "Oops! Uable to save session data! \n";
     else {
@@ -40,6 +43,7 @@ int main (int argc, const char * argv[])
             outfile << dim - 2 << " " << dim  << " " << a << "\n";
             outfile << dim -1 << " " << dim  << " " << a << "\n";
     }
+    outfile.close();
     }
     return 0;
 }
