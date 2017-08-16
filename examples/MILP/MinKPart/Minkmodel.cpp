@@ -318,7 +318,7 @@ void Minkmodel::cliquetree_decompose() {
                         continue;
                     }
                 }
-        if (bag.size()> _K+1 && _K > 2) {
+        if (bag.size()> _K && _K > 1) {
             nchoosek(i,0,_K+1);
         }
     }
