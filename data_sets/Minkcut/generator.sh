@@ -4,5 +4,5 @@ for Nodes in {50..250..50};
 #do ./rudy -spinglass2pm ${Nodes} ${Nodes} 50 0 > spinglass2pm_${Nodes}${Nodes}.txt; done
 do 
     echo "size ${Nodes}";
-    sudo ./band  ${Nodes} 4;
+    sudo ./band  ${Nodes} 5;
 done
