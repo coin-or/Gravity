@@ -329,7 +329,7 @@ int main (int argc, const char * argv[])
     Net* graph = new Net();
     graph->readrudy(fname);
     graph->get_clique_tree();
-    
+   // mosek_reduce(graph,k); 
     Minkmodel mymodel(mt,graph,k,solver);
   //  mymodel.cliquetree_decompose();
  //   mink_tree_lazycut(mymodel);
@@ -353,7 +353,7 @@ int main (int argc, const char * argv[])
     if (!outfile)
         cerr << "Oops! Uable to save session data! \n";
     else{
-//	outfile << "Instance,  CPU, Value" << endl;
+//      outfile << "Instance,  CPU, Value" << endl;
         outfile << graph->nodes.size() <<","<< (cpu1 - cpu0)
                 << ", "<< mymodel._model._obj_val
                 << endl;
