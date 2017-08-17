@@ -87,14 +87,17 @@ double mosek_reduce(Net* _graph, double _K) {
         M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
     }
     
-    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
+    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0.0);
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i <= j)
+        if (i <= j){
             expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
-        else
+        }
+        else{
             expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
+        }
+        expr = mosek::fusion::Expr::add(expr,a->weight/_K);
     }
     
     M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
@@ -124,16 +127,21 @@ double mosekcode(Net* _graph, double _K) {
             M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
         }
     
-    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(_graph->arcs.size()/_K);
+    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0/0);
     // expr is a pointer to the Expression.
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
         j = (a->dest)->ID;
-        if (i <= j)
+        if (i <= j) {
             expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
-        else
+        }
+        else {
             expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
+        }
+        expr = mosek::fusion::Expr::add(expr,a->weight/_K);
+
     }
+    
     
     M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
     M->solve();
@@ -308,7 +316,7 @@ int main (int argc, const char * argv[])
     }
     else{
         //fname = "../../data_sets/Minkcut/random10_100.txt";
-        fname = "../../data_sets/Minkcut/band300.txt";
+        fname = "../../data_sets/Minkcut/band.txt";
 
         k = 3;
         relax = false;
