@@ -8,7 +8,6 @@
 
 #include <gravity/param.h>
 
-
 string param_::get_name(bool indices) const {
     string name = _name;
 //    int nb = _indices->size() - 1;
@@ -61,9 +60,3 @@ pair<constant_*, constant_*>* param_::get_range() const{
     }
     
 }
-
-
-
-
-
-

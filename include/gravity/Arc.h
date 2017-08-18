@@ -8,7 +8,7 @@
 
 #ifndef Cycle_Basis_PF_Arc_h
 #define Cycle_Basis_PF_Arc_h
-#include <Gravity/Node.h>
+#include <gravity/Node.h>
 #include "assert.h"
 #include "string"
 

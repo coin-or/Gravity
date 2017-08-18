@@ -17,7 +17,7 @@
 #ifdef USE_CPLEX
 #include <ilcplex/ilocplex.h>
 #endif
-#include <Gravity/model.h>
+#include <gravity/model.h>
 
 class CplexProgram {
 private:
@@ -52,12 +52,4 @@ public:
 
 
 #endif /* defined(__PowerTools____CplexProgram) */
-
-
-
-
-
-
-
-
 #endif /* CplexProgram_hpp */

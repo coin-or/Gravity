@@ -71,7 +71,6 @@ double get_cpu_time(){
 
 int main (int argc, const char * argv[])
 {
-    
     //  Start Timers
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF THE POOLING PROBLEM AND SOME OF ITS RELAXATIONS IN GRAVITY\n";
     std::cout << "Understanding the numerical limits of your machine:" << endl;

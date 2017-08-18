@@ -11,7 +11,7 @@
 #include <string>
 #include <map>
 #include <memory>
-#include <Gravity/types.h>
+#include <gravity/types.h>
 
 
 using namespace std;
@@ -23,7 +23,6 @@ class constant_{
 protected:
     CType               _type;
     
-
     
 public:
     bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */
@@ -81,6 +80,10 @@ public:
     
     bool is_var() const{
         return (_type==var_c);
+    };
+    
+    bool is_sdpvar() const{
+        return (_type==sdpvar_c);
     };
     
     bool is_function() const{

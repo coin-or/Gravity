@@ -9,12 +9,13 @@
 #ifndef func_h
 #define func_h
 
-#include <Gravity/var.h>
+#include <gravity/var.h>
 #include <stdio.h>
 #include <map>
 #include <iterator>
 #include <queue>
 #include <list>
+#include <limits>
 #include <set>
 
 using namespace std;
@@ -203,8 +204,8 @@ public:
     bool                    _sign = true; /**< True if +, flase if - */    
     
     lterm(){
-        _coef = nullptr;
-        _p = nullptr;
+        _coef = nullptr; // coefficent
+        _p = nullptr; // terms. 
     }
     
     lterm(lterm&& t){

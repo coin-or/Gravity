@@ -9,12 +9,12 @@
 #ifndef var_h
 #define var_h
 
-#include <Gravity/param.h>
-#include <Gravity/Arc.h>
+#include <gravity/param.h>
 #include <stdio.h>
 #include <string>
 #include <set>
 #include <list>
+#include <limits>
 
 //class func;
 using namespace std;
@@ -35,7 +35,6 @@ public:
     shared_ptr<vector<type>>    _lb; /**< Lower Bound */
     shared_ptr<vector<type>>    _ub; /**< Upper Bound */
     /* Constructors */
-    
     //@{
     /** Unbounded variable constructor */
     var();
@@ -49,10 +48,7 @@ public:
     /** Bounded variable constructor */
     var(const string& name, type lb, type ub);
     //@}
-    
-    
         
-    
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
         var res(this->_name);
@@ -65,6 +61,11 @@ public:
         res._ub = this->_ub;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
+        //cout << "indices: "  << endl;
+        //for(list<size_t>::iterator iter = indices.begin(); iter != indices.end(); iter++){
+        //    cout<<*iter<<endl;
+        //}
+
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
@@ -96,52 +97,6 @@ public:
     var to(const ordered_pairs& pairs);
     var in(const ordered_pairs& pairs);
     
-//    var to(const vector<Arc*>& arcs){
-//        var res(this->_name);
-//        res._id = this->_id;
-//        res._vec_id = this->_vec_id;
-//        res._intype = this->_intype;
-//        res._range = this->_range;
-//        res._val = this->_val;
-//        res._lb = this->_lb;
-//        res._ub = this->_ub;
-//        string key;
-//        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-//            key = it->dest->_name;
-//            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-//            if(pp.second){//new index inserted
-//                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-//            }
-//            else {
-//                res._indices->insert(make_pair<>(key,pp.first->second));
-//            }
-//            res._dim++;
-//        }
-//        res._name += "["+key+"]";
-//        res._is_indexed = true;
-//        return res;
-//    }
-
-    
-//    var operator()(int idx...){
-//        auto res(*this);
-//        res._indices.insert(idx);
-//        va_list arg_list;
-//        va_start(arg_list, idx);
-//        int i = 0;
-//        while (*idx != '\0') {
-//            if (*idx == 'd') {
-//                i = va_arg(arg_list, int);
-//                res._indices.insert(i);
-//            }
-//            else {
-//                throw invalid_argument("indices can only be integers");
-//            }
-//            ++idx;
-//        }
-//        va_end(arg_list);
-//    }
-    
     
     /* Querries */
     
@@ -172,8 +127,6 @@ public:
         return (is_bounded_below() && is_bounded_above() && _lb->at(i)==_ub->at(i));
     };
     
-    
-    
     Sign get_sign(int idx = 0) const{
         if (_lb->at(idx) == 0 && _ub->at(idx) == 0) {
             return zero_;
@@ -202,10 +155,8 @@ public:
     
     void    set_lb(int i, type v);
     void    set_ub(int i, type v);
-
     
     /* Operators */
-    
     var& operator=(type v){
         param<type>::_val->push_back(v);
         param<type>::update_range(v);
@@ -229,8 +180,6 @@ public:
     /* Output */
     void print(bool bounds=false) const;
     
-
-    
 };
 
 template<typename type>
@@ -240,4 +189,95 @@ var<type> all(const var<type>& p){
     return pp;
 }
 
-#endif /* var_h */
+
+// In contrast to a general variable, indices of an SDP variable should be
+// recorded using _sdpindices, moreover the size of an SDP variable is d.  
+template<typename type = double>
+//class sdpvar: public param<type>, public var_{
+class sdpvar: public var<type>{
+
+public:
+    size_t _symdim=0;
+    //@{
+    /** Unbounded sdp-variable constructor */
+    sdpvar();
+    ~sdpvar(){};
+
+    sdpvar(const string& name);
+    sdpvar(const sdpvar<type>& v);
+    sdpvar(sdpvar<type>&& v);
+    //@}
+
+    /** bounded sdp-variable constructor */
+    sdpvar(const string& name, type lb, type ub);
+    
+    template<typename... Args>
+    sdpvar operator()(size_t t1, Args&&... args){
+        sdpvar res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._val = this->_val;
+        res._range = this->_range;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        list<size_t> indices;
+        indices = {forward<size_t>(args)...};
+        indices.push_front(t1);
+        string key;
+        auto it = indices.begin();
+
+        for (size_t i= 0; i<indices.size(); i++) {
+            key += to_string(*it);
+            if (i<indices.size()-1) {
+                key += ",";
+            }
+            it++;
+        }
+
+        auto it2 = param_::_sdpindices->find(key);
+        if (it2 == param_::_sdpindices->end()) {
+            auto temp = make_pair<>(t1, (*(++indices.begin())));
+            res._sdpindices->insert(make_pair<>(key,temp));
+            param_::_sdpindices->insert(make_pair<>(key,temp));
+        }
+        else {
+            auto temp = param_::_sdpindices->at(key);
+            res._sdpindices->insert(make_pair<>(key,temp));
+            res._dim = 1;
+            res._symdim = 1;
+        }
+        res._name += "["+key+"]";
+        res._is_indexed = true;
+        return res;
+    }
+
+    /* Modifiers */
+    //void    set_size(size_t s, type val = 0);
+
+    /* Operators */
+    sdpvar& operator=(type v){
+        param<type>::_val->push_back(v);
+        param<type>::_dim++;
+        return *this;
+    }
+
+    bool operator==(const sdpvar& v) const;
+    bool operator>=(const sdpvar& v) const; 
+    bool operator!=(const sdpvar& v) const;
+    sdpvar& operator^(size_t d){
+        // the upper/lower triangular part. 
+        param<type>::set_size(d*(d+1)/2);
+        _symdim = d;
+        return *this;
+    }
+
+    sdpvar tr() const{
+        auto v = sdpvar(*this);
+        v._is_transposed = true;
+        return v;
+    }
+    /* Output */
+    void print() const;
+};
+#endif /* sdpvar_h */

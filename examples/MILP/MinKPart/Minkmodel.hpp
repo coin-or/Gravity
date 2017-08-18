@@ -16,8 +16,7 @@
 #include <stdlib.h>
 #include "/usr/local/include/armadillo"
 
-typedef enum {MIP,MIP_tree,SDP,SDP_tree} ModelType;
-//typedef enum {cplex,ipopt,gurobi} SolverType;
+typedef enum {MIP,MIP_tree,SDP,SDP_tree, Node_edge} ModelType;
 
 class Minkmodel {
 public:
@@ -26,9 +25,9 @@ public:
     SolverType  _solver;
     double      _K;
     Net*        _graph;
-    var<int> zij;
-    var<double> Xij;
-    set<tuple<int,int,int>> _ids; //
+
+    set<tuple<int,int,int>> _ids; 
+    shared_ptr<map<std::string,vector<unsigned>>> _cliqueid;
     set<tuple<int,int,int,int>> _ids4; //
     
     arma::mat _eigvec;
@@ -44,6 +43,7 @@ public:
     void add_vars_origin();
     void add_vars_origin_tree();
     void add_vars_lifted();
+    void add_vars_lifted_tree();
     
     /** Constraints */
     // different formulations
@@ -61,14 +61,13 @@ public:
     void add_wheel();
     void add_bicycle();
     void add_3Dcuts();
-    void tree_decompose();
-
+    void cliquetree_decompose();
+    void nchoosek(int, int, int);
+    void node_edge_formulation();
     //  post root node relaxation
     bool check_eigenvalues();
     void add_eigcut();
-    //    void post_AC_Rect();
-    //    void post_QC_OTS(bool lin_cos_cuts, bool quad_cos);
-    //    void post_SOCP_OTS();
+    void construct_fsol();
     
     /** Presolve */
     //    void propagate_bounds();
@@ -76,7 +75,4 @@ public:
     int solve(int output,bool relax);
     void print();
 };
-
-
-
 #endif /* model_hpp */

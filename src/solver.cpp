@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#include <Gravity/solver.h>
+#include <gravity/solver.h>
 
 #ifdef USE_BONMIN
 #include <coin/BonBonminSetup.hpp>
@@ -37,6 +37,13 @@ namespace {
     {
         cerr << "Can't use Ipopt as a solver: this version of Gravity "
         "was compiled without Ipopt support." << endl;
+        exit(1);
+    }
+    
+    void mosekNotAvailable()
+    {
+        cerr << "Can't use Mosek as a solver: this version of Gravity "
+        "was compiled without Mosek support." << endl;
         exit(1);
     }
     
@@ -203,10 +210,8 @@ int solver::run(int output, bool relax){
     {
 #ifdef USE_CPLEX
         try{
-            //                prog.grbprog = new GurobiProgram();
             auto cplex_prog = new CplexProgram(_model);
             cplex_prog->_output = output;
-            //            prog.grb_prog->reset_model();
             cplex_prog->prepare_model();
             bool ok = cplex_prog->solve(relax);
             delete cplex_prog;
@@ -217,6 +222,24 @@ int solver::run(int output, bool relax){
         }
 #else
         cplexNotAvailable();
+#endif
+    }
+    else if(_stype == mosek_)
+    {
+#ifdef USE_MOSEK
+        try{
+            auto mosek_prog = new MosekProgram(_model);
+            mosek_prog->_output = output;
+            mosek_prog->prepare_model();
+            bool ok = mosek_prog->solve(relax);
+            delete mosek_prog;
+            return ok ? 100 : -1;
+        }
+        catch(mosek::fusion::FusionException e) {
+            cerr << e.toString() << endl;
+        }
+#else
+        mosekNotAvailable();
 #endif
     }
     else if(_stype==bonmin) {

@@ -15,14 +15,15 @@
 #include <vector>
 #include <list>
 #include <set>
-#include <Gravity/constant.h>
-#include <Gravity/Arc.h>
+#include <gravity/constant.h>
+#include <gravity/Arc.h>
+#include <limits>
 
 using namespace std;
 
-
 /** Backbone class for parameter */
 class param_: public constant_{
+
 protected:
     string                                 _name;
     int                                    _id = -1;
@@ -32,6 +33,8 @@ protected:
                                    vectors */
     unique_ptr<vector<unsigned>>           _ids = nullptr;/*<< A vector storing all the indices this parameter has in the order they were created */
     
+    /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
+   shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
 public:
     
     bool                                   _is_indexed = false;
@@ -58,6 +61,14 @@ public:
         return 0;
     };
     
+    // newly added part by guanglei
+    pair<size_t,size_t> get_sdpid() const{
+        if (_is_indexed) {
+            return _sdpindices->begin()->second;
+        }
+        return make_pair(0, 0);
+    };
+    
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const {
@@ -71,6 +82,11 @@ public:
     
     shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
+    }
+    //
+//(guanglei) added..
+    shared_ptr<map<string, pair<unsigned, unsigned>>> get_sdpindices() const {
+        return _sdpindices;
     }
     
     vector<unsigned>& get_ids() const {
@@ -161,7 +177,7 @@ public:
     pair<type,type>                         _range; /**< (Min,Max) values in vals **/
     
     param(){
-        _type = par_c;
+        _type = par_c; 
         _name = "noname";        
         throw invalid_argument("Please enter a name in the parameter constructor");
     }
@@ -179,6 +195,7 @@ public:
         _name = p._name;
         _indices = p._indices;
         _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
+        _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -195,6 +212,7 @@ public:
         _name = p._name;
         _indices = p._indices;
         _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
+        _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -249,6 +267,7 @@ public:
         _val = make_shared<vector<type>>();
         _indices = make_shared<map<string,unsigned>>();
         _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
+        _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -278,7 +297,7 @@ public:
     
     
     /* Modifiers */
-    void    set_size(size_t s, type val = 0){
+    void   set_size(size_t s, type val = 0){
         _val->resize(s,val);
         _dim = s;        
     };
@@ -375,7 +394,8 @@ public:
 
     /** Operators */
     bool operator==(const param& p) const {
-        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
+        return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _sdpindices==p._sdpindices && _val==p._val);
+        //return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
     }
     
     param& operator^(size_t d){
@@ -399,7 +419,6 @@ public:
         _dim++;
         return *this;
     }
-    
 //    template<typename... Args>
 //    param operator()(char t1, Args&&... args){
 //        auto res(*this);
@@ -418,8 +437,6 @@ public:
 //        res._indices->insert(make_pair<>(key,0));
 //        return res;
 //    }
-    
-    
     template<typename... Args>
     param operator()(size_t t1, Args&&... args){
         param res(this->_name);
@@ -603,7 +620,7 @@ public:
     string to_str(bool vals=false) const{
         string str = get_name();
         if (_is_indexed) {
-            str += " = [ ";
+            str += " = [";
             str += std::to_string(_val->at(_indices->begin()->second));
             str += "];";
         }
@@ -615,16 +632,27 @@ public:
                 str += to_string(_val->at(pi.second));
                 str += " ";
             }
-//            for(int i = 0 ; i < param_::get_dim(); i++){
-//                str += std::to_string(_val->at(i));
-//                str += " ";
-//            }
+             str += "];";
+        }
+        else{
+             str += " = [ ";
+            for(int i = 0 ; i < param_::get_dim(); i++){
+                str += std::to_string(_val->at(i));
+                str += " ";
+            }
             str += "];";
         }
         return str;
     }
     
-
+    type getvalue() const{
+        if (_is_indexed) {
+           return (_val->at(_indices->begin()->second));
+        }
+        else{
+            return _val->at(0);
+            }
+    }
 };
 
 template<typename type>
@@ -633,6 +661,5 @@ param<type> all(const param<type>& p){
     pp._is_vector = true;
     return pp;
 }
-
 
 #endif /* defined(____param__) */

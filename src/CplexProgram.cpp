@@ -1,4 +1,4 @@
-#include <Gravity/CplexProgram.h>
+#include <gravity/CplexProgram.h>
 
 CplexProgram::CplexProgram(Model* m){
     _cplex_env = new IloEnv();
@@ -16,7 +16,7 @@ CplexProgram::~CplexProgram() {
 bool CplexProgram::solve(bool relax){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
-//    if (relax) relax_model();
+    //if (relax) relax_model();
     //    relax_model();
     try {
 //        _cplex_model->M
@@ -48,6 +48,10 @@ bool CplexProgram::solve(bool relax){
         
         // Print results
         _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
+        
+        // set the optimal value. 
+        _model->_obj_val = cplex.getObjValue();
+        
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             IloNumArray vals(*_cplex_env);
             cplex.getValues(vals,_cplex_vars[i]);

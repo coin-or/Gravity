@@ -10,7 +10,7 @@
 #define model_hpp
 
 #include <stdio.h>
-#include <Gravity/constraint.h>
+#include <gravity/constraint.h>
 #include <map>
 #include <unordered_set>
 #include <math.h>
@@ -35,8 +35,8 @@ protected:
     string                          _name;
     set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
     vector<shared_ptr<func_>>       _functions;
-    void add_var(param_* v);//Add variables without reallocating memory
-    void add_param(param_* v);//Add variables without reallocating memory
+    void add_var(param_* v);        //Add variables without reallocating memory
+    void add_param(param_* v);      //Add variables without reallocating memory
     
 public:
     size_t                          _nb_vars = 0;
@@ -48,7 +48,7 @@ public:
     map<unsigned,param_*>           _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
     map<string,param_*>             _params_name; /**< Sorted map pointing to all parameters contained in this model */
     map<string,param_*>             _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-    map<unsigned,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    map<unsigned,Constraint*>        _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
     map<string,Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
     map<unsigned, set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
     map<pair<unsigned,unsigned>, map<pair<unsigned,unsigned>,set<pair<int,int>>>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by pairs of variable ids, a pair contains the metavar id and the instanciated var id. The last set contains pairs of indices of constraints where both variables appear, the pair stores the metaconstraint id and the instanciated constraint id */

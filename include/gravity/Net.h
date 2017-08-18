@@ -11,10 +11,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <assert.h>
-#include <Gravity/Node.h>
-#include <Gravity/Arc.h>
-#include <Gravity/Path.h>
+#include <gravity/Node.h>
+#include <gravity/Arc.h>
+#include <gravity/Path.h>
 
 class Net{
 public:
@@ -28,7 +29,7 @@ public:
     /** Mapping the arcs to their source-destination */
     std::map<std::string, std::set<Arc*>*> lineID;
     
-    /** Mapping the node id to its position in the vector, key = node id */
+    /** Mapping the node name to its position in the vector, key = node id */
     std::map<std::string, Node*> nodeID;
     
     /** Vector of cycles forming a cycle basis */
@@ -40,6 +41,8 @@ public:
     /** Clone network */
     // To get the chordal extension of the network.
     Net* _clone;
+    // get a chordal extension
+    Net* _chordalextension;
     
     
     /** Cloning */
@@ -96,6 +99,9 @@ public:
     
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false);
+
+    /** Compute the tree decomposition bags **/
+    void get_clique_tree (bool print_clique = false);
     
    // int test(std::string fname);
     int test();

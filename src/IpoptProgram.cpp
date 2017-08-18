@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
 #define DebugOn(x) cout << x
-#include <Gravity/IpoptProgram.h>
+#include <gravity/IpoptProgram.h>
 
 using namespace std;
 
@@ -24,7 +24,7 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     return true;
 }
 
-void IpoptProgram::finalize_solution(    Ipopt::SolverReturn               status    ,
+void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
                                    Index                             n         ,
                                    const Number*                     x         ,
                                    const Number*                     z_L       ,

@@ -4,25 +4,28 @@ project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
+# Find Gurobi (optional)
+option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
-# Find Gurobi (optional).
-option(ENABLE_GUROBI "Link to Gurobi libraries" ON)
+# Find IPOPT (optional)
+option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
 
-# Find IPOPT (optional).
-option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
-
-# Find BONMIN (optional).
+# Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
 option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
+# Find SDPA (optional)
+option(ENABLE_SDPA "Link to SDPA libraries" ON)
+
+# Find MOSEK (optional)
+option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
 configure_file (
     "${PROJECT_SOURCE_DIR}/GravityConfig.h.in"
     "${PROJECT_BINARY_DIR}/include/gravity/GravityConfig.h")
-
 
 
 # Find Ipopt.
@@ -34,7 +37,28 @@ if (ENABLE_IPOPT)
 	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 endif()
 
-# Find Gurobi?
+# Find SDPA.
+if (ENABLE_SDPA)
+	message(STATUS "Enable SDPA")
+	add_definitions(-DUSE_SDPA)
+	find_package(SDPA REQUIRED)
+	include_directories(${SDPA_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${SDPA_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-all-loops -Wall -fPIC -funroll-all-loops")
+    set(CMAKE_Fortran_FLAGS "-g -O2 -Wall -fPIC -funroll-all-loops")
+endif()
+
+# Find MOSEK.
+if (ENABLE_MOSEK)
+	message(STATUS "Enable MOSEK")
+	add_definitions(-DUSE_MOSEK)
+	find_package(MOSEK REQUIRED)
+	include_directories(${MOSEK_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${MOSEK_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+endif()
+
+# Find GUROBI?
 if (ENABLE_GUROBI)
     message(STATUS "Enable GUROBI")
     add_definitions(-DUSE_GUROBI)
@@ -58,16 +82,16 @@ if (ENABLE_CPLEX)
     add_definitions(-DUSE_CPLEX)
     find_package(CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
+    #link_directories(${CPLEX_LINKS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIL_STD")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
 endif()
 
-
 # Compiler options
-
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
 
 # Build options
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
@@ -82,7 +106,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 add_subdirectory(examples)
-
 # Install
 install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
 

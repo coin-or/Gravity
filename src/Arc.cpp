@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#include <Gravity/Arc.h>
+#include <gravity/Arc.h>
 #include <iostream>
 
 using namespace std;
@@ -53,9 +53,10 @@ Node* Arc::neighbour(Node* n){
 
 /* Connects the current arc to its source and destination, adding itself to the list of branches in these nodes */
 void Arc::connect(){
-    src->update_fill_in(dest);
+    src->update_fill_in(dest);// update the fill-ins
     dest->update_fill_in(src);
     Node* common = nullptr;
+    // just for source. 
     for (auto a:src->branches) {
         common = a->neighbour(src);
         if (common->is_connected(dest)) {
