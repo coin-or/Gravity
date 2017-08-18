@@ -175,6 +175,147 @@ template<typename type> void var<type>::print(bool bounds) const{
 };
 
 
+template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = arcs.begin(); it!= arcs.end(); it++){
+        key = (*it)->src->_name;
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".from_arcs";
+    res._is_indexed = true;
+    return res;
+}
+
+template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = arcs.begin(); it!= arcs.end(); it++){
+        key = (*it)->dest->_name;
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".to_arcs";
+    res._is_indexed = true;
+    return res;
+}
+
+template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
+        key = (*it);
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+    res._is_indexed = true;
+    return res;
+}
+
+template<typename type>var<type> var<type>::from(const ordered_pairs& pairs){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++){
+        key = (*it);
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".from{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+    res._is_indexed = true;
+    return res;
+}
+
+template<typename type>var<type> var<type>::to(const ordered_pairs& pairs){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = pairs._to.begin(); it!= pairs._to.end(); it++){
+        key = (*it);
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".to{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+    res._is_indexed = true;
+    return res;
+}
+
+
 template class var<bool>;
 template class var<short>;
 template class var<int>;

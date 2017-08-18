@@ -188,9 +188,6 @@ int main (int argc, const char * argv[])
     ff.print();
     ff *= -1;
     ff.print();
-    
-    
-    return 0;
     ff *= aa;
     ff.print();
 //    ff += aa*(ip + dp)*q*q;
@@ -273,5 +270,22 @@ int main (int argc, const char * argv[])
 //    df2dx.print();
 //    df2dy.print();
 //    dfdydz.print();
-//    return 0;
-   } 
+    Model m;
+    var<double> Xij("Xij", 0, 1);
+    var<double> Xii("Xii", 0, 1);
+    unsigned n = 2;
+    m.add_var(Xij^(n*(n-1)/2));
+    m.add_var(Xii^n);
+    ordered_pairs indices(1,n);
+    Constraint SOCP("SOCP");
+    SOCP = power(Xij.in(indices), 2) - Xii.from(indices)*Xii.to(indices);
+    m.add_constraint(SOCP);
+    constant<int> ones(1);
+    constant<int> twos(2);
+    auto obj = ones.tr()*Xii + twos.tr()*Xij;
+    obj.print();
+    m.set_objective(min(obj));
+    solver s(m,ipopt);
+    s.run();
+    return 0;
+   }

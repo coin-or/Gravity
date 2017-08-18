@@ -242,13 +242,13 @@ void CplexProgram::create_cplex_constraints(){
                 else {                    
                     IloNumExpr qterm(*_cplex_env);
                     if (is_indexed(it1.second._p->first)) {
-                        idx_inst1 = it1.second._p->first->get_id_inst();
+                        idx_inst1 = it1.second._p->first->get_id_inst(inst);
                     }
                     else {
                         idx_inst1 = inst;
                     }
                     if (is_indexed(it1.second._p->second)) {
-                        idx_inst2 = it1.second._p->second->get_id_inst();
+                        idx_inst2 = it1.second._p->second->get_id_inst(inst);
                     }
                     else {
                         idx_inst2 = inst;
@@ -280,7 +280,7 @@ void CplexProgram::create_cplex_constraints(){
                 else {
                     IloNumExpr lterm(*_cplex_env);
                     if (is_indexed(it1.second._p)) {
-                        idx_inst = it1.second._p->get_id_inst();
+                        idx_inst = it1.second._p->get_id_inst(inst);
                     }
                     else {
                         idx_inst = inst;

@@ -51,7 +51,7 @@ public:
     map<unsigned,Constraint*>         _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
     map<string,Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
     map<unsigned, set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
-    map<unsigned, map<unsigned,set<int>>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids. The second set contains indices of constraints where both variables appear */
+    map<pair<unsigned,unsigned>, map<pair<unsigned,unsigned>,set<pair<int,int>>>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by pairs of variable ids, a pair contains the metavar id and the instanciated var id. The last set contains pairs of indices of constraints where both variables appear, the pair stores the metaconstraint id and the instanciated constraint id */
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
     double                          _obj_val = 0;/** Objective function value */

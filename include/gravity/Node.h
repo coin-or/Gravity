@@ -1,19 +1,13 @@
 //
 //  Node.h
-//  Cycle_Basis_PF
-//
-//  Created by Sumiran on 17/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#ifndef Cycle_Basis_PF_Node_h
-#define Cycle_Basis_PF_Node_h
+#ifndef Node_h
+#define Node_h
 #include <vector>
 #include <string>
 
-//class Path;
 class Arc;
-//class Net;
 
 class Node{
     

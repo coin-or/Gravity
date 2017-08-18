@@ -96,7 +96,7 @@ int main (int argc, const char * argv[])
     unsigned i, j, i1, i2, i3;
     
     Net graph;
-    string fname = "/Users/guangleiwang/phD/kernel/Gravity/data_sets/stable_set/p.3n150.txt";
+    string fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.topology(fname, false); // get the topology of the graph
     Net complement_graph;
     complement_graph.topology(fname, true);
@@ -106,8 +106,8 @@ int main (int argc, const char * argv[])
    
     
     Model model;
-    auto n = graph.nodes.size();
-    auto m = graph.arcs.size();
+    unsigned n = graph.nodes.size();
+    unsigned m = graph.arcs.size();
     
     /**  IP model for the stable set problem. **/
     var<bool> x("x");
@@ -115,16 +115,21 @@ int main (int argc, const char * argv[])
     constant<int> ones(1);
     func_ obj = ones.tr()*x;
     model.set_objective(max(obj));
-    for (unsigned l=0; l<m;l++){
-        Arc* a = graph.arcs[l];
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
-        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
-        c = x(i) + x(j);
-        c <= 1;
-        DebugOff(c.print();)
-        model.add_constraint(c);
-    }
+    Constraint c("Stable_Set");
+    c = x.from(graph.arcs) + x.to(graph.arcs);
+    c <= 1;
+    DebugOff(c.print();)
+    model.add_constraint(c);
+//    for (unsigned l=0; l<m;l++){
+//        Arc* a = graph.arcs[l];
+//        i = (a->src)->ID;
+//        j = (a->dest)->ID;
+//        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
+//        c = x(i) + x(j);
+//        c <= 1;
+//        DebugOff(c.print();)
+//        model.add_constraint(c);
+//    }
     SolverType stype = cplex;
     solver s(model,stype);
     double wall0 = get_wall_time();
@@ -146,13 +151,18 @@ int main (int argc, const char * argv[])
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
     /* Constraints declaration */
-    for (int i = 0; i < n; i++){
-        for (int j = i+1; j < n; j++){
-            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j); // really?
-            SDP.add_constraint(SOCP<=0);
-        }
-    }
+    ordered_pairs indices(1,n);
+    Constraint SOCP("SOCP");
+    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
+    SDP.add_constraint(SOCP<=0);
+    
+//    for (int i = 0; i < n; i++){
+//        for (int j = i+1; j < n; j++){
+//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+//            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+//            SDP.add_constraint(SOCP<=0);
+//        }
+//    }
     set<tuple<int,int,int>> ids;
     for (i = 0; i < complement_graph._bags.size(); i++){
         auto bag = complement_graph._bags.at(i);

@@ -16,6 +16,7 @@
 #include <list>
 #include <set>
 #include <Gravity/constant.h>
+#include <Gravity/Arc.h>
 
 using namespace std;
 
@@ -23,16 +24,17 @@ using namespace std;
 /** Backbone class for parameter */
 class param_: public constant_{
 protected:
-    string                      _name;
-    int                         _id = -1;
-    int                         _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
-    NType                       _intype;
-    shared_ptr<map<string,unsigned>>       _indices; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
-                                   vectors */    
+    string                                 _name;
+    int                                    _id = -1;
+    int                                    _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
+    NType                                  _intype;
+    shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
+                                   vectors */
+    unique_ptr<vector<unsigned>>           _ids = nullptr;/*<< A vector storing all the indices this parameter has in the order they were created */
     
 public:
     
-    bool                        _is_indexed = false;
+    bool                                   _is_indexed = false;
     
     virtual ~param_(){};
     
@@ -49,9 +51,9 @@ public:
     
     size_t get_vec_id() const{return _vec_id;};
     
-    size_t get_id_inst() const{
+    size_t get_id_inst(unsigned inst = 0) const{
         if (_is_indexed) {
-            return _indices->begin()->second;
+            return _ids->at(inst);
         }
         return 0;
     };
@@ -69,6 +71,10 @@ public:
     
     shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
+    }
+    
+    vector<unsigned>& get_ids() const {
+        return *_ids;
     }
     
     void set_type(NType type){ _intype = type;}
@@ -102,7 +108,7 @@ public:
     
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_id==p._id && get_id_inst()==p.get_id_inst());
+        return (_id==p._id && *_ids==*p._ids);
 //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
@@ -172,6 +178,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
+        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -187,6 +194,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
+        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
@@ -240,6 +248,7 @@ public:
         update_type();
         _val = make_shared<vector<type>>();
         _indices = make_shared<map<string,unsigned>>();
+        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
         _range.first = numeric_limits<type>::max();
         _range.second = numeric_limits<type>::lowest();
     }
@@ -258,7 +267,7 @@ public:
     
     type eval(int i) const{
         if (_is_indexed) {
-            return _val->at(_indices->begin()->second);
+            return _val->at(_ids->at(i));
         }
 //        if (_val->size() <= i) {
 //            throw out_of_range("get_val(int i)");
@@ -431,19 +440,157 @@ public:
             }
             it++;
         }
-        auto it2 = param_::_indices->find(key);
-        if (it2 == param_::_indices->end()) {
-            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            
-//            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
         }
         else {
-            size_t idx = param_::_indices->at(key);
-            res._indices->insert(make_pair<>(key,idx));
-            res._dim = 1;
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
         }
+        res._dim++;
         res._name += "["+key+"]";
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param in(const ordered_pairs& pairs){
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        string key;
+        for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
+            key = (*it);
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                res._indices->insert(make_pair<>(key,pp.first->second));
+                res._ids->push_back(pp.first->second);
+            }
+            res._dim++;
+        }
+        res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param from(const ordered_pairs& pairs){
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        string key;
+        for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++){
+            key = (*it);
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                res._indices->insert(make_pair<>(key,pp.first->second));
+                res._ids->push_back(pp.first->second);
+            }
+            res._dim++;
+        }
+        res._name += ".from{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param to(const ordered_pairs& pairs){
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        string key;
+        for(auto it = pairs._to.begin(); it!= pairs._to.end(); it++){
+            key = (*it);
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                res._indices->insert(make_pair<>(key,pp.first->second));
+                res._ids->push_back(pp.first->second);
+            }
+            res._dim++;
+        }
+        res._name += ".to{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param from(const vector<Arc*>& arcs){
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        string key;
+        for(auto it = arcs.begin(); it!= arcs.end(); it++){
+            key = (*it)->src->_name;
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                res._indices->insert(make_pair<>(key,pp.first->second));
+                res._ids->push_back(pp.first->second);
+            }
+            res._dim++;
+        }
+        res._name += ".from_arcs";
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param to(const vector<Arc*>& arcs){
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        string key;
+        for(auto it = arcs.begin(); it!= arcs.end(); it++){
+            key = (*it)->dest->_name;
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                res._indices->insert(make_pair<>(key,pp.first->second));
+                res._ids->push_back(pp.first->second);
+            }
+            res._dim++;
+        }
+        res._name += ".to_arcs";
         res._is_indexed = true;
         return res;
     }

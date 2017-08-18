@@ -10,6 +10,7 @@
 #define var_h
 
 #include <Gravity/param.h>
+#include <Gravity/Arc.h>
 #include <stdio.h>
 #include <string>
 #include <set>
@@ -74,22 +75,52 @@ public:
             }
             it++;
         }
-        auto it2 = param_::_indices->find(key);
-        if (it2 == param_::_indices->end()) {
-            res._indices->insert(make_pair<>(key,param_::_indices->size()));
-            param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            
-            //            throw invalid_argument("Index " + key + "not found in" + param<type>::to_str()+".\n");
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
         }
         else {
-            size_t idx = param_::_indices->at(key);
-            res._indices->insert(make_pair<>(key,idx));
-            res._dim = 1;
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
         }
+        res._dim++;
         res._name += "["+key+"]";
         res._is_indexed = true;
         return res;
     }
+    
+    var from(const vector<Arc*>& arcs);
+    var to(const vector<Arc*>& arcs);
+    var from(const ordered_pairs& pairs);
+    var to(const ordered_pairs& pairs);
+    var in(const ordered_pairs& pairs);
+    
+//    var to(const vector<Arc*>& arcs){
+//        var res(this->_name);
+//        res._id = this->_id;
+//        res._vec_id = this->_vec_id;
+//        res._intype = this->_intype;
+//        res._range = this->_range;
+//        res._val = this->_val;
+//        res._lb = this->_lb;
+//        res._ub = this->_ub;
+//        string key;
+//        for(auto it = arcs.begin(); it!= arcs.end(); it++){
+//            key = it->dest->_name;
+//            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+//            if(pp.second){//new index inserted
+//                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+//            }
+//            else {
+//                res._indices->insert(make_pair<>(key,pp.first->second));
+//            }
+//            res._dim++;
+//        }
+//        res._name += "["+key+"]";
+//        res._is_indexed = true;
+//        return res;
+//    }
 
     
 //    var operator()(int idx...){

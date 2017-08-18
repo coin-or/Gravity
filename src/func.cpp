@@ -4068,7 +4068,7 @@ string qterm::to_str(int ind) const {
         str += "^2";
     }
     else {
-        str += ".";
+        str += "*";
         str += ::to_str(p_new2);
     }
     return str;
