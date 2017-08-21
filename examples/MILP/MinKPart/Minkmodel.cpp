@@ -96,7 +96,7 @@ void Minkmodel::add_vars_origin() {
 void Minkmodel::add_vars_origin_tree() {
     var<bool> zij("zij");
     // the number of arcs in the chordal extension
-    _model.add_var(zij^((_graph->_chordalextension)->arcs.size()));//
+    _model.add_var(zij^((_graph->_chordalextension)->arcs.size()));
     //cout << _graph->arcs.size() << endl;
 
     func_ obj_MIP;

@@ -127,7 +127,7 @@ double mosekcode(Net* _graph, double _K) {
             M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
         }
     
-    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0/0);
+    monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0.0);
     // expr is a pointer to the Expression.
     for (auto a: _graph->arcs) {
         i = (a->src)->ID;
@@ -316,12 +316,12 @@ int main (int argc, const char * argv[])
     }
     else{
         //fname = "../../data_sets/Minkcut/random10_100.txt";
-        fname = "../../data_sets/Minkcut/band.txt";
+        fname = "../../data_sets/Minkcut/band100.txt";
 
         k = 3;
         relax = false;
         mt = MIP_tree;
-        mt = Node_edge;
+        //mt = Node_edge;
         solver= cplex;
     }
     

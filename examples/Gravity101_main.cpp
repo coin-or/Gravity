@@ -297,7 +297,7 @@ int main (int argc, const char * argv[])
     ordered_pairs indices(1,n);
     Constraint SOCP("SOCP");
     SOCP = power(Xij.in(indices), 2) - Xii.from(indices)*Xii.to(indices);
-    m.add_constraint(SOCP);
+    m.add_constraint(SOCP <= 0);
     constant<int> ones(1);
     constant<int> twos(2);
     auto obj = ones.tr()*Xii + twos.tr()*Xij;
