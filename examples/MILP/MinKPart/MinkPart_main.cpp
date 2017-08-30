@@ -19,13 +19,6 @@ using namespace std;
 #define EPS 0.00001
 #define DebugOn(x) cout << x
 #define DebugOff(x)
-
-
-
-typedef IloArray<IloNumVarArray>   NumVarMatrix;
-typedef IloArray<IloBoolVarArray> BoolVarMatrix;
-
-
 //  Windows
 #ifdef _WIN32
 #include <Windows.h>
@@ -152,116 +145,8 @@ double mosekcode(Net* _graph, double _K) {
     return M->primalObjValue();
 }
 
-ILOLAZYCONSTRAINTCALLBACK3(CtCallback, IloExprArray, lhs, IloNumArray, rhs, IloNum, eps) {
-    IloInt n = lhs.getSize();
-    for (IloInt i = 0; i < n; i++) {
-        //IloNum xrhs = rhs[i];
-        //cout << "LHS Val: " << getValue(lhs[i]) << endl;
-        if (getValue(lhs[i]) > rhs[i] + eps ) {
-            IloRange cut;
-            try {
-                cut = (lhs[i] <= rhs[i]);
-                add(cut).end();
-                //rhs[i] = IloInfinity; // this avoids checking this cut again.
-            }
-            catch (...) {
-                cut.end();
-                throw;
-            }
-        }
-    }
-}
 
-int mink_tree_lazycut(Minkmodel& mymodel){
-    ILOSTLBEGIN
-    IloEnv env;
-    try{
-        IloModel model(env);
-        // create variables
-        BoolVarMatrix x(env, mymodel._graph->nodes.size());
-        for (int r = 0; r <  mymodel._graph->nodes.size(); r++) {
-            x[r] = IloBoolVarArray(env, mymodel._graph->nodes.size());
-        }
-        
-        
-        // define triangle inequalities
-        int i1,i2,i3;
-        for (auto it: mymodel._ids) {
-            i1 = get<0>(it);
-            i2 = get<1>(it);
-            i3 = get<2>(it);
-            //cout << "(i1, i2, i3): " << i1 << ", " << i2 << ", " << i3 << endl;
-            model.add(x[i1][i2]+x[i1][i3]-x[i2][i3] <=1);
-            model.add(x[i1][i3]+x[i2][i3]-x[i1][i2] <=1);
-            model.add(x[i1][i2]+x[i2][i3]-x[i1][i3] <=1);
-        }
 
-        
-        // objective function
-        IloExpr obj(env);
-        int i=0, j=0;
-        for (auto a: mymodel._graph->arcs) {
-            i = (a->src)->ID;
-            j = (a->dest)->ID;
-            if (i <= j)
-                obj += (a->weight)*x[i][j];
-            else
-                obj += (a->weight)*x[j][i];
-        }
-        model.add(IloMinimize(env,obj));
-        obj.end();
-        
-        // Lazy cut callback
-        IloExprArray lhs(env);
-        IloNumArray  rhs(env);
-        for (auto it: (*mymodel._cliqueid)) {
-            auto key = it.first;
-            auto value = it.second;
-            IloExpr temp(env);
-            for (int i = 0; i < value.size()-1; i++){
-                auto id1 = value[i];
-                for (int j = i+1 ; j< value.size(); j++){
-                    auto id2 = value[j];
-                    if (id1 <= id2)
-                        temp += (-x[id1][id2]);
-                    else
-                        temp += (-x[id2][id1]);
-                }
-            }
-            lhs.add(temp);
-            rhs.add(-1);
-            //temp.end();
-        }
-
-        cout << "LHS size: " << lhs.getSize() << endl;
-        cout << "RHS size: " << rhs.getSize()<< endl;
-        cout << "LHS 0: " << lhs[0] << endl;
-
-        IloCplex cplex(env);
-        cplex.extract(model);
-        // CtCallback constructs an instance of our callback class CtCallbackI and
-        // returns a handle.
-        cplex.use(CtCallback(env, lhs, rhs, cplex.getParam(IloCplex::Param::Simplex::Tolerances::Feasibility)));
-    
-        if (cplex.solve()) {
-            cout << "The number of binary variables: " << cplex.getNbinVars() << endl;
-            cout << "Total number of variables: " << cplex.getNcols() << endl;
-            cout << "Total number of constraints: " << cplex.getNrows() << endl;
-            cout << "Solution status: " << cplex.getStatus() << endl;
-            cout << " Optimal Value = " << cplex.getObjValue() << endl;
-            cout << " CPLEX solution time = " << cplex.getCplexTime() << endl;
-            IloNumArray vals(env);
-        }
-    }
-    catch (IloException& ex) {
-        cerr << "Error: " << ex << endl;
-    }
-    catch (...) {
-        cerr << "Error" << endl;
-    }
-    env.end();
-    return 0;
-}
 
 int main (int argc, const char * argv[])
 {
@@ -332,8 +217,6 @@ int main (int argc, const char * argv[])
    // mosek_reduce(graph,k); 
     Minkmodel mymodel(mt,graph,k,solver);
   //  mymodel.cliquetree_decompose();
- //   mink_tree_lazycut(mymodel);
-    
     
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
