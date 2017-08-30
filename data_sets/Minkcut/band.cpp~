@@ -24,7 +24,7 @@ int main (int argc, const char * argv[])
     int dim = 0;
     int k = 0;
     if (argc < 2) {
-        cerr << "input the size of the graph (vertices) and the band parameter (k+1)! \n";
+        cerr << "input the size of the graph (vertices) and the band parameter which is (k+1)! \n";
     }
     else {
         dim = atoi(argv[1]);
