@@ -90,17 +90,15 @@ We illustrate tests of ISDP formulations (Model 3 and Model 5 in our paper) with
 `../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP true`
 
 
-`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP false`
-
 and 
 `../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP_tree true`
-
-
-`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP_tree false`
 
 for Model 5. 
 
 You should get similar results as below in `Gravity/build/MkP_result.txt`:
+
+> 4,121,145.845, -8.44258e+06  
+> 4,121,1.12703, -8.45322e+06
 
 ### Run multiple tests using the bash script
 If you want to run multiple the problem instances in the paper, you can use the bash script called `exp.sh` that we provided in folder `Gravity`. 
