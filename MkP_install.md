@@ -57,7 +57,9 @@ Note that `MIP` corresponds to Model 1 in the paper, `Node_edge` to Model 2, `SD
 All the numerical tests results will also be outputed to the file `MkP_result.txt`. 
 
 ### Illustration
-For example, if you are in the folder `Gravity/build` and want to valid the result of `spinglass2g` with `k = 3` and `|V|= 6 x 6`in Table 1, you need to type the following to get results for Model 1
+
+#### Example 1: ILP formulations
+Assum that you are in the folder `Gravity/build` and want to valid the result of `spinglass2g` with `k = 3` and `|V|= 6 x 6`in Table 1, you need to type the following to get results for Model 1
 
 `../bin/min_k_part ../data_sets/Minkcut/spinglass2g_66.txt 3 MIP true` 
 
@@ -73,14 +75,32 @@ For example, if you are in the folder `Gravity/build` and want to valid the resu
 to get results for Model 4. 
 
 You should get similar results as below in `Gravity/build/MkP_result.txt`:
-> 3, 36, 12.1644, -2.14607e+06  
-> 3, 36, 12.9085, -2.14607e+06  
+> 3, 36, 12.1644,  -2.14607e+06  
+> 3, 36, 12.9085,  -2.14607e+06  
 > 3, 36, 0.159482, -2.14607e+06  
 > 3, 36, 0.368595, -2.14607e+06
 
-The first column is parameter k; the second is the number of nodes which is `6x6=36`; the third column is the cpu time in seconds; the fourth is the optimal value, by which you can calculate the optimality gap (0 for this test instance) for their continuous relaxations. 
+Each row shows the corresponding result of each command line above. Thus we have four rows. The first column is parameter k; the second is the number of nodes which is `6x6=36`; the third column is the CPU time in seconds; the fourth is the optimal value, by which you can calculate the optimality gap (0 for this test instance) for their continuous relaxations. 
 
 Since the data in `MkP_result.txt`is separated by comma,  you can open this `csv (comma-separated-value)` file using MS Excel and calculate the optimality gap easily. 
+
+#### Example 2: ISDP formulations
+We illustrate tests of ISDP formulations (Model 3 and Model 5 in our paper) with instance `(4, 11x11), spinglass2g` in Table 3. You need to type the following to get results for Model 3:
+
+`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP true`
+
+
+`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP false`
+
+and 
+`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP_tree true`
+
+
+`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_1111.txt 4 SDP_tree false`
+
+for Model 5. 
+
+You should get similar results as below in `Gravity/build/MkP_result.txt`:
 
 ### Run multiple tests using the bash script
 If you want to run multiple the problem instances in the paper, you can use the bash script called `exp.sh` that we provided in folder `Gravity`. 
