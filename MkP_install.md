@@ -4,7 +4,7 @@ Authors: Guanglei Wang and Hassan Hijazi
 Affiliations: The Australian National University, ACTON 2601, Canberra, Australia; Los Alamos National Laboratory, New Mexico, USA.
 
 ## Platform
-We have successfully compiled and our minimum-k partition (MkP) code on both Mac OS and Ubuntu. So users are advised to use our code on Mac OS or Ubuntu.
+We have successfully compiled and tested our minimum-k partition (MkP) code on both Mac OS and Ubuntu. So users are advised to use our code on Mac OS or Ubuntu.
    
 ## Solvers
 For numerical tests of the MkP formulations in the paper `Exploiting sparsity for the min k-partition problem`, you need to install and set the following solvers: 
