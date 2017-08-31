@@ -59,7 +59,7 @@ All the numerical tests results will also be outputed to the file `MkP_result.tx
 ### Illustration
 For example, if you are in the folder `Gravity/build` and want to valid the result of `spinglass2g` with `k = 3` and `|V|= 6 x 6`in Table 1, you need to type the following to get results for Model 1
 
-`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_66.txt 3 MIP true`
+`../bin/min_k_part ../data_sets/Minkcut/spinglass2g_66.txt 3 MIP true` 
  `../bin/min_k_part ../data_sets/Minkcut/spinglass2g_66.txt 3 MIP false`
 
  
