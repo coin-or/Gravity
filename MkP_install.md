@@ -6,7 +6,7 @@ Authors: Guanglei Wang and Hassan Hijazi
 ## Solvers
 For numerical tests of the MkP formulations in the paper `Exploiting sparsity for the min k-partition problem`, you need to install and set the following solvers: 
 
-* CPLEX: Academic users can download from [cplex-url][].
+* CPLEX: Academic users can download it from [cplex-url][].
 
 [cplex-url]: https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=6fcc1096-7169-e611-9420-b8ca3a5db7a1&cm_mc_uid=02767726627915009646862&cm_mc_sid_50200000=1504137572 
 
