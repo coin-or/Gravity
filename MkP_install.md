@@ -74,7 +74,7 @@ The first column is parameter k; the second is the number of nodes which is `6x6
 
 Since the data in `MkP_result.txt`is separated by comma,  you can open this `csv (comma-separated-value)` file using MS Excel and calculate the optimality gap easily. 
 
-### Run multiple tests using the bash file
+### Run multiple tests using the bash script
 If you want to run multiple the problem instances in the paper, we provide you a bash file called `exp.sh`. 
 
 1. Copy the `exp.sh` file to your build folder. 
