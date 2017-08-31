@@ -4,7 +4,7 @@ Authors: Guanglei Wang and Hassan Hijazi
 Affiliations: The Australian National University, ACTON 2601, Canberra, Australia; Los Alamos National Laboratory, New Mexico, USA.
 
 ## Solvers
-For numerical tests of the MkP formulations in the paper `Exploiting sparsity for the min k-partition problem`, you need and install and set the following solvers: 
+For numerical tests of the MkP formulations in the paper `Exploiting sparsity for the min k-partition problem`, you need to install and set the following solvers: 
 
 * CPLEX: Academic users can download from [cplex-url][].
 
