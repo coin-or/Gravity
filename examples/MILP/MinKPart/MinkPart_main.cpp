@@ -237,8 +237,10 @@ int main (int argc, const char * argv[])
         cerr << "Oops! Uable to save session data! \n";
     else{
 //      outfile << "Instance,  CPU, Value" << endl;
-        outfile << graph->nodes.size() <<","<< (cpu1 - cpu0)
-                << ", "<< mymodel._model._obj_val
+        outfile << k << ","
+                << graph->nodes.size() <<","
+                << (cpu1 - cpu0)<< ", "
+                << mymodel._model._obj_val
                 << endl;
     }
 }
