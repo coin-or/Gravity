@@ -9,8 +9,8 @@ find_path(MOSEK_INCLUDE_DIR
     NAMES fusion.h
     HINTS "${MOSEK_ROOT_DIR}/h/")
 find_library (MOSEK_LIBRARY1  libfusion64.a   HINTS "${MOSEK_ROOT_DIR}/bin/")
-find_library (MOSEK_LIBRARY2  libfusion64.8.0.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
-find_library (MOSEK_LIBRARY3  libmosek64.8.0.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
+find_library (MOSEK_LIBRARY2  libfusion64.8.1.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
+find_library (MOSEK_LIBRARY3  libmosek64.8.1.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY4  libmosek64.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY5  libcilkrts.5.dylib  HINTS "${MOSEK_ROOT_DIR}/bin/")
 elseif(UNIX)
@@ -18,8 +18,8 @@ find_path(MOSEK_INCLUDE_DIR
     NAMES fusion.h
     HINTS "${MOSEK_ROOT_DIR}/h/")
 find_library (MOSEK_LIBRARY1  libfusion64.a   HINTS "${MOSEK_ROOT_DIR}/bin/")
-find_library (MOSEK_LIBRARY2  libfusion64.so.8.0   HINTS "${MOSEK_ROOT_DIR}/bin/")
-find_library (MOSEK_LIBRARY3  libmosek64.so.8.0 HINTS "${MOSEK_ROOT_DIR}/bin/")
+find_library (MOSEK_LIBRARY2  libfusion64.so.8.1   HINTS "${MOSEK_ROOT_DIR}/bin/")
+find_library (MOSEK_LIBRARY3  libmosek64.so.8.1 HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY4  libmosek64.so HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY5  libcilkrts.so.5  HINTS "${MOSEK_ROOT_DIR}/bin/")
 endif()
