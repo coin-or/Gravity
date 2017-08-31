@@ -11,11 +11,12 @@ For numerical tests of the MkP formulations in the paper `Exploiting sparsity fo
 [cplex-url]: https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=6fcc1096-7169-e611-9420-b8ca3a5db7a1&cm_mc_uid=02767726627915009646862&cm_mc_sid_50200000=1504137572 
 
 * Download Mosek 8 from [mosek-url].
+
 [mosek-url]: https://www.mosek.com/downloads/details/10/
 
 * Install and setup Mosek Fusion API for C++ by following instructions in [fusion-url][]. Additionally, you need set the enviroment variable `MOSEK_ROOT_DIR` for your operating system. For instance, if you install MOSEK 8 under `DIR/mosek8/` in a linux platform, you need to specify `MOSEK_ROOT_DIR = DIR/mosek8/8/tools/platform/linux64x86/`. 
 
-[fusion-url]: http://docs.mosek.com/8.0/cxxfusion/install.html 
+[fusion-url]: https://docs.mosek.com/8.0/cxxfusion/install.html 
 
 To avoid compilation problem, one may need to copy Mosek libraries `libfusion64.*, libmosek64.*, libcilkrts.*`under the folder `MOSEK_ROOT_DIR/bin/` to `usr/local/lib/`. 
 
