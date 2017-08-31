@@ -14,7 +14,7 @@ For numerical tests of the MkP formulations in the paper `Exploiting sparsity fo
 
 [mosek-url]: https://www.mosek.com/downloads/details/10/
 
-* Install and setup Mosek Fusion API for C++ by following instructions in [fusion-url][]. Additionally, you need set the enviroment variable `MOSEK_ROOT_DIR` for your operating system. For instance, if you install MOSEK 8 under `DIR/mosek8/` in a linux platform, you need to specify `MOSEK_ROOT_DIR = DIR/mosek8/8/tools/platform/linux64x86/`. 
+* Install and setup Mosek Fusion API for C++ by following instructions in [fusion-url][]. Additionally, you need to set the enviroment variable `MOSEK_ROOT_DIR` for your operating system. For instance, if you install MOSEK 8 under `DIR/mosek8/` in a linux platform, you need to specify `MOSEK_ROOT_DIR = DIR/mosek8/8/tools/platform/linux64x86/`. 
 
 [fusion-url]: https://docs.mosek.com/8.0/cxxfusion/install.html 
 
