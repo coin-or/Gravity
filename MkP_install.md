@@ -21,7 +21,7 @@ For numerical tests of the MkP formulations in the paper `Exploiting sparsity fo
 
 [fusion-url]: http://docs.mosek.com/8.0/cxxfusion/install.html
 
-To avoid compilation problem, one may need to copy Mosek libraries `libfusion64.*, libmosek64.*, libcilkrts.*`under the folder `MOSEK_ROOT_DIR/bin/` to `usr/local/lib/`. 
+* To avoid compilation problem, you need to copy Mosek libraries `libfusion64.*, libmosek64.*, libcilkrts.*`under the folder `MOSEK_ROOT_DIR/bin/` to `usr/local/lib/`. 
 
 ## Install min\_k\_part
 Follow the steps below to compile the executable file. 
