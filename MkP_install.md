@@ -40,7 +40,7 @@ You are now ready to perform numerical tests stated in the paper.
 
 * All test instances mentioned in the paper can be found in the folder `Gravity/data_sets/Minkcut/` and they are in `.txt` format.  
 
-* For each problem instance, they are generally named by `graph_type + the number of vertices in the graph`. For instance, `spinglass2g_1010.txt` refers to the `spinglass2g` problem instances with `10 x 10` vertices. 
+* For each problem instance, they are generally named by `graph_type + the number of vertices in the graph`. For instance, `spinglass2g_1010.txt` refers to the `spinglass2g` problem instance with `10 x 10` vertices. 
 
 	* Since the size of the generated `band` graphs are also related to the partition parameter `k`. We additionally add `_3` or `_4` to specify the instance is used for min-3 partition or min-4 partition test instances.  
 
