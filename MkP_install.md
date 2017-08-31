@@ -64,7 +64,7 @@ For example, if you are in the folder `Gravity/build` and want to valid the resu
 
 to get results for Model 4. 
 
-You should get the similar results as below in `Gravity/build/MkP_result.txt`:
+You should get similar results as below in `Gravity/build/MkP_result.txt`:
 > 3, 36, 12.1644, -2.14607e+06  
 > 3, 36, 12.9085, -2.14607e+06  
 > 3, 36, 0.159482, -2.14607e+06  
