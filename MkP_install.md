@@ -10,7 +10,7 @@ For numerical tests of the MkP formulations in the paper `Exploiting sparsity fo
 
 [cplexurl]: https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=6fcc1096-7169-e611-9420-b8ca3a5db7a1&cm_mc_uid=02767726627915009646862&cm_mc_sid_50200000=1504137572 
 
-* MOSEK Fusion API for C++. Follow the instruction in [mosekurl][]. You need set the enviroment variable `MOSEK_ROOT_DIR`. For instance, if you install MOSEK 8 under `DIR/mosek8/`, you need to specify  `MOSEK_ROOT_DIR = DIR/mosek8/8/tools/platform/linux64x86/`. 
+* MOSEK Fusion API for C++. Follow the instruction in [mosekurl][]. You need set the enviroment variable `MOSEK_ROOT_DIR`. For instance, if you install MOSEK 8 under `DIR/mosek8/` in a linux platform, you need to specify  `MOSEK_ROOT_DIR = DIR/mosek8/8/tools/platform/linux64x86/`. 
 
 [mosekurl]: http://docs.mosek.com/8.0/cxxfusion/install.html 
 
@@ -64,18 +64,18 @@ For example, if you are in the folder `Gravity/build` and want to valid the resu
 
 to get results for Model 4. 
 
-You should get the similar results in `Gravity/build/MkP_result.txt`:
+You should get the similar results as below in `Gravity/build/MkP_result.txt`:
 > 3, 36, 12.1644, -2.14607e+06  
 > 3, 36, 12.9085, -2.14607e+06  
 > 3, 36, 0.159482, -2.14607e+06  
 > 3, 36, 0.368595, -2.14607e+06
 
-The first column is parameter k; the second is the number of nodes which is `6x6=36`; the third column is the cpu time; the fourth is the optimal value, by which you can calculate the optimality gap (0 for this test instance). 
+The first column is parameter k; the second is the number of nodes which is `6x6=36`; the third column is the cpu time in seconds; the fourth is the optimal value, by which you can calculate the optimality gap (0 for this test instance) for their continuous relaxations. 
 
 Since the data in `MkP_result.txt`is separated by comma,  you can open this `csv (comma-separated-value)` file using MS Excel and calculate the optimality gap easily. 
 
-### Bash file
-If you want to run all the problem instances in the paper, we provide you a bash file called `exp.sh`. 
+### Run multiple tests using the bash file
+If you want to run multiple the problem instances in the paper, we provide you a bash file called `exp.sh`. 
 
 1. Copy the `exp.sh` file to your build folder. 
 
