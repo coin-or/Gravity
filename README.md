@@ -1,3 +1,7 @@
+Dev:
+[![Build Status](https://travis-ci.org/hhijazi/Gravity.svg?branch=master)](https://travis-ci.org/hhijazi/Gravity)
+
+
 Gravity
 =======
 
