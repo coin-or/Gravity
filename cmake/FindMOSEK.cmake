@@ -2,8 +2,6 @@ set(MOSEK_ROOT_DIR "$ENV{MOSEK_ROOT_DIR}" CACHE PATH "MOSEK root directory.")
 message("Looking for MOSEK in ${MOSEK_ROOT_DIR}")
 
 
-
-
 if(APPLE)
 find_path(MOSEK_INCLUDE_DIR	 
     NAMES fusion.h
