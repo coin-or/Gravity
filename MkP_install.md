@@ -13,7 +13,7 @@ For numerical tests of the MkP formulations in the paper `Exploiting sparsity fo
 
 [cplex-url]: https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=6fcc1096-7169-e611-9420-b8ca3a5db7a1&cm_mc_uid=02767726627915009646862&cm_mc_sid_50200000=1504137572 
 
-* MOSEK: Download Mosek 8 from [mosek-url](https://www.mosek.com/downloads/details/10/). Refer to [mosek-setup](https://www.google.com.au/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwiWqenH34LWAhWFXbwKHU_LC7MQFggoMAA&url=http%3A%2F%2Fdocs.mosek.com%2F8.1%2Finstall%2Finstallation.html&usg=AFQjCNGEiUPE05E_5_UedXe1mmpCYOimrQ) for general setup and license. 
+* MOSEK: Download Mosek 8 from [mosek-url](https://www.mosek.com/downloads/details/10/). Refer to [mosek-setup](https://www.google.com.au/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjy0sja6oLWAhXEwLwKHQR_A5YQFggoMAA&url=http%3A%2F%2Fdocs.mosek.com%2F8.1%2Finstall%2Finstallation.html&usg=AFQjCNGEiUPE05E_5_UedXe1mmpCYOimrQ) for general setup and license. 
  
 
 * Install and setup Mosek Fusion API for C++ by following instructions in [fusion-url](https://www.google.com.au/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjx1deH34LWAhWLw7wKHWi2An8QFggoMAA&url=http%3A%2F%2Fdocs.mosek.com%2F8.0%2Fcxxfusion%2Finstall.html&usg=AFQjCNFwhQErdOsuD8iSIcDbMo3IERbhdA
