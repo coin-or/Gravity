@@ -1,4 +1,5 @@
 language: cpp
+sudo: required
 compiler:
 - clang
 - gcc
@@ -6,6 +7,8 @@ os:
 - linux
 - osx
 before_install:
+- if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install liblapack-dev && sudo apt-get install libblas-dev && sudo apt-get install armadillo; fi
+- if [ $TRAVIS_OS_NAME == osx ]; brew install homebrew/science/armadillo; fi
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake ..
