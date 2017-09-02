@@ -22,7 +22,7 @@ if (NOT ENABLE_SDPA)
 endif()
 
 if (NOT ENABLE_MOSEK)
-    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/MOSEKProgram.cpp)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/MosekProgram.cpp)
 endif()
 
 add_library(gravity ${SOURCES} ${HEADERS})

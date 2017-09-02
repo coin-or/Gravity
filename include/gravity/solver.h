@@ -1,13 +1,11 @@
 //
 //  solver.h
-//  PowerTools++
+//  Gravity
 //
-//  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
-//
+//  Created by Hassan
 
-#ifndef __PowerTools____Solver__
-#define __PowerTools____Solver__
+#ifndef __Gravity____Solver__
+#define __Gravity____Solver__
 
 #include <stdio.h>
 
