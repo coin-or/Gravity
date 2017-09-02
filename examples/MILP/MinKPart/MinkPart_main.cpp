@@ -65,6 +65,7 @@ double get_cpu_time(){
 }
 #endif
 
+#ifdef USE_MOSEK
 double mosek_reduce(Net* _graph, double _K) {
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink_reduce");
     auto _M = monty::finally([&](){M->dispose();});
@@ -144,7 +145,7 @@ double mosekcode(Net* _graph, double _K) {
     std::cout << "Cost = " << M->primalObjValue() << std::endl;
     return M->primalObjValue();
 }
-
+#endif
 
 
 
