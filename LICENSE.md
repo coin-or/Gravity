@@ -14,15 +14,15 @@ H. Hijazi and G. Wang (2017), Gravity: a Modeling Language for Optimization and 
 Gravity links to the following third party libraries:
 
     Armadillo (Conrad Sanderson, NICTA)
-    <http://arma.sourceforge.net>
+    http://arma.sourceforge.net
     Distributed under the Mozilla Public License.
 
     Bonmin (COIN-OR)
-    <https://projects.coin-or.org/Bonmin>
+    https://projects.coin-or.org/Bonmin
     Distributed under the Common Public License.
 
     Ipopt (COIN-OR)
-    <https://projects.coin-or.org/Ipopt>
+    https://projects.coin-or.org/Ipopt
     Distributed under the Eclipse Public License.
 
 --------------------------------------------------------------------------------
