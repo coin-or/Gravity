@@ -315,7 +315,7 @@ int main (int argc, const char * argv[])
     
     func_ c;
     c = 2*x;
-    // test SDPA
+//    test SDPA
 //    auto sdpa_inst = new SdpaProgram();
 //    string fname = "../data_sets/Minkcut/toy.txt";
 //    std::cout << "Let me test"<< endl;
