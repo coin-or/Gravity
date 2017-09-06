@@ -5,8 +5,6 @@
 //  Created by Hijazi, Hassan (Data61, Canberra City) on 6/12/17.
 //
 //
-
-
 #include <stdio.h>
 #include <iostream>
 #include <string>

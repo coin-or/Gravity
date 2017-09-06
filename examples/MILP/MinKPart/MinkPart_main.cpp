@@ -202,7 +202,7 @@ int main (int argc, const char * argv[])
     }
     else{
         //fname = "../../data_sets/Minkcut/random10_100.txt";
-        fname = "../../data_sets/Minkcut/band100.txt";
+        fname = "../../data_sets/Minkcut/band100_3.txt";
 
         k = 3;
         relax = false;
