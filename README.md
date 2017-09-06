@@ -12,6 +12,12 @@ Created by Hassan Hijazi in 2016-17
 http://hhijazi.github.io/Gravity/
 -----------
 
+
+## License
+
+Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE.md](https://github.com/hhijazi/Gravity/blob/master/LICENSE.md) file for details.
+
+
 ### ** Contributors **
 Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
 
