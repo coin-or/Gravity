@@ -35,14 +35,17 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
-    
     bool duplicate(int n1, int n2, int id1);
     
     /** Clone network */
     // To get the chordal extension of the network.
     Net* _clone;
+    
     // get a chordal extension
     Net* _chordalextension;
+    
+    /** Tree decomposition bags */
+    std::vector<std::vector<Node*>> _bags;
     
     
     /** Cloning */
@@ -55,9 +58,7 @@ public:
     /* Destructors */
     ~Net();
    
-    /** Tree decomposition bags */
-    std::vector<std::vector<Node*>> _bags;
-    
+   
     /** Modifiers */
 
     void add_node(Node* n);
@@ -72,9 +73,18 @@ public:
     bool has_arc(unsigned n1, unsigned n2) {
         return get_arc(n1,n2)!=nullptr;
     }
+
+    bool has_directed_arc(Node* n1, Node* n2){
+        Arc* a = get_arc(n1, n2);
+            if (n1->ID == a->src->ID && n2->ID==a->dest->ID) {
+                return true;
+            }
+        return false;
+    }
+
+
     /** returns the arc formed by node ids n1 and n2 */
     Arc* get_arc(int n1, int n2);
-    
     
     char* readline(FILE *input);
     void exit_input_error(int line_num);

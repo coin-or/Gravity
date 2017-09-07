@@ -10,9 +10,8 @@
 #define __PowerTools____Complex__
 
 #include <stdio.h>
-#include <function.h>
-#include <constant.h>
-#include <var.h> 
+#include <gravity/constant.h>
+#include <gravity/var.h>
 
 
 /** Polymorphic class template, can store an arithmetic number (int. float, double..).*/
@@ -48,10 +47,10 @@ public:
 //    Complex(std::string name, Function* real, Function* imag, Function* angle);
 //    Complex(std::string name, int idx, Function* real, Function* imag, Function* angle);
     /* Accessors */
-    constant* get_real();
-    constant* get_imag();
-    constant* get_angle();
-    constant square_magnitude();
+    constant<type>* get_real();
+    constant<type>* get_imag();
+    constant<type>* get_angle();
+    constant<type>* square_magnitude();
     //@}
     /* Modifiers */
     void lift(){_lifted = true;};

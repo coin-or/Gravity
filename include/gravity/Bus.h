@@ -8,10 +8,10 @@
 
 #ifndef Cycle_Basis_PF_Bus_h
 #define Cycle_Basis_PF_Bus_h
-#include <Complex.h>
-#include <Gen.h>
-#include <Bound.h>
-#include <Conductor.h>
+#include "Complex.h"
+#include "Gen.h"
+#include <gravity/Bound.h>
+#include "Conductor.h"
 #include <stdio.h>
 class Line;
 

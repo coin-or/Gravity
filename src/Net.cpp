@@ -265,7 +265,6 @@ void Net::readrudy(string fn) {
     int Num_nodes=0;
     int Num_edges=0;
 
-
     ifstream infile(fname);
 
     string sLine;

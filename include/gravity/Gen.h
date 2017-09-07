@@ -10,10 +10,10 @@
 #define __PowerTools____Gen__
 
 #include <stdio.h>
-#include <PowerTools++/var.h>
-#include <PowerTools++/Bound.h>
-#include <PowerTools++/GenCost.h>
-#include <PowerTools++/Complex.h>
+#include <gravity/var.h>
+#include <gravity/Bound.h>
+#include <gravity/GenCost.h>
+#include <gravity/Complex.h>
 #include <iostream>
 #include <stdio.h>
 
@@ -47,7 +47,7 @@ public:
     double qs;
     
     /** @brief Complex power generation variable */
-    Complex _S_;
+    Complex<double> _S_;
     /** @brief Active power generation variable */
     var<> pg;
     /** @brief Reactive power generation variable */

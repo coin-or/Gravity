@@ -27,13 +27,12 @@ public:
 
 /** A variable can be a bool, a short, an int, a float or a double*/
 template<typename type = double>
-
 // define variable as a parameter with bounds
 class var: public param<type>, public var_{
     
 public:
-    shared_ptr<vector<type>>    _lb; /**< Lower Bound */
-    shared_ptr<vector<type>>    _ub; /**< Upper Bound */
+    shared_ptr<vector<type>>   _lb; /**< Lower Bound */
+    shared_ptr<vector<type>>   _ub; /**< Upper Bound */
     /* Constructors */
     //@{
     /** Unbounded variable constructor */
