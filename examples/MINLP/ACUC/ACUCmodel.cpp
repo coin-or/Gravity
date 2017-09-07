@@ -88,63 +88,9 @@ void PowerModel::reset(){
     _model = NULL;
 };
 
-void PowerModel::run_grb_lin_test(){
-    var<bool> x, y, z;
-    x.init("x",0.0,1.0);
-    y.init("y",0.0,1.0);
-    z.init("z",0.0,1.0);
-    
-    _model->addVar(x);
-    _model->addVar(y);
-    _model->addVar(z);
-    
-    Constraint C1("C1");
-    C1 += x + 2*y + 3*z;
-    C1 <= 4;
-    _model->addConstraint(C1);
-    
-    Constraint C2("C2");
-    C2 += x + y;
-    C2 >= 1;
-    _model->addConstraint(C2);
-    
-    Function* obj = new Function();
-    *obj += x + y + 2*z;
-    _model->setObjective(obj);
-    solve();
-}
-
-void PowerModel::run_grb_quad_test(){
-    var<double> x, y, z;
-    x.init("x",0.0,1.0);
-    y.init("y",0.0,1.0);
-    z.init("z",0.0,1.0);
-    
-    _model->addVar(x);
-    _model->addVar(y);
-    _model->addVar(z);
-    
-    Constraint C1("C1");
-    C1 += x + 2*y + 3*z;
-    C1 >= 4;
-    _model->addConstraint(C1);
-    
-    Constraint C2("C2");
-    C2 += x + y;
-    C2 >= 1;
-    _model->addConstraint(C2);
-    
-    Function* obj = new Function();
-    *obj += x*x + x*y + y*y + y*z + z*z + 2*x;
-    _model->setObjective(obj);
-    solve();
-}
-
 
 /** Accessors */
-Function* PowerModel::objective(){
-    return _model->_obj;
-}
+
 
 /** Objective Functions */
 void PowerModel::min_cost(){

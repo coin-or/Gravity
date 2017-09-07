@@ -191,7 +191,7 @@ var<type> all(const var<type>& p){
 
 
 // In contrast to a general variable, indices of an SDP variable should be
-// recorded using _sdpindices, moreover the size of an SDP variable is d.  
+// recorded using _sdpindices, moreover the size of an SDP variable is d (d x d).
 template<typename type = double>
 //class sdpvar: public param<type>, public var_{
 class sdpvar: public var<type>{

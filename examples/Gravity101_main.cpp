@@ -125,6 +125,7 @@ int main (int argc, const char * argv[])
     }
     param<double> dp("dp");
     dp = 1.8;
+
 //    dp.print();
     dp = 1909092.55;
 //    dp.print();
@@ -299,6 +300,7 @@ int main (int argc, const char * argv[])
     SOCP = power(Xij.in(indices), 2) - Xii.from(indices)*Xii.to(indices);
     m.add_constraint(SOCP <= 0);
     constant<int> ones(1);
+    
     constant<int> twos(2);
     auto obj = ones.tr()*Xii + twos.tr()*Xij;
     obj.print();
