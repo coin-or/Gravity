@@ -11,6 +11,8 @@
 
 using namespace std;
 
+Arc::Arc(){ _name=  ""; src = nullptr; dest = nullptr;}
+
 Arc::~Arc(){}
 
 Arc::Arc(string name):src(NULL), dest(NULL){}

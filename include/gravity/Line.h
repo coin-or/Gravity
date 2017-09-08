@@ -9,13 +9,15 @@
 
 #ifndef Line_h
 #define Line_h
-#include "Complex.h"
-#include "Bound.h"
+#include <gravity/Complex.h>
+#include <gravity/Arc.h>
+#include <gravity/Bound.h>
 
-class Line {
+// A line is an arc.
+// It has additional physical properties.
+
+class Line: public Arc {
 public:
-    int id;
-    std::string _name;
     double limit;
     double ch;
     double tr;

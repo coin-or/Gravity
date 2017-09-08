@@ -131,7 +131,8 @@ int PowerNet::readgrid(const char* fname) {
     
     while(word.compare("];")){
         name = word.c_str();
-        pnode = this->Net::get_node(name);
+        // name -> node. 
+        pnode = *(Net::get_node(name));
         
         file >> word;
         ps = atof(word.c_str())/bMVA;

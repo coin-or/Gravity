@@ -2,24 +2,27 @@
 //  Bus.h
 //  Cycle_Basis_PF
 //
+//  Modifed by Guanglei Wang on 08/07/2017.
 //  Created by Sumiran on 16/06/2014.
 //  Copyright (c) 2014 NICTA. All rights reserved.
 //
 
-#ifndef Cycle_Basis_PF_Bus_h
-#define Cycle_Basis_PF_Bus_h
+#ifndef   Bus_h
+#define   Bus_h
 #include <gravity/Complex.h>
 #include <gravity/Gen.h>
 #include <gravity/Bound.h>
-#include "Conductor.h"
+#include <gravity/Conductor.h>
+#include <gravity/Node.h>
 #include <stdio.h>
+
+// A bus is a node.
+// Additionally, it has some physical features.
 class Line;
 
-class Bus {
+class Bus: public Node{
     
 public:
-    /** @brief Bus identifier */
-    std::string _name;
     
     /** @brief Bus base kvolts */
     double _kvb;

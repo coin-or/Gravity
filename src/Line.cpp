@@ -12,7 +12,6 @@
 using namespace std;
 
 Line::Line(){
-    id = -1;
     ch = 0;
     tr = 0;
     as = 0;

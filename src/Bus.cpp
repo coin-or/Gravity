@@ -5,11 +5,9 @@
 
 using namespace std;
 
-Bus::Bus(){
-    
-}
+Bus::Bus(){}
 
-Bus::Bus(string name, double pl, double ql, double gs, double bs, double v_min, double v_max, double kvb, int phase):_name(name), _kvb(kvb), _active(true), _has_gen(false), vs(1){
+Bus::Bus(string name, double pl, double ql, double gs, double bs, double v_min, double v_max, double kvb, int phase): Node(name), _kvb(kvb), _active(true), _has_gen(false), vs(1){
     Conductor* c = new Conductor(this, pl, ql, gs, bs, phase);
     _cond.push_back(c);
     vbound.min = v_min;

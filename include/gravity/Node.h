@@ -5,6 +5,11 @@
 #define Node_h
 #include <vector>
 #include <string>
+
+// A Node has:
+ // a name
+//  an ID.
+//  a set of branches.
 class Arc;
 class Node{
 public:
@@ -20,7 +25,7 @@ public:
     // constructions
     Node();
     Node(int id);
-    Node(std::string name, int id);
+    Node(std::string name, int id=-1);
     ~Node();
     Node* clone();
     

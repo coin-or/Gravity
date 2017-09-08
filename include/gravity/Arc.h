@@ -30,6 +30,7 @@ public:
  /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
  //   Node* neighbour(Node* n);
     
+    Arc();
     Arc(std::string name);
     ~Arc();
     Arc(Node* s, Node* d);
