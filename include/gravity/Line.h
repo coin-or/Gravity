@@ -27,7 +27,7 @@ public:
     double cc;
     double dd;
     double smax;
-    
+
     int status;
     Bound tbound;
     //Complex _Si_;

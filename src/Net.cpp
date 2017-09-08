@@ -2,7 +2,7 @@
 //  Net.cpp
 //
 //
-//  Created by Guagnlei on 03/06/2017.
+//  Created by Guanglei Wang on 03/06/2017.
 //
 
 #include <gravity/Net.h>
@@ -22,6 +22,7 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
+
 //#define USEDEBUG
 #ifdef USEDEBUG
 #define Debug(x) cout << x
@@ -227,7 +228,7 @@ void Net::exit_input_error(int line_num) {
     exit(1);
 }
 
-// readFile: just read a matrix, nothing new!
+// readFile: Reading an adjacency matrix!
 void Net::readFile(string fn) {
     auto fname = fn.c_str();
     FILE *fp = fopen(fname,"r");
@@ -259,7 +260,7 @@ void Net::readFile(string fn) {
     fclose(fp);
 }
 
-// read rudy
+// Reading graphs with rudy format
 void Net::readrudy(string fn) {
     auto fname = fn.c_str();
     int Num_nodes=0;
