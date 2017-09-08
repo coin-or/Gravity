@@ -43,16 +43,8 @@ PowerNet::PowerNet(){
 
 // Read a grid 
 int PowerNet::readgrid(const char* fname) {
-    //FILE *fp = fopen(fn,"r");
-    //if(fp == NULL)
-    //{
-    //    fprintf(stderr,"can’t open input file %s\n",fn);
-    //    exit(1);
-    //}
-    //
-    //this->Net::readFile(fn);
-    //
-    //fclose(fp);
+    
+    string name;
     double pl = 0, ql = 0, gs = 0, bs = 0, kvb = 0, vmin = 0, vmax = 0, vs = 0;
     int id = 0;
     cout << "Loading file " << fname << endl;
@@ -70,7 +62,6 @@ int PowerNet::readgrid(const char* fname) {
     
     file.ignore(6);
     file >> word;
-//    getline(file, word);
     _name = word;
 //    cout << _name << endl;
     while (word.compare("mpc.baseMVA")){
@@ -79,7 +70,9 @@ int PowerNet::readgrid(const char* fname) {
     file.ignore(3);
     getline(file, word,';');
     bMVA = atoi(word.c_str());
+    
 //    cout << "BaseMVA = " << bMVA << endl;
+    
     
     /* Nodes data */
     while (word.compare("mpc.bus")){
@@ -89,6 +82,7 @@ int PowerNet::readgrid(const char* fname) {
     Node* node = NULL;
     Node* node_clone = NULL;
     file >> word;
+    
     while(word.compare("];")){
         name = word.c_str();
         id = atoi(name.c_str());
