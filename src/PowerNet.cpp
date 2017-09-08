@@ -63,7 +63,8 @@ int PowerNet::readgrid(const char* fname) {
     file.ignore(6);
     file >> word;
     _name = word;
-//    cout << _name << endl;
+    
+//  cout << _name << endl;
     while (word.compare("mpc.baseMVA")){
         file >> word;
     }
@@ -71,7 +72,7 @@ int PowerNet::readgrid(const char* fname) {
     getline(file, word,';');
     bMVA = atoi(word.c_str());
     
-//    cout << "BaseMVA = " << bMVA << endl;
+//  cout << "BaseMVA = " << bMVA << endl;
     
     
     /* Nodes data */
