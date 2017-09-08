@@ -29,7 +29,7 @@ public:
     /** Mapping the arcs to their source-destination */
     std::map<std::string, std::set<Arc*>*> lineID;
     
-    /** Mapping the node name to its position in the vector, key = node id */
+    /** Mapping the node name to its position in the vector, key = node name */
     std::map<std::string, Node*> nodeID;
     
     /** Vector of cycles forming a cycle basis */

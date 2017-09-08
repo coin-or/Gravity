@@ -41,6 +41,10 @@ PowerNet::PowerNet(){
     bMVA=0;
 }
 
+Bus* Net::get_buse(string name) {
+    return nodeID.find(name)->second;
+}
+//
 // Read a grid 
 int PowerNet::readgrid(const char* fname) {
     
@@ -80,8 +84,8 @@ int PowerNet::readgrid(const char* fname) {
         file >> word;
     }
     getline(file, word);
-    Node* node = NULL;
-    Node* node_clone = NULL;
+    PowerNode* pnode = NULL;
+    PowerNode* pnode_clone = NULL;
     file >> word;
     
     while(word.compare("];")){
@@ -103,15 +107,18 @@ int PowerNet::readgrid(const char* fname) {
         vmax = atof(word.c_str());
         getline(file, word,';');
         vmin = atof(word.c_str());
-        node = new Node(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
-        node_clone = new Node(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
-        node->vs = vs;
-        add_node(node);
-        _clone->add_node(node_clone);
+        pnode = new PowerNode(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
+        pnode_clone = new PowerNode(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
+        pnode->Bus::vs = vs;
+        
+        this->Net::add_node(pnode);
+        this->Net::_clone->add_node(pnode_clone);
 //        node->print();
         file >> word;
     }
     file.seekg (0, file.beg);
+    
+    
     /* Generator data */
     while (word.compare("mpc.gen")){
         file >> word;
@@ -121,9 +128,11 @@ int PowerNet::readgrid(const char* fname) {
     getline(file, word);
     file >> word;
     std::vector<bool> gen_status;
+    
     while(word.compare("];")){
         name = word.c_str();
-        node = get_node(name);
+        pnode = this->Net::get_node(name);
+        
         file >> word;
         ps = atof(word.c_str())/bMVA;
         file >> word;
@@ -140,13 +149,14 @@ int PowerNet::readgrid(const char* fname) {
         pmin = atof(word.c_str())/bMVA;
         getline(file, word,'\n');
         gen_status.push_back(status==1);
+        
         if(status==1){
-            node->_has_gen = true;
-            Gen* g = new Gen(node, to_string(node->_gen.size()), pmin, pmax, qmin, qmax);
+            pnode->Bus::_has_gen = true;
+            Gen* g = new Gen(pnode, to_string(pnode->Bus::_gen.size()), pmin, pmax, qmin, qmax);
             g->ps = ps;
             g->qs = qs;
             gens.push_back(g);
-            node->_gen.push_back(g);
+            pnode->_gen.push_back(g);
 //            g->print();
         }
 //        getline(file, word);
