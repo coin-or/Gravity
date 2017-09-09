@@ -1,5 +1,6 @@
 //  Net.h
 //  Network
+//  Guanglei WANG
 //  Copyright (c) All rights reserved
 //
 
@@ -18,8 +19,10 @@
 #include <gravity/Path.h>
 
 class Net{
+    
 public:
     std::string _name;
+    
     /** Set of nodes */
     std::vector<Node*> nodes;
     
@@ -47,17 +50,14 @@ public:
     /** Tree decomposition bags */
     std::vector<std::vector<Node*>> _bags;
     
-    
     /** Cloning */
     Net* clone();
-    
     
     /* Constructors */
     Net();
     
     /* Destructors */
     ~Net();
-   
    
     /** Modifiers */
 

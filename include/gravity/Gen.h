@@ -6,8 +6,8 @@
     //  Copyright (c) 2015 NICTA. All rights reserved.
     //
 
-#ifndef __PowerTools____Gen__
-#define __PowerTools____Gen__
+#ifndef Gen_h
+#define Gen_h
 
 #include <stdio.h>
 #include <gravity/var.h>

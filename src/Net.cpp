@@ -85,10 +85,7 @@ const bool node_compare(const Node* n1, const Node* n2) {
 
 void Net::add_node(Node* node) {
     node->ID = (int)nodes.size(); // depends on the size.
-
     //  nodeID.insert(pair<string,Node*>(_name,node)).
-
-
     if(!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
     }

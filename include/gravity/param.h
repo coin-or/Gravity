@@ -171,7 +171,6 @@ template<typename type = double>
 class param: public param_{
 protected:
     shared_ptr<vector<type>>                _val;
-    
 
 public:
     pair<type,type>                         _range; /**< (Min,Max) values in vals **/

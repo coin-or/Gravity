@@ -41,11 +41,22 @@ PowerNet::PowerNet(){
     bMVA=0;
 }
 
-Bus* Net::get_buse(string name) {
-    return nodeID.find(name)->second;
+PowerNet::~PowerNet(){
+    if(!gens.empty()){
+        for (Gen* g:gens){
+            delete g;
+        }
+        gens.clear();
+    }
 }
 //
-// Read a grid 
+//Bus* Net::get_bus(string name) {
+//    return nodeID.find(name)->second;
+//}
+//
+// Read a grid
+// line with delimiter ";"
+
 int PowerNet::readgrid(const char* fname) {
     
     string name;
@@ -59,6 +70,7 @@ int PowerNet::readgrid(const char* fname) {
     }
 
     _clone = new Net(); // just for chordal extension
+    
     string word;
     while (word.compare("function")){
         file >> word;
@@ -72,6 +84,7 @@ int PowerNet::readgrid(const char* fname) {
     while (word.compare("mpc.baseMVA")){
         file >> word;
     }
+    
     file.ignore(3);
     getline(file, word,';');
     bMVA = atoi(word.c_str());
@@ -83,9 +96,9 @@ int PowerNet::readgrid(const char* fname) {
     while (word.compare("mpc.bus")){
         file >> word;
     }
+    
     getline(file, word);
-    PowerNode* pnode = NULL;
-    PowerNode* pnode_clone = NULL;
+    Bus* bus = NULL;
     file >> word;
     
     while(word.compare("];")){
@@ -107,13 +120,12 @@ int PowerNet::readgrid(const char* fname) {
         vmax = atof(word.c_str());
         getline(file, word,';');
         vmin = atof(word.c_str());
-        pnode = new PowerNode(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
-        pnode_clone = new PowerNode(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
-        pnode->Bus::vs = vs;
+        bus = new Bus(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
+        //node_clone = new Bus(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
+        bus->vs = vs;
         
-        this->Net::add_node(pnode);
-        this->Net::_clone->add_node(pnode_clone);
-//        node->print();
+        this->Net::add_node(bus);
+       // this->Net::_clone->add_node();
         file >> word;
     }
     file.seekg (0, file.beg);
@@ -126,14 +138,15 @@ int PowerNet::readgrid(const char* fname) {
     double qmin = 0, qmax = 0, pmin = 0, pmax = 0, ps = 0, qs = 0;
     int status = 0;
     getline(file, word);
+    
+    
     file >> word;
     std::vector<bool> gen_status;
     
     while(word.compare("];")){
         name = word.c_str();
         // name -> node. 
-        pnode = *(Net::get_node(name));
-        
+        bus = (Bus*)(Net::get_node(name));
         file >> word;
         ps = atof(word.c_str())/bMVA;
         file >> word;
@@ -152,24 +165,28 @@ int PowerNet::readgrid(const char* fname) {
         gen_status.push_back(status==1);
         
         if(status==1){
-            pnode->Bus::_has_gen = true;
-            Gen* g = new Gen(pnode, to_string(pnode->Bus::_gen.size()), pmin, pmax, qmin, qmax);
+            bus->_has_gen = true;
+            Gen* g = new Gen(bus, to_string(bus->_gen.size()), pmin, pmax, qmin, qmax);
             g->ps = ps;
             g->qs = qs;
             gens.push_back(g);
-            pnode->_gen.push_back(g);
+            bus->_gen.push_back(g);
 //            g->print();
         }
 //        getline(file, word);
         file >> word;
     }
+    
+    
     file.seekg (0, file.beg);
+    
     /* Generator costs */
     while (word.compare("mpc.gencost")){
         file >> word;
     }
     double c0 = 0, c1 = 0,c2 = 0;
     getline(file, word);
+    
 //    cout<<"Number of generators = " << gens.size() << endl;
     int gen_counter = 0;
     for (int i = 0; i < gen_status.size(); ++i) {
@@ -187,6 +204,7 @@ int PowerNet::readgrid(const char* fname) {
         getline(file, word);
     }
     file.seekg (0, file.beg);
+    
     /* Lines data */
     m_theta_lb = 0;
     m_theta_ub = 0;
@@ -195,8 +213,9 @@ int PowerNet::readgrid(const char* fname) {
     }
     getline(file, word);
     double res = 0;
-    Arc* arc = NULL;
-    Arc* arc_clone = NULL;
+    
+    Line* arc = NULL;
+    Line* arc_clone = NULL;
     string src, dest;
     file >> word;
     while(word.compare("];")){
@@ -205,8 +224,8 @@ int PowerNet::readgrid(const char* fname) {
         id = (int)arcs.size() + 1;
         //arc = new Arc(src+dest);
         //arc_clone = new Arc(src+dest);
-        arc = new Arc(to_string(id));
-        arc_clone = new Arc(to_string(id));
+        arc = new Line(to_string(id));
+        arc_clone = new Line(to_string(id));
         arc->id = id;
         arc_clone->id = id;
         arc->src = get_node(src);
@@ -249,7 +268,8 @@ int PowerNet::readgrid(const char* fname) {
         arc->tbound.max = atof(word.c_str())*M_PI/180;
         arc_clone->tbound.max = arc->tbound.max;
         m_theta_ub += arc->tbound.max;
-        arc->smax = max(pow(arc->src->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->src->vbound.max,2) + pow(arc->dest->vbound.max,2)), pow(arc->dest->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->dest->vbound.max,2) + pow(arc->src->vbound.max,2)));
+        
+       // arc->smax = max(pow(arc->src->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->src->vbound.max,2) + pow(arc->dest->vbound.max,2)), pow(arc->dest->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->dest->vbound.max,2) + pow(arc->src->vbound.max,2)));
         if(arc->status==1){
             arc->connect();
             if(!add_arc(arc)){// not a parallel line

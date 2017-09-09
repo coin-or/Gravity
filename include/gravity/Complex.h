@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#ifndef __PowerTools____Complex__
-#define __PowerTools____Complex__
+#ifndef Complex_h
+#define Complex_h
 
 #include <stdio.h>
 #include <gravity/constant.h>
@@ -15,8 +15,7 @@
 
 
 /** Polymorphic class template, can store an arithmetic number (int. float, double..).*/
-template<typename type = float>
-class Complex {
+template<typename type = float> class Complex {
     
 protected:
     var<type>       _real;

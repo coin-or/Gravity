@@ -35,8 +35,6 @@ Bus::~Bus(){
 //    _V_._name.append(_name);
 //    _V_.lift();
 //}
-
-
 /** @brief Returns the active power load at this bus */
 double Bus::pl(){
     return _cond[0]->_pl;

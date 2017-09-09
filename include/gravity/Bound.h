@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#ifndef __PowerTools____Bound__
-#define __PowerTools____Bound__
+#ifndef Bound_h
+#define Bound_h
 
 #include <stdio.h>
 #include <math.h>

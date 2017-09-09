@@ -11,7 +11,6 @@
 #define   Bus_h
 #include <gravity/Complex.h>
 #include <gravity/Gen.h>
-#include <gravity/Bound.h>
 #include <gravity/Conductor.h>
 #include <gravity/Node.h>
 #include <stdio.h>
@@ -84,6 +83,8 @@ public:
     
     // constructor
     Bus();
+    
+    //Bus(Node* n);
     
     /** @brief Initialiser with Bus id and conductor properties
      @note By default, the network is in one phase, thus exactly one conductor is added to the bus when created. In a three phase network, this array will contain three conductors.
