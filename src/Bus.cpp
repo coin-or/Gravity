@@ -66,6 +66,7 @@ double Bus::vmax(){
     return vbound.max;
 }
 
+
 void Bus::print(){
     printf("\nBus Id: %s | load = %.02f | shunt = (%.02f,%.02f) | vbounds = (%.02f,%.02f)\n", _name.c_str(), _cond[0]->_pl, _cond[0]->_gs, _cond[0]->_bs, vbound.min, vbound.max);
         //v.print();

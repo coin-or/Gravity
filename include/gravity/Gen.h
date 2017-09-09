@@ -47,11 +47,11 @@ public:
     double qs;
     
     /** @brief Complex power generation variable */
-    Complex<double> _S_;
+    //Complex<double> _S_;
     /** @brief Active power generation variable */
-    var<> pg;
+    //var<> pg;
     /** @brief Reactive power generation variable */
-    var<> qg;
+    //var<> qg;
     
     
     /** @brief Initialiser with linked Bus and generator properties
@@ -63,7 +63,7 @@ public:
      */
     ~Gen();
     
-    void init_complex();
+    //void init_complex();
     
     /** @brief Prints generator infos */
     void print();

@@ -55,7 +55,7 @@ PowerNet::~PowerNet(){
 //}
 //
 // Read a grid
-// line with delimiter ";"
+// @discussion line with delimiter ";"
 
 int PowerNet::readgrid(const char* fname) {
     
@@ -120,6 +120,7 @@ int PowerNet::readgrid(const char* fname) {
         vmax = atof(word.c_str());
         getline(file, word,';');
         vmin = atof(word.c_str());
+        // single phase
         bus = new Bus(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
         //node_clone = new Bus(name, pl, ql, gs, bs, vmin, vmax, kvb, 1);
         bus->vs = vs;
@@ -155,12 +156,15 @@ int PowerNet::readgrid(const char* fname) {
         qmax = atof(word.c_str())/bMVA;
         file >> word;
         qmin = atof(word.c_str())/bMVA;
+        
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atof(word.c_str());
         file >> word;
         pmax = atof(word.c_str())/bMVA;
+        
         file >> word;
         pmin = atof(word.c_str())/bMVA;
+        
         getline(file, word,'\n');
         gen_status.push_back(status==1);
         

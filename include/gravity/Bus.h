@@ -31,9 +31,7 @@ public:
     
     /** @brief Indicates if bus has integrated generation */
     bool _has_gen;
-    
-    /** @brief Indicates the number of generators installed on this bus */
-    int _nb_gen;
+
     
     /** @brief voltage magnitude bounds */
     Bound vbound;
@@ -84,8 +82,6 @@ public:
     // constructor
     Bus();
     
-    //Bus(Node* n);
-    
     /** @brief Initialiser with Bus id and conductor properties
      @note By default, the network is in one phase, thus exactly one conductor is added to the bus when created. In a three phase network, this array will contain three conductors.
      */
@@ -97,9 +93,6 @@ public:
     
     /** @brief Connect a line to the current bus */
     void connect_line(Line* l);
-    
-    /** @brief Returns the number of active generators */
-    int get_nbGen();
     
     /** @brief Returns the number of active lines connected to this bus */
     int get_degree();
