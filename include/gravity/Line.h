@@ -18,7 +18,7 @@
 
 class Line: public Arc {
 public:
-    double limit;
+    double limit; 
     double ch;
     double tr;
     double as;
@@ -30,7 +30,7 @@ public:
     double dd;
     double smax;
 
-    int status;
+    int status; // on /off, failure or not. 
     Bound tbound;
     //Complex _Si_;
     //Complex _Sj_;

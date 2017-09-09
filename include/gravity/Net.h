@@ -41,10 +41,10 @@ public:
     bool duplicate(int n1, int n2, int id1);
     
     /** Clone network */
-    // To get the chordal extension of the network.
+    // Network used for constructing chordal extensions.
     Net* _clone;
     
-    // get a chordal extension
+    /** Store the chordal extension of the network */
     Net* _chordalextension;
     
     /** Tree decomposition bags */
@@ -53,14 +53,10 @@ public:
     /** Cloning */
     Net* clone();
     
-    /* Constructors */
     Net();
-    
-    /* Destructors */
     ~Net();
    
     /** Modifiers */
-
     void add_node(Node* n);
     bool add_arc(Arc* a);
     
@@ -88,17 +84,15 @@ public:
     
     char* readline(FILE *input);
     void exit_input_error(int line_num);
-    void readFile(std::string fname);
-    void topology(std::string fname,bool complement);
-    void readrudy(std::string fname);
-    Net get_complement(std::string fname);//  (i, j): i<j \E
+    void read_adjacency_matrix(const char* fname);
+    void readrudy(const char* fname);
+    Net get_complement(const char* fname);//  (i, j): i<j \E
     
     /**  @brief Remove node and all incident arcs from the network
      @note Does not remove the incident arcs from the list of arcs in the network!
      @return the id of the node removed
      */
     std::string remove_end_node();
-    
     
     
     /**  @brief Remove node and all incident arcs from the network

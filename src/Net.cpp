@@ -56,22 +56,28 @@ bool Net::duplicate(int n1, int n2, int id1) {
 Net* Net::clone() {
     Net *copy_net = new Net();
     Node* node = NULL;
+    
     for (int i=0; i<nodes.size(); i++) {
         node = this->nodes[i];
         copy_net->add_node(node->clone());
     }
+    
     Arc* arc = NULL;
     for (int i=0; i<arcs.size(); i++) {
+        
         /* ignores if the arc is a paralel line to an already existing line */
         if (duplicate(arcs[i]->src->ID, arcs[i]->dest->ID, arcs[i]->id)) {
             continue;
         }
         arc = arcs[i]->clone();
+        
         /* Update the source and destination to the new nodes in copy_net */
         arc->src = copy_net->get_node(arc->src->_name);
         arc->dest = copy_net->get_node(arc->dest->_name);
+        
         /* Add the new arc to the list of arcs IS THIS REALLY USEFULL ? */
         copy_net->add_arc(arc);
+        
         /* Connects it to its source and destination */
         arc->connect();
     }
@@ -84,8 +90,7 @@ const bool node_compare(const Node* n1, const Node* n2) {
 }
 
 void Net::add_node(Node* node) {
-    node->ID = (int)nodes.size(); // depends on the size.
-    //  nodeID.insert(pair<string,Node*>(_name,node)).
+    node->ID = (int)nodes.size();
     if(!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
     }
@@ -225,41 +230,8 @@ void Net::exit_input_error(int line_num) {
     exit(1);
 }
 
-// readFile: Reading an adjacency matrix!
-void Net::readFile(string fn) {
-    auto fname = fn.c_str();
-    FILE *fp = fopen(fname,"r");
-    if(fp == NULL)
-    {
-        fprintf(stderr,"can’t open input file %s\n",fname);
-        exit(1);
-    }
-
-    size_t max_line_len = 1024;
-    char* line = new char[max_line_len];
-
-    vector<vector<int>> matrix;
-    int temp;
-
-    stringstream linestream(line);
-
-    while(readline(fp)!=NULL)
-    {
-        vector<int> row;
-        stringstream linestream(line);
-        while (linestream>>temp)
-            row.push_back(temp);
-        matrix.push_back(row);
-        // cout <<matrix.size()<< endl;
-    }
-    rewind(fp);
-    delete[] line;
-    fclose(fp);
-}
-
 // Reading graphs with rudy format
-void Net::readrudy(string fn) {
-    auto fname = fn.c_str();
+void Net::readrudy(const char* fname) {
     int Num_nodes=0;
     int Num_edges=0;
 
@@ -347,9 +319,8 @@ void Net::readrudy(string fn) {
 
 
 
-// populates the graph
-void Net::topology(string fn, bool complement) {
-    auto fname = fn.c_str();
+/** construct a graph by reading an adjacency matrix */
+void Net::read_adjacency_matrix(const char* fname) {
     FILE *fp = fopen(fname,"r");
     if(fp == NULL)
     {
@@ -370,6 +341,7 @@ void Net::topology(string fn, bool complement) {
             row.push_back(temp);
         matrix.push_back(row);
     }
+    
     int n=0;
     n =matrix.size();
 
@@ -390,64 +362,34 @@ void Net::topology(string fn, bool complement) {
     Arc* arc = NULL;
     Arc* arc_clone = NULL;
     string src, dest;
+    for (int i = 0; i <(n-1); i++)
+        for (int j=i+1; j<n; j++) {
+            if (matrix[i][j] > 0)
+            {
+                src = to_string(i);
+                dest = to_string(j);
 
-    if (complement) {
-        for (int i = 0; i <(n-1); i++)
-            for (int j=i+1; j<n; j++) {
-                if (matrix[i][j] == 0)
-                {
-                    src = to_string(i);
-                    dest = to_string(j);
-
-                    id = (int)arcs.size();
-                    arc = new Arc(to_string(id));
-                    arc_clone = new Arc(to_string(id));
-                    arc->id = id;
-                    arc_clone->id = id;
-                    arc->src = get_node(src);
-                    arc->dest= get_node(dest);
-                    arc_clone->src = _clone->get_node(src);
-                    arc_clone->dest = _clone->get_node(dest);
-                    add_arc(arc);
-                    arc->connect();
-                    _clone->add_arc(arc_clone);
-                    arc_clone->connect();
-                }
+                id = (int)arcs.size();
+                arc = new Arc(to_string(id));
+                arc_clone = new Arc(to_string(id));
+                arc->id = id;
+                arc_clone->id = id;
+                arc->src = get_node(src);
+                arc->dest= get_node(dest);
+                arc_clone->src = _clone->get_node(src);
+                arc_clone->dest = _clone->get_node(dest);
+                add_arc(arc);
+                arc->connect();
+                _clone->add_arc(arc_clone);
+                arc_clone->connect();
             }
-    }
-    else
-    {
-        for (int i = 0; i <(n-1); i++)
-            for (int j=i+1; j<n; j++) {
-                if (matrix[i][j] > 0)
-                {
-                    src = to_string(i);
-                    dest = to_string(j);
-
-                    id = (int)arcs.size();
-                    arc = new Arc(to_string(id));
-                    arc_clone = new Arc(to_string(id));
-                    arc->id = id;
-                    arc_clone->id = id;
-                    arc->src = get_node(src);
-                    arc->dest= get_node(dest);
-                    arc_clone->src = _clone->get_node(src);
-                    arc_clone->dest = _clone->get_node(dest);
-                    add_arc(arc);
-                    arc->connect();
-                    _clone->add_arc(arc_clone);
-                    arc_clone->connect();
-                }
-            }
-    }
+        }
     delete[] line;
     fclose(fp);
-    cout<< "Edges: " << arcs.size() << endl;
 }
 
-Net Net::get_complement(string fn) {
+Net Net::get_complement(const char* fname) {
     Net complement;
-    auto fname = fn.c_str();
     FILE *fp = fopen(fname,"r");
     if(fp == NULL)
     {
@@ -575,7 +517,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         bag.push_back(n);
         sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
 
-        // update the clone graph  and construct chordal extension.
+        // update the clone graph and construct chordal extension.
         for (int i = 0; i<bag.size()-1; i++) {
             u = bag.at(i);
             // cout << "uid" << u->ID << " uname" << u->_name << endl;
