@@ -558,22 +558,21 @@ Net* Net::get_chordal_extension() {
 
             }
         }
-
         _bags.push_back(bag);
         if (bag.size()==3) {
             nb++;
         }
     }
     Debug("\n Number of 3D bags = " << nb3 << endl);
+    return chordal_extension;
 }
 
 // get cliques from the tree decomposition
 // Two methods
 // first one: check the inclusion relationship
 // second one: use the RIP property of the tree decomposition, thus just need to check every leaf
+// One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 void Net::get_clique_tree (bool print) {
-    get_tree_decomp_bags(print);
-    
     for (unsigned i = 0; i < _bags.size()-1; i++) {
         for (unsigned j = i+1; j < _bags.size();) {
             if (std::includes(_bags[i].begin(),_bags[i].end(),

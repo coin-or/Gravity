@@ -32,16 +32,18 @@ using namespace std;
 //}
 
 Minkmodel::Minkmodel() {};
-Minkmodel::~Minkmodel() {};
+Minkmodel::~Minkmodel() {delete _chordal_extension; delete _graph;};
 
 //Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph),zij("zij"),X("X"){};
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K):_type(type),_solver(cplex),_K(K),_graph(graph) {
     _cliqueid = make_shared<map<string,vector<unsigned>>>();
+    _chordal_extension = nullptr;
 };
 
 //Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph),zij("zij"),X("X"){};
 Minkmodel::Minkmodel(ModelType type, Net* graph, double K,SolverType solver):_type(type),_solver(solver),_K(K),_graph(graph) {
     _cliqueid = make_shared<map<string,vector<unsigned>>>();
+    _chordal_extension = nullptr;
 };
 
 void Minkmodel::build() {
@@ -94,9 +96,7 @@ void Minkmodel::add_vars_origin() {
 
 void Minkmodel::add_vars_origin_tree() {
     var<bool> zij("zij");
-    // the number of arcs in the chordal extension
-    _model.add_var(zij^((_graph->_chordalextension)->arcs.size()));
-    //cout << _graph->arcs.size() << endl;
+    _model.add_var(zij^((_chordal_extension)->arcs.size()));
 
     func_ obj_MIP;
     int i=0, j=0;
@@ -163,7 +163,7 @@ void Minkmodel::add_vars_lifted_tree() {
         _model.add_constraint(diag=0);
     }
     
-    for (auto a: _graph->_chordalextension->arcs){
+    for (auto a: _chordal_extension->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
         Constraint bound("("+to_string(i)+ "," + to_string(j) +")");
@@ -306,8 +306,6 @@ void Minkmodel::cliquetree_decompose() {
                     i1 = bag[j]->ID; // zero index.
                     i2 = bag[h]->ID;
                     i3 = bag[l]->ID;
-                    //cout << "(i1, i2, i3) " << i1 << " " << i2 << " " << i3 << endl;
-                    // Sort(i1,i2,i3);
                     if(_ids.count(make_tuple(i1, i2, i3))==0) {
                         _ids.insert(make_tuple(i1, i2, i3));
                     }
@@ -586,7 +584,7 @@ void Minkmodel::construct_fsol() {
     }
    else{
         cout << "The constructed solution is: " << endl;
-         for (auto a: _graph->_chordalextension->arcs) {
+         for (auto a: _chordal_extension->arcs) {
              i = (a->src)->ID;
              j = (a->dest)->ID;
              if (i <= j) {
@@ -606,19 +604,19 @@ void Minkmodel::construct_fsol() {
          bool allzeros=true;
          double temp=0;
 
-         for (i=0; i < _graph->_chordalextension->nodes.size()-1; i++) {
-             n=(_graph->_chordalextension->get_node(to_string(i+1)));
-             for (j = i+1; j< _graph->_chordalextension->nodes.size(); j++) {
-                 nn=_graph->_chordalextension->get_node(to_string(j+1));
+         for (i=0; i < _chordal_extension->nodes.size()-1; i++) {
+             n= (_chordal_extension->get_node(to_string(i+1)));
+             for (j = i+1; j< _chordal_extension->nodes.size(); j++) {
+                 nn = _chordal_extension->get_node(to_string(j+1));
                  //cout<< "(n, nn): " << n->ID << ", " << nn->ID << endl;
                  if (n->is_connected(nn)) {
                      cout << sol(i,j).to_str() << endl;
                  }
                  else
                  {
-                     string name = to_string(_graph->_chordalextension->arcs.size()+1);
+                     string name = to_string(_chordal_extension->arcs.size()+1);
                      arc_chordal = new Arc(name);
-                     arc_chordal->id = _graph->_chordalextension->arcs.size();
+                     arc_chordal->id = _chordal_extension->arcs.size();
                      arc_chordal->src = n;
                      arc_chordal->dest = nn;
                      arc_chordal->weight = 0;
@@ -695,7 +693,7 @@ void Minkmodel::construct_fsol() {
                          }
                      }
                      cout << sol(i,j).to_str() << endl;
-                     (_graph->_chordalextension)->add_arc(arc_chordal);
+                     (_chordal_extension)->add_arc(arc_chordal);
                  }
              }
          }

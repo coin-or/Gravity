@@ -29,6 +29,7 @@ public:
     SolverType  _solver;
     double      _K;
     Net*        _graph;
+    Net*        _chordal_extension;
 
     set<tuple<int,int,int>> _ids; 
     shared_ptr<map<std::string,vector<unsigned>>> _cliqueid;

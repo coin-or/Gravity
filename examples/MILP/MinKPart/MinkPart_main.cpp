@@ -67,6 +67,11 @@ double get_cpu_time(){
 
 #ifdef USE_MOSEK
 double mosek_reduce(Net* _graph, double _K) {
+    
+    // generate chordal extension.
+    Net* chordal_extension = _graph->get_chordal_extension();
+    
+    // build the model
     mosek::fusion::Model:: t M  = new mosek::fusion::Model("mink_reduce");
     auto _M = monty::finally([&](){M->dispose();});
     M->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
@@ -75,7 +80,7 @@ double mosek_reduce(Net* _graph, double _K) {
 
     int i = 0, j =0;
     M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
-    for (auto a: _graph->_chordalextension->arcs){
+    for (auto a: chordal_extension->arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
         M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
@@ -162,6 +167,7 @@ int main (int argc, const char * argv[])
     const char* fname;
     const char* type;
     const char* relaxation;
+    
     if (argc > 3)
     {
         fname = argv[1];
@@ -214,10 +220,13 @@ int main (int argc, const char * argv[])
     // Graph generation and clique-tree generation.
     Net* graph = new Net();
     graph->readrudy(fname);
-    graph->get_clique_tree();
-   // mosek_reduce(graph,k); 
     Minkmodel mymodel(mt,graph,k,solver);
-  //  mymodel.cliquetree_decompose();
+    
+    if (mt == MIP_tree || mt == SDP_tree)
+    {
+        mymodel._chordal_extension = graph->get_chordal_extension();
+        graph->get_clique_tree();
+    }
     
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
