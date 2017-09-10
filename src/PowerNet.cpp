@@ -68,8 +68,6 @@ int PowerNet::readgrid(const char* fname) {
         cout << "Could not open file\n";
         return -1;
     }
-
-    _clone = new Net(); // just for chordal extension
     
     string word;
     while (word.compare("function")){
@@ -128,7 +126,6 @@ int PowerNet::readgrid(const char* fname) {
         bus_clone->vs = vs;
         
         this->Net::add_node(bus);
-        this->Net::_clone->add_node(bus_clone);
         file >> word;
     }
     file.seekg (0, file.beg);
@@ -219,7 +216,6 @@ int PowerNet::readgrid(const char* fname) {
     double res = 0;
     
     Line* arc = NULL;
-    Line* arc_clone = NULL;
     string src, dest;
     file >> word;
     while(word.compare("];")){
@@ -228,16 +224,12 @@ int PowerNet::readgrid(const char* fname) {
         id = (int)arcs.size() + 1;
         
         arc = new Line(to_string(id));
-        arc_clone = new Line(to_string(id));
         
         arc->id = id;
-        arc_clone->id = id;
         
         arc->src = get_node(src);
         arc->dest= get_node(dest);
         
-        arc_clone->src = _clone->get_node(src);
-        arc_clone->dest = _clone->get_node(dest);
         
         file >> word;
         arc->r = atof(word.c_str());
@@ -270,16 +262,13 @@ int PowerNet::readgrid(const char* fname) {
         arc->cc = arc->tr*cos(arc->as);
         arc->dd = arc->tr*sin(arc->as);
         arc->status = atof(word.c_str());
-        arc_clone->status = arc->status;
         file >> word;
         
         arc->tbound.min = atof(word.c_str())*M_PI/180;
-        arc_clone->tbound.min = arc->tbound.min;
         m_theta_lb += arc->tbound.min;
         file >> word;
         
         arc->tbound.max = atof(word.c_str())*M_PI/180;
-        arc_clone->tbound.max = arc->tbound.max;
         m_theta_ub += arc->tbound.max;
         
         Bus* bus_s = (Bus*)(arc->src);
@@ -300,19 +289,11 @@ int PowerNet::readgrid(const char* fname) {
         
         if(arc->status == 1){
             arc->connect();
-            if(!add_arc(arc)){
-                // not a parallel line
-                arc_clone->connect();
-                _clone->add_arc(arc_clone);
-            }
-            else {
-                delete arc_clone;
-            }
         }
         else {
-            delete arc_clone;
             delete arc;
         }
+
         getline(file, word,'\n');
         file >> word;
     }

@@ -96,10 +96,11 @@ int main (int argc, const char * argv[])
     unsigned i, j, i1, i2, i3;
     
     Net graph;
-    string fname = "../../data_sets/stable_set/p.3n150.txt";
-    graph.topology(fname, false); // get the topology of the graph
+    const char* fname = "../../data_sets/stable_set/p.3n150.txt";
+    graph.read_adjacency_matrix(fname);
+    
     Net complement_graph;
-    complement_graph.topology(fname, true);
+    complement_graph.get_complement(fname);
     complement_graph.get_tree_decomp_bags();
     cout << "total bags: " << complement_graph._bags.size() << endl;
     
@@ -246,6 +247,5 @@ int main (int argc, const char * argv[])
     cout << "Done running the OA-SDP relaxation\n";
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    
     return 0;
 };

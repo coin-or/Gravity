@@ -263,7 +263,6 @@ void Minkmodel::add_clique_lifted() {
     }
 }
 
-// construct a temporary container;
 vector<unsigned> temp;
 
 
@@ -296,7 +295,6 @@ void Minkmodel::nchoosek(int bag_id, int offset, int K){
 void Minkmodel::cliquetree_decompose() {
     //_graph->get_tree_decomp_bags();
     int i1,i2,i3,i4;
-    int j1,j2,j3,j4;
     for (int i = 0; i < _graph->_bags.size(); i++) {
         auto bag = _graph->_bags.at(i);
         if (bag.size()<3) {
@@ -604,7 +602,7 @@ void Minkmodel::construct_fsol() {
 
          Node* n = nullptr;
          Node* nn = nullptr;
-         Arc* arc_chordal=nullptr;
+         Arc* arc_chordal= nullptr;
          bool allzeros=true;
          double temp=0;
 

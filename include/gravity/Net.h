@@ -29,8 +29,9 @@ public:
     /** Set of arcs */
     std::vector<Arc*> arcs;
     
-    /** Mapping the arcs to their source-destination */
-    std::map<std::string, std::set<Arc*>*> lineID;
+    /** Mapping the arcs to their source-destination by their names, i.e, (name_src, name_dest)*/
+    
+    std::map<std::string, std::set<Arc*>*> arcID;
     
     /** Mapping the node name to its position in the vector, key = node name */
     std::map<std::string, Node*> nodeID;
@@ -38,14 +39,7 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
-    bool duplicate(int n1, int n2, int id1);
-    
-    /** Clone network */
-    // Network used for constructing chordal extensions.
-    Net* _clone;
-    
-    /** Store the chordal extension of the network */
-    Net* _chordalextension;
+    bool duplicate(std::string name1, std::string name2, int id1);
     
     /** Tree decomposition bags */
     std::vector<std::vector<Node*>> _bags;
@@ -61,12 +55,15 @@ public:
     bool add_arc(Arc* a);
     
     /* Accessors */
-    
-    Node* get_node(std::string id);
-    /** returns the arc formed by node ids n1 and n2 */
+    Node* get_node(std::string name);
+
+    /** returns the arc formed by node n1 and n2 */
     Arc* get_arc(Node* n1, Node* n2);
+
+    /** returns the arc formed by node names n1 and n2 */
+    Arc* get_arc(std::string n1, std::string n2);
     
-    bool has_arc(unsigned n1, unsigned n2) {
+    bool has_arc(std::string n1, std::string n2) {
         return get_arc(n1,n2)!=nullptr;
     }
 
@@ -79,14 +76,12 @@ public:
     }
 
 
-    /** returns the arc formed by node ids n1 and n2 */
-    Arc* get_arc(int n1, int n2);
     
     char* readline(FILE *input);
     void exit_input_error(int line_num);
     void read_adjacency_matrix(const char* fname);
     void readrudy(const char* fname);
-    Net get_complement(const char* fname);//  (i, j): i<j \E
+    void get_complement(const char* fname);//  (i, j): i<j \E
     
     /**  @brief Remove node and all incident arcs from the network
      @note Does not remove the incident arcs from the list of arcs in the network!
@@ -103,13 +98,11 @@ public:
     
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false);
+    
+    /** Return a chordal extension graph with tree decomposition **/
+    Net* get_chordal_extension();
 
     /** Compute the tree decomposition bags **/
     void get_clique_tree (bool print_clique = false);
-    
-   // int test(std::string fname);
-    int test();
-
-    
 };
 #endif

@@ -6,23 +6,29 @@
 #include <vector>
 #include <string>
 
-// A Node has:
- // a name
-//  an ID.
-//  a set of branches.
+/** A Node has:
+    a name
+    an ID.
+    a set of branches.
+    Name is the unique lable of a node. 
+    ID is determined if it is within a container of nodes.
+ */
+
 class Arc;
+
 class Node{
+    
 public:
     std::string _name;
     int ID;
+    
     std::vector<Arc*> branches;
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
     int fill_in;
 
     // constructions
     Node();
-    Node(int id);
-    Node(std::string name, int id=-1);
+    Node(std::string name, int id= -1);
     ~Node();
     Node* clone();
     

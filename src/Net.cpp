@@ -39,17 +39,15 @@ static int max_line_len;
 static char* line = nullptr;
 
 
-Net::Net() {
-    //horton_net = nullptr;
-    _clone = nullptr;
-}
+Net::Net() {}
 
 /* returns true if an arc is already present between the given nodes */
-bool Net::duplicate(int n1, int n2, int id1) {
+bool Net::duplicate(std::string n1, std::string n2, int id1) {
     int id2 = get_arc(n1, n2)->id;
     if (id2 < id1)
         return true;
-    else return false;
+    else
+        return false;
 }
 
 
@@ -63,10 +61,10 @@ Net* Net::clone() {
     }
     
     Arc* arc = NULL;
-    for (int i=0; i<arcs.size(); i++) {
+    for (int i=0; i < arcs.size(); i++) {
         
         /* ignores if the arc is a paralel line to an already existing line */
-        if (duplicate(arcs[i]->src->ID, arcs[i]->dest->ID, arcs[i]->id)) {
+        if (duplicate(arcs[i]->src->_name, arcs[i]->dest->_name, arcs[i]->id)) {
             continue;
         }
         arc = arcs[i]->clone();
@@ -91,9 +89,11 @@ const bool node_compare(const Node* n1, const Node* n2) {
 
 void Net::add_node(Node* node) {
     node->ID = (int)nodes.size();
-    if(!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
+    
+    if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
     }
+    
     nodes.push_back(node);
 }
 
@@ -101,7 +101,7 @@ Node* Net::get_node(string name) {
     return nodeID.find(name)->second;
 }
 
-/* returns the arc formed by node ids n1 and n2 */
+/* returns the arc formed by node n1 and n2 */
 Arc* Net::get_arc(Node* n1, Node* n2) {
     string src, dest, key, inv_key;
     src = n1->_name;
@@ -114,16 +114,16 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= lineID.find(key);
-    if (it != lineID.end()) {
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
             return a;
             // }
         }
     }
-    it = lineID.find(inv_key);
-    if (it != lineID.end()) {
+    it = arcID.find(inv_key);
+    if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
             return a;
@@ -134,11 +134,9 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
 }
 
 
-/* returns the Id of the arc formed by node ids n1 and n2 */
-Arc* Net::get_arc(int n1, int n2) {
-    string src, dest, key, inv_key;
-    src = to_string(n1);
-    dest = to_string(n2);
+/* returns the Id of the arc formed by nodes names n1 and n2 */
+Arc* Net::get_arc(std::string src, std::string dest) {
+    std::string key, inv_key;
     key.clear();
     inv_key.clear();
     key.append(src);
@@ -147,22 +145,20 @@ Arc* Net::get_arc(int n1, int n2) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= lineID.find(key);
-    if (it != lineID.end()) {
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
         for (auto a: *it->second) {
-            //  if (!a->parallel) {
             return a;
-            //}
         }
     }
-    it = lineID.find(inv_key);
-    if (it != lineID.end()) {
+    
+    it = arcID.find(inv_key);
+    if (it != arcID.end()) {
         for (auto a: *it->second) {
-            //if (!a->parallel) {
             return a;
-            //}
         }
     }
+    
     return nullptr;
 }
 
@@ -172,6 +168,7 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key, inv_key;
     src = a->src->_name;
     dest = a->dest->_name;
+    
     key.clear();
     inv_key.clear();
     key.append(src);
@@ -180,31 +177,35 @@ bool Net::add_arc(Arc* a) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    if(lineID.find(key)==lineID.end() && lineID.find(inv_key)==lineID.end()) {
+    
+    if(arcID.find(key)==arcID.end() && arcID.find(inv_key)==arcID.end()) {
         s = new set<Arc*>;
         s->insert(a);
-        lineID.insert(pair<string, set<Arc*>*>(key,s));
+        arcID.insert(pair<string, set<Arc*>*>(key,s));
     }
     else {
-        if(lineID.find(key)!=lineID.end())
-            s = lineID[key];
-        if(lineID.find(inv_key)!=lineID.end())
-            s = lineID[inv_key];
+        if(arcID.find(key)!=arcID.end())
+            s = arcID[key];
+        if(arcID.find(inv_key)!=arcID.end())
+            s = arcID[inv_key];
         s->insert(a);
-        cout << "\nWARNING: adding another line between same nodes! \n Node name: " << src << " and Node name: " << dest << endl;
+        cout << "\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl;
         //  a->parallel = true;
-        
         parallel = true;
     }
     arcs.push_back(a);
     return parallel;
 }
 
+/** remove the arc by
+1. removing it from the arcs list, but without changing the arc id.
+2. removing it from the map container.
+*/
 
 void Net::remove_arc(Arc* a) {
-    //arcs.erase(arcs.at(a->id));
-    arcs[a->id] = nullptr;
-    lineID.erase(a->src->_name+","+a->dest->_name);
+    arcs.erase(arcs.begin()+(a->id));
+    //arcs[a->id] = nullptr;
+    arcID.erase(a->src->_name+","+a->dest->_name);
 }
 
 // Reading files
@@ -253,28 +254,17 @@ void Net::readrudy(const char* fname) {
     // get nodes
 
     string name;
-    _clone = new Net();
-    _chordalextension = new Net();
     Node* node = nullptr;
-    Node* node_clone = nullptr;
-    Node* node_chordal = nullptr;
 
     for (int i= 1; i<Num_nodes+1; i++) {
         name = to_string(i);
         node = new Node(name,i-1);
-        node_clone = new Node(name,i-1);
-        node_chordal = new Node(name,i-1);
         add_node(node);
-        _clone->add_node(node_clone);
-        _chordalextension->add_node(node_chordal);
-        // cout << "size of chordal extension is: " << _chordalextension->nodes.size() << endl;
     }
 
 
     // get arcs
     Arc* arc = NULL;
-    Arc* arc_clone = NULL;
-    Arc* arc_chordal = NULL;
 
     // note that src, dest are names of nodes.
     string src, dest;
@@ -283,36 +273,17 @@ void Net::readrudy(const char* fname) {
     {
         istringstream iss(sLine);
         iss >> src >> dest >> weight;
-        //cout << src  << ", " << dest << ", " << weight << endl;
 
-        name = (int)arcs.size()+1; //
-
+        name = (int)arcs.size()+1;
         arc = new Arc(name);
-        arc_clone = new Arc(name);
-        arc_chordal = new Arc(name);
 
         arc->id = (int)arcs.size();
-        arc_clone->id = (int)_clone->arcs.size();
-        arc_chordal->id = (int)_chordalextension->arcs.size();
 
         arc->src = get_node(src);
         arc->dest= get_node(dest);
         arc->weight=weight;
         add_arc(arc);
         arc->connect();
-
-
-        arc_clone->src = _clone->get_node(src);
-        arc_clone->dest = _clone->get_node(dest);
-        arc_clone->weight =weight;
-        _clone->add_arc(arc_clone);
-        arc_clone->connect();
-
-        arc_chordal->src = _chordalextension->get_node(src);
-        arc_chordal->dest = _chordalextension->get_node(dest);
-        arc_chordal->weight =weight;
-        _chordalextension->add_arc(arc_chordal);
-        arc_chordal->connect();
     }
     infile.close();
 }
@@ -347,20 +318,15 @@ void Net::read_adjacency_matrix(const char* fname) {
 
     string name;
     int id = 0;
-    _clone = new Net();
 
     Node* node = NULL;
-    Node* node_clone = NULL;
     for (int i= 0; i<n; i++) {
         name = to_string(i);
         node = new Node(name,i);
-        node_clone = new Node(name,i);
         add_node(node);
-        _clone->add_node(node_clone);
     }
 
     Arc* arc = NULL;
-    Arc* arc_clone = NULL;
     string src, dest;
     for (int i = 0; i <(n-1); i++)
         for (int j=i+1; j<n; j++) {
@@ -371,25 +337,18 @@ void Net::read_adjacency_matrix(const char* fname) {
 
                 id = (int)arcs.size();
                 arc = new Arc(to_string(id));
-                arc_clone = new Arc(to_string(id));
                 arc->id = id;
-                arc_clone->id = id;
                 arc->src = get_node(src);
                 arc->dest= get_node(dest);
-                arc_clone->src = _clone->get_node(src);
-                arc_clone->dest = _clone->get_node(dest);
                 add_arc(arc);
                 arc->connect();
-                _clone->add_arc(arc_clone);
-                arc_clone->connect();
             }
         }
     delete[] line;
     fclose(fp);
 }
 
-Net Net::get_complement(const char* fname) {
-    Net complement;
+void Net::get_complement(const char* fname) {
     FILE *fp = fopen(fname,"r");
     if(fp == NULL)
     {
@@ -415,20 +374,15 @@ Net Net::get_complement(const char* fname) {
 
     string name;
     int id = 0;
-    _clone = new Net();
 
     Node* node = NULL;
-    Node* node_clone = NULL;
     for (int i= 0; i<n; i++) {
         name = to_string(i);
         node = new Node(name,i);
-        node_clone = new Node(name,i);
-        complement.add_node(node);
-        complement._clone->add_node(node_clone);
+        add_node(node);
     }
 
     Arc* arc = NULL;
-    Arc* arc_clone = NULL;
     string src, dest;
 
     for (int i = 0; i <(n-1); i++)
@@ -437,25 +391,17 @@ Net Net::get_complement(const char* fname) {
             {
                 src = to_string(i);
                 dest = to_string(j);
-
                 id = (int)arcs.size();
                 arc = new Arc(to_string(id));
-                arc_clone = new Arc(to_string(id));
                 arc->id = id;
-                arc_clone->id = id;
                 arc->src = get_node(src);
                 arc->dest= get_node(dest);
-                arc_clone->src = _clone->get_node(src);
-                arc_clone->dest = _clone->get_node(dest);
-                complement.add_arc(arc);
+                add_arc(arc);
                 arc->connect();
-                complement._clone->add_arc(arc_clone);
-                arc_clone->connect();
             }
         }
     delete[] line;
     fclose(fp);
-    return complement;
 }
 
 
@@ -478,13 +424,75 @@ string Net::remove_end_node() {
             }
         }
     }
-//    delete nodes.back();
     nodes.pop_back();
     return n_id;
 }
 
 // use greedy fill-in algorithm.
 void Net::get_tree_decomp_bags(bool print_bags) {
+    Node* n = nullptr;
+    Node* u = nullptr;
+    Node* nn = nullptr;
+    Arc* arc = nullptr;
+
+    string name="";
+    Net* graph_clone = clone();
+    int nb = 0;
+
+    /** cliques with less than 3 nodes are useless for us.*/
+    while (graph_clone->nodes.size()>2) {
+        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+
+        // last element has the minimum fill-in.
+        n = graph_clone->nodes.back();         
+        Debug(n->_name << endl);
+        Debug(_clone->nodes.size() << endl);
+        vector<Node*> bag;
+        Debug("new bag = { ");
+        for (auto a: n->branches) {
+            nn = a->neighbour(n);
+            bag.push_back(nn);
+            Debug(nn->_name << ", ");
+        }
+        graph_clone->remove_end_node();
+        bag.push_back(n);
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID < b->ID;});
+
+        // update graph_graph and construct chordal extension.
+        for (int i = 0; i < bag.size() - 1; i++) {
+            u = bag.at(i);
+            for (int j = i+1; j<bag.size(); j++) {
+                nn = bag.at(j);
+                if (u->is_connected(nn)) {
+                    continue;
+                }
+                name = to_string((int) graph_clone->arcs.size()+1);
+                arc = new Arc(name);
+
+                arc->id = arcs.size();
+                arc->src = u;
+                arc->dest = nn;
+                arc->connect();
+                graph_clone->add_arc(arc);
+            }
+        }
+
+        if (print_bags) {
+            DebugOn("bag = {");
+            for (int i=0; i<bag.size();     i++) {
+                cout << bag.at(i)->_name << " ";
+            }
+            DebugOn("}" << endl);
+        }
+        _bags.push_back(bag);
+        if (bag.size()==3) {
+            nb++;
+        }
+    }
+    Debug("\n Number of 3D bags = " << nb3 << endl);
+}
+
+Net* Net::get_chordal_extension() {
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -496,44 +504,43 @@ void Net::get_tree_decomp_bags(bool print_bags) {
 
     string name="";
     string name_chordal="";
-    int nb3 = 0;
-    //_chordalextension = Net::clone();
-    //clique less than 3 nodes are useless for us.
-    while (_clone->nodes.size()>2) {
-        //descending order.
-        // not sure.
-        sort(_clone->nodes.begin(), _clone->nodes.end(),node_compare);
-        n = _clone->nodes.back(); //last element, the minimum fill-in.
+    Net* chordal_extension = clone();
+    Net* graph_clone = clone();
+    int nb = 0;
+
+    /** cliques with less than 3 nodes are useless for us.*/
+    while (graph_clone->nodes.size() > 2) {
+        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+        // last element has the minimum fill-in.
+        n = graph_clone->nodes.back();         
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
         vector<Node*> bag;
         Debug("new bag = { ");
+
         for (auto a: n->branches) {
             nn = a->neighbour(n);
             bag.push_back(nn);
             Debug(nn->_name << ", ");
         }
-        _clone->remove_end_node();
-        bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID<b->ID;});
 
-        // update the clone graph and construct chordal extension.
-        for (int i = 0; i<bag.size()-1; i++) {
+        graph_clone->remove_end_node();
+        bag.push_back(n);
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID < b->ID;});
+
+        // update graph_graph and construct chordal extension.
+        for (int i = 0; i < bag.size() - 1; i++) {
             u = bag.at(i);
-            // cout << "uid" << u->ID << " uname" << u->_name << endl;
-            u_chordal = _chordalextension->get_node(u->_name);
-            // cout << "ID_U: " << u_chordal->ID << endl;
+            u_chordal = chordal_extension->get_node(u->_name);
             for (int j = i+1; j<bag.size(); j++) {
                 nn = bag.at(j);
-                nn_chordal=_chordalextension->get_node(nn->_name);
-                //   cout << "ID_nn: " << nn_chordal->ID << endl;
+                nn_chordal=chordal_extension->get_node(nn->_name);
                 if (u->is_connected(nn)) {
                     continue;
                 }
-                name = to_string((int)_clone->arcs.size()+1);
-                name_chordal = to_string((int)_chordalextension->arcs.size()+1);
+                name = to_string((int) graph_clone->arcs.size()+1);
+                name_chordal = to_string((int)chordal_extension->arcs.size()+1);
 
-                //arc = new Arc(u->_name+nn->_name);
                 arc = new Arc(name);
                 arc_chordal = new Arc(name_chordal);
 
@@ -541,35 +548,24 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->src = u;
                 arc->dest = nn;
                 arc->connect();
-                _clone->add_arc(arc);
+                graph_clone->add_arc(arc);
 
-                arc_chordal->id = _chordalextension->arcs.size();
+                arc_chordal->id = chordal_extension->arcs.size();
                 arc_chordal->src = u_chordal;
                 arc_chordal->dest = nn_chordal;
                 arc_chordal->connect();
-                _chordalextension->add_arc(arc_chordal);
+                chordal_extension->add_arc(arc_chordal);
 
             }
         }
 
-        if (print_bags) {
-//            DebugOn(n->_name << ":\n");
-            DebugOn("bag = {");
-            for (int i=0; i<bag.size();     i++) {
-                cout << bag.at(i)->_name << " ";
-            }
-            DebugOn("}" << endl);
-        }
         _bags.push_back(bag);
         if (bag.size()==3) {
-            nb3++;
+            nb++;
         }
     }
-    Debug("\nNumber of 3D bags = " << nb3 << endl);
+    Debug("\n Number of 3D bags = " << nb3 << endl);
 }
-    
-
-
 
 // get cliques from the tree decomposition
 // Two methods
@@ -577,8 +573,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
 // second one: use the RIP property of the tree decomposition, thus just need to check every leaf
 void Net::get_clique_tree (bool print) {
     get_tree_decomp_bags(print);
-    // we need to create a new data structure to store cliques?
-
+    
     for (unsigned i = 0; i < _bags.size()-1; i++) {
         for (unsigned j = i+1; j < _bags.size();) {
             if (std::includes(_bags[i].begin(),_bags[i].end(),
@@ -615,69 +610,7 @@ Net::~Net() {
         }
         arcs.clear();
     }
-    for (pair<string,set<Arc*>*> it:lineID) {
+    for (pair<string,set<Arc*>*> it:arcID) {
         delete it.second;
     }
-    delete _clone;
-}
-
-int Net::test() {
-    string name;
-    int id = 0;
-    _clone = new Net();
-
-    Node* node = NULL;
-    Node* node_clone = NULL;
-
-    for (int i= 0; i<3; i++) {
-        name = to_string(i);
-        id = i;
-        //      cout << "name " << name << " ID: " << i << endl;
-        node = new Node(name,id);
-        node_clone = new Node(name,i);
-        add_node(node);
-        _clone->add_node(node_clone);
-    }
-
-    Arc* arc = NULL;
-    Arc* arc_clone = NULL;
-    string src, dest;
-    for (int i= 0; i<2; i++) {
-        src = to_string(i);
-        dest = to_string(i+1);
-        id = (int)arcs.size();
-        //arc = new Arc(src+dest);
-        //arc_clone = new Arc(src+dest);
-        arc = new Arc(to_string(id));
-        arc_clone = new Arc(to_string(id));
-        arc->id = id;
-        arc_clone->id = id;
-        arc->src = get_node(src);
-        arc->dest= get_node(dest);
-        arc_clone->src = _clone->get_node(src);
-        arc_clone->dest = _clone->get_node(dest);
-        add_arc(arc);
-        arc->connect();
-        _clone->add_arc(arc_clone);
-        arc_clone->connect();
-    }
-    id = (int)arcs.size();
-    //arc = new Arc(src+dest);
-    //arc_clone = new Arc(src+dest);
-    arc = new Arc(to_string(id));
-    arc_clone = new Arc(to_string(id));
-    arc->id = id;
-    arc_clone->id = id;
-    arc->src = get_node("2");
-    arc->dest= get_node("0");
-    arc_clone->src = _clone->get_node("2");
-    arc_clone->dest = _clone->get_node("0");
-    add_arc(arc);
-    arc->connect();
-    _clone->add_arc(arc_clone);
-    arc_clone->connect();
-
-
-//    get_tree_decomp_bags();
-    return 0;
 }

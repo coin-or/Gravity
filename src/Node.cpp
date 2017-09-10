@@ -15,19 +15,22 @@ using namespace std;
 
 Node::Node(){};
 
-Node::Node(int id):_name(""),ID(id),fill_in(0){};
 Node::Node(string name, int id):_name(name),ID(id),fill_in(0){};
+
 Node::~Node(){};
 
 Node* Node::clone(){
     Node* copy = new Node();
     copy->ID = ID;
+    copy->_name = _name;
+    copy->fill_in = fill_in;
     return copy;
 };
 
 /*
  @brief Adds a to the list of incident arcs
  */
+
 void Node::addArc(Arc* a){
     branches.push_back(a);
 }
@@ -65,6 +68,7 @@ bool Node::is_connected(Node* n){
 
 void Node::update_fill_in(Node* n){
     Node * nn = nullptr;
+    
     for(auto a:branches){
         nn = a->neighbour(this); //this node.
         // if nn is null
