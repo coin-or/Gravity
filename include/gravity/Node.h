@@ -20,9 +20,11 @@ class Node{
     
 public:
     std::string _name;
+    
     int ID;
     
     std::vector<Arc*> branches;
+    
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
     int fill_in;
 
@@ -49,6 +51,16 @@ public:
      @brief Returns true if n is an adjacent node.
      */
     bool is_connected(Node* n);
+
+    /*
+     @brief Returns the vector of outgoing active arcs
+     */
+    std::vector<Arc*> get_out();
+    
+    /*
+     @brief Returns the vector of incoming active arcs
+     */
+    std::vector<Arc*> get_in();
 };
 
 #endif

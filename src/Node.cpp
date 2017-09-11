@@ -83,5 +83,23 @@ void Node::update_fill_in(Node* n){
 }
 
 
+std::vector<Arc*> Node::get_out(){
+    vector<Arc*> res;
+    for (auto a:branches) {
+        if(a->src->ID==ID){
+            res.push_back(a);
+        }
+    }
+    return res;
+}
 
+std::vector<Arc*> Node::get_in(){
+    vector<Arc*> res;
+    for (auto a:branches) {
+        if(a->dest->ID==ID){
+            res.push_back(a);
+        }
+    }
+    return res;
+}
 

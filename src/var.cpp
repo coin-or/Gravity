@@ -279,6 +279,7 @@ template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
     res._lb = this->_lb;
     res._ub = this->_ub;
     string key;
+    
     for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
         key = (*it);
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
@@ -292,6 +293,7 @@ template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
         }
         res._dim++;
     }
+    
     res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
     res._is_indexed = true;
     return res;

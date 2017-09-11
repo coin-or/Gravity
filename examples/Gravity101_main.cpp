@@ -295,6 +295,8 @@ int main (int argc, const char * argv[])
     unsigned n = 2;
     m.add_var(Xij^(n*(n-1)/2));
     m.add_var(Xii^n);
+    
+    // new way to generate SOCP
     ordered_pairs indices(1,n);
     Constraint SOCP("SOCP");
     SOCP = power(Xij.in(indices), 2) - Xii.from(indices)*Xii.to(indices);
@@ -335,5 +337,6 @@ int main (int argc, const char * argv[])
     X.print();
     auto t2 =X(3,3)+X(4, 2);
     t2.print();
+        
     return 0;
    } 

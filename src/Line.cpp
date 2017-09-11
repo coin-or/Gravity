@@ -30,6 +30,7 @@ Line::Line(){
 
 Line::Line(string name):Line(){
     _name = name;
+    Line();
 }
 
 

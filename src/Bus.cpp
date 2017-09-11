@@ -1,6 +1,7 @@
 //
 
 #include <gravity/Bus.h>
+#include <gravity/Line.h>
 #include <iostream>
 
 using namespace std;
@@ -54,6 +55,34 @@ double Bus::gs(){
 double Bus::bs(){
     return _cond[0]->_bs;
 };
+
+std::vector<Line*> Bus::get_out(){
+    vector<Line*> res;
+    for (auto a: branches) {
+        Line* la = (Line*) a;
+        if (la->status == 0) {
+            continue;
+        }
+        if(la->src->ID==ID){
+            res.push_back(la);
+        }
+    }
+    return res;
+}
+
+std::vector<Line*> Bus::get_in(){
+    vector<Line*> res;
+    for (auto a:branches) {
+        Line* la = (Line*) a;
+        if (la->status==0) {
+            continue;
+        }
+        if(la->dest->ID==ID){
+            res.push_back(la);
+        }
+    }
+    return res;
+}
 
 
 /** @brief Returns the lower bound on the voltage magnitude at this bus */

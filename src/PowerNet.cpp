@@ -169,7 +169,9 @@ int PowerNet::readgrid(const char* fname) {
         
         if(status==1){
             bus->_has_gen = true;
-            Gen* g = new Gen(bus, to_string(bus->_gen.size()), pmin, pmax, qmin, qmax);
+            /** generator name, ID */
+            Gen* g = new Gen(bus, to_string(gens.size()+1), pmin, pmax, qmin, qmax);
+            g->ID = gens.size();
             g->ps = ps;
             g->qs = qs;
             gens.push_back(g);
@@ -189,7 +191,6 @@ int PowerNet::readgrid(const char* fname) {
     double c0 = 0, c1 = 0,c2 = 0;
     getline(file, word);
     
-//    cout<<"Number of generators = " << gens.size() << endl;
     int gen_counter = 0;
     for (int i = 0; i < gen_status.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
@@ -216,7 +217,7 @@ int PowerNet::readgrid(const char* fname) {
     double res = 0;
     
     Line* arc = NULL;
-    string src, dest;
+    string src,dest;
     file >> word;
     while(word.compare("];")){
         src = word;

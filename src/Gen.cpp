@@ -18,6 +18,7 @@ Gen::Gen(Bus* bus, string name, double p_min, double p_max, double q_min, double
     pbound.max = p_max;
     qbound.min = q_min;
     qbound.max = q_max;
+    ID = -1;
 };
 
 Gen::~Gen(){

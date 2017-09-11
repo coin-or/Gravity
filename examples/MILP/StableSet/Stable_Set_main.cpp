@@ -155,7 +155,7 @@ int main (int argc, const char * argv[])
     ordered_pairs indices(1,n);
     Constraint SOCP("SOCP");
     SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
-    SDP.add_constraint(SOCP<=0);
+    SDP.add_constraint(SOCP <= 0);
     
 //    for (int i = 0; i < n; i++){
 //        for (int j = i+1; j < n; j++){
@@ -167,7 +167,7 @@ int main (int argc, const char * argv[])
     set<tuple<int,int,int>> ids;
     for (i = 0; i < complement_graph._bags.size(); i++){
         auto bag = complement_graph._bags.at(i);
-        if (bag.size()<3) {
+        if (bag.size() < 3) {
             continue;
         }
         for (int j = 0; j < bag.size()-2; j++){
@@ -193,6 +193,7 @@ int main (int argc, const char * argv[])
     Constraint diag("diag");
     diag = ones.tr()*Xii;
     SDP.add_constraint(diag=1); // diagonal sum is 1
+    
     for(auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;
@@ -200,6 +201,7 @@ int main (int argc, const char * argv[])
         zeros = Xij(i,j);
         SDP.add_constraint(zeros=0);
     }
+    
     /* Objective declaration */
     constant<int> twos(2);
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;

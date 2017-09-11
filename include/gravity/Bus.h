@@ -22,7 +22,6 @@ class Line;
 class Bus: public Node{
     
 public:
-    
     /** @brief Bus base kvolts */
     double _kvb;
     
@@ -109,6 +108,16 @@ public:
     
     /** @brief Returns the reactive power load at this bus */
     double ql();
+
+    /*
+     @brief Returns the vector of outgoing active arcs
+     */
+    std::vector<Line*> get_out();
+    
+    /*
+     @brief Returns the vector of incoming active arcs
+     */
+    std::vector<Line*> get_in();
 
     /** @brief Returns the lower bound on the voltage magnitude at this bus */
     double vmin();

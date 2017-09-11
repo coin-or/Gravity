@@ -26,6 +26,9 @@ public:
      */
     std::string _name;
     
+    /** Position of a generator in a container. **/
+    int ID;
+    
     /** @brief Gen status, in/out of the network */
     bool _active;
     

@@ -29,8 +29,7 @@ public:
     double cc;
     double dd;
     double smax;
-
-    int status; // on /off, failure or not. 
+    int status; // on /off, failure or not.
     Bound tbound;
     //Complex _Si_;
     //Complex _Sj_;
