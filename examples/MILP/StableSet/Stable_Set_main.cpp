@@ -192,7 +192,7 @@ int main (int argc, const char * argv[])
     }
     Constraint diag("diag");
     diag = ones.tr()*Xii;
-    SDP.add_constraint(diag=1); // diagonal sum is 1
+    SDP.add_constraint(diag = 1); // diagonal sum is 1
     
     for(auto a: graph.arcs){
         i = (a->src)->ID;
