@@ -104,8 +104,6 @@ int main (int argc, const char * argv[])
     complement_graph.get_tree_decomp_bags();
     cout << "total bags: " << complement_graph._bags.size() << endl;
     
-   
-    
     Model model;
     unsigned n = graph.nodes.size();
     unsigned m = graph.arcs.size();
