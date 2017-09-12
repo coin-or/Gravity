@@ -1,4 +1,4 @@
-//
+ //
 //  Stable_Set.cpp
 //  Gravity
 //
@@ -96,7 +96,7 @@ int main (int argc, const char * argv[])
     unsigned i, j, i1, i2, i3;
     
     Net graph;
-    const char* fname = "../../data_sets/stable_set/p.3n150.txt";
+    const char* fname = "../../data_sets/stable_set/toy.txt";
     graph.read_adjacency_matrix(fname);
     
     Net complement_graph;
@@ -111,8 +111,11 @@ int main (int argc, const char * argv[])
     /**  IP model for the stable set problem. **/
     var<bool> x("x");
     model.add_var(x^n);
+//    var<bool> y("y");
+//    model.add_var(y^3);
     constant<int> ones(1);
     func_ obj = ones.tr()*x;
+    obj.print();
     model.set_objective(max(obj));
     Constraint c("Stable_Set");
     c = x.from(graph.arcs) + x.to(graph.arcs);
@@ -204,6 +207,7 @@ int main (int argc, const char * argv[])
     constant<int> twos(2);
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
     SDP.set_objective(max(obj_SDP));
+    
     solver s1(SDP,ipopt);
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();

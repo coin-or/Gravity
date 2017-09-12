@@ -308,7 +308,7 @@ int main (int argc, const char * argv[])
     obj.print();
     m.set_objective(min(obj));
     solver s(m,ipopt);
-//    s.run();
+     s.run();
 //    return 0;
 //   }
 //  df2dx.print();
