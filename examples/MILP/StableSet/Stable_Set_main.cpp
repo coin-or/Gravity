@@ -166,31 +166,31 @@ int main (int argc, const char * argv[])
 //        }
 //    }
     set<tuple<int,int,int>> ids;
-    for (i = 0; i < complement_graph._bags.size(); i++){
-        auto bag = complement_graph._bags.at(i);
-        if (bag.size() < 3) {
-            continue;
-        }
-        for (int j = 0; j < bag.size()-2; j++){
-            i1 = bag[j]->ID;
-            i2 = bag[j+1]->ID;
-            i3 = bag[j+2]->ID;
-            assert(i2>i1 && i3>i2);
-            if(ids.count(make_tuple(i1, i2, i3))==0){
-                ids.insert(make_tuple(i1, i2, i3));
-            }
-            else {
-                continue;
-            }
-            Constraint SDP3("SDP3("+to_string(i1)+","+to_string(i2)+","+to_string(i3)+")");
-            SDP3 = -2*Xij(i1,i2)*Xij(i2,i3)*Xij(i1,i3);
-            SDP3 -= Xii(i1)*Xii(i2)*Xii(i3);
-            SDP3 += power(Xij(i1,i2),2)*Xii(i3);
-            SDP3 += power(Xij(i1,i3),2)*Xii(i2);
-            SDP3 += power(Xij(i2,i3),2)*Xii(i1);
-            SDP.add_constraint(SDP3);
-        }
-    }
+//    for (i = 0; i < complement_graph._bags.size(); i++){
+//        auto bag = complement_graph._bags.at(i);
+//        if (bag.size() < 3) {
+//            continue;
+//        }
+//        for (int j = 0; j < bag.size()-2; j++){
+//            i1 = bag[j]->ID;
+//            i2 = bag[j+1]->ID;
+//            i3 = bag[j+2]->ID;
+//            assert(i2>i1 && i3>i2);
+//            if(ids.count(make_tuple(i1, i2, i3))==0){
+//                ids.insert(make_tuple(i1, i2, i3));
+//            }
+//            else {
+//                continue;
+//            }
+//            Constraint SDP3("SDP3("+to_string(i1)+","+to_string(i2)+","+to_string(i3)+")");
+//            SDP3 = -2*Xij(i1,i2)*Xij(i2,i3)*Xij(i1,i3);
+//            SDP3 -= Xii(i1)*Xii(i2)*Xii(i3);
+//            SDP3 += power(Xij(i1,i2),2)*Xii(i3);
+//            SDP3 += power(Xij(i1,i3),2)*Xii(i2);
+//            SDP3 += power(Xij(i2,i3),2)*Xii(i1);
+//            SDP.add_constraint(SDP3);
+//        }
+//    }
     Constraint diag("diag");
     diag = ones.tr()*Xii;
     SDP.add_constraint(diag = 1); // diagonal sum is 1
@@ -208,7 +208,9 @@ int main (int argc, const char * argv[])
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
     SDP.set_objective(max(obj_SDP));
     
-    solver s1(SDP,ipopt);
+    //solver s1(SDP,ipopt);
+    solver s1(SDP,cplex);
+
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
