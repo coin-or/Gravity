@@ -93,6 +93,8 @@ public:
     var from(const vector<Arc*>& arcs);
     var to(const vector<Arc*>& arcs);
     var in(const vector<Arc*>& arcs);
+
+    var in(const vector<Node*>& nodes);
     
     
     var from(const ordered_pairs& pairs);
