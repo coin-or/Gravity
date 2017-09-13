@@ -32,7 +32,7 @@ protected:
     NType                                  _intype;
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                    vectors */
-    unique_ptr<vector<unsigned>>           _ids = nullptr;/*<< A vector storing all the indices this parameter has in the order they were created */
+    unique_ptr<vector<unsigned>>           _ids = nullptr;/*<<A vector storing all the indices this parameter has in the order they were created */
     
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
    shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
@@ -288,10 +288,6 @@ public:
         if (_is_indexed) {
             return _val->at(_ids->at(i));
         }
-//        if (_val->size() <= i) {
-//            throw out_of_range("get_val(int i)");
-////            return _val->at(0);
-//        }
         return _val->at(i);
     }
     
@@ -485,9 +481,11 @@ public:
         for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
             key = (*it);
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-                res._ids->push_back(param_::_indices->size()-1);
+            if(pp.second){
+                //new index inserted
+                //why -1?
+                res._indices->insert(make_pair<>(key,param_::_indices->size() - 1));
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 res._indices->insert(make_pair<>(key,pp.first->second));
@@ -513,7 +511,7 @@ public:
         for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++){
             key = (*it);
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
+            if(pp.second){
                 res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
                 res._ids->push_back(param_::_indices->size()-1);
             }
@@ -570,7 +568,7 @@ public:
             key = (*it)->src->_name;
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
             if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
                 res._ids->push_back(param_::_indices->size()-1);
             }
             else {
@@ -591,8 +589,8 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        //res._lb = this->_lb;
-        //res._ub = this->_ub;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++){
             key = (*it)->_name;

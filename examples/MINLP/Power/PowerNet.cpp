@@ -248,13 +248,14 @@ int PowerNet::readgrid(const char* fname) {
         file >> word;
         arc->limit = atof(word.c_str())/bMVA;
         
+        // skip rate A rate B rate C.
         file >> ws >> word >> ws >> word >> ws >> word;
         if(atof(word.c_str()) == 0)
             arc->tr = 1.0;
         else
             arc->tr = atof(word.c_str());
         file >> word;
-        arc->as = atof(word.c_str())*M_PI/180;
+        arc->as = atof(word.c_str())*M_PI/180; 
         file >> word;
         
         arc->cc = arc->tr*cos(arc->as);

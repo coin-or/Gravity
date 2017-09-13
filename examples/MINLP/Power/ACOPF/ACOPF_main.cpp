@@ -100,7 +100,6 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qf^(2*nb_lines));
 
     // voltage related variables.
-    // V_i = vr + jvi
     var<double> vr("vr");
     var<double> vi("vf");
     ACOPF.add_var(vr^(nb_buses));
@@ -149,6 +148,16 @@ int main (int argc, const char * argv[])
     }
 
     //AC Power Flow definitions.
+    param<double> gij("gij");
+    param<double> bij("bij");
+
+    for (auto a: grid->arcs) {
+        gij.add_val(((Line *)a)->g);
+        bij.add_val(((Line *)a)->g);
+    }
+
+    
+
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf.in(grid->arcs);
     Flow_P_From -= power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2);
@@ -222,8 +231,8 @@ int main (int argc, const char * argv[])
 //    }
 //    
 //    // AC voltage limit constraints.
-//    param<double> vbound_max_square("vbound_max_square");
-//    param<double> vbound_min_square("vbound_min_square");
+    param<double> vbound_max_square("vbound_max_square");
+    param<double> vbound_min_square("vbound_min_square");
 //
 //    for (auto b: grid->nodes){
 //        vbound_max_square.add_val(pow(((Bus*)b)->vbound.max, 2.));
