@@ -129,18 +129,12 @@ int main (int argc, const char * argv[])
         Constraint KCL_P("KCL_P"+bus->_name);
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
-        var<double> temp = Pf.in(b->get_out());
-        cout << temp.get_dim() << endl;
-        temp.print(true); /** bug */
-//        for (auto a: b->get_out()){
-//            KCL_P += Pf(a->id);
-//            KCL_Q += Qf(a->id);
-//        }
-//        
-//        for (auto a: b->get_in()){
-//            KCL_P += Pf(a->id);
-//            KCL_Q += Qf(a->id);
-//        }
+        KCL_P += ones.tr()*Pf.in(b->get_out());
+        KCL_Q += ones.tr()*Qf.in(b->get_out());
+        KCL_P += ones.tr()*Pf.in(b->get_in());
+        KCL_Q += ones.tr()*Qf.in(b->get_in());
+        
+
 //        
 //        KCL_P += bus->pl() + bus->gs()*(power(vr(bus->ID),2) + power(vi(bus->ID), 2));
 //        KCL_Q += bus->ql()- bus->bs()*(power(vr(bus->ID),2)+power(vi(bus->ID), 2));
@@ -156,7 +150,6 @@ int main (int argc, const char * argv[])
 //
 //        ACOPF.add_constraint(KCL_Q=0);
 //        KCL_Q.print();
-
     }
     //AC Power Flow definitions.
 //    for (auto a: grid->arcs) {
@@ -281,7 +274,7 @@ int main (int argc, const char * argv[])
 //        ACOPF.add_constraint(Qbound_LB >= g->qbound.min);
 //    }
     
-    solver OPF(ACOPF,ipopt);
+    solver OPF(ACOPF,cplex);
     OPF.run();
     return 0;
 }

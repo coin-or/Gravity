@@ -190,7 +190,6 @@ template<typename type> sdpvar<type>::sdpvar(sdpvar<type>&& v):var<type>(v){
 };
 
 // sdpvar 
-
 template<typename type> sdpvar<type>::sdpvar(const string& name, type lb, type ub):sdpvar<type>(name){
     var<type>(name, lb, ub);
 };
