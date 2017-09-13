@@ -589,8 +589,8 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        //res._lb = this->_lb;
+        //res._ub = this->_ub;
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++){
             key = (*it)->_name;

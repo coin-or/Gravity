@@ -244,7 +244,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->b = -arc->x/res;
         
         file >> word;
-        arc->ch = atof(word.c_str());
+        arc->ch = atof(word.c_str()); // b. 
         file >> word;
         arc->limit = atof(word.c_str())/bMVA;
         
@@ -258,7 +258,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->as = atof(word.c_str())*M_PI/180; 
         file >> word;
         
-        arc->cc = arc->tr*cos(arc->as);
+        arc->cc = arc->tr*cos(arc->as); // what's cc and dd?
         arc->dd = arc->tr*sin(arc->as);
         arc->status = atof(word.c_str());
         file >> word;
