@@ -47,7 +47,9 @@ public:
     /** Bounded variable constructor */
     var(const string& name, type lb, type ub);
     //@}
-        
+    
+    
+    // retrieve component of a variable. 
     template<typename... Args>
     var operator()(size_t t1, Args&&... args){
         var res(this->_name);
@@ -68,7 +70,7 @@ public:
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (size_t i= 0; i<indices.size(); i++) {
+        for (size_t i= 0; i< indices.size(); i++) {
             key += to_string(*it);
             if (i<indices.size()-1) {
                 key += ",";

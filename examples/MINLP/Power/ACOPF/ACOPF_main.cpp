@@ -119,7 +119,6 @@ int main (int argc, const char * argv[])
     
     /** Define constraints */
     // AC-KCL constraints
-    //-- for each bus.
     /** subject to KCL_P {i in buses}: sum{(l,i,j) in arcs} p[l,i,j] + shunt_g[i]*v[i]^2 + load_p[i] = sum{(i,gen) in bus_gen} pg[gen];
      subject to KCL_Q {i in buses}: sum{(l,i,j) in arcs} q[l,i,j] - shunt_g[i]*v[i]^2 + load_q[i] = sum{(i,gen) in bus_gen} qg[gen];
      */
@@ -129,29 +128,59 @@ int main (int argc, const char * argv[])
         Constraint KCL_P("KCL_P"+bus->_name);
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
-        KCL_P += ones.tr()*Pf.in(b->get_out());
-        KCL_Q += ones.tr()*Qf.in(b->get_out());
+        KCL_P = ones.tr()*Pf.in(b->get_out());
+        KCL_Q = ones.tr()*Qf.in(b->get_out());
         KCL_P += ones.tr()*Pf.in(b->get_in());
         KCL_Q += ones.tr()*Qf.in(b->get_in());
         
-
-//        
-//        KCL_P += bus->pl() + bus->gs()*(power(vr(bus->ID),2) + power(vi(bus->ID), 2));
-//        KCL_Q += bus->ql()- bus->bs()*(power(vr(bus->ID),2)+power(vi(bus->ID), 2));
-//
-//        for (auto g: bus->_gen)
-//            KCL_P -= Pg(g->ID);
-//
-//        ACOPF.add_constraint(KCL_P=0);
-//        KCL_P.print();
-//
-//        for (auto g: bus->_gen)
-//            KCL_Q -= Qg(g->ID);
-//
-//        ACOPF.add_constraint(KCL_Q=0);
-//        KCL_Q.print();
+        KCL_P += bus->pl() + bus->gs()*(power(vr(bus->ID),2) + power(vi(bus->ID), 2));
+        KCL_Q += bus->ql()- bus->bs()*(power(vr(bus->ID),2)+power(vi(bus->ID), 2));
+        
+        for (auto g: bus->_gen) {
+            KCL_P -= Pg(g->ID);
+            KCL_Q -= Qg(g->ID);
+        }
+        
+        
+        ACOPF.add_constraint(KCL_P=0);
+        ACOPF.add_constraint(KCL_Q=0);
+        KCL_P.print();
+        KCL_Q.print();
     }
+
     //AC Power Flow definitions.
+    Constraint Flow_P_From("Flow_P_From");
+    Flow_P_From += Pf.in(grid->arcs);
+    Flow_P_From -= power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2);
+    Flow_P_From -= vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs);
+    Flow_P_From -= vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs);
+    Flow_P_From = 0;
+    ACOPF.add_constraint(Flow_P_From);
+    
+    Constraint Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf.in(grid->arcs);
+    Flow_P_To -= power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2);
+    Flow_P_To -= vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs);
+    Flow_P_To -= vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs);
+    Flow_P_To = 0;
+    ACOPF.add_constraint(Flow_P_To);
+
+    Constraint Flow_Q_From("Flow_Q_From");
+    Flow_Q_From += Qf.in(grid->arcs);
+    Flow_Q_From -= power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2);
+    Flow_Q_From -= vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs);
+    Flow_Q_From -= vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs);
+    Flow_Q_From = 0;
+    ACOPF.add_constraint(Flow_Q_From);
+    
+    Constraint Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf.in(grid->arcs);
+    Flow_Q_To -= power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2);
+    Flow_Q_To -= vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs);
+    Flow_Q_To -= vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs);
+    Flow_Q_To = 0;
+    ACOPF.add_constraint(Flow_Q_To);
+
 //    for (auto a: grid->arcs) {
 //        Line* la = (Line *) a;
 //        if (la->status == 1) {
@@ -273,7 +302,6 @@ int main (int argc, const char * argv[])
 //        Qbound_LB += Qg(g->ID);
 //        ACOPF.add_constraint(Qbound_LB >= g->qbound.min);
 //    }
-    
     solver OPF(ACOPF,cplex);
     OPF.run();
     return 0;

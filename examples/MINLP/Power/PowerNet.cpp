@@ -224,7 +224,7 @@ int PowerNet::readgrid(const char* fname) {
         file >> dest;
         id = (int)arcs.size();
         
-        arc = new Line(to_string(id));
+        arc = new Line("(" + src + "," + dest + ")");
         arc->id = id;
         arc->src = get_node(src);
         arc->dest= get_node(dest);
@@ -272,13 +272,6 @@ int PowerNet::readgrid(const char* fname) {
         Bus* bus_s = (Bus*)(arc->src);
         Bus* bus_d = (Bus*)(arc->dest);
 
-    
-        
-        /**
-         arc->smax = max(pow((Bus*)(arc->src)->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->src->vbound.max,2)+ pow(arc->dest->vbound.max,2)),
-         pow(arc->dest->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(arc->dest->vbound.max,2) + pow((Bus*)(arc->src)->vbound.max,2)));
-        */
-        
         arc->smax = max(
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                         pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
@@ -299,3 +292,6 @@ int PowerNet::readgrid(const char* fname) {
     file.close();
     return 0;
 }
+
+//template<typename type> var_gen<type>::var_gen(const string& name):var<type>(name){
+//};

@@ -279,7 +279,7 @@ template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs){
     res._ub = this->_ub;
     string key;
     for(auto it = arcs.begin(); it!= arcs.end(); it++){
-        key = (*it)->src->_name +"," + (*it)->dest->_name;
+        key = (*it)->_name;
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         if(pp.second){//new index inserted
             res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
