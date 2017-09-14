@@ -84,11 +84,14 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
-    var<double> Pf("Pf");
-    var<double> Qf("Qf");
-    cout << nb_lines << endl;
-    ACOPF.add_var(Pf^(2*nb_lines));
-    ACOPF.add_var(Qf^(2*nb_lines));
+    var<double> Pf_from("Pf_from");
+    var<double> Qf_from("Qf_from");
+    var<double> Pf_to("Pf_to");
+    var<double> Qf_to("Qf_to");
+    ACOPF.add_var(Pf_from^(nb_lines));
+    ACOPF.add_var(Qf_from^(nb_lines));
+    ACOPF.add_var(Pf_to^(nb_lines));
+    ACOPF.add_var(Qf_to^(nb_lines));
 
     // voltage related variables.
     var<double> vr("vr");
@@ -115,11 +118,11 @@ int main (int argc, const char * argv[])
         Bus* bus = (Bus*)b;
         Constraint KCL_P("KCL_P"+bus->_name);
         Constraint KCL_Q("KCL_Q"+bus->_name);
-        var<double> temp = Pf.in(b->get_out());
-        KCL_P = ones.tr()*(temp);
-        KCL_Q = ones.tr()*Qf.in(b->get_out());
-        KCL_P += ones.tr()*Pf.in(b->get_in());
-        KCL_Q += ones.tr()*Qf.in(b->get_in());
+
+        KCL_P = ones.tr()*Pf_from.in(b->get_out());
+        KCL_Q = ones.tr()*Qf_from.in(b->get_out());
+        KCL_P += ones.tr()*Pf_to.in(b->get_in());
+        KCL_Q += ones.tr()*Qf_to.in(b->get_in());
         
         KCL_P += bus->pl() + bus->gs()*(power(vr(bus->ID),2) + power(vi(bus->ID), 2));
         KCL_Q += bus->ql()- bus->bs()*(power(vr(bus->ID),2)+power(vi(bus->ID), 2));
@@ -135,47 +138,63 @@ int main (int argc, const char * argv[])
     }
 
     //AC Power Flow.
-    param<double> gij("gij");
-    param<double> bij("bij");
+    param<double> g_ff("g_ff");
+    param<double> g_ft("g_ft");
+    param<double> g_tf("g_tf");
+    param<double> g_tt("g_tt");
+
+    param<double> b_ff("b_ff");
+    param<double> b_ft("b_ft");
+    param<double> b_tf("b_tf");
+    param<double> b_tt("b_tt");
 
     for (auto a: grid->arcs) {
-        gij.add_val(((Line *)a)->g);
-        bij.add_val(((Line *)a)->g);
+        auto la = (Line *) a;
+             g_ff = la->g/pow(la->tr,2.);
+             g_ft = (-la->g*la->cc + la->b*la->dd)/(pow(la->cc,2)+pow(la->dd,2));
+             b_ft = (-la->b*la->cc - la->g*la->dd)/(pow(la->cc,2)+pow(la->dd,2));
+
+             g_tt = la->g;
+             g_tf = (-la->g*la->cc - la->b*la->dd)/(pow(la->cc,2)+pow(la->dd,2));
+             b_tf = (-la->b*la->cc + la->g*la->dd)/(pow(la->cc,2)+pow(la->dd,2));
+             
+             b_ff = (la->ch/2 + la->b)/pow(la->tr,2.);
+             b_tt = (la->ch/2 + la->b);
     }
 
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf.in(grid->arcs);
-    Flow_P_From -= gij.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
-    Flow_P_From += gij.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_P_From -= bij.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_P_From += Pf_from.in(grid->arcs);
+    Flow_P_From -= g_ff.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
+    Flow_P_From += g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_P_From -= b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_P_From = 0;
     ACOPF.add_constraint(Flow_P_From);
     
-    //Constraint Flow_P_To("Flow_P_To");
-    //Flow_P_To += Pf.in(grid->arcs);
-    //Flow_P_To -= gij.in(grid->arcs)*(power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2));
-    //Flow_P_To += gij.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    //Flow_P_To -= bij.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
-    //Flow_P_To = 0;
-    //ACOPF.add_constraint(Flow_P_To);
+    Constraint Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf_to.in(grid->arcs);
+    Flow_P_To -= g_tt.in(grid->arcs)*(power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2));
+    Flow_P_To += g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_P_To -= b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_P_To = 0;
+    ACOPF.add_constraint(Flow_P_To);
 
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf.in(grid->arcs);
-    Flow_Q_From -= bij.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
-    Flow_Q_From -= bij.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_Q_From -= gij.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_Q_From += Qf_from.in(grid->arcs);
+    Flow_Q_From += b_ff.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
+    Flow_Q_From += b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_Q_From -= g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_Q_From = 0;
     ACOPF.add_constraint(Flow_Q_From);
     
-    //Constraint Flow_Q_To("Flow_Q_To");
-    //Flow_Q_To += Qf.in(grid->arcs);
-    //Flow_Q_To -= bij.in(grid->arcs)*(power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2));
-    //Flow_Q_To -= bij.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    //Flow_Q_To -= gij.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
-    //Flow_Q_To = 0;
-    //ACOPF.add_constraint(Flow_Q_To);
+    Constraint Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf_to.in(grid->arcs);
+    Flow_Q_To += b_tt.in(grid->arcs)*(power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2));
+    Flow_Q_To -= b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_Q_To -= g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_Q_To = 0;
+    ACOPF.add_constraint(Flow_Q_To);
 
-//    // AC voltage limit constraints.
+    // AC voltage limit constraints.
     param<double> vbound_max_square("vbound_max_square");
     param<double> vbound_min_square("vbound_min_square");
 
@@ -223,9 +242,14 @@ int main (int argc, const char * argv[])
     }
     
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf.in(grid->arcs), 2) + power(Qf.in(grid->arcs),2);
+    Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs),2);
     Thermal_Limit_from -= Thermal_limit_square;
     ACOPF.add_constraint(Thermal_Limit_from <= 0);
+
+    Constraint Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_from += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs),2);
+    Thermal_Limit_from -= Thermal_limit_square;
+    ACOPF.add_constraint(Thermal_Limit_to <= 0);
 
     // Power generation constraints.
     param<double> PUB("PUB");
