@@ -165,15 +165,15 @@ int main (int argc, const char * argv[])
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs);
     Flow_P_From -= g_ff.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
-    Flow_P_From += g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_P_From -= b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_P_From -= g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_P_From -= b_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_From = 0;
     ACOPF.add_constraint(Flow_P_From);
     
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to.in(grid->arcs);
     Flow_P_To -= g_tt.in(grid->arcs)*(power(vr.to(grid->arcs),2) + power(vi.to(grid->arcs),2));
-    Flow_P_To += g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    Flow_P_To -= g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_To -= b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_P_To = 0;
     ACOPF.add_constraint(Flow_P_To);
@@ -182,7 +182,7 @@ int main (int argc, const char * argv[])
     Flow_Q_From += Qf_from.in(grid->arcs);
     Flow_Q_From += b_ff.in(grid->arcs)*(power(vr.from(grid->arcs),2) + power(vi.from(grid->arcs),2));
     Flow_Q_From += b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_Q_From -= g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
+    Flow_Q_From -= g_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_From = 0;
     ACOPF.add_constraint(Flow_Q_From);
     
