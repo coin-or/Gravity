@@ -96,7 +96,34 @@ public:
     var to(const vector<Arc*>& arcs);
     var in(const vector<Arc*>& arcs);
 
-    var in(const vector<Node*>& nodes);
+template<typename Tobj>
+    var in(const vector<Tobj>& gens){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = gens.begin(); it!= gens.end(); it++){
+        key = (*it)->_name;
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else{
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".in_nodes";
+    res._is_indexed = true;
+    return res;
+}
     
     
     var from(const ordered_pairs& pairs);
@@ -262,15 +289,15 @@ public:
     //void    set_size(size_t s, type val = 0);
 
     /* Operators */
-    sdpvar& operator=(type v){
+    sdpvar& operator = (type v){
         param<type>::_val->push_back(v);
         param<type>::_dim++;
         return *this;
     }
 
-    bool operator==(const sdpvar& v) const;
-    bool operator>=(const sdpvar& v) const; 
-    bool operator!=(const sdpvar& v) const;
+    bool operator == (const sdpvar& v) const;
+    bool operator >= (const sdpvar& v) const; 
+    bool operator != (const sdpvar& v) const;
     sdpvar& operator^(size_t d){
         // the upper/lower triangular part. 
         param<type>::set_size(d*(d+1)/2);

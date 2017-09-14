@@ -244,7 +244,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->b = -arc->x/res;
         
         file >> word;
-        arc->ch = atof(word.c_str()); // b. 
+        arc->ch = atof(word.c_str()); 
         file >> word;
         arc->limit = atof(word.c_str())/bMVA;
         

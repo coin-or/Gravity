@@ -73,19 +73,15 @@ public:
     string get_name(bool indices=true) const;
     NType get_intype() const { return _intype;}
     size_t get_dim() const {
-//        if (_indices->size()==0) {
             return _dim;
-//        }
-//        else {
-//            return _indices->size();
-//        }
     }
     
     shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
     }
-    //
-//(guanglei) added..
+    
+
+/**  (guanglei) added sdpvar */
     shared_ptr<map<string, pair<unsigned, unsigned>>> get_sdpindices() const {
         return _sdpindices;
     }
@@ -130,42 +126,6 @@ public:
     }
 };
 
-
-///** A pair <indices, param> */
-//class ind_param: public constant_{
-//    
-//public:
-//    set<ind>*               _indices;
-//    param_*                 _p;
-//    
-//    ind_param(ind_param&& p){
-//        _indices = p._indices;
-//        p._indices = nullptr;
-//        _p = p._p;
-//    };
-//    
-////    ind_param(const param_& p){
-////        _indices = new set<ind>();
-////        _p = (param_*)copy((constant_*)&p);
-////    };
-//    
-//    ind_param(param_* p){
-//        _indices = new set<ind>();
-//        _p = p;
-//    };
-//    
-//    void add_index(ind i);
-//    
-//    bool has_index(ind i) const;
-//    
-//    ~ind_param(){
-//        delete _indices;
-//        delete _p;
-//    };
-//    
-//    bool operator==(const ind_param& p) const;
-//    
-//};
 
 /** A parameter can be a bool, a short, an int, a float or a double*/
 template<typename type = double>
@@ -582,15 +542,14 @@ public:
         return res;
     }
 
-    param in(const vector<Node*>& nodes){
+    template<typename Tobj>
+    param in(const vector<Tobj*>& nodes){
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        //res._lb = this->_lb;
-        //res._ub = this->_ub;
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++){
             key = (*it)->_name;
@@ -617,8 +576,6 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        //res._lb = this->_lb;
-        //res._ub = this->_ub;
         string key;
         for(auto it = arcs.begin(); it!= arcs.end(); it++){
             key = (*it)->_name;
@@ -645,8 +602,6 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        //res._lb = this->_lb;
-        //res._ub = this->_ub;
         string key;
         for(auto it = arcs.begin(); it!= arcs.end(); it++){
             key = (*it)->dest->_name;

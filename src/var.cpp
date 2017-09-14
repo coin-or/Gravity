@@ -296,35 +296,6 @@ template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs){
     return res;
 }
 
-template<typename type>var<type> var<type>::in(const vector<Node*>& nodes){
-    var res(this->_name);
-    res._id = this->_id;
-    res._vec_id = this->_vec_id;
-    res._intype = this->_intype;
-    res._range = this->_range;
-    res._val = this->_val;
-    res._lb = this->_lb;
-    res._ub = this->_ub;
-    string key;
-    for(auto it = nodes.begin(); it!= nodes.end(); it++){
-        key = (*it)->_name;
-        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-        if(pp.second){//new index inserted
-            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-            res._ids->push_back(param_::_indices->size()-1);
-        }
-        else{
-            res._indices->insert(make_pair<>(key,pp.first->second));
-            res._ids->push_back(pp.first->second);
-        }
-        res._dim++;
-    }
-    res._name += ".in_nodes";
-    res._is_indexed = true;
-    return res;
-}
-
-
 template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
     var res(this->_name);
     res._id = this->_id;

@@ -276,9 +276,12 @@ void CplexProgram::create_cplex_constraints(){
                 idx = it1.second._p->get_vec_id();
                 if (it1.second._coef->_is_transposed) {
                     IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
+
                     for (int j = 0; j<it1.second._p->get_dim(); j++) {
                         coefs[j] = poly_eval(it1.second._coef,j);
                     }
+                    cout << "size of coefs: " << coefs.getSize() << endl;
+                    cout << "size of vars: " <<_cplex_vars[idx].getSize() << endl;
                     cc += IloScalProd(coefs, _cplex_vars[idx]);
                 }
                 else {
