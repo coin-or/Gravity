@@ -35,6 +35,7 @@ protected:
     string                          _name;
     set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
     vector<shared_ptr<func_>>       _functions;
+
     void add_var(param_* v);        //Add variables without reallocating memory
     void add_param(param_* v);      //Add variables without reallocating memory
     
@@ -44,17 +45,27 @@ public:
     size_t                          _nb_cons = 0;
     size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
     size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
-    map<unsigned,param_*>           _params; /**< Sorted map pointing to all parameters contained in this model */
-    map<unsigned,param_*>           _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-    map<string,param_*>             _params_name; /**< Sorted map pointing to all parameters contained in this model */
-    map<string,param_*>             _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-    map<unsigned,Constraint*>        _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-    map<string,Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-    map<unsigned, set<Constraint*>>        _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
-    map<pair<unsigned,unsigned>, map<pair<unsigned,unsigned>,set<pair<int,int>>>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by pairs of variable ids, a pair contains the metavar id and the instanciated var id. The last set contains pairs of indices of constraints where both variables appear, the pair stores the metaconstraint id and the instanciated constraint id */
+    map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
+    map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+    map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
+    map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+    map<unsigned, Constraint*>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    map<string, Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+    map<unsigned, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
+
+    /**< Set of variables linked to one another in the hessian, indexed by pairs
+     * of variable ids, a pair contains the metavar id and the instanciated var
+     * id. The last set contains pairs of indices of constraints where both
+     * variables appear, the pair stores the metaconstraint id and the
+     * instanciated constraint id 
+     * */
+
+    map<pair<unsigned,unsigned>, map<pair<unsigned,unsigned>,set<pair<int,int>>>>            _hess_link;     
+
     func_                           _obj; /** Objective function */
     ObjectiveType                   _objt; /** Minimize or maximize */
     double                          _obj_val = 0;/** Objective function value */
+
     /** Constructor */
     //@{
     Model();
@@ -103,9 +114,7 @@ public:
     void add_constraint(const Constraint& c);
     
     void embed(func_& f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
-    
     void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
-    
     void del_constraint(const Constraint& c);
     void set_objective(const func_& f, ObjectiveType t = minimize);
     void set_objective(pair<func_*, ObjectiveType> p);

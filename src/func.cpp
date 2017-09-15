@@ -5140,7 +5140,7 @@ Convexity func_::get_convexity(const qterm& q) {
 template<typename type>
 func_ power(const var<type>& v, unsigned p){
     func_ res(v);
-    for (int i = 1; i<p; i++) {
+    for (int i = 1; i < p; i++) {
         res *= v;
     }
     return res;

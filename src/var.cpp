@@ -129,7 +129,7 @@ template<typename type> void var<type>::print(bool bounds) const{
     size_t idx = 0;
     cout << " in ";
 
-    if(_lb==nullptr && _ub!=nullptr){
+    if(_lb == nullptr && _ub != nullptr){
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
             cout << "(" << idx << ") = ";
@@ -143,7 +143,7 @@ template<typename type> void var<type>::print(bool bounds) const{
         }
         cout << ";\n";
     }
-    if(_lb!=nullptr && _ub==nullptr){
+    if(_lb != nullptr && _ub == nullptr){
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
             cout << " [ " << (*_lb)[idx] << ", inf ]";
@@ -156,7 +156,7 @@ template<typename type> void var<type>::print(bool bounds) const{
         }
         cout << ";\n";
     }
-    if(_lb!=nullptr && _ub!=nullptr){
+    if(_lb != nullptr && _ub != nullptr){
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
             cout << " [ " << (*_lb)[idx] << ", " << (*_ub)[idx] << "]";
@@ -194,9 +194,6 @@ template<typename type> sdpvar<type>::sdpvar(const string& name, type lb, type u
     var<type>(name, lb, ub);
 };
 
-//template<typename type> void   sdpvar<type>::set_size(size_t s, type val){
-//    param<type>::set_size(s,val);
-//};
 
 // Operators
 template<typename type> bool sdpvar<type>::operator==(const sdpvar& v) const{
@@ -255,7 +252,7 @@ template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         if(pp.second){//new index inserted
             res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-            res._ids->push_back(param_::_indices->size()-1);
+            res._ids->push_back(param_::_indices->size() - 1);
         }
         else {
             res._indices->insert(make_pair<>(key,pp.first->second));

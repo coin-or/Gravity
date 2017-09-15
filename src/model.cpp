@@ -115,7 +115,8 @@ void Model::add_var(param_* v){
     if (v->_is_indexed) {
         return;
     }
-    if (_vars_name.count(v->get_name())==0) {
+
+    if (_vars_name.count(v->get_name()) == 0) {
         v->set_id(_nb_vars);
         v->set_vec_id(_vars.size());
         _vars_name[v->get_name()] = v;
@@ -125,7 +126,7 @@ void Model::add_var(param_* v){
 };
 
 void Model::add_var(param_& v){
-    if (v._is_indexed) { // We do not add indexed vars
+    if (v._is_indexed) { 
         return;
     }
     if (_vars_name.count(v.get_name())==0) {

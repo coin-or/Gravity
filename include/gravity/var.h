@@ -109,10 +109,10 @@ template<typename Tobj>
     string key;
     for(auto it = gens.begin(); it!= gens.end(); it++){
         key = (*it)->_name;
-        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
         if(pp.second){//new index inserted
-            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-            res._ids->push_back(param_::_indices->size()-1);
+            res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
+            res._ids->push_back(param_::_indices->size() - 1);
         }
         else{
             res._indices->insert(make_pair<>(key,pp.first->second));

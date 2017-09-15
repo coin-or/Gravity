@@ -235,9 +235,6 @@ public:
     NType get_intype() const { return _intype;}
     
     type eval() const{
-//        if (_val->size() == 0) {
-//            throw invalid_argument("No values stored!");
-//        }
         if (_is_indexed) {
             return _val->at(_indices->begin()->second);
         }
