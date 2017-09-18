@@ -237,6 +237,7 @@ template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs){
     return res;
 }
 
+
 template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
     var res(this->_name);
     res._id = this->_id;
@@ -261,6 +262,68 @@ template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
         res._dim++;
     }
     res._name += ".to_arcs";
+    res._is_indexed = true;
+    return res;
+}
+
+template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs, int t){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = arcs.begin(); it!= arcs.end(); it++){
+        key = (*it)->src->_name;
+        key += ",";
+        key += to_string(t);
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".from_arcs_" + to_string(t);
+    res._is_indexed = true;
+    return res;
+}
+
+
+template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs, int t){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = arcs.begin(); it!= arcs.end(); it++){
+        key = (*it)->dest->_name;
+        key += ",";
+        key += to_string(t);
+        
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size() - 1);
+        }
+        else {
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".to_arcs_" + to_string(t);
     res._is_indexed = true;
     return res;
 }
@@ -292,6 +355,37 @@ template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs){
     res._is_indexed = true;
     return res;
 }
+
+template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs, int t){
+    var res(this->_name);
+    res._id = this->_id;
+    res._vec_id = this->_vec_id;
+    res._intype = this->_intype;
+    res._range = this->_range;
+    res._val = this->_val;
+    res._lb = this->_lb;
+    res._ub = this->_ub;
+    string key;
+    for(auto it = arcs.begin(); it!= arcs.end(); it++){
+        key = (*it)->_name;
+        key += ",";
+        key += to_string(t);
+        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        if(pp.second){//new index inserted
+            res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+            res._ids->push_back(param_::_indices->size()-1);
+        }
+        else{
+            res._indices->insert(make_pair<>(key,pp.first->second));
+            res._ids->push_back(pp.first->second);
+        }
+        res._dim++;
+    }
+    res._name += ".in_arcs_" + to_string(t);
+    res._is_indexed = true;
+    return res;
+}
+
 
 template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
     var res(this->_name);

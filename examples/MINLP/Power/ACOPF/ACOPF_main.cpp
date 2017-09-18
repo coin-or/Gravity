@@ -1,5 +1,5 @@
 //
-//  MinKpartition.cpp
+//  ACOPF.cpp
 //  Gravity
 //
 //  Created by Guanglei Wang on 6/9/17.

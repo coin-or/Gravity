@@ -223,11 +223,22 @@ void CplexProgram::create_cplex_constraints() {
                 idx1 = it1.second._p->first->get_vec_id();
                 idx2 = it1.second._p->second->get_vec_id();
                 if (it1.second._coef->_is_transposed) {
-                    IloNumArray coefs(*_cplex_env,it1.second._p->first->get_dim());
+                    IloNumArray coefs(*_cplex_env, it1.second._p->first->get_dim());
                     for (int j = 0; j < it1.second._p->first->get_dim(); j++) {
-                        coefs[j] = poly_eval(it1.second._coef,j);
+                        coefs[j] = poly_eval(it1.second._coef, j);
                     }
-                    cc += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
+                    if (coefs.getSize() == _cplex_vars[idx1].getSize() && coefs.getSize() ==_cplex_vars[idx2].getSize())
+                        cc += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
+                    else {
+                        int j = 0;
+                        auto iter = it1.second._p->second->get_indices()->begin();
+                        for (auto& var_in1: *it1.second._p->first->get_indices()) {
+                            //auto& var_in2: *it2.second._p->second->get_indices
+                            cc += coefs[j]*_cplex_vars[idx1][var_in1.second]*_cplex_vars[idx2][iter->second];
+                            j += 1;
+                            ++iter;
+                        }
+                    }
                 }
                 else {
                     IloNumExpr qterm(*_cplex_env);
