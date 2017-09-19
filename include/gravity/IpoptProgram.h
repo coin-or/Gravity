@@ -20,6 +20,7 @@
 using   Ipopt::IpoptApplication;
 
 using namespace Ipopt;
+using namespace gravity;
 
 class IpoptProgram : public TNLP {
 

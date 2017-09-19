@@ -154,17 +154,17 @@ int main (int argc, const char * argv[])
     
     /* Constraints declaration */
     ordered_pairs indices(1,n);
-    Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
-    SDP.add_constraint(SOCP <= 0);
+//    Constraint SOCP("SOCP");
+//    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
+//    SDP.add_constraint(SOCP <= 0);
     
-//    for (int i = 0; i < n; i++){
-//        for (int j = i+1; j < n; j++){
-//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-//            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
-//            SDP.add_constraint(SOCP<=0);
-//        }
-//    }
+    for (int i = 0; i < n; i++){
+        for (int j = i+1; j < n; j++){
+            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+            SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+            SDP.add_constraint(SOCP<=0);
+        }
+    }
     set<tuple<int,int,int>> ids;
 //    for (i = 0; i < complement_graph._bags.size(); i++){
 //        auto bag = complement_graph._bags.at(i);
@@ -208,8 +208,8 @@ int main (int argc, const char * argv[])
     auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
     SDP.set_objective(max(obj_SDP));
     
-    //solver s1(SDP,ipopt);
-    solver s1(SDP,cplex);
+    solver s1(SDP,ipopt);
+//    solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
@@ -220,7 +220,7 @@ int main (int argc, const char * argv[])
     cout << "Done running the SDP relaxation\n";
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
-    
+    return 0;
     /* Outer-Approximation of SOCP and 3d-SDP cuts in Shriver's SDP relaxation for the stable set problem */
     Model OA;
     OA.add_var(Xii);
@@ -234,7 +234,7 @@ int main (int argc, const char * argv[])
             OA.add_constraint(oa);
         }
     }
-    OA.add_constraint(diag=1);
+//    OA.add_constraint(diag=1);
     for(auto a: graph.arcs){
         i = (a->src)->ID;
         j = (a->dest)->ID;

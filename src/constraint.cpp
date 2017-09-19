@@ -9,6 +9,7 @@
 #include <gravity/constraint.h>
 #define EPS 0.000001
 
+using namespace gravity;
 /** Constructor */
 //@{
 Constraint::Constraint():Constraint("noname"){};

@@ -18,6 +18,7 @@
 
 
 using namespace std;
+using namespace gravity;
 
 /** Constructor */
 //@{
@@ -186,7 +187,7 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
         auto newc = new Constraint(c);
-  //      newc->print();
+        newc->print();
 //        embed(*newc);
         newc->_id = _nb_cons;
         _cons_name[c.get_name()] = newc;
@@ -281,7 +282,7 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
     for(auto& v_p: _vars)
     {
         v = v_p.second;
-        vid = v->get_vec_id();
+        vid = v->get_id();
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
@@ -344,7 +345,7 @@ void Model::set_x(const double* x){
     for(auto& v_p: _vars)
     {
         v = v_p.second;
-        vid = v->get_vec_id();
+        vid = v->get_id();
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
@@ -452,7 +453,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             cid = c->_id+inst;
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
-                vid = v->get_vec_id();
+                vid = v->get_id();
                 if (v->_is_vector) {
                     dfdx = c->get_stored_derivative(vid);
                     for (int j = 0; j<v->get_dim(); j++) {
@@ -486,7 +487,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
             cid = c->_id+inst;
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
-                vid = v->get_vec_id();
+                vid = v->get_id();
                 if (v->_is_vector) {
                     for (int j = 0; j<v->get_dim(); j++) {
                         iRow[idx] = cid;
@@ -497,7 +498,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 else {
                     if (v->_is_indexed) {
                         iRow[idx] = cid;
-                        jCol[idx] = vid + v->get_id_inst(inst);
+                        jCol[idx] = vid;
                         idx++;
                     }                    
                     else {
@@ -710,27 +711,21 @@ void Model::fill_in_maps() {
                     vjd = temp;
                 }
                 _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vjd,vjd+inst)].insert(make_pair<>(c->_id,cid));
-                c->get_hess_link()[vid].insert(vjd);
+                c->get_hess_link()[vid+inst].insert(vjd+inst);
             }
             
             for (auto &pt_p: c->get_pterms()) {
                 for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
                     vi = v_it->first;
                     vid = vi->get_id();
-                    if (vi->_is_indexed) {
-                        vid += vi->get_id_inst(inst);
-                    }
                     expo = v_it->second;
                     if (expo>1) {
                         _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vid,vid+inst)].insert(make_pair<>(c->_id,cid));
-                        c->get_hess_link()[vid].insert(vid);
+                        c->get_hess_link()[vid+inst].insert(vid+inst);
                     }
                     for (auto v_jt = pt_p.second._l->begin(); v_jt != pt_p.second._l->end(); v_jt++) {
                         vj = v_jt->first;
                         vjd = vj->get_id();
-                        if (vj->_is_indexed) {
-                            vjd += vj->get_id_inst(inst);
-                        }
                         if (vid==vjd) {
                             continue;
                         }
@@ -740,7 +735,7 @@ void Model::fill_in_maps() {
                             vjd = temp;
                         }
                         _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vjd,vjd+inst)].insert(make_pair<>(c->_id,cid));
-                        c->get_hess_link()[vid].insert(vjd);
+                        c->get_hess_link()[vid+inst].insert(vjd+inst);
                     }
                 }
             }
@@ -749,13 +744,13 @@ void Model::fill_in_maps() {
         for (auto &v_p: c->get_vars()) {
             if(!v_p.second.first->_is_indexed){
                 for (int i = 0; i < v_p.second.first->get_dim(); i++) {
-                    _v_in_cons[v_p.second.first->get_vec_id()+i].insert(c);
+                    _v_in_cons[v_p.second.first->get_id()+i].insert(c);
                 }
             }
             else {
                 auto ids = v_p.second.first->get_ids();
                 for (int i = 0; i < ids.size(); i++) {
-                    _v_in_cons[v_p.second.first->get_vec_id()+ids.at(i)].insert(c);
+                    _v_in_cons[v_p.second.first->get_id()+ids.at(i)].insert(c);
                 }                
             }
         }
@@ -773,7 +768,7 @@ void Model::fill_in_var_init(double* x) {
     for(auto& v_p: _vars)
     {
         v = v_p.second;
-        vid = v->get_vec_id();
+        vid = v->get_id();
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
@@ -878,7 +873,7 @@ void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
     for(auto& v_p: _vars)
     {
         v = v_p.second;
-        vid = v->get_vec_id();
+        vid = v->get_id();
         if (v->get_intype()== short_ || v->get_intype() == integer_) {
             for (int i = 0; i < v->get_dim(); i++) {
                 param_types[vid + i] = Bonmin::TMINLP::INTEGER;
@@ -1097,11 +1092,11 @@ void Model::print_constraints() const{
     }
 }
 
-pair<func_*, ObjectiveType> max(const func_& f){
+pair<func_*, ObjectiveType> gravity::max(const func_& f){
     return make_pair<>((func_*)&f,maximize);
 };
 
-pair<func_*, ObjectiveType> min(const func_& f){
+pair<func_*, ObjectiveType> gravity::min(const func_& f){
     return make_pair<>((func_*)&f,minimize);
 };
 

@@ -43,9 +43,9 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
                 _model->_obj *= -1;
     }
     _model->_obj_val = _model->_obj.eval();
-    for (size_t i=0; i<m; i++) {
-        _model->_cons[i]->_dual = lambda[i];
-    }
+//    for (size_t i=0; i<m; i++) {
+//        _model->_cons[i]->_dual = lambda[i];
+//    }
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
 }
 

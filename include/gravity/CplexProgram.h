@@ -18,6 +18,7 @@
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
+using namespace gravity;
 
 class CplexProgram {
 private:
