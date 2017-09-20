@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 using namespace std;
+using namespace gravity;
 #define EPS 0.000001
 #define DebugOn(x) cout << x
 #define DebugOff(x)
