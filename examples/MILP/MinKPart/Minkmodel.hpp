@@ -24,9 +24,9 @@ typedef enum {MIP,MIP_tree,SDP,SDP_tree, Node_edge} ModelType;
 
 class Minkmodel {
 public:
-    ModelType   _type;
-    Model       _model;
-    SolverType  _solver;
+    gravity::ModelType   _type;
+    gravity::Model       _model;
+    gravity::SolverType  _solver;
     double      _K;
     Net*        _graph;
     Net*        _chordal_extension;
