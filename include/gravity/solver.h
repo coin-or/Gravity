@@ -31,21 +31,23 @@
 #include "MosekProgram.h"
 #endif
 
-class solver {
-public:
-    Model*                         _model;
-    SolverType                     _stype;
-    /** Constructor */
-    //@{
-    solver();
+namespace gravity {
+    class solver {
+    public:
+        Model*                         _model;
+        SolverType                     _stype;
+        /** Constructor */
+        //@{
+        solver();
 
-    solver(Model& model, SolverType stype);
-    //@}
-    void set_model(Model& m);
-    
-    /* Destructor */
-    ~solver();
-    
-    int run(int output = 0, bool relax = false);
-};
+        solver(Model& model, SolverType stype);
+        //@}
+        void set_model(Model& m);
+        
+        /* Destructor */
+        ~solver();
+        
+        int run(int output = 0, bool relax = false);
+    };
+}
 #endif /* defined(__PowerTools____Solver__) */

@@ -12,7 +12,7 @@
 #include <coin/BonBonminSetup.hpp>
 #include <coin/BonCbc.hpp>
 #endif
-
+using namespace gravity;
 namespace {
     void gurobiNotAvailable()
     {
