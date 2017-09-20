@@ -24,7 +24,7 @@ typedef enum {MIP,MIP_tree,SDP,SDP_tree, Node_edge} ModelType;
 
 class Minkmodel {
 public:
-    gravity::ModelType   _type;
+    ModelType   _type;
     gravity::Model       _model;
     gravity::SolverType  _solver;
     double      _K;
@@ -38,7 +38,7 @@ public:
     arma::mat _eigvec;
     Minkmodel();
     Minkmodel(ModelType type, Net* graph, double K);
-    Minkmodel(ModelType type, Net* graph, double K,SolverType solver);
+    Minkmodel(ModelType type, Net* graph, double K, gravity::SolverType solver);
 
     ~Minkmodel();
     void reset();
