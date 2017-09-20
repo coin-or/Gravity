@@ -17,6 +17,7 @@
 #define DebugOff(x)
 
 using namespace std;
+using namespace gravity;
 
 //template<typename T>
 //void Sort(T &a, T &b, T &c){
