@@ -158,6 +158,7 @@ namespace gravity {
         
         constant tr(){
             auto newc(*this);
+            newc._is_vector = true;
             newc._is_transposed = true;
             return newc;
         };

@@ -37,20 +37,23 @@ namespace gravity {
         
         /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
        shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
+        
     public:
+        
+        unique_id                              _unique_id = make_tuple<>(-1,vec_,0,0);
         
         bool                                   _is_indexed = false;
         
         virtual ~param_(){};
         
-        void set_id(size_t idx){ _id = idx;};
+        void set_id(size_t idx){ _id = idx; get<0>(_unique_id) = idx;};
         
         void set_vec_id(size_t idx){ _vec_id = idx;};
         
         size_t get_id() const{
-            if (_is_indexed) {
-                return _id + _indices->begin()->second;
-            }
+//            if (_is_indexed) {
+//                return _id + _indices->begin()->second;
+//            }
             return _id;
         };
         
@@ -58,9 +61,11 @@ namespace gravity {
         
         size_t get_id_inst(unsigned inst = 0) const{
             if (_is_indexed) {
+                assert(inst < _ids->size());
                 return _ids->at(inst);
             }
-            return 0;
+//            throw invalid_argument("This is a non-indexed variable!\n");
+            return inst;
         };
         
         // newly added part by guanglei
@@ -151,6 +156,7 @@ namespace gravity {
             _type = par_c;
             _intype = p._intype;
             _id = p._id;
+            _unique_id = p._unique_id;
             _vec_id = p._vec_id;
             _val = p._val;
             _name = p._name;
@@ -168,6 +174,7 @@ namespace gravity {
             _type = par_c;
             _intype = p._intype;
             _id = p._id;
+            _unique_id = p._unique_id;
             _vec_id = p._vec_id;
             _val = p._val;
             _name = p._name;
@@ -244,6 +251,9 @@ namespace gravity {
         
         type eval(int i) const{
             if (_is_indexed) {
+                if (i >= _ids->size()) {
+                    return _val->at(_ids->at(0));
+                }
                 return _val->at(_ids->at(i));
             }
             return _val->at(i);
@@ -253,7 +263,8 @@ namespace gravity {
         /* Modifiers */
         void   set_size(size_t s, type val = 0){
             _val->resize(s,val);
-            _dim = s;        
+            _dim = s;
+            get<3>(_unique_id) = s;
         };
         
         void add_val(type val){
@@ -415,14 +426,15 @@ namespace gravity {
             if(pp.second){//new index inserted
                 res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
                 res._ids->push_back(param_::_indices->size()-1);
+                res._dim++;
             }
             else {
                 res._indices->insert(make_pair<>(key,pp.first->second));
                 res._ids->push_back(pp.first->second);
             }
-            res._dim++;
             res._name += "["+key+"]";
             res._is_indexed = true;
+            //res.unique_d = ..
             return res;
         }
         
@@ -436,6 +448,7 @@ namespace gravity {
             res._lb = this->_lb;
             res._ub = this->_ub;
             string key;
+//            res._ids->resize(pairs._from.size());
             for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
                 key = (*it);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
@@ -444,12 +457,14 @@ namespace gravity {
                     //why -1?
                     res._indices->insert(make_pair<>(key,param_::_indices->size() - 1));
                     res._ids->push_back(param_::_indices->size() - 1);
+//                    res._ids->at(res._dim) = param_::_indices->size()-1;
+                    res._dim++;
                 }
                 else {
                     res._indices->insert(make_pair<>(key,pp.first->second));
                     res._ids->push_back(pp.first->second);
+//                    res._ids->at(res._dim) = pp.first->second;
                 }
-                res._dim++;
             }
             res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
             res._is_indexed = true;
@@ -466,18 +481,21 @@ namespace gravity {
             res._lb = this->_lb;
             res._ub = this->_ub;
             string key;
+//            res._ids->resize(pairs._from.size());
             for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++){
                 key = (*it);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second){
                     res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
                     res._ids->push_back(param_::_indices->size()-1);
+//                    res._ids->at(res._dim) = param_::_indices->size()-1;
+                    res._dim++;
                 }
                 else {
                     res._indices->insert(make_pair<>(key,pp.first->second));
                     res._ids->push_back(pp.first->second);
+//                    res._ids->at(res._dim) = pp.first->second;
                 }
-                res._dim++;
             }
             res._name += ".from{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
             res._is_indexed = true;
@@ -500,12 +518,12 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
                     res._ids->push_back(param_::_indices->size()-1);
+                    res._dim++;
                 }
                 else {
                     res._indices->insert(make_pair<>(key,pp.first->second));
                     res._ids->push_back(pp.first->second);
                 }
-                res._dim++;
             }
             res._name += ".to{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
             res._is_indexed = true;
@@ -528,12 +546,12 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
                     res._ids->push_back(param_::_indices->size()-1);
+                    res._dim++;
                 }
                 else {
                     res._indices->insert(make_pair<>(key,pp.first->second));
                     res._ids->push_back(pp.first->second);
                 }
-                res._dim++;
             }
             res._name += ".from_arcs";
             res._is_indexed = true;
@@ -605,7 +623,7 @@ namespace gravity {
             res._val = this->_val;
             string key;
             for(auto it = arcs.begin(); it!= arcs.end(); it++){
-                key = (*it)->_name;
+                key = (*it)->src->_name + "," + (*it)->dest->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 if(pp.second){//new index inserted
                     res._indices->insert(make_pair<>(key,param_::_indices->size()-1));

@@ -824,10 +824,8 @@ namespace gravity{
 
     func_::func_(){
         set_type(func_c);
-        _params = new map<unsigned, pair<param_*, int>>();
-        _vars = new map<unsigned, pair<param_*, int>>();
-        _params_name = new map<string, pair<param_*, int>>();
-        _vars_name = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<param_*, int>>();
+        _vars = new map<string, pair<param_*, int>>();
         _cst = new constant<double>(0);
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
@@ -869,10 +867,6 @@ namespace gravity{
             f->_vars = nullptr;
             _params = f->_params;
             f->_params = nullptr;
-            _vars_name = f->_vars_name;
-            f->_vars_name = nullptr;
-            _params_name = f->_params_name;
-            f->_params_name = nullptr;
             _cst = f->_cst;
             f->_cst = nullptr;
             _range = f->_range;
@@ -895,10 +889,8 @@ namespace gravity{
         }
         else {
             set_type(func_c);
-            _params = new map<unsigned, pair<param_*, int>>();
-            _vars = new map<unsigned, pair<param_*, int>>();
-            _params_name = new map<string, pair<param_*, int>>();
-            _vars_name = new map<string, pair<param_*, int>>();
+            _params = new map<string, pair<param_*, int>>();
+            _vars = new map<string, pair<param_*, int>>();
             _cst = nullptr;
             _lterms = new map<string, lterm>();
             _qterms = new map<string, qterm>();
@@ -1006,10 +998,8 @@ namespace gravity{
 
     func_::func_(const constant_& c){
         set_type(func_c);
-        _params = new map<unsigned, pair<param_*, int>>();
-        _vars = new map<unsigned, pair<param_*, int>>();
-        _params_name = new map<string, pair<param_*, int>>();
-        _vars_name = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<param_*, int>>();
+        _vars = new map<string, pair<param_*, int>>();
         _cst = nullptr;
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
@@ -1175,10 +1165,6 @@ namespace gravity{
         f._vars = nullptr;
         _params = f._params;
         f._params = nullptr;
-        _vars_name = f._vars_name;
-        f._vars_name = nullptr;
-        _params_name = f._params_name;
-        f._params_name = nullptr;
         _cst = f._cst;
         f._cst = nullptr;
         _range = f._range;
@@ -1201,10 +1187,8 @@ namespace gravity{
 
     func_::func_(const func_& f){
         set_type(func_c);
-        _params = new map<unsigned, pair<param_*, int>>();
-        _vars = new map<unsigned, pair<param_*, int>>();
-        _params_name = new map<string, pair<param_*, int>>();
-        _vars_name = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<param_*, int>>();
+        _vars = new map<string, pair<param_*, int>>();
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
@@ -1296,8 +1280,6 @@ namespace gravity{
             }
             delete _params;
         }
-        delete _vars_name;
-        delete _params_name;
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -1320,10 +1302,8 @@ namespace gravity{
         delete _cst;
         
         set_type(func_c);
-        _params = new map<unsigned, pair<param_*, int>>();
-        _vars = new map<unsigned, pair<param_*, int>>();
-        _params_name = new map<string, pair<param_*, int>>();
-        _vars_name = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<param_*, int>>();
+        _vars = new map<string, pair<param_*, int>>();
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
@@ -1398,7 +1378,6 @@ namespace gravity{
             }
             delete _vars;
         }
-        delete _vars_name;
         if (_params) {
             if (!_embedded) {
                 for (auto &elem: *_params) {
@@ -1407,7 +1386,6 @@ namespace gravity{
             }
             delete _params;
         }
-        delete _params_name;
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -1451,10 +1429,6 @@ namespace gravity{
         f._vars = nullptr;
         _params = f._params;
         f._params = nullptr;
-        _vars_name = f._vars_name;
-        f._vars_name = nullptr;
-        _params_name = f._params_name;
-        f._params_name = nullptr;
         _cst = f._cst;
         f._cst = nullptr;
         _range = f._range;
@@ -1492,7 +1466,6 @@ namespace gravity{
             }
             delete _vars;
         }
-        delete _vars_name;
         if (_params) {
             if (!_embedded) {
                 for (auto &elem: *_params) {
@@ -1501,7 +1474,6 @@ namespace gravity{
             }
             delete _params;
         }
-        delete _params_name;
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -2189,7 +2161,7 @@ namespace gravity{
                     embed(*(expr*)ue->_son);
                 }
                 else if (ue->_son->is_var()){
-                    if (_vars_name->count(((param_*)ue->_son)->get_name())==0) {
+                    if (_vars->count(((param_*)ue->_son)->get_name())==0) {
                         add_var((param_*)copy(*ue->_son));
                     }
                 }
@@ -2205,7 +2177,7 @@ namespace gravity{
                     embed(*(expr*)be->_lson);
                 }
                 else if (be->_lson->is_var()){
-                    if (_vars_name->count(((param_*)be->_lson)->get_name())==0) {
+                    if (_vars->count(((param_*)be->_lson)->get_name())==0) {
                         add_var((param_*)copy(*be->_lson));
                     }
                 }
@@ -2217,7 +2189,7 @@ namespace gravity{
                     embed(*(expr*)be->_rson);
                 }
                 else if (be->_rson->is_var()){
-                    if (_vars_name->count(((param_*)be->_rson)->get_name())==0) {
+                    if (_vars->count(((param_*)be->_rson)->get_name())==0) {
                         add_var((param_*)copy(*be->_rson));
                     }
                 }
@@ -2236,8 +2208,8 @@ namespace gravity{
         for (auto &pair:*f._lterms) {
             p = pair.second._p;
             if (p->is_var()) {
-                auto it = _vars_name->find(p->get_name());
-                if (it==_vars_name->end()) {
+                auto it = _vars->find(p->get_name());
+                if (it==_vars->end()) {
                     add_var(p);
                 }
                 else{
@@ -2247,8 +2219,8 @@ namespace gravity{
                 }
             }
             else {
-                auto it = _params_name->find(p->get_name());
-                if (it==_params_name->end()) {
+                auto it = _params->find(p->get_name());
+                if (it==_params->end()) {
                     add_param(p);
                 }
                 else{
@@ -2262,8 +2234,8 @@ namespace gravity{
             p1 = pair.second._p->first;
             p2 = pair.second._p->second;
             if (p1->is_var()) {
-                auto it1 = _vars_name->find(p1->get_name());
-                if (it1==_vars_name->end()) {
+                auto it1 = _vars->find(p1->get_name());
+                if (it1==_vars->end()) {
                     add_var(p1);
                 }
                 else{
@@ -2271,8 +2243,8 @@ namespace gravity{
                     pair.second._p->first = p1;
                     it1->second.second++;
                 }
-                auto it2 = _vars_name->find(p2->get_name());
-                if (it2==_vars_name->end()) {
+                auto it2 = _vars->find(p2->get_name());
+                if (it2==_vars->end()) {
                     add_var(p2);
                 }
                 else{
@@ -2282,8 +2254,8 @@ namespace gravity{
                 }
             }
             else {
-                auto it1 = _params_name->find(p1->get_name());
-                if (it1==_params_name->end()) {
+                auto it1 = _params->find(p1->get_name());
+                if (it1==_params->end()) {
                     add_param(p1);
                 }
                 else{
@@ -2291,8 +2263,8 @@ namespace gravity{
                     pair.second._p->first = p1;
                     it1->second.second++;
                 }
-                auto it2 = _params_name->find(p2->get_name());
-                if (it2==_params_name->end()) {
+                auto it2 = _params->find(p2->get_name());
+                if (it2==_params->end()) {
                     add_param(p2);
                 }
                 else{
@@ -2307,8 +2279,8 @@ namespace gravity{
             for (auto &ppi: *list) {
                 p = ppi.first;
                 if (p->is_var()) {
-                    auto it = _vars_name->find(p->get_name());
-                    if (it==_vars_name->end()) {
+                    auto it = _vars->find(p->get_name());
+                    if (it==_vars->end()) {
                         add_var(p);
                     }
                     else{
@@ -2318,8 +2290,8 @@ namespace gravity{
                     }
                 }
                 else {
-                    auto it = _params_name->find(p->get_name());
-                    if (it==_params_name->end()) {
+                    auto it = _params->find(p->get_name());
+                    if (it==_params->end()) {
                         add_param(p);
                     }
                     else{
@@ -2341,15 +2313,6 @@ namespace gravity{
                 f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
             }
         }
-        auto old_vars_name = *f._vars_name;
-        for (auto &vp: old_vars_name) {
-            auto vv = (*_vars_name)[vp.first].first;
-            if (vv != vp.second.first) {
-                delete vp.second.first;
-                f._vars_name->erase(vp.first);
-                f._vars_name->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
-            }
-        }
         auto old_params = *f._params;
         for (auto &pp: old_params) {
             auto p = (*_params)[pp.first].first;
@@ -2358,16 +2321,6 @@ namespace gravity{
                 f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
             }
         }
-        auto old_params_name = *f._params_name;
-        for (auto &pp: old_params_name) {
-            auto p = (*_params_name)[pp.first].first;
-            if (p != pp.second.first) {
-                delete pp.second.first;
-                f._params_name->erase(pp.first);
-                f._params_name->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
-            }
-        }
-
     }
 
     void func_::reset(){
@@ -2385,7 +2338,6 @@ namespace gravity{
             }
             _vars->clear();
         }
-        _vars_name->clear();
         if (_params) {
             if (!_embedded) {
                 for (auto &elem: *_params) {
@@ -2394,7 +2346,6 @@ namespace gravity{
             }
             _params->clear();
         }
-        _params_name->clear();
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -3588,7 +3539,7 @@ namespace gravity{
     }
 
 
-    func_ operator*(const constant_& c1, const constant_& c2){
+    func_ operator*(const constant_& c1, const constant_& c2){// Rewrite this to change res after the multiplication is done, make sure both vars are now vecs.
         if(c1.is_number()) {
             if (c1._is_transposed) {
                 auto new_c2 = copy(c2);
@@ -4358,9 +4309,6 @@ namespace gravity{
             str += "(";
             str += poly_to_str(c_new);
             str += ")";
-            if (c_new->_is_transposed && c_new->is_function() && ((func_*)c_new)->get_params().size()>1) {
-                str += "^T";
-            }
         }
         str += poly_to_str(p_new);
         return str;
@@ -4370,7 +4318,7 @@ namespace gravity{
         cout << this->to_str(ind);
     }
 
-    func_* func_::get_stored_derivative(unsigned vid) const{
+    func_* func_::get_stored_derivative(const unique_id& vid) const{
         auto it = _dfdx.find(vid);
         if (it!=_dfdx.end()) {
             return it->second;
@@ -4384,10 +4332,10 @@ namespace gravity{
         
         auto df = new func_(get_derivative(v));
     //    embed(*df);
-         if(_dfdx.count(v.get_id())!=0){
+         if(_dfdx.count(v._unique_id)!=0){
              throw invalid_argument("storing same df twice! " + poly_to_str(&v) + this->to_str());
          }
-        _dfdx[v.get_id()] = df;
+        _dfdx[v._unique_id] = df;
         Debug( "First derivative with respect to " << v.get_name() << " = ");
     //    df->print();
         return df;
@@ -4415,7 +4363,7 @@ namespace gravity{
     };
 
     bool func_::has_var(const param_& v) const{
-        return _vars->count(v.get_id())>0;
+        return _vars->count(v.get_name())>0;
     }
 
     func_ func_::get_derivative(const param_ &v) const{
@@ -4508,28 +4456,30 @@ namespace gravity{
         return res;
     }
 
-    string func_::to_str() const{
+    string func_::to_str(bool display_input) const{
         string str;
         int ind = 0;
         string sign = " + ";
-        if (!_embedded && !is_constant() && _all_convexity==convex_) {
-            str += "Convex function: ";
-        }
-        if (!_embedded && !is_constant() && _all_convexity==concave_) {
-            str += "Concave function: ";
-        }
-        if (!_embedded && !is_constant()) {
-            str += "f(";
-            for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-                if (!pair_it->second.first->_is_vector) {
-                    str += pair_it->second.first->get_name();
-                    if (next(pair_it) != _vars->end()) {
-                        str += ",";
-                    }
-                }
-                pair_it++;
+        if (display_input) {
+            if (!_embedded && !is_constant() && _all_convexity==convex_) {
+                str += "Convex function: ";
             }
-            str += ") = ";
+            if (!_embedded && !is_constant() && _all_convexity==concave_) {
+                str += "Concave function: ";
+            }
+            if (!_embedded && !is_constant()) {
+                str += "f(";
+                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+    //                if (!pair_it->second.first->_is_vector) {
+                        str += pair_it->second.first->get_name();
+                        if (next(pair_it) != _vars->end()) {
+                            str += ",";
+                        }
+    //                }
+                    pair_it++;
+                }
+                str += ") = ";
+            }
         }
         for (auto &pair:*_pterms) {
             str += pair.second.to_str(ind++);
@@ -4574,12 +4524,18 @@ namespace gravity{
         if (!_queue->empty()) {
             str += _expr->get_str();
         }
+        if (_is_vector) {
+            str = "[" + str +"]";
+        }
+        if (_is_transposed) {
+            str += "^T";
+        }
         return str;
     }
 
 
-    void func_::print(bool endline) const{
-        cout << this->to_str();
+    void func_::print(bool endline, bool display_input) const{
+        cout << this->to_str(display_input);
         if (endline)
             cout << endl;
     }
@@ -4739,8 +4695,8 @@ namespace gravity{
     }
 
     param_* func_::get_var(string name){
-        auto pair_it = _vars_name->find(name);
-        if (pair_it==_vars_name->end()) {
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
             return nullptr;
         }
         else {
@@ -4749,8 +4705,8 @@ namespace gravity{
     }
 
     param_* func_::get_param(string name){
-        auto pair_it = _params_name->find(name);
-        if (pair_it==_params_name->end()) {
+        auto pair_it = _params->find(name);
+        if (pair_it==_params->end()) {
             return nullptr;
         }
         else {
@@ -4760,11 +4716,10 @@ namespace gravity{
 
 
     void func_::add_var(param_* v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
-        if (_vars->count(v->get_id())!=0) {
+        if (_vars->count(v->get_name())!=0) {
             v->set_id(_vars->size());
         }
-        _vars->insert(make_pair<>(v->get_id(), make_pair<>(v, nb)));
-        _vars_name->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
+        _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
         if (v->_is_transposed || v->_is_vector) {
             _nb_instances = max(_nb_instances, (size_t)1);
         }
@@ -4775,11 +4730,10 @@ namespace gravity{
 
 
     void func_::add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
-        if (_params->count(p->get_id())!=0) {
+        if (_params->count(p->get_name())!=0) {
             p->set_id(_params->size());
         }
-        _params->insert(make_pair<>(p->get_id(), make_pair<>(p, 1)));
-        _params_name->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
+        _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
         if (!p->_is_transposed) {
             _nb_instances = max(_nb_instances, p->get_dim());
         }
@@ -4790,31 +4744,19 @@ namespace gravity{
 
 
 
-    void func_::delete_var(const unsigned& vid){
+    void func_::delete_var(const string& vid){
         auto vit = _vars->find(vid);
         if (vit==_vars->end()) {
             return;
         }
-        auto vname = vit->second.first->get_name();
-        auto it = _vars_name->find(vname);
-        if (!_embedded) {
-            delete _vars_name->at(vname).first;
-        }
-        _vars_name->erase(it);
         _vars->erase(vit);
     }
 
-    void func_::delete_param(const unsigned& vid){
+    void func_::delete_param(const string& vid){
         auto vit = _params->find(vid);
         if (vit==_params->end()) {
             return;
         }
-        auto vname = vit->second.first->get_name();
-        auto it = _params_name->find(vname);
-        if (!_embedded) {
-            delete _params_name->at(vname).first;
-        }
-        _params_name->erase(it);
         _params->erase(vit);
     }
 
@@ -4822,8 +4764,8 @@ namespace gravity{
 
 
     int func_::nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
-        auto pair_it = _vars_name->find(name);
-        if (pair_it==_vars_name->end()) {
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
             return 0;
         }
         else {
@@ -4832,8 +4774,8 @@ namespace gravity{
     }
 
     int func_::nb_occ_param(string name) const{/**< Returns the number of occurences the parameter has in this function. */
-        auto pair_it = _params_name->find(name);
-        if (pair_it==_params_name->end()) {
+        auto pair_it = _params->find(name);
+        if (pair_it==_params->end()) {
             return 0;
         }
         else {
@@ -4842,59 +4784,49 @@ namespace gravity{
     }
 
     void func_::incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
-        auto pair_it = _vars_name->find(str);
-        if (pair_it==_vars_name->end()) {
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
             throw invalid_argument("Non-existing variable in function!\n");
         }
         else {
-            auto pair_it2 = _vars->find(pair_it->second.first->get_id());
-            get<1>(*pair_it2).second++;
             get<1>(*pair_it).second++;
         }
     }
 
     void func_::incr_occ_param(string str){/**< Increases the number of occurences the parameter has in this function. */
-        auto pair_it = _params_name->find(str);
-        if (pair_it==_params_name->end()) {
+        auto pair_it = _params->find(str);
+        if (pair_it==_params->end()) {
             throw invalid_argument("Non-existing variable in function!\n");
         }
         else {
-            auto pair_it2 = _params->find(pair_it->second.first->get_id());
-            get<1>(*pair_it2).second++;
             get<1>(*pair_it).second++;
         }
     }
 
     void func_::decr_occ_var(string str, int nb){/**< Decreases the number of occurences the variable has in this function by nb. */
-        auto pair_it = _vars_name->find(str);
-        if (pair_it==_vars_name->end()) {
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
             return;
         }
         else {
-            auto pair_it2 = _vars->find(pair_it->second.first->get_id());
             get<1>(*pair_it).second-=nb;
-            get<1>(*pair_it2).second-=nb;
             if (get<1>(*pair_it).second==0) {
                 delete get<1>(*pair_it).first;
-                _vars_name->erase(pair_it);
-                _vars->erase(pair_it2);
+                _vars->erase(pair_it);
             }
         }
     }
 
     void func_::decr_occ_param(string str, int nb){/**< Decreases the number of occurences the parameter has in this function by nb. */
-        auto pair_it = _params_name->find(str);
-        if (pair_it==_params_name->end()) {
+        auto pair_it = _params->find(str);
+        if (pair_it==_params->end()) {
             return;
         }
         else {
-            auto pair_it2 = _params->find(pair_it->second.first->get_id());
             get<1>(*pair_it).second -= nb;
-            get<1>(*pair_it2).second -= nb;
             if (get<1>(*pair_it).second==0) {
-                delete get<1>(*pair_it).first;
-                _params_name->erase(pair_it);
-                _params->erase(pair_it2);
+                delete get<1>(*pair_it).first;                
+                _params->erase(pair_it);
             }
         }
     }
@@ -4967,7 +4899,7 @@ namespace gravity{
         param_* v;
         for(auto &it: *_vars){
             v = it.second.first;
-            res += (get_stored_derivative(v->get_id())->eval())*((*v) - poly_eval(v));
+            res += (get_stored_derivative(v->_unique_id)->eval())*((*v) - poly_eval(v));
         }
         res += eval();
         return res;

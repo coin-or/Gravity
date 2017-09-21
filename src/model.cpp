@@ -408,18 +408,18 @@ void Model::fill_in_obj(const double* x , double& res, bool new_x){
 #endif
     }
     res = _obj.eval();
-    Debug("Objective = " << to_string(res) << endl);
+    DebugOff("Objective = " << to_string(res) << endl);
 }
 
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
     if (new_x) {
         set_x(x);
     }
-//    DebugOn("x = [ ");
-//    for (int i = 0; i<_nb_vars; i++) {
-//        DebugOn(to_string(x[i]) << " ");
-//    }
-//    DebugOn("]");
+    DebugOff("x = [ ");
+    for (int i = 0; i<_nb_vars; i++) {
+        DebugOff(to_string(x[i]) << " ");
+    }
+    DebugOff("]");
     Constraint* c = nullptr;
     for(auto& c_p: _cons)
     {
@@ -427,9 +427,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         auto nb_ins = c->get_nb_instances();
         for (int inst = 0; inst< nb_ins; inst++){
             res[c->_id+inst] = c->eval(inst);
-//            DebugOn("g[" << to_string(c->_id+i) << "] = " << to_string(res[c->_id+i]) << endl);
-//            c->print();
-//            DebugOn("Value of c = " << to_string(res[c->_id+i]) << endl);
+            DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
         }
     }
 }
@@ -441,7 +439,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     }
     size_t idx=0;
     size_t cid = 0;
-    size_t vid = 0;
+    unique_id vid;
     Constraint* c = NULL;
     param_* v = NULL;
     func_* dfdx;
@@ -453,11 +451,11 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             cid = c->_id+inst;
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first;
-                vid = v->get_id();
+                vid = v->_unique_id;
                 if (v->_is_vector) {
                     dfdx = c->get_stored_derivative(vid);
                     for (int j = 0; j<v->get_dim(); j++) {
-                        res[idx] = dfdx->eval(inst);
+                        res[idx] = dfdx->eval(j);
                         idx++;
                     }
 
@@ -489,23 +487,25 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 v = v_p.second.first;
                 vid = v->get_id();
                 if (v->_is_vector) {
-                    for (int j = 0; j<v->get_dim(); j++) {
-                        iRow[idx] = cid;
-                        jCol[idx] = vid + j;
-                        idx++;
+                    if (v->_is_indexed) {
+                        for (int j = 0; j<v->get_dim(); j++) {
+                            iRow[idx] = cid;
+                            jCol[idx] = vid + v->get_id_inst(j);
+                            idx++;
+                        }
+                    }
+                    else {
+                        for (int j = 0; j<v->get_dim(); j++) {
+                            iRow[idx] = cid;
+                            jCol[idx] = vid + j;
+                            idx++;
+                        }
                     }
                 }
                 else {
-                    if (v->_is_indexed) {
                         iRow[idx] = cid;
-                        jCol[idx] = vid;
+                        jCol[idx] = vid + v->get_id_inst(inst);
                         idx++;
-                    }                    
-                    else {
-                        iRow[idx] = cid;
-                        jCol[idx] = vid + inst;
-                        idx++;
-                    }
                 }
             }
         }
@@ -578,7 +578,8 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
-    size_t idx = 0, vid, vjd;
+    size_t idx = 0;
+    unique_id vid, vjd;
     double hess = 0;
     Constraint* c;
     for (auto &hess_i: _hess_link) {
@@ -619,7 +620,8 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
     param_* v;
     func_* df;
-    size_t vid;
+    unsigned vid, vid_inst;
+    unique_id v_unique;
     for (int i = 0; i<_nb_vars; i++) {
         res[i] = 0;
     }
@@ -628,20 +630,36 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     {
         v = vi_p.second.first;
         vid = v->get_id();
-        df = _obj.get_stored_derivative(vid);
-        if (!v->_is_indexed) {
-            for (int i = 0; i < v->get_dim(); i++) {
-                res[vid+i] = df->eval(i);
+        v_unique = v->_unique_id;
+        df = _obj.get_stored_derivative(v_unique);
+        if (v->_is_vector) {
+            if (v->_is_indexed) {
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + v->get_id_inst(i);
+                    assert(vid_inst < _nb_vars);
+                    res[vid_inst] = df->eval(i);
+                }
+            }
+            else {
+                for (int i = 0; i < v->get_dim(); i++) {
+                    vid_inst = vid + i;
+                    assert(vid_inst < _nb_vars);
+                    res[vid_inst] = df->eval(i);
+                }
+
             }
         }
         else {
-            res[vid] = df->eval();
+            vid_inst = vid + v->get_id_inst();
+            assert(vid_inst < _nb_vars);
+            res[vid_inst] = df->eval();
         }
     }
 }
 
 void Model::fill_in_maps() {
-    unsigned vid, vjd, expo, temp;
+    unsigned vid, vjd, expo, temp, vid_inst, vjd_inst;
+    unique_id vi_unique, vj_unique, temp_unique;
     param_* vi;
     param_* vj;
     
@@ -651,20 +669,40 @@ void Model::fill_in_maps() {
         vid = vi->get_id();
         vj = qt_p.second._p->second;
         vjd = vj->get_id();
-        if (vid > vjd) {
-            temp = vid;
-            vid = vjd;
-            vjd = temp;
-        }
-        if (!vi->_is_indexed) {
+        if (vi->_is_vector) {
             for (int i = 0; i<vi->get_dim(); i++) {
-                _hess_link[make_pair<>(vid,vid+i)][make_pair<>(vjd,vjd+i)].insert(make_pair<>(-1,0));//"-1" indicates a hessian link in the objective
-                _obj.get_hess_link()[vid+i].insert(vjd+i);
+                vid_inst = vid + vi->get_id_inst(i);
+                vi_unique = vi->_unique_id;
+                vjd_inst = vjd + vj->get_id_inst(i);
+                vj_unique = vj->_unique_id;
+                if (vid_inst > vjd_inst) {
+                    temp = vid_inst;
+                    temp_unique = vi_unique;
+                    vid_inst = vjd_inst;
+                    vi_unique = vj_unique;
+                    vjd_inst = temp;
+                    vj_unique = temp_unique;
+                }
+                _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates a hessian link in the objective
+                _obj.get_hess_link()[vid_inst].insert(vjd_inst);
             }
         }
         else {
-            _hess_link[make_pair<>(vid,vid)][make_pair<>(vjd,vjd)].insert(make_pair<>(-1,0));//"-1" indicates
-            _obj.get_hess_link()[vid].insert(vjd);
+            vid_inst = vid + vi->get_id_inst();
+            vi_unique = vi->_unique_id;
+            vjd_inst = vjd + vj->get_id_inst();
+            vj_unique = vj->_unique_id;
+            if (vid_inst > vjd_inst) {
+                temp = vid_inst;
+                temp_unique = vi_unique;
+                vid_inst = vjd_inst;
+                vi_unique = vj_unique;
+                vjd_inst = temp;
+                vj_unique = temp_unique;
+            }
+            _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates a hessian link in the objective
+            _obj.get_hess_link()[vid_inst].insert(vjd_inst);
+
         }
     }
     
@@ -672,9 +710,11 @@ void Model::fill_in_maps() {
         for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
             vi = v_it->first;
             vid = vi->get_id();
+            vid_inst = vid + vi->get_id_inst();
+            vi_unique = vi->_unique_id;
             expo = v_it->second;
             if (expo>1) {
-                _hess_link[make_pair<>(vid,vid)][make_pair<>(vjd,vjd)].insert(make_pair<>(-1,0));//"-1" indicates
+                _hess_link[make_pair<>(vi->_unique_id,vid)][make_pair<>(vi->_unique_id,vid)].insert(make_pair<>(-1,0));//"-1" indicates objective
                 _obj.get_hess_link()[vid].insert(vid);
             }
             for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
@@ -685,7 +725,7 @@ void Model::fill_in_maps() {
                     vid = vjd;
                     vjd = temp;
                 }
-                _hess_link[make_pair<>(vid,vid)][make_pair<>(vjd,vjd)].insert(make_pair<>(-1,0));//"-1" indicates
+                _hess_link[make_pair<>(vi->_unique_id,vid)][make_pair<>(vj->_unique_id,vjd)].insert(make_pair<>(-1,0));//"-1" indicates objective
                 _obj.get_hess_link()[vid].insert(vjd);
                 
             }
@@ -703,29 +743,58 @@ void Model::fill_in_maps() {
             for (auto &qt_p: c->get_qterms()) {
                 vi = qt_p.second._p->first;
                 vid = vi->get_id();
+                vid_inst = vid + vi->get_id_inst(inst);
+                vi_unique = vi->_unique_id;
                 vj = qt_p.second._p->second;
                 vjd = vj->get_id();
-                if (vid > vjd) {
-                    temp = vid;
-                    vid = vjd;
-                    vjd = temp;
+                vjd_inst = vjd + vj->get_id_inst(inst);
+                vj_unique = vj->_unique_id;
+                if (vi->_is_vector) {
+                    for (int i = 0; i<vi->get_dim(); i++) {
+                        vid_inst = vid + vi->get_id_inst(i);
+                        vi_unique = vi->_unique_id;
+                        vjd_inst = vjd + vj->get_id_inst(i);
+                        vj_unique = vj->_unique_id;
+                        if (vid_inst > vjd_inst) {
+                            temp = vid_inst;
+                            temp_unique = vi_unique;
+                            vid_inst = vjd_inst;
+                            vi_unique = vj_unique;
+                            vjd_inst = temp;
+                            vj_unique = temp_unique;
+                        }
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                        c->get_hess_link()[vid_inst].insert(vjd_inst);
+                    }
                 }
-                _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vjd,vjd+inst)].insert(make_pair<>(c->_id,cid));
-                c->get_hess_link()[vid+inst].insert(vjd+inst);
+                else {
+                    if (vid_inst > vjd_inst) {
+                        temp = vid_inst;
+                        temp_unique = vi_unique;
+                        vid_inst = vjd_inst;
+                        vi_unique = vj_unique;
+                        vjd_inst = temp;
+                        vj_unique = temp_unique;
+                    }
+                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                    c->get_hess_link()[vid_inst].insert(vjd_inst);
+                }
             }
             
             for (auto &pt_p: c->get_pterms()) {
                 for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
                     vi = v_it->first;
                     vid = vi->get_id();
+                    vid_inst = vid + vi->get_id_inst(inst);
                     expo = v_it->second;
                     if (expo>1) {
-                        _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vid,vid+inst)].insert(make_pair<>(c->_id,cid));
-                        c->get_hess_link()[vid+inst].insert(vid+inst);
+                        _hess_link[make_pair<>(vi->_unique_id,vid_inst)][make_pair<>(vi->_unique_id,vid_inst)].insert(make_pair<>(c->_id,cid));
+                        c->get_hess_link()[vid_inst].insert(vid_inst);
                     }
                     for (auto v_jt = pt_p.second._l->begin(); v_jt != pt_p.second._l->end(); v_jt++) {
                         vj = v_jt->first;
                         vjd = vj->get_id();
+                        vjd_inst = vjd + vj->get_id_inst(inst);
                         if (vid==vjd) {
                             continue;
                         }
@@ -734,24 +803,24 @@ void Model::fill_in_maps() {
                             vid = vjd;
                             vjd = temp;
                         }
-                        _hess_link[make_pair<>(vid,vid+inst)][make_pair<>(vjd,vjd+inst)].insert(make_pair<>(c->_id,cid));
-                        c->get_hess_link()[vid+inst].insert(vjd+inst);
+                        _hess_link[make_pair<>(vi->_unique_id,vid_inst)][make_pair<>(vj->_unique_id,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                        c->get_hess_link()[vid_inst].insert(vjd_inst);
                     }
                 }
             }
         }
         //MISSING NONLINEAR PART!!!
         for (auto &v_p: c->get_vars()) {
-            if(!v_p.second.first->_is_indexed){
+//            if(!v_p.second.first->_is_indexed){
                 for (int i = 0; i < v_p.second.first->get_dim(); i++) {
-                    _v_in_cons[v_p.second.first->get_id()+i].insert(c);
-                }
-            }
-            else {
-                auto ids = v_p.second.first->get_ids();
-                for (int i = 0; i < ids.size(); i++) {
-                    _v_in_cons[v_p.second.first->get_id()+ids.at(i)].insert(c);
-                }                
+//                    _v_in_cons[v_p.second.first->get_id()+i].insert(c);
+//                }
+//            }
+//            else {
+//                auto ids = v_p.second.first->get_ids();
+//                for (int i = 0; i < ids.size(); i++) {
+                    _v_in_cons[v_p.second.first->get_id() + v_p.second.first->get_id_inst(i)].insert(c);
+//                }                
             }
         }
     }
@@ -1046,7 +1115,7 @@ void Model::embed(func_& f){
     }
     auto old_vars = f.get_vars();
     for (auto &vp: old_vars) {
-        auto vv = _vars[vp.first];
+        auto vv = _vars_name[vp.first];
         if (vv != vp.second.first) {
             delete vp.second.first;
             f.delete_var(vp.first);
@@ -1055,7 +1124,7 @@ void Model::embed(func_& f){
     }
     auto old_params = f.get_params();
     for (auto &pp: old_params) {
-        auto p = _vars[pp.first];
+        auto p = _vars_name[pp.first];
         if (p != pp.second.first) {
             delete pp.second.first;
             f.delete_param(pp.first);

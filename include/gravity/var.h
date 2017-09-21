@@ -246,6 +246,7 @@ namespace gravity {
         var tr() const{
             auto v = var(*this);
             v._is_transposed = true;
+            v._is_vector = true;
             return v;
         }
         

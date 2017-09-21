@@ -416,12 +416,9 @@ namespace gravity {
         FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
         NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
-        map<unsigned, pair<param_*, int>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-        map<unsigned, pair<param_*, int>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
-        
-        map<string, pair<param_*, int>>*       _params_name = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-        map<string, pair<param_*, int>>*       _vars_name = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
-        
+        map<string, pair<param_*, int>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+        map<string, pair<param_*, int>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+                
         constant_*                             _cst = nullptr;/**< Constant part of the function */
         map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
         map<string, qterm>*                    _qterms = nullptr; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
@@ -429,7 +426,7 @@ namespace gravity {
         expr*                                  _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
         map<string, expr*>*                    _DAG = nullptr; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
         queue<expr*>*                          _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
-        map<unsigned,func_*>                   _dfdx;/**< A map storing the first derivatives of f per variable index*/
+        map<unique_id,func_*>                  _dfdx;/**< A map storing the first derivatives of f per variable name*/
         Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
         pair<constant_*, constant_*>*          _all_range = nullptr; /**< Range of the return value considering all instances of the current function. >>**/
@@ -460,8 +457,8 @@ namespace gravity {
         ~func_();
 
         map<unsigned, set<unsigned>>& get_hess_link() { return _hess_link;};
-        map<unsigned, pair<param_*, int>>& get_vars() { return *_vars;};
-        map<unsigned, pair<param_*, int>>& get_params() { return *_params;};
+        map<string, pair<param_*, int>>& get_vars() { return *_vars;};
+        map<string, pair<param_*, int>>& get_params() { return *_params;};
         
         bool has_var(const param_& v) const;
         
@@ -500,9 +497,9 @@ namespace gravity {
         
         
         
-        void delete_var(const unsigned& vid);
+        void delete_var(const string& vid);
         
-        void delete_param(const unsigned& vid);
+        void delete_param(const string& vid);
         
 
         
@@ -631,7 +628,7 @@ namespace gravity {
             return *_expr;
         }
         
-        func_* get_stored_derivative(unsigned vid) const; /**< Returns the stored derivative with respect to variable v. */
+        func_* get_stored_derivative(const unique_id& vid) const; /**< Returns the stored derivative with respect to variable v. */
         
         func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
         
@@ -642,8 +639,8 @@ namespace gravity {
         
         double eval(size_t i) const;
         double eval() const{ return eval(0);};
-        string to_str() const;
-        void print(bool endline=true) const;
+        string to_str(bool display_input=false) const;
+        void print(bool endline=true, bool display_input = false) const;
         
     };
 

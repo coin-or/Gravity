@@ -243,9 +243,10 @@ int main (int argc, const char * argv[])
     vec_prod.print();
     vec_prod += ip.tr()*p;
     vec_prod.print();
-    auto quad = (aa+ip)*(v1.tr()*v1) + q;// FIX _is_vector for v1!
+//    auto quad = (aa+ip)*(v1.tr()*v1) + q;// FIX _is_vector for v1!
+    auto quad = v1.tr()*v1;// FIX _is_vector for v1!
     
-//    quad.print();
+    quad.print(true,true);
 //    int C = 10;
 //    int n = 10, ni = 3;
 //    var<float> alpha_ij("alpha_ij", 0, C);

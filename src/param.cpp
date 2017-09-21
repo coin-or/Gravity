@@ -11,6 +11,9 @@ namespace gravity{
 
     string param_::get_name(bool indices) const {
         string name = _name;
+        if (_is_vector) {
+            name = "[" + name + "]";
+        }
         if (_is_transposed) {
             name += "^T";
         }

@@ -62,7 +62,7 @@ namespace gravity {
          * instanciated constraint id 
          * */
 
-        map<pair<unsigned,unsigned>, map<pair<unsigned,unsigned>,set<pair<int,int>>>>            _hess_link;     
+        map<pair<unique_id,unsigned>, map<pair<unique_id,unsigned>,set<pair<int,int>>>>            _hess_link; /* unique_id is used to retrieve derivatives, the second element in the pair stores the Ipopt variable id */
 
         func_                           _obj; /** Objective function */
         ObjectiveType                   _objt; /** Minimize or maximize */
