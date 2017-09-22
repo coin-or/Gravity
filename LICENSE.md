@@ -33,6 +33,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 
 CODE WRITTEN BY HASSAN L. HIJAZI AND GUANGLEI WANG.
+
 --------------------------------------------------------------------------------
 
 Use of this software should be cited in a form similar to the following:
