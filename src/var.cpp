@@ -437,6 +437,119 @@ namespace gravity{
         res._is_indexed = true;
         return res;
     }
+    
+    template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size){
+        vector<var> res;
+        string key;
+        res.resize(size,(this->_name));
+        for (int i = 0; i<size; i++) {
+            res[i]._id = this->_id;
+            res[i]._vec_id = this->_vec_id;
+            res[i]._intype = this->_intype;
+            res[i]._range = this->_range;
+            res[i]._val = this->_val;
+            res[i]._lb = this->_lb;
+            res[i]._ub = this->_ub;
+            res[i]._name += "_in_bags_"+to_string(i);
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, bags.size());
+            res[i]._is_indexed = true;
+        }
+        for (auto &bag: bags){
+            if (bag.size() < size) {
+                continue;
+            }
+            for (int i = 0; i<size-1; i++) {
+                key = bag[i]->_name + "," + bag[i+1]->_name;
+                assert(bag[i+2]->ID > bag[i]->ID);
+                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+                if(pp.second){//new index inserted
+                    if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
+                        res[i]._dim++;
+                    }
+                    res[i]._ids->push_back(param_::_indices->size()-1);
+                }
+                else {
+                    if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second){
+                        res[i]._dim++;
+                    }
+                    res[i]._ids->push_back(pp.first->second);
+                }
+            }
+            /* Loop back pair */
+            key = bag[0]->_name + "," + bag[size-1]->_name;
+            assert(bag[size-1]->ID > bag[0]->ID);
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
+                    res[size-1]._dim++;
+                }
+                res[size-1]._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second){
+                    res[size-1]._dim++;
+                }
+                res[size-1]._ids->push_back(pp.first->second);
+            }
+        }
+        return res;
+    }
+    
+    template<typename type>vector<var<type>> var<type>::in(const std::vector<std::vector<Node*>>& bags, unsigned size){
+        vector<var> res;
+        string key;
+        res.resize(size,(this->_name));
+        for (int i = 0; i<size; i++) {
+            res[i]._id = this->_id;
+            res[i]._vec_id = this->_vec_id;
+            res[i]._intype = this->_intype;
+            res[i]._range = this->_range;
+            res[i]._val = this->_val;
+            res[i]._lb = this->_lb;
+            res[i]._ub = this->_ub;
+            res[i]._name += "_in_bags_"+to_string(i);
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, bags.size());
+            res[i]._is_indexed = true;
+        }
+        for (auto &bag: bags){
+            if (bag.size() < size) {
+                continue;
+            }
+            for (int i = 0; i<size; i++) {
+                key = bag[i]->_name;
+                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+                if(pp.second){//new index inserted
+                    if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
+                        res[i]._dim++;
+                    }
+                    res[i]._ids->push_back(param_::_indices->size()-1);
+                }
+                else {
+                    if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second){
+                        res[i]._dim++;
+                    }
+                    res[i]._ids->push_back(pp.first->second);
+                }
+            }
+        }
+        return res;
+    }
+    
+    template<typename type>var<type> var<type>::mask(unsigned size){
+        var res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        res._name += ".mask";
+        res._unique_id = make_tuple<>(res._id,mask_, 0, size);
+        res._is_indexed = true;
+        return res;
+
+    }
 
     template<typename type>var<type> var<type>::from(const ordered_pairs& pairs){
         var res(this->_name);

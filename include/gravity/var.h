@@ -89,6 +89,7 @@ namespace gravity {
             }
             res._dim++;
             res._name += "["+key+"]";
+            res._unique_id = make_tuple<>(res._id,mask_, res._ids->at(0), res._ids->at(res._ids->size()-1));
             res._is_indexed = true;
             return res;
         }
@@ -133,42 +134,44 @@ namespace gravity {
         return res;
     }
         
-    template<typename Tobj>
-        var in(const vector<Tobj>& gens, int t){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-        for(auto it = gens.begin(); it!= gens.end(); it++){
-            key = (*it)->_name;
-            key += ",";
-            key += to_string(t);
-            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
-            if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
-                res._ids->push_back(param_::_indices->size() - 1);
-            }
-            else{
-                res._indices->insert(make_pair<>(key,pp.first->second));
-                res._ids->push_back(pp.first->second);
-            }
-            res._dim++;
-        }
-        res._name += ".in_objects";
-        res._is_indexed = true;
-        return res;
-    }
+//    template<typename Tobj>
+//        var in(const vector<Tobj>& gens, int t){
+//        var res(this->_name);
+//        res._id = this->_id;
+//        res._vec_id = this->_vec_id;
+//        res._intype = this->_intype;
+//        res._range = this->_range;
+//        res._val = this->_val;
+//        res._lb = this->_lb;
+//        res._ub = this->_ub;
+//        string key;
+//        for(auto it = gens.begin(); it!= gens.end(); it++){
+//            key = (*it)->_name;
+//            key += ",";
+//            key += to_string(t);
+//            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+//            if(pp.second){//new index inserted
+//                res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
+//                res._ids->push_back(param_::_indices->size() - 1);
+//            }
+//            else{
+//                res._indices->insert(make_pair<>(key,pp.first->second));
+//                res._ids->push_back(pp.first->second);
+//            }
+//            res._dim++;
+//        }
+//        res._name += ".in_objects";
+//        res._is_indexed = true;
+//        return res;
+//    }
 
         
-        
+        var mask(unsigned size = 0);
         var from(const ordered_pairs& pairs);
         var to(const ordered_pairs& pairs);
         var in(const ordered_pairs& pairs);
+        vector<var> in(const std::vector<std::vector<Node*>>& bags, unsigned size);
+        vector<var> pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size);
         
         /* Querries */
         
