@@ -154,33 +154,33 @@ int main (int argc, const char * argv[])
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
     /* Constraints declaration */
-    ordered_pairs indices(1,n);
-    Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);    
-    SDP.add_constraint(SOCP <= 0);
-//    
-//        for (int i = 0; i < n; i++){
-//            for (int j = i+1; j < n; j++){
-//                Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-//                SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
-//                SDP.add_constraint(SOCP<=0);
-//            }
-//        }
+//    ordered_pairs indices(1,n);
+//    Constraint SOCP("SOCP");
+//    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);    
+//    SDP.add_constraint(SOCP <= 0);
+//
+        for (int i = 0; i < n; i++){
+            for (int j = i+1; j < n; j++){
+                Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
+                SOCP =  Xij(i,j)*Xij(i,j) - Xii(i)*Xii(j);
+                SDP.add_constraint(SOCP<=0);
+            }
+        }
     Constraint diag("diag");
     diag = ones.tr()*Xii;
     SDP.add_constraint(diag = 1); // diagonal sum is 1
     
-    Constraint zeros("zeros");
-    zeros = Xij.in(graph.arcs);
-    SDP.add_constraint(zeros = 0); // zero elements
+//    Constraint zeros("zeros");
+//    zeros = Xij.in(graph.arcs);
+//    SDP.add_constraint(zeros = 0); // zero elements
     
-//        for(auto a: graph.arcs){
-//            i = (a->src)->ID;
-//            j = (a->dest)->ID;
-//            Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
-//            zeros = Xij(i,j);
-//            SDP.add_constraint(zeros=0);
-//        }
+        for(auto a: graph.arcs){
+            i = (a->src)->ID;
+            j = (a->dest)->ID;
+            Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
+            zeros = Xij(i,j);
+            SDP.add_constraint(zeros=0);
+        }
 //    
 //    set<tuple<int,int,int>> ids;
 //    auto Xij_ = Xij.pairs_in(complement_graph._bags, 3);

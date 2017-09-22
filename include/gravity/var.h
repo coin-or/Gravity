@@ -232,6 +232,9 @@ namespace gravity {
         void    set_ub(int i, type v);
         
         /* Operators */
+        var& operator=(const var& v);
+        var& operator=(var&& v);
+        
         var& operator=(type v){
             param<type>::_val->push_back(v);
             param<type>::update_range(v);

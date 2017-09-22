@@ -179,6 +179,24 @@ namespace gravity {
             _val = p._val;
             _name = p._name;
             _indices = p._indices;
+            _ids = move(p._ids);
+            _sdpindices = p._sdpindices;
+            _range = p._range;
+            _is_transposed = p._is_transposed;
+            _is_vector = p._is_vector;
+            _is_indexed = p._is_indexed;
+            _dim = p._dim;
+        }
+        
+        param& operator=(const param& p) {
+            _type = par_c;
+            _intype = p._intype;
+            _id = p._id;
+            _unique_id = p._unique_id;
+            _vec_id = p._vec_id;
+            _val = p._val;
+            _name = p._name;
+            _indices = p._indices;
             _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
             _sdpindices = p._sdpindices;
             _range = p._range;
@@ -188,6 +206,23 @@ namespace gravity {
             _dim = p._dim;
         }
         
+        param& operator=(param&& p) {
+            _type = par_c;
+            _intype = p._intype;
+            _id = p._id;
+            _unique_id = p._unique_id;
+            _vec_id = p._vec_id;
+            _val = p._val;
+            _name = p._name;
+            _indices = p._indices;
+            _ids = move(p._ids);
+            _sdpindices = p._sdpindices;
+            _range = p._range;
+            _is_transposed = p._is_transposed;
+            _is_vector = p._is_vector;
+            _is_indexed = p._is_indexed;
+            _dim = p._dim;
+        }
 
         param tr() const{
             auto p = param(*this);

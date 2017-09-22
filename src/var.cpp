@@ -42,6 +42,22 @@ namespace gravity{
         }
     };
 
+    template<typename type> var<type>& var<type>::operator=(const var<type>& v){
+        this->param<type>::operator=(v);
+        param<type>::set_type(var_c);
+        _lb = v._lb;
+        _ub = v._ub;
+        return *this;
+    };
+    
+    template<typename type> var<type>& var<type>::operator=(var<type>&& v){
+        this->param<type>::operator=(move(v));
+        param<type>::set_type(var_c);
+        _lb = v._lb;
+        _ub = v._ub;
+        return *this;
+    };
+
     /* Modifiers */
     template<typename type> void   var<type>::set_size(size_t s, type val){
         param<type>::set_size(s,val);
