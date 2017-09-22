@@ -458,7 +458,6 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         res[idx] = dfdx->eval(j);
                         idx++;
                     }
-
                 }
                 else {
                     res[idx] = c->get_stored_derivative(vid)->eval(inst);
@@ -714,19 +713,28 @@ void Model::fill_in_maps() {
             vi_unique = vi->_unique_id;
             expo = v_it->second;
             if (expo>1) {
-                _hess_link[make_pair<>(vi->_unique_id,vid)][make_pair<>(vi->_unique_id,vid)].insert(make_pair<>(-1,0));//"-1" indicates objective
-                _obj.get_hess_link()[vid].insert(vid);
+                _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(-1,0));//"-1" indicates objective
+                _obj.get_hess_link()[vid_inst].insert(vid_inst);
             }
             for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
+                vi = v_it->first;
+                vid = vi->get_id();
+                vid_inst = vid + vi->get_id_inst();
+                vi_unique = vi->_unique_id;
                 vj = v_jt->first;
                 vjd = vj->get_id();
-                if (vid > vjd) {
-                    temp = vid;
-                    vid = vjd;
-                    vjd = temp;
+                vjd_inst = vjd + vj->get_id_inst();
+                vj_unique = vj->_unique_id;
+                if (vid_inst > vjd_inst) {
+                    temp = vid_inst;
+                    temp_unique = vi_unique;
+                    vid_inst = vjd_inst;
+                    vi_unique = vj_unique;
+                    vjd_inst = temp;
+                    vj_unique = temp_unique;
                 }
-                _hess_link[make_pair<>(vi->_unique_id,vid)][make_pair<>(vj->_unique_id,vjd)].insert(make_pair<>(-1,0));//"-1" indicates objective
-                _obj.get_hess_link()[vid].insert(vjd);
+                _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates objective
+                _obj.get_hess_link()[vid_inst].insert(vjd_inst);
                 
             }
         }
@@ -786,24 +794,33 @@ void Model::fill_in_maps() {
                     vi = v_it->first;
                     vid = vi->get_id();
                     vid_inst = vid + vi->get_id_inst(inst);
+                    vi_unique = vi->_unique_id;
                     expo = v_it->second;
                     if (expo>1) {
-                        _hess_link[make_pair<>(vi->_unique_id,vid_inst)][make_pair<>(vi->_unique_id,vid_inst)].insert(make_pair<>(c->_id,cid));
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(c->_id,cid));
                         c->get_hess_link()[vid_inst].insert(vid_inst);
                     }
                     for (auto v_jt = pt_p.second._l->begin(); v_jt != pt_p.second._l->end(); v_jt++) {
+                        vi = v_it->first;
+                        vid = vi->get_id();
+                        vid_inst = vid + vi->get_id_inst(inst);
+                        vi_unique = vi->_unique_id;
                         vj = v_jt->first;
                         vjd = vj->get_id();
                         vjd_inst = vjd + vj->get_id_inst(inst);
+                        vj_unique = vj->_unique_id;
                         if (vid==vjd) {
                             continue;
                         }
-                        if (vid > vjd) {
-                            temp = vid;
-                            vid = vjd;
-                            vjd = temp;
+                        if (vid_inst > vjd_inst) {
+                            temp = vid_inst;
+                            temp_unique = vi_unique;
+                            vid_inst = vjd_inst;
+                            vi_unique = vj_unique;
+                            vjd_inst = temp;
+                            vj_unique = temp_unique;
                         }
-                        _hess_link[make_pair<>(vi->_unique_id,vid_inst)][make_pair<>(vj->_unique_id,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
                         c->get_hess_link()[vid_inst].insert(vjd_inst);
                     }
                 }

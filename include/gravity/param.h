@@ -204,6 +204,7 @@ namespace gravity {
             _is_vector = p._is_vector;
             _is_indexed = p._is_indexed;
             _dim = p._dim;
+            return *this;
         }
         
         param& operator=(param&& p) {
@@ -222,6 +223,7 @@ namespace gravity {
             _is_vector = p._is_vector;
             _is_indexed = p._is_indexed;
             _dim = p._dim;
+            return *this;
         }
 
         param tr() const{
