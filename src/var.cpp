@@ -467,11 +467,22 @@ namespace gravity{
             res[i]._lb = this->_lb;
             res[i]._ub = this->_ub;
             res[i]._name += "_in_bags_"+to_string(i);
-            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, bags.size());
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, i);
             res[i]._is_indexed = true;
         }
+        set<vector<unsigned>> ids;
         for (auto &bag: bags){
             if (bag.size() < size) {
+                continue;
+            }
+            vector<unsigned> ids_bag;
+            for (int i = 0; i<size; i++) {
+                ids_bag.push_back(bag[i]->ID);
+            }
+            if(ids.count(ids_bag)==0){
+                ids.insert(ids_bag);
+            }
+            else {
                 continue;
             }
             for (int i = 0; i<size-1; i++) {
@@ -524,13 +535,25 @@ namespace gravity{
             res[i]._lb = this->_lb;
             res[i]._ub = this->_ub;
             res[i]._name += "_in_bags_"+to_string(i);
-            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, bags.size());
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, i);
             res[i]._is_indexed = true;
         }
+        set<vector<unsigned>> ids;
         for (auto &bag: bags){
             if (bag.size() < size) {
                 continue;
             }
+            vector<unsigned> ids_bag;
+            for (int i = 0; i<size; i++) {
+                ids_bag.push_back(bag[i]->ID);
+            }
+            if(ids.count(ids_bag)==0){
+                ids.insert(ids_bag);
+            }
+            else {
+                continue;
+            }
+
             for (int i = 0; i<size; i++) {
                 key = bag[i]->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));

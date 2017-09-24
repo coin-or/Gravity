@@ -82,6 +82,10 @@ namespace gravity {
                 return _dim;
         }
         
+        size_t get_nb_instances() const {
+            return _ids->size();
+        }
+        
         shared_ptr<map<string,unsigned>> get_indices() const {
             return _indices;
         }

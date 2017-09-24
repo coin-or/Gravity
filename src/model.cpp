@@ -599,7 +599,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 //                        if (hess!=1) {
 //                            cout << "ok" << endl;
 //                        }
-                        res[idx] += lambda[cid.second] * hess;
+                        res[idx] += lambda[cid.first+cid.second] * hess;
 //                    }
                 }
             }
@@ -771,7 +771,7 @@ void Model::fill_in_maps() {
                             vjd_inst = temp;
                             vj_unique = temp_unique;
                         }
-                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
                         c->get_hess_link()[vid_inst].insert(vjd_inst);
                     }
                 }
@@ -784,7 +784,7 @@ void Model::fill_in_maps() {
                         vjd_inst = temp;
                         vj_unique = temp_unique;
                     }
-                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
                     c->get_hess_link()[vid_inst].insert(vjd_inst);
                 }
             }
@@ -797,10 +797,10 @@ void Model::fill_in_maps() {
                     vi_unique = vi->_unique_id;
                     expo = v_it->second;
                     if (expo>1) {
-                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(c->_id,cid));
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(c->_id,inst));
                         c->get_hess_link()[vid_inst].insert(vid_inst);
                     }
-                    for (auto v_jt = pt_p.second._l->begin(); v_jt != pt_p.second._l->end(); v_jt++) {
+                    for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
                         vi = v_it->first;
                         vid = vi->get_id();
                         vid_inst = vid + vi->get_id_inst(inst);
@@ -809,7 +809,7 @@ void Model::fill_in_maps() {
                         vjd = vj->get_id();
                         vjd_inst = vjd + vj->get_id_inst(inst);
                         vj_unique = vj->_unique_id;
-                        if (vid==vjd) {
+                        if (vid_inst==vjd_inst) {
                             continue;
                         }
                         if (vid_inst > vjd_inst) {
@@ -820,7 +820,7 @@ void Model::fill_in_maps() {
                             vjd_inst = temp;
                             vj_unique = temp_unique;
                         }
-                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,cid));
+                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
                         c->get_hess_link()[vid_inst].insert(vjd_inst);
                     }
                 }

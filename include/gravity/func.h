@@ -639,8 +639,8 @@ namespace gravity {
         
         double eval(size_t i) const;
         double eval() const{ return eval(0);};
-        string to_str(bool display_input=false) const;
-        void print(bool endline=true, bool display_input = false) const;
+        string to_str(bool display_input=true) const;
+        void print(bool endline=true, bool display_input = true) const;
         
     };
 

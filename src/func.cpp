@@ -4460,75 +4460,81 @@ namespace gravity{
         string str;
         int ind = 0;
         string sign = " + ";
-        if (display_input) {
-            if (!_embedded && !is_constant() && _all_convexity==convex_) {
-                str += "Convex function: ";
-            }
-            if (!_embedded && !is_constant() && _all_convexity==concave_) {
-                str += "Concave function: ";
-            }
-            if (!_embedded && !is_constant()) {
-                str += "f(";
-                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-    //                if (!pair_it->second.first->_is_vector) {
-                        str += pair_it->second.first->get_name();
-                        if (next(pair_it) != _vars->end()) {
-                            str += ",";
-                        }
-    //                }
-                    pair_it++;
+        for (int inst = 0; inst < _nb_instances ; inst++) {
+            ind = 0;
+            if (display_input) {
+                if (!_embedded && !is_constant() && _all_convexity==convex_) {
+                    str += "Convex function: ";
                 }
-                str += ") = ";
+                if (!_embedded && !is_constant() && _all_convexity==concave_) {
+                    str += "Concave function: ";
+                }
+                if (!_embedded && !is_constant()) {
+                    str += "f(";
+                    for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+        //                if (!pair_it->second.first->_is_vector) {
+//                        str += pair_it->second.first->get_name();
+                            str += pair_it->second.first->get_name()+"[";
+                        str += to_string(pair_it->second.first->get_id_inst(inst))+"]";
+                            if (next(pair_it) != _vars->end()) {
+                                str += ",";
+                            }
+        //                }
+                        pair_it++;
+                    }
+                    str += ") = ";
+                }
             }
-        }
-        for (auto &pair:*_pterms) {
-            str += pair.second.to_str(ind++);
-        }
-        if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
-            str += " + ";
-        }
-        ind = 0;
-        for (auto &pair:*_qterms) {
-            str += pair.second.to_str(ind++);
-        }
-        if (!_qterms->empty() && !_lterms->empty()) {
-            str += " + ";
-        }
-        ind = 0;
-        for (auto &pair:*_lterms) {
-            str += pair.second.to_str(ind++);
-        }
-        if (_cst->is_number()) {
-            auto val = poly_to_str(_cst);
-            if (val.front()=='-') {
-                str += " - " + val.substr(1);
+            for (auto &pair:*_pterms) {
+                str += pair.second.to_str(ind++);
             }
-            else if (val != "0"){
+            if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
+                str += " + ";
+            }
+            ind = 0;
+            for (auto &pair:*_qterms) {
+                str += pair.second.to_str(ind++);
+            }
+            if (!_qterms->empty() && !_lterms->empty()) {
+                str += " + ";
+            }
+            ind = 0;
+            for (auto &pair:*_lterms) {
+                str += pair.second.to_str(ind++);
+            }
+            if (_cst->is_number()) {
+                auto val = poly_to_str(_cst);
+                if (val.front()=='-') {
+                    str += " - " + val.substr(1);
+                }
+                else if (val != "0"){
+                    if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
+                        str += " + ";
+                    }
+                    str += val;
+                }
+            }
+            else {
                 if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
                     str += " + ";
                 }
-                str += val;
+                str += "(";
+                str += poly_to_str(_cst);
+                str += ")";
             }
-        }
-        else {
-            if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
+            if (!_queue->empty() && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
                 str += " + ";
             }
-            str += "(";
-            str += poly_to_str(_cst);
-            str += ")";
-        }
-        if (!_queue->empty() && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
-            str += " + ";
-        }
-        if (!_queue->empty()) {
-            str += _expr->get_str();
-        }
-        if (_is_vector) {
-            str = "[" + str +"]";
-        }
-        if (_is_transposed) {
-            str += "^T";
+            if (!_queue->empty()) {
+                str += _expr->get_str();
+            }
+            if (_is_vector) {
+                str = "[" + str +"]";
+            }
+            if (_is_transposed) {
+                str += "^T";
+            }
+            str += "\n";
         }
         return str;
     }
@@ -4678,7 +4684,7 @@ namespace gravity{
             if (p.second.first->_is_vector) {
                 n += p.second.first->get_dim();
             }
-            else if (!p.second.first->_is_transposed){
+            else {
                 n += 1;
             }
         }
@@ -4720,11 +4726,8 @@ namespace gravity{
             v->set_id(_vars->size());
         }
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (v->_is_transposed || v->_is_vector) {
-            _nb_instances = max(_nb_instances, (size_t)1);
-        }
-        else{
-            _nb_instances = max(_nb_instances, v->get_dim());
+        if (!v->_is_vector) {
+            _nb_instances = max(_nb_instances, v->get_nb_instances());
         }
     }
 
@@ -4734,11 +4737,8 @@ namespace gravity{
             p->set_id(_params->size());
         }
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->_is_transposed) {
-            _nb_instances = max(_nb_instances, p->get_dim());
-        }
-        else{
-            _nb_instances = max(_nb_instances, (size_t)1);
+        if (!p->_is_vector) {
+            _nb_instances = max(_nb_instances, p->get_nb_instances());
         }
     }
 

@@ -147,7 +147,7 @@ int solver::run(int output, bool relax){
                         iapp->Options()->SetStringValue("linear_solver", "ma57");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-//                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 0.00001);
+//                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
         
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
                         iapp->Options()->SetNumericValue("tol", 1e-6);

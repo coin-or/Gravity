@@ -485,6 +485,9 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             DebugOn("}" << endl);
         }
         _bags.push_back(bag);
+//        if (_bags.size()==3) {
+//            return;
+//        }
         if (bag.size()==3) {
             nb++;
         }
