@@ -129,7 +129,8 @@ namespace gravity {
             }
             res._dim++;
         }
-        res._name += ".in_nodes";
+        res._name += ".in_set";
+        res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }

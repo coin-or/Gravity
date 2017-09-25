@@ -100,10 +100,11 @@ int main (int argc, const char * argv[])
     const char* fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.read_adjacency_matrix(fname);
     
-    Net complement_graph;
-    complement_graph.get_complement(fname);
-    complement_graph.get_tree_decomp_bags();
-    cout << "total bags: " << complement_graph._bags.size() << endl;
+//    Net complement_graph;
+//    complement_graph.get_complement(fname);
+//    complement_graph.get_tree_decomp_bags();
+//    graph.get_tree_decomp_bags();
+//    cout << "total bags: " << complement_graph._bags.size() << endl;
     
     Model model;
     unsigned n = graph.nodes.size();
@@ -183,16 +184,18 @@ int main (int argc, const char * argv[])
 //        }
 //    
 
-    auto Xij_ = Xij.pairs_in(complement_graph._bags, 3);
-    auto Xii_ = Xii.in(complement_graph._bags, 3);
-    Constraint SDP3("SDP_3D");
-    SDP3 = -2*Xij_[0]*Xij_[1]*Xij_[2];
-    SDP3 -= Xii_[0]*Xii_[1]*Xii_[2];
-    SDP3 += power(Xij_[0],2)*Xii_[2];
-    SDP3 += power(Xij_[2],2)*Xii_[1];
-    SDP3 += power(Xij_[1],2)*Xii_[0];
-    SDP3.print();
-    SDP.add_constraint(SDP3);
+//    auto Xij_ = Xij.pairs_in(complement_graph._bags, 3);
+//    auto Xii_ = Xii.in(complement_graph._bags, 3);
+//    auto Xij_ = Xij.pairs_in(graph._bags, 3);
+//    auto Xii_ = Xii.in(graph._bags, 3);
+//    Constraint SDP3("SDP_3D");
+//    SDP3 = -2*Xij_[0]*Xij_[1]*Xij_[2];
+//    SDP3 -= Xii_[0]*Xii_[1]*Xii_[2];
+//    SDP3 += power(Xij_[0],2)*Xii_[2];
+//    SDP3 += power(Xij_[2],2)*Xii_[1];
+//    SDP3 += power(Xij_[1],2)*Xii_[0];
+//    SDP3.print();
+//    SDP.add_constraint(SDP3);
 //    set<tuple<int,int,int>> ids;
 //        for (i = 0; i < complement_graph._bags.size(); i++){
 ////        for (i = 0; i < 1; i++){

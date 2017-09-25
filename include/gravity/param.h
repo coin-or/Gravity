@@ -60,8 +60,7 @@ namespace gravity {
         size_t get_vec_id() const{return _vec_id;};
         
         size_t get_id_inst(unsigned inst = 0) const{
-            if (_is_indexed) {
-                assert(inst < _ids->size());
+            if (_is_indexed && inst < _ids->size()) {                
                 return _ids->at(inst);
             }
 //            throw invalid_argument("This is a non-indexed variable!\n");

@@ -255,7 +255,7 @@ namespace gravity{
             
         }
         res._name += ".from_arcs";
-        res._unique_id = make_tuple<>(res._id,from_arcs_, (arcs.front())->id, (arcs.back())->id);
+        res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -289,7 +289,7 @@ namespace gravity{
             
         }
         res._name += ".to_arcs";
-        res._unique_id = make_tuple<>(res._id, to_arcs_, (arcs.front())->id, (arcs.back())->id);
+        res._unique_id = make_tuple<>(res._id, to_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -384,7 +384,7 @@ namespace gravity{
             }
         }
         res._name += ".in_arcs";
-        res._unique_id = make_tuple<>(res._id,in_arcs_, (arcs.front())->id, (arcs.back())->id);
+        res._unique_id = make_tuple<>(res._id,in_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
