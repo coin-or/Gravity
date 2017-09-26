@@ -146,7 +146,7 @@ int main (int argc, const char * argv[])
     cout << "Wall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
 
-    /* Shriver's SDP relaxation for the stable set problem */
+    /* Schriver's SDP relaxation for the stable set problem */
     Model SDP;
     /* Variable declaration */
     var<double> Xii("Xii", 0, 1);
@@ -168,7 +168,7 @@ int main (int argc, const char * argv[])
 //            }
 //        }
     Constraint diag("diag");
-    diag = ones.tr()*Xii;
+    diag = sum(Xii);
     SDP.add_constraint(diag = 1); // diagonal sum is 1
     
     Constraint zeros("zeros");
@@ -227,8 +227,8 @@ int main (int argc, const char * argv[])
 //        }
     
     /* Objective declaration */
-    constant<int> twos(2);
-    auto obj_SDP = twos.tr()*Xij + ones.tr()*Xii;
+//    constant<int> twos(2);
+    auto obj_SDP = 2*sum(Xij) + sum(Xii);
     SDP.set_objective(max(obj_SDP));
     
     solver s1(SDP,ipopt);

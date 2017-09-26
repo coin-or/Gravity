@@ -639,8 +639,8 @@ namespace gravity {
         
         double eval(size_t i) const;
         double eval() const{ return eval(0);};
-        string to_str(bool display_input=true) const;
-        void print(bool endline=true, bool display_input = true) const;
+        string to_str(bool display_input=false) const;
+        void print(bool endline=false, bool display_input=false) const;
         
     };
 
@@ -1681,6 +1681,13 @@ namespace gravity {
 
     template<typename type>
     func_ power(const var<type>& v, unsigned p);
+    
+    template<typename type>
+    func_ sum(const param<type>& p);
+    
+    template<typename type>
+    func_ sum(const param<type>& p1, const func_& f);
+    
 }
 
 #endif /* func_h */

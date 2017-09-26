@@ -41,6 +41,22 @@ namespace gravity{
             param<type>::_range.second = ub;
         }
     };
+    
+    template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
+//        for (int i= 0; i<lb.get_dim(); i++) {
+//            _lb->push_back(lb.eval(i));
+//            _ub->push_back(ub.eval(i));
+//            if (_lb->back() < param<type>::_range.first) {
+//                param<type>::_range.first = _lb->back() ;
+//            }
+//            if (_ub->back() > param<type>::_range.second) {
+//                param<type>::_range.second = _ub->back();
+//            }
+//        }
+        _lb = lb.get_vals();
+        _ub = ub.get_vals();
+        //TODO: update range first and second
+    };
 
     template<typename type> var<type>& var<type>::operator=(const var<type>& v){
         this->param<type>::operator=(v);
@@ -228,229 +244,52 @@ namespace gravity{
     };
 
     template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
+        var<type> res;
+        res.param<type>::operator=(param<type>::from(arcs));
         res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->src->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-            
-        }
-        res._name += ".from_arcs";
-        res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
-        res._is_indexed = true;
+        res._ub = this->_ub;        
         return res;
     }
 
 
     template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
+        var<type> res;
+        res.param<type>::operator=(param<type>::to(arcs));
         res._lb = this->_lb;
         res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->dest->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size() - 1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-            
-        }
-        res._name += ".to_arcs";
-        res._unique_id = make_tuple<>(res._id, to_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
-        res._is_indexed = true;
-        return res;
-    }
-
-    template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs, int t){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->src->_name;
-            key += ",";
-            key += to_string(t);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-                res._ids->push_back(param_::_indices->size()-1);
-                res._dim++;
-            }
-            else {
-                res._indices->insert(make_pair<>(key,pp.first->second));
-                res._ids->push_back(pp.first->second);
-            }
-            
-        }
-        res._name += ".from_arcs_" + to_string(t);
-        res._is_indexed = true;
-        return res;
-    }
-
-
-    template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs, int t){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->dest->_name;
-            key += ",";
-            key += to_string(t);
-            
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-                res._ids->push_back(param_::_indices->size() - 1);
-                res._dim++;
-            }
-            else {
-                res._indices->insert(make_pair<>(key,pp.first->second));
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".to_arcs_" + to_string(t);
-        res._is_indexed = true;
         return res;
     }
 
     template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
+        var<type> res;
+        res.param<type>::operator=(param<type>::in(arcs));
         res._lb = this->_lb;
         res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->src->_name + "," + (*it)->dest->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else{
-                if (res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".in_arcs";
-        res._unique_id = make_tuple<>(res._id,in_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
-        res._is_indexed = true;
         return res;
     }
 
-    template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs, int t){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++){
-            key = (*it)->_name;
-            key += ",";
-            key += to_string(t);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
-                res._ids->push_back(param_::_indices->size()-1);
-                res._dim++;
-            }
-            else{
-                res._indices->insert(make_pair<>(key,pp.first->second));
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".in_arcs_" + to_string(t);
-        res._is_indexed = true;
-        return res;
-    }
-
-
+    
     template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
+        var<type> res;
+        res.param<type>::operator=(param<type>::in(pairs));
         res._lb = this->_lb;
         res._ub = this->_ub;
-        string key;
-        
-        for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++){
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        
-        res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,in_ordered_pairs_, pairs._first, pairs._last);
-        res._is_indexed = true;
+        return res;
+    }
+    
+    template<typename type>var<type> var<type>::from(const ordered_pairs& pairs){
+        var<type> res;
+        res.param<type>::operator=(param<type>::from(pairs));
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename type>var<type> var<type>::to(const ordered_pairs& pairs){
+        var<type> res;
+        res.param<type>::operator=(param<type>::to(pairs));
+        res._lb = this->_lb;
+        res._ub = this->_ub;
         return res;
     }
     
@@ -573,89 +412,7 @@ namespace gravity{
         }
         return res;
     }
-    
-    template<typename type>var<type> var<type>::mask(unsigned size){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        res._name += ".mask";
-        res._unique_id = make_tuple<>(res._id,mask_, 0, size);
-        res._is_indexed = true;
-        return res;
-
-    }
-
-    template<typename type>var<type> var<type>::from(const ordered_pairs& pairs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-//        res._ids->resize(pairs._from.size());
-        for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++){
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".from{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,from_ordered_pairs_, pairs._first, pairs._last);
-        res._is_indexed = true;
-        return res;
-    }
-
-    template<typename type>var<type> var<type>::to(const ordered_pairs& pairs){
-        var res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        string key;
-//        res._ids->resize(pairs._from.size());
-        for(auto it = pairs._to.begin(); it!= pairs._to.end(); it++){
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second){//new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-//                res._ids->at(res._dim) = param_::_indices->size()-1;
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".to{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,to_ordered_pairs_, pairs._first, pairs._last);
-        res._is_indexed = true;
-        return res;
-    }
+   
 
 
     template class var<bool>;

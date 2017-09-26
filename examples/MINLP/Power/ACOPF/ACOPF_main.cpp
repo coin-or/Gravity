@@ -68,10 +68,10 @@ int main (int argc, const char * argv[])
     fname = "../../data_sets/Power/nesta_case5_pjm.m";
     grid->readgrid(fname);
 
-    // Additional Parameters
-    int nb_gen = grid->gens.size();
-    int nb_lines = grid->arcs.size();
-    int nb_buses = grid->nodes.size();
+    // Grid Parameters
+    unsigned nb_gen = grid->gens.size();
+    unsigned nb_lines = grid->arcs.size();
+    unsigned nb_buses = grid->nodes.size();
 
     /** build model */
 
@@ -79,8 +79,8 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // power generation
-    var<double> Pg("Pg");
-    var<double> Qg ("Qg");
+    var<double> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<double> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACOPF.add_var(Pg^(nb_gen));
     ACOPF.add_var(Qg^(nb_gen));
 
@@ -101,17 +101,17 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(vi^(nb_buses));
 
     /** Construct the objective function*/
-    func_ obj;
-    for (auto g: grid->gens) {
-        if (!g->_active)
-            continue;
-        obj += g->_cost->c0 + (g->_cost->c1)*Pg((g->ID + 1)) + g->_cost->c2*power(Pg(g->ID + 1), 2);
-    }
+    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2,power(Pg,2));
+//    for (auto g: grid->gens) {
+//        if (!g->_active)
+//            continue;
+//        obj += grid->c0(g->ID+1) + grid->c1(g->ID+1)*Pg((g->ID+1)) + grid->c2(g->ID+1)*power(Pg(g->ID+1), 2);
+//    }    
+    obj.print();
     ACOPF.set_objective(min(obj));
 
 
     /** Define constraints */
-    constant<int> ones(1);
 
     //KCL
     for (auto b: grid->nodes) {
@@ -119,19 +119,20 @@ int main (int argc, const char * argv[])
         Constraint KCL_P("KCL_P"+bus->_name);
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
-        KCL_P  = ones.tr()*Pf_from.in(b->get_out());
-        KCL_Q  = ones.tr()*Qf_from.in(b->get_out());
-        KCL_P += ones.tr()*Pf_to.in(b->get_in());
-        KCL_Q += ones.tr()*Qf_to.in(b->get_in());
+        /* Power Conservation */
+        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + grid->pl() - sum(Pg.in(bus->_gen));
+        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
 
-        KCL_P += bus->pl() + bus->gs()*(power(vr(bus->ID +1), 2) + power(vi(bus->ID + 1), 2));
-        KCL_Q += bus->ql() - bus->bs()*(power(vr(bus->ID +1), 2) + power(vi(bus->ID + 1), 2));
+        /* Shunts */
+        KCL_P +=  bus->gs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
+        KCL_Q +=  bus->bs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
 
-        for (auto g: bus->_gen) {
-            KCL_P -= Pg(g->ID + 1);
-            KCL_Q -= Qg(g->ID + 1);
-        }
-
+//        for (auto g: bus->_gen) {
+//            KCL_P -= Pg(g->ID+1);
+//            KCL_Q -= Qg(g->ID+1);
+//        }
+        KCL_P.print();
+        
         ACOPF.add_constraint(KCL_P = 0);
         ACOPF.add_constraint(KCL_Q = 0);
     }
@@ -167,6 +168,7 @@ int main (int argc, const char * argv[])
     Flow_P_From -= g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_From -= b_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_From = 0;
+    Flow_P_From.print();
     ACOPF.add_constraint(Flow_P_From);
 
     Constraint Flow_P_To("Flow_P_To");
@@ -175,7 +177,7 @@ int main (int argc, const char * argv[])
     Flow_P_To -= g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_To -= b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_P_To = 0;
-     ACOPF.add_constraint(Flow_P_To);
+//     ACOPF.add_constraint(Flow_P_To);
 
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from.in(grid->arcs);
@@ -183,7 +185,7 @@ int main (int argc, const char * argv[])
     Flow_Q_From += b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_From -= g_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_From = 0;
-      ACOPF.add_constraint(Flow_Q_From);
+//      ACOPF.add_constraint(Flow_Q_From);
 
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
@@ -191,7 +193,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To -= b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_To -= g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_Q_To = 0;
-   ACOPF.add_constraint(Flow_Q_To);
+//   ACOPF.add_constraint(Flow_Q_To);
 
     // AC voltage limit constraints.
     param<double> vbound_max_square("vbound_max_square");
@@ -250,28 +252,17 @@ int main (int argc, const char * argv[])
     Thermal_Limit_from -= Thermal_limit_square;
 //    ACOPF.add_constraint(Thermal_Limit_to <= 0);
 
-    // Power generation constraints.
-    param<double> PUB("PUB");
-    param<double> PLB("PUB");
-    param<double> QUB("QUB");
-    param<double> QLB("QUB");
+    
 
-    for (auto g: grid->gens) {
-        PUB.add_val(g->pbound.max);
-        PLB.add_val(g->pbound.min);
-        QUB.add_val(g->qbound.max);
-        QLB.add_val(g->qbound.min);
-    }
-
-    Constraint Pbound_UB("Pbound_UB");
-    Constraint Pbound_LB("Pbound_LB");
-    Constraint Qbound_UB("Qbound_UB");
-    Constraint Qbound_LB("Qbound_LB");
-
-    Pbound_UB = Pg.in(grid->gens) - PUB.in(grid->gens);
-    Pbound_LB = Pg.in(grid->gens) - PLB.in(grid->gens);
-    Qbound_UB = Qg.in(grid->gens) - QUB.in(grid->gens);
-    Qbound_UB = Qg.in(grid->gens) - QLB.in(grid->gens);
+//    Constraint Pbound_UB("Pbound_UB");
+//    Constraint Pbound_LB("Pbound_LB");
+//    Constraint Qbound_UB("Qbound_UB");
+//    Constraint Qbound_LB("Qbound_LB");
+//
+//    Pbound_UB = Pg.in(grid->gens) - PUB.in(grid->gens);
+//    Pbound_LB = Pg.in(grid->gens) - PLB.in(grid->gens);
+//    Qbound_UB = Qg.in(grid->gens) - QUB.in(grid->gens);
+//    Qbound_UB = Qg.in(grid->gens) - QLB.in(grid->gens);
 
 //    ACOPF.add_constraint(Pbound_UB <= 0);
 //    ACOPF.add_constraint(Pbound_LB >= 0);

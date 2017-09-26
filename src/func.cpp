@@ -876,6 +876,7 @@ namespace gravity{
             _sign = f->_sign;
             f->_sign = nullptr;
             _is_transposed = f->_is_transposed;
+            _is_vector = f->_is_vector;
             _embedded = f->_embedded;
             for (auto &df:f->_dfdx) {
                 _dfdx[df.first] = df.second;
@@ -950,6 +951,7 @@ namespace gravity{
                     _all_sign = p_c2->get_all_sign();
                     _all_range = p_c2->get_range();
                     _is_transposed = p_c2->_is_transposed;
+                    _is_vector = p_c2->_is_vector;
                     break;
                 }
                 case var_c:{
@@ -961,6 +963,7 @@ namespace gravity{
                     _all_sign = p_c2->get_all_sign();
                     _all_range = p_c2->get_range();
                     _is_transposed = p_c2->_is_transposed;
+                    _is_vector = p_c2->_is_vector;
                     break;
                 }
                            // newly added
@@ -973,6 +976,7 @@ namespace gravity{
                     _all_sign = p_c2->get_all_sign();
                     _all_range = p_c2->get_range();
                     _is_transposed = p_c2->_is_transposed;
+                    _is_vector = p_c2->_is_vector;
                     break;
                 }
                 case uexp_c: {
@@ -1174,6 +1178,7 @@ namespace gravity{
         _sign = f._sign;
         f._sign = nullptr;
         _is_transposed = f._is_transposed;
+        _is_vector = f._is_vector;
         _embedded = f._embedded;
         for (auto &df:f._dfdx) {
             _dfdx[df.first] = df.second;
@@ -1200,6 +1205,7 @@ namespace gravity{
         _all_convexity = f._all_convexity;
         _all_sign = f._all_sign;
         _is_transposed = f._is_transposed;
+        _is_vector = f._is_vector;
         _embedded = f._embedded;
         _cst = copy(*f._cst);
         _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
@@ -1314,6 +1320,7 @@ namespace gravity{
         _all_convexity = f._all_convexity;
         _all_sign = f._all_sign;
         _is_transposed = f._is_transposed;
+        _is_vector = f._is_vector;
         _embedded = f._embedded;
         _return_type = f._return_type;
         _cst = copy(*f._cst);
@@ -1438,6 +1445,7 @@ namespace gravity{
         _sign = f._sign;
         f._sign = nullptr;
         _is_transposed = f._is_transposed;
+        _is_vector = f._is_vector;
         _embedded = f._embedded;
         for (auto &df:f._dfdx) {
             _dfdx[df.first] = df.second;
@@ -1736,12 +1744,26 @@ namespace gravity{
              }
             for (auto &pair:*_lterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (c._is_transposed) {
+                    pair.second._p->_is_vector = true;
+                }
             }
             for (auto &pair:*_qterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (c._is_transposed) {
+                    pair.second._p->first->_is_vector = true;
+                    pair.second._p->second->_is_vector = true;
+                }
+
             }
             for (auto &pair:*_pterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (c._is_transposed) {
+                    for (auto& p: (*pair.second._l)) {
+                        p.first->_is_vector = true;
+                    }
+                }
+
             }
             if (c.is_negative()) {
                 reverse_sign();
@@ -2375,6 +2397,7 @@ namespace gravity{
         _all_convexity = linear_;
         _all_sign = zero_;
         _is_transposed = false;
+        _is_vector = false;
         _lterms->clear();
         _qterms->clear();
         _pterms->clear();
@@ -3545,6 +3568,8 @@ namespace gravity{
                 auto new_c2 = copy(c2);
                 new_c2->_is_vector = true;
                 auto res = func_(c1) *= move(*new_c2);
+                res._is_vector = false;
+                res._is_transposed = false;
                 delete new_c2;
                 return res;
             }
@@ -4534,7 +4559,7 @@ namespace gravity{
             if (_is_transposed) {
                 str += "^T";
             }
-            str += "\n";
+//            str += "\n";
         }
         return str;
     }
@@ -5085,7 +5110,49 @@ namespace gravity{
     template func_ power<long double>(const var<long double>& v, unsigned p);
     template func_ power<short>(const var<short>& v, unsigned p);
     template func_ power<bool>(const var<bool>& v, unsigned p);
+    
+//    template<typename type>
+//    func_ sum(const var<type>& v){
+//        func_ res;
+//        if (v.get_dim()==0) {
+//            return res;
+//        }
+//        return constant<double>(1).tr()*v;
+//    }
+    
+    template<typename type>
+    func_ sum(const param<type>& p){
+        func_ res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        return constant<double>(1).tr()*p;
+    }
+    
+    template<typename type>
+    func_ sum(const param<type>& p1, const func_& f){
+        assert(p1.get_dim()==f.get_dim());
+        func_ res;
+        if (p1.get_dim()==0) {
+            return res;
+        }
+        return p1.tr()*f;
+    }
+    
+    template func_ sum<double>(const param<double>& v);
+    template func_ sum<float>(const param<float>& v);
+    template func_ sum<long double>(const param<long double>& v);
+    template func_ sum<int>(const param<int>& v);
+    template func_ sum<short>(const param<short>& v);
+    template func_ sum<bool>(const param<bool>& v);
 
+    template func_ sum<double>(const param<double>& v1, const func_& f);
+    template func_ sum<float>(const param<float>& v1, const func_& f);
+    template func_ sum<long double>(const param<long double>& v1, const func_& f);
+    template func_ sum<int>(const param<int>& v1, const func_& f);
+    template func_ sum<short>(const param<short>& v1, const func_& f);
+    template func_ sum<bool>(const param<bool>& v1, const func_& f);
+    
     void func_::update_convexity(){
         if (!_pterms->empty()) {
             _all_convexity = undet_;
