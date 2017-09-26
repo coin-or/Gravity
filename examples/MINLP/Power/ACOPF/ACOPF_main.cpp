@@ -120,7 +120,7 @@ int main (int argc, const char * argv[])
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
         /* Power Conservation */
-        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + grid->pl() - sum(Pg.in(bus->_gen));
+        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl() - sum(Pg.in(bus->_gen));
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
 
         /* Shunts */
@@ -148,20 +148,7 @@ int main (int argc, const char * argv[])
     param<double> b_tf("b_tf");
     param<double> b_tt("b_tt");
 
-    for (auto a: grid->arcs) {
-        auto la = (Line*) a;
-        g_ff.add_val(la->g/pow(la->tr, 2.));
-        g_ft.add_val((-la->g*la->cc + la->b*la->dd)/(pow(la->cc, 2) + pow(la->dd, 2)));
-        b_ft.add_val((-la->b*la->cc - la->g*la->dd)/(pow(la->cc, 2) + pow(la->dd, 2)));
-
-        g_tt.add_val(la->g);
-        g_tf.add_val((-la->g*la->cc - la->b*la->dd)/(pow(la->cc, 2) + pow(la->dd, 2)));
-        b_tf.add_val((-la->b*la->cc + la->g*la->dd)/(pow(la->cc, 2) + pow(la->dd, 2)));
-
-        b_ff.add_val((la->ch/2 + la->b)/pow(la->tr, 2.));
-        b_tt.add_val((la->ch/2 + la->b));
-    }
-
+   
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs);
     Flow_P_From -= g_ff.in(grid->arcs)*(power(vr.from(grid->arcs), 2) + power(vi.from(grid->arcs), 2));
