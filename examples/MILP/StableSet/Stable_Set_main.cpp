@@ -97,7 +97,8 @@ int main (int argc, const char * argv[])
     unsigned i, j, i1, i2, i3;
     
     Net graph;
-    const char* fname = "../../data_sets/stable_set/p.3n150.txt";
+//    const char* fname = "../../data_sets/stable_set/toy.txt";
+    const char* fname = "../../data_sets/stable_set/p.3n300.txt";
     graph.read_adjacency_matrix(fname);
     
 //    Net complement_graph;
