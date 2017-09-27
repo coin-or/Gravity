@@ -225,9 +225,9 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gen_status.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2 = atof(word.c_str());
+        c2 = atof(word.c_str())*powf(bMVA,2);
         file >> word;
-        c1 = atof(word.c_str());
+        c1 = atof(word.c_str())*bMVA;
         file >> word;
         c0 = atof(word.c_str());
         if (gen_status[i]) {

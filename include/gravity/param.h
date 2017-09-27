@@ -422,7 +422,7 @@ namespace gravity {
         
         void initialize_all(type v){
             for (int i = 0; i<_val->size(); i++) {
-                _val[i] = v;
+                _val->at(i) = v;
             }
         }
         
@@ -723,23 +723,8 @@ namespace gravity {
         
         string to_str(bool vals=false) const{
             string str = get_name();
-            if (_is_indexed) {
-                str += " = [";
-                str += std::to_string(_val->at(_indices->begin()->second));
-                str += "];";
-            }
-            else if(vals){
+            if(vals){
                 str += " = [ ";
-                for(auto &pi: *_indices){
-                    str += "("+pi.first+")";
-                    str += "=";
-                    str += to_string(_val->at(pi.second));
-                    str += " ";
-                }
-                 str += "];";
-            }
-            else{
-                 str += " = [ ";
                 for(int i = 0 ; i < param_::get_dim(); i++){
                     str += std::to_string(_val->at(i));
                     str += " ";

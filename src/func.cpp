@@ -1515,7 +1515,7 @@ namespace gravity{
     }
 
     bool constant_::is_zero() const{ /**< Returns true if constant equals 0 */
-        auto a = poly_to_str(this);
+//        auto a = poly_to_str(this);
         if (is_number() && all_zeros(poly_to_str(this))){
             return true;
         }
@@ -5097,19 +5097,19 @@ namespace gravity{
     }
 
     template<typename type>
-    func_ power(const var<type>& v, unsigned p){
+    func_ power(const param<type>& v, unsigned p){
         func_ res(v);
         for (int i = 1; i < p; i++) {
             res *= v;
         }
         return res;
     }
-    template func_ power<double>(const var<double>& v, unsigned p);
-    template func_ power<float>(const var<float>& v, unsigned p);
-    template func_ power<int>(const var<int>& v, unsigned p);
-    template func_ power<long double>(const var<long double>& v, unsigned p);
-    template func_ power<short>(const var<short>& v, unsigned p);
-    template func_ power<bool>(const var<bool>& v, unsigned p);
+    template func_ power<double>(const param<double>& v, unsigned p);
+    template func_ power<float>(const param<float>& v, unsigned p);
+    template func_ power<int>(const param<int>& v, unsigned p);
+    template func_ power<long double>(const param<long double>& v, unsigned p);
+    template func_ power<short>(const param<short>& v, unsigned p);
+    template func_ power<bool>(const param<bool>& v, unsigned p);
     
 //    template<typename type>
 //    func_ sum(const var<type>& v){
