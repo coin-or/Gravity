@@ -54,8 +54,9 @@ namespace gravity {
         // Retrieve specified indexed variable.
         template<typename... Args>
         var operator()(size_t t1, Args&&... args){
-            var res;
-            res.param<type>::operator()(t1, args...);
+            var<type> res(this->_name);
+            res.param<type>::operator=(param<type>::operator()(t1, args...));
+            res.param<type>::set_type(var_c);
             res._lb = this->_lb;
             res._ub = this->_ub;
             return res;
@@ -74,8 +75,9 @@ namespace gravity {
 
     template<typename Tobj>
         var in(const vector<Tobj>& vec){
-            var<type> res;
+            var<type> res(this->_name);
             res.param<type>::operator=(param<type>::in(vec));
+            res.param<type>::set_type(var_c);
             res._lb = this->_lb;
             res._ub = this->_ub;
             return res;

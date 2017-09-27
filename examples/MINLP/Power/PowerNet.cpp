@@ -278,8 +278,16 @@ int PowerNet::readgrid(const char* fname) {
         
         g = arc->g;
         b = arc->b;
-        rtr = arc->cc;
-        itr = arc->dd;        
+        g_ff = arc->g/pow(arc->tr, 2.);
+        g_ft = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ft = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        
+        g_tt = arc->g;
+        g_tf = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_tf = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        
+        b_ff = (arc->ch/2 + arc->b)/pow(arc->tr, 2.);
+        b_tt = (arc->ch/2 + arc->b);
         ch = arc->ch;
         S_max = arc->limit;
         th_min = arc->tbound.min;

@@ -35,8 +35,8 @@ public:
     param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
     param<double> pl, ql; /**< Load vectors */
     param<double> gs, bs; /**< Transformer params */
-    param<double> g, b, ch, S_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits */
-    param<double> rtr, itr; /**< Transformers phase shifters parameters, a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
+    param<double> g, b, ch, S_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits */    
+    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
 
     
     /** Set of generators */
