@@ -135,7 +135,6 @@ int PowerNet::readgrid(const char* fname) {
         name = word.c_str();
         id = atoi(name.c_str());
         file >> ws >> word >> ws >> word;
-        cout <<atof(word.c_str())/bMVA << endl;
         pl = atof(word.c_str())/bMVA;
         file >> word;
         ql = atof(word.c_str())/bMVA;

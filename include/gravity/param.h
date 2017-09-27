@@ -66,7 +66,6 @@ namespace gravity {
             throw invalid_argument("This is a non-indexed variable!\n");
             return inst;
         };
-        
         // newly added part by guanglei
         pair<size_t,size_t> get_sdpid() const{
             if (_is_indexed) {

@@ -114,10 +114,7 @@ int main (int argc, const char * argv[])
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
         /* Power Conservation */
-        KCL_P  = (Pf_from.in(b->get_out())) + (Pf_to.in(b->get_in()));
-
-        //KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl();
-        //- sum(Pg.in(bus->_gen));
+        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl()- sum(Pg.in(bus->_gen));
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql();
         //- sum(Qg.in(bus->_gen));
 
