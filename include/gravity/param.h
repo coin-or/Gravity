@@ -1,4 +1,4 @@
-//
+///
 //  param.h
 //
 //
@@ -63,7 +63,7 @@ namespace gravity {
             if (_is_indexed && inst < _ids->size()) {                
                 return _ids->at(inst);
             }
-//            throw invalid_argument("This is a non-indexed variable!\n");
+            throw invalid_argument("This is a non-indexed variable!\n");
             return inst;
         };
         
@@ -76,6 +76,8 @@ namespace gravity {
         };
         
         string get_name(bool indices=true) const;
+        void set_name(const string s) {_name = s;};
+
         NType get_intype() const { return _intype;}
         size_t get_dim() const {
                 return _dim;
@@ -141,15 +143,21 @@ namespace gravity {
     class param: public param_{
     protected:
         shared_ptr<vector<type>>                _val;
-
     public:
         pair<type,type>                         _range; /**< (Min,Max) values in vals **/
-        
         param(){
             _type = par_c; 
             _name = "noname";        
-            throw invalid_argument("Please enter a name in the parameter constructor");
+           // throw invalid_argument("Please enter a name in the parameter constructor");
+            update_type();
+            _val = make_shared<vector<type>>();
+            _indices = make_shared<map<string,unsigned>>();
+            _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
+            _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
+            _range.first = numeric_limits<type>::max();
+            _range.second = numeric_limits<type>::lowest();
         }
+        
         
         ~param(){
         }
@@ -585,8 +593,8 @@ namespace gravity {
                 }
             }
             res._name += ".in_arcs";
-            res._unique_id = make_tuple<>(res._id,in_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
             res._is_indexed = true;
+            res._unique_id = make_tuple<>(res._id,in_arcs_, param<type>::get_id_inst(0), param<type>::get_id_inst(res.param_::get_dim()));
             return res;
         }
 
@@ -613,8 +621,8 @@ namespace gravity {
                 res._dim++;
             }
             res._name += ".in_set";
-            res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
             res._is_indexed = true;
+            res._unique_id = make_tuple<>(res._id, in_set_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
             return res;
         }
 
@@ -673,8 +681,8 @@ namespace gravity {
                 
             }
             res._name += ".from_arcs";
-            res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
             res._is_indexed = true;
+            res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
             return res;
         }
         

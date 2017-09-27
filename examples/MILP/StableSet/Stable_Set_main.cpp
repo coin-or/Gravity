@@ -158,9 +158,9 @@ int main (int argc, const char * argv[])
     /* Constraints declaration */
     ordered_pairs indices(1,n);
     Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);    
+    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
     SDP.add_constraint(SOCP <= 0);
-//
+
 //        for (int i = 0; i < n; i++){
 //            for (int j = i+1; j < n; j++){
 //                Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");

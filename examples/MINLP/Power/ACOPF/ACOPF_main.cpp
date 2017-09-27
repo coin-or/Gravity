@@ -76,7 +76,6 @@ int main (int argc, const char * argv[])
     /** build model */
 
     Model ACOPF("AC-OPF Model");
-
     /** Variables */
     // power generation
     var<double> Pg("Pg", grid->pg_min, grid->pg_max);
@@ -101,12 +100,7 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(vi^(nb_buses));
 
     /** Construct the objective function*/
-    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2,power(Pg,2));
-//    for (auto g: grid->gens) {
-//        if (!g->_active)
-//            continue;
-//        obj += grid->c0(g->ID+1) + grid->c1(g->ID+1)*Pg((g->ID+1)) + grid->c2(g->ID+1)*power(Pg(g->ID+1), 2);
-//    }    
+    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2, power(Pg,2));
     obj.print();
     ACOPF.set_objective(min(obj));
 
@@ -120,19 +114,22 @@ int main (int argc, const char * argv[])
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
         /* Power Conservation */
-        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl() - sum(Pg.in(bus->_gen));
-        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
+        KCL_P  = (Pf_from.in(b->get_out())) + (Pf_to.in(b->get_in()));
+
+        //KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl();
+        //- sum(Pg.in(bus->_gen));
+        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql();
+        //- sum(Qg.in(bus->_gen));
 
         /* Shunts */
         KCL_P +=  bus->gs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
         KCL_Q +=  bus->bs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
-
-//        for (auto g: bus->_gen) {
-//            KCL_P -= Pg(g->ID+1);
-//            KCL_Q -= Qg(g->ID+1);
-//        }
+//      for (auto g: bus->_gen) {
+//           KCL_P -= Pg(g->ID+1);
+//           KCL_Q -= Qg(g->ID+1);
+//      }
+     
         KCL_P.print();
-        
         ACOPF.add_constraint(KCL_P = 0);
         ACOPF.add_constraint(KCL_Q = 0);
     }
@@ -238,8 +235,6 @@ int main (int argc, const char * argv[])
     Thermal_Limit_from += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
     Thermal_Limit_from -= Thermal_limit_square;
 //    ACOPF.add_constraint(Thermal_Limit_to <= 0);
-
-    
 
 //    Constraint Pbound_UB("Pbound_UB");
 //    Constraint Pbound_LB("Pbound_LB");

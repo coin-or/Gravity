@@ -38,7 +38,39 @@ using namespace std;
 //static char* line = nullptr;
 
 PowerNet::PowerNet(){
-    bMVA=0;
+    bMVA = 0;
+    pg_min.set_name("pg_min"); 
+    pg_max.set_name("pg_max"); 
+    qg_min.set_name("qg_min"); 
+    qg_max.set_name("qg_max"); 
+    pg_s.set_name("pg_s"); 
+    qg_s.set_name("qg_s"); 
+    c0.set_name("c0"); 
+    c1.set_name("c1"); 
+    c2.set_name("c2"); 
+    th_min.set_name("th_min"); 
+    th_max.set_name("th_max"); 
+    v_min.set_name("v_min"); 
+    v_max.set_name("v_max"); 
+    v_s.set_name("v_s"); 
+    pl.set_name("pl"); 
+    ql.set_name("ql"); 
+    gs.set_name("gs"); 
+    bs.set_name("bs"); 
+    g.set_name("g"); 
+    b.set_name("b"); 
+    ch.set_name("ch"); 
+    S_max.set_name("S_max"); 
+
+    g_ff.set_name("g_ff"); 
+    g_ft.set_name("g_ft"); 
+    g_tf.set_name("g_tf"); 
+    g_tt.set_name("g_tt"); 
+
+    //param<double>  b_ff("b_ff"); 
+    //param<double>  b_ft("b_ft"); 
+    //param<double>  b_tf("b_tf"); 
+    //param<double>  b_tt("b_tt"); 
 }
 
 PowerNet::~PowerNet(){
@@ -87,9 +119,7 @@ int PowerNet::readgrid(const char* fname) {
     file.ignore(3);
     getline(file, word,';');
     bMVA = atoi(word.c_str());
-    
 //  cout << "BaseMVA = " << bMVA << endl;
-    
     
     /* Nodes data */
     while (word.compare("mpc.bus")){
@@ -105,6 +135,7 @@ int PowerNet::readgrid(const char* fname) {
         name = word.c_str();
         id = atoi(name.c_str());
         file >> ws >> word >> ws >> word;
+        cout <<atof(word.c_str())/bMVA << endl;
         pl = atof(word.c_str())/bMVA;
         file >> word;
         ql = atof(word.c_str())/bMVA;
