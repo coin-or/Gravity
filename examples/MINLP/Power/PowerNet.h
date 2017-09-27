@@ -33,9 +33,10 @@ public:
     param<double> c0, c1, c2; /**< Generation costs */
     param<double> th_min, th_max; /**< Upper and lower bounds on phase angles */
     param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
+    param<double> w_min, w_max; /**< Voltage bounds in lifted W space */
     param<double> pl, ql; /**< Load vectors */
     param<double> gs, bs; /**< Transformer params */
-    param<double> g, b, ch, S_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits */    
+    param<double> g, b, ch, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
     param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
 
     

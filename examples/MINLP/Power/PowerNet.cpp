@@ -51,8 +51,14 @@ PowerNet::PowerNet(){
     th_min.set_name("th_min"); 
     th_max.set_name("th_max"); 
     v_min.set_name("v_min"); 
-    v_max.set_name("v_max"); 
-    v_s.set_name("v_s"); 
+    v_max.set_name("v_max");
+    w_min.set_name("w_min");
+    w_max.set_name("w_max");
+    wr_min.set_name("wr_min");
+    wr_max.set_name("wr_max");
+    wi_min.set_name("wi_min");
+    wi_max.set_name("wi_max");
+    v_s.set_name("v_s");
     pl.set_name("pl"); 
     ql.set_name("ql"); 
     gs.set_name("gs"); 
@@ -150,6 +156,8 @@ int PowerNet::readgrid(const char* fname) {
         v_max = atof(word.c_str());
         getline(file, word,';');
         v_min = atof(word.c_str());
+        w_min = pow(v_min.eval(),2.);
+        w_max = pow(v_max.eval(),2.);
         // single phase
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
         bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
@@ -225,7 +233,7 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gen_status.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2 = atof(word.c_str())*powf(bMVA,2);
+        c2 = atof(word.c_str())*pow(bMVA,2);
         file >> word;
         c1 = atof(word.c_str())*bMVA;
         file >> word;
@@ -253,7 +261,7 @@ int PowerNet::readgrid(const char* fname) {
         file >> dest;
         id = (int)arcs.size();
         
-        arc = new Line("(" + src + "," + dest + ")");
+        arc = new Line("(" + to_string(id) + "," + src + "," + dest + ")");
         arc->id = id;
         arc->src = get_node(src);
         arc->dest= get_node(dest);
@@ -308,16 +316,38 @@ int PowerNet::readgrid(const char* fname) {
         
         g = arc->g;
         b = arc->b;
-        g_ff = arc->g/pow(arc->tr, 2.);
+        g_ff = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
         g_ft = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_ft = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
         g_tt = arc->g;
         g_tf = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+
+        
+        b_ff = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ft = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+
+        b_tt = (arc->ch/2 + arc->b);
         b_tf = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
-        b_ff = (arc->ch/2 + arc->b)/pow(arc->tr, 2.);
-        b_tt = (arc->ch/2 + arc->b);
+        
+        if (arc->tbound.min >= 0 ) {
+            wr_max = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.min);
+            wr_min = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.max);
+            wi_max = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
+            wi_min = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.min);
+        };
+        if (arc->tbound.max <= 0 ) {
+            wr_max = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.max);
+            wr_min = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.min);
+            wi_max = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.max);
+            wi_min = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
+        }
+        if (arc->tbound.min < 0 && arc->tbound.max > 0) {
+            wr_max = bus_s->vbound.max*bus_d->vbound.max;
+            wr_min = bus_s->vbound.min*bus_d->vbound.min*min(cos(arc->tbound.min), cos(arc->tbound.max));
+            wi_max = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
+            wi_min = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
+        }
         ch = arc->ch;
         S_max = arc->limit;
         th_min = arc->tbound.min;
