@@ -151,7 +151,7 @@ int main (int argc, const char * argv[])
     Model SDP;
     /* Variable declaration */
     var<double> Xii("Xii", 0, 1);
-    var<double> Xij("Xij", 0, 1);
+    var<double> Xij("Xii", 0, 1);
     SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
@@ -160,7 +160,6 @@ int main (int argc, const char * argv[])
     Constraint SOCP("SOCP");
     SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
     SDP.add_constraint(SOCP <= 0);
-
 //        for (int i = 0; i < n; i++){
 //            for (int j = i+1; j < n; j++){
 //                Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
@@ -168,6 +167,7 @@ int main (int argc, const char * argv[])
 //                SDP.add_constraint(SOCP<=0);
 //            }
 //        }
+    SOCP.print();
     Constraint diag("diag");
     diag = sum(Xii);
     SDP.add_constraint(diag = 1); // diagonal sum is 1
@@ -175,7 +175,6 @@ int main (int argc, const char * argv[])
     Constraint zeros("zeros");
     zeros = Xij.in(graph.arcs);
     SDP.add_constraint(zeros = 0); // zero elements
-    
 //        for(auto a: graph.arcs){
 //            i = (a->src)->ID;
 //            j = (a->dest)->ID;
