@@ -2685,7 +2685,7 @@ namespace gravity{
         string name;
         string s;
         bool newv = true;
-        int i = 0;
+//        int i = 0;
         for (auto &pair:l) {
             name += pair.first->get_name();
             name += "^"+to_string(pair.second);
@@ -2699,7 +2699,7 @@ namespace gravity{
         }    
         if (pair_it == _pterms->end()) {
             auto newl = new list<pair<param_*, int>>();
-            i = 1;
+//            i = 1;
             for (auto &pair:l) {
                 p = pair.first;
                 s = p->get_name();
@@ -5131,7 +5131,7 @@ namespace gravity{
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f){
-        assert(p1.get_dim()==f.get_dim());
+//        assert(p1.get_dim()==f.get_dim());
         func_ res;
         if (p1.get_dim()==0) {
             return res;
