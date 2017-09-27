@@ -33,10 +33,6 @@
 
 using namespace std;
 
-
-//static int max_line_len;
-//static char* line = nullptr;
-
 PowerNet::PowerNet(){
     bMVA = 0;
     pg_min.set_name("pg_min"); 
@@ -87,10 +83,6 @@ PowerNet::~PowerNet(){
         gens.clear();
     }
 }
-//
-//Bus* Net::get_bus(string name) {
-//    return nodeID.find(name)->second;
-//}
 //
 // Read a grid
 // @discussion line with delimiter ";"
