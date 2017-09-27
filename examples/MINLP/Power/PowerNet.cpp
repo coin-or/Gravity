@@ -67,10 +67,10 @@ PowerNet::PowerNet(){
     g_tf.set_name("g_tf"); 
     g_tt.set_name("g_tt"); 
 
-    //param<double>  b_ff("b_ff"); 
-    //param<double>  b_ft("b_ft"); 
-    //param<double>  b_tf("b_tf"); 
-    //param<double>  b_tt("b_tt"); 
+    b_ff.set_name("b_ff"); 
+    b_ft.set_name("b_ft"); 
+    b_tf.set_name("b_tf"); 
+    b_tt.set_name("b_tt"); 
 }
 
 PowerNet::~PowerNet(){

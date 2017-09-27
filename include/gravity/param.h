@@ -1,7 +1,6 @@
 ///
 //  param.h
 //
-//
 //  Created by Hassan on 13/05/2016.
 //
 //
@@ -147,14 +146,14 @@ namespace gravity {
         param(){
             _type = par_c; 
             _name = "noname";        
-           // throw invalid_argument("Please enter a name in the parameter constructor");
-            update_type();
-            _val = make_shared<vector<type>>();
-            _indices = make_shared<map<string,unsigned>>();
-            _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
-            _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
-            _range.first = numeric_limits<type>::max();
-            _range.second = numeric_limits<type>::lowest();
+            throw invalid_argument("Please enter a name in the parameter constructor");
+            //update_type();
+            //_val = make_shared<vector<type>>();
+            //_indices = make_shared<map<string,unsigned>>();
+            //_ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
+            //_sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
+            //_range.first = numeric_limits<type>::max();
+            //_range.second = numeric_limits<type>::lowest();
         }
         
         
@@ -680,8 +679,8 @@ namespace gravity {
                 
             }
             res._name += ".from_arcs";
-            res._is_indexed = true;
             res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._is_indexed = true;
             return res;
         }
         
