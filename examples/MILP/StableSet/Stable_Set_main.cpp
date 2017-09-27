@@ -94,7 +94,7 @@ int main (int argc, const char * argv[])
     << std::numeric_limits<double>::max() << '\n';
     std::cout << "long double\t"
     << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
-    unsigned i, j, i1, i2, i3;
+    unsigned i, j;
     
     Net graph;
 //    const char* fname = "../../data_sets/stable_set/toy.txt";
@@ -111,20 +111,28 @@ int main (int argc, const char * argv[])
     unsigned n = graph.nodes.size();
     unsigned m = graph.arcs.size();
     
-    /**  ILP model for the stable set problem. **/
+    /**  IP model for the stable set problem. **/
     var<bool> x("x");
     model.add_var(x^n);
     constant<int> ones(1);
     func_ obj = ones.tr()*x;
-
+    obj.print();
     model.set_objective(max(obj));
     Constraint c("Stable_Set");
     c = x.from(graph.arcs) + x.to(graph.arcs);
     c <= 1;
-    
     DebugOff(c.print();)
     model.add_constraint(c);
-
+//    for (unsigned l=0; l<m;l++){
+//        Arc* a = graph.arcs[l];
+//        i = (a->src)->ID;
+//        j = (a->dest)->ID;
+//        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
+//        c = x(i) + x(j);
+//        c <= 1;
+//        DebugOff(c.print();)
+//        model.add_constraint(c);
+//    }
     SolverType stype = cplex;
     solver s(model,stype);
     double wall0 = get_wall_time();
@@ -148,7 +156,7 @@ int main (int argc, const char * argv[])
     /* Constraints declaration */
     ordered_pairs indices(1,n);
     Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);
+    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices);    
     SDP.add_constraint(SOCP <= 0);
 //        for (int i = 0; i < n; i++){
 //            for (int j = i+1; j < n; j++){
@@ -157,7 +165,6 @@ int main (int argc, const char * argv[])
 //                SDP.add_constraint(SOCP<=0);
 //            }
 //        }
-   // SOCP.print();
     Constraint diag("diag");
     diag = sum(Xii);
     SDP.add_constraint(diag = 1); // diagonal sum is 1
@@ -165,6 +172,15 @@ int main (int argc, const char * argv[])
     Constraint zeros("zeros");
     zeros = Xij.in(graph.arcs);
     SDP.add_constraint(zeros = 0); // zero elements
+    
+//        for(auto a: graph.arcs){
+//            i = (a->src)->ID;
+//            j = (a->dest)->ID;
+//            Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
+//            zeros = Xij(i,j);
+//            SDP.add_constraint(zeros=0);
+//        }
+//    
 
 //    auto Xij_ = Xij.pairs_in(complement_graph._bags, 3);
 //    auto Xii_ = Xii.in(complement_graph._bags, 3);
@@ -208,11 +224,14 @@ int main (int argc, const char * argv[])
 //            }
 //        }
     
-/* Objective declaration */
+    /* Objective declaration */
+//    constant<int> twos(2);
     auto obj_SDP = 2*sum(Xij) + sum(Xii);
     SDP.set_objective(max(obj_SDP));
     
     solver s1(SDP,ipopt);
+//    solver s1(SDP,cplex);
+
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
@@ -223,7 +242,6 @@ int main (int argc, const char * argv[])
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
     return 0;
-    
     /* Outer-Approximation of SOCP and 3d-SDP cuts in Shriver's SDP relaxation for the stable set problem */
     Model OA;
     OA.add_var(Xii);
