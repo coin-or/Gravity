@@ -124,7 +124,14 @@ int PowerNet::readgrid(const char* fname) {
     getline(file, word,';');
     bMVA = atoi(word.c_str());
 //  cout << "BaseMVA = " << bMVA << endl;
-    
+    while (word.compare("mpc.areas")){
+        file >> word;
+    }
+    getline(file, word);
+    getline(file, word,' ');
+    getline(file, word,';');
+    ref_bus = word.c_str();
+    DebugOn("Ref Bus = " << ref_bus << endl);
     /* Nodes data */
     while (word.compare("mpc.bus")){
         file >> word;
