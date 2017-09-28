@@ -45,8 +45,10 @@ PowerNet::PowerNet(){
     c1.set_name("c1"); 
     c2.set_name("c2"); 
     th_min.set_name("th_min"); 
-    th_max.set_name("th_max"); 
-    v_min.set_name("v_min"); 
+    th_max.set_name("th_max");
+    tan_th_min.set_name("tan_th_min");
+    tan_th_max.set_name("tan_th_max");
+    v_min.set_name("v_min");
     v_max.set_name("v_max");
     w_min.set_name("w_min");
     w_max.set_name("w_max");
@@ -344,6 +346,8 @@ int PowerNet::readgrid(const char* fname) {
         S_max = arc->limit;
         th_min = arc->tbound.min;
         th_max = arc->tbound.max;
+        tan_th_min = tan(arc->tbound.min);
+        tan_th_max = tan(arc->tbound.max);
         
         if(arc->status == 1){
             arc->connect();

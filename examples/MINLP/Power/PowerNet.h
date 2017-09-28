@@ -31,7 +31,7 @@ public:
     
     param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along woth nominal values (default set points)*/
     param<double> c0, c1, c2; /**< Generation costs */
-    param<double> th_min, th_max; /**< Upper and lower bounds on phase angles */
+    param<double> th_min, th_max, tan_th_min, tan_th_max; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
     param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
     param<double> w_min, w_max; /**< Voltage bounds in lifted W space */
     param<double> pl, ql; /**< Load vectors */
