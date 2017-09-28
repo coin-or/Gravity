@@ -6,6 +6,8 @@
 //  note: Sdpvar needs to be tested (Guanglei). 
 //
 #include <gravity/var.h>
+#define DebugOn(x) cout << x
+#define DebugOff(x)
 
 namespace gravity{
 
@@ -55,6 +57,19 @@ namespace gravity{
 //        }
         _lb = lb.get_vals();
         _ub = ub.get_vals();
+        //TODO: update range first and second
+    };
+    
+    template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
+        _ub = sb.get_vals();
+        for (int i= 0; i<_ub->size(); i++) {
+            _lb->push_back(-1.*_ub->at(i));
+            DebugOff(_lb->at(i) << endl);
+            if (_lb->back() < param<type>::_range.first) {
+                param<type>::_range.first = _lb->back() ;
+            }
+        }
+        DebugOff("Done" << endl);
         //TODO: update range first and second
     };
 

@@ -48,6 +48,7 @@ namespace gravity {
         /** Bounded variable constructor */
         var(const string& name, type lb, type ub);
         var(const string& name, param<type> lb, param<type> ub);
+        var(const string& name, param<type> sb);// Constructor with symmetric bound: [-sb, sb]
         //@}
         
         
