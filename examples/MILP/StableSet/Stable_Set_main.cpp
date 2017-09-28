@@ -232,7 +232,7 @@ int main (int argc, const char * argv[])
     SDP.set_objective(max(obj_SDP));
     
     solver s1(SDP,ipopt);
-//    solver s1(SDP,cplex);
+  //  solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
@@ -244,6 +244,7 @@ int main (int argc, const char * argv[])
     cout << "\nWall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
     return 0;
+    
     /* Outer-Approximation of SOCP and 3d-SDP cuts in Shriver's SDP relaxation for the stable set problem */
     Model OA;
     OA.add_var(Xii);
