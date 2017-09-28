@@ -122,7 +122,6 @@ int main (int argc, const char * argv[])
         KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl()- sum(Pg.in(bus->_gen));
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
         
-
         /* Shunts */
         KCL_P +=  bus->gs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
         KCL_Q -=  bus->bs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
@@ -131,9 +130,7 @@ int main (int argc, const char * argv[])
         ACOPF.add_constraint(KCL_P = 0);
         ACOPF.add_constraint(KCL_Q = 0);
     }
-
     //AC Power Flow.
-
 //
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs);
@@ -188,20 +185,20 @@ int main (int argc, const char * argv[])
     
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
-    PAD_UB = vr.from(grid->arcs)*vi.to(grid->arcs)+  vr.to(grid->arcs)*vi.from(grid->arcs);
-    PAD_UB -= grid->tan_th_max.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) - vi.from(grid->arcs)*vi.to(grid->arcs));
+    PAD_UB = vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs);
+    PAD_UB -= grid->tan_th_max.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     ACOPF.add_constraint(PAD_UB <= 0);
     
     Constraint PAD_LB("PAD_LB:");
-    PAD_LB = vr.from(grid->arcs)*vi.to(grid->arcs)+  vr.to(grid->arcs)*vi.from(grid->arcs);
-    PAD_LB -= grid->tan_th_min.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) - vi.to(grid->arcs)*vi.from(grid->arcs));
+    PAD_LB = vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs);
+    PAD_LB -= grid->tan_th_min.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.to(grid->arcs)*vi.from(grid->arcs));
     ACOPF.add_constraint(PAD_LB >= 0);
 
 
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
-    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
+    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs), 2);
     ACOPF.add_constraint(Thermal_Limit_from <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
