@@ -65,8 +65,8 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-//  fname = "../../data_sets/Power/nesta_case5_pjm.m";
-    fname = "../../data_sets/Power/nesta_case14_ieee.m";
+    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//   fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
 //  fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     grid->readgrid(fname);
@@ -183,7 +183,6 @@ int main (int argc, const char * argv[])
     Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
     SOCP.add_constraint(Vol_limit_LB >= 0);
 
-    
     /* REF BUS */
     Constraint Ref_Bus("Ref_Bus");
     Ref_Bus = vi(18);
