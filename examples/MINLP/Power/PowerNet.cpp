@@ -46,6 +46,8 @@ PowerNet::PowerNet(){
     c2.set_name("c2"); 
     th_min.set_name("th_min"); 
     th_max.set_name("th_max"); 
+    tbound_min_tan.set_name("tbound_min_tan"); 
+    tbound_max_tan.set_name("tbound_max_tan"); 
     v_min.set_name("v_min"); 
     v_max.set_name("v_max");
     w_min.set_name("w_min");
@@ -197,7 +199,7 @@ int PowerNet::readgrid(const char* fname) {
         
         getline(file, word,'\n');
         gen_status.push_back(status==1);
-        
+
         if(status==1){
             bus->_has_gen = true;
             /** generator name, ID */
@@ -344,7 +346,10 @@ int PowerNet::readgrid(const char* fname) {
         S_max = arc->limit;
         th_min = arc->tbound.min;
         th_max = arc->tbound.max;
-        
+       
+        tbound_max_tan = tan(arc->tbound.min);
+        tbound_min_tan = tan(arc->tbound.max);
+
         if(arc->status == 1){
             arc->connect();
             add_arc(arc);
