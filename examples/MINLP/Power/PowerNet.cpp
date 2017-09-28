@@ -259,7 +259,7 @@ int PowerNet::readgrid(const char* fname) {
         file >> dest;
         id = (int)arcs.size();
         
-        arc = new Line("(" + to_string(id) + "," + src + "," + dest + ")");
+        arc = new Line(to_string(id) + "," + src + "," + dest);
         arc->id = id;
         arc->src = get_node(src);
         arc->dest= get_node(dest);

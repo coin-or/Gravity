@@ -15,7 +15,9 @@ Arc::Arc(){ _name=  ""; src = nullptr; dest = nullptr;}
 
 Arc::~Arc(){}
 
-Arc::Arc(string name):src(NULL), dest(NULL){}
+Arc::Arc(string name):src(NULL), dest(NULL){
+    _name = name;
+}
 
 
 Arc::Arc(Node* s, Node* d){

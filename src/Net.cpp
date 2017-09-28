@@ -328,21 +328,22 @@ void Net::read_adjacency_matrix(const char* fname) {
 
     Arc* arc = NULL;
     string src, dest;
-    for (int i = 0; i <(n-1); i++)
+    unsigned index = 0;
+    for (int i = 0; i <(n); i++)
         for (int j=i+1; j<n; j++) {
             if (matrix[i][j] > 0)
             {
                 src = to_string(i);
                 dest = to_string(j);
-
-                id = (int)arcs.size();
-                arc = new Arc(to_string(id));
+                id = index;
+                arc = new Arc(to_string(id) + "," + src + "," + dest);
                 arc->id = id;
                 arc->src = get_node(src);
                 arc->dest= get_node(dest);
                 add_arc(arc);
                 arc->connect();
             }
+            index++;
         }
     delete[] line;
     fclose(fp);

@@ -44,9 +44,10 @@ namespace gravity{
             _first = p1;
             _last = p2;
             string key;
+            unsigned index = 0;
         for (int i = p1-1; i < p2; i++){
             for (int j = i+1; j < p2; j++){
-                _keys.push_back(to_string(i) + "," + to_string(j));
+                _keys.push_back(to_string(index++)+ "," + to_string(i) + "," + to_string(j));
                 _from.push_back(to_string(i));
                 _to.push_back(to_string(j));
             }
