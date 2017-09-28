@@ -180,7 +180,7 @@ int main (int argc, const char * argv[])
     
     /* REF BUS */
 //    Constraint Ref_Bus("Ref_Bus");
-//    Ref_Bus = vi(18);
+//    Ref_Bus = vi(grid->arcs[grid->ref]);
 //    ACOPF.add_constraint(Ref_Bus = 0);
     
     /* Phase Angle Bounds constraints */
