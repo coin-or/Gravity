@@ -188,13 +188,13 @@ int main (int argc, const char * argv[])
     
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
-    PAD_UB = vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs);
-    PAD_UB -= grid->tan_th_max.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
+    PAD_UB = vr.from(grid->arcs)*vi.to(grid->arcs)+  vr.to(grid->arcs)*vi.from(grid->arcs);
+    PAD_UB -= grid->tan_th_max.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) - vi.from(grid->arcs)*vi.to(grid->arcs));
     ACOPF.add_constraint(PAD_UB <= 0);
     
     Constraint PAD_LB("PAD_LB:");
-    PAD_LB = vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs);
-    PAD_LB -= grid->tan_th_min.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.to(grid->arcs)*vi.from(grid->arcs));
+    PAD_LB = vr.from(grid->arcs)*vi.to(grid->arcs)+  vr.to(grid->arcs)*vi.from(grid->arcs);
+    PAD_LB -= grid->tan_th_min.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) - vi.to(grid->arcs)*vi.from(grid->arcs));
     ACOPF.add_constraint(PAD_LB >= 0);
 
 
