@@ -113,15 +113,16 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Im_Wij^(nb_buses*(nb_buses-1)/2));
     
     /** Construct the objective function*/
-    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2, power(Pg,2));
+    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2, power(Pg, 2));
     SOCP.set_objective(min(obj));
     
     /** Define constraints */
     /* SOCP constraints */
-//    Constraint SOC("SOC");
-//    ordered_pairs indices(1, nb_buses);
-//    SOC = R_Wij.in(indices)*Im_Wij.in(indices) - Wii.from(indices)*Wii.to(indices);
-//    SOCP.add_constraint(SOC <= 0);
+    Constraint SOC("SOC");
+    //ordered_pairs indices(1, nb_buses);
+    //SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
+    SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
+    SOCP.add_constraint(SOC <= 0);
     
     //KCL
     for (auto b: grid->nodes) {
@@ -135,8 +136,8 @@ int main (int argc, const char * argv[])
         
         
         /* Shunts */
-        KCL_P +=  bus->gs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
-        KCL_Q +=  bus->bs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
+        KCL_P +=  bus->gs()*Wii.in(grid->nodes);
+        KCL_Q -=  bus->bs()*Wii.in(grid->nodes);
         
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -156,7 +157,7 @@ int main (int argc, const char * argv[])
     Flow_P_To += Pf_to.in(grid->arcs);
     Flow_P_To -= grid->g_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_P_To -= grid->g_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
-    Flow_P_To -= grid->b_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
+    Flow_P_To += grid->b_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     Flow_P_To = 0;
     SOCP.add_constraint(Flow_P_To);
 
@@ -171,8 +172,8 @@ int main (int argc, const char * argv[])
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
-    Flow_Q_To -= grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
-    Flow_Q_To -= grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
+    Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
+    Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     Flow_Q_To = 0;
     SOCP.add_constraint(Flow_Q_To);
 //
@@ -193,15 +194,16 @@ int main (int argc, const char * argv[])
 ////    SOCP.add_constraint(Ref_Bus = 0);
 //
     /* Phase Angle Bounds constraints */
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(grid->arcs);
-    PAD_UB -= grid->tan_th_max.in(grid->arcs)*R_Wij.in(grid->arcs);
-    SOCP.add_constraint(PAD_UB <= 0);
-
-    Constraint PAD_LB("PAD_LB:");
-    PAD_LB =  Im_Wij.in(grid->arcs);
-    PAD_LB -= grid->tan_th_min.in(grid->arcs)*R_Wij.in(grid->arcs);
-    SOCP.add_constraint(PAD_LB >= 0);
+//    Constraint PAD_UB("PAD_UB");
+//    PAD_UB = Im_Wij.in(grid->arcs);
+//    PAD_UB -= (grid->tan_th_max).in(grid->arcs)*R_Wij.in(grid->arcs);
+//
+//    SOCP.add_constraint(PAD_UB <= 0);
+////
+//    Constraint PAD_LB("PAD_LB");
+//    PAD_LB =  Im_Wij.in(grid->arcs);
+//    PAD_LB -= grid->tan_th_min.in(grid->arcs)*R_Wij.in(grid->arcs);
+//    SOCP.add_constraint(PAD_LB >= 0);
 
 //    /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -214,7 +216,7 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
 //
-    solver SCOPF(SOCP,ipopt);
+    solver SCOPF(SOCP,cplex);
     SCOPF.run();
     return 0;
 }
