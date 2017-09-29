@@ -126,8 +126,8 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
-        KCL_P +=  bus->gs()*Wii(bus->ID + 1);
-        KCL_Q -=  bus->bs()*Wii(bus->ID + 1);
+//        KCL_P +=  bus->gs()*Wii(bus->ID + 1);
+//        KCL_Q -=  bus->bs()*Wii(bus->ID + 1);
 
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -155,7 +155,7 @@ int main (int argc, const char * argv[])
     Flow_Q_From += Qf_from.in(grid->arcs);
     Flow_Q_From += grid->b_ff.in(grid->arcs)*Wii.from(grid->arcs);
     Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in(grid->arcs);
-    Flow_Q_From -= grid->g_ft.in(grid->arcs)*Im_Wij.in(grid->arcs);
+    Flow_Q_From += grid->g_ft.in(grid->arcs)*Im_Wij.in(grid->arcs);
     Flow_Q_From = 0;
     SOCP.add_constraint(Flow_Q_From);
 
@@ -163,7 +163,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
-    Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
+    Flow_Q_To -= grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     Flow_Q_To = 0;
     SOCP.add_constraint(Flow_Q_To);
 
