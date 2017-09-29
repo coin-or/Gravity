@@ -580,14 +580,12 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     for (auto &hess_i: _hess_link) {
         assert(!hess_i.second.empty());
         vid = hess_i.first.first;
-        auto obj_dfi = _obj.get_stored_derivative(vid);
         for (auto &hess_j: hess_i.second) {
             vjd = hess_j.first.first;
-            auto obj_dfij = obj_dfi->get_stored_derivative(vjd);
             res[idx] = 0;
             for (auto cid: hess_j.second){
                 if (cid.first==-1) {
-                    hess = obj_dfij->eval();
+                    hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
                     res[idx] += obj_factor * hess;
                 }
                 else {
