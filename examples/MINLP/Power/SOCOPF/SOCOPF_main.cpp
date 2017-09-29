@@ -228,16 +228,18 @@ int main (int argc, const char * argv[])
     Convex_comb = sum(lambda);
     SOCP.add_constraint(Convex_comb = 1);
     
-    
     //generate 2^5 vertices of a box using a recursive algorithm
-    param<double> p("p");
-    p^32;
+    //vec<param<double>> pmatrix[10];
+    var<double> x;
+    
+    
+    
+    
+    
     param<double> P("P");
     P^10;
-    p(1) = grid->v_max;
     
     cout << "\n size: " << grid->v_max.get_dim() << endl;
-    cout << "\n size: " << p(1).get_dim() << endl;
 
    //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
