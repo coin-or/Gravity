@@ -100,12 +100,10 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<double>  R_Wij("R_Wij"); // real part of Wij
     var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<double>  Wii("Wii", 0, 1);
+    var<double>  Wii("Wii", 0, 100000);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
-//    SOCP.add_var(R_Wij^(nb_buses*(nb_buses-1)/2));
-//    SOCP.add_var(Im_Wij^(nb_buses*(nb_buses-1)/2));
     /** Construct the objective function*/
     func_ obj = sum(grid->c0) + sum(grid->c1, Pg) + sum(grid->c2, power(Pg, 2));
 
@@ -114,9 +112,7 @@ int main (int argc, const char * argv[])
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
-//    ordered_pairs indices(1, nb_buses);
-//    SOC =  power(R_Wij.in(indices), 2) - Wii.from(indices)*Wii.to(indices) ;
-    SOC =  power(R_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs) ;
+    SOC =  power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs) ;
     SOCP.add_constraint(SOC <= 0);
     
     //KCL
@@ -130,8 +126,8 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
-        KCL_P +=  bus->gs()*Wii(bus->ID+1);
-        KCL_Q -=  bus->bs()*Wii(bus->ID+1);
+        KCL_P +=  bus->gs()*Wii(bus->ID + 1);
+        KCL_Q -=  bus->bs()*Wii(bus->ID + 1);
 
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -179,7 +175,7 @@ int main (int argc, const char * argv[])
 
     Constraint Vol_limit_LB("Vol_limit_LB");
     Vol_limit_LB = Wii.in(grid->nodes);
-    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
+    Vol_limit_LB -= power(grid->v_min.in(grid->nodes), 2);
     SOCP.add_constraint(Vol_limit_LB >= 0);
 
     /* Phase Angle Bounds constraints */
@@ -204,8 +200,8 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
 ////
-   solver SCOPF(SOCP,cplex);
-   //solver SCOPF(SOCP,ipopt);
+   //solver SCOPF(SOCP,cplex);
+   solver SCOPF(SOCP,ipopt);
 
     SCOPF.run();
     return 0;

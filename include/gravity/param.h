@@ -678,7 +678,6 @@ namespace gravity {
                     }
                     res._ids->push_back(pp.first->second);
                 }
-                
             }
             res._name += ".from_arcs";
             res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));

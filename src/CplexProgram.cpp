@@ -301,7 +301,6 @@ void CplexProgram::create_cplex_constraints() {
                     else {
                         c_idx_inst = inst;
                     }
-                    //cout <<poly_eval(it1.second._coef, c_idx_inst)<< " idx_inst: " << idx_inst << endl;
                     lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
                     if (!it1.second._sign) {
                         lterm *= -1;
