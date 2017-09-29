@@ -487,19 +487,10 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 v = v_p.second.first;
                 vid = v->get_id();
                 if (v->_is_vector) {
-                    if (v->_is_indexed) {
-                        for (int j = 0; j<v->get_dim(); j++) {
-                            iRow[idx] = cid;
-                            jCol[idx] = vid + v->get_id_inst(j);
-                            idx++;
-                        }
-                    }
-                    else {
-                        for (int j = 0; j<v->get_dim(); j++) {
-                            iRow[idx] = cid;
-                            jCol[idx] = vid + j;
-                            idx++;
-                        }
+                    for (int j = 0; j<v->get_dim(); j++) {
+                        iRow[idx] = cid;
+                        jCol[idx] = vid + v->get_id_inst(j);
+                        idx++;
                     }
                 }
                 else {
@@ -633,20 +624,10 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
         v_unique = v->_unique_id;
         df = _obj.get_stored_derivative(v_unique);
         if (v->_is_vector) {
-            if (v->_is_indexed) {
-                for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    assert(vid_inst < _nb_vars);
-                    res[vid_inst] = df->eval(i);
-                }
-            }
-            else {
-                for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + i;
-                    assert(vid_inst < _nb_vars);
-                    res[vid_inst] = df->eval(i);
-                }
-
+            for (int i = 0; i < v->get_dim(); i++) {
+                vid_inst = vid + v->get_id_inst(i);
+                assert(vid_inst < _nb_vars);
+                res[vid_inst] = df->eval(i);
             }
         }
         else {

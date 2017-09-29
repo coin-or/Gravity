@@ -459,11 +459,55 @@ namespace gravity {
             }
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
             if(pp.second){//new index inserted
-                res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
+                    res._dim++;
+                };
                 res._ids->push_back(param_::_indices->size()-1);
             }
             else {
-                res._indices->insert(make_pair<>(key,pp.first->second));
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(pp.first->second);
+            }
+            
+            res._name += "["+key+"]";
+            res._unique_id = make_tuple<>(res._id,mask_, res._ids->at(0), res._ids->at(res._ids->size()-1));
+            res._is_indexed = true;
+            return res;
+        }
+        
+        template<typename... Args>
+        param operator()(string t1, Args&&... args){
+            param res(this->_name);
+            res._id = this->_id;
+            res._vec_id = this->_vec_id;
+            res._intype = this->_intype;
+            res._range = this->_range;
+            res._val = this->_val;
+            list<string> indices;
+            indices = {forward<size_t>(args)...};
+            indices.push_front(t1);
+            string key;
+            auto it = indices.begin();
+            for (size_t i= 0; i< indices.size(); i++) {
+                key += *it;
+                if (i<indices.size()-1) {
+                    key += ",";
+                }
+                it++;
+            }
+            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            if(pp.second){//new index inserted
+                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
+                    res._dim++;
+                }
+                res._ids->push_back(param_::_indices->size()-1);
+            }
+            else {
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
+                    res._dim++;
+                }
                 res._ids->push_back(pp.first->second);
             }
             res._dim++;
@@ -577,6 +621,9 @@ namespace gravity {
             res._val = this->_val;
             string key;
             for(auto it = arcs.begin(); it!= arcs.end(); it++){
+                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ){
+                    continue;
+                }
                 key = (*it)->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second){//new index inserted
@@ -608,17 +655,23 @@ namespace gravity {
             res._val = this->_val;
             string key;
             for(auto it = vec.begin(); it!= vec.end(); it++){
+                if(!(*it)->_active){
+                    continue;
+                }
                 key = (*it)->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 if(pp.second){//new index inserted
-                    res._indices->insert(make_pair<>(key, param_::_indices->size() - 1));
+                    if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second){
+                        res._dim++;
+                    }
                     res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else{
-                    res._indices->insert(make_pair<>(key,pp.first->second));
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
+                        res._dim++;
+                    }
                     res._ids->push_back(pp.first->second);
                 }
-                res._dim++;
             }
             res._name += ".in_set";
             res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
@@ -641,14 +694,17 @@ namespace gravity {
                 key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second){//new index inserted
-                    res._indices->insert(make_pair<>(key,param_::_indices->size()-1));
+                    if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1))){
+                        res._dim++;
+                    }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
                 else {
-                    res._indices->insert(make_pair<>(key,pp.first->second));
+                    if(res._indices->insert(make_pair<>(key,pp.first->second))){
+                        res._dim++;
+                    }
                     res._ids->push_back(pp.first->second);
-                }
-                res._dim++;
+                }                
             }
             res._name += ".in_objects_" + to_string(t);
             res._is_indexed = true;
@@ -664,6 +720,9 @@ namespace gravity {
             res._val = this->_val;
             string key;
             for(auto it = arcs.begin(); it!= arcs.end(); it++){
+                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ){
+                    continue;
+                }
                 key = (*it)->src->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second){//new index inserted
@@ -695,6 +754,9 @@ namespace gravity {
             res._val = this->_val;
             string key;
             for(auto it = arcs.begin(); it!= arcs.end(); it++){
+                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ){
+                    continue;
+                }
                 key = (*it)->dest->_name;
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second){//new index inserted

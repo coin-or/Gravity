@@ -97,7 +97,7 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
-Node* Net::get_node(string name) {
+Node* Net::get_node(string name){
     return nodeID.find(name)->second;
 }
 

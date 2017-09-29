@@ -63,6 +63,16 @@ namespace gravity {
             return res;
         }
         
+        template<typename... Args>
+        var operator()(string t1, Args&&... args){
+            var<type> res(this->_name);
+            res.param<type>::operator=(param<type>::operator()(t1, args...));
+            res.param<type>::set_type(var_c);
+            res._lb = this->_lb;
+            res._ub = this->_ub;
+            return res;
+        }
+        
         var from(const vector<Arc*>& arcs);
         var from(const vector<Arc*>& arcs, int t);
         var to(const vector<Arc*>& arcs);

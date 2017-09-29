@@ -21,6 +21,7 @@ class Node{
 public:
     std::string _name;
     int ID;
+    bool _active = true;
     std::vector<Arc*> branches;
     
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */

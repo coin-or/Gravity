@@ -48,9 +48,13 @@ public:
     /** Constructors */
     PowerNet();
     ~PowerNet();
+    
 
     /** Power grid data parser */
     int readgrid(const char* fname);
+    
+    /** Accessors */
+    string get_ref_bus();
 };
 
 #endif
