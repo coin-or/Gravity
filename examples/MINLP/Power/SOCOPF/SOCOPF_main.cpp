@@ -121,8 +121,7 @@ int main (int argc, const char * argv[])
     Constraint SOC("SOC");
     //ordered_pairs indices(1, nb_buses);
     //SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
-    SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
-    SOCP.add_constraint(SOC <= 0);
+    //SOCP.add_constraint(SOC <= 0);
     
     //KCL
     for (auto b: grid->nodes) {
@@ -134,10 +133,9 @@ int main (int argc, const char * argv[])
         KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl()- sum(Pg.in(bus->_gen));
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
         
-        
         /* Shunts */
-        KCL_P +=  bus->gs()*Wii.in(grid->nodes);
-        KCL_Q -=  bus->bs()*Wii.in(grid->nodes);
+        KCL_P +=  bus->gs()*Wii(bus->ID+1);
+        KCL_Q -=  bus->bs()*Wii(bus->ID+1);
         
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -216,7 +214,9 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
 //
-    solver SCOPF(SOCP,cplex);
+   // solver SCOPF(SOCP,cplex);
+    solver SCOPF(SOCP,ipopt);
+
     SCOPF.run();
     return 0;
 }
