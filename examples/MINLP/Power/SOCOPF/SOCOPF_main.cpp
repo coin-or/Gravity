@@ -224,6 +224,10 @@ int main (int argc, const char * argv[])
     /* Cover estimators */
     var<double> lambda("lambda", 0, 1);
     SOCP.add_var(lambda^(2^5));
+    Constraint Convex_comb("Convex_comb");
+    Convex_comb = sum(lambda);
+    SOCP.add_constraint(Convex_comb = 1);
+    
     
     //generate 2^5 vertices of a box using a recursive algorithm
 //    param<double> v("v");
@@ -232,12 +236,7 @@ int main (int argc, const char * argv[])
 //    V^10;
 //    box(V,0, 1, 3);
 //    V(1).print(true);
-    
     //cout << "\n size: " << v.get_dim() << endl;
-    
-    //cout << "size: " << grid->v_max.get_dim()<<endl;
-
-    
    //solver SCOPF(SOCP,cplex);
    solver SCOPF(SOCP,ipopt);
     SCOPF.run();
