@@ -97,6 +97,36 @@ string PowerNet::get_ref_bus(){
     return ref_bus;
 }
 
+unsigned PowerNet::get_nb_active_gens() const{
+    unsigned nb=0;
+    for (auto g: gens) {
+        if (g->_active) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
+unsigned PowerNet::get_nb_active_arcs() const{
+    unsigned nb=0;
+    for (auto a: arcs) {
+        if (a->_active) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
+unsigned PowerNet::get_nb_active_nodes() const{
+    unsigned nb=0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
 int PowerNet::readgrid(const char* fname) {
     
     string name;
@@ -153,25 +183,26 @@ int PowerNet::readgrid(const char* fname) {
         
         if (status==3) {
             ref_bus = name;
+            DebugOn("Ref bus = " << ref_bus << endl);
         }
         file >> ws >> word;
-        pl = atof(word.c_str())/bMVA;
+        pl(name) = atof(word.c_str())/bMVA;
         file >> word;
-        ql = atof(word.c_str())/bMVA;
+        ql(name) = atof(word.c_str())/bMVA;
         file >> word;
-        gs = atof(word.c_str())/bMVA;
+        gs(name) = atof(word.c_str())/bMVA;
         file >> word;
-        bs = atof(word.c_str())/bMVA;
+        bs(name) = atof(word.c_str())/bMVA;
         file >> ws >> word >> ws >> word;
-        v_s = atof(word.c_str());
+        v_s(name) = atof(word.c_str());
         file >> ws >> word >> ws >> word;
         kvb = atof(word.c_str());
         file >> ws >> word >> ws >> word;
-        v_max = atof(word.c_str());
+        v_max(name) = atof(word.c_str());
         getline(file, word,';');
-        v_min = atof(word.c_str());
-        w_min = pow(v_min.eval(),2.);
-        w_max = pow(v_max.eval(),2.);
+        v_min(name) = atof(word.c_str());
+        w_min(name) = pow(v_min.eval(),2.);
+        w_max(name) = pow(v_max.eval(),2.);
     // single phase
     
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
@@ -205,26 +236,28 @@ int PowerNet::readgrid(const char* fname) {
     file >> word;
 //    std::vector<bool> gen_status;
     index = 0;
+    string bus_name;
     while(word.compare("];")){
-        name = word.c_str();
+        bus_name = word.c_str();
         // name -> node. 
-        bus = (Bus*)(Net::get_node(name));
+        bus = (Bus*)(Net::get_node(bus_name));
+        name = to_string(index);
         file >> word;
-        pg_s = atof(word.c_str())/bMVA;
+        pg_s(name) = atof(word.c_str())/bMVA;
         file >> word;
-        qg_s = atof(word.c_str())/bMVA;
+        qg_s(name) = atof(word.c_str())/bMVA;
         file >> word;
-        qg_max = atof(word.c_str())/bMVA;
+        qg_max(name) = atof(word.c_str())/bMVA;
         file >> word;
-        qg_min = atof(word.c_str())/bMVA;
+        qg_min(name) = atof(word.c_str())/bMVA;
         
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atof(word.c_str());
         file >> word;
-        pg_max = atof(word.c_str())/bMVA;
+        pg_max(name) = atof(word.c_str())/bMVA;
         
         file >> word;
-        pg_min = atof(word.c_str())/bMVA;
+        pg_min(name) = atof(word.c_str())/bMVA;
         
         getline(file, word,'\n');
 //        gen_status.push_back(status==1);
@@ -232,7 +265,7 @@ int PowerNet::readgrid(const char* fname) {
     
         bus->_has_gen = true;
         /** generator name, ID */
-        Gen* g = new Gen(bus, to_string(index), pg_min.eval(), pg_max.eval(), qg_min.eval(), qg_max.eval());
+        Gen* g = new Gen(bus, name, pg_min.eval(), pg_max.eval(), qg_min.eval(), qg_max.eval());
         g->ID = index;
         g->ps = pg_s.eval();
         g->qs = qg_s.eval();
@@ -260,11 +293,11 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2 = atof(word.c_str())*pow(bMVA,2);
+        c2(i) = atof(word.c_str())*pow(bMVA,2);
         file >> word;
-        c1 = atof(word.c_str())*bMVA;
+        c1(i) = atof(word.c_str())*bMVA;
         file >> word;
-        c0 = atof(word.c_str());
+        c0(i) = atof(word.c_str());
 //        if (gen_status[i]) {
           gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
 //        }
@@ -325,13 +358,13 @@ int PowerNet::readgrid(const char* fname) {
         arc->status = atoi(word.c_str());
         file >> ws >> word;
         
-//        arc->tbound.min = atof(word.c_str())*M_PI/180;
-        arc->tbound.min = -30*M_PI/180;
+        arc->tbound.min = atof(word.c_str())*M_PI/180;
+//        arc->tbound.min = -30*M_PI/180;
         m_theta_lb += arc->tbound.min;
         file >>  ws >>word;
         
-//        arc->tbound.max = atof(word.c_str())*M_PI/180;
-        arc->tbound.max = 30*M_PI/180;
+        arc->tbound.max = atof(word.c_str())*M_PI/180;
+//        arc->tbound.max = 30*M_PI/180;
         m_theta_ub += arc->tbound.max;
         
         Bus* bus_s = (Bus*)(arc->src);
@@ -341,47 +374,47 @@ int PowerNet::readgrid(const char* fname) {
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                         pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
                         );
+        name = arc->_name;
+        g(name) = arc->g;
+        b(name) = arc->b;
+        g_ff(name) = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        g_ft(name) = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
-        g = arc->g;
-        b = arc->b;
-        g_ff = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        g_ft = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        
-        g_tt = arc->g;
-        g_tf = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        g_tt(name) = arc->g;
+        g_tf(name) = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
         
-        b_ff = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_ft = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ff(name) = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ft(name) = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
-        b_tt = (arc->ch/2 + arc->b);
-        b_tf = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_tt(name) = (arc->ch/2 + arc->b);
+        b_tf(name) = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
         
         if (arc->tbound.min >= 0 ) {
-            wr_max = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.min);
-            wr_min = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.max);
-            wi_max = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
-            wi_min = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.min);
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.min);
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.max);
+            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
+            wi_min(name) = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.min);
         };
         if (arc->tbound.max <= 0 ) {
-            wr_max = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.max);
-            wr_min = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.min);
-            wi_max = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.max);
-            wi_min = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.max);
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.min);
+            wi_max(name) = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.max);
+            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
-            wr_max = bus_s->vbound.max*bus_d->vbound.max;
-            wr_min = bus_s->vbound.min*bus_d->vbound.min*min(cos(arc->tbound.min), cos(arc->tbound.max));
-            wi_max = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
-            wi_min = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max;
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*min(cos(arc->tbound.min), cos(arc->tbound.max));
+            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
+            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
         }
-        ch = arc->ch;
-        S_max = arc->limit;
-        th_min = arc->tbound.min;
-        th_max = arc->tbound.max;
-        tan_th_min = tan(arc->tbound.min);
-        tan_th_max = tan(arc->tbound.max);
+        ch(name) = arc->ch;
+        S_max(name) = arc->limit;
+        th_min(name) = arc->tbound.min;
+        th_max(name) = arc->tbound.max;
+        tan_th_min(name) = tan(arc->tbound.min);
+        tan_th_max(name) = tan(arc->tbound.max);
         arc->connect();
         add_arc(arc);
         if(arc->status != 1){

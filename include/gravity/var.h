@@ -104,17 +104,31 @@ namespace gravity {
         /* Querries */
         
         type    get_lb(size_t i = 0) const{
-            if (_lb->size() <= i) {
-                throw out_of_range("get_lb(size_t i, index: " + to_string(i) + ")\n");
+            unsigned index = 0;
+            if (param<type>::get_ids().empty()) {
+                index = i;
             }
-            return _lb->at(i);
+            else {
+                index = param<type>::get_ids().at(i);
+            }
+            if (_lb->size() <= index) {
+                throw out_of_range("get_lb(size_t i, index: " + to_string(index) + ")\n");
+            }
+            return _lb->at(index);
         };
         
         type    get_ub(size_t i = 0) const{
-            if (_ub->size() <= i) {
-                throw out_of_range("get_ub(size_t i), index: " + to_string(i)+ ")\n");
+            unsigned index = 0;
+            if (param<type>::get_ids().empty()) {
+                index = i;
             }
-            return _ub->at(i);
+            else {
+                index = param<type>::get_ids().at(i);
+            }
+            if (_ub->size() <= index) {
+                throw out_of_range("get_ub(size_t i), index: " + to_string(index)+ ")\n");
+            }
+            return _ub->at(index);
         };
 
         

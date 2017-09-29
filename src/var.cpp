@@ -57,6 +57,7 @@ namespace gravity{
 //        }
         _lb = lb.get_vals();
         _ub = ub.get_vals();
+        param<type>::_ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(lb.get_ids()));
         //TODO: update range first and second
     };
     
@@ -70,6 +71,7 @@ namespace gravity{
             }
         }
         DebugOff("Done" << endl);
+        param<type>::_ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(sb.get_ids()));
         //TODO: update range first and second
     };
 
@@ -95,13 +97,13 @@ namespace gravity{
         if (_lb->empty()) {
             _lb->resize(s, numeric_limits<type>::lowest());
         }
-        else {
+        else if(_lb->size() < s){
             _lb->resize(s, _lb->at(0));
         }
         if (_ub->empty()) {
             _ub->resize(s, numeric_limits<type>::max());
         }
-        else {
+        else if(_ub->size() < s){
             _ub->resize(s, _ub->at(0));
         }
     };

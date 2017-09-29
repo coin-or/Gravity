@@ -127,9 +127,9 @@ void Model::add_var(param_* v){
 };
 
 void Model::add_var(param_& v){
-    if (v._is_indexed) { 
-        return;
-    }
+//    if (v._is_indexed) { 
+//        return;
+//    }
     if (_vars_name.count(v.get_name())==0) {
         v.set_id(_nb_vars);
         v.set_vec_id(_vars.size());
@@ -302,10 +302,14 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             }
             case double_:{
                 auto real_var = (var<double>*)v;
-//                real_var->print(true);
                 for (int i = 0; i < real_var->get_dim(); i++) {
                     x_l[vid+i] = (double)real_var->get_lb(i);
                     x_u[vid+i] = (double)real_var->get_ub(i);
+//                    if (i==478) {
+//                        DebugOn("i = " << i << endl);
+//                        cout << "STOP";
+//                    }
+                    
                 }
                 break;
             }
@@ -327,7 +331,7 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(); i++) {                    
                     x_l[vid+i] = (double)real_var->get_lb(i);
                     x_u[vid+i] = (double)real_var->get_ub(i);
                 }
@@ -350,7 +354,7 @@ void Model::set_x(const double* x){
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(); i++) {                    
                     real_var->set_val(i, x[vid+i]);
                 }
                 break;
@@ -831,7 +835,7 @@ void Model::fill_in_maps() {
 
 
 void Model::fill_in_var_init(double* x) {
-    size_t vid, vid_inst;
+    size_t vid;
     param_* v;
     for(auto& v_p: _vars)
     {
@@ -841,48 +845,48 @@ void Model::fill_in_var_init(double* x) {
             case float_: {
                 auto real_var = (var<float>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }
             case double_:{
                 auto real_var = (var<double>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
-                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid_inst] = (double)real_var->eval(i);
+//                    vid_inst = vid + v->get_id_inst(i);
+                    x[vid+i] = (double)real_var->eval(i);
                 }
                 break;
             }

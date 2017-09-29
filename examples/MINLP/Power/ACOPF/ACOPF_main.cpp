@@ -67,15 +67,15 @@ int main (int argc, const char * argv[])
     const char* fname;
 //    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
-//    fname = "../../data_sets/Power/nesta_case3375wp_mp.m";
-    fname = "../../data_sets/Power/nesta_case300_ieee.m";
+    fname = "../../data_sets/Power/nesta_case3375wp_mp.m";
+//    fname = "../../data_sets/Power/nesta_case300_ieee.m";
 //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     grid->readgrid(fname);
 
     // Grid Parameters
-    unsigned nb_gen = grid->gens.size();
-    unsigned nb_lines = grid->arcs.size();
-    unsigned nb_buses = grid->nodes.size();
+    unsigned nb_gen = grid->get_nb_active_gens();
+    unsigned nb_lines = grid->get_nb_active_arcs();
+    unsigned nb_buses = grid->get_nb_active_nodes();
 
     /** build model */
 
@@ -88,10 +88,15 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
+//    var<double> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
+//    var<double> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
+//    var<double> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
+//    var<double> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
     var<double> Pf_from("Pf_from");
     var<double> Qf_from("Qf_from");
     var<double> Pf_to("Pf_to");
     var<double> Qf_to("Qf_to");
+
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
     ACOPF.add_var(Pf_to^(nb_lines));
