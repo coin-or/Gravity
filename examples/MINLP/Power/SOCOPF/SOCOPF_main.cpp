@@ -230,15 +230,17 @@ int main (int argc, const char * argv[])
     
     
     //generate 2^5 vertices of a box using a recursive algorithm
-//    param<double> v("v");
-//    v^10;
-//    param<double> V("V");
-//    V^10;
-//    box(V,0, 1, 3);
-//    V(1).print(true);
-    //cout << "\n size: " << v.get_dim() << endl;
+    param<double> p("p");
+    p^32;
+    param<double> P("P");
+    P^10;
+    p(1) = grid->v_max;
+    
+    cout << "\n size: " << grid->v_max.get_dim() << endl;
+    cout << "\n size: " << p(1).get_dim() << endl;
+
    //solver SCOPF(SOCP,cplex);
-   solver SCOPF(SOCP,ipopt);
+    solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;
 }
