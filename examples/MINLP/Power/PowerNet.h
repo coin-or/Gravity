@@ -26,6 +26,7 @@ class PowerNet: public Net {
 
 public:
     
+    string ref_bus;
     double bMVA; /**< Base MVA */
     double m_theta_lb = 0, m_theta_ub = 0; /**< BigM values for phase angles */
     
