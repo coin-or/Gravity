@@ -452,20 +452,20 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     {
         c = c_p.second;
         auto nb_ins = c->get_nb_instances();
-        for (int inst = 0; inst< nb_ins; inst++){
-            cid = c->_id+inst;
-            for (auto &v_p: c->get_vars()){
-                v = v_p.second.first;
-                vid = v->_unique_id;
+        for (auto &v_p: c->get_vars()){
+            v = v_p.second.first;
+            vid = v->_unique_id;
+            dfdx = c->get_stored_derivative(vid);
+            for (int inst = 0; inst< nb_ins; inst++){
+                cid = c->_id+inst;
                 if (v->_is_vector) {
-                    dfdx = c->get_stored_derivative(vid);
                     for (int j = 0; j<v->get_dim(); j++) {
                         res[idx] = dfdx->eval(j);
                         idx++;
                     }
                 }
                 else {
-                    res[idx] = c->get_stored_derivative(vid)->eval(inst);
+                    res[idx] = dfdx->eval(inst);
                     idx++;
                 }
             }
@@ -485,11 +485,11 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     {
         c = c_p.second;
         auto nb_ins = c->get_nb_instances();
-        for (int inst = 0; inst< nb_ins; inst++){
-            cid = c->_id+inst;
-            for (auto &v_p: c->get_vars()){
-                v = v_p.second.first;
-                vid = v->get_id();
+        for (auto &v_p: c->get_vars()){
+            v = v_p.second.first;
+            vid = v->get_id();
+            for (int inst = 0; inst< nb_ins; inst++){
+                cid = c->_id+inst;            
                 if (v->_is_vector) {
                     for (int j = 0; j<v->get_dim(); j++) {
                         iRow[idx] = cid;
@@ -580,23 +580,20 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     for (auto &hess_i: _hess_link) {
         assert(!hess_i.second.empty());
         vid = hess_i.first.first;
+        auto obj_dfi = _obj.get_stored_derivative(vid);
         for (auto &hess_j: hess_i.second) {
             vjd = hess_j.first.first;
+            auto obj_dfij = obj_dfi->get_stored_derivative(vjd);
             res[idx] = 0;
             for (auto cid: hess_j.second){
                 if (cid.first==-1) {
-                    hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
+                    hess = obj_dfij->eval();
                     res[idx] += obj_factor * hess;
                 }
                 else {
                     c = _cons[cid.first];
-//                    for (int inst = 0; inst< c->get_nb_instances(); inst++){
-                        hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(cid.second);
-//                        if (hess!=1) {
-//                            cout << "ok" << endl;
-//                        }
-                        res[idx] += lambda[cid.first+cid.second] * hess;
-//                    }
+                    hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(cid.second);
+                    res[idx] += lambda[cid.first+cid.second] * hess;
                 }
             }
             idx++;
