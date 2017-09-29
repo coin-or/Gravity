@@ -60,6 +60,25 @@ double get_cpu_time() {
 }
 #endif
 
+void box(param<double>& V, int l, int u, unsigned dim){
+    if (dim ==1){
+        V(1).add_val(0);
+        V(2).add_val(0);
+    }
+    else if (dim < 1)
+        cerr << "Dim should be as least 1!!" << endl;
+    else{
+        unsigned n = pow(2, dim-1);
+        for (unsigned i = 1; i < n+1; i++){
+           // V(n + i).add_val(V);
+            V(i).add_val(0);
+           // V(n + i).add_val(1);
+            V(i).print(true);
+        }
+        cout << "Size: " << V.get_dim() << endl;
+    }
+}
+
 int main (int argc, const char * argv[])
 {
     // ACOPF
@@ -199,10 +218,28 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
-////
+    
+    /* Strengthen relaxation using cover estimators */
+    /* Clique tree decomposition */
+    /* Cover estimators */
+    var<double> lambda("lambda", 0, 1);
+    SOCP.add_var(lambda^(2^5));
+    
+    //generate 2^5 vertices of a box using a recursive algorithm
+//    param<double> v("v");
+//    v^10;
+//    param<double> V("V");
+//    V^10;
+//    box(V,0, 1, 3);
+//    V(1).print(true);
+    
+    //cout << "\n size: " << v.get_dim() << endl;
+    
+    //cout << "size: " << grid->v_max.get_dim()<<endl;
+
+    
    //solver SCOPF(SOCP,cplex);
    solver SCOPF(SOCP,ipopt);
-
     SCOPF.run();
     return 0;
 }
