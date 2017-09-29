@@ -65,7 +65,7 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+   fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //  fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
 //  fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
@@ -96,21 +96,15 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Qf_from^(nb_lines));
     SOCP.add_var(Pf_to^(nb_lines));
     SOCP.add_var(Qf_to^(nb_lines));
-
-    // voltage related variables.
-    var<double> vr("vr");
-    var<double> vi("vf");
-    SOCP.add_var(vr^(nb_buses));
-    SOCP.add_var(vi^(nb_buses));
     
     // Lifted variables.
-    var<double>  R_Wij("Wij"); // real part of Wij
-    var<double>  Im_Wij("Wij"); // imaginary part of Wij.
+    var<double>  R_Wij("R_Wij"); // real part of Wij
+    var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     var<double>  Wii("Wii");
-    
     SOCP.add_var(Wii^nb_buses);
-    SOCP.add_var(R_Wij^(nb_buses*(nb_buses-1)/2));
-    SOCP.add_var(Im_Wij^(nb_buses*(nb_buses-1)/2));
+    SOCP.add_var(R_Wij^nb_lines);
+    SOCP.add_var(Im_Wij^nb_lines);
+    Wii.initialize_all(1);
     
     /** Construct the objective function*/
     func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2, power(Pg, 2));
@@ -119,9 +113,9 @@ int main (int argc, const char * argv[])
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
-    //ordered_pairs indices(1, nb_buses);
-    //SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
-    //SOCP.add_constraint(SOC <= 0);
+    ordered_pairs indices(1, nb_buses);
+    SOC = power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs);
+    SOCP.add_constraint(SOC <= 0);
     
     //KCL
     for (auto b: grid->nodes) {
@@ -174,7 +168,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     Flow_Q_To = 0;
     SOCP.add_constraint(Flow_Q_To);
-//
+    
     // AC voltage limit constraints.
     Constraint Vol_limit_UB("Vol_limit_UB");
     Vol_limit_UB = Wii.in(grid->nodes);
@@ -185,23 +179,17 @@ int main (int argc, const char * argv[])
     Vol_limit_LB = Wii.in(grid->nodes);
     Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
     SOCP.add_constraint(Vol_limit_LB >= 0);
-////
-//    /* REF BUS */
-////    Constraint Ref_Bus("Ref_Bus");
-////    Ref_Bus = vi(1);
-////    SOCP.add_constraint(Ref_Bus = 0);
-//
+    
     /* Phase Angle Bounds constraints */
-//    Constraint PAD_UB("PAD_UB");
-//    PAD_UB = Im_Wij.in(grid->arcs);
-//    PAD_UB -= (grid->tan_th_max).in(grid->arcs)*R_Wij.in(grid->arcs);
-//
-//    SOCP.add_constraint(PAD_UB <= 0);
-////
-//    Constraint PAD_LB("PAD_LB");
-//    PAD_LB =  Im_Wij.in(grid->arcs);
-//    PAD_LB -= grid->tan_th_min.in(grid->arcs)*R_Wij.in(grid->arcs);
-//    SOCP.add_constraint(PAD_LB >= 0);
+    Constraint PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij.in(grid->arcs);
+    PAD_UB -= (grid->tan_th_max).in(grid->arcs)*R_Wij.in(grid->arcs);
+    SOCP.add_constraint(PAD_UB <= 0);
+
+    Constraint PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij.in(grid->arcs);
+    PAD_LB -= grid->tan_th_min.in(grid->arcs)*R_Wij.in(grid->arcs);
+    SOCP.add_constraint(PAD_LB >= 0);
 
 //    /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -214,8 +202,8 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
 //
-   // solver SCOPF(SOCP,cplex);
-    solver SCOPF(SOCP,ipopt);
+    //solver SCOPF(SOCP,cplex);
+   solver SCOPF(SOCP,ipopt);
 
     SCOPF.run();
     return 0;
