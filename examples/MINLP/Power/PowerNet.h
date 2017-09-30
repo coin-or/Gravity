@@ -48,9 +48,16 @@ public:
     /** Constructors */
     PowerNet();
     ~PowerNet();
+    
 
     /** Power grid data parser */
     int readgrid(const char* fname);
+    
+    /** Accessors */
+    string get_ref_bus();
+    unsigned get_nb_active_gens() const;
+    unsigned get_nb_active_arcs() const;
+    unsigned get_nb_active_nodes() const;
 };
 
 #endif

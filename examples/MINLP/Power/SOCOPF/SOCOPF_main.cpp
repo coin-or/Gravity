@@ -61,21 +61,23 @@ double get_cpu_time() {
 #endif
 
 void box(param<double>& V, int l, int u, unsigned dim){
-    if (dim ==1){
-        V(1).add_val(0);
-        V(2).add_val(0);
+    if (dim == 1){
+        V(1, 1) = 0;
+        V(1, 2) = 1;
+        V(1, 1).print(true);
+        V(1, 2).print(true);
     }
     else if (dim < 1)
         cerr << "Dim should be as least 1!!" << endl;
     else{
+        box(V, 0, 1, dim -1);
         unsigned n = pow(2, dim-1);
-        for (unsigned i = 1; i < n+1; i++){
-           // V(n + i).add_val(V);
-            V(i).add_val(0);
-           // V(n + i).add_val(1);
-            V(i).print(true);
-        }
-        cout << "Size: " << V.get_dim() << endl;
+        for (unsigned i = 1; i < n + 1; i++){
+            V(i, dim) = 0;
+            for (unsigned j =1;  j < dim; j++)
+                V(n + i, j) = V(i, j);
+            V(n + i, dim) = 1;
+            }
     }
 }
 
@@ -222,24 +224,45 @@ int main (int argc, const char * argv[])
     /* Strengthen relaxation using cover estimators */
     /* Clique tree decomposition */
     /* Cover estimators */
+    ;
+    
+    //generate 2^5 vertices of a box using a recursive algorithm
+    unsigned Num_points = pow(2, 5);
+   // vector<param<double>> pmatrix[Num_points];
+    param<double> pmatrix("pmatrix");
     var<double> lambda("lambda", 0, 1);
-    SOCP.add_var(lambda^(2^5));
+//    pmatrix(1, 1) = 0;
+//    pmatrix(1, 2) = 1;
+//    pmatrix(1, 3) = 1;
+//    pmatrix(1, 4) = 1;
+//    pmatrix(1, 5) = 1;
+    
+    box(pmatrix, 0, 1, 1);
+    
+    for (int i = 1; i < 33; i++)
+        for (int j= 1; j <6; j++)
+            pmatrix(i, j).print(true);
+
+
+    
+
+    SOCP.add_var(lambda^(Num_points));
+
+//    for (int i = 0; i< nb_buses; i++){
+//        Constraint Lin("Cover"+to_string(i));
+//        Lin = Wii(i,i) - sum(lambda, pmatrix[i]);
+//    }
+    
     Constraint Convex_comb("Convex_comb");
     Convex_comb = sum(lambda);
     SOCP.add_constraint(Convex_comb = 1);
-    
-    //generate 2^5 vertices of a box using a recursive algorithm
-    //vec<param<double>> pmatrix[10];
-    var<double> x;
-    
-    
-    
-    
     
     param<double> P("P");
     P^10;
     
     cout << "\n size: " << grid->v_max.get_dim() << endl;
+    cout << "\n size: " << pmatrix.get_dim() << endl;
+
 
    //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);

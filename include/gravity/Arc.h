@@ -19,6 +19,7 @@ public:
     Node* src;
     Node* dest;
     double weight;
+    bool _active = true;
     
     /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
     Node* neighbour(Node* n);
