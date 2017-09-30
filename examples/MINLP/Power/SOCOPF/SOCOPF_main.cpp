@@ -60,23 +60,24 @@ double get_cpu_time() {
 }
 #endif
 
-void box(vector<param<double>*>& V, int l, int u, unsigned dim){
+void box(vector<double>* V, double l, double u, unsigned dim){
     if (dim == 1){
-        param<double> p("p"+to_string(1));
-        V.push_back(&p);
-        param<double> p("p"+to_string(2));
-        V.push_back(&p);
+        V[0].push_back(l);
+        V[1].push_back(u);
     }
     else if (dim < 1)
         cerr << "Dim should be as least 1!!" << endl;
     else{
-        box(V, 0, 1, dim -1);
+        box(V, l, u, dim -1);
         unsigned n = pow(2, dim-1);
-        for (unsigned i = 1; i < n + 1; i++){
-            V[i-1] = 0;
-            //for (unsigned j =1;  j < dim; j++)
-             //   V[n + i-1] = V[i-1];
-            V[n+i -1] = 1;
+//        for (int i = 0; i < n; i++)
+//            for (int j = 0; j < dim-1; j++)
+//                cout << "P[" << i <<", " << j << "] =" << V[i][j] << endl;
+        
+        for (unsigned i = 0; i < n; i++){
+            V[n+i] = V[i];
+            V[i].push_back(l);
+            V[n+i].push_back(u);
         }
     }
 }
@@ -226,14 +227,14 @@ int main (int argc, const char * argv[])
     /* Cover estimators */
     
     //generate 2^5 vertices of a box using a recursive algorithm
-    unsigned Num_points = pow(2, 5);
-    vector<param<double>> pmatrix;
+    unsigned dim = 4;
+    unsigned Num_points = pow(2, dim);
+    vector<double> pmatrix[Num_points];
     var<double> lambda("lambda", 0, 1);
-    box(pmatrix, 0, 1, 1);
-    pmatrix.print(true);
-//    for (int i = 1; i < 33; i++)
-//        for (int j= 1; j <6; j++)
-//            pmatrix(i, j).print(true);
+    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
+    for (int i = 0; i < Num_points; i++)
+        for (int j = 0; j < dim; j++)
+            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
     //SOCP.add_var(lambda^(Num_points));
 
@@ -251,9 +252,6 @@ int main (int argc, const char * argv[])
     var<double> x("x");
     Convex_comb -= 1*x(1);
     //SOCP.add_constraint(Convex_comb = 1);
-    
-    cout << "\n size: " << grid->v_max.get_dim() << endl;
-    cout << "\n size: " << pmatrix.get_dim() << endl;
 
     //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);

@@ -344,21 +344,22 @@ int main (int argc, const char * argv[])
 //    auto vec = constant<double>(1).tr()*power(X,2);
 //    vec.print();
 //
-    vector <param<double>*> p;
+    vector <param<double>> p[2];
     param<double> a("a");
+    param<double> b("b");
     a = 0;
     a = 1;
-    p.push_back(&a);
+//    p[0][0] = 1;
+    cout << "\n";
     
-    p[0]->print(true);
-    param<double> b("b");
-    p.push_back(&b);
-    p[1]->print(true);
-    cout << "\n";
-    a = 0;
-    p[0]->print(true);
-    cout << "\n";
-    p[1]->print(true);
+    
+//    p.push_back(&b);
+//    p[1]->print(true);
+//    cout << "\n";
+//    a = 0;
+//    p[0]->print(true);
+//    cout << "\n";
+//    p[1]->print(true);
 
     return 0;
    } 
