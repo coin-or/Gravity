@@ -65,32 +65,39 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-    fname = "../../data_sets/Power/nesta_case5_pjm.m";
-//   fname = "../../data_sets/Power/nesta_case14_ieee.m";
-//   fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-//   fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+//    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//    fname = "../../data_sets/Power/nesta_case14_ieee.m";
+//    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
+    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
+//    fname = "../../data_sets/Power/nesta_case300_ieee.m";
+//     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     grid->readgrid(fname);
 
     // Grid Parameters
-    unsigned nb_gen = grid->gens.size();
-    unsigned nb_lines = grid->arcs.size();
-    unsigned nb_buses = grid->nodes.size();
+    unsigned nb_gen = grid->get_nb_active_gens();
+    unsigned nb_lines = grid->get_nb_active_arcs();
+    unsigned nb_buses = grid->get_nb_active_nodes();
 
     /** build model */
 
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
-    var<double> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<double> Qg ("Qg", grid->qg_min, grid->qg_max);
+    var<double> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
+    var<double> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
     ACOPF.add_var(Pg^(nb_gen));
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
+//    var<double> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
+//    var<double> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
+//    var<double> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
+//    var<double> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
     var<double> Pf_from("Pf_from");
     var<double> Qf_from("Qf_from");
     var<double> Pf_to("Pf_to");
     var<double> Qf_to("Qf_to");
+
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
     ACOPF.add_var(Pf_to^(nb_lines));
@@ -98,15 +105,15 @@ int main (int argc, const char * argv[])
 
     // voltage related variables.
     //    var<double> vr("vr");
-    var<double> vr("vr", grid->v_max);
-    var<double> vi("vi", grid->v_max);
+    var<double> vr("vr", grid->v_max.in(grid->nodes));
+    var<double> vi("vi", grid->v_max.in(grid->nodes));
     ACOPF.add_var(vr^(nb_buses));
     ACOPF.add_var(vi^(nb_buses));
     vr.initialize_all(1);
 
     /** Construct the objective function*/
-    func_ obj = sum(grid->c0) + sum(grid->c1,Pg) + sum(grid->c2, power(Pg,2));
-    obj.print();
+    func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
+//    obj.print();
     ACOPF.set_objective(min(obj));
 
 
@@ -123,8 +130,8 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
         
         /* Shunts */
-        KCL_P +=  bus->gs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
-        KCL_Q -=  bus->bs()*(power(vr(bus->ID+1), 2) + power(vi(bus->ID+1), 2));
+        KCL_P +=  bus->gs()*(power(vr(bus->_name), 2) + power(vi(bus->_name), 2));
+        KCL_Q -=  bus->bs()*(power(vr(bus->_name), 2) + power(vi(bus->_name), 2));
 
 //        KCL_P.print();
         ACOPF.add_constraint(KCL_P = 0);
@@ -179,9 +186,9 @@ int main (int argc, const char * argv[])
 
     
     /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    Ref_Bus = vi(grid->arcs[grid->ref]);
-//    ACOPF.add_constraint(Ref_Bus = 0);
+    Constraint Ref_Bus("Ref_Bus");
+    Ref_Bus = vi(grid->get_ref_bus());
+    ACOPF.add_constraint(Ref_Bus = 0);
     
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
