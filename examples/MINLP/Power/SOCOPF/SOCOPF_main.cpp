@@ -120,7 +120,7 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<double>  R_Wij("R_Wij"); // real part of Wij
     var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<double>  Wii("Wii", 0, 1000000);
+    var<double>  Wii("Wii", 0, 10000000);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
@@ -133,7 +133,7 @@ int main (int argc, const char * argv[])
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs) ;
-    //SOCP.add_constraint(SOC <= 0);
+    SOCP.add_constraint(SOC <= 0);
     
     //KCL
     for (auto b: grid->nodes) {
@@ -146,8 +146,8 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
-//        KCL_P +=  bus->gs()*Wii(bus->ID + 1);
-//        KCL_Q -=  bus->bs()*Wii(bus->ID + 1);
+        KCL_P +=  bus->gs()*Wii(bus->_name);
+        KCL_Q -=  bus->bs()*Wii(bus->_name);
 
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -250,8 +250,9 @@ int main (int argc, const char * argv[])
     
     param<double> P("P");
     int a = 3;
-    Convex_comb -= a*lambda(1);
-    SOCP.add_constraint(Convex_comb = 1);
+    var<double> x("x");
+    Convex_comb -= 1*x(1);
+    //SOCP.add_constraint(Convex_comb = 1);
 
     
     cout << "\n size: " << grid->v_max.get_dim() << endl;
