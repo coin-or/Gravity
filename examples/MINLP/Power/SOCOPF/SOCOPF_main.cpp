@@ -62,10 +62,9 @@ double get_cpu_time() {
 
 void box(param<double>& V, int l, int u, unsigned dim){
     if (dim == 1){
-        V(1, 1) = 0;
-        V(1, 2) = 1;
-        V(1, 1).print(true);
-        V(1, 2).print(true);
+        V(1, 1) = 0.0;
+        V(1, 2) = 1.0;
+        V.print(true);
     }
     else if (dim < 1)
         cerr << "Dim should be as least 1!!" << endl;
@@ -121,7 +120,7 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<double>  R_Wij("R_Wij"); // real part of Wij
     var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<double>  Wii("Wii", 0, 100000);
+    var<double>  Wii("Wii", 0, 1000000);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
@@ -134,7 +133,7 @@ int main (int argc, const char * argv[])
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs) ;
-    SOCP.add_constraint(SOC <= 0);
+    //SOCP.add_constraint(SOC <= 0);
     
     //KCL
     for (auto b: grid->nodes) {
@@ -231,22 +230,14 @@ int main (int argc, const char * argv[])
    // vector<param<double>> pmatrix[Num_points];
     param<double> pmatrix("pmatrix");
     var<double> lambda("lambda", 0, 1);
-//    pmatrix(1, 1) = 0;
-//    pmatrix(1, 2) = 1;
-//    pmatrix(1, 3) = 1;
-//    pmatrix(1, 4) = 1;
-//    pmatrix(1, 5) = 1;
-    
+    pmatrix^32;
     box(pmatrix, 0, 1, 1);
-    
-    for (int i = 1; i < 33; i++)
-        for (int j= 1; j <6; j++)
-            pmatrix(i, j).print(true);
+    pmatrix.print(true);
+//    for (int i = 1; i < 33; i++)
+//        for (int j= 1; j <6; j++)
+//            pmatrix(i, j).print(true);
 
-
-    
-
-    SOCP.add_var(lambda^(Num_points));
+    //SOCP.add_var(lambda^(Num_points));
 
 //    for (int i = 0; i< nb_buses; i++){
 //        Constraint Lin("Cover"+to_string(i));
@@ -255,16 +246,19 @@ int main (int argc, const char * argv[])
     
     Constraint Convex_comb("Convex_comb");
     Convex_comb = sum(lambda);
-    SOCP.add_constraint(Convex_comb = 1);
+    //SOCP.add_constraint(Convex_comb = 1);
     
     param<double> P("P");
-    P^10;
+    int a = 3;
+    Convex_comb -= a*lambda(1);
+    SOCP.add_constraint(Convex_comb = 1);
+
     
     cout << "\n size: " << grid->v_max.get_dim() << endl;
     cout << "\n size: " << pmatrix.get_dim() << endl;
 
 
-   //solver SCOPF(SOCP,cplex);
+    //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;

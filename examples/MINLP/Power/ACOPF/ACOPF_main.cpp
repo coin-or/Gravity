@@ -65,10 +65,10 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-//    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
+//    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
 //    fname = "../../data_sets/Power/nesta_case300_ieee.m";
 //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     grid->readgrid(fname);
