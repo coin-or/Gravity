@@ -60,11 +60,12 @@ double get_cpu_time() {
 }
 #endif
 
-void box(param<double>& V, int l, int u, unsigned dim){
+void box(vector<param<double>*>& V, int l, int u, unsigned dim){
     if (dim == 1){
-        V(1, 1) = 0.0;
-        V(1, 2) = 1.0;
-        V.print(true);
+        param<double> p("p"+to_string(1));
+        V.push_back(&p);
+        param<double> p("p"+to_string(2));
+        V.push_back(&p);
     }
     else if (dim < 1)
         cerr << "Dim should be as least 1!!" << endl;
@@ -72,11 +73,11 @@ void box(param<double>& V, int l, int u, unsigned dim){
         box(V, 0, 1, dim -1);
         unsigned n = pow(2, dim-1);
         for (unsigned i = 1; i < n + 1; i++){
-            V(i, dim) = 0;
-            for (unsigned j =1;  j < dim; j++)
-                V(n + i, j) = V(i, j);
-            V(n + i, dim) = 1;
-            }
+            V[i-1] = 0;
+            //for (unsigned j =1;  j < dim; j++)
+             //   V[n + i-1] = V[i-1];
+            V[n+i -1] = 1;
+        }
     }
 }
 
@@ -223,14 +224,11 @@ int main (int argc, const char * argv[])
     /* Strengthen relaxation using cover estimators */
     /* Clique tree decomposition */
     /* Cover estimators */
-    ;
     
     //generate 2^5 vertices of a box using a recursive algorithm
     unsigned Num_points = pow(2, 5);
-   // vector<param<double>> pmatrix[Num_points];
-    param<double> pmatrix("pmatrix");
+    vector<param<double>> pmatrix;
     var<double> lambda("lambda", 0, 1);
-    pmatrix^32;
     box(pmatrix, 0, 1, 1);
     pmatrix.print(true);
 //    for (int i = 1; i < 33; i++)
@@ -253,14 +251,12 @@ int main (int argc, const char * argv[])
     var<double> x("x");
     Convex_comb -= 1*x(1);
     //SOCP.add_constraint(Convex_comb = 1);
-
     
     cout << "\n size: " << grid->v_max.get_dim() << endl;
     cout << "\n size: " << pmatrix.get_dim() << endl;
 
-
     //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
-    SCOPF.run();
+    //SCOPF.run();
     return 0;
 }
