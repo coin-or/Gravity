@@ -19,46 +19,7 @@
 
 using namespace std;
 using namespace gravity;
-#define EPS 0.00001
-#define DebugOn(x) cout << x
-#define DebugOff(x)
-//  Windows
-#ifdef _WIN32
-#include <Windows.h>
-double get_wall_time() {
-    LARGE_INTEGER time,freq;
-    if (!QueryPerformanceFrequency(&freq)) {
-        return 0;
-    }
-    if (!QueryPerformanceCounter(&time)) {
-        return 0;
-    }
-    return (double)time.QuadPart / freq.QuadPart;
-}
-double get_cpu_time() {
-    FILETIME a,b,c,d;
-    if (GetProcessTimes(GetCurrentProcess(),&a,&b,&c,&d) != 0) {
-        return
-            (double)(d.dwLowDateTime |
-                     ((unsigned long long)d.dwHighDateTime << 32)) * 0.0000001;
-    } else {
-        return 0;
-    }
-}
-#else
-#include <time.h>
-#include <sys/time.h>
-double get_wall_time() {
-    struct timeval time;
-    if (gettimeofday(&time,NULL)) {
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
-double get_cpu_time() {
-    return (double)clock() / CLOCKS_PER_SEC;
-}
-#endif
+
 
 int main (int argc, const char * argv[])
 {
@@ -67,11 +28,11 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-            fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//            fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         
-        //    fname = "../../data_sets/Power/nesta_case300_ieee.m";
+            fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
 //        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case13659_pegase.m";
     }
@@ -80,6 +41,7 @@ int main (int argc, const char * argv[])
     
 
     grid->readgrid(fname);
+    grid->get_tree_decomp_bags(true);
 
     // Grid Parameters
     unsigned nb_gen = grid->get_nb_active_gens();
@@ -91,20 +53,20 @@ int main (int argc, const char * argv[])
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
-    var<double> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
-    var<double> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
     ACOPF.add_var(Pg^(nb_gen));
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
-//    var<double> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
-//    var<double> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
-//    var<double> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
-//    var<double> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
-    var<double> Pf_from("Pf_from");
-    var<double> Qf_from("Qf_from");
-    var<double> Pf_to("Pf_to");
-    var<double> Qf_to("Qf_to");
+//    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
+//    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
+//    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
+//    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
+    var<Real> Pf_from("Pf_from");
+    var<Real> Qf_from("Qf_from");
+    var<Real> Pf_to("Pf_to");
+    var<Real> Qf_to("Qf_to");
 
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
@@ -112,14 +74,14 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qf_to^(nb_lines));
 
     // voltage related variables.
-    //    var<double> vr("vr");
-    var<double> vr("vr", grid->v_max.in(grid->nodes));
-    var<double> vi("vi", grid->v_max.in(grid->nodes));
+    //    var<Real> vr("vr");
+    var<Real> vr("vr", grid->v_max.in(grid->nodes));
+    var<Real> vi("vi", grid->v_max.in(grid->nodes));
     ACOPF.add_var(vr^(nb_buses));
     ACOPF.add_var(vi^(nb_buses));
     vr.initialize_all(1);
 
-    /** Construct the objective function*/
+    /** Construct the objective function */
     func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
 //    obj.print();
     ACOPF.set_objective(min(obj));
