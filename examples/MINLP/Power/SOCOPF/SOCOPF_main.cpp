@@ -12,53 +12,13 @@
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 using namespace std;
 using namespace gravity;
-#define EPS 0.00001
-#define DebugOn(x) cout << x
-#define DebugOff(x)
-//  Windows
-#ifdef _WIN32
-#include <Windows.h>
-double get_wall_time() {
-    LARGE_INTEGER time,freq;
-    if (!QueryPerformanceFrequency(&freq)) {
-        return 0;
-    }
-    if (!QueryPerformanceCounter(&time)) {
-        return 0;
-    }
-    return (double)time.QuadPart / freq.QuadPart;
-}
-double get_cpu_time() {
-    FILETIME a,b,c,d;
-    if (GetProcessTimes(GetCurrentProcess(),&a,&b,&c,&d) != 0) {
-        return
-            (double)(d.dwLowDateTime |
-                     ((unsigned long long)d.dwHighDateTime << 32)) * 0.0000001;
-    } else {
-        return 0;
-    }
-}
-#else
-#include <time.h>
-#include <sys/time.h>
-double get_wall_time() {
-    struct timeval time;
-    if (gettimeofday(&time,NULL)) {
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
-double get_cpu_time() {
-    return (double)clock() / CLOCKS_PER_SEC;
-}
-#endif
+
 
 void box(vector<double>* V, double l, double u, unsigned dim){
     if (dim == 1){
@@ -104,16 +64,16 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // power generation
-    var<double> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<double> Qg ("Qg", grid->qg_min, grid->qg_max);
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));    
     SOCP.add_var(Pg^(nb_gen));
     SOCP.add_var(Qg^(nb_gen));
     
     // power flow
-    var<double> Pf_from("Pf_from");
-    var<double> Qf_from("Qf_from");
-    var<double> Pf_to("Pf_to");
-    var<double> Qf_to("Qf_to");
+    var<Real> Pf_from("Pf_from");
+    var<Real> Qf_from("Qf_from");
+    var<Real> Pf_to("Pf_to");
+    var<Real> Qf_to("Qf_to");
     SOCP.add_var(Pf_from^(nb_lines));
     SOCP.add_var(Qf_from^(nb_lines));
     SOCP.add_var(Pf_to^(nb_lines));
@@ -123,6 +83,13 @@ int main (int argc, const char * argv[])
     var<double>  R_Wij("R_Wij"); // real part of Wij
     var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     var<double>  Wii("Wii", 0, 10000000);
+
+    
+    // Lifted variables.
+    var<Real>  R_Wij("Wij"); // real part of Wij
+    var<Real>  Im_Wij("Wij"); // imaginary part of Wij.
+    var<Real>  Wii("Wii");
+    
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
@@ -148,9 +115,15 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
+<<<<<<< HEAD
         KCL_P +=  bus->gs()*Wii(bus->_name);
         KCL_Q -=  bus->bs()*Wii(bus->_name);
 
+=======
+        KCL_P +=  bus->gs()*(Wii(bus->_name));
+        KCL_Q +=  bus->bs()*(Wii(bus->_name));
+        
+>>>>>>> 51e485048a10a54c94f50995fc649a748324cef6
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
     }
@@ -189,6 +162,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To = 0;
     SOCP.add_constraint(Flow_Q_To);
 
+<<<<<<< HEAD
     // AC voltage limit constraints.
     Constraint Vol_limit_UB("Vol_limit_UB");
     Vol_limit_UB = Wii.in(grid->nodes);
@@ -200,6 +174,22 @@ int main (int argc, const char * argv[])
     Vol_limit_LB -= power(grid->v_min.in(grid->nodes), 2);
     SOCP.add_constraint(Vol_limit_LB >= 0);
 
+=======
+//    // AC voltage limit constraints.
+//    Constraint Vol_limit_UB("Vol_limit_UB");
+//    Vol_limit_UB = Wii.in(grid->arcs);
+//    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
+//    SOCP.add_constraint(Vol_limit_UB <= 0);
+//
+//    Constraint Vol_limit_LB("Vol_limit_LB");
+//    Vol_limit_LB = Wii.in(grid->arcs);
+//    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
+//    SOCP.add_constraint(Vol_limit_LB >= 0);
+
+    
+    /* REF BUS */
+    
+>>>>>>> 51e485048a10a54c94f50995fc649a748324cef6
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(grid->arcs);

@@ -7,14 +7,7 @@
 //
 
 #include "Minkmodel.hpp"
-//#define USEDEBUG
-#ifdef USEDEBUG
-#define Debug(x) cout << x
-#else
-#define Debug(x)
-#endif
-#define DebugOn(x) cout << x
-#define DebugOff(x)
+
 
 using namespace std;
 using namespace gravity;

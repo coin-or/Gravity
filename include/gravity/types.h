@@ -10,7 +10,18 @@
 
 #include <list>
 #include <string>
+
 namespace gravity{
+#define EPS 0.00001
+#define Real double
+#define Integer integer
+#define Binary bool
+#define Debug(x)
+#define DebugOn(x) cout << x
+#define DebugOff(x)
+
+
+
     typedef unsigned int ind; /* Index type */
     //typedef std::set<ind> indx; /* Set of indices type */
 

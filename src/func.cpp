@@ -5131,9 +5131,8 @@ namespace gravity{
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f){
-//        assert(p1.get_dim()==f.get_dim());
         func_ res;
-        if (p1.get_dim()==0) {
+        if (p1.get_dim()==0 || p1.is_zero() || f.constant_::is_zero()) {
             return res;
         }
         return p1.tr()*f;
