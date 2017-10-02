@@ -194,19 +194,22 @@ int main (int argc, const char * argv[])
             cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
     SOCP.add_var(lambda^(Num_points));
-    for (auto b: grid->nodes){
-        Constraint Lin("Cover_Wii_"+ b->_name);
-        Lin = Wii(b->_name);
-        for (int i = 0; i < Num_points; i++)
-            Lin -= lambda(i)*pmatrix[i][b->ID];
-        SOCP.add_constraint(Lin);
-    }
+//    for (auto b: grid->nodes){
+//        Constraint Lin("Cover_Wii_"+ b->_name);
+//        Lin = Wii(b->_name);
+//        for (int i = 0; i < Num_points; i++)
+//            Lin -= lambda(i)*pmatrix[i][b->ID];
+//        SOCP.add_constraint(Lin);
+//    }
     
     for (auto a: grid->arcs){
         auto s = a->src;
         auto d = a->dest;
-        Constraint Lin("Cover_Wij_" + s->_name + "to" + d->_name);
-        for (int i = 0; )
+        Constraint Lin("Cover_Wij_" + a->_name);
+        Lin = R_Wij(a->_name);
+        for (int i = 0; i < Num_points; i++)
+             Lin -= lambda(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
+         SOCP.add_constraint(Lin);
     }
 
     
