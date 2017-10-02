@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <gravity/constraint.h>
+#include <gravity/utils.h>
 #include <map>
 #include <unordered_set>
 #include <math.h>

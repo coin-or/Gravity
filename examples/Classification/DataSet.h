@@ -8,6 +8,7 @@
 #include <list>
 #include <set>
 #include <assert.h>
+#include <gravity/model.h>
 //#include <HyperSphere/nanoflann.hpp>
 
 using namespace std;

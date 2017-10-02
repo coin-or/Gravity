@@ -5,16 +5,12 @@
 //  Created by Guanglei Wang on 6/9/17.
 //
 //
-#include <stdio.h>
 #include <iostream>
 #include <string>
-#include <stdio.h>
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include <gravity/model.h>
 #include <gravity/solver.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 using namespace std;
