@@ -181,33 +181,38 @@ int main (int argc, const char * argv[])
     /* Clique tree decomposition */
     /* Cover estimators */
     
-    //generate 2^5 vertices of a box using a recursive algorithm
+    //generate 2^4 vertices of a box using a recursive algorithm
     unsigned dim = 4;
     unsigned Num_points = pow(2, dim);
     vector<double> pmatrix[Num_points];
     var<double> lambda("lambda", 0, 1);
+    lambda^nb_buses;
+
     box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
     for (int i = 0; i < Num_points; i++)
         for (int j = 0; j < dim; j++)
             cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
-    //SOCP.add_var(lambda^(Num_points));
+    SOCP.add_var(lambda^(Num_points));
+    for (auto b: grid->nodes){
+        Constraint Lin("Cover_Wii_"+ b->_name);
+        Lin = Wii(b->_name);
+        for (int i = 0; i < Num_points; i++)
+            Lin -= lambda(i)*pmatrix[i][b->ID];
+        SOCP.add_constraint(Lin);
+    }
+    
+    for (auto a: grid->arcs){
+        auto s = a->src;
+        auto d = a->dest;
+        Constraint Lin("Cover_Wij_" + s->_name + "to" + d->_name);
+        for (int i = 0; )
+    }
 
-//    for (int i = 0; i< nb_buses; i++){
-//        Constraint Lin("Cover"+to_string(i));
-//        Lin = Wii(i,i) - sum(lambda, pmatrix[i]);
-//    }
     
     Constraint Convex_comb("Convex_comb");
     Convex_comb = sum(lambda);
-    //SOCP.add_constraint(Convex_comb = 1);
-    
-    param<double> P("P");
-    int a = 3;
-    var<double> x("x");
-    Convex_comb -= 1*x(1);
-    //SOCP.add_constraint(Convex_comb = 1);
-
+    SOCP.add_constraint(Convex_comb = 1);
     //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
