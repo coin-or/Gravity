@@ -59,7 +59,6 @@ int main (int argc, const char * argv[])
     unsigned nb_buses = grid->nodes.size();
 
     /** build model */
-    
     Model SOCP("SOCP Model");
 
     /** Variables */
@@ -80,16 +79,9 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Qf_to^(nb_lines));
     
     // Lifted variables.
-    var<double>  R_Wij("R_Wij"); // real part of Wij
-    var<double>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<double>  Wii("Wii", 0, 10000000);
-
-    
-    // Lifted variables.
-    var<Real>  R_Wij("Wij"); // real part of Wij
-    var<Real>  Im_Wij("Wij"); // imaginary part of Wij.
-    var<Real>  Wii("Wii");
-    
+    var<Real>  R_Wij("R_Wij"); // real part of Wij
+    var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
+    var<Real>  Wii("Wii", 0, 10000);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
@@ -115,15 +107,9 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
-<<<<<<< HEAD
-        KCL_P +=  bus->gs()*Wii(bus->_name);
-        KCL_Q -=  bus->bs()*Wii(bus->_name);
-
-=======
         KCL_P +=  bus->gs()*(Wii(bus->_name));
         KCL_Q +=  bus->bs()*(Wii(bus->_name));
         
->>>>>>> 51e485048a10a54c94f50995fc649a748324cef6
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
     }
@@ -162,8 +148,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To = 0;
     SOCP.add_constraint(Flow_Q_To);
 
-<<<<<<< HEAD
-    // AC voltage limit constraints.
+//    // AC voltage limit constraints.
     Constraint Vol_limit_UB("Vol_limit_UB");
     Vol_limit_UB = Wii.in(grid->nodes);
     Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
@@ -171,25 +156,9 @@ int main (int argc, const char * argv[])
 
     Constraint Vol_limit_LB("Vol_limit_LB");
     Vol_limit_LB = Wii.in(grid->nodes);
-    Vol_limit_LB -= power(grid->v_min.in(grid->nodes), 2);
+    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
     SOCP.add_constraint(Vol_limit_LB >= 0);
 
-=======
-//    // AC voltage limit constraints.
-//    Constraint Vol_limit_UB("Vol_limit_UB");
-//    Vol_limit_UB = Wii.in(grid->arcs);
-//    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
-//    SOCP.add_constraint(Vol_limit_UB <= 0);
-//
-//    Constraint Vol_limit_LB("Vol_limit_LB");
-//    Vol_limit_LB = Wii.in(grid->arcs);
-//    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
-//    SOCP.add_constraint(Vol_limit_LB >= 0);
-
-    
-    /* REF BUS */
-    
->>>>>>> 51e485048a10a54c94f50995fc649a748324cef6
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(grid->arcs);
@@ -245,6 +214,6 @@ int main (int argc, const char * argv[])
 
     //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
-    //SCOPF.run();
+    SCOPF.run();
     return 0;
 }
