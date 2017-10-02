@@ -43,7 +43,9 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-   fname = "../../data_sets/Power/nesta_case5_pjm.m";
+   fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+ // fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//    fname = "../../data_sets/Power/nesta_case6_c.m";
 //  fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
 //  fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
@@ -77,12 +79,15 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij"); // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<Real>  Wii("Wii", 0, 10000);
+    var<Real>  Wii("Wii", 0, 100000);
+    Wii.initialize_all(1);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
+    
     /** Construct the objective function*/
-    func_ obj = sum(grid->c0) + sum(grid->c1, Pg) + sum(grid->c2, power(Pg, 2));
+    //func_ obj = sum(grid->c0) + sum(grid->c1, Pg) + sum(grid->c2, power(Pg, 2));
+    func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
 
     SOCP.set_objective(min(obj));
     
@@ -181,20 +186,18 @@ int main (int argc, const char * argv[])
     /* Clique tree decomposition */
     /* Cover estimators */
     
-    //generate 2^4 vertices of a box using a recursive algorithm
-    unsigned dim = 5;
+    //generate vertices of a box using a recursive algorithm
+    unsigned dim = nb_buses;
     unsigned Num_points = pow(2, dim);
     vector<double> pmatrix[Num_points];
     var<double> lambda("lambda", 0, 1);
-    lambda^nb_buses;
-
-    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
+    // check this carefully.
+//    SOCP.add_var(lambda^(Num_points));
+//    box(pmatrix, grid->v_min.getvalue(),grid->v_max.getvalue(), dim);
 //    for (int i = 0; i < Num_points; i++)
 //        for (int j = 0; j < dim; j++)
 //            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
-
-    SOCP.add_var(lambda^(Num_points));
-    
+//
 //    for (auto a: grid->arcs){
 //        auto s = a->src;
 //        auto d = a->dest;
@@ -202,13 +205,12 @@ int main (int argc, const char * argv[])
 //        Lin = R_Wij(a->_name);
 //        for (int i = 0; i < Num_points; i++)
 //             Lin -= lambda(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
-//         SOCP.add_constraint(Lin);
+//         SOCP.add_constraint(Lin = 0);
 //    }
 //    Constraint Convex_comb("Convex_comb");
 //    Convex_comb = sum(lambda);
 //    SOCP.add_constraint(Convex_comb = 1);
     
-    //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;

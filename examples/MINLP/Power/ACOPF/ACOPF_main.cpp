@@ -34,7 +34,9 @@ int main (int argc, const char * argv[])
     }
     // ACOPF
     PowerNet* grid = new PowerNet();
-    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//    fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+    fname = "../../data_sets/Power/nesta_case6_c.m";
+//    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
 //    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
@@ -143,9 +145,8 @@ int main (int argc, const char * argv[])
     Flow_Q_To -= grid->g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vi.to(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
     Flow_Q_To = 0;
     ACOPF.add_constraint(Flow_Q_To);
-
+    
     // AC voltage limit constraints.
-
     Constraint Vol_limit_UB("Vol_limit_UB");
     Vol_limit_UB = power(vr.in(grid->nodes), 2) + power(vi.in(grid->nodes), 2);
     Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
