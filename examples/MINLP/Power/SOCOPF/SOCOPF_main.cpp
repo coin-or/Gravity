@@ -182,40 +182,32 @@ int main (int argc, const char * argv[])
     /* Cover estimators */
     
     //generate 2^4 vertices of a box using a recursive algorithm
-    unsigned dim = 4;
+    unsigned dim = 5;
     unsigned Num_points = pow(2, dim);
     vector<double> pmatrix[Num_points];
     var<double> lambda("lambda", 0, 1);
     lambda^nb_buses;
 
     box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
-    for (int i = 0; i < Num_points; i++)
-        for (int j = 0; j < dim; j++)
-            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
+//    for (int i = 0; i < Num_points; i++)
+//        for (int j = 0; j < dim; j++)
+//            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
     SOCP.add_var(lambda^(Num_points));
-//    for (auto b: grid->nodes){
-//        Constraint Lin("Cover_Wii_"+ b->_name);
-//        Lin = Wii(b->_name);
+    
+//    for (auto a: grid->arcs){
+//        auto s = a->src;
+//        auto d = a->dest;
+//        Constraint Lin("Cover_Wij_" + a->_name);
+//        Lin = R_Wij(a->_name);
 //        for (int i = 0; i < Num_points; i++)
-//            Lin -= lambda(i)*pmatrix[i][b->ID];
-//        SOCP.add_constraint(Lin);
+//             Lin -= lambda(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
+//         SOCP.add_constraint(Lin);
 //    }
+//    Constraint Convex_comb("Convex_comb");
+//    Convex_comb = sum(lambda);
+//    SOCP.add_constraint(Convex_comb = 1);
     
-    for (auto a: grid->arcs){
-        auto s = a->src;
-        auto d = a->dest;
-        Constraint Lin("Cover_Wij_" + a->_name);
-        Lin = R_Wij(a->_name);
-        for (int i = 0; i < Num_points; i++)
-             Lin -= lambda(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
-         SOCP.add_constraint(Lin);
-    }
-
-    
-    Constraint Convex_comb("Convex_comb");
-    Convex_comb = sum(lambda);
-    SOCP.add_constraint(Convex_comb = 1);
     //solver SCOPF(SOCP,cplex);
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
