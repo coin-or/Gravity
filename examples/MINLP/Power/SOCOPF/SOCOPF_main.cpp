@@ -30,10 +30,6 @@ void box(vector<double>* V, double l, double u, unsigned dim){
     else{
         box(V, l, u, dim -1);
         unsigned n = pow(2, dim-1);
-//        for (int i = 0; i < n; i++)
-//            for (int j = 0; j < dim-1; j++)
-//                cout << "P[" << i <<", " << j << "] =" << V[i][j] << endl;
-        
         for (unsigned i = 0; i < n; i++){
             V[n+i] = V[i];
             V[i].push_back(l);
