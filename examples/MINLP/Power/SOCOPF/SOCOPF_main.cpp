@@ -19,7 +19,7 @@
 using namespace std;
 using namespace gravity;
 
-
+// codes for generating vertices of a hypercube (not necessarily unit).
 void box(vector<double>* V, double l, double u, unsigned dim){
     if (dim == 1){
         V[0].push_back(l);
@@ -43,8 +43,8 @@ int main (int argc, const char * argv[])
     // ACOPF
     PowerNet* grid = new PowerNet();
     const char* fname;
-   fname = "../../data_sets/Power/nesta_case3_lmbd.m";
- // fname = "../../data_sets/Power/nesta_case5_pjm.m";
+ //   fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //  fname = "../../data_sets/Power/nesta_case6_c.m";
 //  fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
@@ -62,7 +62,7 @@ int main (int argc, const char * argv[])
     /** Variables */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
-    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));    
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
     SOCP.add_var(Pg^(nb_gen));
     SOCP.add_var(Qg^(nb_gen));
     
@@ -79,8 +79,8 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij"); // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    var<Real>  Wii("Wii", 0, 100000);
-    //Wii.initialize_all(1);
+    //var<Real>  Wii("Wii", 0, 100000);
+    var<Real>  Wii("Wii", grid->w_min, grid->w_max);// strange! leads to two different answers
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
@@ -88,12 +88,12 @@ int main (int argc, const char * argv[])
     /** Construct the objective function*/
     cout << "size of gens: " << grid->gens.size() << endl;
     func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
-
     SOCP.set_objective(min(obj));
     
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
+    cout << "nb_arcs: " << nb_lines << endl;
     SOC =  power(R_Wij.in(grid->arcs), 2) + power(Im_Wij.in(grid->arcs), 2) - Wii.from(grid->arcs)*Wii.to(grid->arcs) ;
     SOCP.add_constraint(SOC <= 0);
     
@@ -121,61 +121,57 @@ int main (int argc, const char * argv[])
     Flow_P_From -= grid->g_ff.in(grid->arcs)*Wii.from(grid->arcs);
     Flow_P_From -= grid->g_ft.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_P_From -= grid->b_ft.in(grid->arcs)*Im_Wij.in(grid->arcs);
-    Flow_P_From = 0;
-    SOCP.add_constraint(Flow_P_From);
-
+    SOCP.add_constraint(Flow_P_From = 0);
+    
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to.in(grid->arcs);
     Flow_P_To -= grid->g_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_P_To -= grid->g_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_P_To += grid->b_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
-    Flow_P_To = 0;
-    SOCP.add_constraint(Flow_P_To);
-
+    SOCP.add_constraint(Flow_P_To = 0);
+    
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from.in(grid->arcs);
     Flow_Q_From += grid->b_ff.in(grid->arcs)*Wii.from(grid->arcs);
     Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_Q_From += grid->g_ft.in(grid->arcs)*Im_Wij.in(grid->arcs);
-    Flow_Q_From = 0;
-    SOCP.add_constraint(Flow_Q_From);
-
+    SOCP.add_constraint(Flow_Q_From = 0);
+    
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_Q_To -= grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
-    Flow_Q_To = 0;
-    SOCP.add_constraint(Flow_Q_To);
-
-//    // AC voltage limit constraints.
-    Constraint Vol_limit_UB("Vol_limit_UB");
-    Vol_limit_UB = Wii.in(grid->nodes);
-    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
-    SOCP.add_constraint(Vol_limit_UB <= 0);
-
-    Constraint Vol_limit_LB("Vol_limit_LB");
-    Vol_limit_LB = Wii.in(grid->nodes);
-    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
-    SOCP.add_constraint(Vol_limit_LB >= 0);
-
+    SOCP.add_constraint(Flow_Q_To = 0);
+    
+    //    // AC voltage limit constraints.
+//    Constraint Vol_limit_UB("Vol_limit_UB");
+//    Vol_limit_UB = Wii.in(grid->nodes);
+//    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
+//    SOCP.add_constraint(Vol_limit_UB <= 0);
+//    
+//    Constraint Vol_limit_LB("Vol_limit_LB");
+//    Vol_limit_LB = Wii.in(grid->nodes);
+//    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
+//    SOCP.add_constraint(Vol_limit_LB >= 0);
+    
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(grid->arcs);
     PAD_UB -= (grid->tan_th_max).in(grid->arcs)*R_Wij.in(grid->arcs);
     SOCP.add_constraint(PAD_UB <= 0);
-
+    
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(grid->arcs);
     PAD_LB -= grid->tan_th_min.in(grid->arcs)*R_Wij.in(grid->arcs);
     SOCP.add_constraint(PAD_LB >= 0);
-
-//    /* Thermal Limit Constraints */
+    
+    /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
     Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_from <= 0);
-
+    
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);

@@ -6,8 +6,8 @@
 //
 //
 
-#ifndef ____param__
-#define ____param__
+#ifndef param_h
+#define param_h
 
 #include <stdio.h>
 #include <string>
@@ -812,7 +812,7 @@ public:
             auto iter = param_::_indices->begin();
             for (unsigned i = 0; i < l; i++ ) {
                 auto key = iter->first;
-                key += "_T" + to_string(t);
+                key += "," + to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,l*T + i-1)).second) {
@@ -869,4 +869,4 @@ param<type> all(const param<type>& p) {
     return pp;
 }
 }
-#endif /* defined(____param__) */
+#endif /* param_h */

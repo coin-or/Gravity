@@ -92,6 +92,16 @@ public:
         return res;
     }
 
+    template<typename Tobj>
+    var in(const vector<Tobj>& vec, int t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in(vec, t));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
     var time_expand(unsigned T) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::time_expand(T));
