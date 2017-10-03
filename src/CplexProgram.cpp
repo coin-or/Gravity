@@ -157,53 +157,76 @@ void CplexProgram::set_cplex_objective() {
             for (int j = 0; j<it1.second._p->first->get_dim(); j++) {
                 coefs[j] = poly_eval(it1.second._coef,j);
             }
-            obj += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
-        }
-        else {
-            IloNumExpr qterm(*_cplex_env);
-            idx_inst1 = it1.second._p->first->get_id_inst();
-            idx_inst2 = it1.second._p->second->get_id_inst();
-            c_idx_inst = get_poly_id_inst(it1.second._coef);
-            qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
-            if (!it1.second._sign) {
-                qterm *= -1;
+            //obj += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
+            if (coefs.getSize() == _cplex_vars[idx1].getSize() && coefs.getSize() ==_cplex_vars[idx2].getSize())
+                obj += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
+            else {
+                int j = 0;
+                auto iter = it1.second._p->second->get_indices()->begin();
+                for (auto& var_in1: *it1.second._p->first->get_indices()) {
+                    //auto& var_in2: *it2.second._p->second->get_indices
+                    obj += coefs[j]*_cplex_vars[idx1][var_in1.second]*_cplex_vars[idx2][iter->second];
+                    j += 1;
+                    ++iter;
+                }
             }
-            obj += qterm;
-            qterm.end();
         }
-    }
-
-    for (auto& it1: _model->_obj.get_lterms()) {
-        idx = it1.second._p->get_vec_id();
-        if (it1.second._coef->_is_transposed) {
-            IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
-            for (int j = 0; j<it1.second._p->get_dim(); j++) {
-                coefs[j] = poly_eval(it1.second._coef,j);
-            }
-            obj += IloScalProd(coefs, _cplex_vars[idx]);
-        }
-        else {
-            IloNumExpr lterm(*_cplex_env);
-            idx_inst = it1.second._p->get_id_inst();
-            c_idx_inst = get_poly_id_inst(it1.second._coef);
-            lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
-            if (!it1.second._sign) {
-                lterm *= -1;
-            }
-            obj += lterm;
-            lterm.end();
-        }
-    }
-    obj += poly_eval(_model->_obj.get_cst());
-
-    if (_model->_objt == maximize) {
-        _cplex_obj = IloMaximize(*_cplex_env,obj);
     }
     else {
-        _cplex_obj = IloMinimize(*_cplex_env,obj);
+        IloNumExpr qterm(*_cplex_env);
+        idx_inst1 = it1.second._p->first->get_id_inst();
+        idx_inst2 = it1.second._p->second->get_id_inst();
+        c_idx_inst = get_poly_id_inst(it1.second._coef);
+        qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
+        if (!it1.second._sign) {
+            qterm *= -1;
+        }
+        obj += qterm;
+        qterm.end();
     }
-    _cplex_model->add(_cplex_obj);
-    obj.end();
+}
+
+for (auto& it1: _model->_obj.get_lterms()) {
+    idx = it1.second._p->get_vec_id();
+    if (it1.second._coef->_is_transposed) {
+        IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
+        for (int j = 0; j<it1.second._p->get_dim(); j++) {
+            coefs[j] = poly_eval(it1.second._coef,j);
+        }
+        //obj += IloScalProd(coefs, _cplex_vars[idx]);
+        if (coefs.getSize() == _cplex_vars[idx].getSize())
+            obj += IloScalProd(coefs, _cplex_vars[idx]);
+        else {
+            int j = 0;
+            for (auto& var_in: *it1.second._p->get_indices()) {
+                obj += coefs[j]*_cplex_vars[idx][var_in.second];
+                j += 1;
+            }
+        }
+    }
+    else {
+        IloNumExpr lterm(*_cplex_env);
+        idx_inst = it1.second._p->get_id_inst();
+        c_idx_inst = get_poly_id_inst(it1.second._coef);
+        lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
+        if (!it1.second._sign) {
+            lterm *= -1;
+        }
+        obj += lterm;
+        lterm.end();
+    }
+}
+
+obj += poly_eval(_model->_obj.get_cst());
+
+if (_model->_objt == maximize) {
+    _cplex_obj = IloMaximize(*_cplex_env,obj);
+}
+else {
+    _cplex_obj = IloMinimize(*_cplex_env,obj);
+}
+_cplex_model->add(_cplex_obj);
+obj.end();
 }
 
 void CplexProgram::create_cplex_constraints() {
@@ -233,7 +256,6 @@ void CplexProgram::create_cplex_constraints() {
                         int j = 0;
                         auto iter = it1.second._p->second->get_indices()->begin();
                         for (auto& var_in1: *it1.second._p->first->get_indices()) {
-                            //auto& var_in2: *it2.second._p->second->get_indices
                             cc += coefs[j]*_cplex_vars[idx1][var_in1.second]*_cplex_vars[idx2][iter->second];
                             j += 1;
                             ++iter;

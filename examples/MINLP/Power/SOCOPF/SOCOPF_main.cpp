@@ -45,7 +45,7 @@ int main (int argc, const char * argv[])
     const char* fname;
    fname = "../../data_sets/Power/nesta_case3_lmbd.m";
  // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-//    fname = "../../data_sets/Power/nesta_case6_c.m";
+//  fname = "../../data_sets/Power/nesta_case6_c.m";
 //  fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
 //  fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
@@ -86,8 +86,8 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Im_Wij^nb_lines);
     
     /** Construct the objective function*/
-    //func_ obj = sum(grid->c0) + sum(grid->c1, Pg) + sum(grid->c2, power(Pg, 2));
-    func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
+    cout << "size of gens: " << grid->gens.size() << endl;
+    func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
 
     SOCP.set_objective(min(obj));
     
