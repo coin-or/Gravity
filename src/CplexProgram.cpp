@@ -143,8 +143,6 @@ void CplexProgram::fill_in_cplex_vars() {
     }
 }
 
-
-
 void CplexProgram::set_cplex_objective() {
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
     size_t c_idx_inst = 0;
@@ -171,62 +169,61 @@ void CplexProgram::set_cplex_objective() {
                 }
             }
         }
-    }
-    else {
-        IloNumExpr qterm(*_cplex_env);
-        idx_inst1 = it1.second._p->first->get_id_inst();
-        idx_inst2 = it1.second._p->second->get_id_inst();
-        c_idx_inst = get_poly_id_inst(it1.second._coef);
-        qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
-        if (!it1.second._sign) {
-            qterm *= -1;
-        }
-        obj += qterm;
-        qterm.end();
-    }
-}
-
-for (auto& it1: _model->_obj.get_lterms()) {
-    idx = it1.second._p->get_vec_id();
-    if (it1.second._coef->_is_transposed) {
-        IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
-        for (int j = 0; j<it1.second._p->get_dim(); j++) {
-            coefs[j] = poly_eval(it1.second._coef,j);
-        }
-        //obj += IloScalProd(coefs, _cplex_vars[idx]);
-        if (coefs.getSize() == _cplex_vars[idx].getSize())
-            obj += IloScalProd(coefs, _cplex_vars[idx]);
         else {
-            int j = 0;
-            for (auto& var_in: *it1.second._p->get_indices()) {
-                obj += coefs[j]*_cplex_vars[idx][var_in.second];
-                j += 1;
+            IloNumExpr qterm(*_cplex_env);
+            idx_inst1 = it1.second._p->first->get_id_inst();
+            idx_inst2 = it1.second._p->second->get_id_inst();
+            c_idx_inst = get_poly_id_inst(it1.second._coef);
+            qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
+            if (!it1.second._sign) {
+                qterm *= -1;
+            }
+            obj += qterm;
+            qterm.end();
+        }
+    }
+
+    for (auto& it1: _model->_obj.get_lterms()) {
+        idx = it1.second._p->get_vec_id();
+        if (it1.second._coef->_is_transposed) {
+            IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
+            for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                coefs[j] = poly_eval(it1.second._coef,j);
+            }
+            //obj += IloScalProd(coefs, _cplex_vars[idx]);
+            if (coefs.getSize() == _cplex_vars[idx].getSize())
+                obj += IloScalProd(coefs, _cplex_vars[idx]);
+            else {
+                int j = 0;
+                for (auto& var_in: *it1.second._p->get_indices()) {
+                    obj += coefs[j]*_cplex_vars[idx][var_in.second];
+                    j += 1;
+                }
             }
         }
+        else {
+            IloNumExpr lterm(*_cplex_env);
+            idx_inst = it1.second._p->get_id_inst();
+            c_idx_inst = get_poly_id_inst(it1.second._coef);
+            lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
+            if (!it1.second._sign) {
+                lterm *= -1;
+            }
+            obj += lterm;
+            lterm.end();
+        }
+    }
+
+    obj += poly_eval(_model->_obj.get_cst());
+
+    if (_model->_objt == maximize) {
+        _cplex_obj = IloMaximize(*_cplex_env,obj);
     }
     else {
-        IloNumExpr lterm(*_cplex_env);
-        idx_inst = it1.second._p->get_id_inst();
-        c_idx_inst = get_poly_id_inst(it1.second._coef);
-        lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
-        if (!it1.second._sign) {
-            lterm *= -1;
-        }
-        obj += lterm;
-        lterm.end();
+        _cplex_obj = IloMinimize(*_cplex_env,obj);
     }
-}
-
-obj += poly_eval(_model->_obj.get_cst());
-
-if (_model->_objt == maximize) {
-    _cplex_obj = IloMaximize(*_cplex_env,obj);
-}
-else {
-    _cplex_obj = IloMinimize(*_cplex_env,obj);
-}
-_cplex_model->add(_cplex_obj);
-obj.end();
+    _cplex_model->add(_cplex_obj);
+    obj.end();
 }
 
 void CplexProgram::create_cplex_constraints() {

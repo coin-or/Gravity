@@ -16,10 +16,8 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 using namespace std;
 using namespace gravity;
-
 
 int main (int argc, const char * argv[])
 {
@@ -56,10 +54,9 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Qf_to^(T*nb_lines));
 
     // Lifted variables.
-    var<Real>  R_Wij("R_Wij"); // real part of Wij
+    var<Real>  R_Wij("R_Wij");   // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     var<Real>  Wii("Wii", 0, 100000);
-    Wii.initialize_all(1);
     SOCP.add_var(Wii^(T*nb_buses));
     SOCP.add_var(R_Wij^(T*nb_lines));
     SOCP.add_var(Im_Wij^(T*nb_lines));
@@ -69,9 +66,7 @@ int main (int argc, const char * argv[])
     for (int t = 0; t < T; t++) {
         func_ obj += sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
     }
-
     ACUC.set_objective(min(obj));
-
 
     /** Define constraints */
     constant<int> ones(1);
@@ -230,8 +225,7 @@ int main (int argc, const char * argv[])
         ACUC.add_constraint(Thermal_Limit_to <= 0);
     }
 
-//
-//    // Power generation constraints.
+    // Power generation constraints.
     param<double> PUB("PUB");
     param<double> PLB("PUB");
     param<double> QUB("QUB");

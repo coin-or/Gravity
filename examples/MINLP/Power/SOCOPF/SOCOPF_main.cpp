@@ -80,7 +80,7 @@ int main (int argc, const char * argv[])
     var<Real>  R_Wij("R_Wij"); // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     var<Real>  Wii("Wii", 0, 100000);
-    Wii.initialize_all(1);
+    //Wii.initialize_all(1);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);

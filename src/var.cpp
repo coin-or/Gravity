@@ -436,8 +436,6 @@ namespace gravity{
         return res;
     }
    
-
-
     template class var<bool>;
     template class var<short>;
     template class var<int>;
