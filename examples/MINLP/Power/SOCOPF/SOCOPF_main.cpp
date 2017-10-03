@@ -187,13 +187,15 @@ int main (int argc, const char * argv[])
     /* Cover estimators */
     
     //generate vertices of a box using a recursive algorithm
-    unsigned dim = nb_buses;
-    unsigned Num_points = pow(2, dim);
-    vector<double> pmatrix[Num_points];
-    var<double> lambda("lambda", 0, 1);
-    // check this carefully.
-//    SOCP.add_var(lambda^(Num_points));
-//    box(pmatrix, grid->v_min.getvalue(),grid->v_max.getvalue(), dim);
+//    unsigned dim = nb_buses;
+//    unsigned Num_points = pow(2, dim);
+//    vector<double> pmatrix[Num_points];
+//    var<double> lambda_R("lambda_R", 0, 1);
+//    var<double> lambda_Im("lambda_Im", 0, 1);
+//    // check this carefully.
+//    SOCP.add_var(lambda_R^(Num_points));
+//    SOCP.add_var(lambda_Im^(Num_points));
+//    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
 //    for (int i = 0; i < Num_points; i++)
 //        for (int j = 0; j < dim; j++)
 //            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
@@ -203,14 +205,23 @@ int main (int argc, const char * argv[])
 //        auto d = a->dest;
 //        Constraint Lin("Cover_Wij_" + a->_name);
 //        Lin = R_Wij(a->_name);
-//        for (int i = 0; i < Num_points; i++)
-//             Lin -= lambda(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
+//        cout << "s->ID: " << s->ID << endl;
+//        cout << "d->ID: " << d->ID << endl;
+//        for (int i = 0; i < Num_points; i++){
+//            Lin -= lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
+//            Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
+//        }
 //         SOCP.add_constraint(Lin = 0);
 //    }
-//    Constraint Convex_comb("Convex_comb");
-//    Convex_comb = sum(lambda);
-//    SOCP.add_constraint(Convex_comb = 1);
-    
+//
+//    Constraint Convex_comb_R("Convex_comb_R");
+//    Convex_comb_R = sum(lambda_R);
+//    SOCP.add_constraint(Convex_comb_R = 1);
+//
+//    Constraint Convex_comb_Im("Convex_comb_Im");
+//    Convex_comb_Im = sum(lambda_Im);
+//    SOCP.add_constraint(Convex_comb_Im = 1);
+
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;
