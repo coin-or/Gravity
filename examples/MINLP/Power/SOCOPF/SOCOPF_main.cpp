@@ -115,8 +115,7 @@ int main (int argc, const char * argv[])
         SOCP.add_constraint(KCL_Q = 0);
     }
 
-    //AC Power Flow.
-    //
+    //AC Power Flow
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs);
     Flow_P_From -= grid->g_ff.in(grid->arcs)*Wii.from(grid->arcs);
@@ -221,7 +220,6 @@ int main (int argc, const char * argv[])
 //    Constraint Convex_comb_Im("Convex_comb_Im");
 //    Convex_comb_Im = sum(lambda_Im);
 //    SOCP.add_constraint(Convex_comb_Im = 1);
-
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;

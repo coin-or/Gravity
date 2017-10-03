@@ -178,10 +178,10 @@ namespace gravity {
         }
         
         
-        template<typename other_type> bexpr& operator+=(const other_type& v);
-        template<typename other_type> bexpr& operator-=(const other_type& v);
-        template<typename other_type> bexpr& operator*=(const other_type& v);
-        template<typename other_type> bexpr& operator/=(const other_type& v);
+        template<typename other_type> bexpr& operator +=(const other_type& v);
+        template<typename other_type> bexpr& operator -=(const other_type& v);
+        template<typename other_type> bexpr& operator *=(const other_type& v);
+        template<typename other_type> bexpr& operator /=(const other_type& v);
         
         
         string to_str() const;
