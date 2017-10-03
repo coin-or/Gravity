@@ -143,13 +143,12 @@ int main (int argc, const char * argv[])
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_Q_To -= grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     SOCP.add_constraint(Flow_Q_To = 0);
-    
     //    // AC voltage limit constraints.
 //    Constraint Vol_limit_UB("Vol_limit_UB");
 //    Vol_limit_UB = Wii.in(grid->nodes);
 //    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
 //    SOCP.add_constraint(Vol_limit_UB <= 0);
-//    
+//
 //    Constraint Vol_limit_LB("Vol_limit_LB");
 //    Vol_limit_LB = Wii.in(grid->nodes);
 //    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
