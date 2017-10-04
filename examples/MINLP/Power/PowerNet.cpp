@@ -293,11 +293,14 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2(i) = atof(word.c_str())*pow(bMVA,2);
+        //c2(i) = atof(word.c_str())*pow(bMVA,2);
+        c2 = atof(word.c_str())*pow(bMVA,2);
         file >> word;
-        c1(i) = atof(word.c_str())*bMVA;
+        //c1(i) = atof(word.c_str())*bMVA;
+        c1 = atof(word.c_str())*bMVA;
         file >> word;
-        c0(i) = atof(word.c_str());
+        //c0(i) = atof(word.c_str());
+        c0 = atof(word.c_str());
 //        if (gen_status[i]) {
           gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
 //        }
@@ -377,18 +380,31 @@ int PowerNet::readgrid(const char* fname) {
         name = arc->_name;
         g(name) = arc->g;
         b(name) = arc->b;
-        g_ff(name) = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        g_ft(name) = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        //g_ff(name) = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        //g_ft(name) = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
-        g_tt(name) = arc->g;
-        g_tf(name) = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        //g_tt(name) = arc->g;
+        //g_tf(name) = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+
+        //
+        //b_ff(name) = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        //b_ft(name) = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+
+        //b_tt(name) = (arc->ch/2 + arc->b);
+        //b_tf(name) = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+
+        g_ff = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        g_ft = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        
+        g_tt = arc->g;
+        g_tf = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
         
-        b_ff(name) = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_ft(name) = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ff = (arc->ch/2 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_ft = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
-        b_tt(name) = (arc->ch/2 + arc->b);
-        b_tf(name) = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
+        b_tt = (arc->ch/2 + arc->b);
+        b_tf = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
         
         
         if (arc->tbound.min >= 0 ) {
@@ -410,11 +426,16 @@ int PowerNet::readgrid(const char* fname) {
             wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
         }
         ch(name) = arc->ch;
-        S_max(name) = arc->limit;
-        th_min(name) = arc->tbound.min;
-        th_max(name) = arc->tbound.max;
-        tan_th_min(name) = tan(arc->tbound.min);
-        tan_th_max(name) = tan(arc->tbound.max);
+       //S_max(name) = arc->limit;
+        S_max = arc->limit;
+        //th_min(name) = arc->tbound.min;
+        //th_max(name) = arc->tbound.max;
+        th_min = arc->tbound.min;
+        th_max = arc->tbound.max;
+        //tan_th_min(name) = tan(arc->tbound.min);
+        //tan_th_max(name) = tan(arc->tbound.max);
+        tan_th_min = tan(arc->tbound.min);
+        tan_th_max = tan(arc->tbound.max);
         arc->connect();
         add_arc(arc);
         if(arc->status != 1){

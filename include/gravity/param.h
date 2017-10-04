@@ -881,9 +881,10 @@ public:
     // T copies of a parameter
     void time_expand(unsigned T) {
         assert(T >= 1);
-        set_size(param_::get_dim()*T);
-        for(unsigned t = 0; t < T; t ++ ) {
-            _val->insert(_val->begin(), _val->begin(), _val->end());
+        unsigned l = param_::get_dim();
+        set_size(l*T);
+        for(unsigned t = 0; t < T - 1; t ++ ) {
+            _val->insert(_val->end(), _val->begin(), _val->begin()+l);
         }
     }
         //auto l = this->get_dim();
