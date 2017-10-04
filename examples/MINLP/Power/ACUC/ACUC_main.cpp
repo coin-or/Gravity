@@ -85,10 +85,10 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Wii^(T*nb_buses));
     ACUC.add_var(R_Wij^(T*nb_lines));
     ACUC.add_var(Im_Wij^(T*nb_lines));
-    
+
     // Commitment variables
-    var<Real>  On_off("On_off", 0, 1);   
-    var<Real>  Start_up("Start_up", 0, 1); 
+    var<Real>  On_off("On_off", 0, 1);
+    var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
     ACUC.add_var(On_off^(T*nb_gen));
     ACUC.add_var(Start_up^(T*nb_gen));
@@ -183,25 +183,25 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
-    
+
     /* Commitment constraints */
     // Inter-temporal constraints
-    //for (int t = 1; t < T; t++){
-    int t = 1;
+    for (int t = 1; t < T; t++){
         Constraint MC1("MC1_"+ to_string(t));
         Constraint MC2("MC2_"+ to_string(t));
-    //MC1 = On_off.in_at(grid->gens, 1) - On_off.in_at(grid->gens, 0) - Start_up.in_at(grid->gens, 1);
-        //MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
+        MC1 = On_off.in_at(grid->gens, 1)- On_off.in_at(grid->gens, 0)-  Start_up.in_at(grid->gens, 1);
+        MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
         ACUC.add_constraint(MC1 <= 0);
-        //ACUC.add_constraint(MC2 <= 0);
-    //}
+        ACUC.add_constraint(MC2 <= 0);
+    }
 
     // Min-up constraints
-//    for (int t = 1; t < T; t++){
-//        Constraint Min_up1("Min_up1_"+ to_string(t));
-//        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-//        //ACUC.add_constraint(Min_up1 = 0);
-//    }
+    for (int t = 1; t < T; t++) {
+        Constraint Min_up1("Min_up1_"+ to_string(t));
+        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_up1 = 0);
+    }
+
     /* Resolve it! */
     solver OPF(ACUC,ipopt);
     OPF.run();

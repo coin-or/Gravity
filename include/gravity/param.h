@@ -723,7 +723,9 @@ public:
             }
         }
         res._name += ".in_set_at_time_" + to_string(t);
-        res._unique_id = make_tuple<>(res._id, in_set_at_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
+        cout << param<type>::get_id_inst(0) << endl;
+        //res._unique_id = make_tuple<>(res._id, in_set_at_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id, in_set_at_, t, param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
