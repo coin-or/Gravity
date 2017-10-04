@@ -269,10 +269,28 @@ namespace gravity{
         return res;
     }
 
+    template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs, unsigned T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from(arcs, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;        
+        return res;
+    }
+
 
     template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::to(arcs));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
+    template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs, unsigned T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to(arcs, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;

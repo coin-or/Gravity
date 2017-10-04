@@ -699,7 +699,7 @@ public:
     }
 
     template<typename Tobj>
-    param in(const vector<Tobj*>& nodes, int t) {
+    param in(const vector<Tobj*>& nodes, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -707,28 +707,69 @@ public:
         res._range = this->_range;
         res._val = this->_val;
         string key;
-        for(auto it = nodes.begin(); it!= nodes.end(); it++) {
-            key = (*it)->_name;
-            key += ",";
-            key += to_string(t);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1))) {
-                    res._dim++;
+        for (unsigned t = 0; t < T; t++) {
+            for(auto it = nodes.begin(); it!= nodes.end(); it++) {
+                key = (*it)->_name;
+                key += ",";
+                key += to_string(t);
+                auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                if(pp.second) { //new index inserted
+                    if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second))) {
-                    res._dim++;
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(pp.first->second);
                 }
-                res._ids->push_back(pp.first->second);
             }
         }
-        res._name += ".in_objects_" + to_string(t);
+        res._name += ".in_objects_time_expand_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
+
+    param from(const vector<Arc*>& arcs, unsigned T) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        string key;
+        for (unsigned t = 0; t < T; t++) {
+            for(auto it = arcs.begin(); it!= arcs.end(); it++) {
+                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
+                    continue;
+                }
+                key = (*it)->src->_name;
+                key += ",";
+                key += to_string(t);
+                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+                if(pp.second) { //new index inserted
+                    if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(param_::_indices->size()-1);
+                }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(pp.first->second);
+                }
+            }
+        }
+        res._name += ".from_arcs_time_expand_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+
 
     param from(const vector<Arc*>& arcs) {
         param res(this->_name);
@@ -798,7 +839,7 @@ public:
         return res;
     }
 
-    param time_expand(unsigned T) {
+    param to(const vector<Arc*>& arcs, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -806,33 +847,81 @@ public:
         res._range = this->_range;
         res._val = this->_val;
         string key;
-        assert(T >= 2);
-        auto l = param_::_indices->size();
-        for(unsigned t = 0; t < T; t ++ ) {
-            auto iter = param_::_indices->begin();
-            for (unsigned i = 0; i < l; i++ ) {
-                auto key = iter->first;
-                key += "," + to_string(t);
-                auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
+        for (unsigned t = 0; t < T; t++) {
+            for(auto it = arcs.begin(); it!= arcs.end(); it++) {
+                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
+                    continue;
+                }
+                key = (*it)->dest->_name;
+                key += ",";
+                key += to_string(t);
+                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 if(pp.second) { //new index inserted
-                    if(res._indices->insert(make_pair<>(key,l*T + i-1)).second) {
+                    if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim++;
                     }
-                    res._ids->push_back(param_::_indices->size()-1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
+                    // already exists
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim++;
                     }
                     res._ids->push_back(pp.first->second);
                 }
+
             }
         }
-        res._name += ".time_expanded";
-        res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+        res._name += ".to_arcs_time_expand_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id, to_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
+
+//    param time_expand(unsigned T) {
+//        param res(this->_name);
+//        res._id = this->_id;
+//        res._vec_id = this->_vec_id;
+//        res._intype = this->_intype;
+//        res._range = this->_range;
+//        res._val = this->_val;
+//        res._indices = this->get_indices();
+//        res._dim = this->get_dim();
+//        string key;
+//        assert(T >= 1);
+//        auto l = this->get_dim();
+//        for(unsigned t = 1; t < T+1; t ++ ) {
+//            auto iter = param_::_indices->begin();
+//            //for (unsigned i = 0; i < l; i++ ) {
+//            for (auto &iter: (*param_::get_indices())){
+//                string key = iter.first;
+//                cout << key << endl;
+//                key += "," + to_string(t);
+//                cout << key << endl;
+//                //auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
+//                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+//                if(pp.second) { //new index inserted
+//                    if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+//                        res._dim++;
+//                        cout << "dim: " <<  res._dim << endl;
+//                    }
+//                    res._ids->push_back(param_::_indices->size() - 1);
+//                }
+//                else {// already exists
+//                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+//                        res._dim++;
+//                    }
+//                    res._ids->push_back(pp.first->second);
+//                    cout << "dim: " <<  res._dim << endl;
+//                }
+//                //iter
+//            }
+//        }
+//        res._name += ".time_expanded";
+//        res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+//        res._is_indexed = true;
+//        return res;
+//    }
 
     /** Output */
     void print(bool vals=false) const {

@@ -74,13 +74,10 @@ public:
     }
 
     var from(const vector<Arc*>& arcs);
-    var from(const vector<Arc*>& arcs, int t);
+    var from(const vector<Arc*>& arcs, unsigned T);
     var to(const vector<Arc*>& arcs);
-    var to(const vector<Arc*>& arcs, int t);
+    var to(const vector<Arc*>& arcs, unsigned T);
     var in(const vector<Arc*>& arcs);
-    var in(const vector<Arc*>& arcs, int t);
-
-
 
     template<typename Tobj>
     var in(const vector<Tobj>& vec) {
@@ -93,23 +90,23 @@ public:
     }
 
     template<typename Tobj>
-    var in(const vector<Tobj>& vec, int t) {
+    var in(const vector<Tobj>& vec, unsigned T) {
         var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(vec, t));
+        res.param<type>::operator=(param<type>::in(vec, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
         return res;
     }
 
-    var time_expand(unsigned T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::time_expand(T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
+    //var time_expand(unsigned T) {
+    //    var<type> res(this->_name);
+    //    res.param<type>::operator=(param<type>::time_expand(T));
+    //    res.param<type>::set_type(var_c);
+    //    res._lb = this->_lb;
+    //    res._ub = this->_ub;
+    //    return res;
+    //}
 
 
     var from(const ordered_pairs& pairs);
