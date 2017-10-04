@@ -439,6 +439,9 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 
 /* Fill the nonzero values in the jacobian */
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
+//    if (_type==lin_m && !_first_call_jac) { /* No need to recompute jacobian for linear models */
+//        return stored jacobian;
+//    }
     if (new_x) {
         set_x(x);
     }
@@ -451,6 +454,9 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     for(auto& c_p :_cons)
     {
         c = c_p.second;
+//        if (c->is_linear()) {
+//            fill in with stored values, iterate the right number of idx
+//        }
         auto nb_ins = c->get_nb_instances();
         for (auto &v_p: c->get_vars()){
             v = v_p.second.first;
@@ -471,6 +477,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             }
         }
     }
+    _first_call_jac = false;
 }
 
 
@@ -504,7 +511,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
                 }
             }
         }
-    }
+    }    
 }
 
 
@@ -573,6 +580,9 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
+//    if ((_type==lin_m || _type==quad_m) && !_first_call_hess) { /* No need to recompute jacobian for linear objectives */
+//        return;
+//    }
     size_t idx = 0;
     unique_id vid, vjd;
     double hess = 0;
@@ -597,6 +607,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
             idx++;
         }
     }
+    _first_call_hess = false;
 }
 
 
@@ -605,6 +616,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
+//    if (_obj.is_linear() && !_first_call_gard_obj) { /* No need to recompute jacobian for linear objectives */
+//        return stored gardient;
+//    }
     if (new_x) {
         set_x(x);
     }
@@ -635,6 +649,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
             res[vid_inst] = df->eval();
         }
     }
+    _first_call_gard_obj = false;
 }
 
 void Model::fill_in_maps() {

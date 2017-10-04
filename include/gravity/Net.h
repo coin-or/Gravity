@@ -103,6 +103,9 @@ public:
     
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
+    
+    /** Return the vector of arcs ignoring parallel lines **/
+    std::vector<Arc*> bus_pairs() const;
 
     
     

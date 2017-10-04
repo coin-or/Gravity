@@ -84,7 +84,7 @@ Constraint& Constraint::operator=(const func_& f){
 void Constraint::print() const{
     cout << _name << " : ";
     
-    this->func_::print(true,true);
+    this->func_::print(false,false);
     switch (_ctype) {
         case leq:
             cout << " <= ";

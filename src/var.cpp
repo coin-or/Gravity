@@ -36,43 +36,38 @@ namespace gravity{
     template<typename type> var<type>::var(const string& name, type lb, type ub):var(name){
         _lb->push_back(lb);
         _ub->push_back(ub);
-        if (lb < param<type>::_range.first) {
-            param<type>::_range.first = lb;
+        if (lb < param<type>::_range->first) {
+            param<type>::_range->first = lb;
         }
-        if (ub > param<type>::_range.second) {
-            param<type>::_range.second = ub;
+        if (ub > param<type>::_range->second) {
+            param<type>::_range->second = ub;
         }
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-//        for (int i= 0; i<lb.get_dim(); i++) {
-//            _lb->push_back(lb.eval(i));
-//            _ub->push_back(ub.eval(i));
-//            if (_lb->back() < param<type>::_range.first) {
-//                param<type>::_range.first = _lb->back() ;
-//            }
-//            if (_ub->back() > param<type>::_range.second) {
-//                param<type>::_range.second = _ub->back();
-//            }
-//        }
-        _lb = lb.get_vals();
-        _ub = ub.get_vals();
-        param<type>::_ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(lb.get_ids()));
-        //TODO: update range first and second
+        for (int i= 0; i<lb.get_dim(); i++) {
+            _lb->push_back(lb.eval(i));
+            _ub->push_back(ub.eval(i));
+            if (_lb->back() < param<type>::_range->first) {
+                param<type>::_range->first = _lb->back() ;
+            }
+            if (_ub->back() > param<type>::_range->second) {
+                param<type>::_range->second = _ub->back();
+            }
+        }
     };
     
     template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
-        _ub = sb.get_vals();
-        for (int i= 0; i<_ub->size(); i++) {
-            _lb->push_back(-1.*_ub->at(i));
-            DebugOff(_lb->at(i) << endl);
-            if (_lb->back() < param<type>::_range.first) {
-                param<type>::_range.first = _lb->back() ;
+        for (int i= 0; i<sb.get_dim(); i++) {
+            _lb->push_back(-1.*sb.eval(i));
+            _ub->push_back(sb.eval(i));
+            if (_lb->back() < param<type>::_range->first) {
+                param<type>::_range->first = _lb->back() ;
+            }
+            if (_ub->back() > param<type>::_range->second) {
+                param<type>::_range->second = _ub->back();
             }
         }
-        DebugOff("Done" << endl);
-        param<type>::_ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(sb.get_ids()));
-        //TODO: update range first and second
     };
 
     template<typename type> var<type>& var<type>::operator=(const var<type>& v){
@@ -115,29 +110,29 @@ namespace gravity{
         }
         _lb->push_back(lb);
         _ub->push_back(ub);
-        if (lb < param<type>::_range.first) {
-            param<type>::_range.first = lb;
+        if (lb < param<type>::_range->first) {
+            param<type>::_range->first = lb;
         }
-        if (ub > param<type>::_range.second) {
-            param<type>::_range.second = ub;
+        if (ub > param<type>::_range->second) {
+            param<type>::_range->second = ub;
         }
     }
 
     template<typename type> void   var<type>::add_lb_only(type val){
         _lb->push_back(val);
         _ub->push_back(numeric_limits<type>::max());
-        if (val < param<type>::_range.first) {
-            param<type>::_range.first = val;
+        if (val < param<type>::_range->first) {
+            param<type>::_range->first = val;
         }
-        param<type>::_range.second = numeric_limits<type>::max();
+        param<type>::_range->second = numeric_limits<type>::max();
     }
 
     template<typename type> void   var<type>::add_ub_only(type val){
         _lb->push_back(numeric_limits<type>::lowest());
         _ub->push_back(val);
-        param<type>::_range.first = numeric_limits<type>::lowest();
-        if (val > param<type>::_range.second) {
-            param<type>::_range.second = val;
+        param<type>::_range->first = numeric_limits<type>::lowest();
+        if (val > param<type>::_range->second) {
+            param<type>::_range->second = val;
         }
     }
 
@@ -146,8 +141,8 @@ namespace gravity{
             throw out_of_range("set_lb(int i, type val)");
         }
         _lb->at(i) = val;
-        if (val < param<type>::_range.first) {
-            param<type>::_range.first = val;
+        if (val < param<type>::_range->first) {
+            param<type>::_range->first = val;
         }
     }
 
@@ -156,8 +151,8 @@ namespace gravity{
             throw out_of_range("set_lb(int i, type val)");
         }
         _ub->at(i) = val;
-        if (val > param<type>::_range.second) {
-            param<type>::_range.second = val;
+        if (val > param<type>::_range->second) {
+            param<type>::_range->second = val;
         }
     }
 
