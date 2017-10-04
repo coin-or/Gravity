@@ -717,7 +717,7 @@ public:
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim++;
                     }
-                    res._ids->push_back(param_::_indices->size() - 1);
+                    res._ids->push_back(param_::_indices->size()-1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
@@ -727,8 +727,8 @@ public:
                 }
             }
         }
-        res._name += ".in_objects_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+        res._name += ".in_set_time_expand_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
