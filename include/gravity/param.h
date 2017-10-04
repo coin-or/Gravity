@@ -696,6 +696,39 @@ public:
     }
 
     template<typename Tobj>
+    param in_at(const vector<Tobj*>& nodes, unsigned t) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        string key;
+        for(auto it = nodes.begin(); it!= nodes.end(); it++) {
+            key = (*it)->_name;
+            key += ",";
+            key += to_string(t);
+            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            if(pp.second) { //new index inserted
+                if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(param_::_indices->size() - 1);
+            }
+            else {
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(pp.first->second);
+            }
+        }
+        res._name += ".in_set_at_time_" + to_string(t);
+        res._unique_id = make_tuple<>(res._id, in_set_at_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+
+    template<typename Tobj>
     param in(const vector<Tobj*>& nodes, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
