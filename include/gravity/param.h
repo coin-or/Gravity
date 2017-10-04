@@ -449,7 +449,7 @@ public:
         set_val(i,v);
     }
 
-    param& operator=(type v) {
+    param& operator= (type v) {
         _val->push_back(v);
         update_range(v);
         _dim++;
@@ -717,7 +717,7 @@ public:
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim++;
                     }
-                    res._ids->push_back(param_::_indices->size()-1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
@@ -878,50 +878,45 @@ public:
         return res;
     }
 
-//    param time_expand(unsigned T) {
-//        param res(this->_name);
-//        res._id = this->_id;
-//        res._vec_id = this->_vec_id;
-//        res._intype = this->_intype;
-//        res._range = this->_range;
-//        res._val = this->_val;
-//        res._indices = this->get_indices();
-//        res._dim = this->get_dim();
-//        string key;
-//        assert(T >= 1);
-//        auto l = this->get_dim();
-//        for(unsigned t = 1; t < T+1; t ++ ) {
-//            auto iter = param_::_indices->begin();
-//            //for (unsigned i = 0; i < l; i++ ) {
-//            for (auto &iter: (*param_::get_indices())){
-//                string key = iter.first;
-//                cout << key << endl;
-//                key += "," + to_string(t);
-//                cout << key << endl;
-//                //auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
-//                auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-//                if(pp.second) { //new index inserted
-//                    if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-//                        res._dim++;
-//                        cout << "dim: " <<  res._dim << endl;
-//                    }
-//                    res._ids->push_back(param_::_indices->size() - 1);
-//                }
-//                else {// already exists
-//                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-//                        res._dim++;
-//                    }
-//                    res._ids->push_back(pp.first->second);
-//                    cout << "dim: " <<  res._dim << endl;
-//                }
-//                //iter
-//            }
-//        }
-//        res._name += ".time_expanded";
-//        res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
-//        res._is_indexed = true;
-//        return res;
-//    }
+    // T copies of a parameter
+    void time_expand(unsigned T) {
+        assert(T >= 1);
+        set_size(param_::get_dim()*T);
+        for(unsigned t = 0; t < T; t ++ ) {
+            _val->insert(_val->begin(), _val->begin(), _val->end());
+        }
+    }
+        //auto l = this->get_dim();
+        //for(unsigned t = 1; t < T+1; t ++ ) {
+        //    auto iter = param_::_indices->begin();
+        //    //for (unsigned i = 0; i < l; i++ ) {
+        //    for (auto &iter: (*param_::get_indices())){
+        //        string key = iter.first;
+        //        cout << key << endl;
+        //        key += "," + to_string(t);
+        //        cout << key << endl;
+        //        //auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
+        //        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        //        if(pp.second) { //new index inserted
+        //            if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+        //                res._dim++;
+        //                cout << "dim: " <<  res._dim << endl;
+        //            }
+        //            res._ids->push_back(param_::_indices->size() - 1);
+        //        }
+        //        else {// already exists
+        //            if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+        //                res._dim++;
+        //            }
+        //            res._ids->push_back(pp.first->second);
+        //            cout << "dim: " <<  res._dim << endl;
+        //        }
+        //        //iter
+        //    }
+        //}
+        //res._name += ".time_expanded";
+        //res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+        //res._is_indexed = true;
 
     /** Output */
     void print(bool vals=false) const {
