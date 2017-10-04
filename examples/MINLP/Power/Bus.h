@@ -24,9 +24,6 @@ public:
     /** @brief Bus base kvolts */
     double _kvb;
     
-    /** @brief Bus status, in/out of the network */
-    bool _active;
-    
     /** @brief Indicates if bus has integrated generation */
     bool _has_gen;
     

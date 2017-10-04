@@ -188,9 +188,12 @@ bool Net::add_arc(Arc* a) {
             s = arcID[key];
         if(arcID.find(inv_key)!=arcID.end())
             s = arcID[inv_key];
+        for (auto aa: *s) {
+//            aa->
+        }
         s->insert(a);
-        cout << "\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl;
-        //  a->parallel = true;
+        DebugOff("\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        a->_parallel = true;
         parallel = true;
     }
     arcs.push_back(a);
@@ -494,6 +497,17 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
     }
     Debug("\n Number of 3D bags = " << nb3 << endl);
+}
+
+/** Return the vector of arcs ignoring parallel lines **/
+vector<Arc*> Net::bus_pairs() const{
+    vector<Arc*> bus_pairs;
+    for (auto a: arcs) {
+        if (!a->_parallel) {
+            bus_pairs.push_back(a);
+        }
+    }
+    return bus_pairs;
 }
 
 Net* Net::get_chordal_extension() {

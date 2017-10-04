@@ -38,11 +38,14 @@ namespace gravity {
         string                          _name;
         set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
         vector<shared_ptr<func_>>       _functions;
-
         void add_var(param_* v);        //Add variables without reallocating memory
         void add_param(param_* v);      //Add variables without reallocating memory
         
     public:
+        bool                            _first_call_gard_obj = true; /* Indicates if this is the first call to fill_in_grad_obj */
+        bool                            _first_call_jac = true; /* Indicates if this is the first call to fill_in_jac */
+        bool                            _first_call_hess = true; /* Indicates if this is the first call to fill_in_hess */
+        MType                           _type = lin_m; /* Model type, e.g., linar, quadratic, polynomial, NLP.. */
         size_t                          _nb_vars = 0;
         size_t                          _nb_params = 0;
         size_t                          _nb_cons = 0;

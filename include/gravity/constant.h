@@ -106,7 +106,7 @@ namespace gravity {
     class param;
 
     /** Polymorphic class constant, can store an arithmetic number (int. float, double..).*/
-    template<typename type = float>
+    template<typename type = double>
     class constant: public constant_{
     protected:
         type        _val;

@@ -79,6 +79,9 @@ namespace gravity {
         void set_name(const string s) {_name = s;};
         NType get_intype() const { return _intype;}
         size_t get_dim() const {
+            if (_is_indexed) {
+                return _ids->size();
+            }
                 return _dim;
         }
         
@@ -144,7 +147,7 @@ namespace gravity {
         shared_ptr<vector<type>>                _val;
 
     public:
-        pair<type,type>                         _range; /**< (Min,Max) values in vals **/
+        shared_ptr<pair<type,type>>                         _range; /**< (Min,Max) values in vals **/
         
         param(){
             _type = par_c; 
@@ -155,8 +158,7 @@ namespace gravity {
             _indices = make_shared<map<string,unsigned>>();
             _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
             _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
-            _range.first = numeric_limits<type>::max();
-            _range.second = numeric_limits<type>::lowest();
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
         
         ~param(){
@@ -288,8 +290,7 @@ namespace gravity {
             _indices = make_shared<map<string,unsigned>>();
             _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
             _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
-            _range.first = numeric_limits<type>::max();
-            _range.second = numeric_limits<type>::lowest();
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
 
         NType get_intype() const { return _intype;}
@@ -326,11 +327,11 @@ namespace gravity {
         }
         
         void update_range(type val){
-            if (val < _range.first) {
-                _range.first = val;
+            if (val < _range->first) {
+                _range->first = val;
             }
-            if (val > _range.second) {
-                _range.second = val;
+            if (val > _range->second) {
+                _range->second = val;
             }
         }
         
@@ -346,8 +347,8 @@ namespace gravity {
             for (auto &v: _val) {
                 v = val;
             }
-            _range.first = val;
-            _range.second = val;
+            _range->first = val;
+            _range->second = val;
         }
         
         Sign get_sign(int idx = 0) const{
@@ -367,46 +368,46 @@ namespace gravity {
         
         
         Sign get_all_sign() const{
-            if (_range.first == 0 && _range.second == 0) {
+            if (_range->first == 0 && _range->second == 0) {
                 return zero_;
             }
-            if (_range.second < 0  && _range.first < 0) {
+            if (_range->second < 0  && _range->first < 0) {
                 return neg_;
             }
-            if (_range.first > 0 && _range.second > 0) {
+            if (_range->first > 0 && _range->second > 0) {
                 return pos_;
             }
-            if (_range.second == 0   && _range.first < 0){
+            if (_range->second == 0   && _range->first < 0){
                 return non_pos_;
             }
-            if (_range.first == 0  && _range.second > 0) {
+            if (_range->first == 0  && _range->second > 0) {
                 return non_neg_;
             }
             return unknown_;
         }
         
         bool is_unit() const{ /**< Returns true if all values of this paramter are 1 **/
-            return (_range.first == 1 && _range.second == 1);
+            return (_range->first == 1 && _range->second == 1);
         }
 
         bool is_zero() const{ /**< Returns true if all values of this paramter are 0 **/
-            return (_range.first == 0 && _range.second == 0);
+            return (_range->first == 0 && _range->second == 0);
         }
 
         bool is_non_positive() const{ /**< Returns true if all values of this paramter are <= 0 **/
-            return (_range.second <= 0   && _range.first <= 0);
+            return (_range->second <= 0   && _range->first <= 0);
         }
         
         bool is_positive() const{ /**< Returns true if all values of this paramter are positive **/
-            return (_range.first > 0 && _range.second > 0);
+            return (_range->first > 0 && _range->second > 0);
         }
         
         bool is_non_negative() const{ /**< Returns true if all values of this paramter are >= 0 **/
-            return (_range.first >= 0  && _range.second >= 0);
+            return (_range->first >= 0  && _range->second >= 0);
         }
         
         bool is_negative() const{ /**< Returns true if all values of this paramter are positive **/
-            return (_range.second < 0  && _range.first < 0);
+            return (_range->second < 0  && _range->first < 0);
         }
 
         /** Operators */
@@ -640,7 +641,7 @@ namespace gravity {
                 }
             }
             res._name += ".in_arcs";
-            res._unique_id = make_tuple<>(res._id,in_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id,in_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -653,12 +654,14 @@ namespace gravity {
             res._intype = this->_intype;
             res._range = this->_range;
             res._val = this->_val;
+            DebugOff(_name << " = ");
             string key;
             for(auto it = vec.begin(); it!= vec.end(); it++){
                 if(!(*it)->_active){
                     continue;
                 }
                 key = (*it)->_name;
+                DebugOff(key<< ", ");
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second){
@@ -673,8 +676,9 @@ namespace gravity {
                     res._ids->push_back(pp.first->second);
                 }
             }
+            DebugOff(endl);
             res._name += ".in_set";
-            res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id,in_set_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -740,7 +744,7 @@ namespace gravity {
                 
             }
             res._name += ".from_arcs";
-            res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id,from_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -774,7 +778,7 @@ namespace gravity {
                 
             }
             res._name += ".to_arcs";
-            res._unique_id = make_tuple<>(res._id, to_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id, to_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
             res._is_indexed = true;
             return res;        }
 

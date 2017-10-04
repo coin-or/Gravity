@@ -5123,7 +5123,7 @@ namespace gravity{
     template<typename type>
     func_ sum(const param<type>& p){
         func_ res;
-        if (p.get_dim()==0) {
+        if (p.get_dim()==0 || p.is_zero()) {
             return res;
         }
         return constant<double>(1).tr()*p;

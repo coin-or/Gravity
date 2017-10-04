@@ -22,15 +22,23 @@ using namespace gravity;
 
 int main (int argc, const char * argv[])
 {
-    // ACOPF
-    PowerNet* grid = new PowerNet();
     const char* fname;
-//  fname = "../../data_sets/Power/nesta_case5_pjm.m";
-    fname = "../../data_sets/Power/nesta_case14_ieee.m";
-//  fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-//  fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+    if (argc >= 2) {
+        fname = argv[1];
+    }
+    else {
+        //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
+        
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+        //        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case13659_pegase.m";
+    }
+    PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
-
+    grid->get_tree_decomp_bags(true);
+    
     // Grid Parameters
     unsigned nb_gen = grid->gens.size();
     unsigned nb_lines = grid->arcs.size();
