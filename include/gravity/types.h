@@ -20,11 +20,8 @@ namespace gravity{
 #define DebugOn(x) cout << x
 #define DebugOff(x)
 
-
-
     typedef unsigned int ind; /* Index type */
     //typedef std::set<ind> indx; /* Set of indices type */
-
 
     typedef enum { linear_, convex_, concave_, undet_} Convexity; /* Convexity Type */
     typedef enum { neg_ = -2, non_pos_ = -1, zero_ = 0, non_neg_ = 1, pos_ = 2, unknown_ = 3} Sign; /* Sign Type */
@@ -38,7 +35,7 @@ namespace gravity{
     typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_} OperatorType;  /* Operation type in the expression tree */
 
     typedef enum { ordered_pairs_, unordered_ } SetType;
-    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10} IndexType;  /* Index type */
+    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10, time_expand_ = 11, in_set_at_} IndexType;  /* Index type */
 
     using namespace std;
 

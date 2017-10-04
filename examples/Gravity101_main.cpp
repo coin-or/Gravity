@@ -292,8 +292,26 @@ int main (int argc, const char * argv[])
 //    auto t2 =X(3,3)+X(4, 2);
 //    t2.print();
     var<double> X("X");
-    X^3;
-    auto vec = constant<double>(1).tr()*power(X,2);
-    vec.print();
+//    X^3;
+//    auto vec = constant<double>(1).tr()*power(X,2);
+//    vec.print();
+//
+    vector <param<double>> p[2];
+    param<double> a("a");
+    param<double> b("b");
+    a = 0;
+    a = 1;
+//    p[0][0] = 1;
+    cout << "\n";
+    
+    
+//    p.push_back(&b);
+//    p[1]->print(true);
+//    cout << "\n";
+//    a = 0;
+//    p[0]->print(true);
+//    cout << "\n";
+//    p[1]->print(true);
+
     return 0;
    } 

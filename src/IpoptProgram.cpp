@@ -187,4 +187,3 @@ bool IpoptProgram::get_constraints_linearity(Index m, LinearityType* const_types
     return true;
 //    return false;
 }
-

@@ -34,23 +34,17 @@ namespace gravity {
         //@}
         
         
-        
         /* Destructor */
         ~Constraint();
         
         
         /* Boolean Requests */
         
-        
         /* Operators */
-        Constraint& operator<=(double rhs);
-        Constraint& operator>=(double rhs);
-        Constraint& operator=(double rhs);
-        Constraint& operator=(const func_& f);
-        //
-        //    Constraint& operator<=(int rhs);
-        //    Constraint& operator>=(int rhs);
-        //    Constraint& operator=(int rhs);
+        Constraint& operator <=(double rhs);
+        Constraint& operator >=(double rhs);
+        Constraint& operator =(double rhs);
+        Constraint& operator =(const func_& f);
         
         /* Accessors */
         string get_name() const;
