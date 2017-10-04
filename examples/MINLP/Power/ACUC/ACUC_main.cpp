@@ -194,7 +194,7 @@ int main (int argc, const char * argv[])
         ACUC.add_constraint(MC1 <= 0);
         ACUC.add_constraint(MC2 <= 0);
     }
-
+    
     // Min-up constraints
     for (int t = 1; t < T; t++) {
         Constraint Min_up1("Min_up1_"+ to_string(t));
