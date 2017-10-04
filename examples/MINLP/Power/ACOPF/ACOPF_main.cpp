@@ -157,11 +157,17 @@ int main (int argc, const char * argv[])
     Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
     ACOPF.add_constraint(Vol_limit_LB >= 0);
 
-    
-    /* REF BUS */
-    Constraint Ref_Bus("Ref_Bus");
-    Ref_Bus = vi(grid->get_ref_bus());
-    ACOPF.add_constraint(Ref_Bus = 0);
+    //
+    //    // AC voltage limit constraints.
+//    Constraint Vol_limit_UB("Vol_limit_UB");
+//    Vol_limit_UB = Wii.in(grid->nodes);
+//    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
+//    SOCP.add_constraint(Vol_limit_UB <= 0);
+//
+//    Constraint Vol_limit_LB("Vol_limit_LB");
+//    Vol_limit_LB = Wii.in(grid->nodes);
+//    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
+//    SOCP.add_constraint(Vol_limit_LB >= 0);
     
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");

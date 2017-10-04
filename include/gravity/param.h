@@ -39,11 +39,8 @@ protected:
     shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
 
 public:
-
     unique_id                              _unique_id = make_tuple<>(-1,vec_,0,0);
-
     bool                                   _is_indexed = false;
-
     virtual ~param_() {};
 
     void set_id(size_t idx) {
@@ -882,10 +879,11 @@ public:
     void time_expand(unsigned T) {
         assert(T >= 1);
         unsigned l = param_::get_dim();
-        set_size(l*T);
         for(unsigned t = 0; t < T - 1; t ++ ) {
             _val->insert(_val->end(), _val->begin(), _val->begin()+l);
         }
+        //_dim = l*T;
+        set_size(l*T);
     }
         //auto l = this->get_dim();
         //for(unsigned t = 1; t < T+1; t ++ ) {

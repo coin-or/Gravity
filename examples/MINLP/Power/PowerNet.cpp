@@ -201,8 +201,10 @@ int PowerNet::readgrid(const char* fname) {
         v_max(name) = atof(word.c_str());
         getline(file, word,';');
         v_min(name) = atof(word.c_str());
-        w_min(name) = pow(v_min.eval(),2.);
-        w_max(name) = pow(v_max.eval(),2.);
+        //w_min(name) = pow(v_min.eval(),2.);
+        //w_max(name) = pow(v_max.eval(),2.);
+        w_min = pow(v_min.eval(),2.);
+        w_max = pow(v_max.eval(),2.);
     // single phase
     
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
@@ -247,17 +249,21 @@ int PowerNet::readgrid(const char* fname) {
         file >> word;
         qg_s(name) = atof(word.c_str())/bMVA;
         file >> word;
-        qg_max(name) = atof(word.c_str())/bMVA;
+        //qg_max(name) = atof(word.c_str())/bMVA;
+        qg_max = atof(word.c_str())/bMVA;
         file >> word;
-        qg_min(name) = atof(word.c_str())/bMVA;
+        //qg_min(name) = atof(word.c_str())/bMVA;
+        qg_min = atof(word.c_str())/bMVA;
         
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atof(word.c_str());
         file >> word;
-        pg_max(name) = atof(word.c_str())/bMVA;
+        //pg_max(name) = atof(word.c_str())/bMVA;
+        pg_max = atof(word.c_str())/bMVA;
         
         file >> word;
-        pg_min(name) = atof(word.c_str())/bMVA;
+        //pg_min(name) = atof(word.c_str())/bMVA;
+        pg_min = atof(word.c_str())/bMVA;
         
         getline(file, word,'\n');
 //        gen_status.push_back(status==1);

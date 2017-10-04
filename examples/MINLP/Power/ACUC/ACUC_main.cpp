@@ -40,9 +40,7 @@ int main (int argc, const char * argv[])
     grid->S_max.time_expand(T);
     grid->tan_th_min.time_expand(T);
     grid->tan_th_max.time_expand(T);
-    cout << "Size: " << grid->g_tt.get_dim() << endl;
     grid->g_tt.time_expand(T);
-    cout << "Size: " << grid->g_tt.get_dim() << endl;
     grid->g_ff.time_expand(T);
     grid->g_ft.time_expand(T);
     grid->g_tf.time_expand(T);
@@ -50,15 +48,24 @@ int main (int argc, const char * argv[])
     grid->b_ff.time_expand(T);
     grid->b_ft.time_expand(T);
     grid->b_tf.time_expand(T);
-    
+    grid->pg_min.time_expand(T);
+    grid->pg_max.time_expand(T);
+    grid->qg_min.time_expand(T);
+    grid->qg_max.time_expand(T);
+    grid->w_min.time_expand(T);
+    grid->w_max.time_expand(T);
+
+    grid->w_min.print(true);
     
     /** build model */
     Model ACUC("ACUC Model");
 
     /** Variables */
     // power generation
-    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
+    //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
+    var<Real> Qg ("Qg",grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
 
@@ -82,10 +89,12 @@ int main (int argc, const char * argv[])
     
     /* Construct the objective function*/
     func_ obj;
-    obj  = sum(grid->c0.in(grid->gens,T));
+    obj  = sum(grid->c0.in(grid->gens, T));
     obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
-    //obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
+    obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
     ACUC.set_objective(min(obj));
+    
+    grid->c1.in(grid->gens, T).print(true);
 
     /** Define constraints */
     /* SOCP constraints */
@@ -143,6 +152,17 @@ int main (int argc, const char * argv[])
     Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
     Flow_Q_To = 0;
     ACUC.add_constraint(Flow_Q_To);
+    //
+    //    // AC voltage limit constraints.
+    Constraint Vol_limit_UB("Vol_limit_UB");
+    Vol_limit_UB = Wii.in(grid->nodes, T);
+    Vol_limit_UB -= grid->w_max.in(grid->nodes, T);
+    ACUC.add_constraint(Vol_limit_UB <= 0);
+
+    Constraint Vol_limit_LB("Vol_limit_LB");
+    Vol_limit_LB = Wii.in(grid->nodes, T);
+    Vol_limit_UB -= grid->w_min.in(grid->nodes, T);
+    ACUC.add_constraint(Vol_limit_LB >= 0);
 
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
@@ -165,6 +185,18 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
+    
+    
+    /* Pg */
+    Constraint PG_UB("PG_UB");
+    PG_UB = Pg.in(grid->gens, T) -grid->pg_max.in(grid->gens, T);
+    ACUC.add_constraint(PG_UB <= 0);
+
+    Constraint PG_LB("PG_LB");
+    PG_LB += Pg.in(grid->gens, T);
+    PG_LB -= grid->pg_min.in(grid->gens, T);
+    ACUC.add_constraint(PG_LB >= 0);
+
 
     solver OPF(ACUC,ipopt);
     OPF.run();
