@@ -45,7 +45,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -79,8 +80,7 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij"); // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    //var<Real>  Wii("Wii", 0, 100000);
-    var<Real>  Wii("Wii", grid->w_min, grid->w_max);// strange! leads to two different answers
+    var<Real>  Wii("Wii", grid->w_min, grid->w_max);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
