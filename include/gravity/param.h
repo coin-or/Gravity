@@ -535,6 +535,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -567,6 +568,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -598,6 +600,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                     //                res._ids->at(res._dim) = param_::_indices->size()-1;
@@ -605,6 +608,7 @@ namespace gravity {
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(pp.first->second);
                 }
@@ -632,6 +636,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -668,6 +673,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size() - 1);
                 }
@@ -702,6 +708,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1))){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -734,6 +741,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -797,8 +805,10 @@ namespace gravity {
             string key;
             for(auto it = nodes.begin(); it!= nodes.end(); it++) {
                 key = (*it)->_name;
-                key += ",";
-                key += to_string(t);
+                if (t > 0) {
+                    key += ",";
+                    key += to_string(t);
+                }
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
@@ -814,8 +824,8 @@ namespace gravity {
                 }
             }
             res._name += ".in_set_at_time_" + to_string(t);
-            res._unique_id = make_tuple<>(res._id, in_set_at_, get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
-            //res._unique_id = make_tuple<>(res._id, in_set_at_, t, param<type>::get_id_inst(param_::get_dim()));
+           // res._unique_id = make_tuple<>(res._id, in_set_at_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id, in_set_at_, t, res.get_id_inst(param_::get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -832,12 +842,15 @@ namespace gravity {
             for (unsigned t = 0; t < T; t++) {
                 for(auto it = nodes.begin(); it!= nodes.end(); it++) {
                     key = (*it)->_name;
-                    key += ",";
-                    key += to_string(t);
+                    if (t > 0) {
+                        key += ",";
+                        key += to_string(t);
+                    }
                     auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                     if(pp.second) { //new index inserted
                         if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                             res._dim++;
+                            _dim++;
                         }
                         res._ids->push_back(param_::_indices->size() - 1);
                     }
@@ -850,7 +863,7 @@ namespace gravity {
                 }
             }
             res._name += ".in_set_time_expand_" + to_string(T);
-            res._unique_id = make_tuple<>(res._id,in_set_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id,in_set_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -869,12 +882,15 @@ namespace gravity {
                         continue;
                     }
                     key = (*it)->src->_name;
-                    key += ",";
-                    key += to_string(t);
+                    if (t > 0) {
+                        key += ",";
+                        key += to_string(t);
+                    }
                     auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                     if(pp.second) { //new index inserted
                         if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                             res._dim++;
+                            _dim++;
                         }
                         res._ids->push_back(param_::_indices->size()-1);
                     }
@@ -887,7 +903,7 @@ namespace gravity {
                 }
             }
             res._name += ".from_arcs_time_expand_" + to_string(T);
-            res._unique_id = make_tuple<>(res._id,from_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id,from_arcs_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -906,12 +922,15 @@ namespace gravity {
                         continue;
                     }
                     key = (*it)->dest->_name;
-                    key += ",";
-                    key += to_string(t);
+                    if (t > 0) {
+                        key += ",";
+                        key += to_string(t);
+                    }
                     auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                     if(pp.second) { //new index inserted
                         if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                             res._dim++;
+                            _dim++;
                         }
                         res._ids->push_back(param_::_indices->size() - 1);
                     }
@@ -926,7 +945,7 @@ namespace gravity {
                 }
             }
             res._name += ".to_arcs_time_expand_" + to_string(T);
-            res._unique_id = make_tuple<>(res._id, to_arcs_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id, to_arcs_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
             res._is_indexed = true;
             return res;
         }

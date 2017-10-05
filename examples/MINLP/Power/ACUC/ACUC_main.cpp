@@ -54,15 +54,15 @@ int main (int argc, const char * argv[])
     grid->qg_max.time_expand(T);
     grid->w_min.time_expand(T);
     grid->w_max.time_expand(T);
-
+    
     /** build model */
     Model ACUC("ACUC Model");
 
     /** Variables */
     // power generation
     //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
-    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
 
