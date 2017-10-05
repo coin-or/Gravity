@@ -26,12 +26,12 @@ int main (int argc, const char * argv[])
     const char* fname;
     fname = "../../data_sets/Power/nesta_case5_pjm.m";
     grid->readgrid(fname);
-
+    
     // Grid Parameters
     int nb_gen = grid->gens.size();
     int nb_lines = grid->arcs.size();
     int nb_buses = grid->nodes.size();
-
+    
     // Schedule periods
     unsigned T = 2;
     grid->c0.time_expand(T);
@@ -55,8 +55,6 @@ int main (int argc, const char * argv[])
     grid->w_min.time_expand(T);
     grid->w_max.time_expand(T);
 
-    grid->w_min.print(true);
-
     /** build model */
     Model ACUC("ACUC Model");
 
@@ -64,7 +62,7 @@ int main (int argc, const char * argv[])
     // power generation
     //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
-    var<Real> Qg ("Qg",grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
 
@@ -109,7 +107,6 @@ int main (int argc, const char * argv[])
     Constraint SOC("SOC");
     SOC =  power(R_Wij.in(grid->arcs, T), 2) + power(Im_Wij.in(grid->arcs, T), 2) - Wii.from(grid->arcs, T)*Wii.to(grid->arcs, T) ;
     ACUC.add_constraint(SOC <= 0);
-    //
     //KCL
     for (int t = 0; t < T; t++)
         for (auto b: grid->nodes) {
@@ -128,8 +125,7 @@ int main (int argc, const char * argv[])
             ACUC.add_constraint(KCL_P = 0);
             ACUC.add_constraint(KCL_Q = 0);
         }
-
-//AC Power Flow.
+    //AC Power Flow.
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs, T);
     Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);

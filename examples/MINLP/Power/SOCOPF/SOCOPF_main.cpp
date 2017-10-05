@@ -179,7 +179,6 @@ int main (int argc, const char * argv[])
     /* Strengthen relaxation using cover estimators */
     /* Clique tree decomposition */
     /* Cover estimators */
-    
     //generate vertices of a box using a recursive algorithm
 //    unsigned dim = nb_buses;
 //    unsigned Num_points = pow(2, dim);

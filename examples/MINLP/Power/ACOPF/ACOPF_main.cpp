@@ -291,7 +291,7 @@ int main (int argc, const char * argv[])
     ACOPF.add_constraint(PAD_LB >= 0);
 
 
-//     Thermal Limit Constraints 
+//  Thermal Limit Constraints 
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
     Thermal_Limit_from -= power(grid->S_max.in(grid->arcs), 2);

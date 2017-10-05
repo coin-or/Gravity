@@ -33,14 +33,14 @@ namespace gravity {
         NType                                  _intype;
         shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                        vectors */
-        unique_ptr<vector<unsigned>>           _ids = nullptr;/*<<A vector storing all the indices this parameter has in the order they were created */
+        unique_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
         
         /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
        shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
         
     public:
         
-        unique_id                              _unique_id = make_tuple<>(-1,vec_,0,0);
+        unique_id                              _unique_id = make_tuple<>(-1,vec_,0,0); /* */
         
         bool                                   _is_indexed = false;
         
@@ -462,6 +462,7 @@ namespace gravity {
             if(pp.second){//new index inserted
                 if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                     res._dim++;
+                    _dim++;
                 };
                 res._ids->push_back(param_::_indices->size()-1);
             }
@@ -502,6 +503,7 @@ namespace gravity {
             if(pp.second){//new index inserted
                 if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                     res._dim++;
+                    _dim++;
                 }
                 res._ids->push_back(param_::_indices->size()-1);
             }
@@ -744,7 +746,7 @@ namespace gravity {
                 
             }
             res._name += ".from_arcs";
-            res._unique_id = make_tuple<>(res._id,from_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+            res._unique_id = make_tuple<>(res._id, from_arcs_, res.get_id_inst(0), res.get_id_inst(res.get_dim()));
             res._is_indexed = true;
             return res;
         }
@@ -766,6 +768,7 @@ namespace gravity {
                 if(pp.second){//new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second){
                         res._dim++;
+                        _dim++;
                     }
                     res._ids->push_back(param_::_indices->size() - 1);
                 }
@@ -811,8 +814,8 @@ namespace gravity {
                 }
             }
             res._name += ".in_set_at_time_" + to_string(t);
-            //res._unique_id = make_tuple<>(res._id, in_set_at_, param<type>::get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
-            res._unique_id = make_tuple<>(res._id, in_set_at_, t, param<type>::get_id_inst(param_::get_dim()));
+            res._unique_id = make_tuple<>(res._id, in_set_at_, get_id_inst(0), param<type>::get_id_inst(param_::get_dim()));
+            //res._unique_id = make_tuple<>(res._id, in_set_at_, t, param<type>::get_id_inst(param_::get_dim()));
             res._is_indexed = true;
             return res;
         }
