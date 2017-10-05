@@ -191,8 +191,10 @@ int main (int argc, const char * argv[])
     var<double> lambda_R("lambda_R", 0, 1);
     var<double> lambda_Im("lambda_Im", 0, 1);
     
-    u_r = grid->v_max.getvalue()*cos(grid->th_max.getvalue());
-    l_r = -u_r;
+    double ur = grid->v_max.getvalue()*cos(grid->th_min.getvalue());
+    double lr = -ur;
+    double ui = grid->v_max.getvalue()*sin(grid->th_max.getvalue());
+    double li = -ui;
     
   
 
@@ -204,19 +206,20 @@ int main (int argc, const char * argv[])
         for (int j = 0; j < dim; j++)
             cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
-//    for (auto a: grid->arcs){
-//        auto s = a->src;
-//        auto d = a->dest;
-//        Constraint Lin("Cover_Wij_" + a->_name);
-//        Lin = R_Wij(a->_name);
-//        cout << "s->ID: " << s->ID << endl;
-//        cout << "d->ID: " << d->ID << endl;
-//        for (int i = 0; i < Num_points; i++){
-//            Lin -= lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
-//            Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
-//        }
-//         SOCP.add_constraint(Lin = 0);
-//    }
+    for (auto a: grid->arcs){
+        auto s = a->src;
+        auto d = a->dest;
+        Constraint Lin("Cover_Wij_" + a->_name);
+        Lin = R_Wij(a->_name);
+        cout << "s->ID: " << s->ID << endl;
+        cout << "d->ID: " << d->ID << endl;
+        for (int i = 0; i < Num_points; i++){
+            Lin -= (ur - lr)*(ur-lr)*lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID]
+            + 2*(vr-lr)*lr
+            Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
+        }
+         SOCP.add_constraint(Lin = 0);
+    }
 //
 //    Constraint Convex_comb_R("Convex_comb_R");
 //    Convex_comb_R = sum(lambda_R);
