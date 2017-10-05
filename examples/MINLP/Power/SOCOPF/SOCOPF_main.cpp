@@ -185,19 +185,25 @@ int main (int argc, const char * argv[])
     /* Clique tree decomposition */
     /* Cover estimators */
     //generate vertices of a box using a recursive algorithm
-//    unsigned dim = nb_buses;
-//    unsigned Num_points = pow(2, dim);
-//    vector<double> pmatrix[Num_points];
-//    var<double> lambda_R("lambda_R", 0, 1);
-//    var<double> lambda_Im("lambda_Im", 0, 1);
-//    // check this carefully.
-//    SOCP.add_var(lambda_R^(Num_points));
-//    SOCP.add_var(lambda_Im^(Num_points));
-//    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
-//    for (int i = 0; i < Num_points; i++)
-//        for (int j = 0; j < dim; j++)
-//            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
-//
+    unsigned dim = nb_buses;
+    unsigned Num_points = pow(2, dim);
+    vector<double> pmatrix[Num_points];
+    var<double> lambda_R("lambda_R", 0, 1);
+    var<double> lambda_Im("lambda_Im", 0, 1);
+    
+    u_r = grid->v_max.getvalue()*cos(grid->th_max.getvalue());
+    l_r = -u_r;
+    
+  
+
+    // check this carefully.
+    SOCP.add_var(lambda_R^(Num_points));
+    SOCP.add_var(lambda_Im^(Num_points));
+    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
+    for (int i = 0; i < Num_points; i++)
+        for (int j = 0; j < dim; j++)
+            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
+
 //    for (auto a: grid->arcs){
 //        auto s = a->src;
 //        auto d = a->dest;
