@@ -26,16 +26,16 @@ int main (int argc, const char * argv[])
     else {
 //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
+            fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         
-            fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case1888_rte.m";
+//            fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
         //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
 //        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
     }
     // ACOPF
     PowerNet* grid = new PowerNet();
 //    fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-    fname = "../../data_sets/Power/nesta_case6_c.m";
+//    fname = "../../data_sets/Power/nesta_case6_c.m";
 //    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
@@ -60,10 +60,10 @@ int main (int argc, const char * argv[])
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
-//    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
-//    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
-    var<Real> Pg("Pg");
-    var<Real> Qg ("Qg");
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
+//    var<Real> Pg("Pg");
+//    var<Real> Qg ("Qg");
     ACOPF.add_var(Pg^(nb_gen));
     ACOPF.add_var(Qg^(nb_gen));
 
@@ -105,6 +105,12 @@ int main (int argc, const char * argv[])
 
 
     /** Define constraints */
+    
+    /* REF BUS */
+    Constraint Ref_Bus("Ref_Bus");
+    Ref_Bus = vi(grid->get_ref_bus());
+    ACOPF.add_constraint(Ref_Bus = 0);
+    
     
     //Generation Limit
     Constraint PG_UB("PG_UB");
@@ -228,33 +234,28 @@ int main (int argc, const char * argv[])
     Flow_P_From -= grid->g_ff.in(grid->arcs)*(power(vr.from(grid->arcs), 2) + power(vi.from(grid->arcs), 2));
     Flow_P_From -= grid->g_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_From -= grid->b_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_P_From = 0;
-//    Flow_P_From.print();
-    ACOPF.add_constraint(Flow_P_From);
+    ACOPF.add_constraint(Flow_P_From=0);
 
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to.in(grid->arcs);
     Flow_P_To -= grid->g_tt.in(grid->arcs)*(power(vr.to(grid->arcs), 2) + power(vi.to(grid->arcs), 2));
     Flow_P_To -= grid->g_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_P_To -= grid->b_tf.in(grid->arcs)*(vi.to(grid->arcs)*vr.from(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
-    Flow_P_To = 0;
-    ACOPF.add_constraint(Flow_P_To);
+    ACOPF.add_constraint(Flow_P_To=0);
 
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from.in(grid->arcs);
     Flow_Q_From += grid->b_ff.in(grid->arcs)*(power(vr.from(grid->arcs), 2) + power(vi.from(grid->arcs), 2));
     Flow_Q_From += grid->b_ft.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_From -= grid->g_ft.in(grid->arcs)*(vi.from(grid->arcs)*vr.to(grid->arcs) - vr.from(grid->arcs)*vi.to(grid->arcs));
-    Flow_Q_From = 0;
-    ACOPF.add_constraint(Flow_Q_From);
+    ACOPF.add_constraint(Flow_Q_From=0);
 
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*(power(vr.to(grid->arcs), 2) + power(vi.to(grid->arcs), 2));
     Flow_Q_To += grid->b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
     Flow_Q_To -= grid->g_tf.in(grid->arcs)*(vi.to(grid->arcs)*vr.from(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
-    Flow_Q_To = 0;
-    ACOPF.add_constraint(Flow_Q_To);
+    ACOPF.add_constraint(Flow_Q_To=0);
     
     // AC voltage limit constraints.
     Constraint Vol_limit_UB("Vol_limit_UB");

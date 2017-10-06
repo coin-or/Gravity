@@ -18,9 +18,13 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     m = (Index)_model->get_nb_cons();
     printf("m = %d;\n", m);
     nnz_jac_g = (Index)_model->get_nb_nnz_g();
+    _model->_jac_vals.resize(nnz_jac_g,0);
     printf("number of non zeros in Jacobian = %d;\n", nnz_jac_g);
     nnz_h_lag = (Index)_model->get_nb_nnz_h();
     printf("number of non zeros in Hessian = %d;\n", nnz_h_lag);
+    _model->_first_call_jac = true;
+    _model->_first_call_hess = true;
+    _model->_first_call_gard_obj = true;
     return true;
 }
 
