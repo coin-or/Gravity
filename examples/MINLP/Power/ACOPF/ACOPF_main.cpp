@@ -24,19 +24,16 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-//            fname = "../../data_sets/Power/nesta_case5_pjm.m";
+          // fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
             fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         
-//            fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
         //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
 //        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
     }
     // ACOPF
     PowerNet* grid = new PowerNet();
 //    fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-//    fname = "../../data_sets/Power/nesta_case6_c.m";
-//    fname = "../../data_sets/Power/nesta_case5_pjm.m";
 //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
 //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
 //    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
@@ -101,6 +98,11 @@ int main (int argc, const char * argv[])
         }
     }
 //    obj.print();
+    cout << "c1 size: " << grid->c1.get_dim() <<endl;
+    cout << "pg_min size: " << grid->pg_min.get_dim() <<endl;
+    cout << "g_ff size: " << grid->g_ff.get_dim() <<endl;
+
+
     ACOPF.set_objective(min(obj));
 
 
@@ -292,7 +294,7 @@ int main (int argc, const char * argv[])
     ACOPF.add_constraint(PAD_LB >= 0);
 
 
-//     Thermal Limit Constraints 
+//  Thermal Limit Constraints 
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
     Thermal_Limit_from -= power(grid->S_max.in(grid->arcs), 2);

@@ -30,7 +30,7 @@ public:
     double bMVA; /**< Base MVA */
     double m_theta_lb = 0, m_theta_ub = 0; /**< BigM values for phase angles */
     
-    param<Real> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along woth nominal values (default set points)*/
+    param<Real> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<Real> c0, c1, c2; /**< Generation costs */
     param<Real> th_min, th_max, tan_th_min, tan_th_max; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
     param<Real> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
@@ -40,7 +40,6 @@ public:
     param<Real> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
     param<Real> g, b, ch, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
     param<Real> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
-
     
     /** Set of generators */
     std::vector<Gen*> gens;
@@ -49,7 +48,6 @@ public:
     PowerNet();
     ~PowerNet();
     
-
     /** Power grid data parser */
     int readgrid(const char* fname);
     

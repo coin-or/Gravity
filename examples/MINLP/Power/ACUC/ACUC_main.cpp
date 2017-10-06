@@ -26,14 +26,18 @@ int main (int argc, const char * argv[])
     const char* fname;
     fname = "../../data_sets/Power/nesta_case5_pjm.m";
     grid->readgrid(fname);
-
+    
     // Grid Parameters
-    int nb_gen = grid->gens.size();
-    int nb_lines = grid->arcs.size();
-    int nb_buses = grid->nodes.size();
+    unsigned nb_gen = grid->get_nb_active_gens();
+    unsigned nb_lines = grid->get_nb_active_arcs();
+    unsigned nb_buses = grid->get_nb_active_nodes();
 
+    DebugOn("nb gens = " << nb_gen << endl);
+    DebugOn("nb lines = " << 2*nb_lines << endl);
+    DebugOn("nb buses = " << nb_buses << endl);
+    
     // Schedule periods
-    unsigned T = 2;
+    unsigned T = 1;
     grid->c0.time_expand(T);
     grid->c1.time_expand(T);
     grid->c2.time_expand(T);
@@ -54,17 +58,14 @@ int main (int argc, const char * argv[])
     grid->qg_max.time_expand(T);
     grid->w_min.time_expand(T);
     grid->w_max.time_expand(T);
-
-    grid->w_min.print(true);
-
+    
     /** build model */
     Model ACUC("ACUC Model");
 
     /** Variables */
     // power generation
-    //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
-    var<Real> Qg ("Qg",grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
 
@@ -85,34 +86,44 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Wii^(T*nb_buses));
     ACUC.add_var(R_Wij^(T*nb_lines));
     ACUC.add_var(Im_Wij^(T*nb_lines));
-    
+
     // Commitment variables
-    var<Real>  On_off("On_off", 0, 1);   
-    var<Real>  Start_up("Start_up", 0, 1); 
+    var<Real>  On_off("On_off", 0, 1);
+    var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
     ACUC.add_var(On_off^(T*nb_gen));
     ACUC.add_var(Start_up^(T*nb_gen));
     ACUC.add_var(Shut_down^(T*nb_gen));
 
-
+    //cout << "Size of c0: " << grid->c0.get_dim() << endl;
+    cout << endl;
+    //grid->c0.in(grid->gens, T).print();
     /* Construct the objective function*/
     func_ obj;
     obj  = sum(grid->c0.in(grid->gens, T));
     obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
     obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
+//    for (auto g:grid->gens) {
+//        if (g->_active) {
+//            cout << g->_name << " " << grid->c1.in(g->_name, T).get_dim() << endl;
+//            grid->c1.in(g->_name, T).print(true);
+//            obj += grid->c1.in(g->_name, T)*Pg.in(g->_name, T) + grid->c2.in(g->_name,T)*Pg.in(g->_name, T)*Pg.in(g->_name, T) + grid->c0.in(g->_name, T);
+//        }
+//    }
     ACUC.set_objective(min(obj));
-
-    grid->c1.in(grid->gens, T).print(true);
+//
 
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij.in(grid->arcs, T), 2) + power(Im_Wij.in(grid->arcs, T), 2) - Wii.from(grid->arcs, T)*Wii.to(grid->arcs, T) ;
     ACUC.add_constraint(SOC <= 0);
-    //
     //KCL
     for (int t = 0; t < T; t++)
         for (auto b: grid->nodes) {
+            if (!b->_active) {
+                continue;
+            }
             Bus* bus = (Bus*) b;
             Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
             Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
@@ -128,8 +139,7 @@ int main (int argc, const char * argv[])
             ACUC.add_constraint(KCL_P = 0);
             ACUC.add_constraint(KCL_Q = 0);
         }
-
-//AC Power Flow.
+    //AC Power Flow.
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(grid->arcs, T);
     Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
@@ -183,25 +193,25 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
-    
+//
     /* Commitment constraints */
     // Inter-temporal constraints
-    //for (int t = 1; t < T; t++){
-    int t = 1;
+    for (int t = 1; t < T; t++){
         Constraint MC1("MC1_"+ to_string(t));
         Constraint MC2("MC2_"+ to_string(t));
-    //MC1 = On_off.in_at(grid->gens, 1) - On_off.in_at(grid->gens, 0) - Start_up.in_at(grid->gens, 1);
-        //MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
+        MC1 = On_off.in_at(grid->gens, 1)- On_off.in_at(grid->gens, 0)-  Start_up.in_at(grid->gens, 1);
+        MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
         ACUC.add_constraint(MC1 <= 0);
-        //ACUC.add_constraint(MC2 <= 0);
-    //}
-
+        ACUC.add_constraint(MC2 <= 0);
+    }
+    
     // Min-up constraints
-//    for (int t = 1; t < T; t++){
-//        Constraint Min_up1("Min_up1_"+ to_string(t));
-//        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-//        //ACUC.add_constraint(Min_up1 = 0);
-//    }
+    for (int t = 1; t < T; t++) {
+        Constraint Min_up1("Min_up1_"+ to_string(t));
+        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_up1 = 0);
+    }
+
     /* Resolve it! */
     solver OPF(ACUC,ipopt);
     OPF.run();

@@ -99,6 +99,15 @@ public:
         return res;
     }
 
+    var in(const string nm, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in(nm, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
     template<typename Tobj>
     var in_at(const vector<Tobj>& vec, unsigned t) {
         var<type> res(this->_name);

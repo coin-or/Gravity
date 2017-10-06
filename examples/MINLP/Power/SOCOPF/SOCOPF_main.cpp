@@ -45,7 +45,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -79,15 +80,19 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij"); // real part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
-    //var<Real>  Wii("Wii", 0, 100000);
-    var<Real>  Wii("Wii", grid->w_min, grid->w_max);// strange! leads to two different answers
+    var<Real>  Wii("Wii", grid->w_min, grid->w_max);
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_lines);
     SOCP.add_var(Im_Wij^nb_lines);
     
     /** Construct the objective function*/
-    cout << "size of gens: " << grid->gens.size() << endl;
-    func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
+    func_ obj;
+    for (auto g:grid->gens) {
+        if (g->_active) {
+            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+        }
+    }
+    //func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
     SOCP.set_objective(min(obj));
     
     /** Define constraints */
@@ -179,34 +184,42 @@ int main (int argc, const char * argv[])
     /* Strengthen relaxation using cover estimators */
     /* Clique tree decomposition */
     /* Cover estimators */
-    
     //generate vertices of a box using a recursive algorithm
-//    unsigned dim = nb_buses;
-//    unsigned Num_points = pow(2, dim);
-//    vector<double> pmatrix[Num_points];
-//    var<double> lambda_R("lambda_R", 0, 1);
-//    var<double> lambda_Im("lambda_Im", 0, 1);
-//    // check this carefully.
-//    SOCP.add_var(lambda_R^(Num_points));
-//    SOCP.add_var(lambda_Im^(Num_points));
-//    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
-//    for (int i = 0; i < Num_points; i++)
-//        for (int j = 0; j < dim; j++)
-//            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
-//
-//    for (auto a: grid->arcs){
-//        auto s = a->src;
-//        auto d = a->dest;
-//        Constraint Lin("Cover_Wij_" + a->_name);
-//        Lin = R_Wij(a->_name);
-//        cout << "s->ID: " << s->ID << endl;
-//        cout << "d->ID: " << d->ID << endl;
-//        for (int i = 0; i < Num_points; i++){
-//            Lin -= lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID];
-//            Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
-//        }
-//         SOCP.add_constraint(Lin = 0);
-//    }
+    //unsigned dim = nb_buses;
+    //unsigned Num_points = pow(2, dim);
+    //vector<double> pmatrix[Num_points];
+    //var<double> lambda_R("lambda_R", 0, 1);
+    //var<double> lambda_Im("lambda_Im", 0, 1);
+    //
+    //double ur = grid->v_max.getvalue()*cos(grid->th_min.getvalue());
+    //double lr = -ur;
+    //double ui = grid->v_max.getvalue()*sin(grid->th_max.getvalue());
+    //double li = -ui;
+    //
+  
+
+    //// check this carefully.
+    //SOCP.add_var(lambda_R^(Num_points));
+    //SOCP.add_var(lambda_Im^(Num_points));
+    //box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
+    //for (int i = 0; i < Num_points; i++)
+    //    for (int j = 0; j < dim; j++)
+    //        cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
+
+    //for (auto a: grid->arcs){
+    //    auto s = a->src;
+    //    auto d = a->dest;
+    //    Constraint Lin("Cover_Wij_" + a->_name);
+    //    Lin = R_Wij(a->_name);
+    //    cout << "s->ID: " << s->ID << endl;
+    //    cout << "d->ID: " << d->ID << endl;
+    //    for (int i = 0; i < Num_points; i++){
+    //        Lin -= (ur - lr)*(ur-lr)*lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID]
+    //        + 2*(vr-lr)*lr
+    //        Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
+    //    }
+    //     SOCP.add_constraint(Lin = 0);
+    //}
 //
 //    Constraint Convex_comb_R("Convex_comb_R");
 //    Convex_comb_R = sum(lambda_R);
