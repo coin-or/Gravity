@@ -28,12 +28,16 @@ int main (int argc, const char * argv[])
     grid->readgrid(fname);
     
     // Grid Parameters
-    int nb_gen = grid->gens.size();
-    int nb_lines = grid->arcs.size();
-    int nb_buses = grid->nodes.size();
+    unsigned nb_gen = grid->get_nb_active_gens();
+    unsigned nb_lines = grid->get_nb_active_arcs();
+    unsigned nb_buses = grid->get_nb_active_nodes();
+
+    DebugOn("nb gens = " << nb_gen << endl);
+    DebugOn("nb lines = " << 2*nb_lines << endl);
+    DebugOn("nb buses = " << nb_buses << endl);
     
     // Schedule periods
-    unsigned T = 2;
+    unsigned T = 1;
     grid->c0.time_expand(T);
     grid->c1.time_expand(T);
     grid->c2.time_expand(T);
@@ -60,7 +64,6 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // power generation
-    //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
     var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
     var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg^(T*nb_gen));
@@ -92,15 +95,23 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Start_up^(T*nb_gen));
     ACUC.add_var(Shut_down^(T*nb_gen));
 
-
+    //cout << "Size of c0: " << grid->c0.get_dim() << endl;
+    cout << endl;
+    //grid->c0.in(grid->gens, T).print();
     /* Construct the objective function*/
     func_ obj;
     obj  = sum(grid->c0.in(grid->gens, T));
     obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
     obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
+//    for (auto g:grid->gens) {
+//        if (g->_active) {
+//            cout << g->_name << " " << grid->c1.in(g->_name, T).get_dim() << endl;
+//            grid->c1.in(g->_name, T).print(true);
+//            obj += grid->c1.in(g->_name, T)*Pg.in(g->_name, T) + grid->c2.in(g->_name,T)*Pg.in(g->_name, T)*Pg.in(g->_name, T) + grid->c0.in(g->_name, T);
+//        }
+//    }
     ACUC.set_objective(min(obj));
-
-    grid->c1.in(grid->gens, T).print(true);
+//
 
     /** Define constraints */
     /* SOCP constraints */
@@ -110,6 +121,9 @@ int main (int argc, const char * argv[])
     //KCL
     for (int t = 0; t < T; t++)
         for (auto b: grid->nodes) {
+            if (!b->_active) {
+                continue;
+            }
             Bus* bus = (Bus*) b;
             Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
             Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
@@ -179,7 +193,7 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
-
+//
     /* Commitment constraints */
     // Inter-temporal constraints
     for (int t = 1; t < T; t++){

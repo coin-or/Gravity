@@ -185,41 +185,41 @@ int main (int argc, const char * argv[])
     /* Clique tree decomposition */
     /* Cover estimators */
     //generate vertices of a box using a recursive algorithm
-    unsigned dim = nb_buses;
-    unsigned Num_points = pow(2, dim);
-    vector<double> pmatrix[Num_points];
-    var<double> lambda_R("lambda_R", 0, 1);
-    var<double> lambda_Im("lambda_Im", 0, 1);
-    
-    double ur = grid->v_max.getvalue()*cos(grid->th_min.getvalue());
-    double lr = -ur;
-    double ui = grid->v_max.getvalue()*sin(grid->th_max.getvalue());
-    double li = -ui;
-    
+    //unsigned dim = nb_buses;
+    //unsigned Num_points = pow(2, dim);
+    //vector<double> pmatrix[Num_points];
+    //var<double> lambda_R("lambda_R", 0, 1);
+    //var<double> lambda_Im("lambda_Im", 0, 1);
+    //
+    //double ur = grid->v_max.getvalue()*cos(grid->th_min.getvalue());
+    //double lr = -ur;
+    //double ui = grid->v_max.getvalue()*sin(grid->th_max.getvalue());
+    //double li = -ui;
+    //
   
 
-    // check this carefully.
-    SOCP.add_var(lambda_R^(Num_points));
-    SOCP.add_var(lambda_Im^(Num_points));
-    box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
-    for (int i = 0; i < Num_points; i++)
-        for (int j = 0; j < dim; j++)
-            cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
+    //// check this carefully.
+    //SOCP.add_var(lambda_R^(Num_points));
+    //SOCP.add_var(lambda_Im^(Num_points));
+    //box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
+    //for (int i = 0; i < Num_points; i++)
+    //    for (int j = 0; j < dim; j++)
+    //        cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
 
-    for (auto a: grid->arcs){
-        auto s = a->src;
-        auto d = a->dest;
-        Constraint Lin("Cover_Wij_" + a->_name);
-        Lin = R_Wij(a->_name);
-        cout << "s->ID: " << s->ID << endl;
-        cout << "d->ID: " << d->ID << endl;
-        for (int i = 0; i < Num_points; i++){
-            Lin -= (ur - lr)*(ur-lr)*lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID]
-            + 2*(vr-lr)*lr
-            Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
-        }
-         SOCP.add_constraint(Lin = 0);
-    }
+    //for (auto a: grid->arcs){
+    //    auto s = a->src;
+    //    auto d = a->dest;
+    //    Constraint Lin("Cover_Wij_" + a->_name);
+    //    Lin = R_Wij(a->_name);
+    //    cout << "s->ID: " << s->ID << endl;
+    //    cout << "d->ID: " << d->ID << endl;
+    //    for (int i = 0; i < Num_points; i++){
+    //        Lin -= (ur - lr)*(ur-lr)*lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID]
+    //        + 2*(vr-lr)*lr
+    //        Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
+    //    }
+    //     SOCP.add_constraint(Lin = 0);
+    //}
 //
 //    Constraint Convex_comb_R("Convex_comb_R");
 //    Convex_comb_R = sum(lambda_R);
