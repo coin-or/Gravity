@@ -443,7 +443,7 @@ namespace gravity {
         
     public:
         bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
-        
+//        map<pair<unique_id,unique_id>,vector<double>>                                _hess_val;
         func_();
         
         func_(const constant_& c);

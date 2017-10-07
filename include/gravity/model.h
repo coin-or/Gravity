@@ -51,6 +51,8 @@ namespace gravity {
         size_t                          _nb_cons = 0;
         size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
         size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
+        vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */
+        vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
         map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
