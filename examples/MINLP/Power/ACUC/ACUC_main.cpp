@@ -32,12 +32,31 @@ int main (int argc, const char * argv[])
     unsigned nb_lines = grid->get_nb_active_arcs();
     unsigned nb_buses = grid->get_nb_active_nodes();
 
+    
     DebugOn("nb gens = " << nb_gen << endl);
     DebugOn("nb lines = " << 2*nb_lines << endl);
     DebugOn("nb buses = " << nb_buses << endl);
     
-    // Schedule periods
+    // Schedule
     unsigned T = 1;
+    param<Real> rate_ramp("rate_ramp");
+    param<Real> rate_switch("rate_switch");
+    param<Real> min_up("min_up");
+    param<Real> min_down("min_down");
+    param<Real> cost_up("cost_up");
+    param<Real> cost_down("cost_down");
+    for (auto g: grid->gens){
+        rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
+        rate_ramp._dim++;
+        rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
+        rate_switch._dim++;
+    }
+    rate_ramp.print(true);
+    min_up = 1;
+    min_down = 1;
+    cost_up = 50;
+    cost_down = 30;
+
     grid->c0.time_expand(T);
     grid->c1.time_expand(T);
     grid->c2.time_expand(T);
@@ -58,6 +77,10 @@ int main (int argc, const char * argv[])
     grid->qg_max.time_expand(T);
     grid->w_min.time_expand(T);
     grid->w_max.time_expand(T);
+    rate_ramp.time_expand(T);
+    rate_switch.time_expand(T);
+
+    
     
     /** build model */
     Model ACUC("ACUC Model");
@@ -88,30 +111,23 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Im_Wij^(T*nb_lines));
 
     // Commitment variables
-    var<Real>  On_off("On_off", 0, 1);
+    var<bool>  On_off("On_off", 0, 1);
     var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
     ACUC.add_var(On_off^(T*nb_gen));
     ACUC.add_var(Start_up^(T*nb_gen));
     ACUC.add_var(Shut_down^(T*nb_gen));
 
-    //cout << "Size of c0: " << grid->c0.get_dim() << endl;
     cout << endl;
     //grid->c0.in(grid->gens, T).print();
     /* Construct the objective function*/
+    //
     func_ obj;
     obj  = sum(grid->c0.in(grid->gens, T));
     obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
     obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
-//    for (auto g:grid->gens) {
-//        if (g->_active) {
-//            cout << g->_name << " " << grid->c1.in(g->_name, T).get_dim() << endl;
-//            grid->c1.in(g->_name, T).print(true);
-//            obj += grid->c1.in(g->_name, T)*Pg.in(g->_name, T) + grid->c2.in(g->_name,T)*Pg.in(g->_name, T)*Pg.in(g->_name, T) + grid->c0.in(g->_name, T);
-//        }
-//    }
+    obj += cost_up.getvalue()*sum(Start_up.in(grid->gens, T))+ cost_down.getvalue()*sum(Shut_down.in(grid->gens,T));
     ACUC.set_objective(min(obj));
-//
 
     /** Define constraints */
     /* SOCP constraints */
@@ -199,7 +215,7 @@ int main (int argc, const char * argv[])
     for (int t = 1; t < T; t++){
         Constraint MC1("MC1_"+ to_string(t));
         Constraint MC2("MC2_"+ to_string(t));
-        MC1 = On_off.in_at(grid->gens, 1)- On_off.in_at(grid->gens, 0)-  Start_up.in_at(grid->gens, 1);
+        MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
         MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
         ACUC.add_constraint(MC1 <= 0);
         ACUC.add_constraint(MC2 <= 0);
@@ -211,9 +227,80 @@ int main (int argc, const char * argv[])
         Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
         ACUC.add_constraint(Min_up1 = 0);
     }
+    
+    for (int t = min_up.getvalue(); t < T; t++){
+        Constraint Min_Up("Min_Up_constraint" + to_string(t));
+        for (int l = t-min_up.getvalue()+1; l < t +1; l++){
+            Min_Up   += Start_up.in_at(grid->gens, l);
+            }
+        Min_Up -= On_off.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_Up <= 0);
+    }
+    
+    for (int t = min_down.getvalue(); t < T; t++){
+        Constraint Min_Down("Min_Down_constraint" + to_string(t));
+        for (int l = t-min_down.getvalue()+1; l < t +1; l++){
+            Min_Down   += Shut_down.in_at(grid->gens, l);
+        }
+        Min_Down -= 1 - On_off.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_Down <= 0);
+    }
+    
+    //Ramp rate
+    Constraint Production_P_LB("Production_P_LB");
+    Constraint Production_P_UB("Production_P_UB");
+    Constraint Production_Q_LB("Production_Q_LB");
+    Constraint Production_Q_UB("Production_Q_UB");
+
+    Production_P_UB = Pg.in(grid->gens, T) - grid->pg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
+    Production_P_LB = Pg.in(grid->gens, T) - grid->pg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
+    ACUC.add_constraint(Production_P_UB <=0);
+    ACUC.add_constraint(Production_P_LB >= 0);
+    
+    grid->qg_max.print(true);
+    grid->qg_min.print(true);
+
+    Production_Q_UB = Qg.in(grid->gens, T) - grid->qg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
+    Production_Q_LB = Qg.in(grid->gens, T) - grid->qg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
+    ACUC.add_constraint(Production_Q_UB <= 0);
+    ACUC.add_constraint(Production_Q_LB >= 0);
+    
+    for (int t = 1; t < T; t++){
+        Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
+        Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
+
+        Ramp_up = Pg.in_at(grid->gens, t);
+        Ramp_up -= Pg.in_at(grid->gens, t-1);
+        Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
+        Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
+        
+        Ramp_down = Pg.in_at(grid->gens, t-1);
+        Ramp_down -= Pg.in_at(grid->gens, t);
+        Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
+        Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
+        
+        ACUC.add_constraint(Ramp_up <= 0);
+        ACUC.add_constraint(Ramp_down <= 0);
+
+    }
+
 
     /* Resolve it! */
     solver OPF(ACUC,ipopt);
     OPF.run();
+    rate_ramp.print(true);
+    
+    /* Solution analysis */
+    //auto val1 = (*(var<Real>*)(ACUC.get_var("Start_up")));
+    auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
+    auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
+
+    for (auto a: *val2.get_vals()){
+        cout << a << endl;
+    }
+    for (auto a: *val_Pg.get_vals()){
+        cout << a << endl;
+    }
+
     return 0;
 }

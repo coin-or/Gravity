@@ -19,25 +19,6 @@
 using namespace std;
 using namespace gravity;
 
-// codes for generating vertices of a hypercube (not necessarily unit).
-void box(vector<double>* V, double l, double u, unsigned dim){
-    if (dim == 1){
-        V[0].push_back(l);
-        V[1].push_back(u);
-    }
-    else if (dim < 1)
-        cerr << "Dim should be as least 1!!" << endl;
-    else{
-        box(V, l, u, dim -1);
-        unsigned n = pow(2, dim-1);
-        for (unsigned i = 0; i < n; i++){
-            V[n+i] = V[i];
-            V[i].push_back(l);
-            V[n+i].push_back(u);
-        }
-    }
-}
-
 int main (int argc, const char * argv[])
 {
     const char* fname;
@@ -148,17 +129,7 @@ int main (int argc, const char * argv[])
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in(grid->arcs);
     Flow_Q_To -= grid->g_tf.in(grid->arcs)*Im_Wij.in(grid->arcs);
     SOCP.add_constraint(Flow_Q_To = 0);
-    //    // AC voltage limit constraints.
-//    Constraint Vol_limit_UB("Vol_limit_UB");
-//    Vol_limit_UB = Wii.in(grid->nodes);
-//    Vol_limit_UB -= power(grid->v_max.in(grid->nodes), 2);
-//    SOCP.add_constraint(Vol_limit_UB <= 0);
-//
-//    Constraint Vol_limit_LB("Vol_limit_LB");
-//    Vol_limit_LB = Wii.in(grid->nodes);
-//    Vol_limit_LB -= power(grid->v_min.in(grid->nodes),2);
-//    SOCP.add_constraint(Vol_limit_LB >= 0);
-    
+
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(grid->arcs);
@@ -181,53 +152,6 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
     
-    /* Strengthen relaxation using cover estimators */
-    /* Clique tree decomposition */
-    /* Cover estimators */
-    //generate vertices of a box using a recursive algorithm
-    //unsigned dim = nb_buses;
-    //unsigned Num_points = pow(2, dim);
-    //vector<double> pmatrix[Num_points];
-    //var<double> lambda_R("lambda_R", 0, 1);
-    //var<double> lambda_Im("lambda_Im", 0, 1);
-    //
-    //double ur = grid->v_max.getvalue()*cos(grid->th_min.getvalue());
-    //double lr = -ur;
-    //double ui = grid->v_max.getvalue()*sin(grid->th_max.getvalue());
-    //double li = -ui;
-    //
-  
-
-    //// check this carefully.
-    //SOCP.add_var(lambda_R^(Num_points));
-    //SOCP.add_var(lambda_Im^(Num_points));
-    //box(pmatrix, grid->v_min.getvalue(), grid->v_max.getvalue(), dim);
-    //for (int i = 0; i < Num_points; i++)
-    //    for (int j = 0; j < dim; j++)
-    //        cout << "P[" << i <<", " << j << "] =" << pmatrix[i][j] << endl;
-
-    //for (auto a: grid->arcs){
-    //    auto s = a->src;
-    //    auto d = a->dest;
-    //    Constraint Lin("Cover_Wij_" + a->_name);
-    //    Lin = R_Wij(a->_name);
-    //    cout << "s->ID: " << s->ID << endl;
-    //    cout << "d->ID: " << d->ID << endl;
-    //    for (int i = 0; i < Num_points; i++){
-    //        Lin -= (ur - lr)*(ur-lr)*lambda_R(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID]
-    //        + 2*(vr-lr)*lr
-    //        Lin -= lambda_Im(i)*pmatrix[i][s->ID]*pmatrix[i][d->ID] ;
-    //    }
-    //     SOCP.add_constraint(Lin = 0);
-    //}
-//
-//    Constraint Convex_comb_R("Convex_comb_R");
-//    Convex_comb_R = sum(lambda_R);
-//    SOCP.add_constraint(Convex_comb_R = 1);
-//
-//    Constraint Convex_comb_Im("Convex_comb_Im");
-//    Convex_comb_Im = sum(lambda_Im);
-//    SOCP.add_constraint(Convex_comb_Im = 1);
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;

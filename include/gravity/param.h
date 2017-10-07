@@ -453,7 +453,7 @@ public:
     param& operator=(type v) {
         _val->push_back(v);
         update_range(v);
-        _dim++;
+        _dim++; // Line 456.  Guanglei: according to the rule that the dimension of param  should be pre-defined/user defined, we should avoid this. 
         return *this;
     }
 
@@ -464,7 +464,7 @@ public:
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
-        res._val = this->_val;
+        res._val = this->_val; 
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
