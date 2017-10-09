@@ -588,7 +588,7 @@ Net* Net::get_chordal_extension() {
 // get cliques from the tree decomposition
 // Two methods
 // first one: check the inclusion relationship
-// second one: use the RIP property of the tree decomposition, thus just need to check every leaf
+// second one: use the RIP property of the tree decomposition, thus just need to check every leaf..
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 void Net::get_clique_tree (bool print) {
     for (unsigned i = 0; i < _bags.size()-1; i++) {
