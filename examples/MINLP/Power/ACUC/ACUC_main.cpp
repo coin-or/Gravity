@@ -284,23 +284,23 @@ int main (int argc, const char * argv[])
 
     }
 
-
     /* Resolve it! */
     solver OPF(ACUC,ipopt);
     OPF.run();
-    rate_ramp.print(true);
     
     /* Solution analysis */
     //auto val1 = (*(var<Real>*)(ACUC.get_var("Start_up")));
     auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
     auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
 
+    cout << "On_off = "  ;
     for (auto a: *val2.get_vals()){
-        cout << a << endl;
+        cout << a << ",";
     }
+    cout << endl;
+    
     for (auto a: *val_Pg.get_vals()){
         cout << a << endl;
     }
-
     return 0;
 }
