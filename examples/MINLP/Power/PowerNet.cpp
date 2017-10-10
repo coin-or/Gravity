@@ -160,15 +160,6 @@ int PowerNet::readgrid(const char* fname) {
     file.ignore(3);
     getline(file, word,';');
     bMVA = atoi(word.c_str());
-//  cout << "BaseMVA = " << bMVA << endl;
-//    while (word.compare("mpc.areas")){
-//        file >> word;
-//    }
-//    getline(file, word);
-//    getline(file, word,' ');
-//    getline(file, word,';');
-//    ref_bus = word.c_str();
-//    DebugOn("Ref Bus = " << ref_bus << endl);
     /* Nodes data */
     while (word.compare("mpc.bus")){
         file >> word;
@@ -246,12 +237,16 @@ int PowerNet::readgrid(const char* fname) {
         name = to_string(index);
         file >> word;
         pg_s(name) = atof(word.c_str())/bMVA;
+        pg_s._dim++;
         file >> word;
         qg_s(name) = atof(word.c_str())/bMVA;
+        qg_s._dim++;
         file >> word;
         qg_max(name) = atof(word.c_str())/bMVA;
+        qg_max._dim++;
         file >> word;
         qg_min(name) = atof(word.c_str())/bMVA;
+        qg_min._dim++;
         
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atoi(word.c_str());
