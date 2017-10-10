@@ -73,14 +73,29 @@ public:
         return res;
     }
 
-    var from(const vector<Arc*>& arcs);
-    var from(const vector<Arc*>& arcs, unsigned T);
-    var to(const vector<Arc*>& arcs);
-    var to(const vector<Arc*>& arcs, unsigned T);
-    var in(const vector<Arc*>& arcs);
-
     template<typename Tobj>
-    var in(const vector<Tobj>& vec) {
+    var from(const vector<Tobj*>& vec){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var to(const vector<Tobj*>& vec){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
+    template<typename Tobj>
+    var in(const vector<Tobj*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);

@@ -63,7 +63,7 @@ std::vector<Line*> Bus::get_out(){
         if (la->status == 0) {
             continue;
         }
-        if(la->src->ID==ID){
+        if(la->_src->_id==_id){
             res.push_back(la);
         }
     }
@@ -77,7 +77,7 @@ std::vector<Line*> Bus::get_in(){
         if (la->status==0) {
             continue;
         }
-        if(la->dest->ID==ID){
+        if(la->_dest->_id==_id){
             res.push_back(la);
         }
     }

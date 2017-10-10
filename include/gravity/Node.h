@@ -20,7 +20,7 @@ class Node{
     
 public:
     std::string _name;
-    int ID;
+    int _id;
     bool _active = true;
     std::vector<Arc*> branches;
     
@@ -29,7 +29,7 @@ public:
 
     // constructions
     Node();
-    Node(std::string name, int id= -1);
+    Node(std::string name, int idx= -1);
     ~Node();
     Node* clone();
     

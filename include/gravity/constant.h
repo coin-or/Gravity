@@ -11,6 +11,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <typeinfo>
 #include <gravity/types.h>
 
 

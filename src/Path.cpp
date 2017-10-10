@@ -12,10 +12,10 @@
 
 /* @brief Returns true if the pair (n1,n2) is a source-destination pair for this path */
 bool Path::source_dest(Node* n1, Node* n2){
-    if(nodes.front()->ID==n1->ID && nodes.back()->ID==n2->ID)
+    if(nodes.front()->_id==n1->_id && nodes.back()->_id==n2->_id)
         return true;
     
-    if(nodes.front()->ID==n2->ID && nodes.back()->ID==n1->ID)
+    if(nodes.front()->_id==n2->_id && nodes.back()->_id==n1->_id)
         return true;
     return false;
 }

@@ -11,14 +11,16 @@
 #include <gravity/Node.h>
 #include "assert.h"
 #include "string"
+#include "vector"
+
 
 class Arc{
 public:
-    int id;
+    int _id;
     std::string _name;
-    Node* src;
-    Node* dest;
-    double weight;
+    Node* _src;
+    Node* _dest;
+    double _weight;
     bool _active = true;
     bool _parallel = false;
     
@@ -44,5 +46,8 @@ public:
     
     void print();
 };
+
+
+
 
 #endif

@@ -45,7 +45,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-        for (int i= 0; i<lb.get_dim(); i++) {
+        for (int i= 0; i<param<type>::get_dim(); i++) {
             _lb->push_back(lb.eval(i));
             _ub->push_back(ub.eval(i));
             if (_lb->back() < param<type>::_range->first) {
@@ -58,7 +58,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
-        for (int i= 0; i<sb.get_dim(); i++) {
+        for (int i= 0; i<param<type>::get_dim(); i++) {
             _lb->push_back(-1.*sb.eval(i));
             _ub->push_back(sb.eval(i));
             if (_lb->back() < param<type>::_range->first) {
@@ -255,79 +255,6 @@ namespace gravity{
         param<type>::print(false);
     };
 
-    template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(arcs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;        
-        return res;
-    }
-
-    template<typename type>var<type> var<type>::from(const vector<Arc*>& arcs, unsigned T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(arcs, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;        
-        return res;
-    }
-
-
-    template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(arcs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    template<typename type>var<type> var<type>::to(const vector<Arc*>& arcs, unsigned T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(arcs, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    template<typename type>var<type> var<type>::in(const vector<Arc*>& arcs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(arcs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    
-    template<typename type>var<type> var<type>::in(const ordered_pairs& pairs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(pairs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename type>var<type> var<type>::from(const ordered_pairs& pairs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(pairs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename type>var<type> var<type>::to(const ordered_pairs& pairs){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(pairs));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
     
     template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size){
         vector<var> res;
@@ -342,7 +269,7 @@ namespace gravity{
             res[i]._lb = this->_lb;
             res[i]._ub = this->_ub;
             res[i]._name += "_in_bags_"+to_string(i);
-            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, i);
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_,typeid(type).hash_code(), 0, i);
             res[i]._is_indexed = true;
         }
         set<vector<unsigned>> ids;
@@ -352,7 +279,7 @@ namespace gravity{
             }
             vector<unsigned> ids_bag;
             for (int i = 0; i<size; i++) {
-                ids_bag.push_back(bag[i]->ID);
+                ids_bag.push_back(bag[i]->_id);
             }
             if(ids.count(ids_bag)==0){
                 ids.insert(ids_bag);
@@ -410,7 +337,7 @@ namespace gravity{
             res[i]._lb = this->_lb;
             res[i]._ub = this->_ub;
             res[i]._name += "_in_bags_"+to_string(i);
-            res[i]._unique_id = make_tuple<>(res[i]._id,in_bags_, 0, i);
+            res[i]._unique_id = make_tuple<>(res[i]._id,in_,typeid(type).hash_code(), 0, i);
             res[i]._is_indexed = true;
         }
         set<vector<unsigned>> ids;
@@ -420,7 +347,7 @@ namespace gravity{
             }
             vector<unsigned> ids_bag;
             for (int i = 0; i<size; i++) {
-                ids_bag.push_back(bag[i]->ID);
+                ids_bag.push_back(bag[i]->_id);
             }
             if(ids.count(ids_bag)==0){
                 ids.insert(ids_bag);

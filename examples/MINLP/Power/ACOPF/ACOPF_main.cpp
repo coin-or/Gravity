@@ -24,9 +24,9 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-          // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        //    fname = "../../data_sets/Power/nesta_case14_ieee.m";
-            fname = "../../data_sets/Power/nesta_case9241_pegase.m";
+//           fname = "../../data_sets/Power/nesta_case5_pjm.m";
+            fname = "../../data_sets/Power/nesta_case14_ieee.m";
+//            fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         
         //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
 //        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
@@ -115,21 +115,21 @@ int main (int argc, const char * argv[])
     
     
     //Generation Limit
-    Constraint PG_UB("PG_UB");
-    PG_UB = Pg.in(grid->gens) - grid->pg_max.in(grid->gens);
-    ACOPF.add_constraint(PG_UB <= 0);
-    
-    Constraint PG_LB("PG_LB");
-    PG_LB = Pg.in(grid->gens) - grid->pg_min.in(grid->gens);
-    ACOPF.add_constraint(PG_LB >= 0);
-
-    Constraint QG_UB("QG_UB");
-    QG_UB = Qg.in(grid->gens) - grid->qg_max.in(grid->gens);
-    ACOPF.add_constraint(QG_UB <= 0);
-    
-    Constraint QG_LB("QG_LB");
-    QG_LB = Qg.in(grid->gens) - grid->qg_min.in(grid->gens);
-    ACOPF.add_constraint(QG_LB >= 0);
+//    Constraint PG_UB("PG_UB");
+//    PG_UB = Pg.in(grid->gens) - grid->pg_max.in(grid->gens);
+//    ACOPF.add_constraint(PG_UB <= 0);
+//    
+//    Constraint PG_LB("PG_LB");
+//    PG_LB = Pg.in(grid->gens) - grid->pg_min.in(grid->gens);
+//    ACOPF.add_constraint(PG_LB >= 0);
+//
+//    Constraint QG_UB("QG_UB");
+//    QG_UB = Qg.in(grid->gens) - grid->qg_max.in(grid->gens);
+//    ACOPF.add_constraint(QG_UB <= 0);
+//    
+//    Constraint QG_LB("QG_LB");
+//    QG_LB = Qg.in(grid->gens) - grid->qg_min.in(grid->gens);
+//    ACOPF.add_constraint(QG_LB >= 0);
 
     //Voltage Limit
 //    Constraint Vi_UB("Vi_UB");
@@ -283,14 +283,16 @@ int main (int argc, const char * argv[])
 //    SOCP.add_constraint(Vol_limit_LB >= 0);
     
     /* Phase Angle Bounds constraints */
+    auto bus_pairs = grid->get_bus_pairs();
+    DebugOn("Number of bus_pairs = " << bus_pairs.size() << endl);
     Constraint PAD_UB("PAD_UB");
-    PAD_UB = vi.from(grid->bus_pairs())*vr.to(grid->bus_pairs()) - vr.from(grid->bus_pairs())*vi.to(grid->bus_pairs());
-    PAD_UB -= grid->tan_th_max.in(grid->bus_pairs())*(vr.from(grid->bus_pairs())*vr.to(grid->bus_pairs()) + vi.from(grid->bus_pairs())*vi.to(grid->bus_pairs()));
+    PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+    PAD_UB -= grid->tan_th_max.in(bus_pairs)*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
     ACOPF.add_constraint(PAD_UB <= 0);
     
     Constraint PAD_LB("PAD_LB:");
-    PAD_LB = vi.from(grid->bus_pairs())*vr.to(grid->bus_pairs()) - vr.from(grid->bus_pairs())*vi.to(grid->bus_pairs());
-    PAD_LB -= grid->tan_th_min.in(grid->bus_pairs())*(vr.from(grid->bus_pairs())*vr.to(grid->bus_pairs()) + vi.to(grid->bus_pairs())*vi.from(grid->bus_pairs()));
+    PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+    PAD_LB -= grid->tan_th_min.in(bus_pairs)*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.to(bus_pairs)*vi.from(bus_pairs));
     ACOPF.add_constraint(PAD_LB >= 0);
 
 

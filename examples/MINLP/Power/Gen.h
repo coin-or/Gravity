@@ -26,7 +26,7 @@ public:
     std::string _name;
 
     /** Position of a generator in a container. **/
-    int ID;
+    int _id;
     
     /** @brief Gen status, in/out of the network */
     bool _active;
@@ -35,18 +35,18 @@ public:
     Bus* _bus;
 
     /** @brief Active Power Generation Bounds */
-    Bound pbound;
+    Bound _pbound;
 
     /** @brief Reactive Power Generation Bounds */
-    Bound qbound;
+    Bound _qbound;
 
     /** @brief generation cost function/coefficients */
     GenCost* _cost;
     
     /** @brief snapshot value of active power generation */
-    double ps;
+    double _ps;
     /** @brief snapshot value of reactive power generation */
-    double qs;
+    double _qs;
     
     /** @brief Complex power generation variable */
     //Complex<double> _S_;
