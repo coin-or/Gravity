@@ -59,7 +59,7 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Qf_to^(nb_lines));
     
     // Lifted variables.
-    var<Real>  R_Wij("R_Wij"); // real part of Wij
+    var<Real>  R_Wij("R_Wij");   // real      part of Wij
     var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min, grid->w_max);
     SOCP.add_var(Wii^nb_buses);
@@ -73,7 +73,6 @@ int main (int argc, const char * argv[])
             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
-    //func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
     SOCP.set_objective(min(obj));
     
     /** Define constraints */

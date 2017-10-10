@@ -14,7 +14,7 @@
 namespace gravity{
 #define EPS 0.00001
 #define Real double
-#define Integer integer
+//#define Integer integer  //same name with a boost graph library.
 #define Binary bool
 #define Debug(x)
 #define DebugOn(x) cout << x
