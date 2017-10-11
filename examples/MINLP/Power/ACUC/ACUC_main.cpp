@@ -131,62 +131,62 @@ int main (int argc, const char * argv[])
 
     /** Define constraints */
     /* SOCP constraints */
-    Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(grid->arcs, T), 2) + power(Im_Wij.in(grid->arcs, T), 2) - Wii.from(grid->arcs, T)*Wii.to(grid->arcs, T) ;
-    ACUC.add_constraint(SOC <= 0);
-    //KCL
-    for (int t = 0; t < T; t++)
-        for (auto b: grid->nodes) {
-            if (!b->_active) {
-                continue;
-            }
-            Bus* bus = (Bus*) b;
-            Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
-            Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
-
-            /* Power Conservation */
-            KCL_P  = sum(Pf_from.in_at(b->get_out(), t)) + sum(Pf_to.in_at(b->get_in(), t)) + bus->pl()- sum(Pg.in_at(bus->_gen, t));
-            KCL_Q  = sum(Qf_from.in_at(b->get_out(), t)) + sum(Qf_to.in_at(b->get_in(), t)) + bus->ql()- sum(Qg.in_at(bus->_gen, t));
-
-            /* Shunts */
-            //KCL_P +=  bus->gs()*Wii(bus->_name);
-            //KCL_Q -=  bus->bs()*Wii(bus->_name);
-
-            ACUC.add_constraint(KCL_P = 0);
-            ACUC.add_constraint(KCL_Q = 0);
-        }
-    //AC Power Flow.
-    Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(grid->arcs, T);
-    Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
-    Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
-    Flow_P_From = 0;
-    ACUC.add_constraint(Flow_P_From);
-
-    Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(grid->arcs, T);
-    Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
-    Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
-    Flow_P_To = 0;
-    ACUC.add_constraint(Flow_P_To);
-
-    Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(grid->arcs, T);
-    Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
-    Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
-    Flow_Q_From = 0;
-    ACUC.add_constraint(Flow_Q_From);
-
-    Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(grid->arcs, T);
-    Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
-    Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
-    Flow_Q_To = 0;
-    ACUC.add_constraint(Flow_Q_To);
+//    Constraint SOC("SOC");
+//    SOC =  power(R_Wij.in(grid->arcs, T), 2) + power(Im_Wij.in(grid->arcs, T), 2) - Wii.from(grid->arcs, T)*Wii.to(grid->arcs, T) ;
+//    ACUC.add_constraint(SOC <= 0);
+//    //KCL
+//    for (int t = 0; t < T; t++)
+//        for (auto b: grid->nodes) {
+//            if (!b->_active) {
+//                continue;
+//            }
+//            Bus* bus = (Bus*) b;
+//            Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
+//            Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
+//
+//            /* Power Conservation */
+//            KCL_P  = sum(Pf_from.in_at(b->get_out(), t)) + sum(Pf_to.in_at(b->get_in(), t)) + bus->pl()- sum(Pg.in_at(bus->_gen, t));
+//            KCL_Q  = sum(Qf_from.in_at(b->get_out(), t)) + sum(Qf_to.in_at(b->get_in(), t)) + bus->ql()- sum(Qg.in_at(bus->_gen, t));
+//
+//            /* Shunts */
+//            //KCL_P +=  bus->gs()*Wii(bus->_name);
+//            //KCL_Q -=  bus->bs()*Wii(bus->_name);
+//
+//            ACUC.add_constraint(KCL_P = 0);
+//            ACUC.add_constraint(KCL_Q = 0);
+//        }
+//    //AC Power Flow.
+//    Constraint Flow_P_From("Flow_P_From");
+//    Flow_P_From += Pf_from.in(grid->arcs, T);
+//    Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
+//    Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
+//    Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
+//    Flow_P_From = 0;
+//    ACUC.add_constraint(Flow_P_From);
+//
+//    Constraint Flow_P_To("Flow_P_To");
+//    Flow_P_To += Pf_to.in(grid->arcs, T);
+//    Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
+//    Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
+//    Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
+//    Flow_P_To = 0;
+//    ACUC.add_constraint(Flow_P_To);
+//
+//    Constraint Flow_Q_From("Flow_Q_From");
+//    Flow_Q_From += Qf_from.in(grid->arcs, T);
+//    Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
+//    Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
+//    Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
+//    Flow_Q_From = 0;
+//    ACUC.add_constraint(Flow_Q_From);
+//
+//    Constraint Flow_Q_To("Flow_Q_To");
+//    Flow_Q_To += Qf_to.in(grid->arcs, T);
+//    Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
+//    Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in(grid->arcs, T);
+//    Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in(grid->arcs, T);
+//    Flow_Q_To = 0;
+//    ACUC.add_constraint(Flow_Q_To);
 
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
