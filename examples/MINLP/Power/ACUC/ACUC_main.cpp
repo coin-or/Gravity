@@ -28,14 +28,11 @@ int main (int argc, const char * argv[])
     grid->readgrid(fname);
     
     // Grid Parameters
-    unsigned nb_gen = grid->get_nb_active_gens();
-    unsigned nb_lines = grid->get_nb_active_arcs();
-    unsigned nb_buses = grid->get_nb_active_nodes();
-
-    
-    DebugOn("nb gens = " << nb_gen << endl);
-    DebugOn("nb lines = " << 2*nb_lines << endl);
-    DebugOn("nb buses = " << nb_buses << endl);
+    auto bus_pairs = grid->get_bus_pairs();
+    auto nb_bus_pairs = bus_pairs.size();
+    auto nb_gen = grid->get_nb_active_gens();
+    auto nb_lines = grid->get_nb_active_arcs();
+    auto nb_buses = grid->get_nb_active_nodes();
     
     // Schedule
     unsigned T = 1;
@@ -121,7 +118,6 @@ int main (int argc, const char * argv[])
     cout << endl;
     //grid->c0.in(grid->gens, T).print();
     /* Construct the objective function*/
-    //
     func_ obj;
     obj  = sum(grid->c0.in(grid->gens, T));
     obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
@@ -132,7 +128,7 @@ int main (int argc, const char * argv[])
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(grid->arcs, T), 2) + power(Im_Wij.in(grid->arcs, T), 2) - Wii.from(grid->arcs, T)*Wii.to(grid->arcs, T) ;
+    SOC =  power(R_Wij.in(bus_pairs, T), 2) + power(Im_Wij.in(bus_pairs, T), 2) - Wii.from(bus_pairs, T)*Wii.to(bus_pairs, T) ;
     ACUC.add_constraint(SOC <= 0);
     //KCL
     for (int t = 0; t < T; t++)

@@ -82,6 +82,16 @@ public:
         res._ub = this->_ub;
         return res;
     }
+
+    template<typename Tobj>
+    var from(const vector<Tobj*>& vec, unsigned T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
     
     template<typename Tobj>
     var to(const vector<Tobj*>& vec){
@@ -92,7 +102,17 @@ public:
         res._ub = this->_ub;
         return res;
     }
-    
+
+    template<typename Tobj>
+    var to(const vector<Tobj*>& vec, unsigned T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
     
     template<typename Tobj>
     var in(const vector<Tobj*>& vec) {

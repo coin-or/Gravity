@@ -104,7 +104,6 @@ public:
     void get_tree_decomp_bags(bool print_bags = false);
     
     
-    
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
     

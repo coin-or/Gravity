@@ -26,8 +26,12 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
-//        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+       // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
+       // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+        fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+       // fname = "../../data_sets/Power/nesta_case300_ieee.m";
+
+
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -100,7 +104,7 @@ int main (int argc, const char * argv[])
 
         /* Shunts */
         KCL_P +=  bus->gs()*(Wii(bus->_name));
-        KCL_Q +=  bus->bs()*(Wii(bus->_name));
+        KCL_Q -=  bus->bs()*(Wii(bus->_name));
         
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
