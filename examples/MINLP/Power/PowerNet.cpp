@@ -194,14 +194,14 @@ int PowerNet::readgrid(const char* fname) {
         v_max(name) = atof(word.c_str());
         getline(file, word,';');
         v_min(name) = atof(word.c_str());
-        w_min(name) = pow(v_min.eval(),2.);
-        w_max(name) = pow(v_max.eval(),2.);
+        w_min(name) = pow(v_min(name).eval(),2.);
+        w_max(name) = pow(v_max(name).eval(),2.);
     // single phase
     
-        bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
-        bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
-        bus->vs = v_s.eval();
-        bus_clone->vs = v_s.eval();
+        bus = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);
+        bus_clone = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);
+        bus->vs = v_s(name).eval();
+        bus_clone->vs = v_s(name).eval();
         if (status>=4) {
             bus->_active = false;
             bus_clone->_active = false;
@@ -237,16 +237,12 @@ int PowerNet::readgrid(const char* fname) {
         name = to_string(index);
         file >> word;
         pg_s(name) = atof(word.c_str())/bMVA;
-        pg_s._dim++;
         file >> word;
         qg_s(name) = atof(word.c_str())/bMVA;
-        qg_s._dim++;
         file >> word;
         qg_max(name) = atof(word.c_str())/bMVA;
-        qg_max._dim++;
         file >> word;
         qg_min(name) = atof(word.c_str())/bMVA;
-        qg_min._dim++;
         
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atoi(word.c_str());
@@ -261,7 +257,7 @@ int PowerNet::readgrid(const char* fname) {
     
         bus->_has_gen = true;
         /** generator name, ID */
-        Gen* g = new Gen(bus, name, pg_min.eval(), pg_max.eval(), qg_min.eval(), qg_max.eval());
+        Gen* g = new Gen(bus, name, pg_min(name).eval(), pg_max(name).eval(), qg_min(name).eval(), qg_max(name).eval());
         g->_id = index;
         g->_ps = pg_s.eval();
         g->_qs = qg_s.eval();
@@ -294,7 +290,7 @@ int PowerNet::readgrid(const char* fname) {
         c1(i) = atof(word.c_str())*bMVA;
         file >> word;
         c0(i) = atof(word.c_str());
-        gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
+        gens[gen_counter++]->set_costs(c0(name).eval(), c1(name).eval(), c2(name).eval());
         getline(file, word);
     }
     file.seekg (0, file.beg);

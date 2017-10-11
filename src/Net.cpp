@@ -166,20 +166,16 @@ Arc* Net::get_arc(std::string src, std::string dest) {
 bool Net::add_arc(Arc* a) {
     bool parallel = false;
     set<Arc*>* s = NULL;
-    string src, dest, key, inv_key;
+    string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
     
     key.clear();
-    inv_key.clear();
     key.append(src);
-    inv_key.append(dest);
     key.append(",");
-    inv_key.append(",");
     key.append(dest);
-    inv_key.append(src);
     
-    if(arcID.find(key)==arcID.end() && arcID.find(inv_key)==arcID.end()) {
+    if(arcID.find(key)==arcID.end()) {
         s = new set<Arc*>;
         s->insert(a);
         arcID.insert(pair<string, set<Arc*>*>(key,s));
@@ -187,10 +183,8 @@ bool Net::add_arc(Arc* a) {
     else {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
-        if(arcID.find(inv_key)!=arcID.end())
-            s = arcID[inv_key];
         s->insert(a);
-        DebugOff("\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        DebugOn("\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }

@@ -318,7 +318,7 @@ public:
 
     type eval() const {
         if (_is_indexed) {
-            return _val->at(_indices->begin()->second);
+            return _val->at(_ids->back());
         }
         return _val->back();
     }

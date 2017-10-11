@@ -26,12 +26,12 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
 //        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
-    grid->get_tree_decomp_bags(true);
+//    grid->get_tree_decomp_bags(true);
     
     // Grid Parameters
     auto bus_pairs = grid->get_bus_pairs();
@@ -62,7 +62,11 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
-    var<Real>  Wii("Wii", grid->w_min.in(bus_pairs), grid->w_max.in(bus_pairs));
+//    var<Real>  R_Wij("R_Wij"); // real part of Wij
+//    var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
+
+    var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
+//    var<Real>  Wii("Wii");
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_bus_pairs);
     SOCP.add_var(Im_Wij^nb_bus_pairs);
