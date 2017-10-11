@@ -97,10 +97,7 @@ int main (int argc, const char * argv[])
             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
-    obj.print();
-    cout << "c1 size: " << grid->c1.get_dim() <<endl;
-    cout << "pg_min size: " << grid->pg_min.get_dim() <<endl;
-    cout << "g_ff size: " << grid->g_ff.get_dim() <<endl;
+
 
 
     ACOPF.set_objective(min(obj));
