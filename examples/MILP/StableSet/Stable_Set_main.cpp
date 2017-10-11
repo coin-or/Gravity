@@ -110,7 +110,7 @@ int main (int argc, const char * argv[])
     /* Constraints declaration */
     ordered_pairs indices(1, n);
     Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices) ;
+    SOCP =  power(Xij.in(indices._keys),2) - Xii.from(indices._keys)*Xii.to(indices._keys) ;
     SDP.add_constraint(SOCP <= 0);
 //    unsigned index = 0;
 //    for (int i = 0; i < n; i++){

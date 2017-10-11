@@ -15,6 +15,7 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <typeinfo>
 #include <gravity/constant.h>
 #include <gravity/Arc.h>
 #include <gravity/Node.h>
@@ -40,7 +41,7 @@ protected:
 
 public:
 
-    unique_id                              _unique_id = make_tuple<>(-1,vec_,0,0); /* */
+    unique_id                              _unique_id = make_tuple<>(-1,scalar_,0,0,0); /* */
 
     bool                                   _is_indexed = false;
 
@@ -90,10 +91,11 @@ public:
         return _intype;
     }
     size_t get_dim() const {
-        if (_is_indexed) {
-            return _ids->size();
-        }
-        return _dim;
+//        if (_is_indexed) {
+//            return _ids->size();
+//        }
+//        return _dim;
+        return max(_dim, _indices->size());
     }
 
     size_t get_nb_instances() const {
@@ -451,9 +453,14 @@ public:
     }
 
     param& operator=(type v) {
-        _val->push_back(v);
+        if (_is_indexed) {
+            _val->at(_ids->back()) = v;
+        }
+        else {
+            _val->push_back(v);
+            _dim++;
+        }
         update_range(v);
-        _dim++; // Line 456.  Guanglei: according to the rule that the dimension of param  should be pre-defined/user defined, we should avoid this. 
         return *this;
     }
 
@@ -464,7 +471,7 @@ public:
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
-        res._val = this->_val; 
+        res._val = this->_val;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
         indices.push_front(t1);
@@ -478,6 +485,7 @@ public:
             it++;
         }
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        _val->resize(max(_val->size(),param_::_indices->size()));
         if(pp.second) { //new index inserted
             if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                 res._dim++;
@@ -493,7 +501,7 @@ public:
         }
 
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res._id,mask_, res._ids->at(0), res._ids->at(res._ids->size()-1));
+        res._unique_id = make_tuple<>(res._id,scalar_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
         res._is_indexed = true;
         //_is_indexed = true; // Guanglei added this line.
         return res;
@@ -520,10 +528,10 @@ public:
             it++;
         }
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        _val->resize(max(_val->size(),param_::_indices->size()));
         if(pp.second) { //new index inserted
             if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                 res._dim++;
-                // _dim++;
             }
             res._ids->push_back(param_::_indices->size()-1);
         }
@@ -535,143 +543,12 @@ public:
         }
         res._dim++;
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res._id,mask_, res._ids->at(0), res._ids->at(res._ids->size()-1));
-        res._is_indexed = true;
-        //_is_indexed = true; // Guanglei added this line.
-        return res;
-    }
-
-    param in(const ordered_pairs& pairs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-
-        for(auto it = pairs._keys.begin(); it!= pairs._keys.end(); it++) {
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    //_dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-
-        res._name += ".in{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,in_ordered_pairs_, pairs._first, pairs._last);
+        res._unique_id = make_tuple<>(res._id,scalar_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
         res._is_indexed = true;
         return res;
     }
 
-    param from(const ordered_pairs& pairs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-        //        res._ids->resize(pairs._from.size());
-        for(auto it = pairs._from.begin(); it!= pairs._from.end(); it++) {
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    //_dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".from{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,from_ordered_pairs_, pairs._first, pairs._last);
-        res._is_indexed = true;
-        return res;
-    }
-
-    param to(const ordered_pairs& pairs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-        //        res._ids->resize(pairs._from.size());
-        for(auto it = pairs._to.begin(); it!= pairs._to.end(); it++) {
-            key = (*it);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    //_dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-                //                res._ids->at(res._dim) = param_::_indices->size()-1;
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".to{" + to_string(pairs._first) + ".." + to_string(pairs._last)+"}";
-        res._unique_id = make_tuple<>(res._id,to_ordered_pairs_, pairs._first, pairs._last);
-        res._is_indexed = true;
-        return res;
-    }
-
-    param in(const vector<Arc*>& arcs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-            if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
-                continue;
-            }
-            key = (*it)->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    // _dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if (res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-        }
-        res._name += ".in_arcs";
-        res._unique_id = make_tuple<>(res._id,in_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
-        res._is_indexed = true;
-        return res;
-    }
+    
 
     template<typename Tobj>
     param in(const vector<Tobj*>& vec) {
@@ -690,6 +567,45 @@ public:
             key = (*it)->_name;
             DebugOff(key<< ", ");
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
+            if(pp.second) { //new index inserted
+                if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(param_::_indices->size() - 1);
+            }
+            else {
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(pp.first->second);
+            }
+        }
+        DebugOff(endl);
+        res._name += ".in_" + string(typeid(Tobj).name());
+        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    template<typename Tobj>
+    param from(const vector<Tobj*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        DebugOff(_name << " = ");
+        string key;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_src->_name;
+            DebugOff(key<< ", ");
+            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                     res._dim++;
@@ -705,8 +621,46 @@ public:
             }
         }
         DebugOff(endl);
-        res._name += ".in_time";
-        res._unique_id = make_tuple<>(res._id,in_set_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._name += ".from_" + string(typeid(Tobj).name());
+        res._unique_id = make_tuple<>(res._id,from_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    template<typename Tobj>
+    param to(const vector<Tobj*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        DebugOff(_name << " = ");
+        string key;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_dest->_name;
+            DebugOff(key<< ", ");
+            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
+            if(pp.second) { //new index inserted
+                if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(param_::_indices->size() - 1);
+            }
+            else {
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(pp.first->second);
+            }
+        }
+        DebugOff(endl);
+        res._name += ".to_" + string(typeid(Tobj).name());
+        res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -726,6 +680,7 @@ public:
             }
             //cout << "key: " << key << endl;
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                     res._dim++;
@@ -742,81 +697,13 @@ public:
         }
         res._name += ".in_time_expand_" + to_string(T);
 //res._unique_id = make_tuple<>(res._id,time_expand_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
-        res._unique_id = make_tuple<>(res._id,time_expand_, T, res.get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id,in_, 0, T, res.get_id_inst(param_::get_dim()));
 
         res._is_indexed = true;
         return res;
     }
 
-    param from(const vector<Arc*>& arcs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-            if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
-                continue;
-            }
-            key = (*it)->src->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    // _dim++;
-                }
-                res._ids->push_back(param_::_indices->size()-1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-
-        }
-        res._name += ".from_arcs";
-        res._unique_id = make_tuple<>(res._id, from_arcs_, res.get_id_inst(0), res.get_id_inst(res.get_dim()));
-        res._is_indexed = true;
-        return res;
-    }
-
-    param to(const vector<Arc*>& arcs) {
-        param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        string key;
-        for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-            if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
-                continue;
-            }
-            key = (*it)->dest->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res._dim++;
-                    // _dim++;
-                }
-                res._ids->push_back(param_::_indices->size() - 1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
-
-        }
-        res._name += ".to_arcs";
-        res._unique_id = make_tuple<>(res._id, to_arcs_, res.get_id_inst(0),res.get_id_inst(res.get_dim()));
-        res._is_indexed = true;
-        return res;
-    }
+    
 
     template<typename Tobj>
     param in_at(const vector<Tobj*>& nodes, unsigned t) {
@@ -834,6 +721,7 @@ public:
                 key += to_string(t);
             }
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                     res._dim++;
@@ -849,7 +737,7 @@ public:
         }
         res._name += ".in_set_at_time_" + to_string(t);
         // res._unique_id = make_tuple<>(res._id, in_set_at_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
-        res._unique_id = make_tuple<>(res._id, in_set_at_, t, res.get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id, in_,0, t, res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -871,6 +759,7 @@ public:
                     key += to_string(t);
                 }
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim++;
@@ -887,12 +776,13 @@ public:
             }
         }
         res._name += ".in_set_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,in_set_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
-
-    param from(const vector<Arc*>& arcs, unsigned T) {
+    
+    template<typename Tobj>
+    param from(const vector<Tobj*>& arcs, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -911,6 +801,7 @@ public:
                     key += to_string(t);
                 }
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+                _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim++;
@@ -927,12 +818,13 @@ public:
             }
         }
         res._name += ".from_arcs_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,from_arcs_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id,from_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
 
-    param to(const vector<Arc*>& arcs, unsigned T) {
+    template<typename Tobj>
+    param to(const vector<Tobj*>& arcs, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -951,6 +843,7 @@ public:
                     key += to_string(t);
                 }
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+                _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim++;
@@ -969,7 +862,7 @@ public:
             }
         }
         res._name += ".to_arcs_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id, to_arcs_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._unique_id = make_tuple<>(res._id, to_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }

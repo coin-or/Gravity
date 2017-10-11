@@ -180,31 +180,22 @@ int PowerNet::readgrid(const char* fname) {
         }
         file >> ws >> word;
         pl(name) = atof(word.c_str())/bMVA;
-        pl._dim++;
         file >> word;
         ql(name) = atof(word.c_str())/bMVA;
-        ql._dim++;
         file >> word;
         gs(name) = atof(word.c_str())/bMVA;
-        gs._dim++;
         file >> word;
         bs(name) = atof(word.c_str())/bMVA;
-        bs._dim++;
         file >> ws >> word >> ws >> word;
         v_s(name) = atof(word.c_str());
-        v_s._dim++;
         file >> ws >> word >> ws >> word;
         kvb = atof(word.c_str());
         file >> ws >> word >> ws >> word;
         v_max(name) = atof(word.c_str());
-        v_max._dim++;
         getline(file, word,';');
         v_min(name) = atof(word.c_str());
-        v_min._dim++;
         w_min(name) = pow(v_min.eval(),2.);
-        w_min._dim++;
         w_max(name) = pow(v_max.eval(),2.);
-        w_max._dim++;
     // single phase
     
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
@@ -261,11 +252,9 @@ int PowerNet::readgrid(const char* fname) {
         status = atoi(word.c_str());
         file >> word;
         pg_max(name) = atof(word.c_str())/bMVA;
-        pg_max._dim++; 
         
         file >> word;
         pg_min(name) = atof(word.c_str())/bMVA;
-        pg_min._dim++; 
         getline(file, word,'\n');
 //        gen_status.push_back(status==1);
 
@@ -273,9 +262,9 @@ int PowerNet::readgrid(const char* fname) {
         bus->_has_gen = true;
         /** generator name, ID */
         Gen* g = new Gen(bus, name, pg_min.eval(), pg_max.eval(), qg_min.eval(), qg_max.eval());
-        g->ID = index;
-        g->ps = pg_s.eval();
-        g->qs = qg_s.eval();
+        g->_id = index;
+        g->_ps = pg_s.eval();
+        g->_qs = qg_s.eval();
         gens.push_back(g);
         bus->_gen.push_back(g);
         if(status!=1 || !bus->_active) {
@@ -301,13 +290,10 @@ int PowerNet::readgrid(const char* fname) {
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
         c2(i) = atof(word.c_str())*pow(bMVA,2);
-        c2._dim++;
         file >> word;
         c1(i) = atof(word.c_str())*bMVA;
-        c1._dim++;
         file >> word;
         c0(i) = atof(word.c_str());
-        c0._dim++;
         gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
         getline(file, word);
     }
@@ -328,9 +314,9 @@ int PowerNet::readgrid(const char* fname) {
         src = word;
         file >> dest;
         arc = new Line(to_string(index) + "," + src + "," + dest);
-        arc->id = index++;
-        arc->src = get_node(src);
-        arc->dest= get_node(dest);
+        arc->_id = index++;
+        arc->_src = get_node(src);
+        arc->_dest= get_node(dest);
         
         file >> word;
         arc->r = atof(word.c_str());
@@ -375,8 +361,8 @@ int PowerNet::readgrid(const char* fname) {
 //        arc->tbound.max = 30*M_PI/180;
         m_theta_ub += arc->tbound.max;
         
-        Bus* bus_s = (Bus*)(arc->src);
-        Bus* bus_d = (Bus*)(arc->dest);
+        Bus* bus_s = (Bus*)(arc->_src);
+        Bus* bus_d = (Bus*)(arc->_dest);
 
         arc->smax = max(
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
@@ -386,77 +372,67 @@ int PowerNet::readgrid(const char* fname) {
         g(name) = arc->g;
         b(name) = arc->b;
         g_ff(name) = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        g_ff._dim++;
         g_ft(name) = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        g_ft._dim++;
         
         g_tt(name) = arc->g;
-        g_tt._dim++;
         g_tf(name) = (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        g_tf._dim++;
 
         
         b_ff(name) = (arc->ch/2. + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_ff._dim++;
         b_ft(name) = (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_ft._dim++;
 
         b_tt(name) = (arc->ch/2. + arc->b);
-        b_tt._dim++;
         b_tf(name) = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
-        b_tf._dim++;
         
-        
-        if (arc->tbound.min >= 0 ) {
-            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.min);
-            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.max);
-            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
-            wi_min(name) = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.min);
-        };
-        if (arc->tbound.max <= 0 ) {
-            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(arc->tbound.max);
-            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(arc->tbound.min);
-            wi_max(name) = bus_s->vbound.min*bus_d->vbound.min*sin(arc->tbound.max);
-            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
-        }
-        if (arc->tbound.min < 0 && arc->tbound.max > 0) {
-            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max;
-            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*min(cos(arc->tbound.min), cos(arc->tbound.max));
-            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.max);
-            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(arc->tbound.min);
-        }
-
-        wr_max._dim++;
-        wr_min._dim++;
-        wi_max._dim++;
-        wi_min._dim++;
-
         ch(name) = arc->ch;
         S_max(name) = arc->limit;
-        th_min(name) = arc->tbound.min;
-        th_max(name) = arc->tbound.max;
-        ch._dim++;
-        S_max._dim++;
-        th_min._dim++;
-        th_max._dim++;
 
-        arc->connect();
-        add_arc(arc);
-        if (!arc->_parallel) {
-            tan_th_min(name) = tan(arc->tbound.min);
-            tan_th_min._dim++;
-            tan_th_max(name) = tan(arc->tbound.max);
-            tan_th_max._dim++;
-        }
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active){
             arc->_active = false;
             DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
         }
-
+        arc->connect();
+        add_arc(arc);
+        
+        /* Switching to bus_pairs keys */
+        name = bus_s->_name + "," + bus_d->_name;
+        if (!arc->_parallel) {
+            th_min(name) = arc->tbound.min;
+            th_max(name) = arc->tbound.max;
+            tan_th_min(name) = tan(arc->tbound.min);
+            tan_th_max(name) = tan(arc->tbound.max);
+            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+        }
+        else {
+            th_min(name) = max(th_min(name).eval(), arc->tbound.min);
+            th_max(name) = min(th_max(name).eval(), arc->tbound.max);
+            tan_th_min(name) = tan(th_min(name).eval());
+            tan_th_max(name) = tan(th_max(name).eval());
+            
+        }
+        if (arc->tbound.min >= 0 ) {
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval());
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval());
+            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval());
+            wi_min(name) = bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval());
+        };
+        if (arc->tbound.max <= 0 ) {
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval());
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval());
+            wi_max(name) = bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval());
+            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval());
+        }
+        if (arc->tbound.min < 0 && arc->tbound.max > 0) {
+            wr_max(name) = bus_s->vbound.max*bus_d->vbound.max;
+            wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min(name).eval()), cos(th_max(name).eval()));
+            wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval());
+            wi_min(name) = bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval());
+        }
         getline(file, word,'\n');
         file >> word;
     }
     file.close();
+    
     return 0;
 }
 

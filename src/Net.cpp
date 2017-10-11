@@ -33,6 +33,7 @@
 #define DebugOff(x)
 
 using namespace std;
+using namespace gravity;
 
 
 static int max_line_len;
@@ -43,7 +44,7 @@ Net::Net() {}
 
 /* returns true if an arc is already present between the given nodes */
 bool Net::duplicate(std::string n1, std::string n2, int id1) {
-    int id2 = get_arc(n1, n2)->id;
+    int id2 = get_arc(n1, n2)->_id;
     if (id2 < id1)
         return true;
     else
@@ -64,14 +65,14 @@ Net* Net::clone() {
     for (int i=0; i < arcs.size(); i++) {
         
         /* ignores if the arc is a paralel line to an already existing line */
-        if (duplicate(arcs[i]->src->_name, arcs[i]->dest->_name, arcs[i]->id)) {
+        if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
             continue;
         }
         arc = arcs[i]->clone();
         
         /* Update the source and destination to the new nodes in copy_net */
-        arc->src = copy_net->get_node(arc->src->_name);
-        arc->dest = copy_net->get_node(arc->dest->_name);
+        arc->_src = copy_net->get_node(arc->_src->_name);
+        arc->_dest = copy_net->get_node(arc->_dest->_name);
         
         /* Add the new arc to the list of arcs IS THIS REALLY USEFULL ? */
         copy_net->add_arc(arc);
@@ -88,7 +89,7 @@ const bool node_compare(const Node* n1, const Node* n2) {
 }
 
 void Net::add_node(Node* node) {
-    node->ID = (int)nodes.size();
+    node->_id = (int)nodes.size();
     
     if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
@@ -166,8 +167,8 @@ bool Net::add_arc(Arc* a) {
     bool parallel = false;
     set<Arc*>* s = NULL;
     string src, dest, key, inv_key;
-    src = a->src->_name;
-    dest = a->dest->_name;
+    src = a->_src->_name;
+    dest = a->_dest->_name;
     
     key.clear();
     inv_key.clear();
@@ -188,9 +189,6 @@ bool Net::add_arc(Arc* a) {
             s = arcID[key];
         if(arcID.find(inv_key)!=arcID.end())
             s = arcID[inv_key];
-        for (auto aa: *s) {
-//            aa->
-        }
         s->insert(a);
         DebugOff("\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
@@ -206,9 +204,9 @@ bool Net::add_arc(Arc* a) {
 */
 
 void Net::remove_arc(Arc* a) {
-    arcs.erase(arcs.begin()+(a->id));
-    //arcs[a->id] = nullptr;
-    arcID.erase(a->src->_name+","+a->dest->_name);
+    arcs.erase(arcs.begin()+(a->_id));
+    //arcs[a->_id] = nullptr;
+    arcID.erase(a->_src->_name+","+a->_dest->_name);
 }
 
 // Reading files
@@ -280,11 +278,11 @@ void Net::readrudy(const char* fname) {
         name = (int)arcs.size()+1;
         arc = new Arc(name);
 
-        arc->id = (int)arcs.size();
+        arc->_id = (int)arcs.size();
 
-        arc->src = get_node(src);
-        arc->dest= get_node(dest);
-        arc->weight=weight;
+        arc->_src = get_node(src);
+        arc->_dest= get_node(dest);
+        arc->_weight=weight;
         add_arc(arc);
         arc->connect();
     }
@@ -340,9 +338,9 @@ void Net::read_adjacency_matrix(const char* fname) {
                 dest = to_string(j);
                 id = index;
                 arc = new Arc(to_string(id) + "," + src + "," + dest);
-                arc->id = id;
-                arc->src = get_node(src);
-                arc->dest= get_node(dest);
+                arc->_id = id;
+                arc->_src = get_node(src);
+                arc->_dest= get_node(dest);
                 add_arc(arc);
                 arc->connect();
             }
@@ -397,9 +395,9 @@ void Net::get_complement(const char* fname) {
                 dest = to_string(j);
                 id = (int)arcs.size();
                 arc = new Arc(to_string(id));
-                arc->id = id;
-                arc->src = get_node(src);
-                arc->dest= get_node(dest);
+                arc->_id = id;
+                arc->_src = get_node(src);
+                arc->_dest= get_node(dest);
                 add_arc(arc);
                 arc->connect();
             }
@@ -460,7 +458,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
         graph_clone->remove_end_node();
         bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID < b->ID;});
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
         for (int i = 0; i < bag.size() - 1; i++) {
@@ -473,9 +471,9 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 name = to_string((int) graph_clone->arcs.size()+1);
                 arc = new Arc(name);
 
-                arc->id = arcs.size();
-                arc->src = u;
-                arc->dest = nn;
+                arc->_id = arcs.size();
+                arc->_src = u;
+                arc->_dest = nn;
                 arc->connect();
                 graph_clone->add_arc(arc);
             }
@@ -500,14 +498,8 @@ void Net::get_tree_decomp_bags(bool print_bags) {
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
-vector<Arc*> Net::bus_pairs() const{
-    vector<Arc*> bus_pairs;
-    for (auto a: arcs) {
-        if (!a->_parallel) {
-            bus_pairs.push_back(a);
-        }
-    }
-    return bus_pairs;
+std::vector<gravity::index_pair*> Net::get_bus_pairs(){
+    return _bus_pairs._keys;
 }
 
 Net* Net::get_chordal_extension() {
@@ -544,7 +536,7 @@ Net* Net::get_chordal_extension() {
 
         graph_clone->remove_end_node();
         bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->ID < b->ID;});
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
         for (int i = 0; i < bag.size() - 1; i++) {
@@ -562,15 +554,15 @@ Net* Net::get_chordal_extension() {
                 arc = new Arc(name);
                 arc_chordal = new Arc(name_chordal);
 
-                arc->id = arcs.size();
-                arc->src = u;
-                arc->dest = nn;
+                arc->_id = arcs.size();
+                arc->_src = u;
+                arc->_dest = nn;
                 arc->connect();
                 graph_clone->add_arc(arc);
 
-                arc_chordal->id = chordal_extension->arcs.size();
-                arc_chordal->src = u_chordal;
-                arc_chordal->dest = nn_chordal;
+                arc_chordal->_id = chordal_extension->arcs.size();
+                arc_chordal->_src = u_chordal;
+                arc_chordal->_dest = nn_chordal;
                 arc_chordal->connect();
                 chordal_extension->add_arc(arc_chordal);
 

@@ -14,6 +14,7 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
+#include <gravity/types.h>
 #include <gravity/Node.h>
 #include <gravity/Arc.h>
 #include <gravity/Path.h>
@@ -29,7 +30,10 @@ public:
     /** Set of arcs */
     std::vector<Arc*> arcs;
     
-    /** Mapping the arcs to their source-destination by their names, i.e, (name_src, name_dest)*/
+    /** Set of bus pairs */
+    gravity::node_pairs _bus_pairs;
+    
+    /** Mapping the arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     
     std::map<std::string, std::set<Arc*>*> arcID;
     
@@ -69,7 +73,7 @@ public:
 
     bool has_directed_arc(Node* n1, Node* n2){
         Arc* a = get_arc(n1, n2);
-            if (n1->ID == a->src->ID && n2->ID==a->dest->ID) {
+            if (n1->_id == a->_src->_id && n2->_id==a->_dest->_id) {
                 return true;
             }
         return false;
@@ -104,8 +108,8 @@ public:
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
     
-    /** Return the vector of arcs ignoring parallel lines **/
-    std::vector<Arc*> bus_pairs() const;
+    /** Compute the vector of bus pairs, ignoring parallel lines **/
+    std::vector<gravity::index_pair*> get_bus_pairs();
 
     
     

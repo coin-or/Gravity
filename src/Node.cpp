@@ -15,13 +15,13 @@ using namespace std;
 
 Node::Node(){};
 
-Node::Node(string name, int id):_name(name),ID(id),fill_in(0){};
+Node::Node(string name, int id):_name(name),_id(id),fill_in(0){};
 
 Node::~Node(){};
 
 Node* Node::clone(){
     Node* copy = new Node();
-    copy->ID = ID;
+    copy->_id = _id;
     copy->_name = _name;
     copy->fill_in = fill_in;
     return copy;
@@ -54,12 +54,12 @@ int Node::removeArc(Arc* a){
 
 bool Node::is_connected(Node* n){
     for (auto a:branches) {
-        if (n->ID==a->neighbour(this)->ID) {
+        if (n->_id==a->neighbour(this)->_id) {
             return true;
         }
     }
     for (auto a:n->branches) {
-        if (ID==a->neighbour(n)->ID) {
+        if (_id==a->neighbour(n)->_id) {
             return true;
         }
     }
@@ -72,7 +72,7 @@ void Node::update_fill_in(Node* n){
     for(auto a:branches){
         nn = a->neighbour(this); //this node.
         // if nn is null
-        if (nn->ID==n->ID) {
+        if (nn->_id==n->_id) {
             continue; //self connect
         }
         if (!n->is_connected(nn)) {
@@ -86,7 +86,7 @@ void Node::update_fill_in(Node* n){
 std::vector<Arc*> Node::get_out(){
     vector<Arc*> res;
     for (auto a:branches) {
-        if(a->src->ID==ID){
+        if(a->_src->_id==_id){
             res.push_back(a);
         }
     }
@@ -96,7 +96,7 @@ std::vector<Arc*> Node::get_out(){
 std::vector<Arc*> Node::get_in(){
     vector<Arc*> res;
     for (auto a:branches) {
-        if(a->dest->ID==ID){
+        if(a->_dest->_id==_id){
             res.push_back(a);
         }
     }
