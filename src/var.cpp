@@ -45,7 +45,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-        for (int i= 0; i<param<type>::get_dim(); i++) {
+        for (int i= 0; i<lb.get_dim(); i++) {
             _lb->push_back(lb.eval(i));
             _ub->push_back(ub.eval(i));
             if (_lb->back() < param<type>::_range->first) {
@@ -58,7 +58,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
-        for (int i= 0; i<param<type>::get_dim(); i++) {
+        for (int i= 0; i<sb.get_dim(); i++) {
             _lb->push_back(-1.*sb.eval(i));
             _ub->push_back(sb.eval(i));
             if (_lb->back() < param<type>::_range->first) {
