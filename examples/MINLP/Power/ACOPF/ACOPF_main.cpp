@@ -24,13 +24,13 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//           fname = "../../data_sets/Power/nesta_case5_pjm.m";
            //fname = "../../data_sets/Power/nesta_case14_ieee.m";
            //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-           fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+//           fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
            //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
             // fname = "../../data_sets/Power/nesta_case118_ieee.m";
-           //fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
+           fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
     }
     // ACOPF
     PowerNet* grid = new PowerNet();
@@ -61,10 +61,10 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
-    var<Real> Pf_from("Pf_from");
-    var<Real> Qf_from("Qf_from");
-    var<Real> Pf_to("Pf_to");
-    var<Real> Qf_to("Qf_to");
+    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
+    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
+    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
+    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
 
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
@@ -72,10 +72,10 @@ int main (int argc, const char * argv[])
     ACOPF.add_var(Qf_to^(nb_lines));
 
     // voltage related variables.
-    var<Real> vr("vr");
-    var<Real> vi("vi");
-//    var<Real> vr("vr", grid->v_max.in(grid->nodes));
-//    var<Real> vi("vi", grid->v_max.in(grid->nodes));
+//    var<Real> vr("vr");
+//    var<Real> vi("vi");
+    var<Real> vr("vr", grid->v_max.in(grid->nodes));
+    var<Real> vi("vi", grid->v_max.in(grid->nodes));
     ACOPF.add_var(vr^(nb_buses));
     ACOPF.add_var(vi^(nb_buses));
     vr.initialize_all(1);

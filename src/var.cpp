@@ -45,30 +45,74 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-        for (int i= 0; i<lb.get_dim(); i++) {
-            _lb->push_back(lb.eval(i));
-            _ub->push_back(ub.eval(i));
-            if (_lb->back() < param<type>::_range->first) {
-                param<type>::_range->first = _lb->back() ;
+        _lb->resize(lb.get_dim());
+        _ub->resize(ub.get_dim());
+        unsigned i = 0;
+        for (auto &p: *lb.get_indices()) {
+//            if(param_::_indices->size() != p.second){
+//                cerr << "diff\n";
+//                auto ss = param_::_indices->size();
+//            }
+            param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
+            _lb->at(i) = lb(p.first).eval();
+            _ub->at(i) = ub(p.first).eval();
+            if (_lb->at(i) < param<type>::_range->first) {
+                param<type>::_range->first = _lb->at(i);
             }
-            if (_ub->back() > param<type>::_range->second) {
-                param<type>::_range->second = _ub->back();
+            if (_ub->at(i) > param<type>::_range->second) {
+                param<type>::_range->second = _ub->at(i);
             }
+            i++;
         }
     };
     
+//    template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
+//        for (int i= 0; i<lb.get_dim(); i++) {
+//            _lb->push_back(lb.eval(i));
+//            _ub->push_back(ub.eval(i));
+//            if (_lb->back() < param<type>::_range->first) {
+//                param<type>::_range->first = _lb->back() ;
+//            }
+//            if (_ub->back() > param<type>::_range->second) {
+//                param<type>::_range->second = _ub->back();
+//            }
+//        }
+//    };
+    
+//    template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
+//        for (int i= 0; i<sb.get_dim(); i++) {
+//            _lb->push_back(-1.*sb.eval(i));
+//            _ub->push_back(sb.eval(i));
+//            if (_lb->back() < param<type>::_range->first) {
+//                param<type>::_range->first = _lb->back() ;
+//            }
+//            if (_ub->back() > param<type>::_range->second) {
+//                param<type>::_range->second = _ub->back();
+//            }
+//        }
+//    };
+    
     template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
-        for (int i= 0; i<sb.get_dim(); i++) {
-            _lb->push_back(-1.*sb.eval(i));
-            _ub->push_back(sb.eval(i));
-            if (_lb->back() < param<type>::_range->first) {
-                param<type>::_range->first = _lb->back() ;
+        _lb->resize(sb.get_dim());
+        _ub->resize(sb.get_dim());
+        unsigned i = 0;
+        for (auto &p: *sb.get_indices()) {
+//            if(param_::_indices->size() != p.second){
+//                cerr << "diff\n";
+//            }
+            param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
+            _lb->at(i) = -1.*sb(p.first).eval();
+            _ub->at(i) = sb(p.first).eval();
+            if (_lb->at(i) < param<type>::_range->first) {
+                param<type>::_range->first = _lb->at(i);
             }
-            if (_ub->back() > param<type>::_range->second) {
-                param<type>::_range->second = _ub->back();
+            if (_ub->at(i) > param<type>::_range->second) {
+                param<type>::_range->second = _ub->at(i);
             }
+            i++;
         }
     };
+
 
     template<typename type> var<type>& var<type>::operator=(const var<type>& v){
         this->param<type>::operator=(v);
