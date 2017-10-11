@@ -50,23 +50,17 @@ int main (int argc, const char * argv[])
     DebugOn("nb gens = " << nb_gen << endl);
     DebugOn("nb lines = " << 2*nb_lines << endl);
     DebugOn("nb buses = " << nb_buses << endl);
-    /** build model */
 
+    /** build model */
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
-//    var<Real> Pg("Pg");
-//    var<Real> Qg ("Qg");
     ACOPF.add_var(Pg^(nb_gen));
     ACOPF.add_var(Qg^(nb_gen));
 
     // power flow
-//    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
-//    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
-//    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
-//    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
     var<Real> Pf_from("Pf_from");
     var<Real> Qf_from("Qf_from");
     var<Real> Pf_to("Pf_to");
@@ -87,8 +81,6 @@ int main (int argc, const char * argv[])
     vr.initialize_all(1);
 
     /** Construct the objective function */
-//    func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
-//    func_ obj = sum(grid->c0.in(grid->gens)) + sum(grid->c1.in(grid->gens),Pg.in(grid->gens));//    obj.print();
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
@@ -193,7 +185,6 @@ int main (int argc, const char * argv[])
         }
         KCL_P = 0;
         KCL_Q = 0;
-//        KCL_P.print();
         ACOPF.add_constraint(KCL_P);
         ACOPF.add_constraint(KCL_Q);
     }

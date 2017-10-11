@@ -30,12 +30,9 @@ int main (int argc, const char * argv[])
        // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
        // fname = "../../data_sets/Power/nesta_case300_ieee.m";
-
-
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
-//    grid->get_tree_decomp_bags(true);
     
     // Grid Parameters
     auto bus_pairs = grid->get_bus_pairs();
@@ -43,6 +40,9 @@ int main (int argc, const char * argv[])
     auto nb_gen = grid->get_nb_active_gens();
     auto nb_lines = grid->get_nb_active_arcs();
     auto nb_buses = grid->get_nb_active_nodes();
+    DebugOn("nb gens = " << nb_gen << endl);
+    DebugOn("nb lines = " << 2*nb_lines << endl);
+    DebugOn("nb buses = " << nb_buses << endl);
     /** build model */
     Model SOCP("SOCP Model");
 
@@ -66,11 +66,11 @@ int main (int argc, const char * argv[])
     // Lifted variables.
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
-//    var<Real>  R_Wij("R_Wij"); // real part of Wij
-//    var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
+    //var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
+    grid->w_min.in(grid->nodes).print(true);
+    grid->w_max.in(grid->nodes).print(true);
 
-    var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
-//    var<Real>  Wii("Wii");
+    var<Real>  Wii("Wii");
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_bus_pairs);
     SOCP.add_var(Im_Wij^nb_bus_pairs);
@@ -103,8 +103,13 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
+        if (bus->gs()!=0) {
         KCL_P +=  bus->gs()*(Wii(bus->_name));
+        }
+
+        if (bus->bs()!=0) {
         KCL_Q -=  bus->bs()*(Wii(bus->_name));
+        }
         
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -149,6 +154,28 @@ int main (int argc, const char * argv[])
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
     SOCP.add_constraint(PAD_LB >= 0);
+    
+    // AC voltage limit constraints.
+    //Constraint Vol_limit_UB("Vol_limit_UB");
+    //Vol_limit_UB = Wii.in(grid->nodes);
+    //Vol_limit_UB -= grid->w_max.in(grid->nodes);
+    //SOCP.add_constraint(Vol_limit_UB <= 0);
+
+    //Constraint Vol_limit_LB("Vol_limit_LB");
+    //Vol_limit_LB = Wii.in(grid->nodes);
+    //Vol_limit_UB -= grid->w_min.in(grid->nodes);
+    //SOCP.add_constraint(Vol_limit_LB >= 0);
+    
+    // constraints on Wij
+    //Constraint Wij_limit_UB("Wij_limit_UB");
+    //Wij_limit_UB = R_Wij.in(bus_pairs);
+    //Wij_limit_UB -= grid->wr_max.in(bus_pairs);
+    //SOCP.add_constraint(Wij_limit_UB <= 0);
+    //Constraint Wij_limit_LB("Wij_limit_LB");
+    //Wij_limit_LB = R_Wij.in(bus_pairs);
+    //Wij_limit_UB -= grid->wr_min.in(bus_pairs);
+    //SOCP.add_constraint(Wij_limit_LB >= 0);
+    
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");

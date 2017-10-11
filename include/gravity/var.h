@@ -53,7 +53,7 @@ public:
 
 
     // Retrieve specified indexed variable.
-    template<typename... Args>
+    template<typename... Args>  
     var operator()(size_t t1, Args&&... args) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::operator()(t1, args...));
@@ -128,6 +128,16 @@ public:
     var in_pairs(const vector<Tobj*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_pairs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
+    template<typename Tobj>
+    var in_pairs(const vector<Tobj*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pairs(vec, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;

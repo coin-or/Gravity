@@ -548,7 +548,7 @@ public:
         return res;
     }
 
-    
+
 
     template<typename Tobj>
     param in(const vector<Tobj*>& vec) {
@@ -583,11 +583,11 @@ public:
         }
         DebugOff(endl);
         res._name += ".in_" + string(typeid(Tobj).name());
-        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._unique_id = make_tuple<>(res._id,in_, typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
-    
+
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec) {
         param res(this->_name);
@@ -625,7 +625,51 @@ public:
         res._is_indexed = true;
         return res;
     }
-    
+
+    template<typename Tobj>
+    param in_pairs(const vector<Tobj*>& vec, unsigned T) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        DebugOff(_name << " = ");
+        string key;
+        for (unsigned t = 0; t < T; t++) {
+            for(auto it = vec.begin(); it!= vec.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                key = (*it)->_src->_name + "," + (*it)->_dest->_name;
+                if (t > 0) {
+                    key += ",";
+                    key += to_string(t);
+                }
+                DebugOff(key<< ", ");
+                auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                _val->resize(max(_val->size(),param_::_indices->size()));
+                if(pp.second) { //new index inserted
+                    if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(param_::_indices->size() - 1);
+                }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(pp.first->second);
+                }
+            }
+        }
+        DebugOff(endl);
+        res._name += ".in_" + string(typeid(Tobj).name());
+        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+
     template<typename Tobj>
     param from(const vector<Tobj*>& vec) {
         param res(this->_name);
@@ -664,7 +708,7 @@ public:
         res._is_indexed = true;
         return res;
     }
-    
+
     template<typename Tobj>
     param to(const vector<Tobj*>& vec) {
         param res(this->_name);
@@ -711,7 +755,7 @@ public:
         res._range = this->_range;
         res._val = this->_val;
         for (unsigned t = 0; t < T; t++) {
-           string key = nm;
+            string key = nm;
             if (t > 0) {
                 key += ",";
                 key += to_string(t);
@@ -741,7 +785,7 @@ public:
         return res;
     }
 
-    
+
 
     template<typename Tobj>
     param in_at(const vector<Tobj*>& nodes, unsigned t) {
@@ -818,7 +862,7 @@ public:
         res._is_indexed = true;
         return res;
     }
-    
+
     template<typename Tobj>
     param from(const vector<Tobj*>& arcs, unsigned T) {
         param res(this->_name);
@@ -830,10 +874,10 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
+                if(!(*it)->_active || !(*it)->_src->_active || !(*it)->_dest->_active ) {
                     continue;
                 }
-                key = (*it)->src->_name;
+                key = (*it)->_src->_name;
                 if (t > 0) {
                     key += ",";
                     key += to_string(t);
@@ -872,10 +916,10 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active || !(*it)->src->_active || !(*it)->dest->_active ) {
+                if(!(*it)->_active || !(*it)->_src->_active || !(*it)->_dest->_active ) {
                     continue;
                 }
-                key = (*it)->dest->_name;
+                key = (*it)->_dest->_name;
                 if (t > 0) {
                     key += ",";
                     key += to_string(t);

@@ -78,12 +78,12 @@ void Minkmodel::add_vars_origin() {
     func_ obj_MIP;
     int i=0, j=0;
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j)
-            obj_MIP += (a->weight)*zij(i,j);
+            obj_MIP += (a->_weight)*zij(i,j);
         else
-            obj_MIP += (a->weight)*zij(j,i);
+            obj_MIP += (a->_weight)*zij(j,i);
     }
     _model.set_objective(min(obj_MIP));
 }
@@ -95,12 +95,12 @@ void Minkmodel::add_vars_origin_tree() {
     func_ obj_MIP;
     int i=0, j=0;
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j)
-            obj_MIP += (a->weight)*zij(i,j);
+            obj_MIP += (a->_weight)*zij(i,j);
         else
-            obj_MIP += (a->weight)*zij(j,i);
+            obj_MIP += (a->_weight)*zij(j,i);
     }
     _model.set_objective(min(obj_MIP));
 }
@@ -112,12 +112,12 @@ void Minkmodel::add_vars_lifted() {
     int i=0, j=0;
     func_ obj;
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j)
-            obj += a->weight*((_K-1)*X(i,j) + 1)/_K;
+            obj += a->_weight*((_K-1)*X(i,j) + 1)/_K;
         else
-            obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
+            obj += a->_weight*((_K-1)*X(j,i) + 1)/_K;
     }
     _model.set_objective(min(obj));
     
@@ -142,12 +142,12 @@ void Minkmodel::add_vars_lifted_tree() {
     int i=0, j=0;
     func_ obj;
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j)
-            obj += a->weight*((_K-1)*X(i,j) + 1)/_K;
+            obj += a->_weight*((_K-1)*X(i,j) + 1)/_K;
         else
-            obj += a->weight*((_K-1)*X(j,i) + 1)/_K;
+            obj += a->_weight*((_K-1)*X(j,i) + 1)/_K;
     }
     _model.set_objective(min(obj));
     
@@ -158,8 +158,8 @@ void Minkmodel::add_vars_lifted_tree() {
     }
     
     for (auto a: _chordal_extension->arcs){
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         Constraint bound("("+to_string(i)+ "," + to_string(j) +")");
         bound = X(i,j) + 1/(_K-1);
         _model.add_constraint(bound >=0);
@@ -278,7 +278,7 @@ void Minkmodel::nchoosek(int bag_id, int offset, int K){
     }
     auto bag= _graph->_bags.at(bag_id);
     for (int i = offset; i <= bag.size() - K; i++) {
-        temp.push_back(bag[i]->ID);
+        temp.push_back(bag[i]->_id);
         //cout << "bag_id: " << bag_id << " i+1: " << i+1 << " K-1 " << K-1 << endl;
         nchoosek(bag_id, i+1, K-1);
         temp.pop_back();
@@ -297,9 +297,9 @@ void Minkmodel::cliquetree_decompose() {
         for (int j = 0; j < bag.size()-2; j++)
             for (int h=j+1; h<bag.size()-1; h++)
                 for (int l=h+1; l<bag.size(); l++) {
-                    i1 = bag[j]->ID; // zero index.
-                    i2 = bag[h]->ID;
-                    i3 = bag[l]->ID;
+                    i1 = bag[j]->_id; // zero index.
+                    i2 = bag[h]->_id;
+                    i3 = bag[l]->_id;
                     if(_ids.count(make_tuple(i1, i2, i3))==0) {
                         _ids.insert(make_tuple(i1, i2, i3));
                     }
@@ -418,9 +418,9 @@ void Minkmodel::add_general_clique() {
             int t = floor(bag.size()/_K);
             int q = (bag.size()-t*_K);
             for (int j= 0; j< bag.size()-1; j++) {
-                int idj=bag[j]->ID;
+                int idj=bag[j]->_id;
                 for (int k=j+1; k< bag.size(); k++) {
-                    int idk=bag[k]->ID;
+                    int idk=bag[k]->_id;
                     if (idj < idk)
                         GClique +=zij(idj,idk);
                     else
@@ -442,10 +442,10 @@ void Minkmodel::add_wheel() {
 //            for (int j= 0; j< bag.size(); j++){
 //                Constraint GClique("General_Clique: bag "+to_string(i)+" constr: "+to_string(j));
 //                 // wheel center
-//                int idfirst=bag[j]->ID;
+//                int idfirst=bag[j]->_id;
 //                // the spokes part
 //                for (int k=0; k< j; k++){
-//                    int idsec=bag[k]->ID;
+//                    int idsec=bag[k]->_id;
 //                    if (idfirst < idsec)
 //                        GClique += zij(idfirst,idsec);
 //                    else
@@ -453,7 +453,7 @@ void Minkmodel::add_wheel() {
 //
 //                }
 //                for (int k=j+1; k< bag.size(); k++){
-//                    int idsec=bag[k]->ID;
+//                    int idsec=bag[k]->_id;
 //                    GClique += zij(idfirst,idsec);
 //                }
 //                // the wheel part
@@ -511,12 +511,12 @@ void Minkmodel::node_edge_formulation(){
     func_ obj_node_edge;
     int i=0, j=0;
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j)
-            obj_node_edge += (a->weight)*y(i,j);
+            obj_node_edge += (a->_weight)*y(i,j);
         else
-            obj_node_edge += (a->weight)*y(j,i);
+            obj_node_edge += (a->_weight)*y(j,i);
     }
     _model.set_objective(min(obj_node_edge));
     
@@ -531,8 +531,8 @@ void Minkmodel::node_edge_formulation(){
     // add consistency constraints
     for (int c= 0; c< _K; c++){
         for (auto a: _graph->arcs) {
-            i = (a->src)->ID;
-            j = (a->dest)->ID;
+            i = (a->_src)->_id;
+            j = (a->_dest)->_id;
             Constraint Consistency1("Consistency1["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
             Constraint Consistency2("Consistency2["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
             Constraint Consistency3("Consistency3["+ to_string(i) + "," + to_string(j) + ", " + to_string(c) +"]");
@@ -579,8 +579,8 @@ void Minkmodel::construct_fsol() {
    else{
         cout << "The constructed solution is: " << endl;
          for (auto a: _chordal_extension->arcs) {
-             i = (a->src)->ID;
-             j = (a->dest)->ID;
+             i = (a->_src)->_id;
+             j = (a->_dest)->_id;
              if (i <= j) {
                  sol(i,j)=zij(i,j).getvalue();
              }
@@ -602,7 +602,7 @@ void Minkmodel::construct_fsol() {
              n= (_chordal_extension->get_node(to_string(i+1)));
              for (j = i+1; j< _chordal_extension->nodes.size(); j++) {
                  nn = _chordal_extension->get_node(to_string(j+1));
-                 //cout<< "(n, nn): " << n->ID << ", " << nn->ID << endl;
+                 //cout<< "(n, nn): " << n->_id << ", " << nn->_id << endl;
                  if (n->is_connected(nn)) {
                      cout << sol(i,j).to_str() << endl;
                  }
@@ -610,10 +610,10 @@ void Minkmodel::construct_fsol() {
                  {
                      string name = to_string(_chordal_extension->arcs.size()+1);
                      arc_chordal = new Arc(name);
-                     arc_chordal->id = _chordal_extension->arcs.size();
-                     arc_chordal->src = n;
-                     arc_chordal->dest = nn;
-                     arc_chordal->weight = 0;
+                     arc_chordal->_id = _chordal_extension->arcs.size();
+                     arc_chordal->_src = n;
+                     arc_chordal->_dest = nn;
+                     arc_chordal->_weight = 0;
                      arc_chordal->connect();
                      // now find the maximal clique containing edge (i,j)
 
@@ -623,14 +623,14 @@ void Minkmodel::construct_fsol() {
                      Debug("neighbours of " << i << ": ");
 
                      for (auto a: n->branches) {
-                         idi.insert(a->neighbour(n)->ID);
-                         Debug(a->neighbour(n)->ID << ", ");
+                         idi.insert(a->neighbour(n)->_id);
+                         Debug(a->neighbour(n)->_id << ", ");
                      }
                      Debug(endl << "neighbours of " << j << ": ");
 
                      for (auto a: nn->branches) {
-                         idj.insert(a->neighbour(nn)->ID);
-                         Debug(a->neighbour(nn)->ID << ", ");
+                         idj.insert(a->neighbour(nn)->_id);
+                         Debug(a->neighbour(nn)->_id << ", ");
                      }
                      Debug(endl);
 

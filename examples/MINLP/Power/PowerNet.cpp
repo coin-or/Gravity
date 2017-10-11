@@ -194,8 +194,8 @@ int PowerNet::readgrid(const char* fname) {
         v_max(name) = atof(word.c_str());
         getline(file, word,';');
         v_min(name) = atof(word.c_str());
-        w_min(name) = pow(v_min(name).eval(),2.);
-        w_max(name) = pow(v_max(name).eval(),2.);
+        w_min(name) = pow(v_min(name).eval(), 2.);
+        w_max(name) = pow(v_max(name).eval(), 2.);
     // single phase
     
         bus = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);

@@ -309,8 +309,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
             case double_:{
                 auto real_var = (var<double>*)v;
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[vid+i] = real_var->get_lb(i);
-                    x_u[vid+i] = real_var->get_ub(i);
+                    x_l[vid+i] = (double)real_var->get_lb(i);
+                    x_u[vid+i] = (double)real_var->get_ub(i);
 //                    if (i==478) {
 //                        DebugOn("i = " << i << endl);
 //                        cout << "STOP";
