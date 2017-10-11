@@ -24,12 +24,13 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Power/nesta_case5_pjm.m";
-//            fname = "../../data_sets/Power/nesta_case14_ieee.m";
-//            fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-        
-        //     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-//        fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
+           //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+           //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+           //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
+           fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+           //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
+            // fname = "../../data_sets/Power/nesta_case118_ieee.m";
+           //fname = "/Users/hlh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2848_rte.m";
     }
     // ACOPF
     PowerNet* grid = new PowerNet();
@@ -38,11 +39,8 @@ int main (int argc, const char * argv[])
 //    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
 //    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
 //    fname = "../../data_sets/Power/nesta_case300_ieee.m";
-//     fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-    
-
+//    fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     grid->readgrid(fname);
-//    grid->get_tree_decomp_bags(true);
 
     // Grid Parameters
     unsigned nb_gen = grid->get_nb_active_gens();
@@ -98,11 +96,7 @@ int main (int argc, const char * argv[])
         }
     }
 
-
-
     ACOPF.set_objective(min(obj));
-
-
     /** Define constraints */
     
     /* REF BUS */

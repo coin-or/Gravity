@@ -512,8 +512,8 @@ Net* Net::get_chordal_extension() {
     Net* graph_clone = clone();
     int nb = 0;
 
-    /** cliques with less than 3 nodes are useless for us.*/
-    while (graph_clone->nodes.size() > 2) {
+    /** cliques with less than 2 nodes are useless for us.*/
+    while (graph_clone->nodes.size() > 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();         
@@ -574,7 +574,7 @@ Net* Net::get_chordal_extension() {
 // get cliques from the tree decomposition
 // Two methods
 // first one: check the inclusion relationship
-// second one: use the RIP property of the tree decomposition, thus just need to check every leaf
+// second one: use the RIP property of the tree decomposition, thus just need to check every leaf..
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 void Net::get_clique_tree (bool print) {
     for (unsigned i = 0; i < _bags.size()-1; i++) {
