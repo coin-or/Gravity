@@ -589,6 +589,44 @@ public:
     }
     
     template<typename Tobj>
+    param in_pairs(const vector<Tobj*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        DebugOff(_name << " = ");
+        string key;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_src->_name + "," + (*it)->_dest->_name;
+            DebugOff(key<< ", ");
+            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            _val->resize(max(_val->size(),param_::_indices->size()));
+            if(pp.second) { //new index inserted
+                if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(param_::_indices->size() - 1);
+            }
+            else {
+                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                    res._dim++;
+                }
+                res._ids->push_back(pp.first->second);
+            }
+        }
+        DebugOff(endl);
+        res._name += ".in_" + string(typeid(Tobj).name());
+        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    template<typename Tobj>
     param from(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;
