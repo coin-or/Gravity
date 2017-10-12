@@ -331,7 +331,7 @@ namespace gravity{
             else {
                 continue;
             }
-            for (int i = 0; i<size-1; i++) {
+            for (int i = 0; i< size-1; i++) {
                 key = bag[i]->_name + "," + bag[i+1]->_name;
                 assert(bag[i+2]->ID > bag[i]->ID);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
@@ -371,7 +371,7 @@ namespace gravity{
     template<typename type>vector<var<type>> var<type>::in(const std::vector<std::vector<Node*>>& bags, unsigned size){
         vector<var> res;
         string key;
-        res.resize(size,(this->_name));
+        res.resize(size, (this->_name));
         for (int i = 0; i<size; i++) {
             res[i]._id = this->_id;
             res[i]._vec_id = this->_vec_id;

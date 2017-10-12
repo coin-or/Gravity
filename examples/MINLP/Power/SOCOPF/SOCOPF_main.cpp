@@ -55,10 +55,6 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Qg^(nb_gen));
     
     // power flow
-//    var<Real> Pf_from("Pf_from");
-//    var<Real> Qf_from("Qf_from");
-//    var<Real> Pf_to("Pf_to");
-//    var<Real> Qf_to("Qf_to");
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
     var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
@@ -73,12 +69,6 @@ int main (int argc, const char * argv[])
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
-//    grid->w_min.in(grid->nodes).print(true);
-//    grid->w_max.in(grid->nodes).print(true);
-
-//    var<Real>  Wii("Wii");
-//    var<Real>  R_Wij("R_Wij"); // real part of Wij
-//    var<Real>  Im_Wij("Im_Wij"); // imaginary part of Wij.
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_bus_pairs);
     SOCP.add_var(Im_Wij^nb_bus_pairs);
