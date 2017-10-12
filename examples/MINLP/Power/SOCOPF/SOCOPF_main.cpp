@@ -27,8 +27,8 @@ int main (int argc, const char * argv[])
     }
     else {
        // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
-       // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+       // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
        // fname = "../../data_sets/Power/nesta_case300_ieee.m";
     }
     PowerNet* grid = new PowerNet();
@@ -175,25 +175,6 @@ int main (int argc, const char * argv[])
 //    Vol_limit_UB -= grid->w_min.in(grid->nodes);
 //    SOCP.add_constraint(Vol_limit_LB >= 0);
     
-    // constraints on Wij
-//    Constraint WRij_limit_UB("WRij_limit_UB");
-//    WRij_limit_UB = R_Wij.in(bus_pairs);
-//    WRij_limit_UB -= grid->wr_max.in(bus_pairs);
-//    SOCP.add_constraint(WRij_limit_UB <= 0);
-//    Constraint WRij_limit_LB("WRij_limit_LB");
-//    WRij_limit_LB = R_Wij.in(bus_pairs);
-//    WRij_limit_UB -= grid->wr_min.in(bus_pairs);
-//    SOCP.add_constraint(WRij_limit_LB >= 0);
-//    
-//    // constraints on Wij
-//    Constraint WIij_limit_UB("WIij_limit_UB");
-//    WIij_limit_UB = Im_Wij.in(bus_pairs);
-//    WIij_limit_UB -= grid->wi_max.in(bus_pairs);
-//    SOCP.add_constraint(WIij_limit_UB <= 0);
-//    Constraint WIij_limit_LB("WIij_limit_LB");
-//    WIij_limit_LB = Im_Wij.in(bus_pairs);
-//    WIij_limit_UB -= grid->wi_min.in(bus_pairs);
-//    SOCP.add_constraint(WIij_limit_LB >= 0);
     
     
     /* Thermal Limit Constraints */

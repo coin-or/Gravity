@@ -5,6 +5,7 @@
 //  Created by Guanglei Wang on 6/9/17.
 //
 //
+
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -16,12 +17,13 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef USE_BOOST
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
-
 #include <deque>
 #include <iterator>
-
+#endif
 using namespace std;
 using namespace gravity;
 
@@ -96,7 +98,9 @@ int main (int argc, const char * argv[])
     /** Clique tree decomposition **/
     grid->get_tree_decomp_bags();
     grid->get_clique_tree();
+    const unsigned num_nodes = grid->_bags.size();
     
+#ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
     /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
     typedef boost::adjacency_list <boost::vecS, boost::vecS, boost::undirectedS, boost::no_property, boost::property < boost::edge_weight_t, int >> Graph;
@@ -105,7 +109,6 @@ int main (int argc, const char * argv[])
     cout << "size:" << grid->_bags.size() <<endl;
     
     // build the intersection graph of the cliques
-    const unsigned num_nodes = grid->_bags.size();
     typedef std::pair<int, int> E;
     std::vector<E> edges;
     std::vector<int> weights;
@@ -147,9 +150,9 @@ int main (int argc, const char * argv[])
         << " with weight of " << weight[*ei]
         << std::endl;
     }
-    
+#endif
     const unsigned nb_cliques = num_nodes - 1;
-    
+
     return 0;
     /** build subproblem model */
     Model Subr("Subr");
@@ -372,9 +375,9 @@ int main (int argc, const char * argv[])
     //OPF.run();
     
     //  Model Decompose("Decompose Model");
-
-    
     /* Solution analysis */
     //auto val1 = (*(var<Real>*)(Decompose.get_var("Start_up")));
     return 0;
 }
+
+

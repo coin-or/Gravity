@@ -8,18 +8,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
+option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 
 # Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
 # Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 
 # Find MOSEK (optional)
 option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
+
+# include BOOST (optional) 
+option(ENABLE_BOOST "Link to BOOST libraries" ON)
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
@@ -85,6 +88,15 @@ if (ENABLE_CPLEX)
     #link_directories(${CPLEX_LINKS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
+endif()
+
+
+# Find BOOST?
+if (ENABLE_BOOST)
+    message(STATUS "Enable BOOST")
+    add_definitions(-DUSE_BOOST)
+    include_directories("/usr/local/include/")
+    set(LIBS ${LIBS} "usr/local/lib/")
 endif()
 
 # Compiler options

@@ -185,8 +185,8 @@ int main (int argc, const char * argv[])
     auto obj_SDP = 2*sum(Xij) + sum(Xii);
     SDP.set_objective(max(obj_SDP));
     
-    //solver s1(SDP,ipopt);
-    solver s1(SDP,cplex);
+    solver s1(SDP,ipopt);
+    //solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
@@ -214,8 +214,8 @@ int main (int argc, const char * argv[])
     }
 //    OA.add_constraint(diag=1);
     for(auto a: graph.arcs){
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
         zeros = Xij(i,j);
         OA.add_constraint(zeros=0);
