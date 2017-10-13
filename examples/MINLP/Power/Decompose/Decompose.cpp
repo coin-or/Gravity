@@ -221,7 +221,7 @@ double subproblem(PowerNet* grid, unsigned T, unsigned c,vector<Bus*> bag_bus, v
     SOC =  power(R_Wij.in(bag_arcs, T), 2) + power(Im_Wij.in(bag_arcs, T), 2) - Wii.from(bag_arcs, T)*Wii.to(bag_arcs, T) ;
     Subr.add_constraint(SOC <= 0);
 
-    ////AC Power Flow.
+    //AC Power Flow.
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from.in(bag_arcs, T);
     Flow_P_From -= grid->g_ff.in(bag_arcs, T)*Wii.from(bag_arcs, T);
