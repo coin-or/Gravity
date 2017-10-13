@@ -435,8 +435,8 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     Net* graph_clone = clone();
     int nb = 0;
 
-    /** cliques with less than 3 nodes are useless for us.*/
-    while (graph_clone->nodes.size()>2) {
+    /** cliques with less than 1 nodes are useless for us.*/
+    while (graph_clone->nodes.size()> 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
 
         // last element has the minimum fill-in.

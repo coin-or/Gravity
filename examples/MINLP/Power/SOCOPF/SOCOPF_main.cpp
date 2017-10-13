@@ -27,9 +27,9 @@ int main (int argc, const char * argv[])
     }
     else {
        // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
-        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+       // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
        // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-       // fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -134,25 +134,25 @@ int main (int argc, const char * argv[])
     Flow_Q_From += grid->b_ff.in(grid->arcs)*Wii.from(grid->arcs);
     Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_From -= grid->g_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_Q_From = 0);
-    
+    //SOCP.add_constraint(Flow_Q_From = 0);
+
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_Q_To = 0);
+    //SOCP.add_constraint(Flow_Q_To = 0);
 
-    /* Phase Angle Bounds constraints */
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bus_pairs);
-    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_UB <= 0);
-    
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bus_pairs);
-    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_LB >= 0);
+    ///* Phase Angle Bounds constraints */
+    //Constraint PAD_UB("PAD_UB");
+    //PAD_UB = Im_Wij.in(bus_pairs);
+    //PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
+    //SOCP.add_constraint(PAD_UB <= 0);
+    //
+    //Constraint PAD_LB("PAD_LB");
+    //PAD_LB =  Im_Wij.in(bus_pairs);
+    //PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
+    //SOCP.add_constraint(PAD_LB >= 0);
     
     // AC voltage limit constraints.
 //    Constraint Vol_limit_UB("Vol_limit_UB");

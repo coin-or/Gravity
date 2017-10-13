@@ -516,7 +516,8 @@ public:
         res._range = this->_range;
         res._val = this->_val;
         list<string> indices;
-        indices = {forward<size_t>(args)...};
+        //indices = {forward<size_t>(args)...};
+        indices = {forward<string>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
@@ -664,8 +665,8 @@ public:
             }
         }
         DebugOff(endl);
-        res._name += ".in_" + string(typeid(Tobj).name());
-        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,in_time_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -777,10 +778,8 @@ public:
                 res._ids->push_back(pp.first->second);
             }
         }
-        res._name += ".in_time_expand_" + to_string(T);
-//res._unique_id = make_tuple<>(res._id,time_expand_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
-        res._unique_id = make_tuple<>(res._id,in_, 0, T, res.get_id_inst(param_::get_dim()));
-
+        res._name += ".in_" +  string(typeid(nm).name()) + "_time_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id, in_time_, typeid(nm).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -797,6 +796,9 @@ public:
         res._val = this->_val;
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
             key = (*it)->_name;
             if (t > 0) {
                 key += ",";
@@ -817,9 +819,8 @@ public:
                 res._ids->push_back(pp.first->second);
             }
         }
-        res._name += ".in_set_at_time_" + to_string(t);
-        // res._unique_id = make_tuple<>(res._id, in_set_at_, res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
-        res._unique_id = make_tuple<>(res._id, in_,0, t, res.get_id_inst(param_::get_dim()));
+        res._name += ".in_" + string(typeid(Tobj).name()) + "_at_" + to_string(t);
+        res._unique_id = make_tuple<>(res._id, in_at_, typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -835,6 +836,9 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = nodes.begin(); it!= nodes.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
                 key = (*it)->_name;
                 if (t > 0) {
                     key += ",";
@@ -857,8 +861,8 @@ public:
                 }
             }
         }
-        res._name += ".in_set_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,in_time_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -871,10 +875,11 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        DebugOff(_name << " = ");
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active || !(*it)->_src->_active || !(*it)->_dest->_active ) {
+                if(!(*it)->_active){  // || !(*it)->_src->_active || !(*it)->_dest->_active ) {
                     continue;
                 }
                 key = (*it)->_src->_name;
@@ -899,8 +904,8 @@ public:
                 }
             }
         }
-        res._name += ".from_arcs_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,from_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._name += ".from_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
+        res._unique_id = make_tuple<>(res._id,from_time_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -916,7 +921,7 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active || !(*it)->_src->_active || !(*it)->_dest->_active ) {
+                if(!(*it)->_active){ // || !(*it)->_src->_active || !(*it)->_dest->_active ) {
                     continue;
                 }
                 key = (*it)->_dest->_name;
@@ -943,8 +948,8 @@ public:
 
             }
         }
-        res._name += ".to_arcs_time_expand_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id, to_,typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._name += ".to_"  + string(typeid(Tobj).name()) + "_time_"+ to_string(T);
+        res._unique_id = make_tuple<>(res._id, to_time_, typeid(Tobj).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -956,7 +961,6 @@ public:
         for(unsigned t = 0; t < T - 1; t ++ ) {
             _val->insert(_val->end(), _val->begin(), _val->begin()+l);
         }
-        //_dim = l*T;
         set_size(l*T);
     }
     //auto l = this->get_dim();
