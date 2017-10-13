@@ -176,7 +176,7 @@ int PowerNet::readgrid(const char* fname) {
         status = atoi(word.c_str());
         if (status==3) {
             ref_bus = name;
-            DebugOn("Ref bus = " << ref_bus << endl);
+            DebugOff("Ref bus = " << ref_bus << endl);
         }
         file >> ws >> word;
         pl(name) = atof(word.c_str())/bMVA;

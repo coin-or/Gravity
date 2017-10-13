@@ -26,7 +26,7 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+        fname = "../../data_sets/Power/nesta_case5_pjm.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
