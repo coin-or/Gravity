@@ -428,7 +428,6 @@ int main (int argc, const char * argv[])
         weight_total -= weight[*ei];
         max_overlap_edges += -weight[*ei]*(-weight[*ei] -1)/2;
     }
-#endif
     const unsigned nb_clt_edges = spanning_tree.size();
 
 
@@ -509,6 +508,7 @@ int main (int argc, const char * argv[])
     //    }
     //}
     return 0;
+#endif
 }
 
 
