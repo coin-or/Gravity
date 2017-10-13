@@ -26,10 +26,7 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-       // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
-       // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-       // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case3_lmbd.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -40,10 +37,10 @@ int main (int argc, const char * argv[])
     auto nb_gen = grid->get_nb_active_gens();
     auto nb_lines = grid->get_nb_active_arcs();
     auto nb_buses = grid->get_nb_active_nodes();
-    DebugOn("nb gens = " << nb_gen << endl);
-    DebugOn("nb lines = " << nb_lines << endl);
-    DebugOn("nb buses = " << nb_buses << endl);
-    DebugOn("nb bus_pairs = " << nb_bus_pairs << endl);
+    DebugOff("nb gens = " << nb_gen << endl);
+    DebugOff("nb lines = " << nb_lines << endl);
+    DebugOff("nb buses = " << nb_buses << endl);
+    DebugOff("nb bus_pairs = " << nb_bus_pairs << endl);
     /** build model */
     Model SOCP("SOCP Model");
 
@@ -102,13 +99,8 @@ int main (int argc, const char * argv[])
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
 
         /* Shunts */
-//        if (bus->gs()!=0) {
         KCL_P +=  bus->gs()*(Wii(bus->_name));
-//        }
-
-//        if (bus->bs()!=0) {
         KCL_Q -=  bus->bs()*(Wii(bus->_name));
-//        }
         
         SOCP.add_constraint(KCL_P = 0);
         SOCP.add_constraint(KCL_Q = 0);
@@ -134,37 +126,25 @@ int main (int argc, const char * argv[])
     Flow_Q_From += grid->b_ff.in(grid->arcs)*Wii.from(grid->arcs);
     Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_From -= grid->g_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    //SOCP.add_constraint(Flow_Q_From = 0);
+    SOCP.add_constraint(Flow_Q_From = 0);
 
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    //SOCP.add_constraint(Flow_Q_To = 0);
+    SOCP.add_constraint(Flow_Q_To = 0);
 
     ///* Phase Angle Bounds constraints */
-    //Constraint PAD_UB("PAD_UB");
-    //PAD_UB = Im_Wij.in(bus_pairs);
-    //PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
-    //SOCP.add_constraint(PAD_UB <= 0);
-    //
-    //Constraint PAD_LB("PAD_LB");
-    //PAD_LB =  Im_Wij.in(bus_pairs);
-    //PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
-    //SOCP.add_constraint(PAD_LB >= 0);
+    Constraint PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij.in(bus_pairs);
+    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
+    SOCP.add_constraint(PAD_UB <= 0);
     
-    // AC voltage limit constraints.
-//    Constraint Vol_limit_UB("Vol_limit_UB");
-//    Vol_limit_UB = Wii.in(grid->nodes);
-//    Vol_limit_UB -= grid->w_max.in(grid->nodes);
-//    SOCP.add_constraint(Vol_limit_UB <= 0);
-//
-//    Constraint Vol_limit_LB("Vol_limit_LB");
-//    Vol_limit_LB = Wii.in(grid->nodes);
-//    Vol_limit_UB -= grid->w_min.in(grid->nodes);
-//    SOCP.add_constraint(Vol_limit_LB >= 0);
-    
+    Constraint PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij.in(bus_pairs);
+    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
+    SOCP.add_constraint(PAD_LB >= 0);
     
     
     /* Thermal Limit Constraints */
