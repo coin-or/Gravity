@@ -65,7 +65,7 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Pf_to^(nb_lines));
     SOCP.add_var(Qf_to^(nb_lines));
     
-    // Lifted variables.
+    // lIFTED VARIABLES.
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
