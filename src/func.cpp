@@ -4883,7 +4883,7 @@ namespace gravity{
         return (_ftype==quad_);
     };
 
-    bool func_::is_polynome() const{
+    bool func_::is_polynomial() const{
         return (_ftype==pol_);
     };
 

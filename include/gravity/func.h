@@ -524,7 +524,7 @@ namespace gravity {
         bool is_constant() const;
         bool is_linear() const;
         bool is_quadratic() const;
-        bool is_polynome() const;
+        bool is_polynomial() const;
         bool is_nonlinear() const;
         bool is_zero();/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
         

@@ -7,14 +7,6 @@
 //
 
 #include <gravity/model.h>
-//#define USEDEBUG
-#ifdef USEDEBUG
-#define Debug(x) cout << x
-#else
-#define Debug(x)
-#endif
-#define DebugOn(x) cout << x
-#define DebugOff(x)
 
 
 using namespace std;
@@ -202,7 +194,7 @@ void Model::add_constraint(const Constraint& c){
     if (_type==lin_m && c.is_quadratic()) {
         _type = quad_m;
     }
-    if ((_type==lin_m|| _type==quad_m) && c.is_nonlinear()) {
+    if ((_type==lin_m || _type==quad_m) && (c.is_nonlinear() || c.is_polynomial())) {
         _type = nlin_m;
     }
 };
@@ -583,16 +575,18 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
 
 
 void Model::fill_in_hess_nnz(int* iRow , int* jCol){
-    size_t idx=0;
+    size_t idx=0, idx_all=0;
     for (auto &hess_i: _hess_link) {
 //        if (!hess_i.empty()) {
             for (auto &hess_j: hess_i.second) {
+                idx_all += hess_j.second.size();
                 iRow[idx] = hess_i.first.second;
                 jCol[idx] = hess_j.first.second;
                 idx++;
             }
 //        }
     }
+    _hess_vals.resize(idx_all);
 }
 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
@@ -600,7 +594,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     unique_id vid, vjd;
     Constraint* c;
     double hess = 0;
-    if (!_first_call_hess && (!new_x || (_type==lin_m || _type==quad_m))) { /* No need to recompute jacobian for linear models */
+    if (!_first_call_hess && (!new_x || (_type==lin_m || _type==quad_m))) { /* No need to recompute Hessian for quadratic models */
         for (auto &hess_i: _hess_link) {
             vid = hess_i.first.first;
             for (auto &hess_j: hess_i.second) {
@@ -623,27 +617,60 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     if (new_x) {
         set_x(x);
     }
-    for (auto &hess_i: _hess_link) {
-        vid = hess_i.first.first;
-        for (auto &hess_j: hess_i.second) {
-            vjd = hess_j.first.first;
-            res[idx] = 0;
-            for (auto &cid: hess_j.second){
-                if (cid.first==-1) {
-                    hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
-                    _hess_vals.push_back(hess);
-                    res[idx] += obj_factor * hess;
-                }
-                else {
-                    c = _cons[cid.first];
-                    hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(cid.second);
-                    if (_first_call_hess) {
-                        _hess_vals.push_back(hess);
+    if (_first_call_hess) {
+        for (auto &hess_i: _hess_link) {
+            vid = hess_i.first.first;
+            for (auto &hess_j: hess_i.second) {
+                vjd = hess_j.first.first;
+                res[idx] = 0;
+                for (auto &cid: hess_j.second){
+                    if (cid.first==-1) {
+                        hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
+                        _hess_vals[idx_in++] = hess;
+                        res[idx] += obj_factor * hess;
                     }
-                    res[idx] += lambda[cid.first+cid.second] * hess;
+                    else {
+                        c = _cons[cid.first];
+                        hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(cid.second);
+                        _hess_vals[idx_in++] = hess;
+                        res[idx] += lambda[cid.first+cid.second] * hess;
+                    }
                 }
+                idx++;
             }
-            idx++;
+        }
+    }
+    else {
+        for (auto &hess_i: _hess_link) {
+            vid = hess_i.first.first;
+            for (auto &hess_j: hess_i.second) {
+                vjd = hess_j.first.first;
+                res[idx] = 0;
+                for (auto &cid: hess_j.second){
+                    if (cid.first==-1) {
+                        if (_obj.is_quadratic()) {
+                            res[idx] += obj_factor * _hess_vals[idx_in++];
+                        }
+                        else {
+                            hess = _obj.get_stored_derivative(vid)->get_stored_derivative(vjd)->eval();
+                            _hess_vals[idx_in++] = hess;
+                            res[idx] += obj_factor * hess;
+                        }
+                    }
+                    else {
+                        c = _cons[cid.first];
+                        if (c->is_quadratic()) {
+                            res[idx] += lambda[cid.first+cid.second] * _hess_vals[idx_in++];
+                        }
+                        else {
+                            hess = c->get_stored_derivative(vid)->get_stored_derivative(vjd)->eval(cid.second);
+                            _hess_vals[idx_in++] = hess;
+                            res[idx] += lambda[cid.first+cid.second] * hess;
+                        }
+                    }
+                }
+                idx++;
+            }
         }
     }
     _first_call_hess = false;

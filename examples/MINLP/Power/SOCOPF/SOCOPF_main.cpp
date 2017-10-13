@@ -158,6 +158,10 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
     
+    Constraint NL("NL");
+    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
+    SOCP.add_constraint(NL <= 0);
+    
     solver SCOPF(SOCP,ipopt);
     SCOPF.run();
     return 0;
