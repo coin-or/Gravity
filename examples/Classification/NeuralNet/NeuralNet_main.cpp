@@ -18,7 +18,7 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "DataSet.h"
+#include "../DataSet.h"
 
 using namespace std;
 using namespace gravity;
@@ -27,7 +27,7 @@ int main (int argc, const char * argv[])
 {
     
     //  Start Timers
-    std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF THE POOLING PROBLEM AND SOME OF ITS RELAXATIONS IN GRAVITY\n";
+    std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A NEURAL NETWORK IN GRAVITY\n";
     std::cout << "Understanding the numerical limits of your machine:" << endl;
     std::cout << "type\tlowest\thighest\n";
     

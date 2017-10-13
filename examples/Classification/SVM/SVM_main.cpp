@@ -26,7 +26,7 @@ using namespace gravity;
 int main (int argc, const char * argv[])
 {
     //  Start Timers
-    std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF THE POOLING PROBLEM AND SOME OF ITS RELAXATIONS IN GRAVITY\n";
+    std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
     std::cout << "Understanding the numerical limits of your machine:" << endl;
     std::cout << "type\tlowest\thighest\n";
     
@@ -50,7 +50,7 @@ int main (int argc, const char * argv[])
     << std::numeric_limits<double>::max() << '\n';
     std::cout << "long double\t"
     << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
-    unsigned i, j, i1, i2, i3;
+
     
     SolverType stype = cplex;
     double wall0 = get_wall_time();
