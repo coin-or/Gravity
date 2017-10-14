@@ -89,7 +89,7 @@ const bool node_compare(const Node* n1, const Node* n2) {
 }
 
 void Net::add_node(Node* node) {
-    node->_id = (int)nodes.size();
+    node->_id = (int) nodes.size();
     
     if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
@@ -133,7 +133,6 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     }
     return nullptr;
 }
-
 
 /* returns the Id of the arc formed by nodes names n1 and n2 */
 Arc* Net::get_arc(std::string src, std::string dest) {
@@ -251,7 +250,7 @@ void Net::readrudy(const char* fname) {
     string name;
     Node* node = nullptr;
 
-    for (int i= 1; i<Num_nodes+1; i++) {
+    for (int i= 1; i< Num_nodes + 1; i++) {
         name = to_string(i);
         node = new Node(name,i-1);
         add_node(node);

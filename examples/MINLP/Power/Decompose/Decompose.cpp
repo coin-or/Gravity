@@ -29,7 +29,7 @@ using namespace gravity;
 
 /** initialise subproblem model */
 
-double subproblem(PowerNet* grid, unsigned T, unsigned c,vector<Bus*> bag_bus, vector<Gen*> bag_gens,
+double subproblem(PowerNet* grid, unsigned T, unsigned c, Net* cliquetree, vector<Bus*> bag_bus, vector<Gen*> bag_gens,
                   vector<Arc*> bag_arcs, param<Real>& rate_ramp, param<Real>& rate_switch,
                   param<Real>& min_up, param<Real>& min_down, param<Real>& cost_up, param<Real>& cost_down) {
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
@@ -254,7 +254,7 @@ double subproblem(PowerNet* grid, unsigned T, unsigned c,vector<Bus*> bag_bus, v
     Flow_Q_To = 0;
     Subr.add_constraint(Flow_Q_To);
 
-     //Phase Angle Bounds constraints */
+    //Phase Angle Bounds constraints */
     //NOTE THAT WE SHOULD USE BUS PAIRS!!!
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bag_arcs, T);
@@ -266,7 +266,7 @@ double subproblem(PowerNet* grid, unsigned T, unsigned c,vector<Bus*> bag_bus, v
     PAD_LB -= grid->tan_th_min.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
     Subr.add_constraint(PAD_LB >= 0);
 
-     //Thermal Limit Constraints */
+    //Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(bag_arcs, T),  2) + power(Qf_from.in(bag_arcs, T), 2);
     Thermal_Limit_from -= power(grid->S_max.in(bag_arcs, T), 2);
@@ -377,10 +377,14 @@ int main (int argc, const char * argv[])
 #ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
     /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
-    typedef boost::adjacency_list <boost::vecS, boost::vecS, boost::undirectedS, boost::no_property, boost::property < boost::edge_weight_t, int >> Graph;
+    typedef boost::adjacency_list <boost::vecS,
+            boost::vecS,
+            boost::undirectedS,
+            boost::no_property,
+            boost::property < boost::edge_weight_t, int >
+            > Graph;
     typedef boost::graph_traits <Graph>::edge_descriptor Edge;
     typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
-    cout << "size:" << grid->_bags.size() <<endl;
 
     // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
     typedef std::pair<int, int> E;
@@ -417,34 +421,68 @@ int main (int argc, const char * argv[])
     std::vector < Edge > spanning_tree;
     boost::kruskal_minimum_spanning_tree(g, std::back_inserter(spanning_tree));
 
-    std::cout << "Print the total " << spanning_tree.size() << " edges in the clique tree:" << std::endl;
+    DebugOn("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
+
+    //////////CLIQUE TREE /////////////////////////////
+    Net* cliquetree = new Net();
+    Node* node = nullptr;
+    Arc*  a = nullptr;
+    string name;
+    for (int i = 0; i < nb_cliques; i++) {
+        node= new Node(to_string(i), i);
+        cliquetree->add_node(node);
+    }
+
     int weight_total = 0;
     int max_overlap_edges = 0;
     for (std::vector < Edge >::iterator ei = spanning_tree.begin();
             ei != spanning_tree.end(); ++ei) {
-        std::cout << source(*ei, g) << " <--> " << target(*ei, g)
-                  << " with weight of " << -weight[*ei]
-                  << std::endl;
+        int u = source(*ei, g);
+        int v = target(*ei, g);
+        DebugOn(u << " <--> " << v
+                << " with weight of " << -weight[*ei]
+                << endl);
         weight_total -= weight[*ei];
         max_overlap_edges += -weight[*ei]*(-weight[*ei] -1)/2;
+        name = (int) cliquetree->arcs.size();
+        a = new Arc(name);
+        a->_id = cliquetree->arcs.size();
+
+        a->_src = cliquetree->get_node(to_string(u));
+        a->_dest = cliquetree->get_node(to_string(v));
+        a->_weight = -weight[*ei];
+        cliquetree->add_arc(a);
+        a->connect();
     }
     const unsigned nb_clt_edges = spanning_tree.size();
 
-
-    /** initialise MAIN */
+/////////////////////////////////// INITIALISE MAIN ///////////////////////////////////
     Model Master("Master");
 
     /** Variables  */
     var<Real> gamma_C("gamma_C");
-    var<Real> lambda("lambda");
-    var<Real> mu("mu");
-    var<Real> sigma("sigma");
-    var<Real> eta("eta");
+    vector<var<Real>> lambda_var;
+    vector<var<Real>> mu_var;
+    vector<var<Real>> sigma_var;
+    vector<var<Real>> eta_var;
+
     Master.add_var(gamma_C^nb_cliques);
-    Master.add_var(lambda^max_overlap_edges);
-    Master.add_var(mu^weight_total);
-    Master.add_var(sigma^weight_total);
-    Master.add_var(eta^weight_total);
+    for (auto a: cliquetree->arcs) {
+        var<Real> lambda("lambda_C" + to_string(a->_id));
+        var<Real> mu("lambda_C" + to_string(a->_id));
+        var<Real> sigma("lambda_C" + to_string(a->_id));
+        var<Real> eta("lambda_C" + to_string(a->_id));
+
+        lambda_var.push_back(lambda);
+        mu_var.push_back(mu);
+        sigma_var.push_back(sigma);
+        eta_var.push_back(eta);
+
+        Master.add_var(lambda^(a->_weight*(a->_weight -1)/2));
+        Master.add_var(mu^a->_weight);
+        Master.add_var(sigma^a->_weight);
+        Master.add_var(eta^a->_weight);
+    }
 
     /** obj*/
     func_ master_obj = sum(gamma_C);
@@ -481,21 +519,111 @@ int main (int argc, const char * argv[])
     param<Real> Pg_log("Pg_log");
     param<Real> Qg_log("Qg_log");
     param<Real> On_off_log("On_off_log");
+
 ///////////////// INITIALIZATION ///////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     double value_dual = 0;
     for (int c = 0; c < nb_cliques; c++) {
         DebugOn("bag_arc " << c << "has " << bag_arcs[c].size() << " lines" << endl);
-        value_dual += subproblem(grid, T, c, bag_bus[c], bag_gens[c], bag_arcs[c], rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
+        value_dual += subproblem(grid, T, c, cliquetree, bag_bus[c], bag_gens[c], bag_arcs[c], rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
     }
 
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
-    // initialise with 0.0
-    vector<double> grad_lambda(max_overlap_edges);
-    vector<double> grad_mu(weight_total);
-    vector<double> grad_sigma(weight_total);
-    vector<double> grad_eta(weight_total);
+    vector<param<Real>> lambda_in;
+    vector<param<Real>> mu_in;
+    vector<param<Real>> sigma_in;
+    vector<param<Real>> eta_in;
+
+    vector<param<Real>> lambda_out;
+    vector<param<Real>> mu_out;
+    vector<param<Real>> sigma_out;
+    vector<param<Real>> eta_out;
+
+    vector<param<Real>> lambda_sep;
+    vector<param<Real>> mu_sep;
+    vector<param<Real>> sigma_sep;
+    vector<param<Real>> eta_sep;
+
+    vector<param<Real>> lambda_grad;
+    vector<param<Real>> mu_grad;
+    vector<param<Real>> sigma_grad;
+    vector<param<Real>> eta_grad;
+
+    for (auto a: cliquetree->arcs) {
+       int l = a->_id;
+        param<Real> lambda_C_in("lambda_C_in" + to_string(l));
+        param<Real> mu_C_in("lambda_C_in" + to_string(l));
+        param<Real> sigma_C_in("lambda_C_in" + to_string(l));
+        param<Real> eta_C_in("lambda_C_in" + to_string(l));
+        lambda_C_in^(a->_weight*(a->_weight-1)/2);
+        mu_C_in^(a->_weight);
+        sigma_C_in^(a->_weight);
+        eta_C_in^(a->_weight);
+
+        param<Real> lambda_C_out("lambda_C_out" + to_string(l));
+        param<Real> mu_C_out("lambda_C_out" + to_string(l));
+        param<Real> sigma_C_out("lambda_C_out" + to_string(l));
+        param<Real> eta_C_out("lambda_C_out" + to_string(l));
+        lambda_C_out^(a->_weight*(a->_weight-1)/2);
+        mu_C_out^(a->_weight);
+        sigma_C_out^(a->_weight);
+        eta_C_out^(a->_weight);
+
+        param<Real> lambda_C_sep("lambda_C_sep" + to_string(l));
+        param<Real> mu_C_sep("lambda_C_sep" + to_string(l));
+        param<Real> sigma_C_sep("lambda_C_sep" + to_string(l));
+        param<Real> eta_C_sep("lambda_C_sep" + to_string(l));
+        lambda_C_sep^(a->_weight*(a->_weight-1)/2);
+        mu_C_sep^(a->_weight);
+        sigma_C_sep^(a->_weight);
+        eta_C_sep^(a->_weight);
+
+        param<Real> lambda_C_grad("lambda_C_grad" + to_string(l));
+        param<Real> mu_C_grad("lambda_C_grad" + to_string(l));
+        param<Real> sigma_C_grad("lambda_C_grad" + to_string(l));
+        param<Real> eta_C_grad("lambda_C_grad" + to_string(l));
+
+        lambda_in.push_back(lambda_C_in);
+        mu_in.push_back(mu_C_in);
+        sigma_in.push_back(sigma_C_in);
+        eta_in.push_back(eta_C_in);
+
+        lambda_out.push_back(lambda_C_out);
+        mu_out.push_back(mu_C_out);
+        sigma_out.push_back(sigma_C_out);
+        eta_out.push_back(eta_C_out);
+
+        lambda_sep.push_back(lambda_C_sep);
+        mu_sep.push_back(mu_C_sep);
+        sigma_sep.push_back(sigma_C_sep);
+        eta_sep.push_back(eta_C_sep);
+
+        lambda_grad.push_back(lambda_C_grad);
+        mu_grad.push_back(mu_C_grad);
+        sigma_grad.push_back(sigma_C_grad);
+        eta_grad.push_back(eta_C_grad);
+    }
+
+    for (auto a: cliquetree->arcs) {
+        int l = a->_id;
+        for (int i = 0; i < a->_weight; i++) {
+            mu_in[l](i) = 0;
+            mu_sep[l](i) = 0;
+            mu_out[l](i) = 0;
+            mu_grad[l](i) = 0;
+
+            sigma_in[l](i) = 0;
+            sigma_sep[l](i) = 0;
+            sigma_out[l](i) = 0;
+            sigma_grad[l](i) = 0;
+
+            eta_in[l](i) = 0;
+            eta_sep[l](i) = 0;
+            eta_out[l](i) = 0;
+            eta_grad[l](i) = 0;
+        }
+    }
 
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangean decomposition algorithm >>>>>>>>>"<< endl;
