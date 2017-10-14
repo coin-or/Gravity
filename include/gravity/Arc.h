@@ -23,7 +23,7 @@ public:
     double _weight;
     bool _active = true;
     bool _parallel = false;
-    
+    std::vector<Node*> _intersection; // interesection of node _src and node _dest
     /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
     Node* neighbour(Node* n);
     

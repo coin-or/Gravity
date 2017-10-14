@@ -53,7 +53,7 @@ bool Net::duplicate(std::string n1, std::string n2, int id1) {
 
 
 Net* Net::clone() {
-    Net *copy_net = new Net();
+    Net* copy_net = new Net();
     Node* node = NULL;
     
     for (int i=0; i<nodes.size(); i++) {
@@ -558,7 +558,6 @@ Net* Net::get_chordal_extension() {
                 arc_chordal->_dest = nn_chordal;
                 arc_chordal->connect();
                 chordal_extension->add_arc(arc_chordal);
-
             }
         }
         _bags.push_back(bag);

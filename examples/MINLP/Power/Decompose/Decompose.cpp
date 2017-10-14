@@ -29,9 +29,12 @@ using namespace gravity;
 
 /** initialise subproblem model */
 
-double subproblem(PowerNet* grid, unsigned T, unsigned c, Net* cliquetree, vector<Bus*> bag_bus, vector<Gen*> bag_gens,
-                  vector<Arc*> bag_arcs, param<Real>& rate_ramp, param<Real>& rate_switch,
-                  param<Real>& min_up, param<Real>& min_down, param<Real>& cost_up, param<Real>& cost_down) {
+double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
+                  vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs, 
+                  vector<param<Real>>& lambda_sep, vector<param<Real>>& mu_sep, vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
+                  param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
+                  param<Real>& cost_up, param<Real>& cost_down) 
+{
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
     if (bag_arcs.size() == 0)
         return 0;
@@ -67,6 +70,34 @@ double subproblem(PowerNet* grid, unsigned T, unsigned c, Net* cliquetree, vecto
 
     /* Construct the objective function*/
     func_ obj;
+    Node* Cr = cliquetree->get_node(to_string(c));
+    Arc* arc = nullptr;
+    Node* node = nullptr;
+    for (auto a: Cr->get_out()){
+        for (int i = 0; i < a->_intersection.size(); i ++){
+            node = a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); i ++){
+                arc = chordal->get_arc(node, a->_intersection.at(j)); 
+                obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+            }
+                obj += mu_sep[a->_id](node->_name)*Pg(node->_name);
+                obj += kappa_sep[a->_id](node->_name)*Qg(node->_name);
+                obj += eta_sep[a->_id](node->_name)*On_off(node->_name);
+        }
+    }
+
+    for (auto a: Cr->get_in()){
+        for (int i = 0; i < a->_intersection.size(); i ++){
+            node = a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); i ++){
+                arc = chordal->get_arc(node, a->_intersection.at(j));
+                obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+            }
+            obj -= mu_sep[a->_id](node->_name)*Pg(node->_name);
+            obj -= kappa_sep[a->_id](node->_name)*Qg(node->_name);
+            obj -= eta_sep[a->_id](node->_name)*On_off(node->_name);
+        }
+    }
     // power generation
     if (bag_gens.size() > 0) {
         var<Real> Pg("Pg", grid->pg_min.in(bag_gens, T), grid->pg_max.in(bag_gens, T));
@@ -433,8 +464,8 @@ int main (int argc, const char * argv[])
         cliquetree->add_node(node);
     }
 
-    int weight_total = 0;
-    int max_overlap_edges = 0;
+    //int weight_total = 0;
+    //int max_overlap_edges = 0;
     for (std::vector < Edge >::iterator ei = spanning_tree.begin();
             ei != spanning_tree.end(); ++ei) {
         int u = source(*ei, g);
@@ -442,55 +473,28 @@ int main (int argc, const char * argv[])
         DebugOn(u << " <--> " << v
                 << " with weight of " << -weight[*ei]
                 << endl);
-        weight_total -= weight[*ei];
-        max_overlap_edges += -weight[*ei]*(-weight[*ei] -1)/2;
+        //weight_total -= weight[*ei];
+       // max_overlap_edges += -weight[*ei]*(-weight[*ei] -1)/2;
         name = (int) cliquetree->arcs.size();
         a = new Arc(name);
         a->_id = cliquetree->arcs.size();
 
+        // intersection
+        vector<Node*> v3;
+        sort(grid->_bags[u].begin(), grid->_bags[u].end());
+        sort(grid->_bags[v].begin(), grid->_bags[v].end());
+        set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(), grid->_bags[v].begin(), grid->_bags[v].end(), back_inserter(v3));
+        
+
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
         a->_weight = -weight[*ei];
+        a->_intersection = v3;
         cliquetree->add_arc(a);
         a->connect();
     }
     const unsigned nb_clt_edges = spanning_tree.size();
 
-/////////////////////////////////// INITIALISE MAIN ///////////////////////////////////
-    Model Master("Master");
-
-    /** Variables  */
-    var<Real> gamma_C("gamma_C");
-    vector<var<Real>> lambda_var;
-    vector<var<Real>> mu_var;
-    vector<var<Real>> sigma_var;
-    vector<var<Real>> eta_var;
-
-    Master.add_var(gamma_C^nb_cliques);
-    for (auto a: cliquetree->arcs) {
-        var<Real> lambda("lambda_C" + to_string(a->_id));
-        var<Real> mu("lambda_C" + to_string(a->_id));
-        var<Real> sigma("lambda_C" + to_string(a->_id));
-        var<Real> eta("lambda_C" + to_string(a->_id));
-
-        lambda_var.push_back(lambda);
-        mu_var.push_back(mu);
-        sigma_var.push_back(sigma);
-        eta_var.push_back(eta);
-
-        Master.add_var(lambda^(a->_weight*(a->_weight -1)/2));
-        Master.add_var(mu^a->_weight);
-        Master.add_var(sigma^a->_weight);
-        Master.add_var(eta^a->_weight);
-    }
-
-    /** obj*/
-    func_ master_obj = sum(gamma_C);
-    Master.set_objective(master_obj);
-    double bound = 100000000;
-    Constraint UB;
-    UB = sum(gamma_C) - bound;
-    Master.add_constraint(UB <= 0);
 
     /** CONVERGENCE INFO */
     unsigned iter_limit;
@@ -510,7 +514,7 @@ int main (int argc, const char * argv[])
     // log of solutions
     param<Real> lambda_log("lambda_log");
     param<Real> mu_log("mu_log");
-    param<Real> sigma_log("sigma_log");
+    param<Real> kappa_log("kappa_log");
     param<Real> eta_log("eta_log");
 
     param<Real> R_Wij_log("R_Wij_log");
@@ -520,88 +524,84 @@ int main (int argc, const char * argv[])
     param<Real> Qg_log("Qg_log");
     param<Real> On_off_log("On_off_log");
 
-///////////////// INITIALIZATION ///////////////////////
-    double wall0 = get_wall_time();
-    double cpu0  = get_cpu_time();
-    double value_dual = 0;
-    for (int c = 0; c < nb_cliques; c++) {
-        DebugOn("bag_arc " << c << "has " << bag_arcs[c].size() << " lines" << endl);
-        value_dual += subproblem(grid, T, c, cliquetree, bag_bus[c], bag_gens[c], bag_arcs[c], rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
-    }
 
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
     vector<param<Real>> lambda_in;
     vector<param<Real>> mu_in;
-    vector<param<Real>> sigma_in;
+    vector<param<Real>> kappa_in;
     vector<param<Real>> eta_in;
 
     vector<param<Real>> lambda_out;
     vector<param<Real>> mu_out;
-    vector<param<Real>> sigma_out;
+    vector<param<Real>> kappa_out;
     vector<param<Real>> eta_out;
 
     vector<param<Real>> lambda_sep;
     vector<param<Real>> mu_sep;
-    vector<param<Real>> sigma_sep;
+    vector<param<Real>> kappa_sep;
     vector<param<Real>> eta_sep;
 
     vector<param<Real>> lambda_grad;
     vector<param<Real>> mu_grad;
-    vector<param<Real>> sigma_grad;
+    vector<param<Real>> kappa_grad;
     vector<param<Real>> eta_grad;
 
     for (auto a: cliquetree->arcs) {
-       int l = a->_id;
+        int l = a->_id;
         param<Real> lambda_C_in("lambda_C_in" + to_string(l));
         param<Real> mu_C_in("lambda_C_in" + to_string(l));
-        param<Real> sigma_C_in("lambda_C_in" + to_string(l));
+        param<Real> kappa_C_in("lambda_C_in" + to_string(l));
         param<Real> eta_C_in("lambda_C_in" + to_string(l));
         lambda_C_in^(a->_weight*(a->_weight-1)/2);
         mu_C_in^(a->_weight);
-        sigma_C_in^(a->_weight);
+        kappa_C_in^(a->_weight);
         eta_C_in^(a->_weight);
 
         param<Real> lambda_C_out("lambda_C_out" + to_string(l));
         param<Real> mu_C_out("lambda_C_out" + to_string(l));
-        param<Real> sigma_C_out("lambda_C_out" + to_string(l));
+        param<Real> kappa_C_out("lambda_C_out" + to_string(l));
         param<Real> eta_C_out("lambda_C_out" + to_string(l));
         lambda_C_out^(a->_weight*(a->_weight-1)/2);
         mu_C_out^(a->_weight);
-        sigma_C_out^(a->_weight);
+        kappa_C_out^(a->_weight);
         eta_C_out^(a->_weight);
 
         param<Real> lambda_C_sep("lambda_C_sep" + to_string(l));
         param<Real> mu_C_sep("lambda_C_sep" + to_string(l));
-        param<Real> sigma_C_sep("lambda_C_sep" + to_string(l));
+        param<Real> kappa_C_sep("lambda_C_sep" + to_string(l));
         param<Real> eta_C_sep("lambda_C_sep" + to_string(l));
         lambda_C_sep^(a->_weight*(a->_weight-1)/2);
         mu_C_sep^(a->_weight);
-        sigma_C_sep^(a->_weight);
+        kappa_C_sep^(a->_weight);
         eta_C_sep^(a->_weight);
 
         param<Real> lambda_C_grad("lambda_C_grad" + to_string(l));
         param<Real> mu_C_grad("lambda_C_grad" + to_string(l));
-        param<Real> sigma_C_grad("lambda_C_grad" + to_string(l));
+        param<Real> kappa_C_grad("lambda_C_grad" + to_string(l));
         param<Real> eta_C_grad("lambda_C_grad" + to_string(l));
+
+        for (int i = 0; i < a->_weight; i++) {
+            mu_C_sep(i) = 0;
+        }
 
         lambda_in.push_back(lambda_C_in);
         mu_in.push_back(mu_C_in);
-        sigma_in.push_back(sigma_C_in);
+        kappa_in.push_back(kappa_C_in);
         eta_in.push_back(eta_C_in);
 
         lambda_out.push_back(lambda_C_out);
         mu_out.push_back(mu_C_out);
-        sigma_out.push_back(sigma_C_out);
+        kappa_out.push_back(kappa_C_out);
         eta_out.push_back(eta_C_out);
 
         lambda_sep.push_back(lambda_C_sep);
         mu_sep.push_back(mu_C_sep);
-        sigma_sep.push_back(sigma_C_sep);
+        kappa_sep.push_back(kappa_C_sep);
         eta_sep.push_back(eta_C_sep);
 
         lambda_grad.push_back(lambda_C_grad);
         mu_grad.push_back(mu_C_grad);
-        sigma_grad.push_back(sigma_C_grad);
+        kappa_grad.push_back(kappa_C_grad);
         eta_grad.push_back(eta_C_grad);
     }
 
@@ -613,16 +613,79 @@ int main (int argc, const char * argv[])
             mu_out[l](i) = 0;
             mu_grad[l](i) = 0;
 
-            sigma_in[l](i) = 0;
-            sigma_sep[l](i) = 0;
-            sigma_out[l](i) = 0;
-            sigma_grad[l](i) = 0;
+            kappa_in[l](i) = 0;
+            kappa_sep[l](i) = 0;
+            kappa_out[l](i) = 0;
+            kappa_grad[l](i) = 0;
 
             eta_in[l](i) = 0;
             eta_sep[l](i) = 0;
             eta_out[l](i) = 0;
             eta_grad[l](i) = 0;
+
+            for (int j = i+1; j < a->_weight; j++) {
+                lambda_in[l](i, j) = 0;
+                lambda_sep[l](i, j) = 0;
+                lambda_out[l](i, j) = 0;
+                lambda_grad[l](i, j) = 0;
+            }
         }
+    }
+
+/////////////////////////////////// INITIALISE MAIN ///////////////////////////////////
+    Model Master("Master");
+    /** param **/
+    param<Real> gamma_in("gamma_C_in");
+    param<Real> gamma_out("gamma_C_out");
+    param<Real> gamma_sep("gamma_C_sep");
+    gamma_in^nb_cliques;
+    gamma_out^nb_cliques;
+    gamma_sep^nb_cliques;
+    
+    /** Variables  */
+    var<Real> gamma_C("gamma_C");
+    vector<var<Real>> lambda_var;
+    vector<var<Real>> mu_var;
+    vector<var<Real>> kappa_var;
+    vector<var<Real>> eta_var;
+
+    Master.add_var(gamma_C^nb_cliques);
+    for (auto a: cliquetree->arcs) {
+        var<Real> lambda("lambda_C" + to_string(a->_id));
+        var<Real> mu("lambda_C" + to_string(a->_id));
+        var<Real> kappa("lambda_C" + to_string(a->_id));
+        var<Real> eta("lambda_C" + to_string(a->_id));
+
+        lambda_var.push_back(lambda);
+        mu_var.push_back(mu);
+        kappa_var.push_back(kappa);
+        eta_var.push_back(eta);
+
+        Master.add_var(lambda^(a->_weight*(a->_weight -1)/2));
+        Master.add_var(mu^a->_weight);
+        Master.add_var(kappa^a->_weight);
+        Master.add_var(eta^a->_weight);
+    }
+
+    /** obj*/
+    func_ master_obj = sum(gamma_C);
+    Master.set_objective(master_obj);
+    double bound = 100000000;
+
+    Constraint UB;
+    UB = sum(gamma_C) - bound;
+    Master.add_constraint(UB <= 0);
+
+///////////////// INITIALIZATION ///////////////////////
+    double wall0 = get_wall_time();
+    double cpu0  = get_cpu_time();
+    double value_dual = 0;
+    for (int c = 0; c < nb_cliques; c++) {
+        DebugOn("bag_arc " << c << "has " << bag_arcs[c].size() << " lines" << endl);
+        value_dual += subproblem(grid, chordal, T, c, cliquetree,
+                bag_bus[c], bag_gens[c], bag_arcs[c],
+                lambda_sep, mu_sep, kappa_sep, eta_sep,  
+                rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
     }
 
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
