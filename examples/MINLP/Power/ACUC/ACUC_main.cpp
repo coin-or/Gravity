@@ -58,9 +58,7 @@ int main (int argc, const char * argv[])
     param<Real> cost_down("cost_down");
     for (auto g: grid->gens) {
         rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
-        rate_ramp._dim++;
         rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
-        rate_switch._dim++;
     }
     min_up = 1;
     min_down = 1;
@@ -125,7 +123,7 @@ int main (int argc, const char * argv[])
     Wii.initialize_all(1.001);
 
     // Commitment variables
-    var<bool>  On_off("On_off", 0, 1);
+    var<bool>  On_off("On_off");
     var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
     ACUC.add_var(On_off^(T*nb_gen));
