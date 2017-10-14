@@ -442,22 +442,26 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         n = graph_clone->nodes.back();         
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
+        vector<Node*> bag_copy;
         vector<Node*> bag;
         Debug("new bag = { ");
         for (auto a: n->branches) {
             nn = a->neighbour(n);
-            bag.push_back(nn);
+            bag_copy.push_back(nn);
+            bag.push_back(get_node(nn->_name)); // Note this takes original node. 
             Debug(nn->_name << ", ");
         }
         graph_clone->remove_end_node();
-        bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        bag_copy.push_back(n);
+        bag.push_back(get_node(n->_name)); // node in this graph
+        sort(bag_copy.begin(), bag_copy.end(), [](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.begin(), bag.end(), [](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
-        // update graph_graph and construct chordal extension.
-        for (int i = 0; i < bag.size() - 1; i++) {
-            u = bag.at(i);
-            for (int j = i+1; j<bag.size(); j++) {
-                nn = bag.at(j);
+        // update clone_graph and construct chordal extension.
+        for (int i = 0; i < bag_copy.size() - 1; i++) {
+            u = bag_copy.at(i);
+            for (int j = i+1; j<bag_copy.size(); j++) {
+                nn = bag_copy.at(j);
                 if (u->is_connected(nn)) {
                     continue;
                 }
@@ -473,21 +477,22 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
 
         if (print_bags) {
-            DebugOn("bag = {");
-            for (int i=0; i<bag.size();     i++) {
-                cout << bag.at(i)->_name << " ";
+            DebugOn("bag_copy = {");
+            for (int i=0; i<bag_copy.size();     i++) {
+                cout << bag_copy.at(i)->_name << " ";
             }
             DebugOn("}" << endl);
         }
-        _bags.push_back(bag);
-//        if (_bags.size()==3) {
+        _bags_copy.push_back(bag_copy);
+        _bags.push_back(bag); // bag original
+//        if (_bag_copys.size()==3) {
 //            return;
 //        }
-        if (bag.size()==3) {
+        if (bag_copy.size()==3) {
             nb++;
         }
     }
-    Debug("\n Number of 3D bags = " << nb3 << endl);
+    Debug("\n Number of 3D bags = " << nb << endl);
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
@@ -518,25 +523,28 @@ Net* Net::get_chordal_extension() {
         n = graph_clone->nodes.back();         
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
+        vector<Node*> bag_copy;
         vector<Node*> bag;
-        Debug("new bag = { ");
+        Debug("new bag_copy = { ");
 
         for (auto a: n->branches) {
             nn = a->neighbour(n);
-            bag.push_back(nn);
+            bag_copy.push_back(nn);
+            bag.push_back(get_node(nn->_name));
             Debug(nn->_name << ", ");
         }
 
         graph_clone->remove_end_node();
-        bag.push_back(n);
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        bag_copy.push_back(n);
+        bag.push_back(get_node(n->_name)); // node in this graph
+        sort(bag_copy.begin(), bag_copy.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
-        for (int i = 0; i < bag.size() - 1; i++) {
-            u = bag.at(i);
+        for (int i = 0; i < bag_copy.size() - 1; i++) {
+            u = bag_copy.at(i);
             u_chordal = chordal_extension->get_node(u->_name);
-            for (int j = i+1; j<bag.size(); j++) {
-                nn = bag.at(j);
+            for (int j = i+1; j<bag_copy.size(); j++) {
+                nn = bag_copy.at(j);
                 nn_chordal=chordal_extension->get_node(nn->_name);
                 if (u->is_connected(nn)) {
                     continue;
@@ -560,12 +568,13 @@ Net* Net::get_chordal_extension() {
                 chordal_extension->add_arc(arc_chordal);
             }
         }
+        _bags_copy.push_back(bag_copy);
         _bags.push_back(bag);
-        if (bag.size()==3) {
+        if (bag_copy.size()==3) {
             nb++;
         }
     }
-    Debug("\n Number of 3D bags = " << nb3 << endl);
+    Debug("\n Number of 3D bags = " << nb << endl);
     return chordal_extension;
 }
 
@@ -575,18 +584,18 @@ Net* Net::get_chordal_extension() {
 // second one: use the RIP property of the tree decomposition, thus just need to check every leaf..
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 void Net::get_clique_tree (bool print) {
-    for (unsigned i = 0; i < _bags.size()-1; i++) {
-        for (unsigned j = i+1; j < _bags.size();) {
-            if (std::includes(_bags[i].begin(),_bags[i].end(),
-                              _bags[j].begin(), _bags[j].end()))
+    for (unsigned i = 0; i < _bags_copy.size()-1; i++) {
+        for (unsigned j = i+1; j < _bags_copy.size();) {
+            if (std::includes(_bags_copy[i].begin(),_bags_copy[i].end(),
+                              _bags_copy[j].begin(), _bags_copy[j].end()))
             {
-                _bags.erase(_bags.begin()+j);
+                _bags_copy.erase(_bags_copy.begin()+j);
             }
             else
                 j++;
         }
     }
-    cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
+    cout << "Number of maximal cliques of the chordal extension = " << _bags_copy.size() << endl <<endl;
 }
 
 /* Destructors */

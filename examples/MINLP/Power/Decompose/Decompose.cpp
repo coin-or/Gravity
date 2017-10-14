@@ -72,30 +72,25 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
     func_ obj;
     Node* Cr = cliquetree->get_node(to_string(c));
     Arc* arc = nullptr;
-    Node* node = nullptr;
+    Bus* node = nullptr;
     for (auto a: Cr->get_out()){
+        DebugOn("a->_intersection.size " << a->_intersection.size() << endl);
         for (int i = 0; i < a->_intersection.size(); i ++){
-            node = a->_intersection.at(i);
-            for (int j = i + 1; j < a->_intersection.size(); i ++){
+            node = (Bus*)a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); j ++){
                 arc = chordal->get_arc(node, a->_intersection.at(j)); 
                 obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
             }
-                obj += mu_sep[a->_id](node->_name)*Pg(node->_name);
-                obj += kappa_sep[a->_id](node->_name)*Qg(node->_name);
-                obj += eta_sep[a->_id](node->_name)*On_off(node->_name);
         }
     }
 
     for (auto a: Cr->get_in()){
         for (int i = 0; i < a->_intersection.size(); i ++){
-            node = a->_intersection.at(i);
-            for (int j = i + 1; j < a->_intersection.size(); i ++){
+            node = (Bus*) a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); j ++){
                 arc = chordal->get_arc(node, a->_intersection.at(j));
                 obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
             }
-            obj -= mu_sep[a->_id](node->_name)*Pg(node->_name);
-            obj -= kappa_sep[a->_id](node->_name)*Qg(node->_name);
-            obj -= eta_sep[a->_id](node->_name)*On_off(node->_name);
         }
     }
     // power generation
@@ -120,6 +115,31 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
                 }
             }
         }
+        //for (auto a: Cr->get_out()){
+        //    for (int i = 0; i < a->_intersection.size(); i ++){
+        //    node = (Bus*) a->_intersection.at(i);
+        //        for (auto g: node->_gen){
+        //            if (g->_active){
+        //                obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
+        //                obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
+        //                obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
+        //            }
+        //        }
+        //    }
+        //}
+
+        //for (auto a: Cr->get_in()){
+        //    for (int i = 0; i < a->_intersection.size(); i ++){
+        //    node = (Bus*) a->_intersection.at(i);
+        //        for (auto g: node->_gen){
+        //            if (g->_active){
+        //                obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
+        //                obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
+        //                obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
+        //            }
+        //        }
+        //    }
+        //}
         Subr.set_objective(min(obj));
         //KCL
         for (int t = 0; t < T; t++) {
@@ -464,8 +484,6 @@ int main (int argc, const char * argv[])
         cliquetree->add_node(node);
     }
 
-    //int weight_total = 0;
-    //int max_overlap_edges = 0;
     for (std::vector < Edge >::iterator ei = spanning_tree.begin();
             ei != spanning_tree.end(); ++ei) {
         int u = source(*ei, g);
@@ -473,8 +491,6 @@ int main (int argc, const char * argv[])
         DebugOn(u << " <--> " << v
                 << " with weight of " << -weight[*ei]
                 << endl);
-        //weight_total -= weight[*ei];
-       // max_overlap_edges += -weight[*ei]*(-weight[*ei] -1)/2;
         name = (int) cliquetree->arcs.size();
         a = new Arc(name);
         a->_id = cliquetree->arcs.size();
@@ -485,7 +501,6 @@ int main (int argc, const char * argv[])
         sort(grid->_bags[v].begin(), grid->_bags[v].end());
         set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(), grid->_bags[v].begin(), grid->_bags[v].end(), back_inserter(v3));
         
-
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
         a->_weight = -weight[*ei];

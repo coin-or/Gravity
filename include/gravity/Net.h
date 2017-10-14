@@ -46,7 +46,9 @@ public:
     bool duplicate(std::string name1, std::string name2, int id1);
     
     /** Tree decomposition bags */
-    std::vector<std::vector<Node*>> _bags;
+    // bags are sorted in an ascending order of ids.
+    std::vector<std::vector<Node*>> _bags; // each node is from this.nodes. 
+    std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node. 
     
     /** Cloning */
     Net* clone();
