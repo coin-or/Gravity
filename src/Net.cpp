@@ -331,7 +331,7 @@ void Net::read_adjacency_matrix(const char* fname) {
                 src = to_string(i);
                 dest = to_string(j);
                 id = index;
-                arc = new Arc(to_string(id) + "," + src + "," + dest);
+                arc = new Arc(src + "," + dest);
                 arc->_id = id;
                 arc->_src = get_node(src);
                 arc->_dest= get_node(dest);
