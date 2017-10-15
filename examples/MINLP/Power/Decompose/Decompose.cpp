@@ -29,18 +29,19 @@ using namespace gravity;
 
 /** INITIALISE SUBPROBLEM MODEL */
 // it returns a outer-approximation function object 
-func_ subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
+double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
                   vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs, 
                   vector<param<Real>>& lambda_sep, vector<param<Real>>& mu_sep, 
                   vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
                   param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
                   param<Real>& cost_up, param<Real>& cost_down) 
 {
-    func_  OA;
+//    func_  OA;
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
     if (bag_arcs.size() == 0){
-        OA += 0;
-        return OA;
+        //OA += 0;
+        //return OA;
+        return 0;
     }
     Model Subr("Subr");
     // POWER FLOW
@@ -341,8 +342,8 @@ func_ subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliqu
 
     obj.print(true);
     
-    OA = obj.get_outer_app();
-    return OA;
+   // OA = obj.get_outer_app();
+    return Subr._obj_val;
 }
 
 
@@ -691,39 +692,45 @@ int main (int argc, const char * argv[])
     double LDlog[nb_cliques];
 
     // log of solutions
-    param<Real> lambda_log("lambda_log");
-    param<Real> mu_log("mu_log");
-    param<Real> kappa_log("kappa_log");
-    param<Real> eta_log("eta_log");
+    vector<param<Real>> lambda_log;
+    vector<param<Real>> mu_log;
+    vector<param<Real>> kappa_log;
+    vector<param<Real>> eta_log;
 
-    param<Real> R_Wij_log("R_Wij_log");
-    param<Real> Im_Wij_log("Im_Wij_log");
-    param<Real> Wii_log("Wii_log");
-    param<Real> Pg_log("Pg_log");
-    param<Real> Qg_log("Qg_log");
-    param<Real> On_off_log("On_off_log");
+    for (auto a: cliquetree->arcs) {
+        int l = a->_id;
+        param<Real> lambda_C_log("lambda_C_log" + to_string(l));
+        param<Real> mu_C_log("lambda_C_log" + to_string(l));
+        param<Real> kappa_C_log("lambda_C_log" + to_string(l));
+        param<Real> eta_C_log("lambda_C_log" + to_string(l));
+        lambda_C_log^(a->_weight*(a->_weight-1)/2);
+        mu_C_log^(a->_weight);
+        kappa_C_log^(a->_weight);
+        eta_C_log^(a->_weight);
+    }
+
+
+    //param<Real> R_Wij_log("R_Wij_log");
+    //param<Real> Im_Wij_log("Im_Wij_log");
+    //param<Real> Wii_log("Wii_log");
+    //param<Real> Pg_log("Pg_log");
+    //param<Real> Qg_log("Qg_log");
+    //param<Real> On_off_log("On_off_log");
 
 
 ///////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     double value_dual = 0;
-    func_ OA;
+    //func_ OA;
     for (int c = 0; c < nb_cliques; c++) {
-        //value_dual +=
-            OA = subproblem(grid, chordal, T, c, cliquetree,
+        value_dual += subproblem(grid, chordal, T, c, cliquetree,
                 bag_bus[c], bag_gens[c], bag_arcs[c],
                 lambda_sep, mu_sep, kappa_sep, eta_sep,  
                 rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
-            OA.print(true);
+     //       OA.print(true);
     }
 
-    R_Wij_log = 0;
-    Im_Wij_log = 0;
-    Wii_log = 0;
-    Pg_log = 0;
-    Qg_log = 0;
-    On_off_log = 0;
 
 cout << "................  Initialization value:  " << value_dual <<endl;
 

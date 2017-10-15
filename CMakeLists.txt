@@ -13,7 +13,7 @@ option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
 # Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
-option(ENABLE_CPLEX "Link to Cplex libraries" ON)
+option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
 
 # Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
