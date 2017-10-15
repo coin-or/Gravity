@@ -414,29 +414,42 @@ int main (int argc, const char * argv[])
     Net* chordal = grid->get_chordal_extension();
     grid->get_clique_tree();
     const unsigned nb_cliques = grid->_bags.size();
-    vector<Bus*> bag_bus[nb_cliques]; // Note that each clique contains just nodes, not buses!
-    vector<Gen*> bag_gens[nb_cliques];
-    vector<Arc*> bag_arcs[nb_cliques]; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
+    //vector<Bus*> bag_bus[nb_cliques]; // Note that each clique contains just nodes, not buses!
+    //vector<Gen*> bag_gens[nb_cliques];
+    //vector<Arc*> bag_arcs[nb_cliques]; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
+
+    vector<vector<Bus*>> bag_bus; // Note that each clique contains just nodes, not buses!
+    vector<vector<Gen*>> bag_gens;
+    vector<vector<Arc*>> bag_arcs; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
 
     for (int c = 0; c < nb_cliques; c++) {
+        vector<Bus*> bag_B;
+        vector<Gen*> bag_G;
+        vector<Arc*> bag_A;
         for (int i = 0; i < grid->_bags[c].size(); i++) {
             Bus* bus = (Bus*) grid->get_node(grid->_bags[c].at(i)->_name);
             if (bus !=nullptr) {
-                bag_bus[c].push_back(bus);
+                bag_B.push_back(bus);
             }
             if (bus->_has_gen) {
-                bag_gens[c].insert(bag_gens[c].end(), bus->_gen.begin(), bus->_gen.end());
+                bag_G.insert(bag_G.end(), bus->_gen.begin(), bus->_gen.end());
             }
             for (int j = i+1; j < grid->_bags[c].size(); j++) {
                 Arc* a = (Arc*)grid->get_arc(bus, grid->get_node(grid->_bags[c].at(j)->_name));
                 if (a != nullptr)
-                    bag_arcs[c].push_back(a);
+                    bag_A.push_back(a);
             }
         }
+        bag_bus.push_back(bag_B);
+        bag_gens.push_back(bag_G);
+        bag_arcs.push_back(bag_A);
         DebugOn("bag " << c << " has " << bag_gens[c].size() << " generators. " << endl;)
         DebugOn("bag " << c << " has " << bag_arcs[c].size() << " line " << endl;)
     }
 
+    bag_bus.resize(nb_cliques);
+    bag_arcs.resize(nb_cliques);
+    bag_gens.resize(nb_cliques);
 
 #ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
