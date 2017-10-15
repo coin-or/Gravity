@@ -163,6 +163,8 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(NL <= 0);
     
     solver SCOPF(SOCP,ipopt);
+    //solver SCOPF(SOCP, cplex);
+
     SCOPF.run();
     return 0;
 }

@@ -187,12 +187,9 @@ int main (int argc, const char * argv[])
     auto obj_SDP = 2*sum(Xij) + sum(Xii);
     SDP.set_objective(max(obj_SDP));
     
-<<<<<<< HEAD
-    //solver s1(SDP,ipopt);
-=======
-//    solver s1(SDP,ipopt);
->>>>>>> f8ba7f24455d92529b75d25a995eedbc7f7ce7b8
-    solver s1(SDP,cplex);
+
+  solver s1(SDP,ipopt);
+  // solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
