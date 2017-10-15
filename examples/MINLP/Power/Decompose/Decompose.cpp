@@ -894,7 +894,7 @@ int main (int argc, const char * argv[])
     cout<< setw(15) << left <<"ITERATION" << setw(15) << "LB" << setw(15)  << "UB" << endl;
     //////// CONSTRUCT SEPARATION POINTS
     for (int c = 0; c < nb_cliques; c++){
-        gamma_sep(c) = alpha*gamma_out(r) + (1 - alpha)*gamma_in(r);
+        gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
     } 
 
     //for(int itcount = 0; itcount < iter_limit; itcount++) {
