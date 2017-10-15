@@ -52,7 +52,7 @@ int main (int argc, const char * argv[])
     
     Net graph;
 //    const char* fname = "../../data_sets/stable_set/toy.txt";
-    const char* fname = "../../data_sets/stable_set/p.3n250.txt";
+    const char* fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.read_adjacency_matrix(fname);
     
 //    Net complement_graph;
@@ -187,7 +187,11 @@ int main (int argc, const char * argv[])
     auto obj_SDP = 2*sum(Xij) + sum(Xii);
     SDP.set_objective(max(obj_SDP));
     
+<<<<<<< HEAD
     //solver s1(SDP,ipopt);
+=======
+//    solver s1(SDP,ipopt);
+>>>>>>> f8ba7f24455d92529b75d25a995eedbc7f7ce7b8
     solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
