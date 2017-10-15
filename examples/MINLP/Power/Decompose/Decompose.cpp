@@ -28,17 +28,19 @@ using namespace std;
 using namespace gravity;
 
 /** INITIALISE SUBPROBLEM MODEL */
-// it returns a outer-approximation function object 
+// it returns a outer-approximation function object
 double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
-                  vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs, 
-                  vector<param<Real>>& lambda_sep, vector<param<Real>>& mu_sep, 
-                  vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
-                  param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
-                  param<Real>& cost_up, param<Real>& cost_down) 
+                   vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs,
+                   vector<param<Real>>& R_lambda_sep, vector<param<Real>>& Im_lambda_sep, vector<param<Real>>& mu_sep,
+                   vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
+                   param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
+                   param<Real>& cost_up, param<Real>& cost_down,
+                   param<Real>& Wii_log, param<Real>& R_Wij_log, param<Real>& Im_Wij_log,
+                   param<Real> Pg_log, param<Real> Qg_log, param<Real> On_off_log )
 {
 //    func_  OA;
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
-    if (bag_arcs.size() == 0){
+    if (bag_arcs.size() == 0) {
         //OA += 0;
         //return OA;
         return 0;
@@ -77,34 +79,35 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     func_ obj;
     Node* Cr = cliquetree->get_node(to_string(c));
     Arc* arc = nullptr;
-    Bus* node = nullptr;
-    for (auto a: Cr->get_out()){
+    Bus* bus = nullptr;
+    for (auto a: Cr->get_out()) {
         Debug("a->_intersection.size " << a->_intersection.size() << endl);
-        for (int i = 0; i < a->_intersection.size(); i ++){
-            node = (Bus*)a->_intersection.at(i);
-            for (int j = i + 1; j < a->_intersection.size(); j ++){
-                arc = chordal->get_arc(node, a->_intersection.at(j)); 
-                obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+        for (int i = 0; i < a->_intersection.size(); i ++) {
+            bus = (Bus*)a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                obj += R_lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+                obj += Im_lambda_sep[a->_id](arc->_name)*Im_Wij(arc->_name);
             }
         }
     }
 
-    for (auto a: Cr->get_in()){
-        for (int i = 0; i < a->_intersection.size(); i ++){
-            node = (Bus*) a->_intersection.at(i);
-            for (int j = i + 1; j < a->_intersection.size(); j ++){
-                arc = chordal->get_arc(node, a->_intersection.at(j));
-                obj += lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+    for (auto a: Cr->get_in()) {
+        for (int i = 0; i < a->_intersection.size(); i ++) {
+            bus = (Bus*) a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                arc = chordal->get_arc(bus, a->_intersection.at(j));
+                obj -= R_lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
+                obj -= Im_lambda_sep[a->_id](arc->_name)*Im_Wij(arc->_name);
             }
         }
     }
+    var<Real> Pg("Pg", grid->pg_min.in(bag_gens, T), grid->pg_max.in(bag_gens, T));
+    var<Real> Qg("Qg", grid->qg_min.in(bag_gens, T), grid->qg_max.in(bag_gens, T));
+    Subr.add_var(Pg^(T*bag_gens.size()));
+    Subr.add_var(Qg^(T*bag_gens.size()));
     // power generation
     if (bag_gens.size() > 0) {
-        var<Real> Pg("Pg", grid->pg_min.in(bag_gens, T), grid->pg_max.in(bag_gens, T));
-        var<Real> Qg("Qg", grid->qg_min.in(bag_gens, T), grid->qg_max.in(bag_gens, T));
-        Subr.add_var(Pg^(T*bag_gens.size()));
-        Subr.add_var(Qg^(T*bag_gens.size()));
-
         for (auto g: bag_gens) {
             DebugOn("number of generators: " << bag_gens.size() << endl);
             if (g->_active) {
@@ -123,11 +126,11 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
             }
             obj.print(true);
         }
-        for (auto a: Cr->get_out()){
-            for (int i = 0; i < a->_intersection.size(); i ++){
-            node = (Bus*) a->_intersection.at(i);
-                for (auto g: node->_gen){
-                    if (g->_active){
+        for (auto a: Cr->get_out()) {
+            for (int i = 0; i < a->_intersection.size(); i ++) {
+                bus = (Bus*) a->_intersection.at(i);
+                for (auto g: bus->_gen) {
+                    if (g->_active) {
                         obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
                         obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
                         obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
@@ -136,11 +139,11 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
             }
         }
 
-        for (auto a: Cr->get_in()){
-            for (int i = 0; i < a->_intersection.size(); i ++){
-            node = (Bus*) a->_intersection.at(i);
-                for (auto g: node->_gen){
-                    if (g->_active){
+        for (auto a: Cr->get_in()) {
+            for (int i = 0; i < a->_intersection.size(); i ++) {
+                bus = (Bus*) a->_intersection.at(i);
+                for (auto g: bus->_gen) {
+                    if (g->_active) {
                         obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
                         obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
                         obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
@@ -339,10 +342,13 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     /* Resolve it! */
     solver solve_Subr(Subr,ipopt);
     solve_Subr.run();
-
-    obj.print(true);
-    
-   // OA = obj.get_outer_app();
+    // OA = obj.get_outer_app();
+    Wii_log =  (*(var<Real>*) Subr.get_var("Wii"));
+    R_Wij_log =  (*(var<Real>*) Subr.get_var("R_Wij"));
+    Im_Wij_log =  (*(var<Real>*) Subr.get_var("Im_Wij"));
+    Pg_log = (*(var<Real>*) Subr.get_var("Pg"));
+    Qg_log = (*(var<Real>*) Subr.get_var("Qg"));
+    On_off_log = (*(var<Real>*) Subr.get_var("On_off"));
     return Subr._obj_val;
 }
 
@@ -528,7 +534,7 @@ int main (int argc, const char * argv[])
         set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(),
                          grid->_bags[v].begin(), grid->_bags[v].end(),
                          back_inserter(v3));
-        
+
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
         a->_weight = -weight[*ei];
@@ -540,111 +546,151 @@ int main (int argc, const char * argv[])
 
 
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
-    vector<param<Real>> lambda_in;
+    vector<param<Real>> R_lambda_in;
+    vector<param<Real>> Im_lambda_in;
     vector<param<Real>> mu_in;
     vector<param<Real>> kappa_in;
     vector<param<Real>> eta_in;
 
-    vector<param<Real>> lambda_out;
+    vector<param<Real>> R_lambda_out;
+    vector<param<Real>> Im_lambda_out;
     vector<param<Real>> mu_out;
     vector<param<Real>> kappa_out;
     vector<param<Real>> eta_out;
 
-    vector<param<Real>> lambda_sep;
+    vector<param<Real>> R_lambda_sep;
+    vector<param<Real>> Im_lambda_sep;
     vector<param<Real>> mu_sep;
     vector<param<Real>> kappa_sep;
     vector<param<Real>> eta_sep;
 
-    vector<param<Real>> lambda_grad;
+    vector<param<Real>> R_lambda_grad;
+    vector<param<Real>> Im_lambda_grad;
     vector<param<Real>> mu_grad;
     vector<param<Real>> kappa_grad;
     vector<param<Real>> eta_grad;
 
     for (auto a: cliquetree->arcs) {
         int l = a->_id;
-        param<Real> lambda_C_in("lambda_C_in" + to_string(l));
-        param<Real> mu_C_in("lambda_C_in" + to_string(l));
-        param<Real> kappa_C_in("lambda_C_in" + to_string(l));
-        param<Real> eta_C_in("lambda_C_in" + to_string(l));
-        lambda_C_in^(a->_weight*(a->_weight-1)/2);
-        mu_C_in^(a->_weight);
-        kappa_C_in^(a->_weight);
-        eta_C_in^(a->_weight);
+        param<Real> R_lambda_arc_in("R_lambda_arc_in" + to_string(l));
+        param<Real> Im_lambda_arc_in("Im_lambda_arc_in" + to_string(l));
+        param<Real> mu_arc_in("R_mu_arc_in" + to_string(l));
+        param<Real> kappa_arc_in("kappa_arc_in" + to_string(l));
+        param<Real> eta_arc_in("eta_arc_in" + to_string(l));
+        R_lambda_arc_in^(a->_weight*(a->_weight-1)/2);
+        Im_lambda_arc_in^(a->_weight*(a->_weight-1)/2);
+        mu_arc_in^(a->_weight);
+        kappa_arc_in^(a->_weight);
+        eta_arc_in^(a->_weight);
 
-        param<Real> lambda_C_out("lambda_C_out" + to_string(l));
-        param<Real> mu_C_out("lambda_C_out" + to_string(l));
-        param<Real> kappa_C_out("lambda_C_out" + to_string(l));
-        param<Real> eta_C_out("lambda_C_out" + to_string(l));
-        lambda_C_out^(a->_weight*(a->_weight-1)/2);
-        mu_C_out^(a->_weight);
-        kappa_C_out^(a->_weight);
-        eta_C_out^(a->_weight);
+        param<Real> R_lambda_arc_out("R_lambda_arc_out" + to_string(l));
+        param<Real> Im_lambda_arc_out("Im_lambda_arc_out" + to_string(l));
+        param<Real> mu_arc_out("mu_arc_out" + to_string(l));
+        param<Real> kappa_arc_out("kappa_arc_out" + to_string(l));
+        param<Real> eta_arc_out("eta_arc_out" + to_string(l));
+        R_lambda_arc_out^(a->_weight*(a->_weight-1)/2);
+        Im_lambda_arc_out^(a->_weight*(a->_weight-1)/2);
+        mu_arc_out^(a->_weight);
+        kappa_arc_out^(a->_weight);
+        eta_arc_out^(a->_weight);
 
-        param<Real> lambda_C_sep("lambda_C_sep" + to_string(l));
-        param<Real> mu_C_sep("lambda_C_sep" + to_string(l));
-        param<Real> kappa_C_sep("lambda_C_sep" + to_string(l));
-        param<Real> eta_C_sep("lambda_C_sep" + to_string(l));
-        lambda_C_sep^(a->_weight*(a->_weight-1)/2);
-        mu_C_sep^(a->_weight);
-        kappa_C_sep^(a->_weight);
-        eta_C_sep^(a->_weight);
+        param<Real> R_lambda_arc_sep("R_lambda_arc_sep" + to_string(l));
+        param<Real> Im_lambda_arc_sep("Im_lambda_arc_sep" + to_string(l));
+        param<Real> mu_arc_sep("mu_arc_sep" + to_string(l));
+        param<Real> kappa_arc_sep("kappa_arc_sep" + to_string(l));
+        param<Real> eta_arc_sep("eta_arc_sep" + to_string(l));
+        R_lambda_arc_sep^(a->_weight*(a->_weight-1)/2);
+        Im_lambda_arc_sep^(a->_weight*(a->_weight-1)/2);
+        mu_arc_sep^(a->_weight);
+        kappa_arc_sep^(a->_weight);
+        eta_arc_sep^(a->_weight);
 
-        param<Real> lambda_C_grad("lambda_C_grad" + to_string(l));
-        param<Real> mu_C_grad("lambda_C_grad" + to_string(l));
-        param<Real> kappa_C_grad("lambda_C_grad" + to_string(l));
-        param<Real> eta_C_grad("lambda_C_grad" + to_string(l));
+        param<Real> R_lambda_arc_grad("R_lambda_arc_grad" + to_string(l));
+        param<Real> Im_lambda_arc_grad("Im_lambda_arc_grad" + to_string(l));
+        param<Real> mu_arc_grad("mu_arc_grad" + to_string(l));
+        param<Real> kappa_arc_grad("kappa_arc_grad" + to_string(l));
+        param<Real> eta_arc_grad("eta_arc_grad" + to_string(l));
 
         for (int i = 0; i < a->_weight; i++) {
-            mu_C_sep(i) = 0;
+            mu_arc_sep(i) = 0;
         }
 
-        lambda_in.push_back(lambda_C_in);
-        mu_in.push_back(mu_C_in);
-        kappa_in.push_back(kappa_C_in);
-        eta_in.push_back(eta_C_in);
+        R_lambda_in.push_back(R_lambda_arc_in);
+        Im_lambda_in.push_back(Im_lambda_arc_in);
+        mu_in.push_back(mu_arc_in);
+        kappa_in.push_back(kappa_arc_in);
+        eta_in.push_back(eta_arc_in);
 
-        lambda_out.push_back(lambda_C_out);
-        mu_out.push_back(mu_C_out);
-        kappa_out.push_back(kappa_C_out);
-        eta_out.push_back(eta_C_out);
+        R_lambda_out.push_back(R_lambda_arc_out);
+        Im_lambda_out.push_back(Im_lambda_arc_out);
+        mu_out.push_back(mu_arc_out);
+        kappa_out.push_back(kappa_arc_out);
+        eta_out.push_back(eta_arc_out);
 
-        lambda_sep.push_back(lambda_C_sep);
-        mu_sep.push_back(mu_C_sep);
-        kappa_sep.push_back(kappa_C_sep);
-        eta_sep.push_back(eta_C_sep);
+        R_lambda_sep.push_back(R_lambda_arc_sep);
+        Im_lambda_sep.push_back(Im_lambda_arc_sep);
+        mu_sep.push_back(mu_arc_sep);
+        kappa_sep.push_back(kappa_arc_sep);
+        eta_sep.push_back(eta_arc_sep);
 
-        lambda_grad.push_back(lambda_C_grad);
-        mu_grad.push_back(mu_C_grad);
-        kappa_grad.push_back(kappa_C_grad);
-        eta_grad.push_back(eta_C_grad);
+        R_lambda_grad.push_back(R_lambda_arc_grad);
+        Im_lambda_grad.push_back(Im_lambda_arc_grad);
+        mu_grad.push_back(mu_arc_grad);
+        kappa_grad.push_back(kappa_arc_grad);
+        eta_grad.push_back(eta_arc_grad);
     }
 
+    Arc* arc = nullptr;
+    Bus* bus = nullptr;
     for (auto a: cliquetree->arcs) {
         int l = a->_id;
-        for (int i = 0; i < a->_weight; i++) {
-            mu_in[l](i) = 0;
-            mu_sep[l](i) = 0;
-            mu_out[l](i) = 0;
-            mu_grad[l](i) = 0;
+        for (int i = 0; i < a->_intersection.size(); i ++) {
+            bus = (Bus*) a->_intersection.at(i);
+            for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                R_lambda_sep[l](arc->_name)  =  0;
+                R_lambda_in[l](arc->_name)  =  0;
+                R_lambda_out[l](arc->_name)  =  0;
+                Im_lambda_sep[l](arc->_name)  =  0;
+                Im_lambda_in[l](arc->_name)  =  0;
+                Im_lambda_out[l](arc->_name)  =  0;
+            }
 
-            kappa_in[l](i) = 0;
-            kappa_sep[l](i) = 0;
-            kappa_out[l](i) = 0;
-            kappa_grad[l](i) = 0;
-
-            eta_in[l](i) = 0;
-            eta_sep[l](i) = 0;
-            eta_out[l](i) = 0;
-            eta_grad[l](i) = 0;
-
-            for (int j = i+1; j < a->_weight; j++) {
-                lambda_in[l](i, j) = 0;
-                lambda_sep[l](i, j) = 0;
-                lambda_out[l](i, j) = 0;
-                lambda_grad[l](i, j) = 0;
+            for (auto g: bus->_gen) {
+                if (g->_active) {
+                    mu_sep[l](g->_name) = 0;
+                    mu_out[l](g->_name) = 0;
+                    mu_in[l] (g->_name) = 0;
+                    eta_sep[l](g->_name) = 0;
+                    eta_out[l](g->_name) = 0;
+                    eta_in[l] (g->_name) = 0;
+                    kappa_sep[l](g->_name) = 0;
+                    kappa_out[l](g->_name) = 0;
+                    kappa_in[l](g->_name) = 0;
+                }
             }
         }
     }
+    R_lambda_in.resize(cliquetree->arcs.size());
+    Im_lambda_in.resize(cliquetree->arcs.size());
+    mu_in.resize(cliquetree->arcs.size());
+    kappa_in.resize(cliquetree->arcs.size());
+    eta_in.resize(cliquetree->arcs.size());
+    R_lambda_out.resize(cliquetree->arcs.size());
+    Im_lambda_out.resize(cliquetree->arcs.size());
+    mu_out.resize(cliquetree->arcs.size());
+    kappa_out.resize(cliquetree->arcs.size());
+    eta_out.resize(cliquetree->arcs.size());
+    R_lambda_sep.resize(cliquetree->arcs.size());
+    Im_lambda_sep.resize(cliquetree->arcs.size());
+    mu_sep.resize(cliquetree->arcs.size());
+    kappa_sep.resize(cliquetree->arcs.size());
+    eta_sep.resize(cliquetree->arcs.size());
+    R_lambda_grad.resize(cliquetree->arcs.size());
+    Im_lambda_grad.resize(cliquetree->arcs.size());
+    mu_grad.resize(cliquetree->arcs.size());
+    kappa_grad.resize(cliquetree->arcs.size());
+    eta_grad.resize(cliquetree->arcs.size());
 
 /////////////////////////////////// INITIALISE MAIN ///////////////////////////////////
     Model Master("Master");
@@ -655,34 +701,43 @@ int main (int argc, const char * argv[])
     gamma_in^nb_cliques;
     gamma_out^nb_cliques;
     gamma_sep^nb_cliques;
-    
+
     /** Variables  */
     var<Real> gamma_C("gamma_C");
-    vector<var<Real>> lambda_var;
+    vector<var<Real>> R_lambda_var;
+    vector<var<Real>> Im_lambda_var;
     vector<var<Real>> mu_var;
     vector<var<Real>> kappa_var;
     vector<var<Real>> eta_var;
 
     Master.add_var(gamma_C^nb_cliques);
     for (auto a: cliquetree->arcs) {
-        var<Real> lambda("lambda_C" + to_string(a->_id));
-        var<Real> mu("lambda_C" + to_string(a->_id));
-        var<Real> kappa("lambda_C" + to_string(a->_id));
-        var<Real> eta("lambda_C" + to_string(a->_id));
-
-        lambda_var.push_back(lambda);
-        mu_var.push_back(mu);
-        kappa_var.push_back(kappa);
-        eta_var.push_back(eta);
-
-        Master.add_var(lambda^(a->_weight*(a->_weight -1)/2));
+        var<Real> R_lambda("R_lambda_arc_" + to_string(a->_id));
+        var<Real> Im_lambda("Im_lambda_arc_" + to_string(a->_id));
+        var<Real> mu("mu_arc_" + to_string(a->_id));
+        var<Real> kappa("kappa_arc_" + to_string(a->_id));
+        var<Real> eta("eta_arc_" + to_string(a->_id));
+        Master.add_var(R_lambda^(a->_weight*(a->_weight -1)/2));
+        Master.add_var(Im_lambda^(a->_weight*(a->_weight -1)/2));
         Master.add_var(mu^a->_weight);
         Master.add_var(kappa^a->_weight);
         Master.add_var(eta^a->_weight);
+
+        R_lambda_var.push_back(R_lambda);
+        Im_lambda_var.push_back(Im_lambda);
+        mu_var.push_back(mu);
+        kappa_var.push_back(kappa);
+        eta_var.push_back(eta);
     }
+    R_lambda_var.resize(cliquetree->arcs.size());
+    Im_lambda_var.resize(cliquetree->arcs.size());
+    mu_var.resize(cliquetree->arcs.size());
+    kappa_var.resize(cliquetree->arcs.size());
+    eta_var.resize(cliquetree->arcs.size());
+
     /////////** OBJ*//////////////
     func_ master_obj = sum(gamma_C);
-    Master.set_objective(master_obj);
+    Master.set_objective(max(master_obj));
     double bound = 100000000;
 
     Constraint UB;
@@ -704,59 +759,134 @@ int main (int argc, const char * argv[])
 
     double LDlog[nb_cliques];
 
-    // log of solutions
-    vector<param<Real>> lambda_log;
+    // LOG OF SOLUTIONS
+    // Log here means the previous primal and dual solution.
+    vector<param<Real>> R_lambda_log;
+    vector<param<Real>> Im_lambda_log;
     vector<param<Real>> mu_log;
     vector<param<Real>> kappa_log;
     vector<param<Real>> eta_log;
 
+    vector<param<Real>> R_Wij_log;
+    vector<param<Real>> Im_Wij_log;
+    vector<param<Real>> Wii_log;
+    vector<param<Real>> Pg_log;
+    vector<param<Real>> Qg_log;
+    vector<param<Real>> On_off_log;
+
     for (auto a: cliquetree->arcs) {
         int l = a->_id;
-        param<Real> lambda_C_log("lambda_C_log" + to_string(l));
-        param<Real> mu_C_log("lambda_C_log" + to_string(l));
-        param<Real> kappa_C_log("lambda_C_log" + to_string(l));
-        param<Real> eta_C_log("lambda_C_log" + to_string(l));
-        lambda_C_log^(a->_weight*(a->_weight-1)/2);
+        param<Real> R_lambda_C_log("R_lambda_C_log" + to_string(l));
+        param<Real> Im_lambda_C_log("Im_lambda_C_log" + to_string(l));
+        param<Real> mu_C_log("mu_C_log" + to_string(l));
+        param<Real> kappa_C_log("kappa_C_log" + to_string(l));
+        param<Real> eta_C_log("eta_C_log" + to_string(l));
+
+
+        R_lambda_C_log^(a->_weight*(a->_weight-1)/2);
+        Im_lambda_C_log^(a->_weight*(a->_weight-1)/2);
         mu_C_log^(a->_weight);
         kappa_C_log^(a->_weight);
         eta_C_log^(a->_weight);
+
+        R_lambda_log.push_back(R_lambda_C_log);
+        Im_lambda_log.push_back(Im_lambda_C_log);
+        mu_log.push_back(mu_C_log);
+        kappa_log.push_back(kappa_C_log);
+        eta_log.push_back(eta_C_log);
     }
+    R_lambda_log.resize(nb_cliques);
+    Im_lambda_log.resize(nb_cliques);
+    mu_log.resize(nb_cliques);
+    kappa_log.resize(nb_cliques);
+    eta_log.resize(nb_cliques);
 
+    for (int c = 0; c < nb_cliques; c++) {
+        param<Real> Im_Wij_C_log("Im_Wij_C_log" + to_string(c));
+        param<Real> R_Wij_C_log("R_Wij_C_log" + to_string(c));
+        param<Real> Wii_C_log("Wii_C_log" + to_string(c));
+        param<Real> Pg_C_log("Pg_C_log" + to_string(c));
+        param<Real> Qg_C_log("Qg_C_log" + to_string(c));
+        param<Real>  On_off_C_log("On_off_C_log" + to_string(c));
+        R_Wij_C_log^(T*grid->_bags[c].size()*(bag_bus[c].size() - 1)/2);
+        Im_Wij_C_log^(T*grid->_bags[c].size()*(bag_bus[c].size() - 1)/2);
+        Wii_C_log^(T*grid->_bags[c].size());
+        Pg_C_log^(T*bag_gens[c].size());
+        Qg_C_log^(T*bag_gens[c].size());
+        On_off_C_log^(T*bag_gens[c].size());
 
-    //param<Real> R_Wij_log("R_Wij_log");
-    //param<Real> Im_Wij_log("Im_Wij_log");
-    //param<Real> Wii_log("Wii_log");
-    //param<Real> Pg_log("Pg_log");
-    //param<Real> Qg_log("Qg_log");
-    //param<Real> On_off_log("On_off_log");
-
+        R_Wij_log.push_back(R_Wij_C_log);
+        Im_Wij_log.push_back(Im_Wij_C_log);
+        Wii_log.push_back(Wii_C_log);
+        Pg_log.push_back(Pg_C_log);
+        Qg_log.push_back(Qg_C_log);
+        On_off_log.push_back(On_off_C_log);
+    }
+    R_Wij_log.resize(nb_cliques);
+    Im_Wij_log.resize(nb_cliques);
+    Wii_log.resize(nb_cliques);
+    Pg_log.resize(nb_cliques);
+    Qg_log.resize(nb_cliques);
+    On_off_log.resize(nb_cliques);
 
 ///////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    double value_dual = 0;
-    //func_ OA;
+    vector<double> value_dual;
+    double val = 0;
+    double dual = 0;
     for (int c = 0; c < nb_cliques; c++) {
-        value_dual += subproblem(grid, chordal, T, c, cliquetree,
-                bag_bus[c], bag_gens[c], bag_arcs[c],
-                lambda_sep, mu_sep, kappa_sep, eta_sep,  
-                rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
-     //       OA.print(true);
+        val = subproblem(grid, chordal, T, c, cliquetree,
+                         bag_bus[c], bag_gens[c], bag_arcs[c],
+                         R_lambda_sep, Im_lambda_sep,  mu_sep, kappa_sep, eta_sep,
+                         rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down,
+                         Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Pg_log[c], Qg_log[c], On_off_log[c]);
+        value_dual.push_back(val);
+        gamma_in(c) = val;
     }
-
-
-cout << "................  Initialization value:  " << value_dual <<endl;
+    value_dual.resize(nb_cliques);
+    cout << "................  Initialization value:  " << dual <<endl;
 
 /////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
-        //if (iter_limit > 0) {
-        //    for (c = 0; c < nb_cliques; c++)
-        //    {
-        //        Constraint Concavity;  
-        //        Master.add_constraint(gamma_C[c] <= value_dual[r]
-        //                      + IloScalProd(w_cpulog[r], lambda_var) - IloScalProd(w_cpulog[r], lambdasep)
-        //                      + IloScalProd(z_meomlog[r], mu_var) - IloScalProd(z_meomlog[r], musep)
-        //    }
-        //}
+    if (iter_limit > 0) {
+        for (int c = 0; c < nb_cliques; c++)
+        {
+            Constraint Concavity("Iter_0_Concavity_" + to_string(c));
+            Concavity += gamma_C(c) - value_dual[c];
+            for (auto a: cliquetree->get_node(to_string(c))->get_out()) {
+                for (int i = 0; i < a->_intersection.size(); i ++) {
+                    bus = (Bus*)a->_intersection.at(i);
+                    for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                        arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                        Concavity += (R_lambda_sep[a->_id](arc->_name) - R_lambda_var[a->_id](arc->_name))*R_Wij_log[c](arc->_name);
+                        Concavity += (Im_lambda_sep[a->_id](arc->_name) - Im_lambda_var[a->_id](arc->_name))*Im_Wij_log[c](arc->_name);
+                    }
+                    for (auto g: bus->_gen) {
+                        if (g->_active) {
+                            Concavity +=(mu_sep[a->_id](g->_name) - mu_var[a->_id](g->_name))*Pg_log[c](g->_name);
+                            Concavity +=(kappa_sep[a->_id](g->_name) - kappa_var[a->_id](g->_name))*Qg_log[c](g->_name);
+                            Concavity +=(eta_sep[a->_id](g->_name) - eta_var[a->_id](g->_name))*On_off_log[c](g->_name);
+                        }
+                    }
+                }
+            }
+            for (auto a: cliquetree->get_node(to_string(c))->get_in()) {
+                for (int i = 0; i < a->_intersection.size(); i ++) {
+                    node = (Bus*)a->_intersection.at(i);
+                    for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                        arc = chordal->get_arc(node, a->_intersection.at(j)); // we have to use the arc name.
+                        Concavity += (R_lambda_var[a->_id](arc->_name)- R_lambda_sep[a->_id](arc->_name) )*R_Wij_log[c](arc->_name);
+                        Concavity += (Im_lambda_var[a->_id](arc->_name)-Im_lambda_sep[a->_id](arc->_name))*Im_Wij_log[c](arc->_name);
+                    }
+                }
+            }
+            Master.add_constraint(Concavity <= 0);
+        }
+    }
+    solver solve_Master(Master, ipopt);
+    solve_Master.run();
+    cout << "................  Initialization of Master problem ............... "  <<endl;
+    cout << "value: " << Master._obj_val  <<endl;
 
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangean decomposition algorithm >>>>>>>>>"<< endl;
