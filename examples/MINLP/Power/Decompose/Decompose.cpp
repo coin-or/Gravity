@@ -27,20 +27,24 @@
 using namespace std;
 using namespace gravity;
 
-/** initialise subproblem model */
-
-double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
+/** INITIALISE SUBPROBLEM MODEL */
+// it returns a outer-approximation function object 
+func_ subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
                   vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs, 
-                  vector<param<Real>>& lambda_sep, vector<param<Real>>& mu_sep, vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
+                  vector<param<Real>>& lambda_sep, vector<param<Real>>& mu_sep, 
+                  vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
                   param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
                   param<Real>& cost_up, param<Real>& cost_down) 
 {
+    func_  OA;
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
-    if (bag_arcs.size() == 0)
-        return 0;
+    if (bag_arcs.size() == 0){
+        OA += 0;
+        return OA;
+    }
     Model Subr("Subr");
     // POWER FLOW
-    DebugOn("bag_arcs " << c << "has " << bag_arcs.size() << "lines." << endl);
+    DebugOn("bag_arcs " << c << " has " << bag_arcs.size() << " lines." << endl);
     var<Real> Pf_from("Pf_from", grid->S_max.in(bag_arcs, T));
     var<Real> Qf_from("Qf_from", grid->S_max.in(bag_arcs, T));
     var<Real> Pf_to("Pf_to", grid->S_max.in(bag_arcs, T));
@@ -74,7 +78,7 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
     Arc* arc = nullptr;
     Bus* node = nullptr;
     for (auto a: Cr->get_out()){
-        DebugOn("a->_intersection.size " << a->_intersection.size() << endl);
+        Debug("a->_intersection.size " << a->_intersection.size() << endl);
         for (int i = 0; i < a->_intersection.size(); i ++){
             node = (Bus*)a->_intersection.at(i);
             for (int j = i + 1; j < a->_intersection.size(); j ++){
@@ -100,8 +104,10 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
         Subr.add_var(Pg^(T*bag_gens.size()));
         Subr.add_var(Qg^(T*bag_gens.size()));
 
-        for (auto g:bag_gens) {
+        for (auto g: bag_gens) {
+            DebugOn("number of generators: " << bag_gens.size() << endl);
             if (g->_active) {
+                DebugOn("generator name: " << g->_name << endl);
                 for (int t = 0; t < T; t++) {
                     if (t > 1) {
                         string l = to_string(t);
@@ -114,32 +120,33 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
                     }
                 }
             }
+            obj.print(true);
         }
-        //for (auto a: Cr->get_out()){
-        //    for (int i = 0; i < a->_intersection.size(); i ++){
-        //    node = (Bus*) a->_intersection.at(i);
-        //        for (auto g: node->_gen){
-        //            if (g->_active){
-        //                obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
-        //                obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
-        //                obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
-        //            }
-        //        }
-        //    }
-        //}
+        for (auto a: Cr->get_out()){
+            for (int i = 0; i < a->_intersection.size(); i ++){
+            node = (Bus*) a->_intersection.at(i);
+                for (auto g: node->_gen){
+                    if (g->_active){
+                        obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
+                        obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
+                        obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
+                    }
+                }
+            }
+        }
 
-        //for (auto a: Cr->get_in()){
-        //    for (int i = 0; i < a->_intersection.size(); i ++){
-        //    node = (Bus*) a->_intersection.at(i);
-        //        for (auto g: node->_gen){
-        //            if (g->_active){
-        //                obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
-        //                obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
-        //                obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
-        //            }
-        //        }
-        //    }
-        //}
+        for (auto a: Cr->get_in()){
+            for (int i = 0; i < a->_intersection.size(); i ++){
+            node = (Bus*) a->_intersection.at(i);
+                for (auto g: node->_gen){
+                    if (g->_active){
+                        obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
+                        obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
+                        obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
+                    }
+                }
+            }
+        }
         Subr.set_objective(min(obj));
         //KCL
         for (int t = 0; t < T; t++) {
@@ -213,8 +220,8 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
         Subr.add_constraint(Production_P_UB <=0);
         Subr.add_constraint(Production_P_LB >= 0);
 
-        grid->qg_max.print(true);
-        grid->qg_min.print(true);
+        //grid->qg_max.print(true);
+        //grid->qg_min.print(true);
 
         Production_Q_UB = Qg.in(bag_gens, T) - grid->qg_max.in(bag_gens, T)*On_off.in(bag_gens,T);
         Production_Q_LB = Qg.in(bag_gens, T) - grid->qg_min.in(bag_gens, T)*On_off.in(bag_gens,T);
@@ -331,6 +338,11 @@ double subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliq
     /* Resolve it! */
     solver solve_Subr(Subr,ipopt);
     solve_Subr.run();
+
+    obj.print(true);
+    
+    OA = obj.get_outer_app();
+    return OA;
 }
 
 
@@ -499,7 +511,9 @@ int main (int argc, const char * argv[])
         vector<Node*> v3;
         sort(grid->_bags[u].begin(), grid->_bags[u].end());
         sort(grid->_bags[v].begin(), grid->_bags[v].end());
-        set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(), grid->_bags[v].begin(), grid->_bags[v].end(), back_inserter(v3));
+        set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(),
+                         grid->_bags[v].begin(), grid->_bags[v].end(),
+                         back_inserter(v3));
         
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
@@ -509,35 +523,6 @@ int main (int argc, const char * argv[])
         a->connect();
     }
     const unsigned nb_clt_edges = spanning_tree.size();
-
-
-    /** CONVERGENCE INFO */
-    unsigned iter_limit;
-    cout << "Enter the limit of the number of iterations: ";
-    cin >> iter_limit;
-    cout << endl;
-
-    double LBlog[iter_limit];
-    double UBlog[iter_limit];
-
-    for(int iter = 0; iter < iter_limit; iter++) {
-        LBlog[iter] = 0.0;
-    }
-
-    double LDlog[nb_cliques];
-
-    // log of solutions
-    param<Real> lambda_log("lambda_log");
-    param<Real> mu_log("mu_log");
-    param<Real> kappa_log("kappa_log");
-    param<Real> eta_log("eta_log");
-
-    param<Real> R_Wij_log("R_Wij_log");
-    param<Real> Im_Wij_log("Im_Wij_log");
-    param<Real> Wii_log("Wii_log");
-    param<Real> Pg_log("Pg_log");
-    param<Real> Qg_log("Qg_log");
-    param<Real> On_off_log("On_off_log");
 
 
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
@@ -681,8 +666,7 @@ int main (int argc, const char * argv[])
         Master.add_var(kappa^a->_weight);
         Master.add_var(eta^a->_weight);
     }
-
-    /** obj*/
+    /////////** OBJ*//////////////
     func_ master_obj = sum(gamma_C);
     Master.set_objective(master_obj);
     double bound = 100000000;
@@ -691,17 +675,68 @@ int main (int argc, const char * argv[])
     UB = sum(gamma_C) - bound;
     Master.add_constraint(UB <= 0);
 
-///////////////// INITIALIZATION ///////////////////////
+////////////////  CONVERGENCE INFORMATION /////////////////////////
+    unsigned iter_limit;
+    cout << "Enter the limit of the number of iterations: ";
+    cin >> iter_limit;
+    cout << endl;
+
+    double LBlog[iter_limit];
+    double UBlog[iter_limit];
+
+    for(int iter = 0; iter < iter_limit; iter++) {
+        LBlog[iter] = 0.0;
+    }
+
+    double LDlog[nb_cliques];
+
+    // log of solutions
+    param<Real> lambda_log("lambda_log");
+    param<Real> mu_log("mu_log");
+    param<Real> kappa_log("kappa_log");
+    param<Real> eta_log("eta_log");
+
+    param<Real> R_Wij_log("R_Wij_log");
+    param<Real> Im_Wij_log("Im_Wij_log");
+    param<Real> Wii_log("Wii_log");
+    param<Real> Pg_log("Pg_log");
+    param<Real> Qg_log("Qg_log");
+    param<Real> On_off_log("On_off_log");
+
+
+///////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     double value_dual = 0;
+    func_ OA;
     for (int c = 0; c < nb_cliques; c++) {
-        DebugOn("bag_arc " << c << "has " << bag_arcs[c].size() << " lines" << endl);
-        value_dual += subproblem(grid, chordal, T, c, cliquetree,
+        //value_dual +=
+            OA = subproblem(grid, chordal, T, c, cliquetree,
                 bag_bus[c], bag_gens[c], bag_arcs[c],
                 lambda_sep, mu_sep, kappa_sep, eta_sep,  
                 rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
+            OA.print(true);
     }
+
+    R_Wij_log = 0;
+    Im_Wij_log = 0;
+    Wii_log = 0;
+    Pg_log = 0;
+    Qg_log = 0;
+    On_off_log = 0;
+
+cout << "................  Initialization value:  " << value_dual <<endl;
+
+/////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
+        //if (iter_limit > 0) {
+        //    for (c = 0; c < nb_cliques; c++)
+        //    {
+        //        Constraint Concavity;  
+        //        Master.add_constraint(gamma_C[c] <= value_dual[r]
+        //                      + IloScalProd(w_cpulog[r], lambda_var) - IloScalProd(w_cpulog[r], lambdasep)
+        //                      + IloScalProd(z_meomlog[r], mu_var) - IloScalProd(z_meomlog[r], musep)
+        //    }
+        //}
 
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangean decomposition algorithm >>>>>>>>>"<< endl;
@@ -716,5 +751,3 @@ int main (int argc, const char * argv[])
     return 0;
 #endif
 }
-
-

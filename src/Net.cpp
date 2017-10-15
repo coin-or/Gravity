@@ -330,7 +330,7 @@ void Net::read_adjacency_matrix(const char* fname) {
                 src = to_string(i);
                 dest = to_string(j);
                 id = index;
-                arc = new Arc(src + "," + dest);
+                arc = new Arc(to_string(id) + "," + src + "," + dest);
                 arc->_id = id;
                 arc->_src = get_node(src);
                 arc->_dest= get_node(dest);
@@ -538,6 +538,7 @@ Net* Net::get_chordal_extension() {
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
         sort(bag_copy.begin(), bag_copy.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size() - 1; i++) {
