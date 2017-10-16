@@ -153,38 +153,18 @@ void getdual_relax(PowerNet* grid)
     cost_up = 50;
     cost_down = 30;
 
-    grid->c0.time_expand(T);
-    grid->c1.time_expand(T);
-    grid->c2.time_expand(T);
-    grid->S_max.time_expand(T);
-    grid->tan_th_min.time_expand(T);
-    grid->tan_th_max.time_expand(T);
-    grid->g_tt.time_expand(T);
-    grid->g_ff.time_expand(T);
-    grid->g_ft.time_expand(T);
-    grid->g_tf.time_expand(T);
-    grid->b_tt.time_expand(T);
-    grid->b_ff.time_expand(T);
-    grid->b_ft.time_expand(T);
-    grid->b_tf.time_expand(T);
-    grid->pg_min.time_expand(T);
-    grid->pg_max.time_expand(T);
-    grid->qg_min.time_expand(T);
-    grid->qg_max.time_expand(T);
-    grid->w_min.time_expand(T);
-    grid->w_max.time_expand(T);
+    grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
 
     /** Clique tree decomposition **/
-
     Net* chordal = grid->get_chordal_extension();
     grid->get_clique_tree();
     const unsigned nb_cliques = grid->_bags.size();
 
-    vector<vector<Bus*>> bag_bus; // Note that each clique contains just nodes, not buses!
+    vector<vector<Bus*>> bag_bus; 
     vector<vector<Gen*>> bag_gens;
-    vector<vector<Arc*>> bag_arcs; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
+    vector<vector<Arc*>> bag_arcs;
 
     for (int c = 0; c < nb_cliques; c++) {
         vector<Bus*> bag_B;
@@ -217,7 +197,7 @@ void getdual_relax(PowerNet* grid)
     /** build model */
     Model ACUC("ACUC Model");
 
-    /** Variables */
+    /** VARIABLES */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
@@ -269,10 +249,6 @@ void getdual_relax(PowerNet* grid)
             }
         }
     }
-    //obj  = sum(grid->c0.in(grid->gens, T));
-    //obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
-    //obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
-    //obj += cost_up.getvalue()*sum(Start_up.in(grid->gens, T))+ cost_down.getvalue()*sum(Shut_down.in(grid->gens,T));
     ACUC.set_objective(min(obj));
 
     /** Define constraints */

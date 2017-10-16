@@ -30,8 +30,8 @@ int main (int argc, const char * argv[])
         // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+         fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        // fname = "../../data_sets/Power/nesta_case300_ieee.m";
     }
     // ACUC
     PowerNet* grid = new PowerNet();
@@ -78,12 +78,9 @@ int main (int argc, const char * argv[])
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
-
+    Pg.print(true);
+    grid->pg_max.in(grid->gens, T).print(true);
     // power flow
-//    var<double> Pf_from("Pf_from");
-//    var<double> Qf_from("Qf_from");
-//    var<double> Pf_to("Pf_to");
-//    var<double> Qf_to("Qf_to");
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs, T));
@@ -116,101 +113,97 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             for (int t = 0; t < T; t++) {
-                if (t > 1) {
+                //if (t > 1) {
                     string l = to_string(t);
-                    obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
+                    obj += grid->c1(g->_name,l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
                     //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
-                }
-                else {
-                    obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+               // }
+                //else {
+                  //  obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
                     //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
-                }
+                //}
             }
         }
     }
-    //obj  = sum(grid->c0.in(grid->gens, T));
-    //obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
-    //obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
-    //obj += cost_up.getvalue()*sum(Start_up.in(grid->gens, T))+ cost_down.getvalue()*sum(Shut_down.in(grid->gens,T));
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
     /* SOCP constraints */
-    Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(bus_pairs, T), 2) + power(Im_Wij.in(bus_pairs, T), 2) - Wii.from(bus_pairs, T)*Wii.to(bus_pairs, T) ;
-    ACUC.add_constraint(SOC <= 0);
-    //KCL
-    for (int t = 0; t < T; t++)
-        for (auto b: grid->nodes) {
-            if (!b->_active) {
-                continue;
-            }
-            Bus* bus = (Bus*) b;
-            Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
-            Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
+    //Constraint SOC("SOC");
+    //SOC =  power(R_Wij.in(bus_pairs, T), 2) + power(Im_Wij.in(bus_pairs, T), 2) - Wii.from(bus_pairs, T)*Wii.to(bus_pairs, T) ;
+    //ACUC.add_constraint(SOC <= 0);
+    ////KCL
+    //for (int t = 0; t < T; t++)
+    //    for (auto b: grid->nodes) {
+    //        if (!b->_active) {
+    //            continue;
+    //        }
+    //        Bus* bus = (Bus*) b;
+    //        Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
+    //        Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
 
-            /* Power Conservation */
-            KCL_P  = sum(Pf_from.in_at(b->get_out(), t)) + sum(Pf_to.in_at(b->get_in(), t)) + bus->pl()- sum(Pg.in_at(bus->_gen, t));
-            KCL_Q  = sum(Qf_from.in_at(b->get_out(), t)) + sum(Qf_to.in_at(b->get_in(), t)) + bus->ql()- sum(Qg.in_at(bus->_gen, t));
+    //        /* Power Conservation */
+    //        KCL_P  = sum(Pf_from.in_at(b->get_out(), t)) + sum(Pf_to.in_at(b->get_in(), t)) + bus->pl()- sum(Pg.in_at(bus->_gen, t));
+    //        KCL_Q  = sum(Qf_from.in_at(b->get_out(), t)) + sum(Qf_to.in_at(b->get_in(), t)) + bus->ql()- sum(Qg.in_at(bus->_gen, t));
 
-            /* Shunts */
-            KCL_P +=  bus->gs()*Wii(bus->_name);
-            KCL_Q -=  bus->bs()*Wii(bus->_name);
+    //        /* Shunts */
+    //        KCL_P +=  bus->gs()*Wii(bus->_name);
+    //        KCL_Q -=  bus->bs()*Wii(bus->_name);
 
-            ACUC.add_constraint(KCL_P = 0);
-            ACUC.add_constraint(KCL_Q = 0);
-        }
+    //        ACUC.add_constraint(KCL_P = 0);
+    //        ACUC.add_constraint(KCL_Q = 0);
+    //    }
 
-    //AC Power Flow.
-    Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(grid->arcs, T);
-    Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_From = 0);
+    ////AC Power Flow.
+    //Constraint Flow_P_From("Flow_P_From");
+    //Flow_P_From += Pf_from.in(grid->arcs, T);
+    //Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
+    //Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    //Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    //ACUC.add_constraint(Flow_P_From = 0);
 
-    Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(grid->arcs, T);
-    Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_To = 0);
+    //Constraint Flow_P_To("Flow_P_To");
+    //Flow_P_To += Pf_to.in(grid->arcs, T);
+    //Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
+    //Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    //Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    //ACUC.add_constraint(Flow_P_To = 0);
 
-    //Constraint Flow_Q_From("Flow_Q_From");
-    //Flow_Q_From += Qf_from.in(grid->arcs, T);
-    //Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    //Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    //Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    //ACUC.add_constraint(Flow_Q_From = 0);
+    ////Constraint Flow_Q_From("Flow_Q_From");
+    ////Flow_Q_From += Qf_from.in(grid->arcs, T);
+    ////Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
+    ////Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    ////Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    ////ACUC.add_constraint(Flow_Q_From = 0);
 
-    //Constraint Flow_Q_To("Flow_Q_To");
-    //Flow_Q_To += Qf_to.in(grid->arcs, T);
-    //Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    //Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    //Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    //ACUC.add_constraint(Flow_Q_To = 0);
+    ////Constraint Flow_Q_To("Flow_Q_To");
+    ////Flow_Q_To += Qf_to.in(grid->arcs, T);
+    ////Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
+    ////Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    ////Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    ////ACUC.add_constraint(Flow_Q_To = 0);
 
-    /* Phase Angle Bounds constraints */
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bus_pairs, T);
-    PAD_UB -= (grid->tan_th_max).in(bus_pairs, T)*R_Wij.in(bus_pairs, T);
-    ACUC.add_constraint(PAD_UB <= 0);
+    ///* Phase Angle Bounds constraints */
+    //Constraint PAD_UB("PAD_UB");
+    //PAD_UB = Im_Wij.in(bus_pairs, T);
+    //PAD_UB -= (grid->tan_th_max).in(bus_pairs, T)*R_Wij.in(bus_pairs, T);
+    //ACUC.add_constraint(PAD_UB <= 0);
 
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bus_pairs, T);
-    PAD_LB -= grid->tan_th_min.in(bus_pairs, T)*R_Wij.in(bus_pairs, T);
-    ACUC.add_constraint(PAD_LB >= 0);
+    //Constraint PAD_LB("PAD_LB");
+    //PAD_LB =  Im_Wij.in(bus_pairs, T);
+    //PAD_LB -= grid->tan_th_min.in(bus_pairs, T)*R_Wij.in(bus_pairs, T);
+    //ACUC.add_constraint(PAD_LB >= 0);
 
-    /* Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from.in(grid->arcs, T),  2) + power(Qf_from.in(grid->arcs, T), 2);
-    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs, T), 2);
-    ACUC.add_constraint(Thermal_Limit_from <= 0);
+    ///* Thermal Limit Constraints */
+    //Constraint Thermal_Limit_from("Thermal_Limit_from");
+    //Thermal_Limit_from += power(Pf_from.in(grid->arcs, T),  2) + power(Qf_from.in(grid->arcs, T), 2);
+    //Thermal_Limit_from -= power(grid->S_max.in(grid->arcs, T), 2);
+    //ACUC.add_constraint(Thermal_Limit_from <= 0);
 
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
-    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
-    ACUC.add_constraint(Thermal_Limit_to <= 0);
+    //Constraint Thermal_Limit_to("Thermal_Limit_to");
+    //Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
+    //Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
+    //ACUC.add_constraint(Thermal_Limit_to <= 0);
 
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints
@@ -291,17 +284,17 @@ int main (int argc, const char * argv[])
     OPF.run();
 
     /* Solution analysis */
-    auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
-    auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
+    //auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
+    //auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
 
-    cout << "On_off = "  ;
-    for (auto a: *val2.get_vals()) {
-        cout << a << ",";
-    }
-    cout << endl;
+    //cout << "On_off = "  ;
+    //for (auto a: *val2.get_vals()) {
+    //    cout << a << ",";
+    //}
+    //cout << endl;
 
-    for (auto a: *val_Pg.get_vals()) {
-        cout << a << endl;
-    }
+    //for (auto a: *val_Pg.get_vals()) {
+    //    cout << a << endl;
+    //}
     return 0;
 }

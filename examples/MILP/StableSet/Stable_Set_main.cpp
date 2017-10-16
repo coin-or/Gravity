@@ -196,7 +196,6 @@ int main (int argc, const char * argv[])
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
     s1.run();
-    s1.run();
     
     wall1 = get_wall_time();
     cpu1  = get_cpu_time();

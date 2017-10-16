@@ -629,6 +629,7 @@ public:
 
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec, unsigned T) {
+        assert(T > 0);
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -643,11 +644,11 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name + "," + (*it)->_dest->_name;
-                if (t > 0) {
-                    key += ",";
-                    key += to_string(t);
-                }
-                DebugOff(key<< ", ");
+                //if (t > 0) {
+                key += ",";
+                key += to_string(t);
+                //}
+                DebugOn(key<< ", " << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -758,11 +759,12 @@ public:
         res._val = this->_val;
         for (unsigned t = 0; t < T; t++) {
             string key = nm;
-            if (t > 0) {
+            //if (t > 0) {
                 key += ",";
                 key += to_string(t);
-            }
+           // }
             //cout << "key: " << key << endl;
+            DebugOn("key: " << key << endl);
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
@@ -801,10 +803,10 @@ public:
                 continue;
             }
             key = (*it)->_name;
-            if (t > 0) {
+            //if (t > 0) {
                 key += ",";
                 key += to_string(t);
-            }
+            //}
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
@@ -841,10 +843,10 @@ public:
                     continue;
                 }
                 key = (*it)->_name;
-                if (t > 0) {
+                //if (t > 0) {
                     key += ",";
                     key += to_string(t);
-                }
+                //}
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -884,10 +886,10 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name;
-                if (t > 0) {
+                //if (t > 0) {
                     key += ",";
                     key += to_string(t);
-                }
+                //}
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -926,10 +928,10 @@ public:
                     continue;
                 }
                 key = (*it)->_dest->_name;
-                if (t > 0) {
+                //if (t > 0) {
                     key += ",";
                     key += to_string(t);
-                }
+                //}
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted

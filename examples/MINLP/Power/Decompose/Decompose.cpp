@@ -211,7 +211,8 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                         //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
                     }
                     else {
-                        /* This is weird, Pg should either be indexed by two indices or one, not both. sure, this is just for the purpose of debugging */
+                        /* This is weird, Pg should either be indexed by two indices or one, not both.*/
+                        // you're right. 
                         obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
                         //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
                     }
@@ -446,7 +447,6 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     On_off_log = (*(var<Real>*) Subr.get_var("On_off"));
     return Subr._obj_val;
 }
-
 
 int main (int argc, const char * argv[])
 {
