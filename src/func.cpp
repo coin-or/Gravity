@@ -34,9 +34,9 @@ namespace gravity{
         return 0;
     }
 
-    size_t get_poly_id_inst(const constant_* c){
+    size_t get_poly_id_inst(const constant_* c, unsigned inst){
         if (c->is_var() || c->is_param()) {
-            return ((param_*)c)->get_id_inst();
+            return ((param_*)c)->get_id_inst(inst);
         }
         return 0;
     }
