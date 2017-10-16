@@ -895,9 +895,9 @@ int main (int argc, const char * argv[])
     for (auto a: cliquetree->arcs) {
         R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
         Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
-        mu_out[a->_id] = (*(var<Real>*) Master.get_var("mu_out_arc_"+ to_string(a->_id)));
-        kappa_out[a->_id] = (*(var<Real>*) Master.get_var("kappa_out_arc_"+ to_string(a->_id)));
-        eta_out[a->_id] = (*(var<Real>*) Master.get_var("eta_out_arc_"+ to_string(a->_id)));
+        mu_out[a->_id] = (*(var<Real>*) Master.get_var("mu_arc_"+ to_string(a->_id)));
+        kappa_out[a->_id] = (*(var<Real>*) Master.get_var("kappa_arc_"+ to_string(a->_id)));
+        eta_out[a->_id] = (*(var<Real>*) Master.get_var("eta_arc_"+ to_string(a->_id)));
     }
 
     cout << "................  Initialization of Master problem ............... "  <<endl;
@@ -906,7 +906,7 @@ int main (int argc, const char * argv[])
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
     cout<< setw(15) << left <<"ITERATION" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-    for(int itcount = 0; itcount < iter_limit; itcount++) {
+    for(int itcount = 1; itcount < iter_limit; itcount++) {
         //////// CONSTRUCT SEPARATION POINTS
         for (int c = 0; c < nb_cliques; c++) {
             gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
@@ -945,7 +945,7 @@ int main (int argc, const char * argv[])
         }
 
 // UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
-        if (dual- gravity::sum(gamma_sep) < 0) {
+        if (dual- sum(gamma_sep).eval() < 0) {
             for (int c = 0; c < nb_cliques; c++) {
                 Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
                 Concavity += gamma_C(c) - value_dual[c];
@@ -966,9 +966,10 @@ int main (int argc, const char * argv[])
                         }
                     }
                 }
+            Master.add_constraint(Concavity <= 0);
             }
-            if (dual > gravity::sum(gamma_in)) {
-                for (c = 0; c < nb_cliques; c++)
+            if (dual > sum(gamma_in).eval()) {
+                for (int c = 0; c < nb_cliques; c++)
                 {
                     gamma_in(c) = value_dual[c];
                 }
@@ -994,15 +995,12 @@ int main (int argc, const char * argv[])
             }
             solve_Master.run();
             // Update the out-point
-            for (c = 0; c < nb_cliques; c++)
-            {
-                gamma_out(c) = ;
-            }
+            gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
             for (auto a: cliquetree->arcs) {
                 int l = a->_id;
-                for (outt i = 0; i < a->_intersection.size(); i ++) {
+                for (int i = 0; i < a->_intersection.size(); i ++) {
                     bus = (Bus*) a->_intersection.at(i);
-                    for (outt j = i + 1; j < a->_intersection.size(); j ++) {
+                    for (int j = i + 1; j < a->_intersection.size(); j ++) {
                         arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
                         R_lambda_out[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
                         Im_lambda_out[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
@@ -1019,7 +1017,7 @@ int main (int argc, const char * argv[])
             }
         }
         else {
-            for (c = 0; c < nb_cliques; c++)
+            for (int c = 0; c < nb_cliques; c++)
             {
                 gamma_in(c) = value_dual[c];
             }
@@ -1043,7 +1041,7 @@ int main (int argc, const char * argv[])
                 }
             }
         }
-        count<< setw(15) << left <<itcount << setw(15) << LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
+        cout<< setw(15) << left <<itcount << setw(15) << LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
     }
     return 0;
 #endif
