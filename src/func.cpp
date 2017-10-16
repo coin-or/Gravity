@@ -4354,13 +4354,17 @@ namespace gravity{
     }
 
      func_* func_::compute_derivative(const param_ &v){
-        
+         auto vid = v._unique_id;
+        if(_dfdx.count(vid)!=0){
+            return _dfdx[vid];
+        }
+         
         auto df = new func_(get_derivative(v));
     //    embed(*df);
-         if(_dfdx.count(v._unique_id)!=0){
-             throw invalid_argument("storing same df twice! " + poly_to_str(&v) + this->to_str());
-         }
-        _dfdx[v._unique_id] = df;
+//         if(_dfdx.count(v._unique_id)!=0){
+//             throw invalid_argument("storing same df twice! " + poly_to_str(&v) + this->to_str());
+//         }
+        _dfdx[vid] = df;
         Debug( "First derivative with respect to " << v.get_name() << " = ");
     //    df->print();
         return df;
