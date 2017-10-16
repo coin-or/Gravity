@@ -51,7 +51,8 @@ Net* get_cliquetree(Net* grid){
         for (int j = i +1; j < nb_cliques; j++) {
             vector<Node*> v3;
             sort(grid->_bags[j].begin(), grid->_bags[j].end());
-            set_intersection(grid->_bags[i].begin(), grid->_bags[i].end(), grid->_bags[j].begin(), grid->_bags[j].end(), back_inserter(v3));
+            set_intersection(grid->_bags[i].begin(), grid->_bags[i].end(), grid->_bags[j].begin(),
+                             grid->_bags[j].end(), back_inserter(v3));
             if (v3.size() > 0) {
                 edges.push_back(E(i, j));
                 weights.push_back(-v3.size());
@@ -210,7 +211,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                         //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
                     }
                     else {
-                        /* This is weird, Pg should either be indexed by two indices or one, not both. */
+                        /* This is weird, Pg should either be indexed by two indices or one, not both. sure, this is just for the purpose of debugging */
                         obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
                         //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
                     }
@@ -255,7 +256,8 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
 
                 /* Power Conservation */
                 vector<Arc*> out;
-                /* Add comments here, why are we using set_intersection? */
+                /* Add comments here, why are we using set_intersection?*/
+                /* bus->get_out() includes all out lines of the grid, but here we need the out lines of the bag.*/
                 set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
                 vector<Arc*> in;
                 set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
@@ -345,7 +347,6 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
         }
     }
     else {
-        obj += 0;// What is this?
         Subr.set_objective(min(obj));
         //KCL
         for (int t = 0; t < T; t++)
@@ -488,26 +489,7 @@ int main (int argc, const char * argv[])
     cost_down = 30;
 
     /* create a function grid->time_expand(T) to do all these below */
-    grid->c0.time_expand(T);
-    grid->c1.time_expand(T);
-    grid->c2.time_expand(T);
-    grid->S_max.time_expand(T);
-    grid->tan_th_min.time_expand(T);
-    grid->tan_th_max.time_expand(T);
-    grid->g_tt.time_expand(T);
-    grid->g_ff.time_expand(T);
-    grid->g_ft.time_expand(T);
-    grid->g_tf.time_expand(T);
-    grid->b_tt.time_expand(T);
-    grid->b_ff.time_expand(T);
-    grid->b_ft.time_expand(T);
-    grid->b_tf.time_expand(T);
-    grid->pg_min.time_expand(T);
-    grid->pg_max.time_expand(T);
-    grid->qg_min.time_expand(T);
-    grid->qg_max.time_expand(T);
-    grid->w_min.time_expand(T);
-    grid->w_max.time_expand(T);
+    grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
 
@@ -516,7 +498,7 @@ int main (int argc, const char * argv[])
     grid->get_clique_tree();
     const unsigned nb_cliques = grid->_bags.size();
 
-    vector<vector<Bus*>> bag_bus; // Note that each clique contains just nodes, not buses!
+    vector<vector<Bus*>> bag_bus; // Note that each clique contains just nodes, not buses! Fixed this by modifying the bag definition.
     vector<vector<Gen*>> bag_gens;
     vector<vector<Arc*>> bag_arcs; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
 
@@ -677,6 +659,7 @@ int main (int argc, const char * argv[])
         }
     }
     /* Why doing the resize while we have used the ^ operator? */
+    // ^ operator is for each parameter; resizing if for each vector; am I missing sth?
     R_lambda_in.resize(cliquetree->arcs.size());
     Im_lambda_in.resize(cliquetree->arcs.size());
     mu_in.resize(cliquetree->arcs.size());

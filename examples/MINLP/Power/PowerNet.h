@@ -25,7 +25,6 @@ using namespace gravity;
 class PowerNet: public Net {
 
 public:
-    
     string ref_bus;
     double bMVA; /**< Base MVA */
     double m_theta_lb = 0, m_theta_ub = 0; /**< BigM values for phase angles */
@@ -56,6 +55,7 @@ public:
     unsigned get_nb_active_gens() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
-};
 
+    void time_expand (unsigned T);
+};
 #endif

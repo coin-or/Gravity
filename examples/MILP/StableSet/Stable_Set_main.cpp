@@ -189,12 +189,15 @@ int main (int argc, const char * argv[])
     
 
   solver s1(SDP,ipopt);
+
   // solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
     s1.run();
+    s1.run();
+    
     wall1 = get_wall_time();
     cpu1  = get_cpu_time();
     cout << "Done running the SDP relaxation\n";

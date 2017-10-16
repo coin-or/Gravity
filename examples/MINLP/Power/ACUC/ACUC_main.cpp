@@ -65,26 +65,7 @@ int main (int argc, const char * argv[])
     cost_up = 50;
     cost_down = 30;
 
-    grid->c0.time_expand(T);
-    grid->c1.time_expand(T);
-    grid->c2.time_expand(T);
-    grid->S_max.time_expand(T);
-    grid->tan_th_min.time_expand(T);
-    grid->tan_th_max.time_expand(T);
-    grid->g_tt.time_expand(T);
-    grid->g_ff.time_expand(T);
-    grid->g_ft.time_expand(T);
-    grid->g_tf.time_expand(T);
-    grid->b_tt.time_expand(T);
-    grid->b_ff.time_expand(T);
-    grid->b_ft.time_expand(T);
-    grid->b_tf.time_expand(T);
-    grid->pg_min.time_expand(T);
-    grid->pg_max.time_expand(T);
-    grid->qg_min.time_expand(T);
-    grid->qg_max.time_expand(T);
-    grid->w_min.time_expand(T);
-    grid->w_max.time_expand(T);
+    grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
 
