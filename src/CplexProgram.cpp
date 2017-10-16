@@ -63,11 +63,14 @@ bool CplexProgram::solve(bool relax) {
 }
 
 void CplexProgram::fill_in_cplex_vars() {
+    _cplex_vars.resize(_model->_vars.size());
     param_* v;
+    unsigned vid = -1;
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second;
-        if(v->get_vec_id() == -1) {
+        vid = v->get_vec_id();
+        if( vid == -1) {
             throw invalid_argument("Variable needs to be added to model first: use add_var(v) function:" + v->get_name());
         }
         switch (v->get_intype()) {
@@ -79,7 +82,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
         }
         case long_: {
@@ -90,7 +93,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
         }
         case double_: {
@@ -101,7 +104,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
         }
         case integer_: {
@@ -112,7 +115,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub, ILOINT));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
         }
         case short_: {
@@ -134,7 +137,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub, ILOBOOL));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
         }
         default:
