@@ -162,8 +162,9 @@ int main (int argc, const char * argv[])
 //    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
 //    SOCP.add_constraint(NL <= 0);
     
-//    solver SCOPF(SOCP,ipopt);
-    solver SCOPF(SOCP,cplex);
+    solver SCOPF(SOCP,ipopt);
+    //solver SCOPF(SOCP, cplex);
+
     SCOPF.run();
     return 0;
 }
