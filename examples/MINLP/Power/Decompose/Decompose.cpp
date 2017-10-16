@@ -844,6 +844,7 @@ int main (int argc, const char * argv[])
                          Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Pg_log[c], Qg_log[c], On_off_log[c]);
         value_dual.push_back(val);
         gamma_in(c) = val;
+        dual +=val;
     }
     value_dual.resize(nb_cliques);
     cout << "................  Initialization value:  " << dual <<endl;
@@ -892,18 +893,151 @@ int main (int argc, const char * argv[])
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
     cout<< setw(15) << left <<"ITERATION" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-    //////// CONSTRUCT SEPARATION POINTS
-    for (int c = 0; c < nb_cliques; c++){
-        gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
-    } 
+    for(int itcount = 0; itcount < iter_limit; itcount++) {
+        //////// CONSTRUCT SEPARATION POINTS
+        for (int c = 0; c < nb_cliques; c++) {
+            gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
+        }
+        for (auto a: cliquetree->arcs) {
+            int l = a->_id;
+            for (int i = 0; i < a->_intersection.size(); i ++) {
+                bus = (Bus*) a->_intersection.at(i);
+                for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                    arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                    R_lambda_sep[l](arc->_name)  = alpha*R_lambda_in[l](arc->_name).getvalue() + (1 - alpha)*R_lambda_out[l](arc->_name).getvalue();
+                    Im_lambda_sep[l](arc->_name) = alpha*Im_lambda_in[l](arc->_name).getvalue() + (1 - alpha)*Im_lambda_out[l](arc->_name).getvalue();
+                }
 
-    //for(int itcount = 0; itcount < iter_limit; itcount++) {
-    //    double value_dual = 0;
-    //    for (int c = 0; c < nb_cliques; c++) {
-    //        DebugOn("bag_arc " << c << "has " << bag_arcs[c].size() << " lines" << endl);
-    //        value_dual += subproblem(grid, T, c, bag_bus[c], bag_gens[c], bag_arcs[c], rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down);
-    //    }
-    //}
+                for (auto g: bus->_gen) {
+                    if (g->_active) {
+                        mu_sep[l](g->_name) = alpha*mu_out[l](g->_name).getvalue() + (1-alpha)*mu_in[l](g->_name).getvalue();
+                        eta_sep[l](g->_name) = alpha*eta_out[l](g->_name).getvalue() + (1 - alpha)*eta_in[l](g->_name).getvalue();
+                        kappa_sep[l](g->_name) = alpha*kappa_out[l](g->_name).getvalue + (1 - alpha)*kappa_in[l](g->_name).getvalue();
+                    }
+                }
+            }
+        }
+
+        /////////////////SLOVE SUBPROBLEM/////////////////////
+        dual = 0;
+        for (int c = 0; c < nb_cliques; c++) {
+            val = subproblem(grid, chordal, T, c, cliquetree,
+                             bag_bus[c], bag_gens[c], bag_arcs[c],
+                             R_lambda_sep, Im_lambda_sep,  mu_sep, kappa_sep, eta_sep,
+                             rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down,
+                             Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Pg_log[c], Qg_log[c], On_off_log[c]);
+            value_dual[c] = val;
+            dual += val;
+        }
+
+// UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
+        if (dual < Sum(gamma_sep) {
+        for (int c = 0; c < nb_cliques; c++) {
+                Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
+                Concavity += gamma_C(c) - value_dual[c];
+                for (auto a: cliquetree->get_node(to_string(c))->get_out()) {
+                    for (int i = 0; i < a->_intersection.size(); i ++) {
+                        bus = (Bus*)a->_intersection.at(i);
+                        for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                            arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                            Concavity += (R_lambda_sep[a->_id](arc->_name) - R_lambda_var[a->_id](arc->_name))*R_Wij_log[c](arc->_name);
+                            Concavity += (Im_lambda_sep[a->_id](arc->_name) - Im_lambda_var[a->_id](arc->_name))*Im_Wij_log[c](arc->_name);
+                        }
+                        for (auto g: bus->_gen) {
+                            if (g->_active) {
+                                Concavity +=(mu_sep[a->_id](g->_name) - mu_var[a->_id](g->_name))*Pg_log[c](g->_name);
+                                Concavity +=(kappa_sep[a->_id](g->_name) - kappa_var[a->_id](g->_name))*Qg_log[c](g->_name);
+                                Concavity +=(eta_sep[a->_id](g->_name) - eta_var[a->_id](g->_name))*On_off_log[c](g->_name);
+                            }
+                        }
+                    }
+                }
+            }
+            if (Dual > IloSum(gamma_in))
+            {
+                for (c = 0; c < nb_cliques; c++)
+                {
+                    gamma_in(c) = value_dual[c];
+                }
+                for (auto a: cliquetree->arcs) {
+                    int l = a->_id;
+                    for (int i = 0; i < a->_intersection.size(); i ++) {
+                        bus = (Bus*) a->_intersection.at(i);
+                        for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                            arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                            R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
+
+                            R_lambda_out[l](arc->_name)  =  0;
+                            Im_lambda_sep[l](arc->_name)  =  0;
+                            Im_lambda_in[l](arc->_name)  =  0;
+                            Im_lambda_out[l](arc->_name)  =  0;
+                        }
+
+                        for (auto g: bus->_gen) {
+                            if (g->_active) {
+                                mu_sep[l](g->_name) = 0;
+                                mu_out[l](g->_name) = 0;
+                                mu_in[l] (g->_name) = 0;
+                                eta_sep[l](g->_name) = 0;
+                                eta_out[l](g->_name) = 0;
+                                eta_in[l] (g->_name) = 0;
+                                kappa_sep[l](g->_name) = 0;
+                                kappa_out[l](g->_name) = 0;
+                                kappa_in[l](g->_name) = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            cplex_main.solve();
+            Mytime += cplex_main.getTime();
+            cplex_main.getValues(lambdaout, lambda_var);
+            cplex_main.getValues(muout, mu_var);
+            cplex_main.getValues(sigmaout, sigma_var);
+
+            for (r = 0; r < Num_R; r++)
+            {
+                cplex_main.getValues(etaout[r], eta_var[r]);
+                cplex_main.getValues(zetaout[r], zeta_var[r]);
+            }
+        }
+        else
+        {
+            for (r = 0; r < Num_R; r++)
+            {
+                gammar_in[r] = LDr[r];
+                for (e = 0; e < nbEdges; e++)
+                    zetain[r][e] = zetasep[r][e];
+                for (k = 0; k < nbServers; k++)
+                    etain[r][k] = etasep[r][k];
+            }
+            for (e = 0; e < nbEdges; e++)
+            {
+                gammae_in[e] = LDe[e];
+                sigmain[e] = sigmasep[e];
+            }
+            for (k = 0; k < nbServers; k++)
+            {
+                gammak_in[k] = LDk[k];
+                lambdain[k] = lambdasep[k];
+                muin[k] = musep[k];
+            }
+
+        }
+
+        if (itcount > 0)
+    {
+        LBlog[itcount] = IloMax(LR, LBlog[itcount - 1]);
+            UBlog[itcount] = IloMin(cplex_main.getObjValue(), UBlog[itcount - 1]);
+
+        }
+        else
+        {
+            UBlog[itcount] = cplex_main.getObjValue();
+            LBlog[itcount] = IloMax(LR, LBlog[0]);
+        }
+        env.out()<< setw(15) << left <<itcount << setw(15) << LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
+    }
     return 0;
 #endif
 }
