@@ -666,7 +666,8 @@ public:
         }
         DebugOff(endl);
         res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id,in_time_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._unique_id = make_tuple<>(res._id, in_time_, typeid(Tobj).hash_code(),
+                res.get_id_inst(0), res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }

@@ -195,19 +195,19 @@ int main (int argc, const char * argv[])
     Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
     ACUC.add_constraint(Flow_P_To = 0);
 
-    Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(grid->arcs, T);
-    Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_From = 0);
+    //Constraint Flow_Q_From("Flow_Q_From");
+    //Flow_Q_From += Qf_from.in(grid->arcs, T);
+    //Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
+    //Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    //Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    //ACUC.add_constraint(Flow_Q_From = 0);
 
-    Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(grid->arcs, T);
-    Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_To = 0);
+    //Constraint Flow_Q_To("Flow_Q_To");
+    //Flow_Q_To += Qf_to.in(grid->arcs, T);
+    //Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
+    //Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
+    //Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
+    //ACUC.add_constraint(Flow_Q_To = 0);
 
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
@@ -231,79 +231,79 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
 
-    // Commitment constraints
+    // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints
-    for (int t = 1; t < T; t++){
-        Constraint MC1("MC1_"+ to_string(t));
-        Constraint MC2("MC2_"+ to_string(t));
-        MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
-        MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
-        ACUC.add_constraint(MC1 <= 0);
-        ACUC.add_constraint(MC2 <= 0);
-    }
+    //for (int t = 1; t < T; t++) {
+    //    Constraint MC1("MC1_"+ to_string(t));
+    //    Constraint MC2("MC2_"+ to_string(t));
+    //    MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
+    //    MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
+    //    ACUC.add_constraint(MC1 <= 0);
+    //    ACUC.add_constraint(MC2 <= 0);
+    //}
 
-    // Min-up constraints
-    for (int t = 1; t < T; t++) {
-        Constraint Min_up1("Min_up1_"+ to_string(t));
-        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-        ACUC.add_constraint(Min_up1 = 0);
-    }
+    //// Min-up constraints
+    //for (int t = 1; t < T; t++) {
+    //    Constraint Min_up1("Min_up1_"+ to_string(t));
+    //    Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
+    //    ACUC.add_constraint(Min_up1 = 0);
+    //}
 
-    for (int t = min_up.getvalue(); t < T; t++){
-        Constraint Min_Up("Min_Up_constraint" + to_string(t));
-        for (int l = t-min_up.getvalue()+1; l < t +1; l++){
-            Min_Up   += Start_up.in_at(grid->gens, l);
-            }
-        Min_Up -= On_off.in_at(grid->gens, t);
-        ACUC.add_constraint(Min_Up <= 0);
-    }
+    //for (int t = min_up.getvalue(); t < T; t++) {
+    //    Constraint Min_Up("Min_Up_constraint" + to_string(t));
+    //    for (int l = t-min_up.getvalue()+1; l < t +1; l++) {
+    //        Min_Up   += Start_up.in_at(grid->gens, l);
+    //    }
+    //    Min_Up -= On_off.in_at(grid->gens, t);
+    //    ACUC.add_constraint(Min_Up <= 0);
+    //}
 
-    for (int t = min_down.getvalue(); t < T; t++){
-        Constraint Min_Down("Min_Down_constraint" + to_string(t));
-        for (int l = t-min_down.getvalue()+1; l < t +1; l++){
-            Min_Down   += Shut_down.in_at(grid->gens, l);
-        }
-        Min_Down -= 1 - On_off.in_at(grid->gens, t);
-        ACUC.add_constraint(Min_Down <= 0);
-    }
+    //for (int t = min_down.getvalue(); t < T; t++) {
+    //    Constraint Min_Down("Min_Down_constraint" + to_string(t));
+    //    for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+    //        Min_Down   += Shut_down.in_at(grid->gens, l);
+    //    }
+    //    Min_Down -= 1 - On_off.in_at(grid->gens, t);
+    //    ACUC.add_constraint(Min_Down <= 0);
+    //}
 
-  //Ramp rate
-  Constraint Production_P_LB("Production_P_LB");
-  Constraint Production_P_UB("Production_P_UB");
-  Constraint Production_Q_LB("Production_Q_LB");
-  Constraint Production_Q_UB("Production_Q_UB");
+    ////Ramp rate
+    //Constraint Production_P_LB("Production_P_LB");
+    //Constraint Production_P_UB("Production_P_UB");
+    //Constraint Production_Q_LB("Production_Q_LB");
+    //Constraint Production_Q_UB("Production_Q_UB");
 
-  Production_P_UB = Pg.in(grid->gens, T) - grid->pg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
-  Production_P_LB = Pg.in(grid->gens, T) - grid->pg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
-  ACUC.add_constraint(Production_P_UB <=0);
-  ACUC.add_constraint(Production_P_LB >= 0);
+    //Production_P_UB = Pg.in(grid->gens, T) - grid->pg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
+    //Production_P_LB = Pg.in(grid->gens, T) - grid->pg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
+    //ACUC.add_constraint(Production_P_UB <=0);
+    //ACUC.add_constraint(Production_P_LB >= 0);
 
-  grid->qg_max.print(true);
-  grid->qg_min.print(true);
+    //grid->qg_max.print(true);
+    //grid->qg_min.print(true);
 
-  Production_Q_UB = Qg.in(grid->gens, T) - grid->qg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
-  Production_Q_LB = Qg.in(grid->gens, T) - grid->qg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
-  ACUC.add_constraint(Production_Q_UB <= 0);
-  ACUC.add_constraint(Production_Q_LB >= 0);
+    //Production_Q_UB = Qg.in(grid->gens, T) - grid->qg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
+    //Production_Q_LB = Qg.in(grid->gens, T) - grid->qg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
+    //ACUC.add_constraint(Production_Q_UB <= 0);
+    //ACUC.add_constraint(Production_Q_LB >= 0);
 
-  for (int t = 1; t < T; t++){
-      Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
-      Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
+    //for (int t = 1; t < T; t++) {
+    //    Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
+    //    Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
 
-      Ramp_up = Pg.in_at(grid->gens, t);
-      Ramp_up -= Pg.in_at(grid->gens, t-1);
-      Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
-      Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
+    //    Ramp_up = Pg.in_at(grid->gens, t);
+    //    Ramp_up -= Pg.in_at(grid->gens, t-1);
+    //    Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
+    //    Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
 
-      Ramp_down = Pg.in_at(grid->gens, t-1);
-      Ramp_down -= Pg.in_at(grid->gens, t);
-      Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
-      Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
+    //    Ramp_down = Pg.in_at(grid->gens, t-1);
+    //    Ramp_down -= Pg.in_at(grid->gens, t);
+    //    Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
+    //    Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
 
-      ACUC.add_constraint(Ramp_up <= 0);
-      ACUC.add_constraint(Ramp_down <= 0);
+    //    ACUC.add_constraint(Ramp_up <= 0);
+    //    ACUC.add_constraint(Ramp_down <= 0);
 
-  }
+    //}
 
     /* Resolve it! */
     solver OPF(ACUC,ipopt);
