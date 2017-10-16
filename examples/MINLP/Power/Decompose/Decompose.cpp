@@ -885,8 +885,21 @@ int main (int argc, const char * argv[])
             Master.add_constraint(Concavity <= 0);
         }
     }
+
     solver solve_Master(Master, ipopt);
     solve_Master.run();
+
+    // initialise the outer point. 
+    gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+    
+    for (auto a: cliquetree->arcs) {
+        R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
+        Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
+        mu_out[a->_id] = (*(var<Real>*) Master.get_var("mu_out_arc_"+ to_string(a->_id)));
+        kappa_out[a->_id] = (*(var<Real>*) Master.get_var("kappa_out_arc_"+ to_string(a->_id)));
+        eta_out[a->_id] = (*(var<Real>*) Master.get_var("eta_out_arc_"+ to_string(a->_id)));
+    }
+
     cout << "................  Initialization of Master problem ............... "  <<endl;
     cout << "value: " << Master._obj_val  <<endl;
 
@@ -898,6 +911,7 @@ int main (int argc, const char * argv[])
         for (int c = 0; c < nb_cliques; c++) {
             gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
         }
+
         for (auto a: cliquetree->arcs) {
             int l = a->_id;
             for (int i = 0; i < a->_intersection.size(); i ++) {
@@ -912,7 +926,7 @@ int main (int argc, const char * argv[])
                     if (g->_active) {
                         mu_sep[l](g->_name) = alpha*mu_out[l](g->_name).getvalue() + (1-alpha)*mu_in[l](g->_name).getvalue();
                         eta_sep[l](g->_name) = alpha*eta_out[l](g->_name).getvalue() + (1 - alpha)*eta_in[l](g->_name).getvalue();
-                        kappa_sep[l](g->_name) = alpha*kappa_out[l](g->_name).getvalue + (1 - alpha)*kappa_in[l](g->_name).getvalue();
+                        kappa_sep[l](g->_name) = alpha*kappa_out[l](g->_name).getvalue() + (1 - alpha)*kappa_in[l](g->_name).getvalue();
                     }
                 }
             }
@@ -931,8 +945,8 @@ int main (int argc, const char * argv[])
         }
 
 // UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
-        if (dual < Sum(gamma_sep) {
-        for (int c = 0; c < nb_cliques; c++) {
+        if (dual- gravity::sum(gamma_sep) < 0) {
+            for (int c = 0; c < nb_cliques; c++) {
                 Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
                 Concavity += gamma_C(c) - value_dual[c];
                 for (auto a: cliquetree->get_node(to_string(c))->get_out()) {
@@ -953,8 +967,7 @@ int main (int argc, const char * argv[])
                     }
                 }
             }
-            if (Dual > IloSum(gamma_in))
-            {
+            if (dual > gravity::sum(gamma_in)) {
                 for (c = 0; c < nb_cliques; c++)
                 {
                     gamma_in(c) = value_dual[c];
@@ -966,77 +979,71 @@ int main (int argc, const char * argv[])
                         for (int j = i + 1; j < a->_intersection.size(); j ++) {
                             arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
                             R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
-
-                            R_lambda_out[l](arc->_name)  =  0;
-                            Im_lambda_sep[l](arc->_name)  =  0;
-                            Im_lambda_in[l](arc->_name)  =  0;
-                            Im_lambda_out[l](arc->_name)  =  0;
+                            Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
                         }
 
                         for (auto g: bus->_gen) {
                             if (g->_active) {
-                                mu_sep[l](g->_name) = 0;
-                                mu_out[l](g->_name) = 0;
-                                mu_in[l] (g->_name) = 0;
-                                eta_sep[l](g->_name) = 0;
-                                eta_out[l](g->_name) = 0;
-                                eta_in[l] (g->_name) = 0;
-                                kappa_sep[l](g->_name) = 0;
-                                kappa_out[l](g->_name) = 0;
-                                kappa_in[l](g->_name) = 0;
+                                mu_in[l] (g->_name) = mu_sep[l](g->_name).getvalue();
+                                eta_in[l] (g->_name) = eta_sep[l](g->_name).getvalue() ;
+                                kappa_in[l](g->_name) = kappa_sep[l](g->_name).getvalue();
                             }
                         }
                     }
                 }
             }
-            cplex_main.solve();
-            Mytime += cplex_main.getTime();
-            cplex_main.getValues(lambdaout, lambda_var);
-            cplex_main.getValues(muout, mu_var);
-            cplex_main.getValues(sigmaout, sigma_var);
-
-            for (r = 0; r < Num_R; r++)
+            solve_Master.run();
+            // Update the out-point
+            for (c = 0; c < nb_cliques; c++)
             {
-                cplex_main.getValues(etaout[r], eta_var[r]);
-                cplex_main.getValues(zetaout[r], zeta_var[r]);
+                gamma_out(c) = ;
+            }
+            for (auto a: cliquetree->arcs) {
+                int l = a->_id;
+                for (outt i = 0; i < a->_intersection.size(); i ++) {
+                    bus = (Bus*) a->_intersection.at(i);
+                    for (outt j = i + 1; j < a->_intersection.size(); j ++) {
+                        arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                        R_lambda_out[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
+                        Im_lambda_out[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
+                    }
+
+                    for (auto g: bus->_gen) {
+                        if (g->_active) {
+                            mu_out[l] (g->_name) = mu_sep[l](g->_name).getvalue();
+                            eta_out[l] (g->_name) = eta_sep[l](g->_name).getvalue() ;
+                            kappa_out[l](g->_name) = kappa_sep[l](g->_name).getvalue();
+                        }
+                    }
+                }
             }
         }
-        else
-        {
-            for (r = 0; r < Num_R; r++)
+        else {
+            for (c = 0; c < nb_cliques; c++)
             {
-                gammar_in[r] = LDr[r];
-                for (e = 0; e < nbEdges; e++)
-                    zetain[r][e] = zetasep[r][e];
-                for (k = 0; k < nbServers; k++)
-                    etain[r][k] = etasep[r][k];
+                gamma_in(c) = value_dual[c];
             }
-            for (e = 0; e < nbEdges; e++)
-            {
-                gammae_in[e] = LDe[e];
-                sigmain[e] = sigmasep[e];
+            for (auto a: cliquetree->arcs) {
+                int l = a->_id;
+                for (int i = 0; i < a->_intersection.size(); i ++) {
+                    bus = (Bus*) a->_intersection.at(i);
+                    for (int j = i + 1; j < a->_intersection.size(); j ++) {
+                        arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                        R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
+                        Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
+                    }
+
+                    for (auto g: bus->_gen) {
+                        if (g->_active) {
+                            mu_in[l] (g->_name) = mu_sep[l](g->_name).getvalue();
+                            eta_in[l] (g->_name) = eta_sep[l](g->_name).getvalue() ;
+                            kappa_in[l](g->_name) = kappa_sep[l](g->_name).getvalue();
+                        }
+                    }
+                }
             }
-            for (k = 0; k < nbServers; k++)
-            {
-                gammak_in[k] = LDk[k];
-                lambdain[k] = lambdasep[k];
-                muin[k] = musep[k];
-            }
-
         }
-
-        if (itcount > 0)
-    {
-        LBlog[itcount] = IloMax(LR, LBlog[itcount - 1]);
-            UBlog[itcount] = IloMin(cplex_main.getObjValue(), UBlog[itcount - 1]);
-
-        }
-        else
-        {
-            UBlog[itcount] = cplex_main.getObjValue();
-            LBlog[itcount] = IloMax(LR, LBlog[0]);
-        }
-        env.out()<< setw(15) << left <<itcount << setw(15) << LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
+        count<< setw(15) << left <<itcount << setw(15) << LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
     }
     return 0;
 #endif
