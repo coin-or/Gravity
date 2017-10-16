@@ -127,7 +127,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                    param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
                    param<Real>& cost_up, param<Real>& cost_down,
                    param<Real>& Wii_log, param<Real>& R_Wij_log, param<Real>& Im_Wij_log,
-                   param<Real> Pg_log, param<Real> Qg_log, param<Real> On_off_log )
+                   param<Real>& Pg_log, param<Real>& Qg_log, param<Real>& On_off_log )
 {
 //    func_  OA;
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
@@ -159,7 +159,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     Subr.add_var(Im_Wij^(T*grid->_bags.size()*(bag_bus.size() - 1)/2));
 
     // Commitment variables
-    var<bool>  On_off("On_off", 0, 1);
+    var<Real>  On_off("On_off", 0, 1);
     var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
     Subr.add_var(On_off^(T*bag_gens.size()));
@@ -210,6 +210,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                         //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
                     }
                     else {
+                        /* This is weird, Pg should either be indexed by two indices or one, not both. */
                         obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
                         //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
                     }
@@ -254,9 +255,11 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
 
                 /* Power Conservation */
                 vector<Arc*> out;
+                /* Add comments here, why are we using set_intersection? */
                 set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
                 vector<Arc*> in;
                 set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
+                /* Pg(*,0) is not defined, in the objective, for t=0 you're only using Pg(*) */
                 KCL_P  = sum(Pf_from.in_at(out, t))+ sum(Pf_to.in_at(in, t)) + bus->pl() - sum(Pg.in_at(bus->_gen, t));
                 KCL_Q  = sum(Qf_from.in_at(out, t)) + sum(Qf_to.in_at(in, t))+ bus->ql() - sum(Qg.in_at(bus->_gen, t));
 
@@ -273,7 +276,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
         for (int t = 1; t < T; t++) {
             Constraint MC1("MC1_"+ to_string(t));
             Constraint MC2("MC2_"+ to_string(t));
-            MC1 = On_off.in_at(bag_gens, t)- On_off.in_at(bag_gens, t-1)-  Start_up.in_at(bag_gens, t);
+            MC1 = On_off.in_at(bag_gens, t) - On_off.in_at(bag_gens, t-1)-  Start_up.in_at(bag_gens, t);
             MC2 = On_off.in_at(bag_gens, t-1) - On_off.in_at(bag_gens, t) - Shut_down.in_at(bag_gens, t);
             Subr.add_constraint(MC1 <= 0);
             Subr.add_constraint(MC2 <= 0);
@@ -342,7 +345,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
         }
     }
     else {
-        obj += 0;
+        obj += 0;// What is this?
         Subr.set_objective(min(obj));
         //KCL
         for (int t = 0; t < T; t++)
@@ -484,6 +487,7 @@ int main (int argc, const char * argv[])
     cost_up = 50;
     cost_down = 30;
 
+    /* create a function grid->time_expand(T) to do all these below */
     grid->c0.time_expand(T);
     grid->c1.time_expand(T);
     grid->c2.time_expand(T);
@@ -672,6 +676,7 @@ int main (int argc, const char * argv[])
             }
         }
     }
+    /* Why doing the resize while we have used the ^ operator? */
     R_lambda_in.resize(cliquetree->arcs.size());
     Im_lambda_in.resize(cliquetree->arcs.size());
     mu_in.resize(cliquetree->arcs.size());

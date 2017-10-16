@@ -959,7 +959,7 @@ public:
     void time_expand(unsigned T) {
         assert(T >= 1);
         unsigned l = param_::get_dim();
-        for(unsigned t = 0; t < T - 1; t ++ ) {
+        for(unsigned t = 0; t < T - 1; t ++ ) { /* Why not use resize() here ? */
             _val->insert(_val->end(), _val->begin(), _val->begin()+l);
         }
         set_size(l*T);
