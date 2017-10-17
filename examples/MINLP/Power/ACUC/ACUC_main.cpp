@@ -30,7 +30,7 @@ int main (int argc, const char * argv[])
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
          fname = "../../data_sets/Power/nesta_case5_pjm.m";
-//        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
     }
     // ACUC
     PowerNet* grid = new PowerNet();
@@ -79,7 +79,10 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
     Pg.print(true);
+    grid->pg_min.in(grid->gens, T).print(true);
     grid->pg_max.in(grid->gens, T).print(true);
+    DebugOn("dim: " << grid->pg_min.in(grid->gens, T).get_dim() << endl);
+    DebugOn("dim: " << grid->pg_max.in(grid->gens, T).get_dim() << endl;);
     // power flow
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));

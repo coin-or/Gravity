@@ -451,29 +451,5 @@ int PowerNet::readgrid(const char* fname) {
         file >> word;
     }
     file.close();
-
     return 0;
-}
-
-void PowerNet::time_expand(unsigned T) {
-    c0.time_expand(T);
-    c1.time_expand(T);
-    c2.time_expand(T);
-    S_max.time_expand(T);
-    tan_th_min.time_expand(T);
-    tan_th_max.time_expand(T);
-    g_tt.time_expand(T);
-    g_ff.time_expand(T);
-    g_ft.time_expand(T);
-    g_tf.time_expand(T);
-    b_tt.time_expand(T);
-    b_ff.time_expand(T);
-    b_ft.time_expand(T);
-    b_tf.time_expand(T);
-    pg_min.time_expand(T);
-    pg_max.time_expand(T);
-    qg_min.time_expand(T);
-    qg_max.time_expand(T);
-    w_min.time_expand(T);
-    w_max.time_expand(T);
 }

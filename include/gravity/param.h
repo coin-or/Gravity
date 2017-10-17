@@ -644,11 +644,9 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name + "," + (*it)->_dest->_name;
-                //if (t > 0) {
                 key += ",";
                 key += to_string(t);
-                //}
-                DebugOn(key<< ", " << endl);
+                Debug(key<< ", " << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -764,7 +762,7 @@ public:
                 key += to_string(t);
            // }
             //cout << "key: " << key << endl;
-            DebugOn("key: " << key << endl);
+            Debug("key: " << key << endl);
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
@@ -847,6 +845,9 @@ public:
                     key += ",";
                     key += to_string(t);
                 //}
+                DebugOn("key: " << key << endl;);
+                DebugOn("_val: " << _val->size() << endl);
+                DebugOn("_indices: " << param_::_indices->size() << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -961,6 +962,23 @@ public:
     void time_expand(unsigned T) {
         assert(T >= 1);
         unsigned l = param_::get_dim();
+        /* update the indices of the old parameter*/
+        string key;
+       // for (auto &p: *param::_indices){
+        // construct a new map
+        map<std::string, unsigned> map_temp;
+        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
+            key = it->first;
+            key += ",";
+            key += "0";
+            DebugOn("updated key: " << key << endl);
+            map_temp.insert(make_pair(key, it->second));
+        }
+        _indices->clear();
+        for (map<std::string, unsigned>::iterator it= map_temp.begin(); it != map_temp.end(); ++it){
+            _indices->insert(*it);
+        }
+        
         for(unsigned t = 0; t < T - 1; t ++ ) {
             /* Why not use resize() here ? */
             _val->insert(_val->end(), _val->begin(), _val->begin()+l);

@@ -55,12 +55,6 @@ public:
     unsigned get_nb_active_gens() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
-<<<<<<< HEAD
-=======
-    void time_expand(unsigned T); /* < Time expasion of the grid parameters */
-};
->>>>>>> 6be19200c20bb3993d29f0bb4f86dd62edd4b085
-
-    void time_expand (unsigned T);
+    void time_expand(unsigned T); /* < Time expansion of the grid parameters */
 };
 #endif
