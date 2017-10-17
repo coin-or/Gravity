@@ -13,7 +13,7 @@
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include <gravity/model.h>
+#include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -100,7 +100,7 @@ void getdual_relax(PowerNet* grid)
     bag_arcs.resize(nb_cliques);
     bag_gens.resize(nb_cliques);
 
-    Net* cliquetree = get_cliquetree(grid);
+    Net* cliquetree = grid->get_clique_tree();
 
     /** build model */
     Model ACUC("ACUC Model");
