@@ -65,8 +65,8 @@ int main (int argc, const char * argv[])
     cost_down = 30;
 
     grid->time_expand(T);
-    rate_ramp.time_expand(T);
-    rate_switch.time_expand(T);
+//    rate_ramp.time_expand(T);
+//    rate_switch.time_expand(T);
 
     /** build model */
     Model ACUC("ACUC Model");
@@ -75,43 +75,43 @@ int main (int argc, const char * argv[])
     // power generation
     /* THE BUG SEEMS TO BE HERE, PG_MIN DOES NOT HAVE THE CORRECT SIZE, CHECK THE FUNTION in(*,T) */
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
-    //var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
-    //ACUC.add_var(Qg^(T*nb_gen));
-    //Pg.print(true);
+    ACUC.add_var(Qg^(T*nb_gen));
+    Pg.print(true);
     DebugOn("Pg dim: " << Pg.get_dim() <<endl);
     DebugOn("Pg min dim: " << grid->pg_min.get_dim() <<endl);
     DebugOn("Pg max dim: " << grid->pg_max.get_dim() <<endl);
     grid->pg_min.in(grid->gens, T).print(true);
     grid->pg_max.in(grid->gens, T).print(true);
 
-    // power flow
-    //var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
-    //var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));
-    //var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs, T));
-    //var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs, T));
-    //ACUC.add_var(Pf_from^(T*nb_lines));
-    //ACUC.add_var(Qf_from^(T*nb_lines));
-    //ACUC.add_var(Pf_to^(T*nb_lines));
-    //ACUC.add_var(Qf_to^(T*nb_lines));
+     //power flow
+    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
+    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));
+    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs, T));
+    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs, T));
+    ACUC.add_var(Pf_from^(T*nb_lines));
+    ACUC.add_var(Qf_from^(T*nb_lines));
+    ACUC.add_var(Pf_to^(T*nb_lines));
+    ACUC.add_var(Qf_to^(T*nb_lines));
 
-    // Lifted variables.
-    //var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T)); // real part of Wij
-    //var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T)); // imaginary part of Wij.
-    //var<Real>  Wii("Wii", grid->w_min.in(grid->nodes, T), grid->w_max.in(grid->nodes, T));
-    //ACUC.add_var(Wii^(T*nb_buses));
-    //ACUC.add_var(R_Wij^(T*nb_bus_pairs));
-    //ACUC.add_var(Im_Wij^(T*nb_bus_pairs));
-    //R_Wij.initialize_all(1.0);
-    //Wii.initialize_all(1.001);
+     //Lifted variables.
+    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T)); // real part of Wij
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T)); // imaginary part of Wij.
+    var<Real>  Wii("Wii", grid->w_min.in(grid->nodes, T), grid->w_max.in(grid->nodes, T));
+    ACUC.add_var(Wii^(T*nb_buses));
+    ACUC.add_var(R_Wij^(T*nb_bus_pairs));
+    ACUC.add_var(Im_Wij^(T*nb_bus_pairs));
+    R_Wij.initialize_all(1.0);
+    Wii.initialize_all(1.001);
 
     // Commitment variables
-    //var<bool>  On_off("On_off");
-    //var<Real>  Start_up("Start_up", 0, 1);
-    //var<Real>  Shut_down("Shut_down", 0, 1);
-    //ACUC.add_var(On_off^(T*nb_gen));
-    //ACUC.add_var(Start_up^(T*nb_gen));
-    //ACUC.add_var(Shut_down^(T*nb_gen));
+    var<bool>  On_off("On_off");
+    var<Real>  Start_up("Start_up", 0, 1);
+    var<Real>  Shut_down("Shut_down", 0, 1);
+    ACUC.add_var(On_off^(T*nb_gen));
+    ACUC.add_var(Start_up^(T*nb_gen));
+    ACUC.add_var(Shut_down^(T*nb_gen));
 
     /* Construct the objective function*/
     func_ obj;

@@ -301,6 +301,14 @@ int main (int argc, const char * argv[])
     param<double> b("b");
     a = 0;
     a = 1;
+    a(1, 1) = 11;
+    int t = 2;
+    a("1", to_string(t)) = 12;
+    func_ f;
+    string l = to_string(t);
+    f = a("1", "2") + a("1", "2") +a("1",l);
+    a("1", l) = 1;
+    a("1", l) = 2;
 //    p[0][0] = 1;
     cout << "\n";
     

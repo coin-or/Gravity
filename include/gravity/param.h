@@ -516,19 +516,17 @@ public:
         res._val = this->_val;
         list<string> indices;
         //indices = {forward<size_t>(args)...};
-        indices = {forward<string>(args)...};
+        indices = {forward<Args>(args)...};
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (size_t i= 0; i < indices.size(); i++) {
-        DebugOn(" first key: " << *it << endl);
+        for (int i= 0; i < indices.size(); i++) {
             key += *it;
-            if (i<indices.size()-1) {
+            if (i< indices.size()-1) {
                 key += ",";
             }
             it++;
         }
-        DebugOn(" key: " << key << endl);
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         _val->resize(max(_val->size(),param_::_indices->size()));
         if(pp.second) { //new index inserted
@@ -846,8 +844,8 @@ public:
                     key += ",";
                     key += to_string(t);
                 //}
-                DebugOn("_val: " << _val->size() << endl);
-                DebugOn("_indices: " << param_::_indices->size() << endl);
+                Debug("_val: " << _val->size() << endl);
+                Debug("_indices: " << param_::_indices->size() << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
