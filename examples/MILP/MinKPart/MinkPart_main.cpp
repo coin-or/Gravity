@@ -34,22 +34,22 @@ double mosek_reduce(Net* _graph, double _K) {
     int i = 0, j =0;
     M->constraint(Y->diag(), mosek::fusion::Domain::equalsTo(1.0));
     for (auto a: chordal_extension->arcs){
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         M->constraint("", Y->index(i, j), mosek::fusion::Domain::greaterThan(-1/(_K-1)));
     }
     
     monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0.0);
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j){
-            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->_weight*(_K-1)/_K,Y->index(i,j)));
         }
         else{
-            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->_weight*(_K-1)/_K,Y->index(j,i)));
         }
-        expr = mosek::fusion::Expr::add(expr,a->weight/_K);
+        expr = mosek::fusion::Expr::add(expr,a->_weight/_K);
     }
     
     M->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
@@ -82,15 +82,15 @@ double mosekcode(Net* _graph, double _K) {
     monty::rc_ptr< ::mosek::fusion::Expression >  expr= mosek::fusion::Expr::constTerm(0.0);
     // expr is a pointer to the Expression.
     for (auto a: _graph->arcs) {
-        i = (a->src)->ID;
-        j = (a->dest)->ID;
+        i = (a->_src)->_id;
+        j = (a->_dest)->_id;
         if (i <= j) {
-            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(i,j)));
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->_weight*(_K-1)/_K,Y->index(i,j)));
         }
         else {
-            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->weight*(_K-1)/_K,Y->index(j,i)));
+            expr = mosek::fusion::Expr::add(expr,mosek::fusion::Expr::mul(a->_weight*(_K-1)/_K,Y->index(j,i)));
         }
-        expr = mosek::fusion::Expr::add(expr,a->weight/_K);
+        expr = mosek::fusion::Expr::add(expr,a->_weight/_K);
 
     }
     
