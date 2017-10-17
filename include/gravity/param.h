@@ -499,7 +499,6 @@ public:
             }
             res._ids->push_back(pp.first->second);
         }
-
         res._name += "["+key+"]";
         res._unique_id = make_tuple<>(res._id,scalar_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
         res._is_indexed = true;
@@ -521,13 +520,15 @@ public:
         indices.push_front(t1);
         string key;
         auto it = indices.begin();
-        for (size_t i= 0; i< indices.size(); i++) {
+        for (size_t i= 0; i < indices.size(); i++) {
+        DebugOn(" first key: " << *it << endl);
             key += *it;
             if (i<indices.size()-1) {
                 key += ",";
             }
             it++;
         }
+        DebugOn(" key: " << key << endl);
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         _val->resize(max(_val->size(),param_::_indices->size()));
         if(pp.second) { //new index inserted
@@ -542,7 +543,7 @@ public:
             }
             res._ids->push_back(pp.first->second);
         }
-        res._dim++;
+        //res._dim++;
         res._name += "["+key+"]";
         res._unique_id = make_tuple<>(res._id,scalar_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
         res._is_indexed = true;
@@ -845,7 +846,6 @@ public:
                     key += ",";
                     key += to_string(t);
                 //}
-                DebugOn("key: " << key << endl;);
                 DebugOn("_val: " << _val->size() << endl);
                 DebugOn("_indices: " << param_::_indices->size() << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
@@ -964,17 +964,17 @@ public:
         unsigned l = param_::get_dim();
         /* update the indices of the old parameter*/
         string key;
-       // for (auto &p: *param::_indices){
-        // construct a new map
         map<std::string, unsigned> map_temp;
         for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
             key = it->first;
             key += ",";
             key += "0";
-            DebugOn("updated key: " << key << endl);
+            Debug("updated key: " << key << endl);
             map_temp.insert(make_pair(key, it->second));
         }
+        //CLEAR OLD ENTRIES
         _indices->clear();
+        //STORE NEW ENTRIES
         for (map<std::string, unsigned>::iterator it= map_temp.begin(); it != map_temp.end(); ++it){
             _indices->insert(*it);
         }

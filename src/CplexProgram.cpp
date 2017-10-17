@@ -64,6 +64,7 @@ bool CplexProgram::solve(bool relax) {
 
 void CplexProgram::fill_in_cplex_vars() {
     _cplex_vars.resize(_model->_vars.size());
+    DebugOn("_model->_vars: " << _model->_vars.size() << endl);
     param_* v;
     unsigned vid = -1;
     for(auto& v_p: _model->_vars)
@@ -100,6 +101,7 @@ void CplexProgram::fill_in_cplex_vars() {
             auto real_var = (var<double>*)v;
             auto lb = IloNumArray(*_cplex_env, real_var->get_dim());
             auto ub = IloNumArray(*_cplex_env, real_var->get_dim());
+            DebugOn("real_var: " << real_var->get_dim());
             for (int i = 0; i < real_var->get_dim(); i++) {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);

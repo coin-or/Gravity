@@ -23,7 +23,7 @@ Node* Node::clone(){
     Node* copy = new Node();
     copy->_id = _id;
     copy->_name = _name;
-    copy->fill_in = fill_in;
+    copy->fill_in = 0; // fill_in is associated with the topology. so it should be 0.
     return copy;
 };
 

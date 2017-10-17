@@ -45,6 +45,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
+        DebugOn("lb.get_dim(): " << lb.get_dim() << endl);
         _lb->resize(lb.get_dim());
         _ub->resize(ub.get_dim());
         unsigned i = 0;
