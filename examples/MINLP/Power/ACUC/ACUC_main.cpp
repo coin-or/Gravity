@@ -12,7 +12,6 @@
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +29,8 @@ int main (int argc, const char * argv[])
         // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+         fname = "../../data_sets/Power/nesta_case5_pjm.m";
+//        fname = "../../data_sets/Power/nesta_case300_ieee.m";
     }
     // ACUC
     PowerNet* grid = new PowerNet();
@@ -65,26 +64,7 @@ int main (int argc, const char * argv[])
     cost_up = 50;
     cost_down = 30;
 
-    grid->c0.time_expand(T);
-    grid->c1.time_expand(T);
-    grid->c2.time_expand(T);
-    grid->S_max.time_expand(T);
-    grid->tan_th_min.time_expand(T);
-    grid->tan_th_max.time_expand(T);
-    grid->g_tt.time_expand(T);
-    grid->g_ff.time_expand(T);
-    grid->g_ft.time_expand(T);
-    grid->g_tf.time_expand(T);
-    grid->b_tt.time_expand(T);
-    grid->b_ff.time_expand(T);
-    grid->b_ft.time_expand(T);
-    grid->b_tf.time_expand(T);
-    grid->pg_min.time_expand(T);
-    grid->pg_max.time_expand(T);
-    grid->qg_min.time_expand(T);
-    grid->qg_max.time_expand(T);
-    grid->w_min.time_expand(T);
-    grid->w_max.time_expand(T);
+    grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
 
@@ -93,16 +73,13 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // power generation
+    /* THE BUG SEEMS TO BE HERE, PG_MIN DOES NOT HAVE THE CORRECT SIZE, CHECK THE FUNTION in(*,T) */
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
 
     // power flow
-//    var<double> Pf_from("Pf_from");
-//    var<double> Qf_from("Qf_from");
-//    var<double> Pf_to("Pf_to");
-//    var<double> Qf_to("Qf_to");
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs, T));
@@ -135,22 +112,11 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             for (int t = 0; t < T; t++) {
-                if (t > 1) {
-                    string l = to_string(t);
-                    obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
-                    //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
-                }
-                else {
-                    obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-                    //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
-                }
+                string l = to_string(t);
+                obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
             }
         }
     }
-    //obj  = sum(grid->c0.in(grid->gens, T));
-    //obj += sum(grid->c1.in(grid->gens, T), Pg.in(grid->gens, T));
-    //obj += sum(grid->c2.in(grid->gens, T), power(Pg.in(grid->gens, T), 2));
-    //obj += cost_up.getvalue()*sum(Start_up.in(grid->gens, T))+ cost_down.getvalue()*sum(Shut_down.in(grid->gens,T));
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
@@ -318,9 +284,9 @@ int main (int argc, const char * argv[])
         cout << a << ",";
     }
     cout << endl;
-
+    cout << "Pg = "  ;
     for (auto a: *val_Pg.get_vals()) {
-        cout << a << endl;
+        cout << a << ",";
     }
     return 0;
 }
