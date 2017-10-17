@@ -531,7 +531,7 @@ int main (int argc, const char * argv[])
     bag_arcs.resize(nb_cliques);
     bag_gens.resize(nb_cliques);
 
-    Net* cliquetree = get_cliquetree(grid);
+    auto cliquetree = grid->get_clique_tree();
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
     vector<param<Real>> R_lambda_in;
     vector<param<Real>> Im_lambda_in;

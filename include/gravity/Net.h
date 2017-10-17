@@ -115,6 +115,6 @@ public:
     
     
     /** Compute the tree decomposition bags **/
-    void get_clique_tree (bool print_clique = false);
+    Net* get_clique_tree();
 };
 #endif
