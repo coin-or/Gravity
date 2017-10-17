@@ -800,10 +800,8 @@ public:
                 continue;
             }
             key = (*it)->_name;
-            //if (t > 0) {
-                key += ",";
-                key += to_string(t);
-            //}
+            key += ",";
+            key += to_string(t);
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
