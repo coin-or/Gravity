@@ -135,6 +135,8 @@ void PowerNet::time_expand(unsigned T) {
     c1.time_expand(T);
     c2.time_expand(T);
     S_max.time_expand(T);
+    th_min.time_expand(T);
+    th_max.time_expand(T);
     tan_th_min.time_expand(T);
     tan_th_max.time_expand(T);
     g_tt.time_expand(T);
@@ -151,6 +153,14 @@ void PowerNet::time_expand(unsigned T) {
     qg_max.time_expand(T);
     w_min.time_expand(T);
     w_max.time_expand(T);
+    gs.time_expand(T);
+    bs.time_expand(T);
+    pl.time_expand(T);
+    ql.time_expand(T);
+    v_min.time_expand(T);
+    v_max.time_expand(T);
+    tbound_max_tan.time_expand(T);
+    tbound_min_tan.time_expand(T);
 }
 
 int PowerNet::readgrid(const char* fname) {

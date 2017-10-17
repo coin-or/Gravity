@@ -645,7 +645,6 @@ public:
                 key = (*it)->_src->_name + "," + (*it)->_dest->_name;
                 key += ",";
                 key += to_string(t);
-                Debug(key<< ", " << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
@@ -740,7 +739,6 @@ public:
                 res._ids->push_back(pp.first->second);
             }
         }
-        DebugOff(endl);
         res._name += ".to_" + string(typeid(Tobj).name());
         res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
@@ -875,7 +873,6 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        DebugOff(_name << " = ");
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
@@ -883,16 +880,13 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name;
-                //if (t > 0) {
-                    key += ",";
-                    key += to_string(t);
-                //}
+                key += ",";
+                key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim++;
-                        // _dim++;
                     }
                     res._ids->push_back(param_::_indices->size()-1);
                 }
@@ -921,20 +915,17 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active){ // || !(*it)->_src->_active || !(*it)->_dest->_active ) {
+                if(!(*it)->_active){ 
                     continue;
                 }
                 key = (*it)->_dest->_name;
-                //if (t > 0) {
-                    key += ",";
-                    key += to_string(t);
-                //}
+                key += ",";
+                key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim++;
-                        //_dim++;
                     }
                     res._ids->push_back(param_::_indices->size() - 1);
                 }
@@ -945,7 +936,6 @@ public:
                     }
                     res._ids->push_back(pp.first->second);
                 }
-
             }
         }
         res._name += ".to_"  + string(typeid(Tobj).name()) + "_time_"+ to_string(T);
