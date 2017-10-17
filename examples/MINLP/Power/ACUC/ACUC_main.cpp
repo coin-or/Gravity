@@ -12,7 +12,6 @@
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +30,11 @@ int main (int argc, const char * argv[])
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
          fname = "../../data_sets/Power/nesta_case5_pjm.m";
+<<<<<<< HEAD
         // fname = "../../data_sets/Power/nesta_case300_ieee.m";
+=======
+//        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+>>>>>>> 6be19200c20bb3993d29f0bb4f86dd62edd4b085
     }
     // ACUC
     PowerNet* grid = new PowerNet();
@@ -74,6 +77,7 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // power generation
+    /* THE BUG SEEMS TO BE HERE, PG_MIN DOES NOT HAVE THE CORRECT SIZE, CHECK THE FUNTION in(*,T) */
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
@@ -113,6 +117,7 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             for (int t = 0; t < T; t++) {
+<<<<<<< HEAD
                 //if (t > 1) {
                     string l = to_string(t);
                     obj += grid->c1(g->_name, l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
@@ -126,6 +131,13 @@ int main (int argc, const char * argv[])
         }
     }
     obj += 0;
+=======
+                string l = to_string(t);
+                obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
+            }
+        }
+    }
+>>>>>>> 6be19200c20bb3993d29f0bb4f86dd62edd4b085
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
@@ -286,6 +298,7 @@ int main (int argc, const char * argv[])
     OPF.run();
 
     /* Solution analysis */
+<<<<<<< HEAD
     //auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
     //auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
 
@@ -298,5 +311,19 @@ int main (int argc, const char * argv[])
     //for (auto a: *val_Pg.get_vals()) {
     //    cout << a << endl;
     //}
+=======
+    auto val2 = (*(var<bool>*)(ACUC.get_var("On_off")));
+    auto val_Pg = (*(var<Real>*)(ACUC.get_var("Pg")));
+
+    cout << "On_off = "  ;
+    for (auto a: *val2.get_vals()) {
+        cout << a << ",";
+    }
+    cout << endl;
+    cout << "Pg = "  ;
+    for (auto a: *val_Pg.get_vals()) {
+        cout << a << ",";
+    }
+>>>>>>> 6be19200c20bb3993d29f0bb4f86dd62edd4b085
     return 0;
 }
