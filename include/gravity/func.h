@@ -650,7 +650,7 @@ namespace gravity {
 
     size_t get_poly_id(const constant_* c);
 
-    size_t get_poly_id_inst(const constant_* c);
+    size_t get_poly_id_inst(const constant_* c, unsigned inst = 0);
 
     double poly_eval(const constant_* c, size_t i=0);
 

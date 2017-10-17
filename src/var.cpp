@@ -65,7 +65,6 @@ namespace gravity{
             i++;
         }
     };
-    
 //    template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
 //        for (int i= 0; i<lb.get_dim(); i++) {
 //            _lb->push_back(lb.eval(i));

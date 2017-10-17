@@ -120,7 +120,6 @@ Net* get_cliquetree(Net* grid){
 }
 
 /** INITIALISE SUBPROBLEM MODEL */
-// it returns a outer-approximation function object
 double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
                    vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs,
                    vector<param<Real>>& R_lambda_sep, vector<param<Real>>& Im_lambda_sep, vector<param<Real>>& mu_sep,

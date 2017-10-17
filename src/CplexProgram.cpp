@@ -148,73 +148,59 @@ void CplexProgram::fill_in_cplex_vars() {
 
 void CplexProgram::set_cplex_objective() {
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
-    size_t c_idx_inst = 0;
     IloNumExpr obj(*_cplex_env);
-    for (auto& it1: _model->_obj.get_qterms()) {
-        idx1 = it1.second._p->first->get_vec_id();
-        idx2 = it1.second._p->second->get_vec_id();
-        if (it1.second._coef->_is_transposed) {
-            IloNumArray coefs(*_cplex_env,it1.second._p->first->get_dim());
-            for (int j = 0; j<it1.second._p->first->get_dim(); j++) {
-                coefs[j] = poly_eval(it1.second._coef,j);
+    for (auto& it_qterm: _model->_obj.get_qterms()) {
+        IloNumExpr qterm(*_cplex_env);
+        idx1 = it_qterm.second._p->first->get_vec_id();
+        idx2 = it_qterm.second._p->second->get_vec_id();
+        if (it_qterm.second._coef->_is_transposed) {
+            IloNumArray coefs(*_cplex_env,it_qterm.second._p->first->get_dim());
+            for (int j = 0; j<it_qterm.second._p->first->get_dim(); j++) {
+                coefs[j] = poly_eval(it_qterm.second._coef,j);
             }
-            //obj += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
-            if (coefs.getSize() == _cplex_vars[idx1].getSize() && coefs.getSize() ==_cplex_vars[idx2].getSize())
-                obj += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
-            else {
-                int j = 0;
-                auto iter = it1.second._p->second->get_indices()->begin();
-                for (auto& var_in1: *it1.second._p->first->get_indices()) {
-                    //auto& var_in2: *it2.second._p->second->get_indices
-                    obj += coefs[j]*_cplex_vars[idx1][var_in1.second]*_cplex_vars[idx2][iter->second];
-                    j += 1;
-                    ++iter;
-                }
-            }
+            unsigned inst = 0;
+            auto it1 = it_qterm.second._p->first->get_ids().begin();
+            auto it2 = it_qterm.second._p->second->get_ids().begin();
+            while (it1 != it_qterm.second._p->first->get_ids().end()) {
+                qterm += coefs[inst++]*_cplex_vars[idx1][*it1++]*_cplex_vars[idx2][*it2++];
+            }            
         }
         else {
-            IloNumExpr qterm(*_cplex_env);
-            idx_inst1 = it1.second._p->first->get_id_inst();
-            idx_inst2 = it1.second._p->second->get_id_inst();
-            c_idx_inst = get_poly_id_inst(it1.second._coef);
-            qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
-            if (!it1.second._sign) {
-                qterm *= -1;
-            }
-            obj += qterm;
-            qterm.end();
+            
+            idx_inst1 = it_qterm.second._p->first->get_id_inst();
+            idx_inst2 = it_qterm.second._p->second->get_id_inst();
+            qterm += poly_eval(it_qterm.second._coef)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
         }
+        if (!it_qterm.second._sign) {
+            qterm *= -1;
+        }
+        obj += qterm;
+        qterm.end();
     }
 
-    for (auto& it1: _model->_obj.get_lterms()) {
-        idx = it1.second._p->get_vec_id();
-        if (it1.second._coef->_is_transposed) {
-            IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
-            for (int j = 0; j<it1.second._p->get_dim(); j++) {
-                coefs[j] = poly_eval(it1.second._coef,j);
+    for (auto& it_lterm: _model->_obj.get_lterms()) {
+        IloNumExpr lterm(*_cplex_env);
+        idx = it_lterm.second._p->get_vec_id();
+        if (it_lterm.second._coef->_is_transposed) {
+            IloNumArray coefs(*_cplex_env,it_lterm.second._p->get_dim());
+            for (int j = 0; j<it_lterm.second._p->get_dim(); j++) {
+                coefs[j] = poly_eval(it_lterm.second._coef,j);
             }
-            //obj += IloScalProd(coefs, _cplex_vars[idx]);
-            if (coefs.getSize() == _cplex_vars[idx].getSize())
-                obj += IloScalProd(coefs, _cplex_vars[idx]);
-            else {
-                int j = 0;
-                for (auto& var_in: *it1.second._p->get_indices()) {
-                    obj += coefs[j]*_cplex_vars[idx][var_in.second];
-                    j += 1;
-                }
+            unsigned inst = 0;
+            auto it = it_lterm.second._p->get_ids().begin();
+            while (it != it_lterm.second._p->get_ids().end()) {
+                lterm += coefs[inst++]*_cplex_vars[idx][*it++];
             }
         }
         else {
-            IloNumExpr lterm(*_cplex_env);
-            idx_inst = it1.second._p->get_id_inst();
-            c_idx_inst = get_poly_id_inst(it1.second._coef);
-            lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
-            if (!it1.second._sign) {
-                lterm *= -1;
-            }
-            obj += lterm;
-            lterm.end();
+            idx_inst = it_lterm.second._p->get_id_inst();
+            lterm += poly_eval(it_lterm.second._coef)*_cplex_vars[idx][idx_inst];
         }
+        if (!it_lterm.second._sign) {
+            lterm *= -1;
+        }
+        obj += lterm;
+        lterm.end();
     }
 
     obj += poly_eval(_model->_obj.get_cst());
@@ -231,7 +217,7 @@ void CplexProgram::set_cplex_objective() {
 
 void CplexProgram::create_cplex_constraints() {
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
-    size_t c_idx_inst = 0;
+//    size_t c_idx_inst = 0;
     Constraint* c;
     for(auto& p: _model->_cons) {
         c = p.second;
@@ -242,96 +228,61 @@ void CplexProgram::create_cplex_constraints() {
         inst = 0;
         for (int i = 0; i< nb_inst; i++) {
             IloNumExpr cc(*_cplex_env);
-            for (auto& it1: c->get_qterms()) {
-                idx1 = it1.second._p->first->get_vec_id();
-                idx2 = it1.second._p->second->get_vec_id();
-                if (it1.second._coef->_is_transposed) {
-                    IloNumArray coefs(*_cplex_env, it1.second._p->first->get_dim());
-                    for (int j = 0; j < it1.second._p->first->get_dim(); j++) {
-                        coefs[j] = poly_eval(it1.second._coef, j);
+            for (auto& it_qterm: c->get_qterms()) {
+                IloNumExpr qterm(*_cplex_env);
+                idx1 = it_qterm.second._p->first->get_vec_id();
+                idx2 = it_qterm.second._p->second->get_vec_id();
+                if (it_qterm.second._coef->_is_transposed) {
+                    IloNumArray coefs(*_cplex_env, it_qterm.second._p->first->get_dim());
+                    for (int j = 0; j < it_qterm.second._p->first->get_dim(); j++) {
+                        coefs[j] = poly_eval(it_qterm.second._coef, j);
                     }
-                    if (coefs.getSize() == _cplex_vars[idx1].getSize() && coefs.getSize() ==_cplex_vars[idx2].getSize())
-                        cc += IloQuadProd(_cplex_vars[idx1], _cplex_vars[idx2], coefs);
-                    else {
-                        int j = 0;
-                        auto iter = it1.second._p->second->get_indices()->begin();
-                        for (auto& var_in1: *it1.second._p->first->get_indices()) {
-                            cc += coefs[j]*_cplex_vars[idx1][var_in1.second]*_cplex_vars[idx2][iter->second];
-                            j += 1;
-                            ++iter;
-                        }
+                    unsigned inst = 0;
+                    auto it1 = it_qterm.second._p->first->get_ids().begin();
+                    auto it2 = it_qterm.second._p->second->get_ids().begin();
+                    while (it1 != it_qterm.second._p->first->get_ids().end()) {
+                        qterm += coefs[inst++]*_cplex_vars[idx1][*it1++]*_cplex_vars[idx2][*it2++];
                     }
                 }
                 else {
-                    IloNumExpr qterm(*_cplex_env);
-                    if (is_indexed(it1.second._p->first)) {
-                        idx_inst1 = it1.second._p->first->get_id_inst(inst);
-                    }
-                    else {
-                        idx_inst1 = inst;
-                    }
-                    if (is_indexed(it1.second._p->second)) {
-                        idx_inst2 = it1.second._p->second->get_id_inst(inst);
-                    }
-                    else {
-                        idx_inst2 = inst;
-                    }
-                    if (is_indexed(it1.second._coef)) {
-                        c_idx_inst = get_poly_id_inst(it1.second._coef);
-                    }
-                    else {
-                        c_idx_inst = inst;
-                    }
-                    qterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
-                    if (!it1.second._sign) {
-                        qterm *= -1;
-                    }
-                    cc += qterm;
-                    qterm.end();
+                    
+                    idx_inst1 = it_qterm.second._p->first->get_id_inst(inst);
+                    idx_inst2 = it_qterm.second._p->second->get_id_inst(inst);
+                    qterm += poly_eval(it_qterm.second._coef, inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
                 }
+                if (!it_qterm.second._sign) {
+                    qterm *= -1;
+                }
+                cc += qterm;
+                qterm.end();
             }
 
-            for (auto& it1: c->get_lterms()) {
-                idx = it1.second._p->get_vec_id();
-                if (it1.second._coef->_is_transposed) {
-                    IloNumArray coefs(*_cplex_env,it1.second._p->get_dim());
-
-                    for (int j = 0; j < it1.second._p->get_dim(); j++) {
-                        coefs[j] = poly_eval(it1.second._coef,j);
+            for (auto& it_lterm: c->get_lterms()) {
+                IloNumExpr lterm(*_cplex_env);
+                idx = it_lterm.second._p->get_vec_id();
+                if (it_lterm.second._coef->_is_transposed) {
+                    IloNumArray coefs(*_cplex_env,it_lterm.second._p->get_dim());
+                    for (int j = 0; j < it_lterm.second._p->get_dim(); j++) {
+                        coefs[j] = poly_eval(it_lterm.second._coef,j);
                     }
-                    if (coefs.getSize() == _cplex_vars[idx].getSize())
-                        cc += IloScalProd(coefs, _cplex_vars[idx]);
-                    else {
-                        int j = 0;
-                        for (auto& var_in: *it1.second._p->get_indices()) {
-                            cc += coefs[j]*_cplex_vars[idx][var_in.second];
-                            j += 1;
-                        }
+                    unsigned inst = 0;
+                    auto it = it_lterm.second._p->get_ids().begin();
+                    while (it != it_lterm.second._p->get_ids().end()) {
+                        lterm += coefs[inst++]*_cplex_vars[idx][*it++];
                     }
+                    
                 }
                 else {
-                    IloNumExpr lterm(*_cplex_env);
-                    if (is_indexed(it1.second._p)) {
-                        idx_inst = it1.second._p->get_id_inst(inst);
-                    }
-                    else {
-                        idx_inst = inst;
-                    }
-                    if (is_indexed(it1.second._coef)) {
-                        c_idx_inst = get_poly_id_inst(it1.second._coef);
-                    }
-                    else {
-                        c_idx_inst = inst;
-                    }
-                    lterm += poly_eval(it1.second._coef, c_idx_inst)*_cplex_vars[idx][idx_inst];
-                    if (!it1.second._sign) {
-                        lterm *= -1;
-                    }
-                    cc += lterm;
-                    lterm.end();
+                    idx_inst = it_lterm.second._p->get_id_inst(inst);
+                    lterm += poly_eval(it_lterm.second._coef, inst)*_cplex_vars[idx][idx_inst];
                 }
+                if (!it_lterm.second._sign) {
+                    lterm *= -1;
+                }
+                cc += lterm;
+                lterm.end();
             }
-            cc += poly_eval(c->get_cst());
+            cc += poly_eval(c->get_cst(), inst);
 
             if(c->get_type()==geq) {
                 _cplex_model->add(cc >= c->get_rhs());

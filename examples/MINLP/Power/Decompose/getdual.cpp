@@ -25,7 +25,6 @@
 #include <iterator>
 #endif
 
-
 // CLIQUE BASED REFORMULATION
 using namespace std;
 using namespace gravity;
@@ -122,7 +121,6 @@ Net* get_cliquetree(Net* grid){
 
 void getdual_relax(PowerNet* grid)
 {
-
     // Grid Parameters
     auto bus_pairs = grid->get_bus_pairs();
     auto nb_bus_pairs = bus_pairs.size();
@@ -237,15 +235,9 @@ void getdual_relax(PowerNet* grid)
     for (auto g:grid->gens) {
         if (g->_active) {
             for (int t = 0; t < T; t++) {
-                if (t > 1) {
-                    string l = to_string(t);
-                    obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
-                    //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
-                }
-                else {
-                    obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-                    //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
-                }
+                string l = to_string(t);
+                obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
+                //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
             }
         }
     }
@@ -326,7 +318,7 @@ void getdual_relax(PowerNet* grid)
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to.in(grid->arcs, T), 2) + power(Qf_to.in(grid->arcs, T), 2);
-    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T),2);
+    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs, T), 2);
     ACUC.add_constraint(Thermal_Limit_to <= 0);
 
     /* Commitment constraints */
@@ -358,7 +350,7 @@ void getdual_relax(PowerNet* grid)
 
     for (int t = min_down.getvalue(); t < T; t++) {
         Constraint Min_Down("Min_Down_constraint" + to_string(t));
-        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+        for (int l = t-min_down.getvalue()+1; l < t+1; l++) {
             Min_Down   += Shut_down.in_at(grid->gens, l);
         }
         Min_Down -= 1 - On_off.in_at(grid->gens, t);
@@ -373,7 +365,7 @@ void getdual_relax(PowerNet* grid)
 
     Production_P_UB = Pg.in(grid->gens, T) - grid->pg_max.in(grid->gens, T)*On_off.in(grid->gens,T);
     Production_P_LB = Pg.in(grid->gens, T) - grid->pg_min.in(grid->gens, T)*On_off.in(grid->gens,T);
-    ACUC.add_constraint(Production_P_UB <=0);
+    ACUC.add_constraint(Production_P_UB <= 0);
     ACUC.add_constraint(Production_P_LB >= 0);
 
     grid->qg_max.print(true);
@@ -402,9 +394,8 @@ void getdual_relax(PowerNet* grid)
         ACUC.add_constraint(Ramp_down <= 0);
 
     }
-
     /* Resolve it! */
     solver relax(ACUC,ipopt);
+    //solver relax(ACUC,ipopt);
     relax.run();
 }
-

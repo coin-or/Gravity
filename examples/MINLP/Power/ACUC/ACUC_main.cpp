@@ -115,8 +115,8 @@ int main (int argc, const char * argv[])
             for (int t = 0; t < T; t++) {
                 //if (t > 1) {
                     string l = to_string(t);
-                    obj += grid->c1(g->_name,l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
-                    //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
+                    obj += grid->c1(g->_name, l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
+                    obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
                // }
                 //else {
                   //  obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
@@ -125,6 +125,7 @@ int main (int argc, const char * argv[])
             }
         }
     }
+    obj += 0;
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
@@ -280,7 +281,8 @@ int main (int argc, const char * argv[])
     //}
 
     /* Resolve it! */
-    solver OPF(ACUC,ipopt);
+    //solver OPF(ACUC,ipopt);
+    solver OPF(ACUC, cplex);
     OPF.run();
 
     /* Solution analysis */
