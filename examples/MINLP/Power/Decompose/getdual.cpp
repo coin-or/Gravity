@@ -14,7 +14,6 @@
 #include <fstream>
 #include "../PowerNet.h"
 #include <gravity/model.h>
-#include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
 
