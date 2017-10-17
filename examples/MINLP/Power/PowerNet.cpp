@@ -151,6 +151,10 @@ void PowerNet::time_expand(unsigned T) {
     qg_max.time_expand(T);
     w_min.time_expand(T);
     w_max.time_expand(T);
+    wr_min.time_expand(T);
+    wi_min.time_expand(T);
+    wr_max.time_expand(T);
+    wi_max.time_expand(T);
 }
 
 int PowerNet::readgrid(const char* fname) {

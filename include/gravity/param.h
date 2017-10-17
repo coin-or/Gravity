@@ -337,8 +337,7 @@ public:
     /* Modifiers */
     void   set_size(size_t s, type val = 0) {
         _val->resize(s,val);
-        _dim = s;
-        get<3>(_unique_id) = s;
+        _dim = s;        
     };
 
     void add_val(type val) {
@@ -957,61 +956,32 @@ public:
     // T copies of a parameter
     void time_expand(unsigned T) {
         assert(T >= 1);
-        unsigned l = param_::get_dim();
+        auto dim = param_::get_dim();
+        set_size(dim*T);
         /* update the indices of the old parameter*/
         string key;
-        map<std::string, unsigned> map_temp;
-        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
-            key = it->first;
-            key += ",";
-            key += "0";
-            Debug("updated key: " << key << endl);
-            map_temp.insert(make_pair(key, it->second));
-        }
+        auto map_temp = *param::_indices;
+//        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
+//            key = it->first;
+//            map_temp.insert(make_pair(key, it->second));
+//        }
         //CLEAR OLD ENTRIES
         _indices->clear();
+        _ids->clear();
         //STORE NEW ENTRIES
-        for (map<std::string, unsigned>::iterator it= map_temp.begin(); it != map_temp.end(); ++it){
-            _indices->insert(*it);
+        for(unsigned t = 0; t < T; t ++ ) {
+            for (auto &entry: map_temp){
+                key = entry.first;
+                key += ",";
+                key += to_string(t);
+                _val->at(param_::_indices->size()) = _val->at(entry.second);
+                param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+            }
         }
-        
-        for(unsigned t = 0; t < T - 1; t ++ ) {
-            /* Why not use resize() here ? */
-            _val->insert(_val->end(), _val->begin(), _val->begin()+l);
-        }
-        set_size(l*T);
+        _name += ".time_expanded";
+        _unique_id = make_tuple<>(_id,in_time_,typeid(type).hash_code(),0,dim*T);
     }
-    //auto l = this->get_dim();
-    //for(unsigned t = 1; t < T+1; t ++ ) {
-    //    auto iter = param_::_indices->begin();
-    //    //for (unsigned i = 0; i < l; i++ ) {
-    //    for (auto &iter: (*param_::get_indices())){
-    //        string key = iter.first;
-    //        cout << key << endl;
-    //        key += "," + to_string(t);
-    //        cout << key << endl;
-    //        //auto pp = param_::_indices->insert(make_pair<>(key, l*T + i-1));
-    //        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-    //        if(pp.second) { //new index inserted
-    //            if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-    //                res._dim++;
-    //                cout << "dim: " <<  res._dim << endl;
-    //            }
-    //            res._ids->push_back(param_::_indices->size() - 1);
-    //        }
-    //        else {// already exists
-    //            if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-    //                res._dim++;
-    //            }
-    //            res._ids->push_back(pp.first->second);
-    //            cout << "dim: " <<  res._dim << endl;
-    //        }
-    //        //iter
-    //    }
-    //}
-    //res._name += ".time_expanded";
-    //res._unique_id = make_tuple<>(res._id,time_expand_, param<type>::get_id_inst(0),param<type>::get_id_inst(param_::get_dim()));
-    //res._is_indexed = true;
+
     /** Output */
     void print(bool vals=false) const {
         cout << this->to_str(vals);
