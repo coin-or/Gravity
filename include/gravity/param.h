@@ -564,7 +564,6 @@ public:
                 continue;
             }
             key = (*it)->_name;
-            DebugOff(key<< ", ");
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
             if(pp.second) { //new index inserted
@@ -951,6 +950,7 @@ public:
         /* update the indices of the old parameter*/
         string key;
         auto map_temp = *param::_indices;
+        auto val_temp = *param::_val;
 //        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
 //            key = it->first;
 //            map_temp.insert(make_pair(key, it->second));
@@ -964,7 +964,8 @@ public:
                 key = entry.first;
                 key += ",";
                 key += to_string(t);
-                _val->at(param_::_indices->size()) = _val->at(entry.second);
+                //_val->at(param_::_indices->size()) = _val->at(entry.second);
+                _val->at(param_::_indices->size()) = val_temp.at(entry.second);
                 param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             }
         }
