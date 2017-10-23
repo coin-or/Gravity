@@ -1,5 +1,6 @@
 //
 //  Decompose.cpp
+// 
 //  Gravity
 //
 //  Created by Guanglei Wang on 6/9/17.
@@ -19,101 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 using namespace std;
 using namespace gravity;
-
-//Net* get_cliquetree(Net* grid){
-//#ifdef USE_BOOST
-//    /** Note that we also need the edge information of the clique tree **/
-//    /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
-//    typedef boost::adjacency_list <boost::vecS,
-//            boost::vecS,
-//            boost::undirectedS,
-//            boost::no_property,
-//            boost::property < boost::edge_weight_t, int >
-//            > Graph;
-//    typedef boost::graph_traits <Graph>::edge_descriptor Edge;
-//    typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
-//
-//    // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
-//    typedef std::pair<int, int> E;
-//    std::vector<E> edges;
-//    std::vector<int> weights;
-//    int nb_cliques = grid->_bags.size();
-//    for (int i = 0; i < nb_cliques; i++) {
-//        cout << "bag " << i << " has " << grid->_bags[i].size() << " vertices." <<endl;
-//        sort(grid->_bags[i].begin(), grid->_bags[i].end());
-//        for (int j = i +1; j < nb_cliques; j++) {
-//            vector<Node*> v3;
-//            sort(grid->_bags[j].begin(), grid->_bags[j].end());
-//            set_intersection(grid->_bags[i].begin(), grid->_bags[i].end(), grid->_bags[j].begin(),
-//                             grid->_bags[j].end(), back_inserter(v3));
-//            if (v3.size() > 0) {
-//                edges.push_back(E(i, j));
-//                weights.push_back(-v3.size());
-//            }
-//        }
-//    }
-//    size_t num_edges = edges.size();
-//
-//#if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
-//    Graph g(num_nodes);
-//    boost::property_map<Graph, edge_weight_t>::type weightmap = get(edge_weight, g);
-//    for (std::size_t j = 0; j < num_edges; ++j) {
-//        Edge e;
-//        bool inserted;
-//        boost::tie(e, inserted) = boost::add_edge(edges[j].first, edges[j].second, g);
-//        boost::weightmap[e] = weights[j];
-//    }
-//#else
-//    Graph g(edges.begin(), edges.end(), weights.begin(), nb_cliques);
-//#endif
-//    boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
-//    std::vector < Edge > spanning_tree;
-//    boost::kruskal_minimum_spanning_tree(g, std::back_inserter(spanning_tree));
-//
-//    DebugOn("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
-//
-//    //////////CLIQUE TREE /////////////////////////////
-//    Net* cliquetree = new Net();
-//    Node* node = nullptr;
-//    Arc*  a = nullptr;
-//    string name;
-//    for (int i = 0; i < nb_cliques; i++) {
-//        node= new Node(to_string(i), i);
-//        cliquetree->add_node(node);
-//    }
-//
-//    for (std::vector < Edge >::iterator ei = spanning_tree.begin();
-//            ei != spanning_tree.end(); ++ei) {
-//        int u = source(*ei, g);
-//        int v = target(*ei, g);
-//        DebugOn(u << " <--> " << v
-//                << " with weight of " << -weight[*ei]
-//                << endl);
-//        name = (int) cliquetree->arcs.size();
-//        a = new Arc(name);
-//        a->_id = cliquetree->arcs.size();
-//
-//        // intersection
-//        vector<Node*> v3;
-//        sort(grid->_bags[u].begin(), grid->_bags[u].end());
-//        sort(grid->_bags[v].begin(), grid->_bags[v].end());
-//        set_intersection(grid->_bags[u].begin(), grid->_bags[u].end(),
-//                         grid->_bags[v].begin(), grid->_bags[v].end(),
-//                         back_inserter(v3));
-//
-//        a->_src = cliquetree->get_node(to_string(u));
-//        a->_dest = cliquetree->get_node(to_string(v));
-//        a->_weight = -weight[*ei];
-//        a->_intersection = v3;
-//        cliquetree->add_arc(a);
-//        a->connect();
-//    }
-//    return cliquetree;
-//#endif
-//}
 
 /** INITIALISE SUBPROBLEM MODEL */
 double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
@@ -125,11 +33,8 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                    param<Real>& Wii_log, param<Real>& R_Wij_log, param<Real>& Im_Wij_log,
                    param<Real>& Pg_log, param<Real>& Qg_log, param<Real>& On_off_log )
 {
-//    func_  OA;
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
     if (bag_arcs.size() == 0) {
-        //OA += 0;
-        //return OA;
         return 0;
     }
     Model Subr("Subr");
@@ -145,14 +50,16 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     Subr.add_var(Qf_to^(T*bag_arcs.size()));
 
     // Lifted variables.
-    //var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
-    //var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
-    var<Real>  R_Wij("R_Wij");
-    var<Real>  Im_Wij("Im_Wij");
+   // var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T));
+    //var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T));
+    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bag_arcs, T), grid->wr_max.in(bag_arcs, T));
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bag_arcs, T), grid->wi_max.in(bag_arcs, T));
     var<Real>  Wii("Wii", grid->w_min.in(bag_bus, T), grid->w_max.in(bag_bus, T));
     Subr.add_var(Wii^(T*bag_bus.size()));
     Subr.add_var(R_Wij^(T*grid->_bags.size()*(bag_bus.size() - 1)/2));
     Subr.add_var(Im_Wij^(T*grid->_bags.size()*(bag_bus.size() - 1)/2));
+    R_Wij.initialize_all(1.0);
+    Wii.initialize_all(1.001);
 
     // Commitment variables
     var<Real>  On_off("On_off", 0, 1);
@@ -172,7 +79,7 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
         for (int i = 0; i < a->_intersection.size(); i ++) {
             bus = (Bus*)a->_intersection.at(i);
             for (int j = i + 1; j < a->_intersection.size(); j ++) {
-                arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                arc = chordal->get_arc(bus, a->_intersection.at(j));
                 obj += R_lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
                 obj += Im_lambda_sep[a->_id](arc->_name)*Im_Wij(arc->_name);
             }
@@ -200,29 +107,20 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
             if (g->_active) {
                 DebugOn("generator name: " << g->_name << endl);
                 for (int t = 0; t < T; t++) {
-                    if (t > 1) {
                         string l = to_string(t);
                         obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
                         //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
                     }
-                    else {
-                        /* This is weird, Pg should either be indexed by two indices or one, not both.*/
-                        // you're right. 
-                        obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-                        //obj += cost_up.getvalue()*Start_up(g->_name)+ cost_down.getvalue()*Shut_down(g->_name);
-                    }
                 }
             }
-            obj.print(true);
-        }
         for (auto a: Cr->get_out()) {
             for (int i = 0; i < a->_intersection.size(); i ++) {
                 bus = (Bus*) a->_intersection.at(i);
                 for (auto g: bus->_gen) {
                     if (g->_active) {
-                        obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
-                        obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
-                        obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
+                        obj += mu_sep[a->_id](g->_name, T)*Pg(g->_name, T);
+                        obj += kappa_sep[a->_id](g->_name, T)*Qg(g->_name, T);
+                        obj += eta_sep[a->_id](g->_name, T)*On_off(g->_name, T);
                     }
                 }
             }
@@ -431,9 +329,9 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     Subr.add_constraint(Thermal_Limit_to <= 0);
 
     /* Resolve it! */
-    solver solve_Subr(Subr,ipopt);
+    //solver solve_Subr(Subr,ipopt);
+    solver solve_Subr(Subr,cplex);
     solve_Subr.run();
-    // OA = obj.get_outer_app();
     Wii_log =  (*(var<Real>*) Subr.get_var("Wii"));
     R_Wij_log =  (*(var<Real>*) Subr.get_var("R_Wij"));
     Im_Wij_log =  (*(var<Real>*) Subr.get_var("Im_Wij"));
@@ -449,11 +347,9 @@ int main (int argc, const char * argv[])
     PowerNet* grid = new PowerNet();
     const char* fname;
     //fname = "../../data_sets/Power/nesta_case5_pjm.m";
-    //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
     fname = "../../data_sets/Power/nesta_case14_ieee.m";
-    //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-
     grid->readgrid(fname);
+
     // Grid Parameters
     unsigned nb_gen = grid->get_nb_active_gens();
     unsigned nb_lines = grid->get_nb_active_arcs();
@@ -471,19 +367,15 @@ int main (int argc, const char * argv[])
     param<Real> min_down("min_down");
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
-
     for (auto g: grid->gens) {
         rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
-        rate_ramp._dim++;
         rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
-        rate_switch._dim++;
     }
     min_up = 1;
     min_down = 1;
     cost_up = 50;
     cost_down = 30;
 
-    /* create a function grid->time_expand(T) to do all these below */
     grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
@@ -493,7 +385,7 @@ int main (int argc, const char * argv[])
     grid->get_clique_tree();
     const unsigned nb_cliques = grid->_bags.size();
 
-    vector<vector<Bus*>> bag_bus; // Note that each clique contains just nodes, not buses! Fixed this by modifying the bag definition.
+    vector<vector<Bus*>> bag_bus; //  each clique contains just nodes, not buses! Fixed this by modifying the bag definition.
     vector<vector<Gen*>> bag_gens;
     vector<vector<Arc*>> bag_arcs; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
 
@@ -527,6 +419,7 @@ int main (int argc, const char * argv[])
     bag_gens.resize(nb_cliques);
 
     auto cliquetree = grid->get_clique_tree();
+    
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
     vector<param<Real>> R_lambda_in;
     vector<param<Real>> Im_lambda_in;

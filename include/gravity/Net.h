@@ -115,6 +115,7 @@ public:
     
     
     /** Compute the tree decomposition bags **/
+    void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques. 
     Net* get_clique_tree();
 };
 #endif

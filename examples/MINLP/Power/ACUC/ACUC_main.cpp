@@ -108,29 +108,20 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Start_up^(T*nb_gen));
     ACUC.add_var(Shut_down^(T*nb_gen));
 
-    
-    grid->c1.print(true);
-    grid->c2.print(true);
-    grid->c0.print(true);
-    grid->g_ff.print(true);
-    grid->g_ft.print(true);
-    grid->g_tt.print(true);
-    grid->g_tf.print(true);
-
-    grid->b_ff.print(true);
-    grid->b_ft.print(true);
-    grid->b_tt.print(true);
-    grid->b_tf.print(true);
-
-    
     /* Construct the objective function*/
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
-            for (int t = 0; t < T; t++) {
-                string l = to_string(t);
-                obj += grid->c1(g->_name,l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
-            }
+            obj += grid->c1.in(g,T)*Pg.in(g,T); //+ grid->c2.in(g->_name,T)*Pg.in(g->_name,T)*Pg.in(g->_name,T) + grid->c0.in(g-s>_name,T);
+            //DebugOn("grid->c1.in: " << grid->c1.in(g,T).get_dim() << endl);
+            //DebugOn("Pg.in: " << Pg.in(g,T).get_dim() << endl);
+            Pg.in(g,T).print(true);
+
+//            for (int t = 0; t < T; t++) {
+//                string l = to_string(t);
+//            obj += grid->c1(g->_name,l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
+//                //obj += cost_up.getvalue()*Start_up(g->_name, T)+ cost_down.getvalue()*Shut_down(g->_name, T);
+//            }
         }
     }
     ACUC.set_objective(min(obj));

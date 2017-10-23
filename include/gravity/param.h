@@ -337,7 +337,7 @@ public:
     /* Modifiers */
     void   set_size(size_t s, type val = 0) {
         _val->resize(s,val);
-        _dim = s;        
+        _dim = s;
     };
 
     void add_val(type val) {
@@ -662,7 +662,7 @@ public:
         DebugOff(endl);
         res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
         res._unique_id = make_tuple<>(res._id, in_time_, typeid(Tobj).hash_code(),
-                res.get_id_inst(0), res.get_id_inst(res.get_dim()));
+                                      res.get_id_inst(0), res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
@@ -738,48 +738,48 @@ public:
             }
         }
         res._name += ".to_" + string(typeid(Tobj).name());
-        res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+
         res._is_indexed = true;
         return res;
     }
 
-    param in(const string nm, unsigned T) {
+    template<typename Tobj>
+    param in(const Tobj nm, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
-        for (unsigned t = 0; t < T; t++) {
-            string key = nm;
-            //if (t > 0) {
-                key += ",";
-                key += to_string(t);
-           // }
-            //cout << "key: " << key << endl;
-            Debug("key: " << key << endl);
-            auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
-            _val->resize(max(_val->size(),param_::_indices->size()));
-            if(pp.second) { //new index inserted
-                if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
-                    //_dim++;
+        string key;
+        if (nm->_active) {
+            for (unsigned t = 0; t < T; t++) {
+                    key = nm->_name;
+                    key += ",";
+                    key += to_string(t);
+                    Debug("key: " << key << endl);
+                    auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                    _val->resize(max(_val->size(),param_::_indices->size()));
+                    if(pp.second) { //new index inserted
+                        if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                            res._dim++;
+                        }
+                        res._ids->push_back(param_::_indices->size() - 1);
+                    }
+                    else {
+                        if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                            res._dim++;
+                        }
+                        res._ids->push_back(pp.first->second);
+                    }
                 }
-                res._ids->push_back(param_::_indices->size() - 1);
-            }
-            else {
-                if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
-                }
-                res._ids->push_back(pp.first->second);
-            }
         }
-        res._name += ".in_" +  string(typeid(nm).name()) + "_time_" + to_string(T);
-        res._unique_id = make_tuple<>(res._id, in_time_, typeid(nm).hash_code(), res.get_id_inst(0), res.get_id_inst(param_::get_dim()));
+        res._name += ".in_time_" +  nm->_name + "_time_" + to_string(T); // _name and _unique_id should be really unique.
+        hash<string> str_hash;
+        res._unique_id = make_tuple<>(res._id, in_time_,str_hash(nm->_name), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
-
 
 
     template<typename Tobj>
@@ -835,8 +835,8 @@ public:
                 }
                 key = (*it)->_name;
                 //if (t > 0) {
-                    key += ",";
-                    key += to_string(t);
+                key += ",";
+                key += to_string(t);
                 //}
                 Debug("_val: " << _val->size() << endl);
                 Debug("_indices: " << param_::_indices->size() << endl);
@@ -874,7 +874,7 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active){  // || !(*it)->_src->_active || !(*it)->_dest->_active ) {
+                if(!(*it)->_active) { // || !(*it)->_src->_active || !(*it)->_dest->_active ) {
                     continue;
                 }
                 key = (*it)->_src->_name;
@@ -913,7 +913,7 @@ public:
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
-                if(!(*it)->_active){ 
+                if(!(*it)->_active) {
                     continue;
                 }
                 key = (*it)->_dest->_name;
@@ -960,7 +960,7 @@ public:
         _ids->clear();
         //STORE NEW ENTRIES
         for(unsigned t = 0; t < T; t ++ ) {
-            for (auto &entry: map_temp){
+            for (auto &entry: map_temp) {
                 key = entry.first;
                 key += ",";
                 key += to_string(t);
