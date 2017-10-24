@@ -22,6 +22,13 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
+#ifdef USE_BOOST
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/kruskal_min_spanning_tree.hpp>
+#include <deque>
+#include <iterator>
+#endif
+
 
 #ifdef USE_BOOST
 #include <boost/graph/adjacency_list.hpp>

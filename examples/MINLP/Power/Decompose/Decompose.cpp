@@ -19,12 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef USE_BOOST
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/kruskal_min_spanning_tree.hpp>
-#include <deque>
-#include <iterator>
-#endif
+
 using namespace std;
 using namespace gravity;
 

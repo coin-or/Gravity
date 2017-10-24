@@ -41,9 +41,9 @@ int main (int argc, const char * argv[])
     DebugOff("nb lines = " << nb_lines << endl);
     DebugOff("nb buses = " << nb_buses << endl);
     DebugOff("nb bus_pairs = " << nb_bus_pairs << endl);
+    
     /** build model */
     Model SOCP("SOCP Model");
-
     /** Variables */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
@@ -79,8 +79,8 @@ int main (int argc, const char * argv[])
             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
-    //func_ obj = sum(grid->c0) +sum(grid->c1.in(grid->gens),Pg.in(grid->gens)) + sum(grid->c2.in(grid->gens), power(Pg.in(grid->gens),2));
     SOCP.set_objective(min(obj));
+    
     
     /** Define constraints */
     /* SOCP constraints */
@@ -114,12 +114,14 @@ int main (int argc, const char * argv[])
     Flow_P_From -= grid->b_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_P_From = 0);
     
+    
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to.in(grid->arcs);
     Flow_P_To -= grid->g_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_P_To -= grid->g_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_P_To += grid->b_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_P_To = 0);
+
     
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from.in(grid->arcs);
@@ -127,14 +129,14 @@ int main (int argc, const char * argv[])
     Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_From -= grid->g_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_Q_From = 0);
-
+//
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs);
     Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
     Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
     Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_Q_To = 0);
-
+//
     ///* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
@@ -157,14 +159,15 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
     Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
-    
-//    Constraint NL("NL");
-//    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
-//    SOCP.add_constraint(NL <= 0);
+  
+    Constraint NL("NL");
+    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
+    SOCP.add_constraint(NL <= 0);
     
     solver SCOPF(SOCP,ipopt);
 //    solver SCOPF(SOCP, cplex);
 
     SCOPF.run();
+
     return 0;
 }
