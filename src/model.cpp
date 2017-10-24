@@ -679,7 +679,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     }
     _hess_vals.resize(idx_all);
 }
-/* TODO: only store meta-varaibles in _hess_link */ 
+ 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
     size_t idx = 0, idx_in = 0;
     set<pair<func_*,func_*>> s;
