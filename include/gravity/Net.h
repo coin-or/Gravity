@@ -31,7 +31,7 @@ public:
     std::vector<Arc*> arcs;
     
     /** Set of bus pairs */
-    gravity::node_pairs _bus_pairs;
+    gravity::node_pairs _bus_pairs; // not sure why should we put _bus_pairs in Net.h..
     
     /** Mapping the arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     
@@ -48,7 +48,7 @@ public:
     /** Tree decomposition bags */
     // bags are sorted in an ascending order of ids.
     std::vector<std::vector<Node*>> _bags; // each node is from this.nodes. 
-    std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node. 
+    std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node (not by reference).
     
     /** Cloning */
     Net* clone();

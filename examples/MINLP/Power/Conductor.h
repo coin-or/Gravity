@@ -5,7 +5,6 @@
 //  Created by Hassan on 3/02/2015.
 //  Copyright (c) 2015 NICTA. All rights reserved.
 //
-
 #ifndef Conductor_h
 #define Conductor_h
 

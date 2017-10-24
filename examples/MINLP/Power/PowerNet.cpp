@@ -346,7 +346,7 @@ int PowerNet::readgrid(const char* fname) {
     while(word.compare("];")) {
         src = word;
         file >> dest;
-        arc = new Line(to_string(index) + "," + src + "," + dest);
+        arc = new Line(to_string(index) + "," + src + "," + dest); // Name of lines
         arc->_id = index++;
         arc->_src = get_node(src);
         arc->_dest= get_node(dest);
@@ -441,15 +441,14 @@ int PowerNet::readgrid(const char* fname) {
             th_max(name) = min(th_max(name).eval(), arc->tbound.max);
             tan_th_min(name) = tan(th_min(name).eval());
             tan_th_max(name) = tan(th_max(name).eval());
-
         }
-        if (arc->tbound.min >= 0 ) {
+        if (arc->tbound.min >= 0) {
             wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval());
             wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval());
             wi_max(name) = bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval());
             wi_min(name) = bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval());
         };
-        if (arc->tbound.max <= 0 ) {
+        if (arc->tbound.max <= 0) {
             wr_max(name) = bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval());
             wr_min(name) = bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval());
             wi_max(name) = bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval());

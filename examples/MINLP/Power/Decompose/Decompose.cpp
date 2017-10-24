@@ -24,8 +24,8 @@ using namespace std;
 using namespace gravity;
 
 /** INITIALISE SUBPROBLEM MODEL */
-double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cliquetree,
-                   vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs,
+double  subproblem(PowerNet* grid,Net* chordal, unsigned c, Net* cliquetree,
+                   vector<Bus*> bag_bus, vector<Gen*> bag_gens, vector<Arc*> bag_arcs, node_pairs* bag_bus_pairs,
                    vector<param<Real>>& R_lambda_sep, vector<param<Real>>& Im_lambda_sep, vector<param<Real>>& mu_sep,
                    vector<param<Real>>& kappa_sep, vector<param<Real>>& eta_sep,
                    param<Real>& rate_ramp, param<Real>& rate_switch, param<Real>& min_up, param<Real>& min_down,
@@ -34,40 +34,45 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
                    param<Real>& Pg_log, param<Real>& Qg_log, param<Real>& On_off_log )
 {
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
+
     if (bag_arcs.size() == 0) {
         return 0;
     }
+
     Model Subr("Subr");
+    
     // POWER FLOW
     DebugOn("bag_arcs " << c << " has " << bag_arcs.size() << " lines." << endl);
-    var<Real> Pf_from("Pf_from", grid->S_max.in(bag_arcs, T));
-    var<Real> Qf_from("Qf_from", grid->S_max.in(bag_arcs, T));
-    var<Real> Pf_to("Pf_to", grid->S_max.in(bag_arcs, T));
-    var<Real> Qf_to("Qf_to", grid->S_max.in(bag_arcs, T));
-    Subr.add_var(Pf_from^(T*bag_arcs.size()));
-    Subr.add_var(Qf_from^(T*bag_arcs.size()));
-    Subr.add_var(Pf_to^(T*bag_arcs.size()));
-    Subr.add_var(Qf_to^(T*bag_arcs.size()));
+    DebugOn("bag_bus  " << c << " has " << bag_bus.size() << " bus." << endl);
+    DebugOn("bag_gens " << c << " has " << bag_gens.size() << " gens" << endl);
 
-    // Lifted variables.
-   // var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T));
-    //var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T));
-    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bag_arcs, T), grid->wr_max.in(bag_arcs, T));
-    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bag_arcs, T), grid->wi_max.in(bag_arcs, T));
-    var<Real>  Wii("Wii", grid->w_min.in(bag_bus, T), grid->w_max.in(bag_bus, T));
-    Subr.add_var(Wii^(T*bag_bus.size()));
-    Subr.add_var(R_Wij^(T*grid->_bags.size()*(bag_bus.size() - 1)/2));
-    Subr.add_var(Im_Wij^(T*grid->_bags.size()*(bag_bus.size() - 1)/2));
+    var<Real> Pf_from("Pf_from", grid->S_max.in(bag_arcs));
+    var<Real> Qf_from("Qf_from", grid->S_max.in(bag_arcs));
+    var<Real> Pf_to("Pf_to", grid->S_max.in(bag_arcs));
+    var<Real> Qf_to("Qf_to", grid->S_max.in(bag_arcs));
+    Subr.add_var(Pf_from^(bag_arcs.size()));
+    Subr.add_var(Qf_from^(bag_arcs.size()));
+    Subr.add_var(Pf_to^(bag_arcs.size()));
+    Subr.add_var(Qf_to^(bag_arcs.size()));
+
+    // LIFTED VARIABLES.
+    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bag_bus_pairs->_keys), grid->wr_max.in(bag_bus_pairs->_keys));
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bag_bus_pairs->_keys), grid->wi_max.in(bag_bus_pairs->_keys));
+    var<Real>  Wii("Wii", grid->w_min.in(bag_bus), grid->w_max.in(bag_bus));
+    Subr.add_var(Wii^(bag_bus.size()));
+    Subr.add_var(R_Wij^(grid->_bags.size()*(bag_bus.size() - 1)/2));
+    Subr.add_var(Im_Wij^(grid->_bags.size()*(bag_bus.size() - 1)/2));
+
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
 
-    // Commitment variables
+    // COMMITMENT VARIABLES
     var<Real>  On_off("On_off", 0, 1);
     var<Real>  Start_up("Start_up", 0, 1);
     var<Real>  Shut_down("Shut_down", 0, 1);
-    Subr.add_var(On_off^(T*bag_gens.size()));
-    Subr.add_var(Start_up^(T*bag_gens.size()));
-    Subr.add_var(Shut_down^(T*bag_gens.size()));
+    Subr.add_var(On_off^(bag_gens.size()));
+    Subr.add_var(Start_up^(bag_gens.size()));
+    Subr.add_var(Shut_down^(bag_gens.size()));
 
     /* Construct the objective function*/
     func_ obj;
@@ -78,10 +83,12 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
         Debug("a->_intersection.size " << a->_intersection.size() << endl);
         for (int i = 0; i < a->_intersection.size(); i ++) {
             bus = (Bus*)a->_intersection.at(i);
+            string name;
             for (int j = i + 1; j < a->_intersection.size(); j ++) {
                 arc = chordal->get_arc(bus, a->_intersection.at(j));
-                obj += R_lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
-                obj += Im_lambda_sep[a->_id](arc->_name)*Im_Wij(arc->_name);
+                name = arc->_src->_name + "," + arc->_dest->_name;
+                obj += R_lambda_sep[a->_id](name)*R_Wij(name);
+                obj += Im_lambda_sep[a->_id](name)*Im_Wij(name);
             }
         }
     }
@@ -89,249 +96,244 @@ double  subproblem(PowerNet* grid,Net* chordal, unsigned T, unsigned c, Net* cli
     for (auto a: Cr->get_in()) {
         for (int i = 0; i < a->_intersection.size(); i ++) {
             bus = (Bus*) a->_intersection.at(i);
+            string name;
             for (int j = i + 1; j < a->_intersection.size(); j ++) {
                 arc = chordal->get_arc(bus, a->_intersection.at(j));
-                obj -= R_lambda_sep[a->_id](arc->_name)*R_Wij(arc->_name);
-                obj -= Im_lambda_sep[a->_id](arc->_name)*Im_Wij(arc->_name);
+                name = arc->_src->_name + "," + arc->_dest->_name;
+                obj -= R_lambda_sep[a->_id](name)*R_Wij(name);
+                obj -= Im_lambda_sep[a->_id](name)*Im_Wij(name);
             }
         }
     }
-    var<Real> Pg("Pg", grid->pg_min.in(bag_gens, T), grid->pg_max.in(bag_gens, T));
-    var<Real> Qg("Qg", grid->qg_min.in(bag_gens, T), grid->qg_max.in(bag_gens, T));
-    Subr.add_var(Pg^(T*bag_gens.size()));
-    Subr.add_var(Qg^(T*bag_gens.size()));
-    // power generation
+    var<Real> Pg("Pg", grid->pg_min.in(bag_gens), grid->pg_max.in(bag_gens));
+    var<Real> Qg("Qg", grid->qg_min.in(bag_gens), grid->qg_max.in(bag_gens));
+    Subr.add_var(Pg^(bag_gens.size()));
+    Subr.add_var(Qg^(bag_gens.size()));
+
+    for (auto g: bag_gens) {
+        if (g->_active) {
+             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+              //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
+            }
+        }
+    for (auto a: Cr->get_out()) {
+        for (int i = 0; i < a->_intersection.size(); i++) {
+            bus = (Bus*) a->_intersection.at(i);
+            for (auto g: bus->_gen) {
+                if (g->_active) {
+                    obj += mu_sep[a->_id](g->_name)*Pg(g->_name);
+                    obj += kappa_sep[a->_id](g->_name)*Qg(g->_name);
+                    obj += eta_sep[a->_id](g->_name)*On_off(g->_name);
+                }
+            }
+        }
+    }
+
+    for (auto a: Cr->get_in()) {
+        for (int i = 0; i < a->_intersection.size(); i++) {
+            bus = (Bus*) a->_intersection.at(i);
+            for (auto g: bus->_gen) {
+                if (g->_active) {
+                    obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
+                    obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
+                    obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
+                }
+            }
+        }
+    }
+    Subr.set_objective(min(obj));
+
+    // POWER GENERATION
     if (bag_gens.size() > 0) {
-        for (auto g: bag_gens) {
-            DebugOn("number of generators: " << bag_gens.size() << endl);
-            if (g->_active) {
-                DebugOn("generator name: " << g->_name << endl);
-                for (int t = 0; t < T; t++) {
-                        string l = to_string(t);
-                        obj += grid->c1(g->_name, l)*Pg(g->_name, l) + grid->c2(g->_name, l)*Pg(g->_name, l)*Pg(g->_name, l) + grid->c0(g->_name, l);
-                        //obj += cost_up.getvalue()*Start_up(g->_name, l)+ cost_down.getvalue()*Shut_down(g->_name, l);
-                    }
-                }
-            }
-        for (auto a: Cr->get_out()) {
-            for (int i = 0; i < a->_intersection.size(); i ++) {
-                bus = (Bus*) a->_intersection.at(i);
-                for (auto g: bus->_gen) {
-                    if (g->_active) {
-                        obj += mu_sep[a->_id](g->_name, T)*Pg(g->_name, T);
-                        obj += kappa_sep[a->_id](g->_name, T)*Qg(g->_name, T);
-                        obj += eta_sep[a->_id](g->_name, T)*On_off(g->_name, T);
-                    }
-                }
-            }
-        }
-
-        for (auto a: Cr->get_in()) {
-            for (int i = 0; i < a->_intersection.size(); i ++) {
-                bus = (Bus*) a->_intersection.at(i);
-                for (auto g: bus->_gen) {
-                    if (g->_active) {
-                        obj -= mu_sep[a->_id](g->_name)*Pg(g->_name);
-                        obj -= kappa_sep[a->_id](g->_name)*Qg(g->_name);
-                        obj -= eta_sep[a->_id](g->_name)*On_off(g->_name);
-                    }
-                }
-            }
-        }
-        Subr.set_objective(min(obj));
         //KCL
-        for (int t = 0; t < T; t++) {
-            for (auto bus: bag_bus) {
-                if (!bus->_active) {
-                    continue;
-                }
-                Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
-                Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
+       for (auto bus: bag_bus) {
+           if (!bus->_active) {
+               continue;
+           }
+           Constraint KCL_P("KCL_P"+bus->_name+ "time_");
+           Constraint KCL_Q("KCL_Q"+bus->_name+ "time_");
 
-                /* Power Conservation */
-                vector<Arc*> out;
-                /* Add comments here, why are we using set_intersection?*/
-                /* bus->get_out() includes all out lines of the grid, but here we need the out lines of the bag.*/
-                set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
-                vector<Arc*> in;
-                set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
-                /* Pg(*,0) is not defined, in the objective, for t=0 you're only using Pg(*) */
-                KCL_P  = sum(Pf_from.in_at(out, t))+ sum(Pf_to.in_at(in, t)) + bus->pl() - sum(Pg.in_at(bus->_gen, t));
-                KCL_Q  = sum(Qf_from.in_at(out, t)) + sum(Qf_to.in_at(in, t))+ bus->ql() - sum(Qg.in_at(bus->_gen, t));
+           /* Power Conservation */
+           vector<Arc*> out;
+           /* Add comments here, why are we using set_intersection?*/
+           /* bus->get_out() includes all out lines of the grid, but here we need the out lines of the bag.*/
+           set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
+           vector<Arc*> in;
+           set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
 
-                /* Shunts */
-                KCL_P +=  bus->gs()*Wii(bus->_name);
-                KCL_Q -=  bus->bs()*Wii(bus->_name);
+           KCL_P  = sum(Pf_from.in(out))+ sum(Pf_to.in(in)) + bus->pl() - sum(Pg.in(bus->_gen));
+           KCL_Q  = sum(Qf_from.in(out)) + sum(Qf_to.in(in))+ bus->ql() - sum(Qg.in(bus->_gen));
 
-                Subr.add_constraint(KCL_P = 0);
-                Subr.add_constraint(KCL_Q = 0);
-            }
-        }
+           /* Shunts */
+           KCL_P +=  bus->gs()*Wii(bus->_name);
+           KCL_Q -=  bus->bs()*Wii(bus->_name);
+
+           Subr.add_constraint(KCL_P = 0);
+           Subr.add_constraint(KCL_Q = 0);
+       }
         /* Commitment constraints */
         // Inter-temporal constraints
-        for (int t = 1; t < T; t++) {
-            Constraint MC1("MC1_"+ to_string(t));
-            Constraint MC2("MC2_"+ to_string(t));
-            MC1 = On_off.in_at(bag_gens, t) - On_off.in_at(bag_gens, t-1)-  Start_up.in_at(bag_gens, t);
-            MC2 = On_off.in_at(bag_gens, t-1) - On_off.in_at(bag_gens, t) - Shut_down.in_at(bag_gens, t);
-            Subr.add_constraint(MC1 <= 0);
-            Subr.add_constraint(MC2 <= 0);
-        }
+        //for (int t = 1; t < T; t++) {
+        //    Constraint MC1("MC1_"+ to_string(t));
+        //    Constraint MC2("MC2_"+ to_string(t));
+        //    MC1 = On_off.in_at(bag_gens, t) - On_off.in_at(bag_gens, t-1)-  Start_up.in_at(bag_gens, t);
+        //    MC2 = On_off.in_at(bag_gens, t-1) - On_off.in_at(bag_gens, t) - Shut_down.in_at(bag_gens, t);
+        //    Subr.add_constraint(MC1 <= 0);
+        //    Subr.add_constraint(MC2 <= 0);
+        //}
 
-        // Min-up constraints
-        for (int t = 1; t < T; t++) {
-            Constraint Min_up1("Min_up1_"+ to_string(t));
-            Min_up1 = On_off.in_at(bag_gens, t) - On_off.in_at(bag_gens, t-1) - Start_up.in_at(bag_gens, t) + Shut_down.in_at(bag_gens, t);
-            Subr.add_constraint(Min_up1 = 0);
-        }
+        //// Min-up constraints
+        //for (int t = 1; t < T; t++) {
+        //    Constraint Min_up1("Min_up1_"+ to_string(t));
+        //    Min_up1 = On_off.in_at(bag_gens, t) - On_off.in_at(bag_gens, t-1) - Start_up.in_at(bag_gens, t) + Shut_down.in_at(bag_gens, t);
+        //    Subr.add_constraint(Min_up1 = 0);
+        //}
 
-        for (int t = min_up.getvalue(); t < T; t++) {
-            Constraint Min_Up("Min_Up_constraint" + to_string(t));
-            for (int l = t-min_up.getvalue()+1; l < t +1; l++) {
-                Min_Up   += Start_up.in_at(bag_gens, l);
-            }
-            Min_Up -= On_off.in_at(bag_gens, t);
-            Subr.add_constraint(Min_Up <= 0);
-        }
+        //for (int t = min_up.getvalue(); t < T; t++) {
+        //    Constraint Min_Up("Min_Up_constraint" + to_string(t));
+        //    for (int l = t-min_up.getvalue()+1; l < t +1; l++) {
+        //        Min_Up   += Start_up.in_at(bag_gens, l);
+        //    }
+        //    Min_Up -= On_off.in_at(bag_gens, t);
+        //    Subr.add_constraint(Min_Up <= 0);
+        //}
 
-        for (int t = min_down.getvalue(); t < T; t++) {
-            Constraint Min_Down("Min_Down_constraint" + to_string(t));
-            for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-                Min_Down   += Shut_down.in_at(bag_gens, l);
-            }
-            Min_Down -= 1 - On_off.in_at(bag_gens, t);
-            Subr.add_constraint(Min_Down <= 0);
-        }
+        //for (int t = min_down.getvalue(); t < T; t++) {
+        //    Constraint Min_Down("Min_Down_constraint" + to_string(t));
+        //    for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+        //        Min_Down   += Shut_down.in_at(bag_gens, l);
+        //    }
+        //    Min_Down -= 1 - On_off.in_at(bag_gens, t);
+        //    Subr.add_constraint(Min_Down <= 0);
+        //}
 
-        //Ramp rate
-        Constraint Production_P_LB("Production_P_LB");
-        Constraint Production_P_UB("Production_P_UB");
-        Constraint Production_Q_LB("Production_Q_LB");
-        Constraint Production_Q_UB("Production_Q_UB");
+        ////Ramp rate
+        //Constraint Production_P_LB("Production_P_LB");
+        //Constraint Production_P_UB("Production_P_UB");
+        //Constraint Production_Q_LB("Production_Q_LB");
+        //Constraint Production_Q_UB("Production_Q_UB");
 
-        Production_P_UB = Pg.in(bag_gens, T) - grid->pg_max.in(bag_gens, T)*On_off.in(bag_gens,T);
-        Production_P_LB = Pg.in(bag_gens, T) - grid->pg_min.in(bag_gens, T)*On_off.in(bag_gens,T);
-        Subr.add_constraint(Production_P_UB <=0);
-        Subr.add_constraint(Production_P_LB >= 0);
+        //Production_P_UB = Pg.in(bag_gens) - grid->pg_max.in(bag_gens)*On_off.in(bag_gens,T);
+        //Production_P_LB = Pg.in(bag_gens) - grid->pg_min.in(bag_gens)*On_off.in(bag_gens,T);
+        //Subr.add_constraint(Production_P_UB <=0);
+        //Subr.add_constraint(Production_P_LB >= 0);
 
-        //grid->qg_max.print(true);
-        //grid->qg_min.print(true);
+        ////grid->qg_max.print(true);
+        ////grid->qg_min.print(true);
 
-        Production_Q_UB = Qg.in(bag_gens, T) - grid->qg_max.in(bag_gens, T)*On_off.in(bag_gens,T);
-        Production_Q_LB = Qg.in(bag_gens, T) - grid->qg_min.in(bag_gens, T)*On_off.in(bag_gens,T);
-        Subr.add_constraint(Production_Q_UB <= 0);
-        Subr.add_constraint(Production_Q_LB >= 0);
+        //Production_Q_UB = Qg.in(bag_gens) - grid->qg_max.in(bag_gens)*On_off.in(bag_gens,T);
+        //Production_Q_LB = Qg.in(bag_gens) - grid->qg_min.in(bag_gens)*On_off.in(bag_gens,T);
+        //Subr.add_constraint(Production_Q_UB <= 0);
+        //Subr.add_constraint(Production_Q_LB >= 0);
 
-        for (int t = 1; t < T; t++) {
-            Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
-            Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
+        //for (int t = 1; t < T; t++) {
+        //    Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
+        //    Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
 
-            Ramp_up = Pg.in_at(bag_gens, t);
-            Ramp_up -= Pg.in_at(bag_gens, t-1);
-            Ramp_up -= rate_ramp*On_off.in_at(bag_gens, t-1);
-            Ramp_up -= rate_switch*(1 - On_off.in_at(bag_gens, t));
+        //    Ramp_up = Pg.in_at(bag_gens, t);
+        //    Ramp_up -= Pg.in_at(bag_gens, t-1);
+        //    Ramp_up -= rate_ramp*On_off.in_at(bag_gens, t-1);
+        //    Ramp_up -= rate_switch*(1 - On_off.in_at(bag_gens, t));
 
-            Ramp_down = Pg.in_at(bag_gens, t-1);
-            Ramp_down -= Pg.in_at(bag_gens, t);
-            Ramp_down -= rate_ramp*On_off.in_at(bag_gens, t);
-            Ramp_down -= rate_switch*(1 - On_off.in_at(bag_gens, t-1));
+        //    Ramp_down = Pg.in_at(bag_gens, t-1);
+        //    Ramp_down -= Pg.in_at(bag_gens, t);
+        //    Ramp_down -= rate_ramp*On_off.in_at(bag_gens, t);
+        //    Ramp_down -= rate_switch*(1 - On_off.in_at(bag_gens, t-1));
 
-            Subr.add_constraint(Ramp_up <= 0);
-            Subr.add_constraint(Ramp_down <= 0);
-        }
+        //    Subr.add_constraint(Ramp_up <= 0);
+        //    Subr.add_constraint(Ramp_down <= 0);
+        //}
     }
     else {
-        Subr.set_objective(min(obj));
         //KCL
-        for (int t = 0; t < T; t++)
-            for (auto bus: bag_bus) {
-                if (!bus->_active) {
-                    continue;
-                }
-                Constraint KCL_P("KCL_P"+bus->_name+ "time_" + to_string(t));
-                Constraint KCL_Q("KCL_Q"+bus->_name+ "time_" + to_string(t));
+         for (auto bus: bag_bus) {
+             if (!bus->_active) {
+                 continue;
+             }
+             Constraint KCL_P("KCL_P"+bus->_name+ "time_");
+             Constraint KCL_Q("KCL_Q"+bus->_name+ "time_");
 
-                /* Power Conservation */
-                vector<Arc*> out;
-                set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
-                vector<Arc*> in;
-                set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
-                KCL_P  = sum(Pf_from.in_at(out, t))+ sum(Pf_to.in_at(in, t)) + bus->pl();
-                KCL_Q  = sum(Qf_from.in_at(out, t)) + sum(Qf_to.in_at(in, t))+ bus->ql();
+             /* Power Conservation */
+             vector<Arc*> out;
+             set_intersection(bus->get_out().begin(), bus->get_out().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(out));
+             vector<Arc*> in;
+             set_intersection(bus->get_in().begin(), bus->get_in().end(), bag_arcs.begin(), bag_arcs.end(), back_inserter(in));
+             KCL_P  = sum(Pf_from.in(out))+ sum(Pf_to.in(in)) + bus->pl();
+             KCL_Q  = sum(Qf_from.in(out)) + sum(Qf_to.in(in))+ bus->ql();
 
-                /* Shunts */
-                KCL_P +=  bus->gs()*Wii(bus->_name);
-                KCL_Q -=  bus->bs()*Wii(bus->_name);
+             /* Shunts */
+             KCL_P +=  bus->gs()*Wii(bus->_name);
+             KCL_Q -=  bus->bs()*Wii(bus->_name);
 
-                Subr.add_constraint(KCL_P = 0);
-                Subr.add_constraint(KCL_Q = 0);
-            }
+             Subr.add_constraint(KCL_P = 0);
+             Subr.add_constraint(KCL_Q = 0);
+         }
     }
     /* SOCP constraints */
     Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(bag_arcs, T), 2) + power(Im_Wij.in(bag_arcs, T), 2) - Wii.from(bag_arcs, T)*Wii.to(bag_arcs, T) ;
+    SOC =  power(R_Wij.in(bag_bus_pairs->_keys), 2) + power(Im_Wij.in(bag_bus_pairs->_keys), 2)
+            - Wii.from(bag_bus_pairs->_keys)*Wii.to(bag_bus_pairs->_keys) ;
     Subr.add_constraint(SOC <= 0);
 
     //AC Power Flow.
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(bag_arcs, T);
-    Flow_P_From -= grid->g_ff.in(bag_arcs, T)*Wii.from(bag_arcs, T);
-    Flow_P_From -= grid->g_ft.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
-    Flow_P_From -= grid->b_ft.in(bag_arcs, T)*Im_Wij.in(bag_arcs, T);
+    Flow_P_From += Pf_from.in(bag_arcs);
+    Flow_P_From -= grid->g_ff.in(bag_arcs)*Wii.from(bag_arcs);
+    Flow_P_From -= grid->g_ft.in(bag_arcs)*R_Wij.in_pairs(bag_arcs);
+    Flow_P_From -= grid->b_ft.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
     Flow_P_From = 0;
     Subr.add_constraint(Flow_P_From);
-
+//
     Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(bag_arcs, T);
-    Flow_P_To -= grid->g_tt.in(bag_arcs, T)*Wii.to(bag_arcs, T);
-    Flow_P_To -= grid->g_tf.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
-    Flow_P_To += grid->b_tf.in(bag_arcs, T)*Im_Wij.in(bag_arcs, T);
+    Flow_P_To += Pf_to.in(bag_arcs);
+    Flow_P_To -= grid->g_tt.in(bag_arcs)*Wii.to(bag_arcs);
+    Flow_P_To -= grid->g_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs);
+    Flow_P_To += grid->b_tf.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
     Flow_P_To = 0;
     Subr.add_constraint(Flow_P_To);
-
+//
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(bag_arcs, T);
-    Flow_Q_From += grid->b_ff.in(bag_arcs, T)*Wii.from(bag_arcs, T);
-    Flow_Q_From += grid->b_ft.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
-    Flow_Q_From += grid->g_ft.in(bag_arcs, T)*Im_Wij.in(bag_arcs, T);
+    Flow_Q_From += Qf_from.in(bag_arcs);
+    Flow_Q_From += grid->b_ff.in(bag_arcs)*Wii.from(bag_arcs);
+    Flow_Q_From += grid->b_ft.in(bag_arcs)*R_Wij.in_pairs(bag_arcs);
+    Flow_Q_From += grid->g_ft.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
     Flow_Q_From = 0;
     Subr.add_constraint(Flow_Q_From);
-
+//
     Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(bag_arcs, T);
-    Flow_Q_To += grid->b_tt.in(bag_arcs, T)*Wii.to(bag_arcs, T);
-    Flow_Q_To += grid->b_tf.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
-    Flow_Q_To -= grid->g_tf.in(bag_arcs, T)*Im_Wij.in(bag_arcs, T);
+    Flow_Q_To += Qf_to.in(bag_arcs);
+    Flow_Q_To += grid->b_tt.in(bag_arcs)*Wii.to(bag_arcs);
+    Flow_Q_To += grid->b_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs);
+    Flow_Q_To -= grid->g_tf.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
     Flow_Q_To = 0;
     Subr.add_constraint(Flow_Q_To);
 
-    //Phase Angle Bounds constraints */
     //NOTE THAT WE SHOULD USE BUS PAIRS!!!
     Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bag_arcs, T);
-    PAD_UB -= (grid->tan_th_max).in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
+    PAD_UB = Im_Wij.in(bag_bus_pairs->_keys);
+    PAD_UB -= (grid->tan_th_max).in(bag_bus_pairs->_keys)*R_Wij.in(bag_bus_pairs->_keys);
     Subr.add_constraint(PAD_UB <= 0);
 
     Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bag_arcs, T);
-    PAD_LB -= grid->tan_th_min.in(bag_arcs, T)*R_Wij.in(bag_arcs, T);
+    PAD_LB =  Im_Wij.in(bag_bus_pairs->_keys);
+    PAD_LB -= grid->tan_th_min.in(bag_bus_pairs->_keys)*R_Wij.in(bag_bus_pairs->_keys);
     Subr.add_constraint(PAD_LB >= 0);
 
     //Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from.in(bag_arcs, T),  2) + power(Qf_from.in(bag_arcs, T), 2);
-    Thermal_Limit_from -= power(grid->S_max.in(bag_arcs, T), 2);
+    Thermal_Limit_from += power(Pf_from.in(bag_arcs),  2) + power(Qf_from.in(bag_arcs), 2);
+    Thermal_Limit_from -= power(grid->S_max.in(bag_arcs), 2);
     Subr.add_constraint(Thermal_Limit_from <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to.in(bag_arcs, T), 2) + power(Qf_to.in(bag_arcs, T), 2);
-    Thermal_Limit_to -= power(grid->S_max.in(bag_arcs, T),2);
+    Thermal_Limit_to += power(Pf_to.in(bag_arcs), 2) + power(Qf_to.in(bag_arcs), 2);
+    Thermal_Limit_to -= power(grid->S_max.in(bag_arcs),2);
     Subr.add_constraint(Thermal_Limit_to <= 0);
 
     /* Resolve it! */
-    //solver solve_Subr(Subr,ipopt);
     solver solve_Subr(Subr,cplex);
     solve_Subr.run();
+
     Wii_log =  (*(var<Real>*) Subr.get_var("Wii"));
     R_Wij_log =  (*(var<Real>*) Subr.get_var("R_Wij"));
     Im_Wij_log =  (*(var<Real>*) Subr.get_var("Im_Wij"));
@@ -346,8 +348,8 @@ int main (int argc, const char * argv[])
     // Decompose
     PowerNet* grid = new PowerNet();
     const char* fname;
-    //fname = "../../data_sets/Power/nesta_case5_pjm.m";
-    fname = "../../data_sets/Power/nesta_case14_ieee.m";
+    fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    //fname = "../../data_sets/Power/nesta_case14_ieee.m";
     grid->readgrid(fname);
 
     // Grid Parameters
@@ -376,9 +378,7 @@ int main (int argc, const char * argv[])
     cost_up = 50;
     cost_down = 30;
 
-    grid->time_expand(T);
-    rate_ramp.time_expand(T);
-    rate_switch.time_expand(T);
+    //grid->time_expand(T);
 
     /** Clique tree decomposition **/
     Net* chordal = grid->get_chordal_extension();
@@ -388,11 +388,13 @@ int main (int argc, const char * argv[])
     vector<vector<Bus*>> bag_bus; //  each clique contains just nodes, not buses! Fixed this by modifying the bag definition.
     vector<vector<Gen*>> bag_gens;
     vector<vector<Arc*>> bag_arcs; //bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
+    vector<gravity::node_pairs*> bag_bus_pairs; // bus_pairs in each bag.
 
     for (int c = 0; c < nb_cliques; c++) {
         vector<Bus*> bag_B;
         vector<Gen*> bag_G;
         vector<Arc*> bag_A;
+        node_pairs* bag_BP = new node_pairs();
         for (int i = 0; i < grid->_bags[c].size(); i++) {
             Bus* bus = (Bus*) grid->get_node(grid->_bags[c].at(i)->_name);
             if (bus !=nullptr) {
@@ -403,13 +405,16 @@ int main (int argc, const char * argv[])
             }
             for (int j = i+1; j < grid->_bags[c].size(); j++) {
                 Arc* a = (Arc*)grid->get_arc(bus, grid->get_node(grid->_bags[c].at(j)->_name));
-                if (a != nullptr)
+                if (a != nullptr){
                     bag_A.push_back(a);
+                    bag_BP->_keys.push_back(new index_pair(index_(a->_src->_name), index_(a->_dest->_name), a->_active));
+                }
             }
         }
         bag_bus.push_back(bag_B);
         bag_gens.push_back(bag_G);
         bag_arcs.push_back(bag_A);
+        bag_bus_pairs.push_back(bag_BP);
         DebugOn("bag " << c << " has " << bag_gens[c].size() << " generators. " << endl;)
         DebugOn("bag " << c << " has " << bag_arcs[c].size() << " line " << endl;)
     }
@@ -446,7 +451,7 @@ int main (int argc, const char * argv[])
     vector<param<Real>> eta_grad;
 
     for (auto a: cliquetree->arcs) {
-        int l = a->_id;
+        auto l = a->_id;
         param<Real> R_lambda_arc_in("R_lambda_arc_in" + to_string(l));
         param<Real> Im_lambda_arc_in("Im_lambda_arc_in" + to_string(l));
         param<Real> mu_arc_in("R_mu_arc_in" + to_string(l));
@@ -700,6 +705,7 @@ int main (int argc, const char * argv[])
         Qg_log.push_back(Qg_C_log);
         On_off_log.push_back(On_off_C_log);
     }
+    
     R_Wij_log.resize(nb_cliques);
     Im_Wij_log.resize(nb_cliques);
     Wii_log.resize(nb_cliques);
@@ -714,8 +720,8 @@ int main (int argc, const char * argv[])
     double val = 0;
     double dual = 0;
     for (int c = 0; c < nb_cliques; c++) {
-        val = subproblem(grid, chordal, T, c, cliquetree,
-                         bag_bus[c], bag_gens[c], bag_arcs[c],
+        val = subproblem(grid, chordal, c, cliquetree,                          
+                         bag_bus[c], bag_gens[c], bag_arcs[c],bag_bus_pairs[c],
                          R_lambda_sep, Im_lambda_sep,  mu_sep, kappa_sep, eta_sep,
                          rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down,
                          Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Pg_log[c], Qg_log[c], On_off_log[c]);
@@ -764,7 +770,7 @@ int main (int argc, const char * argv[])
         }
     }
 
-    solver solve_Master(Master, ipopt);
+    solver solve_Master(Master, cplex);
     solve_Master.run();
 
     // initialise the outer point. 
@@ -813,8 +819,8 @@ int main (int argc, const char * argv[])
         /////////////////SLOVE SUBPROBLEM/////////////////////
         dual = 0;
         for (int c = 0; c < nb_cliques; c++) {
-            val = subproblem(grid, chordal, T, c, cliquetree,
-                             bag_bus[c], bag_gens[c], bag_arcs[c],
+            val = subproblem(grid, chordal, c, cliquetree, 
+                             bag_bus[c], bag_gens[c], bag_arcs[c], bag_bus_pairs[c],
                              R_lambda_sep, Im_lambda_sep,  mu_sep, kappa_sep, eta_sep,
                              rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down,
                              Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Pg_log[c], Qg_log[c], On_off_log[c]);
@@ -879,7 +885,7 @@ int main (int argc, const char * argv[])
                 for (int i = 0; i < a->_intersection.size(); i ++) {
                     bus = (Bus*) a->_intersection.at(i);
                     for (int j = i + 1; j < a->_intersection.size(); j ++) {
-                        arc = chordal->get_arc(bus, a->_intersection.at(j)); // we have to use the arc name.
+                        arc = chordal->get_arc(bus, a->_intersection.at(j)); 
                         R_lambda_out[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
                         Im_lambda_out[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
                     }

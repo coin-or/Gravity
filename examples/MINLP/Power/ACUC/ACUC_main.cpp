@@ -68,17 +68,11 @@ int main (int argc, const char * argv[])
     Model ACUC("ACUC Model");
 
     /** Variables */
-    // power generation
+    // POWER GENERATION
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg^(T*nb_gen));
     ACUC.add_var(Qg^(T*nb_gen));
-    Pg.print(true);
-    DebugOn("Pg dim: " << Pg.get_dim() <<endl);
-    DebugOn("Pg min dim: " << grid->pg_min.get_dim() <<endl);
-    DebugOn("Pg max dim: " << grid->pg_max.get_dim() <<endl);
-    grid->pg_min.in(grid->gens, T).print(true);
-    grid->pg_max.in(grid->gens, T).print(true);
 
      //power flow
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
@@ -94,6 +88,9 @@ int main (int argc, const char * argv[])
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T)); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes, T), grid->w_max.in(grid->nodes, T));
+    R_Wij.print(true);
+    Im_Wij.print(true);
+    
     ACUC.add_var(Wii^(T*nb_buses));
     ACUC.add_var(R_Wij^(T*nb_bus_pairs));
     ACUC.add_var(Im_Wij^(T*nb_bus_pairs));
@@ -112,16 +109,8 @@ int main (int argc, const char * argv[])
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
-            obj += grid->c1.in(g,T)*Pg.in(g,T); //+ grid->c2.in(g->_name,T)*Pg.in(g->_name,T)*Pg.in(g->_name,T) + grid->c0.in(g-s>_name,T);
-            //DebugOn("grid->c1.in: " << grid->c1.in(g,T).get_dim() << endl);
-            //DebugOn("Pg.in: " << Pg.in(g,T).get_dim() << endl);
-            Pg.in(g,T).print(true);
-
-//            for (int t = 0; t < T; t++) {
-//                string l = to_string(t);
-//            obj += grid->c1(g->_name,l)*Pg(g->_name,l) + grid->c2(g->_name,l)*Pg(g->_name,l)*Pg(g->_name,l) + grid->c0(g->_name,l);
-//                //obj += cost_up.getvalue()*Start_up(g->_name, T)+ cost_down.getvalue()*Shut_down(g->_name, T);
-//            }
+            obj += grid->c1.in(g,T)*Pg.in(g,T)+ grid->c2.in(g,T)*Pg.in(g,T)*Pg.in(g,T) + grid->c0.in(g,T);
+            obj += cost_up.getvalue()*Start_up.in(g, T)+ cost_down.getvalue()*Shut_down.in(g, T);
         }
     }
     ACUC.set_objective(min(obj));
@@ -226,7 +215,7 @@ int main (int argc, const char * argv[])
 
     for (int t = min_up.getvalue(); t < T; t++) {
         Constraint Min_Up("Min_Up_constraint" + to_string(t));
-        for (int l = t-min_up.getvalue()+1; l < t +1; l++) {
+        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
             Min_Up   += Start_up.in_at(grid->gens, l);
         }
         Min_Up -= On_off.in_at(grid->gens, t);
