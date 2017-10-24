@@ -36,7 +36,7 @@ namespace gravity {
         
     protected:
         string                          _name;
-        set<pair<size_t,size_t>>        _hess; /* A set representing pairs of variables linked in the hessian */
+        set<pair<size_t,size_t>>        _hess; /* Pairs of variables linked in the hessian, storing Ipopt indices here. */
         vector<shared_ptr<func_>>       _functions;
         void add_var(param_* v);        //Add variables without reallocating memory
         void add_param(param_* v);      //Add variables without reallocating memory
@@ -51,7 +51,10 @@ namespace gravity {
         size_t                          _nb_cons = 0;
         size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
         size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
+        size_t                          _nnz_g_obj = 0; /* Number of non zeros in the Objective gradient */
+        vector<double>                  _cons_vals; /* Constraint values for sppeding up ipopt */
         vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */
+        vector<double>                  _obj_grad_vals; /* Objective gradient values stored in sparse format */
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
         map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
@@ -59,7 +62,7 @@ namespace gravity {
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         map<unsigned, Constraint*>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<string, Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-        map<unsigned, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears, indexed by variable ids */
+        map<unique_id, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears */
 
         /**< Set of variables linked to one another in the hessian, indexed by pairs
          * of variable ids, a pair contains the metavar id and the instanciated var
@@ -68,7 +71,7 @@ namespace gravity {
          * instanciated constraint id 
          * */
 
-        map<pair<unique_id,unsigned>, map<pair<unique_id,unsigned>,set<pair<int,int>>>>            _hess_link; /* unique_id is used to retrieve derivatives, the second element in the pair stores the Ipopt variable id */
+        map<pair<string, string>,set<pair<func_*,func_*>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together */
 
         func_                           _obj; /** Objective function */
         ObjectiveType                   _objt; /** Minimize or maximize */

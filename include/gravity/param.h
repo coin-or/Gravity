@@ -34,6 +34,7 @@ protected:
     NType                                  _intype;
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                        vectors */
+    /* TODO make this a shared_ptr */
     unique_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
 
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
@@ -83,7 +84,7 @@ public:
         return make_pair(0, 0);
     };
 
-    string get_name(bool indices=true) const;
+    string get_name(bool indices=false) const;
     void set_name(const string s) {
         _name = s;
     };
@@ -149,7 +150,7 @@ public:
 
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_id==p._id && *_ids==*p._ids);
+        return (_unique_id == p._unique_id);
         //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };

@@ -15,6 +15,7 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     index_style = Ipopt::TNLP::C_STYLE;
     n = (Index)_model->get_nb_vars();
     m = (Index)_model->get_nb_cons();
+    _model->_cons_vals.resize(m);
     nnz_jac_g = (Index)_model->get_nb_nnz_g();
     _model->_jac_vals.resize(nnz_jac_g,0);
     nnz_h_lag = (Index)_model->get_nb_nnz_h();

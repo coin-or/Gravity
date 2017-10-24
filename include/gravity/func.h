@@ -21,6 +21,7 @@
 using namespace std;
 
 namespace gravity {
+    class func_;
     void reverse_sign(constant_* c); /**< Reverses the sign of the constant. */
     constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
     constant_* copy(constant_&& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
@@ -98,7 +99,8 @@ namespace gravity {
         
         string to_str() const;
         void print(bool endline = true) const;
-        
+        func_ get_derivative(const param_ &v) const;
+        vector<param_*> get_nl_vars() const;
     };
 
 
@@ -191,6 +193,10 @@ namespace gravity {
         void print_tree() const;
         
         double eval(ind i) const;
+        
+        func_ get_derivative(const param_ &v) const;
+        
+        vector<param_*> get_nl_vars() const;
         
     };
 
@@ -442,6 +448,7 @@ namespace gravity {
         size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Jacobian **/
         
     public:
+        bool                                   _is_constraint = false;
         bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
 //        map<pair<unique_id,unique_id>,vector<double>>                                _hess_val;
         func_();
@@ -624,8 +631,8 @@ namespace gravity {
             return *_pterms;
         }
         
-        expr& get_expr() const{
-            return *_expr;
+        expr* get_expr() const{
+            return _expr;
         }
         
         func_* get_stored_derivative(const unique_id& vid) const; /**< Returns the stored derivative with respect to variable v. */
@@ -661,7 +668,7 @@ namespace gravity {
 
 
     func_ operator+(const constant_& c1, const constant_& c2);
-    func_ operator+(func_&& f, const constant_& c);
+//    func_ operator+(func_&& f, const constant_& c);
     //func_ operator+(const constant_& c, func_&& f);
 
     template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
@@ -722,7 +729,7 @@ namespace gravity {
     };
 
     func_ operator*(const constant_& c1, const constant_& c2);
-    func_ operator*(func_&& f, const constant_& c);
+//    func_ operator*(func_&& f, const constant_& c);
     //func_ operator*(const constant_& c, func_&& f);
 
     //template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
@@ -740,10 +747,10 @@ namespace gravity {
 
 
     func_ operator-(const constant_& c1, const constant_& c2);
-    func_ operator-(func_&& f, const constant_& c);
+//    func_ operator-(func_&& f, const constant_& c);
 
     func_ operator/(const constant_& c1, const constant_& c2);
-    func_ operator/(func_&& f, const constant_& c);
+//    func_ operator/(func_&& f, const constant_& c);
 
     //func_ operator-(const constant_& c, func_&& f);
 
@@ -1132,20 +1139,20 @@ namespace gravity {
                 break;
             }
 
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
     //            auto res = new func_(*c1);
     //            delete c1;
@@ -1227,20 +1234,20 @@ namespace gravity {
                 return c1;
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
     //            auto res = new func_(*c1);
     //            delete c1;
@@ -1343,20 +1350,20 @@ namespace gravity {
                 return c1;
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
     //            auto res = new func_(*(func_*)c1 - c2);
     //            delete c1;
@@ -1451,20 +1458,20 @@ namespace gravity {
                 return c1;
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
                 (*(func_*)c1) *= c2;
                 return c1;
@@ -1556,20 +1563,20 @@ namespace gravity {
                 return c1;
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 / c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 / c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(div_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(div_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
                 switch (((func_*)c1)->get_ftype()) {
                     case lin_: {
@@ -1688,6 +1695,7 @@ namespace gravity {
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f);
     
+    func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
 }
 
 #endif /* func_h */

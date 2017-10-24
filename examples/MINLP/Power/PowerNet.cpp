@@ -45,10 +45,6 @@ PowerNet::PowerNet() {
     c1.set_name("c1");
     c2.set_name("c2");
     th_min.set_name("th_min");
-    //th_max.set_name("th_max");
-    //tbound_min_tan.set_name("tbound_min_tan");
-    //tbound_max_tan.set_name("tbound_max_tan");
-    //v_min.set_name("v_min");
     th_max.set_name("th_max");
     tan_th_min.set_name("tan_th_min");
     tan_th_max.set_name("tan_th_max");
@@ -68,6 +64,8 @@ PowerNet::PowerNet() {
     g.set_name("g");
     b.set_name("b");
     ch.set_name("ch");
+    as.set_name("as");
+    tr.set_name("tr");
     S_max.set_name("S_max");
 
     g_ff.set_name("g_ff");
@@ -166,10 +164,8 @@ int PowerNet::readgrid(const char* fname) {
     cout << "Loading file " << fname << endl;
     ifstream file(fname, std::ifstream::in);
     if(!file.is_open()) {
-        cout << "Could not open file\n";
-        return -1;
+        throw invalid_argument("Could not open file\n");
     }
-
     string word;
     while (word.compare("function")) {
         file >> word;
@@ -394,6 +390,8 @@ int PowerNet::readgrid(const char* fname) {
         name = arc->_name;
         g(name) = arc->g;
         b(name) = arc->b;
+        tr(name) = arc->tr;
+        as(name) = arc->as;
         g_ff(name) = arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2));
         g_ft(name) = (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
