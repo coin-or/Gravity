@@ -682,25 +682,14 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 /* TODO: only store meta-varaibles in _hess_link */ 
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
     size_t idx = 0, idx_in = 0;
-    string vi_name, vj_name;param_* vi;
-    param_* vj;
     set<pair<func_*,func_*>> s;
-    unique_id vid, vjd;
     Constraint* c;
     func_* df;
     double hess = 0;
     if (_first_call_hess) {
-        if (new_x) {
-            set_x(x);
-        }
+        set_x(x);
         for (auto &pairs: _hess_link) {
-            vi_name = pairs.first.first;
-            vj_name = pairs.first.second;
             s = pairs.second;
-            vi = (*s.begin()).first->get_var(vi_name);
-            vj = (*s.begin()).first->get_var(vj_name);
-            vid = vi->get_id();
-            vjd = vj->get_id();
             for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
                 res[idx] = 0;
                 for (auto f_pair:s) {
@@ -728,13 +717,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     
     if (!new_x || (_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
         for (auto &pairs: _hess_link) {
-            vi_name = pairs.first.first;
-            vj_name = pairs.first.second;
             s = pairs.second;
-            vi = (*s.begin()).first->get_var(vi_name);
-            vj = (*s.begin()).first->get_var(vj_name);
-            vid = vi->get_id();
-            vjd = vj->get_id();
             for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
                 res[idx] = 0;
                 for (auto f_pair:s) {
@@ -755,13 +738,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         set_x(x);
     }
     for (auto &pairs: _hess_link) {
-        vi_name = pairs.first.first;
-        vj_name = pairs.first.second;
         s = pairs.second;
-        vi = (*s.begin()).first->get_var(vi_name);
-        vj = (*s.begin()).first->get_var(vj_name);
-        vid = vi->get_id();
-        vjd = vj->get_id();
         for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
             res[idx] = 0;            
             for (auto f_pair:s) {
