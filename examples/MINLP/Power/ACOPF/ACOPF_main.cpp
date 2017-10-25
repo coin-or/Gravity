@@ -310,7 +310,7 @@ int main (int argc, const char * argv[])
         Flow_Q_To -= grid->b.in(grid->arcs)/grid->tr.in(grid->arcs)*(v.from(grid->arcs)*v.to(grid->arcs)*cos(theta.to(grid->arcs) - theta.from(grid->arcs) + grid->as.in(grid->arcs)));
         Flow_Q_To += grid->g.in(grid->arcs)/grid->tr.in(grid->arcs)*(v.from(grid->arcs)*v.to(grid->arcs)*sin(theta.to(grid->arcs) - theta.from(grid->arcs) + grid->as.in(grid->arcs)));
     }
-    else {
+    else{
         Flow_Q_To += grid->b_tt.in(grid->arcs)*(power(vr.to(grid->arcs), 2) + power(vi.to(grid->arcs), 2));
         Flow_Q_To += grid->b_tf.in(grid->arcs)*(vr.from(grid->arcs)*vr.to(grid->arcs) + vi.from(grid->arcs)*vi.to(grid->arcs));
         Flow_Q_To -= grid->g_tf.in(grid->arcs)*(vi.to(grid->arcs)*vr.from(grid->arcs) - vr.to(grid->arcs)*vi.from(grid->arcs));
