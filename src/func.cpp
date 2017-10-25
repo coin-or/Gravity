@@ -5321,6 +5321,7 @@ namespace gravity{
         return p1.tr()*f;
     }
     
+    
     template func_ sum<double>(const param<double>& v);
     template func_ sum<float>(const param<float>& v);
     template func_ sum<long double>(const param<long double>& v);

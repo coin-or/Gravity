@@ -15,6 +15,7 @@
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
+#include "SCOPF_W.cpp"
 #include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdio.h>
@@ -42,7 +43,7 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
     DebugOn("bag_gens " << c << " has " << bag_gens.size() << " gens." << endl);
 
    
-    // FLOW VARIABLES DEFINED ON EDGE SET INVOLVING NODES IN THE CLIQUE.     
+   // FLOW VARIABLES DEFINED ON EDGE SET INVOLVING NODES IN THE CLIQUE.
    var<Real> Pf_from("Pf_from", grid->S_max.in(bag_arcs));
    var<Real> Qf_from("Qf_from", grid->S_max.in(bag_arcs));
    var<Real> Pf_to("Pf_to", grid->S_max.in(bag_arcs));
@@ -59,8 +60,8 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
 
    // LIFTED VARIABLES..
    // Note that there are two parts of W
-   // first part: W defined on the clique. (bag_bus_pairs). 
-   // second part: W defined across clique sets.   
+   // First part: W defined on the clique. (bag_bus_pairs).
+   // Second part: W defined across clique sets.
    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bag_bus_pairs->_keys), grid->wr_max.in(bag_bus_pairs->_keys));
    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bag_bus_pairs->_keys), grid->wi_max.in(bag_bus_pairs->_keys));
    var<Real>  Wii("Wii", grid->w_min.in(bag_bus), grid->w_max.in(bag_bus));
@@ -172,13 +173,16 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
 
 int main (int argc, const char * argv[])
 {
-    // Decompose
+    
+        // Decompose
     PowerNet* grid = new PowerNet();
     const char* fname;
     fname = "../../data_sets/Power/nesta_case5_pjm.m";
     //fname = "../../data_sets/Power/nesta_case14_ieee.m";
     grid->readgrid(fname);
-
+    
+    scopf_W(grid);
+    return 0;
     // Grid Parameters
     unsigned nb_gen = grid->get_nb_active_gens();
     unsigned nb_lines = grid->get_nb_active_arcs();
