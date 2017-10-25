@@ -442,7 +442,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     int nb = 0;
 
     /** cliques with less than 1 nodes are useless for us.*/
-    while (graph_clone->nodes.size()> 1) {
+    while (graph_clone->nodes.size()> 2) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
 
         // last element has the minimum fill-in.
@@ -524,7 +524,7 @@ Net* Net::get_chordal_extension() {
     int nb = 0;
 
     /** cliques with less than 2 nodes are useless for us.*/
-    while (graph_clone->nodes.size() > 1) {
+    while (graph_clone->nodes.size() > 2) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();         
@@ -639,7 +639,7 @@ Net* Net::get_clique_tree(){
     Node* node = nullptr;
     Arc*  a = nullptr;
     string name;
-    get_cliquebags();
+    get_cliquebags(true);
 #ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
     /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
@@ -658,7 +658,7 @@ Net* Net::get_clique_tree(){
     std::vector<int> weights;
     int nb_cliques = this->_bags.size();
     for (int i = 0; i < nb_cliques; i++) {
-        DebugOn("bag " << i << " has " << this->_bags[i].size() << " vertices." <<endl);
+        DebugOn("bag " << i << " has " << this->_bags[i].size() << " nodes." <<endl);
         sort(this->_bags[i].begin(), this->_bags[i].end());
         for (int j = i +1; j < nb_cliques; j++) {
             vector<Node*> v3;
