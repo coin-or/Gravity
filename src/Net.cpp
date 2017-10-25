@@ -30,14 +30,12 @@
 #endif
 
 
-//#define USEDEBUG
-#ifdef USEDEBUG
-#define Debug(x) cout << x
-#else
-#define Debug(x)
+#ifdef USE_BOOST
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/kruskal_min_spanning_tree.hpp>
+#include <deque>
+#include <iterator>
 #endif
-#define DebugOn(x) cout << x
-#define DebugOff(x)
 
 using namespace std;
 using namespace gravity;

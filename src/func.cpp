@@ -192,6 +192,32 @@ namespace gravity{
         }
         return 0;
     }
+    
+    func_ get_poly_derivative(constant_* c, const param_ &v){
+        if (!c) {
+            throw invalid_argument("Cannot evaluate nullptr!");
+        }
+        if (c->is_number() || c->is_param()) {
+            return func_();
+        }
+        if (c->is_var()) {
+            if ((*(param_*)c)==v) {
+                func_() += 1;
+            }
+            return func_();
+        }
+        
+        if(c->is_uexpr()){
+            return ((uexpr*)c)->get_derivative(v);
+        }
+        if(c->is_bexpr()){
+            return ((bexpr*)c)->get_derivative(v);
+        }
+        if(c->is_function()){
+            return ((func_*)c)->get_derivative(v);
+        }
+        return func_();
+    }
 
 
     Sign constant_::get_all_sign() const{
@@ -981,15 +1007,17 @@ namespace gravity{
                 }
                 case uexp_c: {
                     _expr = new uexpr(*(uexpr*)move(&c));
-                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                    _queue->push(_expr);
+                    embed(*_expr);
+//                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                    _queue->push(_expr);
                     //sign and convexity
                     break;
                 }
                 case bexp_c: {
                     _expr = new bexpr(*(bexpr*)move(&c));
-                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                    _queue->push(_expr);
+                    embed(*_expr);
+//                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                    _queue->push(_expr);
                     break;
                 }
                 default:
@@ -1118,8 +1146,8 @@ namespace gravity{
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
                 //sign and convexity
                 break;
             }
@@ -1133,8 +1161,8 @@ namespace gravity{
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
                 break;
             }
             case func_c: {
@@ -1241,8 +1269,8 @@ namespace gravity{
         if (f._expr) {
             _expr = (expr*)copy(*f._expr);
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-            _queue->push(_expr);
+//            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//            _queue->push(_expr);
         }
         for (auto &df:f._dfdx) {
             _dfdx[df.first] = new func_(*df.second);
@@ -1357,8 +1385,8 @@ namespace gravity{
         if (f._expr) {
             _expr = (expr*)copy(*f._expr);
             embed(*_expr);
-            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-            _queue->push(_expr);
+//            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//            _queue->push(_expr);
         }
         for (auto &df:_dfdx) {
             _dfdx[df.first] = new func_(*df.second);
@@ -1634,14 +1662,17 @@ namespace gravity{
             if (_expr && f->_expr) {
                 _expr = new bexpr(plus_, _expr, copy(*f->_expr));
                 embed(*_expr);
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
             }
             if (!_expr && f->_expr) {
                 _expr = (expr*)copy(*f->_expr);
                 embed(*_expr);
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
+                if (!_vars->empty()) {
+                    _ftype = nlin_;
+                }
             }
             update_sign(*f);
             update_convexity();
@@ -1679,16 +1710,19 @@ namespace gravity{
                 this->insert(!pair.second._sign, *pair.second._coef, *pair.second._l);
             }
             if (_expr && f->_expr) {
-                _expr = new bexpr(plus_, _expr, copy(*f->_expr));
+                _expr = new bexpr(minus_, _expr, copy(*f->_expr));
                 embed(*_expr);
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
             }
             if (!_expr && f->_expr) {
-                _expr = (expr*)copy(*f->_expr);
+                _expr = (expr*)copy(-1*(*f->_expr));
                 embed(*_expr);
-                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-                _queue->push(_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
+                if (!_vars->empty()) {
+                    _ftype = nlin_;
+                }
             }
             update_sign(*f);
             update_convexity();
@@ -1729,10 +1763,13 @@ namespace gravity{
             if (_expr) {
                 auto be = new bexpr(product_, _expr, copy(c));
                 _expr = be;
-            }        
+                embed(*_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
+            }
             return *this;
         }
-        if (_expr || (c.is_function() && ((func_*)&c)->_expr)) {
+        if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
             auto be = bexpr(product_, copy(*this), copy(c));
             *this = func_(be);
             return *this;
@@ -1764,6 +1801,13 @@ namespace gravity{
                     }
                 }
 
+            }
+            if (_expr) {
+                auto be = new bexpr(product_, _expr, copy(c));
+                _expr = be;
+                embed(*_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
             }
             if (c.is_negative()) {
                 reverse_sign();
@@ -2067,15 +2111,23 @@ namespace gravity{
             for (auto &pair:*_pterms) {
                 pair.second._coef = divide(pair.second._coef, c);
             }
+            if (_expr) {
+                auto be = new bexpr(div_, _expr, copy(c));
+                _expr = be;
+                embed(*_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
+            }
             if (c.is_negative()) {
+                reverse_convexity();
                 reverse_sign();
             }
         }
         /* Case where the current function is not constant and the other operand is */
         if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
-    //        if (!_cst->is_zero()) {
+            if (!_cst->is_zero()) {
                 _cst = divide(_cst, c);
-    //        }
+            }
             for (auto &pair:*_lterms) {
                 pair.second._coef = divide(pair.second._coef, c);
             }
@@ -2095,13 +2147,22 @@ namespace gravity{
                     _all_convexity = undet_;
                 }
             }
+            if (_expr) {
+                auto be = new bexpr(div_, _expr, copy(c));
+                _expr = be;
+                embed(*_expr);
+//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
+//                _queue->push(_expr);
+            }
             return *this;
         }
     //    /* Case where the current function is constant and the other operand is not (we go to previous case) */
-    //    if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
-    //        *this = ;
-    //        return *this;
-    //    }
+        if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+            func_ f(c);
+            f /= *this;
+            *this = move(f);
+            return *this;
+        }
         if (c.is_param() || c.is_var()) {
             func_ f(c);
             *this /= f;
@@ -2109,23 +2170,10 @@ namespace gravity{
         }
         /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
         if (c.is_function()) {
-            bexpr e;
-            e._lson = copy(*this);
-            e._rson = copy(c);
-            e._otype = div_;
-            *this = func_(e);
+            auto be = bexpr(div_, copy(*this), copy(c));
+            *this = func_(be);
             return *this;
         }
-
-        if (c.is_negative()) {
-            reverse_convexity();
-        }
-    //    bexpr res;
-    //    res._otype = div_;
-    //    res._lson = copy((constant_*)this);
-    //    res._rson =  copy((constant_*)&c);
-    //    res.get_str() = poly_to_str(res._lson) + " / " + poly_to_str(res._rson);
-    //    *this = func_(res);
         return *this;
     }
 
@@ -2909,8 +2957,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -2929,8 +2977,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -2950,8 +2998,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -2970,8 +3018,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -2991,8 +3039,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3011,8 +3059,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3032,8 +3080,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3053,8 +3101,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3075,8 +3123,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3095,8 +3143,8 @@ namespace gravity{
         func_ res;
         res._expr = new uexpr(move(e));
         res.embed(*res._expr);
-        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-        res._queue->push(res._expr);
+//        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+//        res._queue->push(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3365,11 +3413,11 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-//                return ((uexpr*)c)->to_str();
+                return ((uexpr*)c)->get_str();
                 break;
             }
             case bexp_c: {
-//                return ((bexpr*)c)->to_str();
+                return ((bexpr*)c)->get_str();
                 break;
             }
             case var_c: {
@@ -3505,9 +3553,9 @@ namespace gravity{
 
 
 
-    template<typename type> type  eval(const constant_* c1){
-        return eval<type>(0,c1);
-    };
+//    template<typename type> type  eval(const constant_* c1){
+//        return eval<type>(0,c1);
+//    };
 
     double  bexpr::eval(ind i) const{
         if (!_lson || !_rson) {
@@ -3518,7 +3566,7 @@ namespace gravity{
                 return poly_eval(_lson,i) + poly_eval(_rson,i);
                 break;
             case minus_:
-                return poly_eval(_lson,i) + poly_eval(_rson,i);
+                return poly_eval(_lson,i) - poly_eval(_rson,i);
                 break;
             case product_:
                 return poly_eval(_lson,i) * poly_eval(_rson,i);
@@ -3540,27 +3588,27 @@ namespace gravity{
         return func_(c1) += c2;
     }
 
-    func_ operator+(func_&& f, const constant_& c){
-        return f += c;
-    }
-
-    func_ operator+(const constant_& c, func_&& f){
-        return f += c;
-    }
+//    func_ operator+(func_&& f, const constant_& c){
+//        return f += c;
+//    }
+//
+//    func_ operator+(const constant_& c, func_&& f){
+//        return f += c;
+//    }
 
 
     func_ operator-(const constant_& c1, const constant_& c2){
         return func_(c1) -= c2;
     }
 
-    func_ operator-(func_&& f, const constant_& c){
-        return f -= c;
-    }
-
-    func_ operator-(const constant_& c, func_&& f){
-        return (f *= -1) += c;
-    }
-
+//    func_ operator-(func_&& f, const constant_& c){
+//        return f -= c;
+//    }
+//
+//    func_ operator-(const constant_& c, func_&& f){
+//        return (f *= -1) += c;
+//    }
+//
 
     func_ operator*(const constant_& c1, const constant_& c2){// Rewrite this to change res after the multiplication is done, make sure both vars are now vecs.
         if(c1.is_number()) {
@@ -3591,21 +3639,21 @@ namespace gravity{
         }
     }
 
-    func_ operator*(func_&& f, const constant_& c){
-        return f *= c;
-    }
-
-    func_ operator*(const constant_& c, func_&& f){
-        return f *= c;
-    }
+//    func_ operator*(func_&& f, const constant_& c){
+//        return f *= c;
+//    }
+//
+//    func_ operator*(const constant_& c, func_&& f){
+//        return f *= c;
+//    }
 
     func_ operator/(const constant_& c1, const constant_& c2){
         return func_(c1) /= c2;
     }
 
-    func_ operator/(func_&& f, const constant_& c){
-        return f /= c;
-    }
+//    func_ operator/(func_&& f, const constant_& c){
+//        return f /= c;
+//    }
 
     //
     //func_ operator+(const func_& f1, const func_& f2){
@@ -3705,18 +3753,18 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 + c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
+                auto res = new bexpr(plus_, copy(*c1), copy(f));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
             }
             case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 + c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
+                auto res = new bexpr(plus_, copy(*c1), copy(f));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
             }
             case func_c: {
                 auto res = new func_(f);
@@ -3835,20 +3883,20 @@ namespace gravity{
                 }
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 + c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 + c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(plus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(plus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
                 return add(c1, *(func_*)&c2);
                 break;
@@ -3963,20 +4011,20 @@ namespace gravity{
                 }
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 - c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case func_c: {
                 auto f = new func_(*c1);
                 delete c1;
@@ -4015,20 +4063,20 @@ namespace gravity{
                 return multiply(c1, *(constant<long double>*)&c2);
                 break;
             }
-    //        case uexp_c: {
-    //            auto res = new bexpr(*(uexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
-    //        case bexp_c: {
-    //            auto res = new bexpr(*(bexpr*)c1 * c2);
-    //            delete c1;
-    //            c1 = (constant_*)res;
-    //            return c1;
-    //            break;
-    //        }
+            case uexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
+            case bexp_c: {
+                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                delete c1;
+                c1 = (constant_*)res;
+                return c1;
+                break;
+            }
             case par_c:{
                 auto pc2 = (param_*)(&c2);
                 switch (pc2->get_intype()) {
@@ -4145,6 +4193,20 @@ namespace gravity{
                 }
                 case long_c: {
                     return divide(c1, *(constant<long double>*)&c2);
+                    break;
+                }
+                case uexp_c: {
+                    auto res = new bexpr(div_, copy(*c1), copy(c2));
+                    delete c1;
+                    c1 = (constant_*)res;
+                    return c1;
+                    break;
+                }
+                case bexp_c: {
+                    auto res = new bexpr(div_, copy(*c1), copy(c2));
+                    delete c1;
+                    c1 = (constant_*)res;
+                    return c1;
                     break;
                 }
                 default:{
@@ -4377,13 +4439,13 @@ namespace gravity{
         for (auto &vp: *_vars) {
             vi = vp.second.first;
             vid = vi->get_id();
-            auto df = compute_derivative(*vp.second.first);
+            auto df = compute_derivative(*vi);
             for (auto &vp2: *_vars) {
                 vj = vp2.second.first;
                 vjd = vj->get_id();
-                if (vid <= vjd && df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
+                if (df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
                     auto d2f = df->compute_derivative(*vj);
-                    Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = ");
+                    Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f.to_str());
     //                d2f->print();
                 }
             }
@@ -4466,7 +4528,12 @@ namespace gravity{
                 }
             }
         }
-        //Compute NONLINEAR part missing.
+        if (!_expr) {
+            return res;
+        }
+        else { // f is a composition of functions
+            return res += get_poly_derivative(_expr, v);
+        }
         return res;
     }
 
@@ -4482,6 +4549,9 @@ namespace gravity{
             res += pair.second.eval(i);
         }
         res += poly_eval(_cst,i);
+        if (_expr) {
+            res += poly_eval(_expr, i);
+        }
         return res;
     }
 
@@ -4489,7 +4559,7 @@ namespace gravity{
         string str;
         int ind = 0;
         string sign = " + ";
-        for (int inst = 0; inst < _nb_instances ; inst++) {
+//        for (int inst = 0; inst < _nb_instances ; inst++) {
             ind = 0;
             if (display_input) {
                 if (!_embedded && !is_constant() && _all_convexity==convex_) {
@@ -4504,7 +4574,7 @@ namespace gravity{
         //                if (!pair_it->second.first->_is_vector) {
 //                        str += pair_it->second.first->get_name();
                             str += pair_it->second.first->get_name()+"[";
-                        str += to_string(pair_it->second.first->get_id_inst(inst))+"]";
+                        str += to_string(pair_it->second.first->get_id_inst())+"]";
                             if (next(pair_it) != _vars->end()) {
                                 str += ",";
                             }
@@ -4564,7 +4634,7 @@ namespace gravity{
                 str += "^T";
             }
 //            str += "\n";
-        }
+//        }
         return str;
     }
 
@@ -4625,9 +4695,115 @@ namespace gravity{
 
     void uexpr::print(bool endline) const{
         cout << _to_str;
-        if(endline)
+        if(endline) {
             cout << endl;
+        }
 
+    }
+    
+    vector<param_*> uexpr::get_nl_vars() const{
+        vector<param_*> res;
+        if (_son->is_function()) {
+            auto vars = ((func_*)_son)->get_vars();
+            for (auto &pairs: vars){
+                res.push_back(pairs.second.first);
+            }
+        }
+        else if(_son->is_uexpr()) {
+            return ((uexpr*)_son)->get_nl_vars();
+        }
+        else if (_son->is_bexpr()){
+            return ((bexpr*)_son)->get_nl_vars();
+        }
+        return res;
+    }
+    
+    func_ uexpr::get_derivative(const param_ &v) const{
+       // Unary operators
+       // f(g(x))' = f'(g(x))*g'(x).
+       switch (_otype) {
+           case cos_:
+               return -1*get_poly_derivative(_son,v)* sin(*_son);
+               break;
+           case sin_:
+               return get_poly_derivative(_son,v)*cos(*_son);
+               break;
+           case sqrt_:
+               return get_poly_derivative(_son,v)/(2*sqrt(*_son));
+               break;
+           case exp_:
+               return get_poly_derivative(_son,v)*expo(*_son);
+               break;
+           case log_:
+               return get_poly_derivative(_son,v)/(*_son);
+               break;
+           default:
+               std::cerr << "ok unsupported unary operation";
+               exit(-1);
+               break;
+       }
+        return func_();
+    }
+    
+    vector<param_*> bexpr::get_nl_vars() const{
+        vector<param_*> res;
+        if (_lson->is_function()) {
+            auto vars = ((func_*)_lson)->get_vars();
+            for (auto &pairs: vars){
+                res.push_back(pairs.second.first);
+            }
+        }
+        else if(_lson->is_uexpr()) {
+            res = ((uexpr*)_lson)->get_nl_vars();
+        }
+        else if (_lson->is_bexpr()){
+            res = ((bexpr*)_lson)->get_nl_vars();
+        }
+        if (_rson->is_function()) {
+            auto vars = ((func_*)_rson)->get_vars();
+            for (auto &pairs: vars){
+                res.push_back(pairs.second.first);
+            }
+        }
+        else if(_rson->is_uexpr()) {
+            auto vars = ((uexpr*)_rson)->get_nl_vars();
+            res.insert(res.end(), vars.begin(), vars.end() );
+        }
+        else if (_rson->is_bexpr()){
+            auto vars = ((bexpr*)_rson)->get_nl_vars();
+            res.insert(res.end(), vars.begin(), vars.end() );
+        }
+        return res;
+    }
+    
+    func_ bexpr::get_derivative(const param_ &v) const{
+        switch (_otype) {
+            case plus_:
+                return get_poly_derivative(_lson,v) + get_poly_derivative(_rson,v);
+                break;
+            case minus_:
+                return get_poly_derivative(_lson,v) - get_poly_derivative(_rson,v);
+                break;
+            case product_:
+                return get_poly_derivative(_lson,v)*(*_rson) + (*_lson)*get_poly_derivative(_rson,v);
+                // f'g + fg'
+                break;
+            case div_:
+                return (get_poly_derivative(_lson,v)*(*_rson) - (*_lson)*get_poly_derivative(_rson,v))/((*_rson)*(*_rson));
+                // (f'g - fg')/g^2
+                break;
+            case power_:
+                if (!_rson->is_number()) {
+                    throw invalid_argument("Function in exponent not supported yet.\n");
+                }
+//                auto exponent = poly_eval(_rson);
+//                return (exponent*get_poly_derivative(_lson,v)*power(*_lson, exponent-1));// nf'f^n-1
+                break;
+            default:
+                throw invalid_argument("unsupported operation");
+                break;
+        }
+        return func_();
     }
 
     string bexpr::to_str() const{
@@ -4730,6 +4906,9 @@ namespace gravity{
     }
 
     param_* func_::get_var(string name){
+        if (_vars->empty()) {
+            return nullptr;
+        }
         auto pair_it = _vars->find(name);
         if (pair_it==_vars->end()) {
             return nullptr;

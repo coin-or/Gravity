@@ -34,7 +34,8 @@ protected:
     NType                                  _intype;
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                        vectors */
-    unique_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
+    
+    shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
 
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
     shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
@@ -83,7 +84,7 @@ public:
         return make_pair(0, 0);
     };
 
-    string get_name(bool indices=true) const;
+    string get_name(bool indices=false) const;
     void set_name(const string s) {
         _name = s;
     };
@@ -149,7 +150,7 @@ public:
 
     /** Operators */
     bool operator==(const param_& p) const {
-        return (_id==p._id && *_ids==*p._ids);
+        return (_unique_id == p._unique_id);
         //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
 };
@@ -171,7 +172,7 @@ public:
         update_type();
         _val = make_shared<vector<type>>();
         _indices = make_shared<map<string,unsigned>>();
-        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
+        _ids = make_shared<vector<unsigned>>();
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }
@@ -189,7 +190,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
+        _ids = p._ids;
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -207,7 +208,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = move(p._ids);
+        _ids = p._ids;
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -225,7 +226,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>(*p._ids));
+        _ids = p._ids;
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -244,7 +245,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = move(p._ids);
+        _ids = p._ids;
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -307,7 +308,7 @@ public:
         update_type();
         _val = make_shared<vector<type>>();
         _indices = make_shared<map<string,unsigned>>();
-        _ids = unique_ptr<vector<unsigned>>(new vector<unsigned>());
+        _ids = make_shared<vector<unsigned>>();
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }

@@ -18,13 +18,15 @@ Constraint::Constraint(string name, ConstraintType ctype){
     _name = name;
     _ctype = ctype;
     _rhs = 0;
+    _is_constraint = true;
 };
 
 Constraint::Constraint(const Constraint& c):func_(c){
     _name = c._name;
     _ctype = c._ctype;
     _rhs = c._rhs;
-    _id = c._id;    
+    _id = c._id;
+    _is_constraint = true;
 }
 
 //@}
