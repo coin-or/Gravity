@@ -44,6 +44,7 @@ int main (int argc, const char * argv[])
     
     /** build model */
     Model SOCP("SOCP Model");
+    
     /** Variables */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
@@ -166,8 +167,6 @@ int main (int argc, const char * argv[])
     
     solver SCOPF(SOCP,ipopt);
 //    solver SCOPF(SOCP, cplex);
-
     SCOPF.run();
-
     return 0;
 }
