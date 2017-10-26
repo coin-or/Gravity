@@ -1689,6 +1689,8 @@ namespace gravity {
     template<typename type>
     func_ power(const param<type>& v, unsigned p);
     
+    func_ power(const func_& f, unsigned p);
+
     template<typename type>
     func_ sum(const param<type>& p);
     

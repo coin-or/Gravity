@@ -32,8 +32,6 @@ Model::~Model(){
 
 
 /* Accessors */
-
-
 size_t Model::get_nb_vars() const{
     return _nb_vars;
 };

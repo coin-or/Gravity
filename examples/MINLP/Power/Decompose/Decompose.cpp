@@ -183,6 +183,7 @@ int main (int argc, const char * argv[])
     
     scopf_W(grid);
     return 0;
+    
     // Grid Parameters
     unsigned nb_gen = grid->get_nb_active_gens();
     unsigned nb_lines = grid->get_nb_active_arcs();

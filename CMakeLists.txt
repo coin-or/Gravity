@@ -13,16 +13,16 @@ option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
 # Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
 # Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 
 # Find MOSEK (optional)
-option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
+option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
 
 # include BOOST (optional) 
-option(ENABLE_BOOST "Link to BOOST libraries" OFF)
+option(ENABLE_BOOST "Link to BOOST libraries" ON)
 
 # configure a header file to pass some of the CMake settings
 # to the source code.

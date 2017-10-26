@@ -5287,6 +5287,16 @@ namespace gravity{
         }
         return res;
     }
+
+    func_ power(const func_& f, unsigned p){
+        func_ res(f);
+        for (int i = 1; i < p; i++) {
+            res *= f;
+        }
+        return res;
+    }
+    
+    
     template func_ power<double>(const param<double>& v, unsigned p);
     template func_ power<float>(const param<float>& v, unsigned p);
     template func_ power<int>(const param<int>& v, unsigned p);
