@@ -19,7 +19,7 @@ option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 
 # Find MOSEK (optional)
-option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
+option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 
 # include BOOST (optional) 
 option(ENABLE_BOOST "Link to BOOST libraries" ON)

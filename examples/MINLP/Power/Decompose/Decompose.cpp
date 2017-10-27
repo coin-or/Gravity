@@ -9,20 +9,22 @@
 
 #include <stdio.h>
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
 #include "../PowerNet.h"
-#include "SCOPF_W.cpp"
-#include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "functions.h"
 
-using namespace std;
-using namespace gravity;
+#ifdef USE_BOOST
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/kruskal_min_spanning_tree.hpp>
+#include <deque>
+#include <iterator>
+#endif
 
 /** INITIALISE SUBPROBLEM MODEL */
 double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
@@ -119,14 +121,13 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
    Flow_P_From -= grid->b_ft.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
    Subr.add_constraint(Flow_P_From = 0);
 
-
    Constraint Flow_P_To("Flow_P_To");
    Flow_P_To += Pf_to.in(bag_arcs);
    Flow_P_To -= grid->g_tt.in(bag_arcs)*Wii.to(bag_arcs);
    Flow_P_To -= grid->g_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs);
    Flow_P_To += grid->b_tf.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
    Subr.add_constraint(Flow_P_To = 0);
-//
+
 //   Constraint Flow_Q_From("Flow_Q_From");
 //   Flow_Q_From += Qf_from.in(bag_arcs);
 //   Flow_Q_From += grid->b_ff.in(bag_arcs)*Wii.from(bag_arcs);
@@ -134,7 +135,7 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
 //   Flow_Q_From += grid->g_ft.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs);
 //   Flow_Q_From = 0;
 //   Subr.add_constraint(Flow_Q_From);
-//
+
 //   Constraint Flow_Q_To("Flow_Q_To");
 //   Flow_Q_To += Qf_to.in(bag_arcs);
 //   Flow_Q_To += grid->b_tt.in(bag_arcs)*Wii.to(bag_arcs);
@@ -177,8 +178,8 @@ int main (int argc, const char * argv[])
         // Decompose
     PowerNet* grid = new PowerNet();
     const char* fname;
-    fname = "../../data_sets/Power/nesta_case5_pjm.m";
-    //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+    //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    fname = "../../data_sets/Power/nesta_case14_ieee.m";
     grid->readgrid(fname);
     
     scopf_W(grid);
