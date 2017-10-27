@@ -6,7 +6,6 @@
 //  Created by Guanglei Wang on 6/9/17.
 //
 //
-
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -182,7 +181,7 @@ int main (int argc, const char * argv[])
     fname = "../../data_sets/Power/nesta_case14_ieee.m";
     grid->readgrid(fname);
     
-    scopf_W(grid);
+    scopf_W(grid, false);
     return 0;
     
     // Grid Parameters
@@ -274,6 +273,5 @@ int main (int argc, const char * argv[])
  //   }
     value_dual.resize(nb_cliques);
     cout << "................  Initialization value:  " << dual <<endl;
-
     return 0;
 }
