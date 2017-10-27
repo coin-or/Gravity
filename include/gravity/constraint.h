@@ -18,7 +18,7 @@ namespace gravity {
     protected:
         string                      _name = "no_name";
         
-    public:
+    public:        
         
         unsigned                    _id = -1;
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
@@ -55,6 +55,11 @@ namespace gravity {
         
         
         /* Modifiers */
+        
+        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec){
+            this->func_::in(vec);
+            return * this;
+        };
         
         /* Output */
         void print() const;

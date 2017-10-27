@@ -360,8 +360,8 @@ int main (int argc, const char * argv[])
         PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
         PAD_LB -= grid->tan_th_min.in(bus_pairs)*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.to(bus_pairs)*vi.from(bus_pairs));
     }
-    ACOPF.add_constraint(PAD_UB <= 0);
-    ACOPF.add_constraint(PAD_LB >= 0);
+//    ACOPF.add_constraint(PAD_UB <= 0);
+//    ACOPF.add_constraint(PAD_LB >= 0);
 
 
 //  Thermal Limit Constraints 

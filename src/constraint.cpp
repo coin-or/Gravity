@@ -82,6 +82,8 @@ Constraint& Constraint::operator=(const func_& f){
     return *this;
 }
 
+
+
 /* Output */
 void Constraint::print() const{
     cout << _name << " : ";

@@ -318,7 +318,7 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2(i) = atof(word.c_str())*pow(bMVA,2);
+        c2(i) = atof(word.c_str())*pow(bMVA,2.);
         file >> word;
         c1(i) = atof(word.c_str())*bMVA;
         file >> word;
@@ -351,7 +351,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->r = atof(word.c_str());
         file >> word;
         arc->x = atof(word.c_str());
-        res = pow(arc->r,2) + pow(arc->x,2);
+        res = pow(arc->r,2.) + pow(arc->x,2.);
 
         if (res==0) {
             cerr << " line with r = x = 0" << endl;
@@ -372,7 +372,7 @@ int PowerNet::readgrid(const char* fname) {
         else
             arc->tr = atof(word.c_str());
         file >> ws >> word;
-        arc->as = atof(word.c_str())*M_PI/180;
+        arc->as = atof(word.c_str())*M_PI/180.;
         file >> ws >> word;
 
 
@@ -381,12 +381,12 @@ int PowerNet::readgrid(const char* fname) {
         arc->status = atoi(word.c_str());
         file >> ws >> word;
 
-        arc->tbound.min = atof(word.c_str())*M_PI/180;
+        arc->tbound.min = atof(word.c_str())*M_PI/180.;
 //        arc->tbound.min = -30*M_PI/180;
         m_theta_lb += arc->tbound.min;
         file >>  ws >>word;
 
-        arc->tbound.max = atof(word.c_str())*M_PI/180;
+        arc->tbound.max = atof(word.c_str())*M_PI/180.;
 //        arc->tbound.max = 30*M_PI/180;
         m_theta_ub += arc->tbound.max;
 

@@ -1131,11 +1131,11 @@ namespace gravity{
                         _all_sign = non_neg_;
                         break;
                     case exp_:
-                        _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                        _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = pos_;
                         break;
                     case log_:
-                        _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                        _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = unknown_;
                         break;
                     default:
@@ -1155,7 +1155,7 @@ namespace gravity{
                 auto be = (bexpr*)&c;
                 _cst = new constant<double>(0);
                 _expr = new bexpr(*(bexpr*)&c);
-                _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::min()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                 _all_sign = be->get_all_sign();
                 embed(*_expr);
                 if (!_vars->empty()) {
@@ -2219,6 +2219,7 @@ namespace gravity{
     //    _cst = copy(f._cst);
     //}
 
+    // TODO revisit embed and make it robust
     void func_::embed(expr& e){
         switch (e.get_type()) {
             case uexp_c:{
@@ -4463,7 +4464,7 @@ namespace gravity{
             if (*lt.second._p == v) {
                 if(lt.second._coef->_is_transposed){
                     lt.second._coef->_dim = v._dim;
-                    constant<float> ones(1);
+                    constant<double> ones(1);
                     if(lt.second._sign){
                         res += ones.tr()*(*lt.second._coef);
                     }
