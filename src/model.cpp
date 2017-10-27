@@ -310,8 +310,8 @@ void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
                 auto real_var = (var<double>*)v;
                 DebugOff(real_var->get_name() << " in:" << endl);
                 for (int i = 0; i < real_var->get_dim(); i++) {
-                    x_l[vid+i] = (double)real_var->get_lb(i);
-                    x_u[vid+i] = (double)real_var->get_ub(i);
+                    x_l[vid+i] = real_var->get_lb(i);
+                    x_u[vid+i] = real_var->get_ub(i);
                     DebugOff("(" << i << ")" << " : [" << x_l[vid+i] << "," << x_u[vid+i] << "]\n");
                 }
                 DebugOff(";" << endl);
@@ -605,13 +605,13 @@ void Model::fill_in_var_linearity(Ipopt::TNLP::LinearityType* param_types){
     {
         vid = vi.second->get_id();
         for (int i = 0; i < vi.second->get_dim(); i++) {
-            linear = true;
-            for(auto &c: _v_in_cons[vid + i])
-            {
-                if (!c->is_linear()) {
-                    linear=false;
-                }
-            }
+//            linear = true;
+//            for(auto &c: _v_in_cons[vid + i])
+//            {
+//                if (!c->is_linear()) {
+//                    linear=false;
+//                }
+//            }
             if (linear) param_types[vid + i]=Ipopt::TNLP::LINEAR;
             else param_types[vid + i] = Ipopt::TNLP::NON_LINEAR;
         }
@@ -1098,7 +1098,7 @@ void Model::fill_in_var_init(double* x) {
                 auto real_var = (var<double>*)v;
                 for (int i = 0; i < v->get_dim(); i++) {
 //                    vid_inst = vid + v->get_id_inst(i);
-                    x[vid+i] = (double)real_var->eval(i);
+                    x[vid+i] = real_var->eval(i);
                 }
                 break;
             }

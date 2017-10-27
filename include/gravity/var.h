@@ -217,7 +217,7 @@ public:
     };
 
     bool is_bounded_below(int i = 0) const {
-        return (_lb!=nullptr &&  i < _lb->size() && _lb->at(i)!=numeric_limits<type>::min());
+        return (_lb!=nullptr &&  i < _lb->size() && _lb->at(i)!=numeric_limits<type>::lowest());
     };
 
     bool is_constant(int i=0) const {

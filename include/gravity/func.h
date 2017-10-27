@@ -449,8 +449,9 @@ namespace gravity {
         
     public:
         bool                                   _is_constraint = false;
-        bool                                   _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
-//        map<pair<unique_id,unique_id>,vector<double>>                                _hess_val;
+        bool                                   _embedded = false; /**< If the function is embedded in
+                                                                   a mathematical model or in another function, this is used for memory management. >>**/
+        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         func_();
         
         func_(const constant_& c);
@@ -469,6 +470,8 @@ namespace gravity {
         
         bool has_var(const param_& v) const;
         
+        void replace(param_* p, const param_& p_new);
+        
         bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
         bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
@@ -478,7 +481,16 @@ namespace gravity {
             f._is_transposed = true;
             return f;
         }
-            
+        
+        template<typename Tobj>
+        func_& in(const vector<Tobj*>& vec) {
+            _ids = make_shared<vector<unsigned>>();
+            for (auto &var_p: get_vars()) {
+                auto var = var_p.second.first;
+                
+            }
+        }
+        
         void insert(const lterm& term);
         
         void insert(const qterm& term);
@@ -729,109 +741,12 @@ namespace gravity {
     };
 
     func_ operator*(const constant_& c1, const constant_& c2);
-//    func_ operator*(func_&& f, const constant_& c);
-    //func_ operator*(const constant_& c, func_&& f);
 
-    //template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
-    //    return func_(c1) += c2;
-    //};
-
-
-    //template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
-    //    return f += c;
-    //};
-
-    //template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
-    //    return f += c;
-    //};
 
 
     func_ operator-(const constant_& c1, const constant_& c2);
-//    func_ operator-(func_&& f, const constant_& c);
 
     func_ operator/(const constant_& c1, const constant_& c2);
-//    func_ operator/(func_&& f, const constant_& c);
-
-    //func_ operator-(const constant_& c, func_&& f);
-
-    //template<typename T> func_ operator+(func_&& f, const T& v){
-    //    return f += v;
-    //};
-    //
-    //template<typename T1, typename T2> func_ operator-(const T1& v1, const T2& v2){
-    //    return func_();
-    //};
-    //template<typename T1, typename T2> func_ operator*(const T1& v1, const T2& v2){
-    //    return func_();
-    //};
-    //template<typename T1, typename T2> func_ operator/(const T1& v1, const T2& v2){
-    //    return func_();
-    //};
-
-
-    /** A function can return a bool, a short, an int, a float or a double or any user specified number type. The return type is set by default to int. */
-    //template<typename type = int>
-    //class func: public func_{
-    //protected:
-    //    vector<type>                _vals;
-    //    
-    //    
-    //public:
-    //    
-    //    func(){
-    ////        update_type();
-    //    };
-    //    
-    //
-    //   
-    //    
-    ////    void update_type() {
-    ////        set_ftype(const_);
-    ////        if(typeid(type)==typeid(bool)){
-    ////            _return_type = binary_;
-    ////            return;
-    ////        }
-    ////        if(typeid(type)==typeid(short)) {
-    ////            _return_type = short_;
-    ////            return;
-    ////        }
-    ////        if(typeid(type)==typeid(int)) {
-    ////            _return_type = integer_;
-    ////            return;
-    ////        }
-    ////        if(typeid(type)==typeid(float)) {
-    ////            _return_type = float_;
-    ////            return;
-    ////        }
-    ////        if(typeid(type)==typeid(double)) {
-    ////            _return_type = double_;
-    ////            return;
-    ////        }
-    ////        if(typeid(type)==typeid(long double)) {
-    ////            _return_type = long_;
-    ////            return;
-    ////        }
-    ////        throw invalid_argument("Unsupported type");
-    ////    }
-    //
-    //    
-    //    /** Querries */
-    //    
-    //    
-    //
-    //};
-
-
-    //typedef pair<map<ind, ind>*, var_*> ind_var; /**< pair <map, var> to store indices of a given variable */
-
-
-
-
-
-
-        
-
-        
 
 
 

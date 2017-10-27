@@ -41,7 +41,7 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
     _model->set_x(x);
     //    _model->check_feasible(x);
     if(_model->_objt==maximize){
-                _model->_obj *= -1;
+                _model->_obj *= -1.;
     }
     _model->_obj_val = _model->_obj.eval();
 //    for (size_t i=0; i<m; i++) {
