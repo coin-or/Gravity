@@ -124,7 +124,7 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
        Debug("a->_intersection.size " << a->_intersection.size() << endl);
        for (int i = 0; i < a->_intersection.size(); i ++) {
            bus = (Bus*)a->_intersection.at(i);
-           obj += lambda_sep[a->_id](name)*Wii(bus->_name);
+           obj += lambda_sep[a->_id](bus->_name)*Wii(bus->_name);
            string name;
            for (int j = i + 1; j < a->_intersection.size(); j ++) {
                arc = chordal->get_arc(bus, a->_intersection.at(j));
@@ -138,7 +138,7 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
    for (auto a: Cr->get_in()) {
        for (int i = 0; i < a->_intersection.size(); i ++) {
            bus = (Bus*) a->_intersection.at(i);
-           obj -= lambda_sep[a->_id](name)*Wii(bus->_name);
+           obj -= lambda_sep[a->_id](bus->_name)*Wii(bus->_name);
            string name;
            for (int j = i + 1; j < a->_intersection.size(); j ++) {
                arc = chordal->get_arc(bus, a->_intersection.at(j));
