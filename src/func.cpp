@@ -2248,6 +2248,7 @@ namespace gravity{
                     embed(*(expr*)be->_lson);
                 }
                 else if (be->_lson->is_var()){
+                    throw invalid_argument("oops\n");
                     if (_vars->count(((param_*)be->_lson)->get_name())==0) {
                         add_var((param_*)copy(*be->_lson));
                     }
@@ -2260,6 +2261,7 @@ namespace gravity{
                     embed(*(expr*)be->_rson);
                 }
                 else if (be->_rson->is_var()){
+                    throw invalid_argument("oops\n");
                     if (_vars->count(((param_*)be->_rson)->get_name())==0) {
                         add_var((param_*)copy(*be->_rson));
                     }

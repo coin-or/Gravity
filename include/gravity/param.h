@@ -739,7 +739,7 @@ public:
             }
         }
         res._name += ".to_" + string(typeid(Tobj).name());
-
+        res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
     }
