@@ -11,31 +11,35 @@
 
 using namespace std;
 
-Arc::Arc(){ _name=  ""; _src = nullptr; _dest = nullptr;}
+Arc::Arc() {
+    _name=  "";
+    _src = nullptr;
+    _dest = nullptr;
+}
 
-Arc::~Arc(){}
+Arc::~Arc() {}
 
-Arc::Arc(string name):_src(NULL), _dest(NULL){
+Arc::Arc(string name):_src(NULL), _dest(NULL) {
     _name = name;
 }
 
 
-Arc::Arc(Node* s, Node* d){
+Arc::Arc(Node* s, Node* d) {
     _src = s;
     _dest = d;
     _weight = 1;
- //   in_cycle = false;
-  //  parallel = false;
-  //  connect();
+//   in_cycle = false;
+    //  parallel = false;
+    //  connect();
 }
 
-Arc::Arc(Node*s, Node* d, double w){
+Arc::Arc(Node*s, Node* d, double w) {
     _src = s;
     _dest = d;
     _weight = w;
 }
 
-Arc* Arc::clone(){
+Arc* Arc::clone() {
     Arc* copy = new Arc(_name);
     copy->_src = _src;
     copy->_dest = _dest;
@@ -45,7 +49,7 @@ Arc* Arc::clone(){
 }
 
 /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
-Node* Arc::neighbour(Node* n){
+Node* Arc::neighbour(Node* n) {
     Node* neigh = NULL;
     if (_src == n)
         neigh = _dest;
@@ -56,11 +60,11 @@ Node* Arc::neighbour(Node* n){
 
 
 /* Connects the current arc to its source and _destination, adding itself to the list of branches in these nodes */
-void Arc::connect(){
+void Arc::connect() {
     _src->update_fill_in(_dest);// update the fill-ins
     _dest->update_fill_in(_src);
     Node* common = nullptr;
-    // just for source. 
+    // just for source.
     for (auto a:_src->branches) {
         common = a->neighbour(_src);
         if (common->is_connected(_dest)) {
@@ -72,7 +76,7 @@ void Arc::connect(){
     _dest->addArc(this);
 }
 
-void Arc::print(){
-    std::cout << "(" << _src->_id << ", " << _dest->_id << ")" <<std::endl;
 
+void Arc::print() {
+    std::cout << "(" << _src->_id << ", " << _dest->_id << ")" <<std::endl;
 }

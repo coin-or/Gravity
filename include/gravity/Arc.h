@@ -9,9 +9,10 @@
 #ifndef Cycle_Basis_PF_Arc_h
 #define Cycle_Basis_PF_Arc_h
 #include <gravity/Node.h>
-#include "assert.h"
-#include "string"
-#include "vector"
+#include <gravity/types.h>
+#include <assert.h>
+#include <string>
+#include <vector>
 
 
 class Arc{
@@ -23,7 +24,9 @@ public:
     double _weight;
     bool _active = true;
     bool _parallel = false;
-    std::vector<Node*> _intersection; // interesection of node _src and node _dest
+    std::vector<Node*> _intersection; // intersection of node _src and node _dest
+    std::vector<gravity::index_pair*> _intersection_clique; // useful for clique tree 
+
     /* @brief Returns the neighbour of n if n is a node of the arc, null otherwise */
     Node* neighbour(Node* n);
     
@@ -45,6 +48,8 @@ public:
     void connect();
     
     void print();
+    
+    std::vector<gravity::index_pair*> get_intersection_clique();
 };
 
 

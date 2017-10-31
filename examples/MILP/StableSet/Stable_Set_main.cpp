@@ -110,7 +110,7 @@ int main (int argc, const char * argv[])
     /* Constraints declaration */
     ordered_pairs indices(1, n);
     Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices._keys),2) - Xii.from(indices._keys)*Xii.to(indices._keys) ;
+    SOCP =  power(Xij.in(indices._keys), 2) - Xii.from(indices._keys)*Xii.to(indices._keys) ;
     //SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices) ;
 
     SDP.add_constraint(SOCP <= 0);
@@ -188,9 +188,9 @@ int main (int argc, const char * argv[])
     SDP.set_objective(max(obj_SDP));
     
 
-  solver s1(SDP,ipopt);
+   //solver s1(SDP,ipopt);
 
-  // solver s1(SDP,cplex);
+   solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();

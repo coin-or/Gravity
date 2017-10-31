@@ -9,6 +9,7 @@
 #define Gravity___Type_h
 
 #include <list>
+#include <assert.h>
 #include <string>
 
 namespace gravity{

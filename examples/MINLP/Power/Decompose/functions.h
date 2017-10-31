@@ -339,8 +339,10 @@ void OPF_Clique_W(PowerNet* grid)
         var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid->wi_min.in(bag_bus_pairs[c]->_keys), grid->wi_max.in(bag_bus_pairs[c]->_keys)); // imaginary part of Wij.
         var<Real>  bag_Wii("Wii_" + to_string(c), grid->w_min.in(bag_bus[c]), grid->w_max.in(bag_bus[c]));
         CLT.add_var(bag_Wii^(bag_bus[c].size()));
-        CLT.add_var(bag_R_Wij^(bag_bus_pairs[c]->_keys.size()));
-        CLT.add_var(bag_Im_Wij^(bag_bus_pairs[c]->_keys.size()));
+//        CLT.add_var(bag_R_Wij^(bag_bus_pairs[c]->_keys.size()));// (Maybe bag_bus[c]*bag_bus[c] -1)/2
+//        CLT.add_var(bag_Im_Wij^(bag_bus_pairs[c]->_keys.size()));
+        CLT.add_var(bag_R_Wij^(bag_bus[c].size()*(bag_bus[c].size()-1)/2));// (Maybe bag_bus[c]*bag_bus[c] -1)/2
+        CLT.add_var(bag_Im_Wij^(bag_bus[c].size()*(bag_bus[c].size()-1)/2));
 
         bag_R_Wij.initialize_all(1.0);
         bag_Wii.initialize_all(1.001);
@@ -542,9 +544,20 @@ void OPF_Clique_W(PowerNet* grid)
         Link_Wii += Wii[a->_src->_id].in(a->_intersection);
         Link_Wii -= Wii[a->_dest->_id].in(a->_intersection);
         CLT.add_constraint(Link_Wii = 0);
-    
-    }
+        
+        if (a->_intersection.size()>0) {
+            Constraint Link_Im_Wij("Link_Im_Wij_" + to_string(a->_id));
+            Link_Im_Wij += Im_Wij[a->_src->_id].in(a->_intersection_clique);
+            Link_Im_Wij -= Im_Wij[a->_dest->_id].in(a->_intersection_clique);
+            CLT.add_constraint(Link_Im_Wij = 0);
 
+            Constraint Link_R_Wij("Link_R_Wij_" + to_string(a->_id));
+            Link_R_Wij += R_Wij[a->_src->_id].in(a->_intersection_clique);
+            Link_R_Wij -= R_Wij[a->_dest->_id].in(a->_intersection_clique);
+            CLT.add_constraint(Link_R_Wij = 0);
+        }
+    }
+    
     
     solver SCOPF(CLT, cplex);
     //solver SCOPF(CLT, ipopt);

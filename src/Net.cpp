@@ -712,14 +712,26 @@ Net* Net::get_clique_tree(){
         set_intersection(this->_bags[u].begin(), this->_bags[u].end(),
                          this->_bags[v].begin(), this->_bags[v].end(),
                          back_inserter(v3));
-        
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
         a->_weight = -weight[*ei];
         a->_intersection = v3;
         cliquetree->add_arc(a);
         a->connect();
+        
+        for (int i = 0; i < v3.size(); i++){
+                auto  node = v3.at(i);
+            for (int j = i+1; j < v3.size(); j++){
+                auto arc = get_arc(node, v3.at(j)); 
+                if (arc != nullptr){
+                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), arc->_active)); 
+                }
+                else 
+                    a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
+            }
+        }
     }
+
 #endif
     return cliquetree;
 }
