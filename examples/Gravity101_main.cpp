@@ -330,6 +330,17 @@ int main (int argc, const char * argv[])
 //    p[0]->print(true);
 //    cout << "\n";
 //    p[1]->print(true);
+    
+    func_ polynomial;
+    var<Real> xvar("x", -1, 1);
+    param<Real> c("c");
+    param<double> d("d");
 
+    c = 1;
+    d = -0.2;
+    x^3;
+    polynomial += xvar(1)*xvar(2)*xvar(3) + power(xvar(1), 2) + power(xvar(3),2) - 2*xvar(1)*c + c*1.2*d + c + d;
+    polynomial.print(true);
+    cout << "the constant of this polynomial function is: " << poly_eval(polynomial.get_cst()) << endl;
     return 0;
    } 

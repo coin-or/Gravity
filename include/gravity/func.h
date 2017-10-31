@@ -487,7 +487,6 @@ namespace gravity {
             _ids = make_shared<vector<unsigned>>();
             for (auto &var_p: get_vars()) {
                 auto var = var_p.second.first;
-                
             }
         }
         

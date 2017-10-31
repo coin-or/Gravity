@@ -28,6 +28,8 @@ int main (int argc, const char * argv[])
     else {
        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
         fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -150,7 +152,6 @@ int main (int argc, const char * argv[])
     PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
     SOCP.add_constraint(PAD_LB >= 0);
     
-    
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
@@ -163,11 +164,11 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(Thermal_Limit_to <= 0);
   
     Constraint NL("NL");
-    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
-    SOCP.add_constraint(NL <= 0);
+//    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
+//    SOCP.add_constraint(NL <= 0);
     
-//    solver SCOPF(SOCP,ipopt);
-    solver SCOPF(SOCP, cplex);
+   solver SCOPF(SOCP,ipopt);
+   //solver SCOPF(SOCP, cplex);
     SCOPF.run();
     return 0;
 }

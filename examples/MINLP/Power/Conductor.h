@@ -15,6 +15,9 @@ class Bus;
 class Conductor {
     
 public:
+    /** @brief Corresponding bus */
+    Bus* bus;
+    
     /** @brief Conductor active power load */
     double _pl;
     
@@ -30,8 +33,7 @@ public:
     /** @brief Conductor phase */
     int _phase;
     
-    /** @brief Corresponding bus */
-    Bus* bus;
+   
     /**
      @brief Initialiser
      @note Designated initialiser
