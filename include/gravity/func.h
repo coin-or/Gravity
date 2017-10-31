@@ -451,6 +451,7 @@ namespace gravity {
         bool                                   _is_constraint = false;
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
+        shared_ptr<vector<double>>             _val;
         shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         func_();
         

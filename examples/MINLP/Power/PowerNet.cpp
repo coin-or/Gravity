@@ -77,6 +77,10 @@ PowerNet::PowerNet() {
     b_ft.set_name("b_ft");
     b_tf.set_name("b_tf");
     b_tt.set_name("b_tt");
+    Y.set_name("Y");
+    Y_t.set_name("Y_t");
+    Y_charge.set_name("Y_charge");
+    Y_charge_t.set_name("Y_charge_t");
 }
 
 PowerNet::~PowerNet() {
@@ -86,6 +90,14 @@ PowerNet::~PowerNet() {
         }
         gens.clear();
     }
+    for (Node* n:nodes) {
+        delete (Bus*)n;
+    }
+    nodes.clear();
+    for (Arc* a:arcs) {
+        delete (Line*)a;
+    }
+    arcs.clear();
 }
 //
 // Read a grid
@@ -166,7 +178,7 @@ void PowerNet::time_expand(unsigned T) {
 }
 
 int PowerNet::readgrid(const char* fname) {
-
+    double pi = 4*atan(1);
     string name;
     double kvb = 0;
 //    int id = 0;
@@ -200,7 +212,7 @@ int PowerNet::readgrid(const char* fname) {
 
     getline(file, word);
     Bus* bus = NULL;
-    Bus* bus_clone= NULL;
+//    Bus* bus_clone= NULL;
     file >> word;
     int status;
     while(word.compare("];")) {
@@ -227,17 +239,17 @@ int PowerNet::readgrid(const char* fname) {
         v_max(name) = atof(word.c_str());
         getline(file, word,';');
         v_min(name) = atof(word.c_str());
-        w_min(name) = pow(v_min(name).eval(), 2.);
-        w_max(name) = pow(v_max(name).eval(), 2.);
+        w_min(name) = pow(v_min(name).eval(), 2);
+        w_max(name) = pow(v_max(name).eval(), 2);
         // single phase
 
         bus = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);
-        bus_clone = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);
+//        bus_clone = new Bus(name, pl(name).eval(), ql(name).eval(), gs(name).eval(), bs(name).eval(), v_min(name).eval(), v_max(name).eval(), kvb, 1);
         bus->vs = v_s(name).eval();
-        bus_clone->vs = v_s(name).eval();
+//        bus_clone->vs = v_s(name).eval();
         if (status>=4) {
             bus->_active = false;
-            bus_clone->_active = false;
+//            bus_clone->_active = false;
         }
 
         this->Net::add_node(bus);
@@ -318,7 +330,7 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2(i) = atof(word.c_str())*pow(bMVA,2.);
+        c2(i) = atof(word.c_str())*pow(bMVA,2);
         file >> word;
         c1(i) = atof(word.c_str())*bMVA;
         file >> word;
@@ -351,7 +363,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->r = atof(word.c_str());
         file >> word;
         arc->x = atof(word.c_str());
-        res = pow(arc->r,2.) + pow(arc->x,2.);
+        res = pow(arc->r,2) + pow(arc->x,2);
 
         if (res==0) {
             cerr << " line with r = x = 0" << endl;
@@ -372,7 +384,7 @@ int PowerNet::readgrid(const char* fname) {
         else
             arc->tr = atof(word.c_str());
         file >> ws >> word;
-        arc->as = atof(word.c_str())*M_PI/180.;
+        arc->as = atof(word.c_str())*pi/180.;
         file >> ws >> word;
 
 
@@ -381,13 +393,13 @@ int PowerNet::readgrid(const char* fname) {
         arc->status = atoi(word.c_str());
         file >> ws >> word;
 
-        arc->tbound.min = atof(word.c_str())*M_PI/180.;
-//        arc->tbound.min = -30*M_PI/180;
+        arc->tbound.min = atof(word.c_str())*pi/180.;
+//        arc->tbound.min = -30*pi/180;
         m_theta_lb += arc->tbound.min;
         file >>  ws >>word;
 
-        arc->tbound.max = atof(word.c_str())*M_PI/180.;
-//        arc->tbound.max = 30*M_PI/180;
+        arc->tbound.max = atof(word.c_str())*pi/180.;
+//        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
 
         Bus* bus_s = (Bus*)(arc->_src);
@@ -415,8 +427,39 @@ int PowerNet::readgrid(const char* fname) {
         b_tt(name) = (arc->ch/2. + arc->b);
         b_tf(name) = (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2));
 
+        Y(name) = sqrt(arc->g*arc->g + arc->b*arc->b);
+        if (arc->g!=0) {
+            Y_t(name) = atan(arc->b/arc->g);
+            if(arc->b < 0) {
+                Y_t(name) = atan(arc->b/arc->g) - pi;
+            } else {
+                Y_t(name) = atan(arc->b/arc->g) + pi;
+            }
+        }
+        else {
+        if(arc->b < 0){
+            Y_t(name) = -pi/2;
+        } else {
+            Y_t(name) = pi/2;
+        }
+    }
+    
+    Y_charge(name) = sqrt(pow(arc->g,2) + pow((arc->b+arc->ch/2.),2));
+    if(arc->g != 0) {
+        Y_charge_t(name) = atan((arc->b+arc->ch/2.)/arc->g);
+    } else {
+        if(arc->b < 0) {
+            Y_charge_t(name) = -pi/2;
+        } else {
+            Y_charge_t(name) = pi/2;
+        }
+    }
         ch(name) = arc->ch;
         S_max(name) = arc->limit;
+//        DebugOn("charge = " << arc->ch << endl);
+//        DebugOn("as = " << arc->as << endl);
+//        DebugOn("tr = " << arc->tr << endl);
+
 
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
@@ -462,6 +505,10 @@ int PowerNet::readgrid(const char* fname) {
         getline(file, word,'\n');
         file >> word;
     }
+    DebugOff(ch.to_str(true) << endl);
+    DebugOff(as.to_str(true) << endl);
+    DebugOff(tr.to_str(true) << endl);
+
     file.close();
     return 0;
 }
