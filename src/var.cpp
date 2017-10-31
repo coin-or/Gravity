@@ -45,7 +45,7 @@ namespace gravity{
     };
     
     template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-        DebugOn("lb.get_dim(): " << lb.get_dim() << endl);
+        Debug("lb.get_dim(): " << lb.get_dim() << endl);
         _lb->resize(lb.get_dim());
         _ub->resize(ub.get_dim());
         unsigned i = 0;
@@ -57,6 +57,7 @@ namespace gravity{
             param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
             _lb->at(i) = lb(p.first).eval();
             _ub->at(i) = ub(p.first).eval();
+
             if (_lb->at(i) < param<type>::_range->first) {
                 param<type>::_range->first = _lb->at(i);
             }

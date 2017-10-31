@@ -5288,12 +5288,31 @@ namespace gravity{
         }
         return res;
     }
+
+    func_ power(const func_& f, unsigned p){
+        func_ res(f);
+        for (int i = 1; i < p; i++) {
+            res *= f;
+        }
+        return res;
+    }
+    
+    template<typename type>
+    func_ innerproduct(const param<type>& p1, const param<type>& p2){
+        return p1.tr()*p2;
+    }
+    
     template func_ power<double>(const param<double>& v, unsigned p);
     template func_ power<float>(const param<float>& v, unsigned p);
     template func_ power<int>(const param<int>& v, unsigned p);
     template func_ power<long double>(const param<long double>& v, unsigned p);
     template func_ power<short>(const param<short>& v, unsigned p);
     template func_ power<bool>(const param<bool>& v, unsigned p);
+
+    template func_ innerproduct<double>(const param<double>& v, const param<double>& p);
+    template func_ innerproduct<float>(const param<float>& v, const param<float>& p);
+    template func_ innerproduct<int>(const param<int>& v, const param<int>& p);
+    template func_ innerproduct<bool>(const param<bool>& v, const param<bool>& p);
     
 //    template<typename type>
 //    func_ sum(const var<type>& v){
@@ -5321,6 +5340,7 @@ namespace gravity{
         }
         return p1.tr()*f;
     }
+    
     
     template func_ sum<double>(const param<double>& v);
     template func_ sum<float>(const param<float>& v);

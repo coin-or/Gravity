@@ -26,7 +26,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+       // fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -44,6 +45,7 @@ int main (int argc, const char * argv[])
     
     /** build model */
     Model SOCP("SOCP Model");
+    
     /** Variables */
     // power generation
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
@@ -166,8 +168,6 @@ int main (int argc, const char * argv[])
     
 //    solver SCOPF(SOCP,ipopt);
     solver SCOPF(SOCP, cplex);
-
     SCOPF.run();
-
     return 0;
 }

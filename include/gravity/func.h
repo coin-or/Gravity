@@ -1605,11 +1605,16 @@ namespace gravity {
     template<typename type>
     func_ power(const param<type>& v, unsigned p);
     
+    func_ power(const func_& f, unsigned p);
+
     template<typename type>
     func_ sum(const param<type>& p);
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f);
+
+    template<typename type>
+    func_ innerproduct(const param<type>& p1, const param<type>& p2);
     
     func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
 }

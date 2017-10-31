@@ -440,7 +440,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     int nb = 0;
 
     /** cliques with less than 1 nodes are useless for us.*/
-    while (graph_clone->nodes.size()> 1) {
+    while (graph_clone->nodes.size()> 2) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
 
         // last element has the minimum fill-in.
@@ -522,7 +522,7 @@ Net* Net::get_chordal_extension() {
     int nb = 0;
 
     /** cliques with less than 2 nodes are useless for us.*/
-    while (graph_clone->nodes.size() > 1) {
+    while (graph_clone->nodes.size() > 2) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();         
@@ -590,22 +590,20 @@ Net* Net::get_chordal_extension() {
 // second one: use the RIP property of the tree decomposition, thus just need to check every leaf..
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 
-/* IS THIS ONE NEEDED?? */
-
-//void Net::get_clique_tree (bool print) {
-//    for (unsigned i = 0; i < _bags_copy.size()-1; i++) {
-//        for (unsigned j = i+1; j < _bags_copy.size();) {
-//            if (std::includes(_bags_copy[i].begin(),_bags_copy[i].end(),
-//                              _bags_copy[j].begin(), _bags_copy[j].end()))
-//            {
-//                _bags_copy.erase(_bags_copy.begin()+j);
-//            }
-//            else
-//                j++;
-//        }
-//    }
-//    cout << "Number of maximal cliques of the chordal extension = " << _bags_copy.size() << endl <<endl;
-//}
+void Net::get_cliquebags (bool print) {
+    for (unsigned i = 0; i < _bags_copy.size()-1; i++) {
+        for (unsigned j = i+1; j < _bags_copy.size();) {
+            if (std::includes(_bags_copy[i].begin(),_bags_copy[i].end(),
+                              _bags_copy[j].begin(), _bags_copy[j].end()))
+            {
+                _bags_copy.erase(_bags_copy.begin()+j);
+            }
+            else
+                j++;
+        }
+    }
+    cout << "Number of maximal cliques of the chordal extension = " << _bags_copy.size() << endl <<endl;
+}
 
 /* Destructors */
 Net::~Net() {
@@ -639,6 +637,7 @@ Net* Net::get_clique_tree(){
     Node* node = nullptr;
     Arc*  a = nullptr;
     string name;
+    get_cliquebags(true);
 #ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
     /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
@@ -657,7 +656,7 @@ Net* Net::get_clique_tree(){
     std::vector<int> weights;
     int nb_cliques = this->_bags.size();
     for (int i = 0; i < nb_cliques; i++) {
-        DebugOn("bag " << i << " has " << this->_bags[i].size() << " vertices." <<endl);
+        DebugOn("bag " << i << " has " << this->_bags[i].size() << " nodes." <<endl);
         sort(this->_bags[i].begin(), this->_bags[i].end());
         for (int j = i +1; j < nb_cliques; j++) {
             vector<Node*> v3;
