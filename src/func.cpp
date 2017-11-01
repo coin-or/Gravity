@@ -850,8 +850,8 @@ namespace gravity{
 
     func_::func_(){
         set_type(func_c);
-        _params = new map<string, pair<param_*, int>>();
-        _vars = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<shared_ptr<param_>, int>>();
+        _vars = new map<string, pair<shared_ptr<param_>, int>>();
         _cst = new constant<double>(0);
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
@@ -916,8 +916,8 @@ namespace gravity{
         }
         else {
             set_type(func_c);
-            _params = new map<string, pair<param_*, int>>();
-            _vars = new map<string, pair<param_*, int>>();
+            _params = new map<string, pair<shared_ptr<param_>, int>>();
+            _vars = new map<string, pair<shared_ptr<param_>, int>>();
             _cst = nullptr;
             _lterms = new map<string, lterm>();
             _qterms = new map<string, qterm>();
@@ -970,8 +970,8 @@ namespace gravity{
                     break;
                 }
                 case par_c:{
-                    auto p_c2 = (param_*)copy(move(c));
-                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                    auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
+                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_param(p_c2);
                     _cst = new constant<double>(0);
                     _all_sign = p_c2->get_all_sign();
@@ -981,8 +981,8 @@ namespace gravity{
                     break;
                 }
                 case var_c:{
-                    auto p_c2 = (param_*)copy(move(c));
-                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                    auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
+                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_var(p_c2);
                     _ftype = lin_;
                     _cst = new constant<double>(0);
@@ -994,8 +994,8 @@ namespace gravity{
                 }
                            // newly added
                 case sdpvar_c:{
-                    auto p_c2 = (param_*)copy(move(c));
-                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                    auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
+                    _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_var(p_c2);
                     _ftype = lin_;
                     _cst = new constant<double>(0);
@@ -1030,8 +1030,8 @@ namespace gravity{
 
     func_::func_(const constant_& c){
         set_type(func_c);
-        _params = new map<string, pair<param_*, int>>();
-        _vars = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<shared_ptr<param_>, int>>();
+        _vars = new map<string, pair<shared_ptr<param_>, int>>();
         _cst = nullptr;
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
@@ -1086,8 +1086,8 @@ namespace gravity{
                 break;
             }
             case par_c:{
-                auto p_c2 = (param_*)copy(c);
-                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                auto p_c2 = shared_ptr<param_>((param_*)copy(c));
+                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                 add_param(p_c2);
                 _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
@@ -1095,8 +1095,8 @@ namespace gravity{
                 break;
             }
             case var_c:{
-                auto p_c2 = (param_*)copy(c);
-                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                auto p_c2 = shared_ptr<param_>((param_*)copy(c));
+                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                 add_var(p_c2);
                 _ftype = lin_;
                 _cst = new constant<double>(0);
@@ -1105,8 +1105,8 @@ namespace gravity{
                 break;
             }
             case sdpvar_c:{
-                auto p_c2 = (param_*)copy(c);
-                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2));
+                auto p_c2 = shared_ptr<param_>((param_*)copy(c));
+                _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                 add_var(p_c2);
                 _ftype = lin_;
                 _cst = new constant<double>(0);
@@ -1220,8 +1220,8 @@ namespace gravity{
 
     func_::func_(const func_& f){
         set_type(func_c);
-        _params = new map<string, pair<param_*, int>>();
-        _vars = new map<string, pair<param_*, int>>();
+        _params = new map<string, pair<shared_ptr<param_>, int>>();
+        _vars = new map<string, pair<shared_ptr<param_>, int>>();
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
@@ -1299,20 +1299,10 @@ namespace gravity{
         }
         delete _all_range;
         if (_vars) {
-            if (!_embedded) {
-                for (auto &elem: *_vars) {
-                    delete elem.second.first;
-                }
-            }
-            delete _vars;
+            _vars->clear();
         }
-        if (_params) {
-            if (!_embedded) {
-                for (auto &elem: *_params) {
-                    delete elem.second.first;
-                }
-            }
-            delete _params;
+        if (_params){
+            _params->clear();
         }
         if (_range) {
             for (auto &elem: *_range) {
@@ -1336,8 +1326,6 @@ namespace gravity{
         delete _cst;
         
         set_type(func_c);
-        _params = new map<string, pair<param_*, int>>();
-        _vars = new map<string, pair<param_*, int>>();
         _lterms = new map<string, lterm>();
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
@@ -1406,21 +1394,14 @@ namespace gravity{
         }
         delete _all_range;
         if (_vars) {
-            if (!_embedded) {
-                for (auto &elem: *_vars) {
-                    delete elem.second.first;
-                }
-            }
+            _vars->clear();
             delete _vars;
         }
-        if (_params) {
-            if (!_embedded) {
-                for (auto &elem: *_params) {
-                    delete elem.second.first;
-                }
-            }
+        if (_params){
+            _params->clear();
             delete _params;
         }
+        
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -1510,19 +1491,11 @@ namespace gravity{
 //            }
 //        }
         if (_vars) {
-            if (!_embedded) {
-                for (auto &elem: *_vars) {
-                    delete elem.second.first;
-                }
-            }
+            _vars->clear();
             delete _vars;
         }
         if (_params) {
-            if (!_embedded) {
-                for (auto &elem: *_params) {
-                    delete elem.second.first;
-                }
-            }
+            _params->clear();
             delete _params;
         }
         if (_range) {
@@ -2345,10 +2318,10 @@ namespace gravity{
             if (p->is_var()) {
                 auto it = _vars->find(p->get_name());
                 if (it==_vars->end()) {
-                    add_var(p);
+                    add_var(f.get_var(p->get_name()));
                 }
                 else{
-                    p = it->second.first;
+                    p = (it->second.first).get();
                     pair.second._p = p;
                     it->second.second++;
                 }
@@ -2356,10 +2329,10 @@ namespace gravity{
             else {
                 auto it = _params->find(p->get_name());
                 if (it==_params->end()) {
-                    add_param(p);
+                    add_param(f.get_param(p->get_name()));
                 }
                 else{
-                    p = it->second.first;
+                    p = it->second.first.get();
                     pair.second._p = p;
                     it->second.second++;
                 }
@@ -2375,19 +2348,19 @@ namespace gravity{
             if (p1->is_var()) {
                 auto it1 = _vars->find(p1->get_name());
                 if (it1==_vars->end()) {
-                    add_var(p1);
+                    add_var(f.get_var(p1->get_name()));
                 }
                 else{
-                    p1 = it1->second.first;
+                    p1 = it1->second.first.get();
                     pair.second._p->first = p1;
                     it1->second.second++;
                 }
                 auto it2 = _vars->find(p2->get_name());
                 if (it2==_vars->end()) {
-                    add_var(p2);
+                    add_var(f.get_var(p2->get_name()));
                 }
                 else{
-                    p2 = it2->second.first;
+                    p2 = it2->second.first.get();
                     pair.second._p->second = p2;
                     it2->second.second++;
                 }
@@ -2395,19 +2368,19 @@ namespace gravity{
             else {
                 auto it1 = _params->find(p1->get_name());
                 if (it1==_params->end()) {
-                    add_param(p1);
+                    add_param(f.get_param(p1->get_name()));
                 }
                 else{
-                    p1 = it1->second.first;
+                    p1 = it1->second.first.get();
                     pair.second._p->first = p1;
                     it1->second.second++;
                 }
                 auto it2 = _params->find(p2->get_name());
                 if (it2==_params->end()) {
-                    add_param(p2);
+                    add_param(f.get_param(p2->get_name()));
                 }
                 else{
-                    p2 = it2->second.first;
+                    p2 = it2->second.first.get();
                     pair.second._p->second = p2;
                     it2->second.second++;
                 }
@@ -2424,10 +2397,10 @@ namespace gravity{
                 if (p->is_var()) {
                     auto it = _vars->find(p->get_name());
                     if (it==_vars->end()) {
-                        add_var(p);
+                        add_var(f.get_var(p->get_name()));
                     }
                     else{
-                        p = it->second.first;
+                        p = it->second.first.get();
                         ppi.first = p;
                         it->second.second++;
                     }
@@ -2435,10 +2408,10 @@ namespace gravity{
                 else {
                     auto it = _params->find(p->get_name());
                     if (it==_params->end()) {
-                        add_param(p);
+                        add_param(f.get_param(p->get_name()));
                     }
                     else{
-                        p = it->second.first;
+                        p = it->second.first.get();
                         ppi.first = p;
                         it->second.second++;
                     }
@@ -2482,21 +2455,12 @@ namespace gravity{
         delete _all_range;
         _all_range = new pair<constant_*, constant_*>(new constant<double>(0), new constant<double>(0));
         if (_vars) {
-            if (!_embedded) {
-                for (auto &elem: *_vars) {
-                    delete elem.second.first;
-                }
-            }
             _vars->clear();
         }
-        if (_params) {
-            if (!_embedded) {
-                for (auto &elem: *_params) {
-                    delete elem.second.first;
-                }
-            }
+        if (_params){
             _params->clear();
         }
+        
         if (_range) {
             for (auto &elem: *_range) {
                 delete elem.first;
@@ -2648,7 +2612,7 @@ namespace gravity{
     }
 
     bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-        param_* p_new;
+        shared_ptr<param_> p_new;
         auto pname = p.get_name();
         
         auto pair_it = _lterms->find(pname);
@@ -2661,7 +2625,7 @@ namespace gravity{
             if (p.is_var()) {
                 p_new = get_var(pname);
                 if (!p_new) {
-                    p_new = (param_*)copy(p);
+                    p_new = shared_ptr<param_>((param_*)copy(p));
                     add_var(p_new);
                 }
                 else {
@@ -2671,14 +2635,14 @@ namespace gravity{
             else {
                 p_new = get_param(pname);
                 if (!p_new) {
-                    p_new = (param_*)copy(p);
+                    p_new = shared_ptr<param_>((param_*)copy(p));
                     add_param(p_new);
                 }
                 else {
                     incr_occ_param(pname);
                 }
             }
-            lterm l(sign, c_new, p_new);
+            lterm l(sign, c_new, p_new.get());
             update_sign(l);
             _lterms->insert(make_pair<>(pname, move(l)));
             return true;
@@ -2716,8 +2680,8 @@ namespace gravity{
         auto ps2 = p2.get_name();
         auto qname = ps1+","+ps2;
         auto pair_it = _qterms->find(qname);
-        param_* p_new1;
-        param_* p_new2;
+        shared_ptr<param_> p_new1;
+        shared_ptr<param_> p_new2;
         
         if (_ftype <= lin_ && p1.is_var()) {
             _ftype = quad_;
@@ -2725,9 +2689,9 @@ namespace gravity{
         
         if (pair_it == _qterms->end()) {
             if (p1.is_var()) {
-                p_new1 = (param_*)get_var(ps1);
+                p_new1 = get_var(ps1);
                 if (!p_new1) {
-                    p_new1 = (param_*)copy(p1);
+                    p_new1 = shared_ptr<param_>((param_*)copy(p1));
                     add_var(p_new1);
                 }
                 else {
@@ -2735,9 +2699,9 @@ namespace gravity{
                 }
             }
             else {
-                p_new1 = (param_*)get_param(ps1);
+                p_new1 = get_param(ps1);
                 if (!p_new1) {
-                    p_new1 = (param_*)copy(p1);
+                    p_new1 = shared_ptr<param_>((param_*)copy(p1));
                     add_param(p_new1);
                 }
                 else {
@@ -2748,7 +2712,7 @@ namespace gravity{
             if (p2.is_var()) {
                 p_new2 = get_var(ps2);
                 if (!p_new2) {
-                    p_new2 = (param_*)copy(p2);
+                    p_new2 = shared_ptr<param_>((param_*)copy(p2));
                     add_var(p_new2);
                 }
                 else {
@@ -2758,7 +2722,7 @@ namespace gravity{
             else {
                 p_new2 = get_param(ps2);
                 if (!p_new2) {
-                    p_new2 = (param_*)copy(p2);
+                    p_new2 = shared_ptr<param_>((param_*)copy(p2));
                     add_param(p_new2);
                 }
                 else {
@@ -2766,7 +2730,7 @@ namespace gravity{
                 }
             }
             auto c_new = copy(coef);
-            qterm q(sign, c_new, p_new1, p_new2);
+            qterm q(sign, c_new, p_new1.get(), p_new2.get());
             update_sign(q);
             update_convexity(q);
             _qterms->insert(make_pair<>(qname, move(q)));
@@ -2822,7 +2786,7 @@ namespace gravity{
         }
         auto pair_it = _pterms->find(name);
         param_* p = l.begin()->first;
-        param_* pnew;
+        shared_ptr<param_> pnew;
         if (_ftype <= quad_ && p->is_var()) {
             _ftype = pol_;
         }    
@@ -2833,9 +2797,9 @@ namespace gravity{
                 p = pair.first;
                 s = p->get_name();
                 if (p->is_var()) {
-                    pnew = (param_*)get_var(s);
+                    pnew = get_var(s);
                     if (!pnew) {
-                        pnew = (param_*)copy(*p);
+                        pnew = shared_ptr<param_>((param_*)copy(*p));
                         add_var(pnew,pair.second);
                     }
                     else {
@@ -2843,9 +2807,9 @@ namespace gravity{
                     }
                 }
                 else {
-                    pnew = (param_*)get_param(s);
+                    pnew = get_param(s);
                     if (!pnew) {
-                        pnew = (param_*)copy(*p);
+                        pnew = shared_ptr<param_>((param_*)copy(*p));
                         add_param(pnew);
                     }
                     else {
@@ -2861,7 +2825,7 @@ namespace gravity{
                     }
                 }
                 if (newv) {
-                    newl->push_back(make_pair<>(pnew, pair.second));
+                    newl->push_back(make_pair<>(pnew.get(), pair.second));
                 }
             }
             auto c_new = copy(coef);
@@ -2908,7 +2872,7 @@ namespace gravity{
     void func_::insert(expr& e){
     //    insert(term._sign, *term._coef, *term._l);
         auto name = e.get_str();
-        auto pair_it = _DAG->find(name);
+//        auto pair_it = _DAG->find(name);
         
         _ftype = nlin_;
         
@@ -4518,14 +4482,14 @@ namespace gravity{
         param_* vi;
         param_* vj;
         for (auto &vp: *_vars) {
-            vi = vp.second.first;
+            vi = vp.second.first.get();
             vid = vi->get_id();
             auto df = compute_derivative(*vi);
             for (auto &vp2: *_vars) {
-                vj = vp2.second.first;
+                vj = vp2.second.first.get();
                 vjd = vj->get_id();
                 if (df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
-                    auto d2f = df->compute_derivative(*vj);
+                    df->compute_derivative(*vj);
                     Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f.to_str());
     //                d2f->print();
                 }
@@ -4782,8 +4746,8 @@ namespace gravity{
 
     }
     
-    vector<param_*> uexpr::get_nl_vars() const{
-        vector<param_*> res;
+    vector<shared_ptr<param_>> uexpr::get_nl_vars() const{
+        vector<shared_ptr<param_>> res;
         if (_son->is_function()) {
             auto vars = ((func_*)_son)->get_vars();
             for (auto &pairs: vars){
@@ -4826,8 +4790,8 @@ namespace gravity{
         return func_();
     }
     
-    vector<param_*> bexpr::get_nl_vars() const{
-        vector<param_*> res;
+    vector<shared_ptr<param_>> bexpr::get_nl_vars() const{
+        vector<shared_ptr<param_>> res;
         if (_lson->is_function()) {
             auto vars = ((func_*)_lson)->get_vars();
             for (auto &pairs: vars){
@@ -4986,7 +4950,7 @@ namespace gravity{
         return _cst;
     }
 
-    param_* func_::get_var(string name){
+    shared_ptr<param_> func_::get_var(string name){
         if (_vars->empty()) {
             return nullptr;
         }
@@ -4999,7 +4963,7 @@ namespace gravity{
         }
     }
 
-    param_* func_::get_param(string name){
+    shared_ptr<param_> func_::get_param(string name){
         auto pair_it = _params->find(name);
         if (pair_it==_params->end()) {
             return nullptr;
@@ -5010,7 +4974,7 @@ namespace gravity{
     }
 
 
-    void func_::add_var(param_* v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+    void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         if (_vars->count(v->get_name())!=0) {
             v->set_id(_vars->size());
         }
@@ -5021,7 +4985,7 @@ namespace gravity{
     }
 
 
-    void func_::add_param(param_* p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+    void func_::add_param(shared_ptr<param_> p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         if (_params->count(p->get_name())!=0) {
             p->set_id(_params->size());
         }
@@ -5100,7 +5064,6 @@ namespace gravity{
         else {
             get<1>(*pair_it).second-=nb;
             if (get<1>(*pair_it).second==0) {
-                delete get<1>(*pair_it).first;
                 _vars->erase(pair_it);
             }
         }
@@ -5114,7 +5077,6 @@ namespace gravity{
         else {
             get<1>(*pair_it).second -= nb;
             if (get<1>(*pair_it).second==0) {
-                delete get<1>(*pair_it).first;                
                 _params->erase(pair_it);
             }
         }
@@ -5187,7 +5149,7 @@ namespace gravity{
         func_ res; // res = gradf(x*)*(x-x*) + f(x*)
         param_* v;
         for(auto &it: *_vars){
-            v = it.second.first;
+            v = it.second.first.get();
             res += (get_stored_derivative(v->_unique_id)->eval())*((*v) - poly_eval(v));
         }
         res += eval();

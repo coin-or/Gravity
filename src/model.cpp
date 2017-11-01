@@ -74,7 +74,7 @@ std::vector<int> bounds(int parts, int mem) {
 size_t Model::get_nb_nnz_h() const{    
     size_t nnz = 0;
     string vi_name;
-    param_* vi;
+    shared_ptr<param_> vi;
     set<pair<func_*,func_*>> s;
     for (auto &pairs: _hess_link) {
         vi_name = pairs.first.first;
@@ -436,7 +436,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     else if (false) { /* No need to recompute jacobian for linear objectives or if x is not new */
         for(auto& vi_p: _obj.get_vars())
         {
-            v = vi_p.second.first;
+            v = vi_p.second.first.get();
             vid = v->get_id();
             if (v->_is_vector) {
                 for (int i = 0; i < v->get_dim(); i++) {
@@ -455,7 +455,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
         set_x(x);
     }
     for(auto& vi_p: _obj.get_vars()) {
-        v = vi_p.second.first;
+        v = vi_p.second.first.get();
         vid = v->get_id();
         v_unique = v->_unique_id;
         df = _obj.get_stored_derivative(v_unique);
@@ -476,7 +476,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
 
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
     Constraint* c = nullptr;
-    unsigned index = 0;
+//    unsigned index = 0;
     if (new_x) {
         set_x(x);
     }
@@ -534,7 +534,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
         }
         else {
             for (auto &v_p: c->get_vars()){
-                v = v_p.second.first;
+                v = v_p.second.first.get();
                 vid = v->_unique_id;
                 dfdx = c->get_stored_derivative(vid);
                 for (int inst = 0; inst< nb_ins; inst++){
@@ -571,7 +571,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
         c = c_p.second;
         auto nb_ins = c->get_nb_instances();
         for (auto &v_p: c->get_vars()){
-            v = v_p.second.first;
+            v = v_p.second.first.get();
             vid = v->get_id();
             for (int inst = 0; inst< nb_ins; inst++){
                 cid = c->_id+inst;            
@@ -650,8 +650,8 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
 void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     size_t idx = 0, idx_all=0, vid, vjd;
     string vi_name, vj_name;
-    param_* vi;
-    param_* vj;
+    shared_ptr<param_> vi;
+    shared_ptr<param_> vj;
     unique_id vi_unique, vj_unique;
     set<pair<func_*,func_*>> s;
     for (auto &pairs: _hess_link) {
@@ -787,12 +787,12 @@ void Model::fill_in_maps() {
     _obj.compute_derivatives();
     if (!_obj.is_linear()) {
         for (auto &vi_p: _obj.get_vars()) {
-            vi = vi_p.second.first;
+            vi = vi_p.second.first.get();
             vi_name = vi->get_name();
 //            vid = vi->get_id();
             auto df = _obj.get_stored_derivative(vi->_unique_id);
             for (auto &vj_p: df->get_vars()) {
-                vj = vj_p.second.first;
+                vj = vj_p.second.first.get();
                 vj_name = vj->get_name();
 //                vjd = vj->get_id();
                 if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
@@ -819,12 +819,12 @@ void Model::fill_in_maps() {
         c->compute_derivatives();
         if (!c->is_linear()) {
             for (auto &vi_p: c->get_vars()) {
-                vi = vi_p.second.first;
+                vi = vi_p.second.first.get();
                 vi_name = vi->get_name();
 //                vid = vi->get_id();
                 auto df = c->get_stored_derivative(vi->_unique_id);
                 for (auto &vj_p: df->get_vars()) {
-                    vj = vj_p.second.first;
+                    vj = vj_p.second.first.get();
                     vj_name = vj->get_name();
 //                    vjd = vj->get_id();
                     if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
@@ -1354,18 +1354,16 @@ void Model::embed(func_& f){
     }
     auto old_vars = f.get_vars();
     for (auto &vp: old_vars) {
-        auto vv = _vars_name[vp.first];
-        if (vv != vp.second.first) {
-            delete vp.second.first;
+        auto vv = shared_ptr<param_>(_vars_name[vp.first]);
+        if (vv.get() != vp.second.first.get()) {
             f.delete_var(vp.first);
             f.add_var(vv);
         }
     }
     auto old_params = f.get_params();
     for (auto &pp: old_params) {
-        auto p = _vars_name[pp.first];
-        if (p != pp.second.first) {
-            delete pp.second.first;
+        auto p = shared_ptr<param_>(_params_name[pp.first]);
+        if (p.get() != pp.second.first.get()) {
             f.delete_param(pp.first);
             f.add_param(p);
         }
