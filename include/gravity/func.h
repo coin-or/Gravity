@@ -37,8 +37,9 @@ namespace gravity {
 
     class expr: public constant_{
     protected:
-        string                                 _to_str; /**< A string representation of the expression */
     public:
+        string                                 _to_str; /**< A string representation of the expression */
+        
         string get_str();
         
         virtual ~expr(){};
@@ -443,6 +444,8 @@ namespace gravity {
         
         map<unsigned, set<unsigned>>            _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
         
+        size_t                                 _nb_vars = 0; /**< Number of variables */
+                                                                   
         size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
         size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
         size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Jacobian **/

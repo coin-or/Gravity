@@ -80,7 +80,8 @@ int main (int argc, const char * argv[])
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
-            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+//            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
     SOCP.set_objective(min(obj));

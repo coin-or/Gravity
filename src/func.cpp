@@ -2984,8 +2984,8 @@ namespace gravity{
 
 
     bool uexpr::operator==(const uexpr &c)const{
-        return (_otype == c._otype && equals(_son,c._son));
-        
+//        return (_otype == c._otype && equals(_son,c._son));
+        return (this->_to_str.compare(c._to_str)==0);
     }
 
 
@@ -3228,7 +3228,8 @@ namespace gravity{
     /* BINARY EXPRESSIONS */
 
     bool bexpr::operator==(const bexpr &c)const{
-        return (_otype == c._otype && equals(_lson,c._lson) && equals(_rson,c._rson));
+//        return (_otype == c._otype && equals(_lson,c._lson) && equals(_rson,c._rson));
+        return (this->_to_str.compare(c._to_str)==0);
     }
 
 
@@ -4929,16 +4930,17 @@ namespace gravity{
     }
 
     size_t func_::get_nb_vars() const{
-        size_t n = 0;
-        for (auto &p: *_vars) {
-            if (p.second.first->_is_vector) {
-                n += p.second.first->get_dim();
-            }
-            else {
-                n += 1;
-            }
-        }
-        return n;
+        return _nb_vars;
+//        size_t n = 0;
+//        for (auto &p: *_vars) {
+//            if (p.second.first->_is_vector) {
+//                n += p.second.first->get_dim();
+//            }
+//            else {
+//                n += 1;
+//            }
+//        }
+//        return n;
     }
 
     size_t func_::get_nb_instances() const{
@@ -4979,9 +4981,14 @@ namespace gravity{
             v->set_id(_vars->size());
         }
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (!v->_is_vector) {// i.e., it is transposed
+        if (!v->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, v->get_nb_instances());
+            _nb_vars++;
         }
+        else {
+            _nb_vars += v->get_dim();
+        }
+        
     }
 
 
@@ -4990,7 +4997,7 @@ namespace gravity{
             p->set_id(_params->size());
         }
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->_is_vector) {// i.e., it is transposed
+        if (!p->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, p->get_nb_instances());
         }
     }

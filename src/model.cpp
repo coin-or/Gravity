@@ -713,7 +713,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         return;
     }
     
-    if (!new_x || (_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
+    if ((_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
         for (auto &pairs: _hess_link) {
             s = pairs.second;
             for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
@@ -747,7 +747,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                     }
                     else{
                         hess = f_pair.second->eval(inst);
-                        _hess_vals[idx_in++] = hess;
+                        idx_in++;
                         res[idx] += lambda[c->_id + inst] * hess;
                     }
                     
