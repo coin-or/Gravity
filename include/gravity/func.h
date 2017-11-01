@@ -100,7 +100,7 @@ namespace gravity {
         string to_str() const;
         void print(bool endline = true) const;
         func_ get_derivative(const param_ &v) const;
-        vector<param_*> get_nl_vars() const;
+        vector<shared_ptr<param_>> get_nl_vars() const;
     };
 
 
@@ -196,7 +196,7 @@ namespace gravity {
         
         func_ get_derivative(const param_ &v) const;
         
-        vector<param_*> get_nl_vars() const;
+        vector<shared_ptr<param_>> get_nl_vars() const;
         
     };
 
@@ -422,8 +422,8 @@ namespace gravity {
         FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
         NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
 
-        map<string, pair<param_*, int>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-        map<string, pair<param_*, int>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+        map<string, pair<shared_ptr<param_>, int>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+        map<string, pair<shared_ptr<param_>, int>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
                 
         constant_*                             _cst = nullptr;/**< Constant part of the function */
         map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
@@ -466,8 +466,8 @@ namespace gravity {
         ~func_();
 
         map<unsigned, set<unsigned>>& get_hess_link() { return _hess_link;};
-        map<string, pair<param_*, int>>& get_vars() { return *_vars;};
-        map<string, pair<param_*, int>>& get_params() { return *_params;};
+        map<string, pair<shared_ptr<param_>, int>>& get_vars() { return *_vars;};
+        map<string, pair<shared_ptr<param_>, int>>& get_params() { return *_params;};
         
         bool has_var(const param_& v) const;
         
@@ -505,14 +505,14 @@ namespace gravity {
         
         constant_* get_cst();
         
-        param_* get_var(string name);
+        shared_ptr<param_> get_var(string name);
         
-        param_* get_param(string name);
+        shared_ptr<param_> get_param(string name);
         
-        void add_var(param_* v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+        void add_var(shared_ptr<param_> v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         
         
-        void add_param(param_* p);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+        void add_param(shared_ptr<param_> p);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         
         
         

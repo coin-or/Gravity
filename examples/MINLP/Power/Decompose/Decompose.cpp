@@ -249,8 +249,8 @@ int main (int argc, const char * argv[])
 
     grid->readgrid(fname);
     
-    OPF_Clique_W(grid);
-    //scopf_W(grid, false);
+//    OPF_Clique_W(grid);
+    scopf_W(grid, false);
     return 0;
     
     // Grid Parameters

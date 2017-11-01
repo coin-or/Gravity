@@ -100,7 +100,12 @@ public:
     }
 
     size_t get_nb_instances() const {
-        return _ids->size();
+        if (_is_indexed) {
+            return _ids->size();
+        }
+        else{
+            return _dim;
+        }
     }
 
     shared_ptr<map<string,unsigned>> get_indices() const {
