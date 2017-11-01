@@ -19,6 +19,7 @@ class Arc{
 public:
     int _id;
     std::string _name;
+    std::string _type_name="Arc";
     Node* _src;
     Node* _dest;
     double _weight;

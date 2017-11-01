@@ -187,6 +187,7 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
         auto newc = new Constraint(c);
+        newc->update_to_str();
 //        newc->print();
 //        embed(*newc);
         newc->_id = _nb_cons;
@@ -713,7 +714,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         return;
     }
     
-    if (!new_x || (_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
+    if ((_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
         for (auto &pairs: _hess_link) {
             s = pairs.second;
             for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
@@ -747,7 +748,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                     }
                     else{
                         hess = f_pair.second->eval(inst);
-                        _hess_vals[idx_in++] = hess;
+                        idx_in++;
                         res[idx] += lambda[c->_id + inst] * hess;
                     }
                     
@@ -1378,8 +1379,8 @@ void Model::embed(func_& f){
 
 
 
-void Model::print_functions() const{
-    cout << "Number of atomic functions = " << _functions.size();
+void Model::print_nl_functions() const{
+    cout << "Number of atomic functions = " << _nl_functions.size();
     cout << endl;
     //    for (auto& f: _functions){
     //        f->print(false);

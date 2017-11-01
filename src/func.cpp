@@ -849,6 +849,7 @@ namespace gravity{
 
 
     func_::func_(){
+        _to_str = "noname";
         set_type(func_c);
         _params = new map<string, pair<shared_ptr<param_>, int>>();
         _vars = new map<string, pair<shared_ptr<param_>, int>>();
@@ -871,6 +872,7 @@ namespace gravity{
         if(c.is_function()){
             set_type(func_c);
             auto f = (func_*) &c;
+            _to_str = f->_to_str;
             _ftype = f->_ftype;
             _return_type = f->_return_type;
             _all_convexity = f->_all_convexity;
@@ -981,6 +983,7 @@ namespace gravity{
                     break;
                 }
                 case var_c:{
+                    _to_str = ((param_*)(&c))->get_name();
                     auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
                     _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_var(p_c2);
@@ -1006,16 +1009,52 @@ namespace gravity{
                     break;
                 }
                 case uexp_c: {
-                    _expr = new uexpr(*(uexpr*)move(&c));
+                    
+                    auto ue = (uexpr*)(&c);
+                    switch (ue->_otype) {
+                        case sin_:
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                            _all_sign = unknown_;
+                            break;
+                        case cos_:
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                            _all_sign = unknown_;
+                            break;
+                        case sqrt_:
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                            _all_sign = non_neg_;
+                            break;
+                        case exp_:
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                            _all_sign = pos_;
+                            break;
+                        case log_:
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                            _all_sign = unknown_;
+                            break;
+                        default:
+                            break;
+                    }
+                    _expr = new uexpr(*ue);
                     embed(*_expr);
+                    if (!_vars->empty()) {
+                        _ftype = nlin_;
+                    }
 //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
 //                    _queue->push(_expr);
                     //sign and convexity
                     break;
                 }
                 case bexp_c: {
-                    _expr = new bexpr(*(bexpr*)move(&c));
+                    auto be = (bexpr*)&c;
+                    _cst = new constant<double>(0);
+                    _expr = new bexpr(*(bexpr*)&c);
+                    _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
+                    _all_sign = be->get_all_sign();
                     embed(*_expr);
+                    if (!_vars->empty()) {
+                        _ftype = nlin_;
+                    }
 //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
 //                    _queue->push(_expr);
                     break;
@@ -1174,6 +1213,7 @@ namespace gravity{
     }
 
     func_::func_(func_&& f){
+        _to_str = f._to_str;
         set_type(func_c);
         _ftype = f._ftype;
         _return_type = f._return_type;
@@ -1219,6 +1259,7 @@ namespace gravity{
     }
 
     func_::func_(const func_& f){
+        _to_str = f._to_str;
         set_type(func_c);
         _params = new map<string, pair<shared_ptr<param_>, int>>();
         _vars = new map<string, pair<shared_ptr<param_>, int>>();
@@ -1293,6 +1334,7 @@ namespace gravity{
     }
 
     func_& func_::operator=(const func_& f){
+        _to_str = f._to_str;
         if (_all_range) {
             delete _all_range->first;
             delete _all_range->second;
@@ -1388,6 +1430,7 @@ namespace gravity{
 
 
     func_& func_::operator=(func_&& f){
+        _to_str = f._to_str;
         if (_all_range) {
             delete _all_range->first;
             delete _all_range->second;
@@ -2448,6 +2491,7 @@ namespace gravity{
     }
 
     void func_::reset(){
+        _to_str = "noname";
         if (_all_range) {
             delete _all_range->first;
             delete _all_range->second;
@@ -2919,7 +2963,7 @@ namespace gravity{
 
 
     string expr::get_str(){
-        if (_to_str=="" || _to_str=="null") {
+        if (_to_str.compare("noname")==0) {
             if (is_uexpr()) {
                 return _to_str = ((uexpr*)this)->to_str();
             }
@@ -2984,8 +3028,8 @@ namespace gravity{
 
 
     bool uexpr::operator==(const uexpr &c)const{
-        return (_otype == c._otype && equals(_son,c._son));
-        
+//        return (_otype == c._otype && equals(_son,c._son));
+        return (this->_to_str.compare(c._to_str)==0);
     }
 
 
@@ -3228,7 +3272,8 @@ namespace gravity{
     /* BINARY EXPRESSIONS */
 
     bool bexpr::operator==(const bexpr &c)const{
-        return (_otype == c._otype && equals(_lson,c._lson) && equals(_rson,c._rson));
+//        return (_otype == c._otype && equals(_lson,c._lson) && equals(_rson,c._rson));
+        return (this->_to_str.compare(c._to_str)==0);
     }
 
 
@@ -3263,7 +3308,7 @@ namespace gravity{
         _lson = nullptr;
         _rson = nullptr;
         _type = bexp_c;
-        _to_str = "null";
+        _to_str = "noname";
     }
 
     bexpr::bexpr(OperatorType otype, constant_* lson, constant_* rson){
@@ -4666,10 +4711,10 @@ namespace gravity{
                 str += poly_to_str(_cst);
                 str += ")";
             }
-            if (!_queue->empty() && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
+            if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
                 str += " + ";
             }
-            if (!_queue->empty()) {
+            if (_expr) {
                 str += _expr->get_str();
             }
             if (_is_vector) {
@@ -4685,7 +4730,7 @@ namespace gravity{
 
 
     void func_::print(bool endline, bool display_input) const{
-        cout << this->to_str(display_input);
+        cout << this->_to_str;
         if (endline)
             cout << endl;
     }
@@ -4697,9 +4742,10 @@ namespace gravity{
         _otype = id_;
         _son = nullptr;
         _type = uexp_c;
-        _to_str = "null";
+        _to_str = "noname";
     }
 
+    
     string uexpr::to_str() const{
         string str;
         switch (_otype) {
@@ -4927,18 +4973,23 @@ namespace gravity{
         if(endline)
             cout << endl;
     }
-
+    
+    void func_::update_to_str(){
+        _to_str = to_str();
+    }
+    
     size_t func_::get_nb_vars() const{
-        size_t n = 0;
-        for (auto &p: *_vars) {
-            if (p.second.first->_is_vector) {
-                n += p.second.first->get_dim();
-            }
-            else {
-                n += 1;
-            }
-        }
-        return n;
+        return _nb_vars;
+//        size_t n = 0;
+//        for (auto &p: *_vars) {
+//            if (p.second.first->_is_vector) {
+//                n += p.second.first->get_dim();
+//            }
+//            else {
+//                n += 1;
+//            }
+//        }
+//        return n;
     }
 
     size_t func_::get_nb_instances() const{
@@ -4979,9 +5030,14 @@ namespace gravity{
             v->set_id(_vars->size());
         }
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (!v->_is_vector) {// i.e., it is transposed
+        if (!v->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, v->get_nb_instances());
+            _nb_vars++;
         }
+        else {
+            _nb_vars += v->get_dim();
+        }
+        
     }
 
 
@@ -4990,7 +5046,7 @@ namespace gravity{
             p->set_id(_params->size());
         }
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->_is_vector) {// i.e., it is transposed
+        if (!p->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, p->get_nb_instances());
         }
     }

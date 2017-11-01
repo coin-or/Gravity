@@ -47,6 +47,7 @@ namespace gravity{
     class index_{
     public:
         string _name;
+        string _type_name="index";
         bool   _active = true;
         index_(const string& name, bool active=true):_name(name), _active(active){};
         index_(const index_& idx):_name(idx._name), _active(idx._active){};
@@ -55,6 +56,7 @@ namespace gravity{
     class index_pair{
     public:
         string _name;
+        string _type_name="index_pair";
         bool   _active = true;
         index_* _src;
         index_* _dest;
@@ -109,6 +111,11 @@ namespace gravity{
     typedef enum {unsolved = -1, penalty=0, fast=1, medium=2, stable=3} SolverSettings;
 
     typedef tuple<unsigned,IndexType,size_t,unsigned,unsigned> unique_id; /* A unique identifier is defined as a tuple<variable index, index type, variable type, first_index, last_index */
+
+    template <class T>
+    std::string type_name(const T& t) {
+        return t._type_name;
+    }
 }
 
 #endif

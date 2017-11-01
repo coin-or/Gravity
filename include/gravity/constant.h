@@ -303,16 +303,16 @@ namespace gravity {
         }
         
         string to_str() const{
-//            char buffer [50];
-//            if(typeid(type)==typeid(float) || typeid(type)==typeid(double) || typeid(type)==typeid(long double)){
-//                sprintf (buffer, "%g", _val);
-//            }
-//            else {
-//                sprintf (buffer, "%d", _val);                
-//            }
-//    //        cout << string(buffer) << endl;
-//            return string(buffer);
-            return std::to_string(_val);
+            char buffer [50];
+            if(typeid(type)==typeid(float) || typeid(type)==typeid(double) || typeid(type)==typeid(long double)){
+                sprintf (buffer, "%g", _val);
+            }
+            else {
+                sprintf (buffer, "%d", _val);                
+            }
+    //        cout << string(buffer) << endl;
+            return string(buffer);
+//            return std::to_string(_val);
         }
 
         

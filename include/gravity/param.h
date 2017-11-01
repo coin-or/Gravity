@@ -588,7 +588,12 @@ public:
             }
         }
         DebugOff(endl);
-        res._name += ".in_" + string(typeid(Tobj).name());
+        if(vec.empty()){
+            res._name += ".in_empty";
+        }
+        else {
+            res._name += ".in_" + vec.front()->_type_name;
+        }
         res._unique_id = make_tuple<>(res._id,in_, typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -626,7 +631,12 @@ public:
             }
         }
         DebugOff(endl);
-        res._name += ".in_" + string(typeid(Tobj).name());
+        if(vec.empty()){
+            res._name += ".in_empty";
+        }
+        else {
+            res._name += ".in_" + vec.front()->_type_name;
+        }
         res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -708,7 +718,12 @@ public:
             }
         }
         DebugOff(endl);
-        res._name += ".from_" + string(typeid(Tobj).name());
+        if(vec.empty()){
+            res._name += ".from_empty";
+        }
+        else {
+            res._name += ".from_" + vec.front()->_type_name;
+        }
         res._unique_id = make_tuple<>(res._id,from_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -745,7 +760,12 @@ public:
                 res._ids->push_back(pp.first->second);
             }
         }
-        res._name += ".to_" + string(typeid(Tobj).name());
+        if(vec.empty()){
+            res._name += ".to_empty";
+        }
+        else {
+            res._name += ".to_" + vec.front()->_type_name;
+        }
         res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
