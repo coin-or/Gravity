@@ -30,7 +30,7 @@ int main (int argc, const char * argv[])
            //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
            //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
            //fname = "../../data_sets/Power/nesta_case118_ieee.m";
-           fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case300_ieee.m";
+           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
     }
@@ -233,8 +233,12 @@ int main (int argc, const char * argv[])
         }
         KCL_P = 0;
         KCL_Q = 0;
-        ACOPF.add_constraint(KCL_P);
-        ACOPF.add_constraint(KCL_Q);
+//        if (!KCL_P.get_vars().empty()) {
+            ACOPF.add_constraint(KCL_P);
+//        }
+//        if (!KCL_Q.get_vars().empty()) {
+            ACOPF.add_constraint(KCL_Q);
+//        }
     }
     //AC Power Flow.
 //

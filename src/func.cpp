@@ -1494,6 +1494,21 @@ namespace gravity{
             delete _all_range->second;
         }
         delete _all_range;
+//        for (auto &pt: *_lterms) {
+//            if (pt.second._coef->is_function()) {
+//                delete pt.second._coef;
+//            }
+//        }
+//        for (auto &pt: *_qterms) {
+//            if (pt.second._coef->is_function()) {
+//                delete pt.second._coef;
+//            }
+//        }
+//        for (auto &pt: *_pterms) {
+//            if (pt.second._coef->is_function()) {
+//                delete pt.second._coef;
+//            }
+//        }
         if (_vars) {
             if (!_embedded) {
                 for (auto &elem: *_vars) {
@@ -2231,11 +2246,26 @@ namespace gravity{
                 else if(ue->_son->is_expr()){
                     embed(*(expr*)ue->_son);
                 }
-                else if (ue->_son->is_var()){
-                    if (_vars->count(((param_*)ue->_son)->get_name())==0) {
-                        add_var((param_*)copy(*ue->_son));
-                    }
-                }
+//                else if (ue->_son->is_var()){
+//                    auto it1 = _vars->find(((param_*)ue->_son)->get_name());
+//                    if (it1==_vars->end()) {
+//                        add_var((param_*)ue->_son);
+//                    }
+//                    else{
+//                        delete ue->_son;
+//                        ue->_son = (*it1).second.first;
+//                    }
+//                }
+//                else if (ue->_son->is_param()){
+//                    auto it1 = _params->find(((param_*)ue->_son)->get_name());
+//                    if (it1==_params->end()) {
+//                        add_param((param_*)ue->_son);
+//                    }
+//                    else{
+//                        delete ue->_son;
+//                        ue->_son = (*it1).second.first;
+//                    }
+//                }
                 break;
             }
             case bexp_c:{
@@ -2247,12 +2277,26 @@ namespace gravity{
                 else if(be->_lson->is_expr()){
                     embed(*(expr*)be->_lson);
                 }
-                else if (be->_lson->is_var()){
-                    throw invalid_argument("oops\n");
-                    if (_vars->count(((param_*)be->_lson)->get_name())==0) {
-                        add_var((param_*)copy(*be->_lson));
-                    }
-                }
+//                else if (be->_lson->is_var()){
+//                    auto it1 = _vars->find(((param_*)be->_lson)->get_name());
+//                    if (it1==_vars->end()) {
+//                        add_var((param_*)be->_lson);
+//                    }
+//                    else{
+//                        delete be->_lson;
+//                        be->_lson = (*it1).second.first;
+//                    }
+//                }
+//                else if (be->_lson->is_param()){
+//                    auto it1 = _params->find(((param_*)be->_lson)->get_name());
+//                    if (it1==_params->end()) {
+//                        add_param((param_*)be->_lson);
+//                    }
+//                    else{
+//                        delete be->_lson;
+//                        be->_lson = (*it1).second.first;
+//                    }
+//                }
                 if (be->_rson->is_function()) {
                     auto f = (func_*)be->_rson;
                     embed(*f);
@@ -2260,12 +2304,26 @@ namespace gravity{
                 else if(be->_rson->is_expr()){
                     embed(*(expr*)be->_rson);
                 }
-                else if (be->_rson->is_var()){
-                    throw invalid_argument("oops\n");
-                    if (_vars->count(((param_*)be->_rson)->get_name())==0) {
-                        add_var((param_*)copy(*be->_rson));
-                    }
-                }
+//                else if (be->_rson->is_var()){
+//                    auto it1 = _vars->find(((param_*)be->_rson)->get_name());
+//                    if (it1==_vars->end()) {
+//                        add_var((param_*)be->_rson);
+//                    }
+//                    else{
+//                        delete be->_rson;
+//                        be->_rson = (*it1).second.first;
+//                    }
+//                }
+//                else if (be->_rson->is_param()){
+//                    auto it1 = _params->find(((param_*)be->_rson)->get_name());
+//                    if (it1==_params->end()) {
+//                        add_param((param_*)be->_rson);
+//                    }
+//                    else{
+//                        delete be->_rson;
+//                        be->_rson = (*it1).second.first;
+//                    }
+//                }
                 break;
             }
             default:
@@ -2279,6 +2337,10 @@ namespace gravity{
         param_* p1 = nullptr;
         param_* p2 = nullptr;
         for (auto &pair:*f._lterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                embed(*(func_*)coef);
+            }
             p = pair.second._p;
             if (p->is_var()) {
                 auto it = _vars->find(p->get_name());
@@ -2304,6 +2366,10 @@ namespace gravity{
             }
         }
         for (auto &pair:*f._qterms) {
+            auto coef = pair.second._coef;
+            if (coef->is_function()){
+                embed(*(func_*)coef);
+            }
             p1 = pair.second._p->first;
             p2 = pair.second._p->second;
             if (p1->is_var()) {
@@ -2348,6 +2414,10 @@ namespace gravity{
             }
         }
         for (auto &pair:*f._pterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                embed(*(func_*)coef);
+            }
             auto list = pair.second._l;
             for (auto &ppi: *list) {
                 p = ppi.first;
@@ -2378,10 +2448,16 @@ namespace gravity{
         if (f._expr) {
             embed(*f._expr);
         }
+        if(_cst->is_function()){
+            embed(*(func_*)_cst);
+        }
+
         auto old_vars = *f._vars;
         for (auto &vp: old_vars) {
             auto vv = (*_vars)[vp.first].first;
-            if (vv != vp.second.first) {
+            auto vv_f = (*f._vars)[vp.first].first;
+            if (vv != vv_f) {
+//                delete vv_f;
                 f._vars->erase(vp.first);
                 f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
             }
@@ -2389,7 +2465,9 @@ namespace gravity{
         auto old_params = *f._params;
         for (auto &pp: old_params) {
             auto p = (*_params)[pp.first].first;
-            if (p != pp.second.first) {            
+            auto p_f = (*f._params)[pp.first].first;
+            if (p != p_f) {
+//                delete p_f;
                 f._params->erase(pp.first);
                 f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
             }
@@ -4505,9 +4583,9 @@ namespace gravity{
         for (auto &lt: *_pterms) {
             for (auto &p: *lt.second._l) {
                 if (*p.first == v) {
-                    func_ pterm = constant<>(1);
+                    func_ pterm = constant<double>(1);
                     if (!lt.second._sign) {
-                        pterm = constant<>(-1);
+                        pterm = constant<double>(-1);
                     }
                     auto expo = p.second;
                     if (expo > 1) {
@@ -4937,7 +5015,7 @@ namespace gravity{
             v->set_id(_vars->size());
         }
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
-        if (!v->_is_vector) {
+        if (!v->_is_vector) {// i.e., it is transposed
             _nb_instances = max(_nb_instances, v->get_nb_instances());
         }
     }
@@ -4948,7 +5026,7 @@ namespace gravity{
             p->set_id(_params->size());
         }
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
-        if (!p->_is_vector) {
+        if (!p->_is_vector) {// i.e., it is transposed
             _nb_instances = max(_nb_instances, p->get_nb_instances());
         }
     }
