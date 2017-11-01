@@ -102,8 +102,16 @@ int main (int argc, const char * argv[])
     /* Schriver's SDP relaxation for the stable set problem */
     Model SDP;
     /* Variable declaration */
-    var<double> Xii("Xii", 0, 1);
-    var<double> Xij("Xij", 0, 1);
+    param<double> zero("zero");
+    param<double> one("one");
+    param<double> zero2("zero2");
+    param<double> one2("one2");
+    zero.set_size(n, 0);
+    one.set_size(n, 1);
+    zero2.set_size(n*(n-1)/2, 0);
+    one2.set_size(n*(n-1)/2, 1);
+    var<double> Xii("Xii", zero, one);
+    var<double> Xij("Xij", zero2, one2);
     SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
@@ -189,13 +197,13 @@ int main (int argc, const char * argv[])
     
 
    //solver s1(SDP,ipopt);
-
-   solver s1(SDP,cplex);
+    solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
     s1.run();
+    return 0;
     
     wall1 = get_wall_time();
     cpu1  = get_cpu_time();

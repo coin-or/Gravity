@@ -34,7 +34,7 @@ protected:
     NType                                  _intype;
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds
                                        vectors */
-    
+
     shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
 
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
@@ -337,9 +337,11 @@ public:
 
     /* Modifiers */
     void   set_size(size_t s, type val = 0) {
-        _val->resize(s,val);
+        //_val->resize(s, val);
+        _val->resize(s, val);
         _dim = s;
     };
+
 
     void add_val(type val) {
         _val->push_back(val);
@@ -755,25 +757,25 @@ public:
         string key;
         if (nm->_active) {
             for (unsigned t = 0; t < T; t++) {
-                    key = nm->_name;
-                    key += ",";
-                    key += to_string(t);
-                    Debug("key: " << key << endl);
-                    auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
-                    _val->resize(max(_val->size(),param_::_indices->size()));
-                    if(pp.second) { //new index inserted
-                        if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                            res._dim++;
-                        }
-                        res._ids->push_back(param_::_indices->size() - 1);
+                key = nm->_name;
+                key += ",";
+                key += to_string(t);
+                Debug("key: " << key << endl);
+                auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                _val->resize(max(_val->size(),param_::_indices->size()));
+                if(pp.second) { //new index inserted
+                    if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
+                        res._dim++;
                     }
-                    else {
-                        if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                            res._dim++;
-                        }
-                        res._ids->push_back(pp.first->second);
-                    }
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim++;
+                    }
+                    res._ids->push_back(pp.first->second);
+                }
+            }
         }
         res._name += ".in_time_" +  nm->_name + "_time_" + to_string(T); // _name and _unique_id should be really unique.
         hash<string> str_hash;

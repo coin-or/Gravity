@@ -253,6 +253,9 @@ public:
     void    set_lb(int i, type v);
     void    set_ub(int i, type v);
 
+    //void    set_lb(string name, type v); // change lb and ub via names.
+    //void    set_ub(string name, type v);
+
     /* Operators */
     var& operator=(const var& v);
     var& operator=(var&& v);

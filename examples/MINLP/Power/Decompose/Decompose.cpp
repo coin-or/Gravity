@@ -243,8 +243,9 @@ int main (int argc, const char * argv[])
     // Decompose
     PowerNet* grid = new PowerNet();
     const char* fname;
-    fname = "../../data_sets/Power/nesta_case14_ieee.m";
+    //fname = "../../data_sets/Power/nesta_case14_ieee.m";
     //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+    fname = "../../data_sets/Power/nesta_case6_c.m";
 
     grid->readgrid(fname);
     
