@@ -456,6 +456,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         shared_ptr<vector<double>>             _val;
         shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        string                                 _to_str;
         func_();
         
         func_(const constant_& c);
@@ -501,7 +502,7 @@ namespace gravity {
         void insert(const pterm& term);
         
         void insert(expr& e);
-        
+        void update_to_str();
         size_t get_nb_vars() const;
         
         size_t get_nb_instances() const;
