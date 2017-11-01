@@ -32,7 +32,6 @@ double  subproblem(PowerNet* grid, Net* chordal, unsigned c, Net* cliquetree,
                    param<Real>& R_rho_sep, param<Real>& Im_rho_sep)
 {
     cout << "Solving subproblem associated with maximal clique .........." << c << endl;
-
     if (bag_arcs.size() == 0) {
         return 0;
     }
@@ -245,12 +244,14 @@ int main (int argc, const char * argv[])
     const char* fname;
     //fname = "../../data_sets/Power/nesta_case14_ieee.m";
     //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-    fname = "../../data_sets/Power/nesta_case6_c.m";
+     fname = "../../data_sets/Power/nesta_case6_c.m";
+    //fname = "../../data_sets/Power/nesta_case30_ieee.m";
+
 
     grid->readgrid(fname);
     
-//    OPF_Clique_W(grid);
-    scopf_W(grid, false);
+  OPF_Clique_W(grid);
+   // scopf_W(grid, false);
     return 0;
     
     // Grid Parameters
