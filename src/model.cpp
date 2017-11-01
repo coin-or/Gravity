@@ -187,6 +187,7 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
         auto newc = new Constraint(c);
+        newc->update_to_str();
 //        newc->print();
 //        embed(*newc);
         newc->_id = _nb_cons;
@@ -1378,8 +1379,8 @@ void Model::embed(func_& f){
 
 
 
-void Model::print_functions() const{
-    cout << "Number of atomic functions = " << _functions.size();
+void Model::print_nl_functions() const{
+    cout << "Number of atomic functions = " << _nl_functions.size();
     cout << endl;
     //    for (auto& f: _functions){
     //        f->print(false);

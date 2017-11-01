@@ -25,6 +25,8 @@ public:
      */
     std::string _name;
 
+    std::string _type_name="Gen";
+    
     /** Position of a generator in a container. **/
     int _id;
     

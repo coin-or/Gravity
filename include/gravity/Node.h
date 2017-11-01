@@ -20,6 +20,7 @@ class Node{
     
 public:
     std::string _name;
+    std::string _type_name="Node";
     int _id;
     bool _active = true;
     std::vector<Arc*> branches;

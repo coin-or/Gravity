@@ -37,7 +37,7 @@ namespace gravity {
     protected:
         string                          _name;
         set<pair<size_t,size_t>>        _hess; /* Pairs of variables linked in the hessian, storing Ipopt indices here. */
-        vector<shared_ptr<func_>>       _functions;
+        vector<shared_ptr<func_>>       _nl_functions;
         void add_var(param_* v);        //Add variables without reallocating memory
         void add_param(param_* v);      //Add variables without reallocating memory
         
@@ -167,7 +167,7 @@ namespace gravity {
         
         
         /* Output */
-        void print_functions() const;
+        void print_nl_functions() const;
         void print() const;
         void print_solution() const;
         void print_constraints() const;

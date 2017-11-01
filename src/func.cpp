@@ -4711,10 +4711,10 @@ namespace gravity{
                 str += poly_to_str(_cst);
                 str += ")";
             }
-            if (!_queue->empty() && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
+            if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
                 str += " + ";
             }
-            if (!_queue->empty()) {
+            if (_expr) {
                 str += _expr->get_str();
             }
             if (_is_vector) {
@@ -4730,7 +4730,7 @@ namespace gravity{
 
 
     void func_::print(bool endline, bool display_input) const{
-        cout << this->to_str(display_input);
+        cout << this->_to_str;
         if (endline)
             cout << endl;
     }
