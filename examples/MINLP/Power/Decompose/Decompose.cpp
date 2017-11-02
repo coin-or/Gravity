@@ -68,7 +68,7 @@ double  subproblem(PowerNet& grid, Net* chordal, unsigned c, Net* cliquetree,
             DebugOff("the constant of this polynomial function is: " << poly_eval(obj.get_cst()) << endl);
             Production_P_UB += bus->gs()*Wii(bus->_name) + bus->pl() - grid.pg_max(g->_name).getvalue();
             Production_P_LB += bus->gs()*Wii(bus->_name) + bus->pl() - grid.pg_min(g->_name).getvalue();
-            Production_Q_UB += bus->bs()*Wii(bus->_name) + bus->ql() - grid.qg_max(g->_name).getvalue();
+            Production_Q_UB += -bus->bs()*Wii(bus->_name) + bus->ql() - grid.qg_max(g->_name).getvalue();
             Production_Q_LB += -bus->bs()*Wii(bus->_name) + bus->ql()- grid.qg_min(g->_name).getvalue();
             //shunt
             obj  += grid.c1(g->_name)*bus->gs()*Wii(bus->_name);
@@ -247,7 +247,11 @@ int main (int argc, const char * argv[])
     else {
         //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        fname = "../../data_sets/Power/nesta_case30_ieee.m";
+        
+        //fname = "../../data_sets/Power/nesta_case30_ieee.m";
+        // fname = "../../data_sets/Power/nesta_case6_c.m";
+         fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+
         //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
@@ -260,9 +264,8 @@ int main (int argc, const char * argv[])
     PowerNet grid;
 
     grid.readgrid(fname);
-    
-//  OPF_Clique_W(grid);
-    scopf_W(grid, false);
+    OPF_Clique_W(grid);
+    //scopf_W(grid, false);
     return 0;
     
     // Grid Parameters
