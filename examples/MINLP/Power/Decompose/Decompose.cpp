@@ -221,7 +221,7 @@ double  subproblem(PowerNet& grid, Net* chordal, unsigned c, Net* cliquetree,
     Subr.add_constraint(Thermal_Limit_from <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(grid.g_tt.in(bag_arcs)*Wii.from(bag_arcs) + grid.g_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs)
+    Thermal_Limit_to += power(grid.g_tt.in(bag_arcs)*Wii.to(bag_arcs) + grid.g_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs)
                               + grid.b_tf.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs), 2)
                         + power(grid.b_tt.in(bag_arcs)*Wii.to(bag_arcs) + grid.b_tf.in(bag_arcs)*R_Wij.in_pairs(bag_arcs)
                                 + grid.g_tf.in(bag_arcs)*Im_Wij.in_pairs(bag_arcs), 2);
@@ -246,16 +246,16 @@ int main (int argc, const char * argv[])
     }
     else {
         //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         // fname = "../../data_sets/Power/nesta_case6_c.m";
-         fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
 
         //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
         //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
-        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
         //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
         //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
@@ -265,6 +265,7 @@ int main (int argc, const char * argv[])
 
     grid.readgrid(fname);
     OPF_Clique_W(grid);
+    //OPF_Clique_WG(grid);
     //scopf_W(grid, false);
     return 0;
     
