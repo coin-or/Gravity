@@ -25,9 +25,9 @@ Model::~Model(){
     for (auto &vp:_vars) {
         delete vp.second;
     }
-    for (auto &cp:_cons) {
-        delete cp.second;
-    }
+//    for (auto &cp:_cons) {
+//        delete cp.second;
+//    }
 };
 
 
@@ -127,9 +127,9 @@ void Model::add_var(param_* v){
 };
 
 void Model::add_var(param_& v){
-//    if (v._is_indexed) { 
-//        return;
-//    }
+    if (v._is_indexed) { 
+        return;
+    }
     if (_vars_name.count(v.get_name())==0) {
         v.set_id(_nb_vars);
         v.set_vec_id(_vars.size());
@@ -186,10 +186,12 @@ void Model::del_param(const param_& v){
 
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
-        auto newc = new Constraint(c);
+        auto newc = make_shared<Constraint>(c);
         newc->update_to_str();
 //        newc->print();
-//        embed(*newc);
+        if (newc->is_nonlinear()) {
+            embed(*newc->get_expr());
+        }
         newc->_id = _nb_cons;
         _cons_name[c.get_name()] = newc;
         _cons[newc->_id] = newc;
@@ -405,10 +407,44 @@ void Model::set_x(const double* x){
     }
 }
 
+void Model::compute_funcs() {
+    
+    auto it = _nl_funcs.begin();
+    while (it!=_nl_funcs.end()) {
+        auto f = (*it++);
+        DebugOff(f->to_str() << endl);
+        //        if (!f->is_nonlinear()) {
+        for (int inst = 0; inst < f->get_nb_instances(); inst++) {
+            f->_val->at(inst) = f->eval(inst);
+        }
+        //        }
+        //        else {
+        //
+        //        }
+    }
+    for (auto &c_p:_cons) {
+        auto c = c_p.second;
+        for (int inst = 0; inst < c->get_nb_instances(); inst++) {
+            c->_val->at(inst) = c->eval(inst);
+        }
+        for (auto &dfdx: *c->get_dfdx()) {
+            for (int inst = 0; inst < dfdx.second->get_nb_instances(); inst++) {
+                dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
+            }
+            for (auto &dfd2x: *dfdx.second->get_dfdx()) {
+                for (int inst = 0; inst < dfd2x.second->get_nb_instances(); inst++) {
+                    dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
+                }
+            }
+        }
+    }
+}
+
 void Model::fill_in_obj(const double* x , double& res, bool new_x){
 //    if (!new_x) {// IPOPT SEEMS TO BE INCONSISTENT ON NEW_X HERE!!
     if (new_x) {
         set_x(x);
+        compute_funcs();
     }
 //        set_x(x);
         res = _obj.eval();
@@ -422,7 +458,7 @@ void Model::fill_in_obj(const double* x , double& res, bool new_x){
 
 void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     param_* v;
-    func_* df;
+    shared_ptr<func_> df;
     unsigned vid, vid_inst, index = 0;
     unique_id v_unique;
     for (int i = 0; i<_nb_vars; i++) {
@@ -430,11 +466,10 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
     if (_first_call_gard_obj) {
         _obj_grad_vals.resize(_obj.get_nb_vars());
-        set_x(x);
         _first_call_gard_obj = false;
     }
-//    else if (!new_x || _obj.is_linear()) {
-    else if (false) { /* No need to recompute jacobian for linear objectives or if x is not new */
+    else if (_obj.is_linear()) {
+//    else if (false) { /* No need to recompute jacobian for linear objectives or if x is not new */
         for(auto& vi_p: _obj.get_vars())
         {
             v = vi_p.second.first.get();
@@ -454,6 +489,7 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
     if (new_x) {
         set_x(x);
+        compute_funcs();
     }
     for(auto& vi_p: _obj.get_vars()) {
         v = vi_p.second.first.get();
@@ -464,13 +500,13 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
             for (int i = 0; i < v->get_dim(); i++) {
                 vid_inst = vid + v->get_id_inst(i);
                 res[vid_inst] = df->eval(i);
-//                _obj_grad_vals[index++] =res[vid_inst];
+                _obj_grad_vals[index++] =res[vid_inst];
             }
         }
         else {
             vid_inst = vid + v->get_id_inst();
             res[vid_inst] = df->eval();
-//            _obj_grad_vals[index++] =res[vid_inst];
+            _obj_grad_vals[index++] =res[vid_inst];
         }
     }
 }
@@ -480,13 +516,14 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //    unsigned index = 0;
     if (new_x) {
         set_x(x);
+        compute_funcs();
     }
         for(auto& c_p: _cons)
         {
-            c = c_p.second;
+            c = c_p.second.get();
             auto nb_ins = c->get_nb_instances();
             for (int inst = 0; inst< nb_ins; inst++){
-                res[c->_id+inst] = c->eval(inst);
+                res[c->_id+inst] = c->get_val(inst);
 //                _cons_vals[index++] = res[c->_id+inst];
                 DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
             }
@@ -513,18 +550,19 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
         }
         return;
     }
-    if (new_x) { // IPOPT SEEMS TO BE INCONSISTENT ON NEW_X HERE!!
+    if (new_x) {
         set_x(x);
+        compute_funcs();
     }
     size_t idx=0;
     size_t cid = 0;
     unique_id vid;
     Constraint* c = NULL;
     param_* v = NULL;
-    func_* dfdx;
+    shared_ptr<func_> dfdx;
     for(auto& c_p :_cons)
     {
-        c = c_p.second;
+        c = c_p.second.get();
         auto nb_ins = c->get_nb_instances();
         if (c->is_linear() && !_first_call_jac) {
             DebugOff("Linear constraint, using stored jacobian!\n");
@@ -542,13 +580,13 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                     cid = c->_id+inst;
                     if (v->_is_vector) {
                         for (int j = 0; j<v->get_dim(); j++) {
-                            res[idx] = dfdx->eval(j);
+                            res[idx] = dfdx->get_val(j);
                             _jac_vals[idx] = res[idx];
                             idx++;
                         }
                     }
                     else {
-                        res[idx] = dfdx->eval(inst);
+                        res[idx] = dfdx->get_val(inst);
                         _jac_vals[idx] = res[idx];
                         idx++;
                     }
@@ -569,7 +607,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     /* return the structure of the jacobian */
     for(auto& c_p :_cons)
     {
-        c = c_p.second;
+        c = c_p.second.get();
         auto nb_ins = c->get_nb_instances();
         for (auto &v_p: c->get_vars()){
             v = v_p.second.first.get();
@@ -626,7 +664,7 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
     size_t cid = 0;
     for(auto& c_p :_cons)
     {
-        c = c_p.second;
+        c = c_p.second.get();
         if (c->is_linear() || c->is_constant()) {
             lin = true;
         }
@@ -686,7 +724,10 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     func_* df;
     double hess = 0;
     if (_first_call_hess) {
-        set_x(x);
+        if (new_x) {
+            set_x(x);
+            compute_funcs();
+        }
         for (auto &pairs: _hess_link) {
             s = pairs.second;
             for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
@@ -696,7 +737,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                         c = (Constraint*)f_pair.first;
                         df = f_pair.second;
 //                        for (unsigned inst = 0; inst < c->get_nb_instances(); inst++) {
-                            hess = df->eval(inst);
+                            hess = df->get_val(inst);
                             _hess_vals[idx_in++] = hess;
                             res[idx] += lambda[c->_id + inst] * hess;
 //                        }
@@ -735,6 +776,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     if (new_x) {
         set_x(x);
+        compute_funcs();
     }
     for (auto &pairs: _hess_link) {
         s = pairs.second;
@@ -747,7 +789,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                         res[idx] += lambda[c->_id + inst] * _hess_vals[idx_in++];
                     }
                     else{
-                        hess = f_pair.second->eval(inst);
+                        hess = f_pair.second->get_val(inst);
                         idx_in++;
                         res[idx] += lambda[c->_id + inst] * hess;
                     }
@@ -797,10 +839,10 @@ void Model::fill_in_maps() {
                 vj_name = vj->get_name();
 //                vjd = vj->get_id();
                 if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                    _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id)));
+                    _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
                 }
                 else {
-                    _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id)));
+                    _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
                 }
 //                for (int inst = 0; inst<vi->get_dim(); inst++) {
 //                    vid = vi->get_id();
@@ -816,23 +858,28 @@ void Model::fill_in_maps() {
 //    unsigned cid = 0;
     for(auto& c_p :_cons)
     {
-        c = c_p.second;
+        c = c_p.second.get();
         c->compute_derivatives();
+        c->_val = make_shared<vector<double>>();
+        c->_val->resize(c->get_nb_instances());
         if (!c->is_linear()) {
             for (auto &vi_p: c->get_vars()) {
                 vi = vi_p.second.first.get();
                 vi_name = vi->get_name();
 //                vid = vi->get_id();
                 auto df = c->get_stored_derivative(vi->_unique_id);
+                if (df->is_nonlinear()) {
+                    embed(df);
+                }
                 for (auto &vj_p: df->get_vars()) {
                     vj = vj_p.second.first.get();
                     vj_name = vj->get_name();
 //                    vjd = vj->get_id();
                     if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                        _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id)));
+                        _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
                     }
                     else {
-                        _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id)));
+                        _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
                     }
 //                    for (int inst = 0; inst<c->get_nb_instances(); inst++) {
 //                        vid_inst = vid + vi->get_id_inst(inst);
@@ -1138,7 +1185,7 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
     Constraint* c = NULL;
     for(auto& c_p :_cons)
     {
-        c = c_p.second;
+        c = c_p.second.get();
         switch (c->get_type()) {
             case eq:{
                 auto nb_ins = c->get_nb_instances();
@@ -1209,45 +1256,42 @@ void Model::embed(expr& e){
     switch (e.get_type()) {
         case uexp_c:{
             auto ue = (uexpr*)&e;
-            if (ue->_son->is_function()) {
-                auto f = (func_*)ue->_son;
-                embed(*f);
+            auto f = ue->_son;
+            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+            if (f_p.second) {
+                embed(f);
+                _nl_funcs.push_back(f);
+                f->_val = make_shared<vector<double>>();
+                f->_val->resize(f->get_nb_instances());
             }
-            else if(ue->_son->is_expr()){
-                embed(*(expr*)ue->_son);
-            }
-            else if (ue->_son->is_var()){
-                if (_vars.count(((param_*)ue->_son)->get_id())==0) {
-                    add_var((param_*)copy(*ue->_son));
-                }
+            else {
+                ue->_son = f_p.first->second;
             }
             break;
         }
         case bexp_c:{
             auto be = (bexpr*)&e;
-            if (be->_lson->is_function()) {
-                auto f = (func_*)be->_lson;
-                embed(*f);
+            auto f = be->_lson;
+            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+            if (f_p.second) {
+                embed(f);
+                _nl_funcs.push_back(f);
+                f->_val = make_shared<vector<double>>();
+                f->_val->resize(f->get_nb_instances());
             }
-            else if(be->_lson->is_expr()){
-                embed(*(expr*)be->_lson);
+            else {
+                be->_lson = f_p.first->second;
             }
-            else if (be->_lson->is_var()){
-                if (_vars.count(((param_*)be->_lson)->get_id())==0) {
-                    add_var((param_*)copy(*be->_lson));
-                }
+            f = be->_rson;
+            f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+            if (f_p.second) {
+                embed(f);
+                _nl_funcs.push_back(f);
+                f->_val = make_shared<vector<double>>();
+                f->_val->resize(f->get_nb_instances());
             }
-            if (be->_rson->is_function()) {
-                auto f = (func_*)be->_rson;
-                embed(*f);
-            }
-            else if(be->_rson->is_expr()){
-                embed(*(expr*)be->_rson);
-            }
-            else if (be->_rson->is_var()){
-                if (_vars.count(((param_*)be->_rson)->get_id())==0) {
-                    add_var((param_*)copy(*be->_rson));
-                }
+            else {
+                be->_rson = f_p.first->second;
             }
             break;
         }
@@ -1256,131 +1300,25 @@ void Model::embed(expr& e){
     }
 }
 
-void Model::embed(func_& f){
-    f._embedded = true;
-    param_* p = nullptr;
-    param_* p1 = nullptr;
-    param_* p2 = nullptr;
-    for (auto &pair:f.get_lterms()) {
-        p = pair.second._p;
-        if (p->is_var()) {
-            auto it = _vars.find(p->get_id());
-            if (it==_vars.end()) {
-                add_var(p);
-            }
-            else{
-                p = it->second;
-                pair.second._p = p;                
-            }
-        }
-        else {
-            auto it = _params.find(p->get_id());
-            if (it==_params.end()) {
-                add_param(p);
-            }
-            else{
-                p = it->second;
-                pair.second._p = p;
-            }
+void Model::embed(shared_ptr<func_> f){
+    if (f->get_expr()) {
+        embed(*f->get_expr());
+        for (auto &dfp:*f->get_dfdx()) {
+            embed(dfp.second);
         }
     }
-    for (auto &pair:f.get_qterms()) {
-        p1 = pair.second._p->first;
-        p2 = pair.second._p->second;
-        if (p1->is_var()) {
-            auto it1 = _vars.find(p1->get_id());
-            if (it1==_vars.end()) {
-                add_var(p1);
-            }
-            else{
-                p1 = it1->second;
-                pair.second._p->first = p1;
-            }
-            auto it2 = _vars.find(p2->get_id());
-            if (it2==_vars.end()) {
-                add_var(p2);
-            }
-            else{
-                p2 = it2->second;
-                pair.second._p->second = p2;
-            }
-        }
-        else {
-            auto it1 = _params.find(p1->get_id());
-            if (it1==_params.end()) {
-                add_param(p1);
-            }
-            else{
-                p1 = it1->second;
-                pair.second._p->first = p1;
-            }
-            auto it2 = _params.find(p2->get_id());
-            if (it2==_params.end()) {
-                add_param(p2);
-            }
-            else{
-                p2 = it2->second;
-                pair.second._p->second = p2;
-            }
-        }
+    auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+    if (f_p.second) {
+        _nl_funcs.push_back(f_p.first->second);
+        f_p.first->second->_val = make_shared<vector<double>>();
+        f_p.first->second->_val->resize(f_p.first->second->get_nb_instances());
     }
-    for (auto &pair:f.get_pterms()) {
-        auto list = pair.second._l;
-        for (auto &ppi: *list) {
-            p = ppi.first;
-            if (p->is_var()) {
-                auto it = _vars.find(p->get_id());
-                if (it==_vars.end()) {
-                    add_var(p);
-                }
-                else{
-                    p = it->second;
-                    ppi.first = p;
-                }
-            }
-            else {
-                auto it = _params.find(p->get_id());
-                if (it==_params.end()) {
-                    add_param(p);
-                }
-                else{
-                    p = it->second;
-                    ppi.first = p;                    
-                }
-            }
-        }
-    }
-    if (f.is_nonlinear()) {
-        embed(*f.get_expr());
-    }
-    auto old_vars = f.get_vars();
-    for (auto &vp: old_vars) {
-        auto vv = shared_ptr<param_>(_vars_name[vp.first]);
-        if (vv.get() != vp.second.first.get()) {
-            f.delete_var(vp.first);
-            f.add_var(vv);
-        }
-    }
-    auto old_params = f.get_params();
-    for (auto &pp: old_params) {
-        auto p = shared_ptr<param_>(_params_name[pp.first]);
-        if (p.get() != pp.second.first.get()) {
-            f.delete_param(pp.first);
-            f.add_param(p);
-        }
-    }
-    
-    if (f.is_nonlinear()) {
-//        f.compute_derivatives();
-    }
-//    f.embed_derivatives();
-    
 }
 
 
 
 void Model::print_nl_functions() const{
-    cout << "Number of atomic functions = " << _nl_functions.size();
+    cout << "Number of atomic functions = " << _nl_funcs.size();
     cout << endl;
     //    for (auto& f: _functions){
     //        f->print(false);

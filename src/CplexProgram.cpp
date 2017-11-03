@@ -220,7 +220,7 @@ void CplexProgram::create_cplex_constraints() {
 //    size_t c_idx_inst = 0;
     Constraint* c;
     for(auto& p: _model->_cons) {
-        c = p.second;
+        c = p.second.get();
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
