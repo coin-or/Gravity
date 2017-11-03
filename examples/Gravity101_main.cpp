@@ -342,5 +342,20 @@ int main (int argc, const char * argv[])
     polynomial += xvar(1)*xvar(2)*xvar(3) + power(xvar(1), 2) + power(xvar(3),2) - 2*xvar(1)*c + c*1.2*d + c + d;
     polynomial.print(true);
     cout << "the constant of this polynomial function is: " << poly_eval(polynomial.get_cst()) << endl;
+    
+    unsigned n = 10;
+    param<Real> ones("ones");
+    param<Real> zeros("zeros");
+
+    ones.set_size(n, 1);
+    zeros.set_size(n, 0);
+    var<Real> yvar("y", zeros, ones);
+    var<Real> Xvar("X", -1, 1);
+
+    Xvar(1,1) =2;
+    Xvar.print(true);
+    yvar.print(true);
+
+    
     return 0;
    } 

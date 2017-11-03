@@ -27,8 +27,10 @@ int main (int argc, const char * argv[])
     }
     else {
        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
+        //fname = "../../data_sets/Power/nesta_case6_c.m";
+        fname = "../../data_sets/Power/nesta_case30_ieee.m";
 
     }
     PowerNet* grid = new PowerNet();
@@ -66,7 +68,7 @@ int main (int argc, const char * argv[])
     SOCP.add_var(Pf_to^(nb_lines));
     SOCP.add_var(Qf_to^(nb_lines));
     
-    // lIFTED VARIABLES.
+    // LIFTED VARIABLES.
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));

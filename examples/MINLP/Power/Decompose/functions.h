@@ -152,18 +152,22 @@ void scopf_W(PowerNet& grid, bool include_G)
             Bus* bus = (Bus*) b;
             Constraint KCL_P("KCL_P"+bus->_name);
             Constraint KCL_Q("KCL_Q"+bus->_name);
-            for (auto &a: b->get_out()) {
+            for (auto a: b->get_out()) {
                 KCL_P  += grid.g_ff(a->_name)*Wii(a->_src->_name)
-                          +grid.g_ft(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)+grid.b_ft(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
-                KCL_Q  += -1*grid.b_ff(a->_name)*Wii(a->_src->_name)- grid.b_ft(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
+                          +grid.g_ft(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
+                          +grid.b_ft(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
+                KCL_Q  += -1*grid.b_ff(a->_name)*Wii(a->_src->_name)
+                          - grid.b_ft(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
                           +grid.g_ft(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
             }
 
-            for (auto &a: b->get_in()) {
+            for (auto a: b->get_in()) {
                 KCL_P  += grid.g_tt(a->_name)*Wii(a->_dest->_name)
-                          +grid.g_tf(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)-grid.b_tf(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
+                          + grid.g_tf(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
+                          - grid.b_tf(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
 
-                KCL_Q  -= grid.b_tt(a->_name)*Wii(a->_dest->_name) + grid.b_tf(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
+                KCL_Q  -= grid.b_tt(a->_name)*Wii(a->_dest->_name)
+                          + grid.b_tf(a->_name)*R_Wij(a->_src->_name+","+a->_dest->_name)
                           + grid.g_tf(a->_name)*Im_Wij(a->_src->_name+","+a->_dest->_name);
             }
 
@@ -242,25 +246,25 @@ void scopf_W(PowerNet& grid, bool include_G)
 
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(grid.g_ff.in(grid.arcs)*Wii.from(grid.arcs)
-                                + grid.g_ft.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)+ grid.b_ft.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs), 2)
-                          + power(grid.g_ft.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs)-grid.b_ff.in(grid.arcs)*Wii.to(grid.arcs)
-                                  - grid.b_ft.in(grid.arcs)*R_Wij.in_pairs(grid.arcs), 2);
+    Thermal_Limit_from += power(grid.g_ff.in(grid.arcs)*Wii.from(grid.arcs) + grid.g_ft.in(grid.arcs)*R_Wij.in_pairs(grid.arcs) 
+            + grid.b_ft.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs), 2)
+            + power(grid.b_ff.in(grid.arcs)*Wii.from(grid.arcs)+grid.b_ft.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)
+                    -grid.g_ft.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs),2);
+
     Thermal_Limit_from -= power(grid.S_max.in(grid.arcs),2);
     SOCP.add_constraint(Thermal_Limit_from <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(grid.g_tt.in(grid.arcs)*Wii.from(grid.arcs) + grid.g_tf.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)
+    Thermal_Limit_to += power(grid.g_tt.in(grid.arcs)*Wii.to(grid.arcs) + grid.g_tf.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)
                               + grid.b_tf.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs), 2)
-                        + power(grid.b_tt.in(grid.arcs)*Wii.to(grid.arcs) + grid.b_tf.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)
+                        + power(grid.b_tt.in(grid.arcs)*Wii.to(grid.arcs)+ grid.b_tf.in(grid.arcs)*R_Wij.in_pairs(grid.arcs)
                                 + grid.g_tf.in(grid.arcs)*Im_Wij.in_pairs(grid.arcs), 2);
 
     Thermal_Limit_to -= power(grid.S_max.in(grid.arcs),2);
     SOCP.add_constraint(Thermal_Limit_to <= 0);
 
-//    solver SCOPF(SOCP, cplex);
+    //solver SCOPF(SOCP, cplex);
     solver SCOPF(SOCP, ipopt);
-
     SCOPF.run();
 }
 
@@ -271,7 +275,7 @@ void OPF_Clique_W(PowerNet& grid)
     auto cliquetree = grid.get_clique_tree();
     const unsigned nb_cliques = grid._bags.size();
 
-    vector<vector<Bus*>> bag_bus; // each clique contains just nodes, not buses! Fixed this by modifying the bag definition.
+    vector<vector<Bus*>> bag_bus; 
     vector<vector<Bus*>> bag_bus_disjoint;
     vector<vector<Gen*>> bag_gens;
     vector<vector<Gen*>> bag_gens_disjoint;
@@ -292,6 +296,7 @@ void OPF_Clique_W(PowerNet& grid)
         for (int i = 0; i < grid._bags[c].size(); i++) {
             Bus* b = (Bus*) grid.get_node(grid._bags[c].at(i)->_name);
             if (b !=nullptr) {
+                DebugOn(b->_name << " ");
                 bag_B.push_back(b);
                 auto pp = indexii.insert(make_pair<>(b, c));
                 if (pp.second) {
@@ -318,6 +323,8 @@ void OPF_Clique_W(PowerNet& grid)
                 }
             }
         }
+        
+        DebugOn("] " << endl);
         bag_bus.push_back(bag_B);
         bag_gens.push_back(bag_G);
         bag_arcs.push_back(bag_A);
@@ -339,7 +346,7 @@ void OPF_Clique_W(PowerNet& grid)
         var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs[c]->_keys), grid.wi_max.in(bag_bus_pairs[c]->_keys)); // imaginary part of Wij.
         var<Real>  bag_Wii("Wii_" + to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
         CLT.add_var(bag_Wii^(bag_bus[c].size()));
-//        CLT.add_var(bag_R_Wij^(bag_bus_pairs[c]->_keys.size()));// (Maybe bag_bus[c]*bag_bus[c] -1)/2
+//        CLTd.add_var(bag_R_Wij^(bag_bus_pairs[c]->_keys.size()));// (Maybe bag_bus[c]*bag_bus[c] -1)/2
 //        CLT.add_var(bag_Im_Wij^(bag_bus_pairs[c]->_keys.size()));
         CLT.add_var(bag_R_Wij^(bag_bus[c].size()*(bag_bus[c].size()-1)/2));// (Maybe bag_bus[c]*bag_bus[c] -1)/2
         CLT.add_var(bag_Im_Wij^(bag_bus[c].size()*(bag_bus[c].size()-1)/2));
@@ -356,16 +363,15 @@ void OPF_Clique_W(PowerNet& grid)
 
     /* Construct the objective function with generations bound constraints */
     func_ obj;
-    obj += 0;
+    obj += sum(grid.c0.in(grid.gens));
     for (int c = 0; c < nb_cliques; c++) {
-        for (auto &g:bag_gens_disjoint[c]) {
+        for (auto g:bag_gens_disjoint[c]) {
             if (g->_active) {
                 auto b = g->_bus;
                 obj += grid.c1(g->_name).getvalue()*b->pl() + grid.c0(g->_name).getvalue();
                 if (std::find(bag_bus_disjoint[c].begin(), bag_bus_disjoint[c].end(), b) != bag_bus_disjoint[c].end()) {
                     obj += (grid.c1(g->_name)*b->gs())*Wii[c](b->_name);
                 }
-                //shunt
                 for (auto &a: b->get_out()) {
                     if (std::find(bag_arcs_disjoint[c].begin(), bag_arcs_disjoint[c].end(), a) != bag_arcs_disjoint[c].end()) {
                         obj  += grid.c1(g->_name)*grid.g_ff(a->_name)*Wii[c](a->_src->_name)
@@ -398,14 +404,13 @@ void OPF_Clique_W(PowerNet& grid)
             Production_Q_UB += b->ql() - grid.qg_max(g->_name).getvalue();
             Production_Q_LB += b->ql() - grid.qg_min(g->_name).getvalue();
             for (int c = 0; c < nb_cliques; c++) {
-                DebugOff("bag: " << c << " bus: " << b->_name  << " generator: " << g->_name << endl);
                 if (std::find(bag_bus_disjoint[c].begin(), bag_bus_disjoint[c].end(), b) != bag_bus_disjoint[c].end()) {
+                    DebugOn("bag: " << c << " bus: " << b->_name  << " generator: " << g->_name << endl);
                     Production_P_UB += b->gs()*Wii[c](b->_name);
                     Production_P_LB += b->gs()*Wii[c](b->_name);
                     Production_Q_UB += -b->bs()*Wii[c](b->_name);
                     Production_Q_LB += -b->bs()*Wii[c](b->_name);
                 }
-
                 for (auto &a: b->get_out()) {
                     if (std::find(bag_arcs_disjoint[c].begin(), bag_arcs_disjoint[c].end(), a) != bag_arcs_disjoint[c].end()) {
                         Production_P_UB += grid.g_ff(a->_name)*Wii[c](a->_src->_name)
@@ -452,8 +457,6 @@ void OPF_Clique_W(PowerNet& grid)
         }
     }
 
-
-
     /** Define constraints */
     /* CLT constraints */
     for (int c = 0; c < nb_cliques; c++) {
@@ -465,8 +468,8 @@ void OPF_Clique_W(PowerNet& grid)
     }
 
 
-    //* Phase Angle Bounds constraints */
     for (int c = 0; c < nb_cliques; c++) {
+        //* Phase Angle Bounds constraints */
         Constraint PAD_UB("PAD_UB" + to_string(c));
         PAD_UB = Im_Wij[c].in(bag_bus_pairs[c]->_keys);
         PAD_UB -= (grid.tan_th_max).in(bag_bus_pairs[c]->_keys)*R_Wij[c].in(bag_bus_pairs[c]->_keys);
@@ -476,14 +479,12 @@ void OPF_Clique_W(PowerNet& grid)
         PAD_LB = Im_Wij[c].in(bag_bus_pairs[c]->_keys);
         PAD_LB -= (grid.tan_th_min).in(bag_bus_pairs[c]->_keys)*R_Wij[c].in(bag_bus_pairs[c]->_keys);
         CLT.add_constraint(PAD_LB >= 0);
-    }
 
-    /* Thermal Limit Constraints */
-    for (int c = 0; c < nb_cliques; c++) {
+        /* Thermal Limit Constraints */
         Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
-        Thermal_Limit_from += power(grid.g_ff.in(bag_arcs[c])*Wii[c].from(bag_arcs[c])
-                                    + grid.g_ft.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c])+ grid.b_ft.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c]), 2)
-                              + power(grid.g_ft.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c])-grid.b_ff.in(bag_arcs[c])*Wii[c].to(bag_arcs[c])
+        Thermal_Limit_from += power(grid.g_ff.in(bag_arcs[c])*Wii[c].from(bag_arcs[c])+ grid.g_ft.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c])
+                                    + grid.b_ft.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c]), 2)
+                              + power(grid.g_ft.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c])-grid.b_ff.in(bag_arcs[c])*Wii[c].from(bag_arcs[c])
                                       - grid.b_ft.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c]), 2);
         Thermal_Limit_from -= power(grid.S_max.in(bag_arcs[c]),2);
         CLT.add_constraint(Thermal_Limit_from <= 0);
@@ -491,10 +492,10 @@ void OPF_Clique_W(PowerNet& grid)
         Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
         Thermal_Limit_to += power(grid.g_tt.in(bag_arcs[c])*Wii[c].from(bag_arcs[c]) + grid.g_tf.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c])
                                   + grid.b_tf.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c]), 2)
-                            + power(grid.b_tt.in(bag_arcs[c])*Wii[c].to(bag_arcs[c]) + grid.b_tf.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c])
+                            + power(grid.b_tt.in(bag_arcs[c])*Wii[c].from(bag_arcs[c]) + grid.b_tf.in(bag_arcs[c])*R_Wij[c].in_pairs(bag_arcs[c])
                                     + grid.g_tf.in(bag_arcs[c])*Im_Wij[c].in_pairs(bag_arcs[c]), 2);
 
-        Thermal_Limit_to -= power(grid.S_max.in(bag_arcs[c]),2);
+        Thermal_Limit_to -= power(grid.S_max.in(bag_arcs[c]), 2);
         CLT.add_constraint(Thermal_Limit_to <= 0);
     }
     
@@ -545,7 +546,7 @@ void OPF_Clique_W(PowerNet& grid)
         Link_Wii -= Wii[a->_dest->_id].in(a->_intersection);
         CLT.add_constraint(Link_Wii = 0);
         
-        if (a->_intersection.size()>0) {
+        if (a->_intersection_clique.size()>0) {
             Constraint Link_Im_Wij("Link_Im_Wij_" + to_string(a->_id));
             Link_Im_Wij += Im_Wij[a->_src->_id].in(a->_intersection_clique);
             Link_Im_Wij -= Im_Wij[a->_dest->_id].in(a->_intersection_clique);
@@ -558,10 +559,13 @@ void OPF_Clique_W(PowerNet& grid)
         }
     }
     
-    
-//    solver SCOPF(CLT, cplex);
+    for (int c = 0; c < nb_cliques; c++){
+        Im_Wij[c].print(true);
+        R_Wij[c].print(true);
+        Wii[c].print(true);
+    }
+   // solver SCOPF(CLT, cplex);
     solver SCOPF(CLT, ipopt);
-
     SCOPF.run();
 }
 #endif
