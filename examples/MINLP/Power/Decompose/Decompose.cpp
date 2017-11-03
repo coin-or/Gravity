@@ -246,7 +246,7 @@ int main (int argc, const char * argv[])
     }
     else {
         //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+         fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         // fname = "../../data_sets/Power/nesta_case6_c.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -264,8 +264,8 @@ int main (int argc, const char * argv[])
     PowerNet grid;
 
     grid.readgrid(fname);
-    OPF_Clique_W(grid);
-    //OPF_Clique_WG(grid);
+    //OPF_Clique_W(grid);
+    OPF_Clique_WG(grid);
     //scopf_W(grid, false);
     return 0;
     
