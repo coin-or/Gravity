@@ -43,6 +43,7 @@ namespace gravity {
         
         string get_str();
         double eval(size_t i) const;
+        func_ get_derivative(const param_ &v) const;
         virtual ~expr(){};
     };
 
@@ -52,7 +53,7 @@ namespace gravity {
         
     public:
         OperatorType                _otype;
-        shared_ptr<func_>       _son;
+        shared_ptr<func_>           _son;
         
         uexpr();
         uexpr(const uexpr& exp);
@@ -416,9 +417,9 @@ namespace gravity {
         map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
         map<string, qterm>*                    _qterms = nullptr; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
         map<string, pterm>*                    _pterms = nullptr; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
-        expr*                                  _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
+        shared_ptr<expr>                       _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
         map<string, expr*>*                    _DAG = nullptr; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
-        deque<expr*>*                          _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
+        deque<shared_ptr<expr>>*               _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
         shared_ptr<map<unique_id,shared_ptr<func_>>>      _dfdx;/**< A map storing the first derivatives of f per variable name*/
         Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
@@ -488,7 +489,7 @@ namespace gravity {
         
         void insert(const pterm& term);
         
-        void insert(expr& e);
+//        void insert(expr& e);
         void update_to_str();
         size_t get_nb_vars() const;
         
@@ -541,7 +542,7 @@ namespace gravity {
         bool is_transposed() const;
         FType get_ftype() const;
         void embed(func_& f);
-        void embed(expr& e);
+        void embed(shared_ptr<expr> e);
         
         void reset();
         
@@ -634,7 +635,7 @@ namespace gravity {
             return *_pterms;
         }
         
-        expr* get_expr() const{
+        shared_ptr<expr> get_expr() const{
             return _expr;
         }
         
