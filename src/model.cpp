@@ -1304,7 +1304,9 @@ void Model::embed(shared_ptr<func_> f){
     if (f->get_expr()) {
         embed(*f->get_expr());
         for (auto &dfp:*f->get_dfdx()) {
-            embed(dfp.second);
+            if (dfp.second->is_nonlinear()) {
+                embed(dfp.second);
+            }
         }
     }
     auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));

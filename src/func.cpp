@@ -3316,6 +3316,7 @@ namespace gravity{
             for (unsigned inst = 0; inst < _son->_val->size(); inst++) {
                 _son->_val->at(inst) = _son->eval(inst);
             }
+            _son->_evaluated = true;
         }
         switch (_otype) {
             case cos_:
@@ -3701,6 +3702,7 @@ namespace gravity{
             for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
                 _lson->_val->at(inst) = _lson->eval(inst);
             }
+            _lson->_evaluated = true;
         }
         if (_rson->is_constant() && !_rson->_evaluated) {
             _rson->_val = make_shared<vector<double>>();
@@ -3708,6 +3710,7 @@ namespace gravity{
             for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
                 _rson->_val->at(inst) = _rson->eval(inst);
             }
+            _rson->_evaluated = true;
         }
         switch (_otype) {
             case plus_:
@@ -4724,19 +4727,18 @@ namespace gravity{
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
-//        if (is_constant() && _evaluated) {
-//            if (is_number()) {
-//                return _val->at(0);
-//            }
+        if (is_constant() && _evaluated) {
+            if (is_number()) {
+                return _val->at(0);
+            }
 //            if (i>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
-////            if (_val->at(i) != force_eval(i)) {
-////                throw invalid_argument("error");
-////            }
-//            return _val->at(i);
-//        }
-        _evaluated = true;
+//            if (_val->at(i) != force_eval(i)) {
+//                throw invalid_argument("error");
+//            }
+            return _val->at(i);
+        }
         double res = 0;
         for (auto &pair:*_pterms) {
             res += pair.second.eval(i);
