@@ -16,6 +16,7 @@
 #include <unordered_set>
 #include <math.h>
 #include <vector>
+#include <deque>
 #include <thread>
 #ifdef USE_IPOPT
 #include <coin/IpIpoptApplication.hpp>
@@ -37,7 +38,8 @@ namespace gravity {
     protected:
         string                          _name;
         set<pair<size_t,size_t>>        _hess; /* Pairs of variables linked in the hessian, storing Ipopt indices here. */
-        vector<shared_ptr<func_>>       _nl_functions;
+        deque<shared_ptr<func_>>        _nl_funcs;
+        map<string,shared_ptr<func_>>   _nl_funcs_map;
         void add_var(param_* v);        //Add variables without reallocating memory
         void add_param(param_* v);      //Add variables without reallocating memory
         
@@ -52,7 +54,6 @@ namespace gravity {
         size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
         size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
         size_t                          _nnz_g_obj = 0; /* Number of non zeros in the Objective gradient */
-        vector<double>                  _cons_vals; /* Constraint values for sppeding up ipopt */
         vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */
         vector<double>                  _obj_grad_vals; /* Objective gradient values stored in sparse format */
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
@@ -60,8 +61,8 @@ namespace gravity {
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-        map<unsigned, Constraint*>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
-        map<string, Constraint*>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+        map<unsigned, shared_ptr<Constraint>>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+        map<string, shared_ptr<Constraint>>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<unique_id, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears */
 
         /**< Set of variables linked to one another in the hessian, indexed by pairs
@@ -111,7 +112,7 @@ namespace gravity {
         /* Modifiers */
         
         void set_x(const double* x); // Assign values to all variables based on array x.
-        
+        void compute_funcs();
         
         void add_var(param_& v); //Add variables by copying variable
         void del_var(const param_& v);
@@ -124,7 +125,7 @@ namespace gravity {
         
         void add_constraint(const Constraint& c);
         
-        void embed(func_& f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
+        void embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void del_constraint(const Constraint& c);
         void set_objective(const func_& f, ObjectiveType t = minimize);

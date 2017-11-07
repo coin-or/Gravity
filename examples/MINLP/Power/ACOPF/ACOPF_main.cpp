@@ -30,7 +30,9 @@ int main (int argc, const char * argv[])
            //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
            //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
            //fname = "../../data_sets/Power/nesta_case118_ieee.m";
-           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
+//           fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
+        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
+//        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
     }
@@ -135,70 +137,6 @@ int main (int argc, const char * argv[])
     ACOPF.add_constraint(Ref_Bus = 0);
     
     
-    //Generation Limit
-//    Constraint PG_UB("PG_UB");
-//    PG_UB = Pg.in(grid.gens) - grid.pg_max.in(grid.gens);
-//    ACOPF.add_constraint(PG_UB <= 0);
-//    
-//    Constraint PG_LB("PG_LB");
-//    PG_LB = Pg.in(grid.gens) - grid.pg_min.in(grid.gens);
-//    ACOPF.add_constraint(PG_LB >= 0);
-//
-//    Constraint QG_UB("QG_UB");
-//    QG_UB = Qg.in(grid.gens) - grid.qg_max.in(grid.gens);
-//    ACOPF.add_constraint(QG_UB <= 0);
-//    
-//    Constraint QG_LB("QG_LB");
-//    QG_LB = Qg.in(grid.gens) - grid.qg_min.in(grid.gens);
-//    ACOPF.add_constraint(QG_LB >= 0);
-
-    //Voltage Limit
-//    Constraint Vi_UB("Vi_UB");
-//    Vi_UB = vi.in(grid.nodes) - grid.v_max.in(grid.nodes);
-//    ACOPF.add_constraint(Vi_UB <= 0);
-//    
-//    Constraint Vi_LB("Vi_LB");
-//    Vi_LB = vi.in(grid.nodes) + grid.v_max.in(grid.nodes);
-//    ACOPF.add_constraint(Vi_LB >= 0);
-//    
-//    Constraint Vr_UB("Vr_UB");
-//    Vr_UB = vr.in(grid.nodes) - grid.v_max.in(grid.nodes);
-//    ACOPF.add_constraint(Vr_UB <= 0);
-//    
-//    Constraint Vr_LB("Vr_LB");
-//    Vr_LB = vr.in(grid.nodes) + grid.v_max.in(grid.nodes);
-//    ACOPF.add_constraint(Vr_LB >= 0);
-    
-    //Power Limit
-//    
-//    Constraint Pf_UB("P_UB_From");
-//    Pf_UB = Pf_from.in(grid.arcs) - grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Pf_UB <= 0);
-//    Constraint Pf_LB("P_LB_From");
-//    Pf_LB = Pf_from.in(grid.arcs) + grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Pf_LB >= 0);
-//    
-//    Constraint Pt_UB("P_UB_To");
-//    Pt_UB = Pf_to.in(grid.arcs) - grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Pt_UB <= 0);
-//    Constraint Pt_LB("P_LB_To");
-//    Pt_LB = Pf_to.in(grid.arcs) + grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Pt_LB >= 0);
-//    
-//    Constraint Qf_UB("Q_UB_From");
-//    Qf_UB = Qf_from.in(grid.arcs) - grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Qf_UB <= 0);
-//    Constraint Qf_LB("Q_LB_From");
-//    Qf_LB = Qf_from.in(grid.arcs) + grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Qf_LB >= 0);
-//    
-//    Constraint Qt_UB("Q_UB_To");
-//    Qt_UB = Qf_to.in(grid.arcs) - grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Qt_UB <= 0);
-//    Constraint Qt_LB("Q_LB_To");
-//    Qt_LB = Qf_to.in(grid.arcs) + grid.S_max.in(grid.arcs);
-//    ACOPF.add_constraint(Qt_LB >= 0);
-    
     //KCL
     for (auto b: grid.nodes) {
         if (!b->_active) {
@@ -233,99 +171,66 @@ int main (int argc, const char * argv[])
         }
         KCL_P = 0;
         KCL_Q = 0;
-//        if (!KCL_P.get_vars().empty()) {
-            ACOPF.add_constraint(KCL_P);
-//        }
-//        if (!KCL_Q.get_vars().empty()) {
-            ACOPF.add_constraint(KCL_Q);
-//        }
+        ACOPF.add_constraint(KCL_P = 0);
+        ACOPF.add_constraint(KCL_Q = 0);
     }
     //AC Power Flow.
-//
-//    for (auto a:grid.arcs) {
-//        auto arc = (Line*)a;
-//        if (arc->_active) {
-//            Constraint Flow_P_From("Flow_P_From"+arc->_name);
-//            Flow_P_From += Pf_from(arc->_name);
-//            Flow_P_From -= arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2))*(power(vr(a->src->_name), 2) + power(vi(a->src->_name), 2));
-//            Flow_P_From -= (-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2))*(vr(a->src->_name)*vr(a->dest->_name) + vi(a->src->_name)*vi(a->dest->_name));
-//            Flow_P_From -= (-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2))*(vi(a->src->_name)*vr(a->dest->_name) - vr(a->src->_name)*vi(a->dest->_name));
-//            Flow_P_From = 0;
-////            Flow_P_From.print();
-//            ACOPF.add_constraint(Flow_P_From);
-//        
-//            Constraint Flow_P_To("Flow_P_To"+arc->_name);
-//            Flow_P_To += Pf_to(arc->_name);
-//            Flow_P_To -= arc->g*(power(vr(a->dest->_name), 2) + power(vi(a->dest->_name), 2));
-//            Flow_P_To -= (-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2))*(vr(a->src->_name)*vr(a->dest->_name) + vi(a->src->_name)*vi(a->dest->_name));
-//            Flow_P_To -= (-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2))*(vi(a->dest->_name)*vr(a->src->_name) - vr(a->dest->_name)*vi(a->src->_name));
-//            Flow_P_To = 0;
-////            Flow_P_To.print();
-//            ACOPF.add_constraint(Flow_P_To);
-//
-//        }
-//    }
+
      /** TODO write the constraints in Complex form */
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(grid.arcs);
+    Flow_P_From += Pf_from;
     if (polar) {
-//        Flow_P_From -= grid.Y_charge.in(grid.arcs)*cos(-1*grid.Y_charge_t.in(grid.arcs))/power(grid.tr.in(grid.arcs),2)*power(v.from(grid.arcs),2);
-//        Flow_P_From += grid.Y.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
-//        Flow_P_From += grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
-        Flow_P_From -= grid.g.in(grid.arcs)/power(grid.tr.in(grid.arcs),2)*power(v.from(grid.arcs),2);
-        Flow_P_From += grid.g.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
-        Flow_P_From += grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
+        Flow_P_From -= grid.g/power(grid.tr,2)*power(v.from(),2);
+        Flow_P_From += grid.g/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
+        Flow_P_From += grid.b/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
-        Flow_P_From -= grid.g_ff.in(grid.arcs)*(power(vr.from(grid.arcs), 2) + power(vi.from(grid.arcs), 2));
-        Flow_P_From -= grid.g_ft.in(grid.arcs)*(vr.from(grid.arcs)*vr.to(grid.arcs) + vi.from(grid.arcs)*vi.to(grid.arcs));
-        Flow_P_From -= grid.b_ft.in(grid.arcs)*(vi.from(grid.arcs)*vr.to(grid.arcs) - vr.from(grid.arcs)*vi.to(grid.arcs));
+        Flow_P_From -= grid.g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
+        Flow_P_From -= grid.g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_From -= grid.b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
-    ACOPF.add_constraint(Flow_P_From=0);
+    ACOPF.add_constraint(Flow_P_From.in(grid.arcs)=0);
 
     Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(grid.arcs);
+    Flow_P_To += Pf_to;
     if (polar) {
-        Flow_P_To -= grid.g.in(grid.arcs)*power(v.to(grid.arcs), 2);
-        Flow_P_To += grid.g.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
-        Flow_P_To += grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
+        Flow_P_To -= grid.g*power(v.to(), 2);
+        Flow_P_To += grid.g/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
+        Flow_P_To += grid.b/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
     }
     else {
-        Flow_P_To -= grid.g_tt.in(grid.arcs)*(power(vr.to(grid.arcs), 2) + power(vi.to(grid.arcs), 2));
-        Flow_P_To -= grid.g_tf.in(grid.arcs)*(vr.from(grid.arcs)*vr.to(grid.arcs) + vi.from(grid.arcs)*vi.to(grid.arcs));
-        Flow_P_To -= grid.b_tf.in(grid.arcs)*(vi.to(grid.arcs)*vr.from(grid.arcs) - vr.to(grid.arcs)*vi.from(grid.arcs));
+        Flow_P_To -= grid.g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
+        Flow_P_To -= grid.g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_To -= grid.b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
-    ACOPF.add_constraint(Flow_P_To=0);
+    ACOPF.add_constraint(Flow_P_To.in(grid.arcs)=0);
 
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(grid.arcs);
+    Flow_Q_From += Qf_from;
     if (polar) {
-        Flow_Q_From += (0.5*grid.ch.in(grid.arcs)+grid.b.in(grid.arcs))/power(grid.tr.in(grid.arcs),2)*power(v.from(grid.arcs),2);
-        Flow_Q_From -= grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
-        Flow_Q_From += grid.g.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.from(grid.arcs) - theta.to(grid.arcs) - grid.as.in(grid.arcs)));
+        Flow_Q_From += (0.5*grid.ch+grid.b)/power(grid.tr,2)*power(v.from(),2);
+        Flow_Q_From -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
+        Flow_Q_From += grid.g/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
-        Flow_Q_From += grid.b_ff.in(grid.arcs)*(power(vr.from(grid.arcs), 2) + power(vi.from(grid.arcs), 2));
-        Flow_Q_From += grid.b_ft.in(grid.arcs)*(vr.from(grid.arcs)*vr.to(grid.arcs) + vi.from(grid.arcs)*vi.to(grid.arcs));
-        Flow_Q_From -= grid.g_ft.in(grid.arcs)*(vi.from(grid.arcs)*vr.to(grid.arcs) - vr.from(grid.arcs)*vi.to(grid.arcs));
+        Flow_Q_From += grid.b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
+        Flow_Q_From += grid.b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_From -= grid.g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
-    ACOPF.add_constraint(Flow_Q_From=0);
+    ACOPF.add_constraint(Flow_Q_From.in(grid.arcs)=0);
     Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(grid.arcs);
+    Flow_Q_To += Qf_to;
     if (polar) {
-        Flow_Q_To += (0.5*grid.ch.in(grid.arcs)+grid.b.in(grid.arcs))*power(v.to(grid.arcs),2);
-        Flow_Q_To -= grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
-        Flow_Q_To += grid.g.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
-//        Flow_Q_To += grid.b_tt.in(grid.arcs)*power(v.to(grid.arcs),2);
-//        Flow_Q_To -= grid.b.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*cos(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
-//        Flow_Q_To += grid.g.in(grid.arcs)/grid.tr.in(grid.arcs)*(v.from(grid.arcs)*v.to(grid.arcs)*sin(theta.to(grid.arcs) - theta.from(grid.arcs) + grid.as.in(grid.arcs)));
+        Flow_Q_To += (0.5*grid.ch+grid.b)*power(v.to(),2);
+        Flow_Q_To -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
+        Flow_Q_To += grid.g/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
     }
     else {
-        Flow_Q_To += grid.b_tt.in(grid.arcs)*(power(vr.to(grid.arcs), 2) + power(vi.to(grid.arcs), 2));
-        Flow_Q_To += grid.b_tf.in(grid.arcs)*(vr.from(grid.arcs)*vr.to(grid.arcs) + vi.from(grid.arcs)*vi.to(grid.arcs));
-        Flow_Q_To -= grid.g_tf.in(grid.arcs)*(vi.to(grid.arcs)*vr.from(grid.arcs) - vr.to(grid.arcs)*vi.from(grid.arcs));
+        Flow_Q_To += grid.b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
+        Flow_Q_To += grid.b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_To -= grid.g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
-    ACOPF.add_constraint(Flow_Q_To=0);
+    ACOPF.add_constraint(Flow_Q_To.in(grid.arcs)=0);
     
     // AC voltage limit constraints.
     if (!polar) {
@@ -346,35 +251,35 @@ int main (int argc, const char * argv[])
     Constraint PAD_LB("PAD_LB:");
     auto bus_pairs = grid.get_bus_pairs();
     if (polar) {
-        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
-        PAD_UB -= grid.th_max.in(bus_pairs);
-        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
-        PAD_LB -= grid.th_min.in(bus_pairs);
+        PAD_UB = theta.from() - theta.to();
+        PAD_UB -= grid.th_max;
+        PAD_LB = theta.from() - theta.to();
+        PAD_LB -= grid.th_min;
         DebugOff(grid.th_min.to_str(true) << endl);
         DebugOff(grid.th_max.to_str(true) << endl);
     }
     else {        
-        DebugOn("Number of bus_pairs = " << bus_pairs.size() << endl);
-        PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
-        PAD_UB -= grid.tan_th_max.in(bus_pairs)*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
+        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
+        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_UB -= grid.tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
         
-        PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
-        PAD_LB -= grid.tan_th_min.in(bus_pairs)*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.to(bus_pairs)*vi.from(bus_pairs));
+        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_LB -= grid.tan_th_min*(vr.from()*vr.to() + vi.to()*vi.from());
     }
-    ACOPF.add_constraint(PAD_UB <= 0);
-    ACOPF.add_constraint(PAD_LB >= 0);
+    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
+    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
 
 
 //  Thermal Limit Constraints 
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from.in(grid.arcs), 2) + power(Qf_from.in(grid.arcs), 2);
-    Thermal_Limit_from -= power(grid.S_max.in(grid.arcs), 2);
-    ACOPF.add_constraint(Thermal_Limit_from <= 0);
+    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
+    Thermal_Limit_from -= power(grid.S_max, 2);
+    ACOPF.add_constraint(Thermal_Limit_from.in(grid.arcs) <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to.in(grid.arcs), 2) + power(Qf_to.in(grid.arcs), 2);
-    Thermal_Limit_to -= power(grid.S_max.in(grid.arcs),2);
-    ACOPF.add_constraint(Thermal_Limit_to <= 0);
+    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to -= power(grid.S_max,2);
+    ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
 
     //solver OPF(ACOPF,cplex);
     solver OPF(ACOPF,ipopt);

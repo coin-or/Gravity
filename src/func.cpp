@@ -858,63 +858,22 @@ namespace gravity{
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
         _expr = nullptr;
+        _dfdx = make_shared<map<unique_id,shared_ptr<func_>>>();
         _DAG = new map<string, expr*>();
-        _queue = new queue<expr*>();
+        _queue = new deque<shared_ptr<expr>>();
         _all_sign = zero_;
         _all_convexity = linear_;
         _all_range = new pair<constant_*, constant_*>(new constant<double>(0), new constant<double>(0));
         _sign = nullptr;
         _convexity = nullptr;
         _range = nullptr;
+        _val = make_shared<vector<double>>();
+        _val->push_back(0);
     };
 
     func_::func_(constant_&& c){
         if(c.is_function()){
-            set_type(func_c);
-            auto f = (func_*) &c;
-            _to_str = f->_to_str;
-            _ftype = f->_ftype;
-            _return_type = f->_return_type;
-            _all_convexity = f->_all_convexity;
-            _all_sign = f->_all_sign;
-            _all_range = f->_all_range;
-            f->_all_range = nullptr;
-            _lterms = f->_lterms;
-            f->_lterms = nullptr;
-            _qterms = f->_qterms;
-            f->_qterms = nullptr;
-            _pterms = f->_pterms;
-            f->_pterms = nullptr;
-            _expr = f->_expr;
-            f->_expr = nullptr;
-            _DAG = f->_DAG;
-            f->_DAG = nullptr;
-            _queue = f->_queue;
-            f->_queue = nullptr;
-            _vars = f->_vars;
-            f->_vars = nullptr;
-            _params = f->_params;
-            f->_params = nullptr;
-            _cst = f->_cst;
-            f->_cst = nullptr;
-            _range = f->_range;
-            f->_range = nullptr;
-            _convexity = f->_convexity;
-            f->_convexity = nullptr;
-            _sign = f->_sign;
-            f->_sign = nullptr;
-            _is_transposed = f->_is_transposed;
-            _is_vector = f->_is_vector;
-            _embedded = f->_embedded;
-            for (auto &df:f->_dfdx) {
-                _dfdx[df.first] = df.second;
-            }
-            f->_dfdx.clear();
-            _nb_instances = f->_nb_instances;
-            _nnz_j = f->_nnz_j;
-            _nnz_h = f->_nnz_h;
-            _hess_link = f->_hess_link;
-            
+            *this = move(*(func_*)&c);
         }
         else {
             set_type(func_c);
@@ -926,7 +885,8 @@ namespace gravity{
             _pterms = new map<string, pterm>();
             _expr = nullptr;
             _DAG = new map<string, expr*>();
-            _queue = new queue<expr*>();
+            _queue = new deque<shared_ptr<expr>>();
+            _dfdx = make_shared<map<unique_id,shared_ptr<func_>>>();
             _all_sign = zero_;
             _all_convexity = linear_;
             _all_range = nullptr;
@@ -939,40 +899,52 @@ namespace gravity{
                     _cst = new constant<bool>(*(constant<bool>*)(&c));
                     _all_sign = ((constant<bool>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<bool>*)(&c))->eval());
                     break;
                 }
                 case short_c: {
                     _cst = new constant<short>(*(constant<short>*)(&c));
                     _all_sign = ((constant<short>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<short>*)(&c))->eval());
                     break;
                 }
                 case integer_c: {
                     _cst = new constant<int>(*(constant<int>*)(&c));
                     _all_sign = ((constant<int>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<int>*)(&c))->eval());
                     break;
                 }
                 case float_c: {
                     _cst = new constant<float>(*(constant<float>*)(&c));
                     _all_sign = ((constant<float>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<float>*)(&c))->eval());
                     break;
                 }
                 case double_c: {
                     _cst = new constant<double>(*(constant<double>*)(&c));
                     _all_sign = ((constant<double>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<double>*)(&c))->eval());
                     break;
                 }
                 case long_c: {
                     _cst = new constant<long double>(*(constant<long double>*)(&c));
                     _all_sign = ((constant<long double>*)_cst)->get_sign();
                     _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                    _val = make_shared<vector<double>>();
+                    _val->push_back(((constant<long double>*)(&c))->eval());
                     break;
                 }
                 case par_c:{
-                    auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
+                    auto p_c2 =     shared_ptr<param_>((param_*)copy(move(c)));
                     _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_param(p_c2);
                     _cst = new constant<double>(0);
@@ -980,10 +952,12 @@ namespace gravity{
                     _all_range = p_c2->get_range();
                     _is_transposed = p_c2->_is_transposed;
                     _is_vector = p_c2->_is_vector;
+                    for (unsigned inst = 0; inst < _val->size(); inst++) {
+                        _val->at(inst) = poly_eval(p_c2.get(), inst);
+                    }
                     break;
                 }
                 case var_c:{
-                    _to_str = ((param_*)(&c))->get_name();
                     auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
                     _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_var(p_c2);
@@ -1009,54 +983,159 @@ namespace gravity{
                     break;
                 }
                 case uexp_c: {
-                    
                     auto ue = (uexpr*)(&c);
+                    auto f = ue->_son;
+                    for (auto &pair:*f->_vars) {
+                        auto p = pair.second.first;
+                        auto it = _vars->find(p->get_name());
+                        if (it==_vars->end()) {
+                            add_var(p,pair.second.second);
+                        }
+                    }
+                    for (auto &pair:*f->_params) {
+                        auto p = pair.second.first;
+                        auto it = _params->find(p->get_name());
+                        if (it==_params->end()) {
+                            add_param(p,pair.second.second);
+                        }
+                    }
                     switch (ue->_otype) {
                         case sin_:
-                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(ue->_coef)); // TO UPDATE
                             _all_sign = unknown_;
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            if (ue->_son->is_constant()) {
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+                                }
+                            }
                             break;
                         case cos_:
-                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                            _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(ue->_coef)); // TO UPDATE
                             _all_sign = unknown_;
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            if (ue->_son->is_constant()) {
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+                                }
+                            }
                             break;
                         case sqrt_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = non_neg_;
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            if (ue->_son->is_constant()) {
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+                                }
+                            }
                             break;
                         case exp_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = pos_;
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            if (ue->_son->is_constant()) {
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+                                }
+                            }
                             break;
                         case log_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = unknown_;
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            if (ue->_son->is_constant()) {
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+                                }
+                            }
                             break;
                         default:
                             break;
                     }
-                    _expr = new uexpr(*ue);
-                    embed(*_expr);
+                    _cst = new constant<double>(0);
+                    _expr = make_shared<uexpr>(move(*ue));
+                    embed(_expr);
                     if (!_vars->empty()) {
                         _ftype = nlin_;
                     }
 //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                    _queue->push(_expr);
+                    _queue->push_back(_expr);
                     //sign and convexity
                     break;
                 }
                 case bexp_c: {
                     auto be = (bexpr*)&c;
+                    auto f = be->_lson;
+                    for (auto &pair:*f->_vars) {
+                        auto p = pair.second.first;
+                        auto it = _vars->find(p->get_name());
+                        if (it==_vars->end()) {
+                            add_var(p,pair.second.second);
+                        }
+                    }
+                    for (auto &pair:*f->_params) {
+                        auto p = pair.second.first;
+                        auto it = _params->find(p->get_name());
+                        if (it==_params->end()) {
+                            add_param(p,pair.second.second);
+                        }
+                    }
+                    f = be->_rson;
+                    for (auto &pair:*f->_vars) {
+                        auto p = pair.second.first;
+                        auto it = _vars->find(p->get_name());
+                        if (it==_vars->end()) {
+                            add_var(p,pair.second.second);
+                        }
+                    }
+                    for (auto &pair:*f->_params) {
+                        auto p = pair.second.first;
+                        auto it = _params->find(p->get_name());
+                        if (it==_params->end()) {
+                            add_param(p,pair.second.second);
+                        }
+                    }
                     _cst = new constant<double>(0);
-                    _expr = new bexpr(*(bexpr*)&c);
+                    _expr = make_shared<bexpr>(move(*be));;
                     _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                     _all_sign = be->get_all_sign();
-                    embed(*_expr);
+                    if (be->_lson->is_constant() && be->_rson->is_constant()) {
+                        if (!_val) {
+                            _val = make_shared<vector<double>>();
+                        }
+                        _val->resize(max(_val->size(),max(be->_lson->get_nb_instances(),be->_rson->get_nb_instances())));
+                        switch (be->_otype) {
+                            case plus_:
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = be->_coef*(be->_lson->eval(inst) + be->_rson->eval(inst));
+                                }
+                                break;
+                            case minus_:
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = be->_coef*(be->_lson->eval(inst) - be->_rson->eval(inst));
+                                }
+                                break;
+                            case product_:
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = be->_coef*(be->_lson->eval(inst) * be->_rson->eval(inst));
+                                }
+                                break;
+                            case div_:
+                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                    _val->at(inst) = be->_coef*(be->_lson->eval(inst) / be->_rson->eval(inst));
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    embed(_expr);
                     if (!_vars->empty()) {
                         _ftype = nlin_;
                     }
 //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                    _queue->push(_expr);
+                    _queue->push_back(_expr);
                     break;
                 }
                 default:
@@ -1077,7 +1156,8 @@ namespace gravity{
         _pterms = new map<string, pterm>();
         _expr = nullptr;
         _DAG = new map<string, expr*>();
-        _queue = new queue<expr*>();
+        _queue = new deque<shared_ptr<expr>>();
+        _dfdx = make_shared<map<unique_id,shared_ptr<func_>>>();
         _all_sign = zero_;
         _all_convexity = linear_;
         _all_range = nullptr;
@@ -1092,36 +1172,48 @@ namespace gravity{
                 _cst = new constant<bool>(*(constant<bool>*)(&c));
                 _all_sign = ((constant<bool>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<bool>*)(&c))->eval());
                 break;
             }
             case short_c: {
                 _cst = new constant<short>(*(constant<short>*)(&c));
                 _all_sign = ((constant<short>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<short>*)(&c))->eval());
                 break;
             }
             case integer_c: {
                 _cst = new constant<int>(*(constant<int>*)(&c));
                 _all_sign = ((constant<int>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<int>*)(&c))->eval());
                 break;
             }
             case float_c: {
                 _cst = new constant<float>(*(constant<float>*)(&c));
                 _all_sign = ((constant<float>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<float>*)(&c))->eval());
                 break;
             }
             case double_c: {
                 _cst = new constant<double>(*(constant<double>*)(&c));
                 _all_sign = ((constant<double>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<double>*)(&c))->eval());
                 break;
             }
             case long_c: {
                 _cst = new constant<long double>(*(constant<long double>*)(&c));
                 _all_sign = ((constant<long double>*)_cst)->get_sign();
                 _all_range = new pair<constant_*, constant_*>(copy(*_cst),copy(*_cst));
+                _val = make_shared<vector<double>>();
+                _val->push_back(((constant<long double>*)(&c))->eval());
                 break;
             }
             case par_c:{
@@ -1131,6 +1223,9 @@ namespace gravity{
                 _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
+                for (unsigned inst = 0; inst < _val->size(); inst++) {
+                    _val->at(inst) = poly_eval(p_c2.get(), inst);
+                }
                 break;
             }
             case var_c:{
@@ -1156,52 +1251,160 @@ namespace gravity{
             case uexp_c: {
                 _cst = new constant<double>(0);
                 auto ue = (uexpr*)(&c);
+                auto f = ue->_son;
+                for (auto &pair:*f->_vars) {
+                    auto p = pair.second.first;
+                    auto it = _vars->find(p->get_name());
+                    if (it==_vars->end()) {
+                        add_var(p,pair.second.second);
+                    }
+                }
+                for (auto &pair:*f->_params) {
+                    auto p = pair.second.first;
+                    auto it = _params->find(p->get_name());
+                    if (it==_params->end()) {
+                        add_param(p,pair.second.second);
+                    }
+                }
                 switch (ue->_otype) {
                     case sin_:
-                        _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                        _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(1*ue->_coef)); // TO UPDATE
                         _all_sign = unknown_;
+                        if (!_val) {
+                            _val = make_shared<vector<double>>();
+                        }
+                        if (ue->_son->is_constant()) {
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+                            }
+                        }
                         break;
                     case cos_:
-                        _all_range = new pair<constant_*, constant_*>(new constant<double>(-1),new constant<double>(1)); // TO UPDATE
+                        _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(1*ue->_coef)); // TO UPDATE
                         _all_sign = unknown_;
+                        if (ue->_son->is_constant()) {
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+                            }
+                        }
                         break;
                     case sqrt_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = non_neg_;
+                        if (ue->_son->is_constant()) {
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+                            }
+                        }
                         break;
                     case exp_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = pos_;
+                        if (ue->_son->is_constant()) {
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+                            }
+                        }
                         break;
                     case log_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = unknown_;
+                        if (ue->_son->is_constant()) {
+                            _val->resize(max(_val->size(),ue->_son->get_nb_instances()));
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+                            }
+                        }
                         break;
                     default:
                         break;
                 }
-                _expr = new uexpr(*ue);
-                embed(*_expr);
+                _expr = make_shared<uexpr>(*ue);
+                embed(_expr);
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
                 //sign and convexity
                 break;
             }
             case bexp_c: {
                 auto be = (bexpr*)&c;
+                auto f = be->_lson;
+                for (auto &pair:*f->_vars) {
+                    auto p = pair.second.first;
+                    auto it = _vars->find(p->get_name());
+                    if (it==_vars->end()) {
+                        add_var(p,pair.second.second);
+                    }
+                }
+                for (auto &pair:*f->_params) {
+                    auto p = pair.second.first;
+                    auto it = _params->find(p->get_name());
+                    if (it==_params->end()) {
+                        add_param(p,pair.second.second);
+                    }
+                }
+                f = be->_rson;
+                for (auto &pair:*f->_vars) {
+                    auto p = pair.second.first;
+                    auto it = _vars->find(p->get_name());
+                    if (it==_vars->end()) {
+                        add_var(p,pair.second.second);
+                    }
+                }
+                for (auto &pair:*f->_params) {
+                    auto p = pair.second.first;
+                    auto it = _params->find(p->get_name());
+                    if (it==_params->end()) {
+                        add_param(p,pair.second.second);
+                    }
+                }
                 _cst = new constant<double>(0);
-                _expr = new bexpr(*(bexpr*)&c);
+                _expr = make_shared<bexpr>(*be);
                 _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                 _all_sign = be->get_all_sign();
-                embed(*_expr);
+                if (!_val) {
+                    _val = make_shared<vector<double>>();
+                }
+                if (be->_lson->is_constant() && be->_rson->is_constant()) {
+                    _val->resize(max(_val->size(),max(be->_lson->get_nb_instances(),be->_rson->get_nb_instances())));
+                    switch (be->_otype) {
+                        case plus_:
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) + be->_rson->eval(inst));
+                            }
+                            break;
+                        case minus_:
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) - be->_rson->eval(inst));
+                            }
+                            break;
+                        case product_:
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) * be->_rson->eval(inst));
+                            }
+                            break;
+                        case div_:
+                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) / be->_rson->eval(inst));
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                embed(_expr);
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
                 break;
             }
             case func_c: {
@@ -1213,6 +1416,7 @@ namespace gravity{
     }
 
     func_::func_(func_&& f){
+//        _evaluated = f._evaluated;
         _to_str = f._to_str;
         set_type(func_c);
         _ftype = f._ftype;
@@ -1227,8 +1431,7 @@ namespace gravity{
         f._qterms = nullptr;
         _pterms = f._pterms;
         f._pterms = nullptr;
-        _expr = f._expr;
-        f._expr = nullptr;
+        _expr = move(f._expr);
         _DAG = f._DAG;
         f._DAG = nullptr;
         _queue = f._queue;
@@ -1248,17 +1451,17 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _embedded = f._embedded;
-        for (auto &df:f._dfdx) {
-            _dfdx[df.first] = df.second;
-        }
-        f._dfdx.clear();
+        _dfdx = move(f._dfdx);
         _nnz_j = f._nnz_j;
         _nnz_h = f._nnz_h;
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
+        _nb_vars = f._nb_vars;
+        _val = move(f._val);
     }
 
     func_::func_(const func_& f){
+//        _evaluated = f._evaluated;
         _to_str = f._to_str;
         set_type(func_c);
         _params = new map<string, pair<shared_ptr<param_>, int>>();
@@ -1268,7 +1471,8 @@ namespace gravity{
         _pterms = new map<string, pterm>();
         _expr = nullptr;
         _DAG = new map<string, expr*>();
-        _queue  = new queue<expr*>();
+        _queue  = new deque<shared_ptr<expr>>();
+        _dfdx = make_shared<map<unique_id,shared_ptr<func_>>>();
         _ftype = f._ftype;
         _return_type = f._return_type;
         _all_convexity = f._all_convexity;
@@ -1308,18 +1512,27 @@ namespace gravity{
             insert(pair.second);
         }
         if (f._expr) {
-            _expr = (expr*)copy(*f._expr);
-            embed(*_expr);
+            if (f._expr->is_uexpr()) {
+                _expr = shared_ptr<uexpr>((uexpr*)copy(*f._expr));
+            }
+            else {
+                _expr = shared_ptr<bexpr>((bexpr*)copy(*f._expr));
+            }
+            embed(_expr);
 //            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//            _queue->push(_expr);
+            _queue->push_back(_expr);
         }
-        for (auto &df:f._dfdx) {
-            _dfdx[df.first] = new func_(*df.second);
+        for (auto &df:*f._dfdx) {
+            (*_dfdx)[df.first] = make_shared<func_>(*df.second);
         }
         _nnz_j = f._nnz_j;
         _nnz_h = f._nnz_h;
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
+        _nb_vars = f._nb_vars;
+        if (f._val) {
+            _val = make_shared<vector<double>>(*(f._val));
+        }
 
     }
 
@@ -1334,6 +1547,7 @@ namespace gravity{
     }
 
     func_& func_::operator=(const func_& f){
+//        _evaluated = f._evaluated;
         _to_str = f._to_str;
         if (_all_range) {
             delete _all_range->first;
@@ -1352,17 +1566,13 @@ namespace gravity{
                 delete elem.second;
             }
         }
-        for (auto &f_p: _dfdx) {
-            delete f_p.second;
-        }
-        _dfdx.clear();
+        _dfdx->clear();
         delete _range;
         delete _convexity;
         delete _sign;
         delete _lterms;
         delete _qterms;
         delete _pterms;
-        delete _expr;
         delete _DAG;
         delete _queue;
         delete _cst;
@@ -1372,7 +1582,7 @@ namespace gravity{
         _qterms = new map<string, qterm>();
         _pterms = new map<string, pterm>();
         _DAG = new map<string, expr*>();
-        _queue = new queue<expr*>();
+        _queue = new deque<shared_ptr<expr>>();
         _ftype = f._ftype;
         _return_type = f._return_type;
         _all_convexity = f._all_convexity;
@@ -1413,23 +1623,33 @@ namespace gravity{
             insert(pair.second);
         }
         if (f._expr) {
-            _expr = (expr*)copy(*f._expr);
-            embed(*_expr);
+            if (f._expr->is_uexpr()) {
+                _expr = shared_ptr<uexpr>((uexpr*)copy(*f._expr));
+            }
+            else {
+                _expr = shared_ptr<bexpr>((bexpr*)copy(*f._expr));
+            }
+            embed(_expr);
 //            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//            _queue->push(_expr);
+            _queue->push_back(_expr);
         }
-        for (auto &df:_dfdx) {
-            _dfdx[df.first] = new func_(*df.second);
+        for (auto &df:*f._dfdx) {
+            (*_dfdx)[df.first] = make_shared<func_>(*df.second);
         }
         _nnz_j = f._nnz_j;
         _nnz_h = f._nnz_h;
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
+        _nb_vars = f._nb_vars;
+        if (f._val) {
+            _val = make_shared<vector<double>>(*f._val);
+        }
         return *this;
     }
 
 
     func_& func_::operator=(func_&& f){
+//        _evaluated = f._evaluated;
         _to_str = f._to_str;
         if (_all_range) {
             delete _all_range->first;
@@ -1451,17 +1671,12 @@ namespace gravity{
                 delete elem.second;
             }
         }
-        for (auto &f_p: _dfdx) {
-            delete f_p.second;
-        }
-        _dfdx.clear();
         delete _range;
         delete _convexity;
         delete _sign;
         delete _lterms;
         delete _qterms;
         delete _pterms;
-        delete _expr;
         delete _DAG;
         delete _queue;
         delete _cst;
@@ -1478,8 +1693,7 @@ namespace gravity{
         f._qterms = nullptr;
         _pterms = f._pterms;
         f._pterms = nullptr;
-        _expr = f._expr;
-        f._expr = nullptr;
+        _expr = move(f._expr);
         _DAG = f._DAG;
         f._DAG = nullptr;
         _queue = f._queue;
@@ -1499,14 +1713,13 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _embedded = f._embedded;
-        for (auto &df:f._dfdx) {
-            _dfdx[df.first] = df.second;
-        }
-        f._dfdx.clear();
         _nnz_j = f._nnz_j;
         _nnz_h = f._nnz_h;
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
+        _nb_vars = f._nb_vars;
+        _dfdx = move(f._dfdx);
+        _val = move(f._val);
         return *this;
     }
 
@@ -1547,16 +1760,12 @@ namespace gravity{
                 delete elem.second;
             }
         }
-        for (auto &f_p: _dfdx) {
-            delete f_p.second;
-        }    
         delete _range;
         delete _convexity;
         delete _sign;    
         delete _lterms;
         delete _qterms;
         delete _pterms;
-        delete _expr;
         delete _DAG;
         delete _queue;
         delete _cst;
@@ -1578,14 +1787,14 @@ namespace gravity{
         if (is_number() && all_zeros(poly_to_str(this))){
             return true;
         }
-        if (is_param() || is_var()) {
-            auto p_c = (param_*)this;
-            return p_c->get_all_sign()==zero_;
-        }
-        if (is_uexpr() || is_bexpr()) {
-            auto e_p = (expr*)this;
-            return e_p->get_all_sign()==zero_;
-        }
+//        if (is_param() || is_var()) {
+//            auto p_c = (param_*)this;
+//            return p_c->get_all_sign()==zero_;
+//        }
+//        if (is_uexpr() || is_bexpr()) {
+//            auto e_p = (expr*)this;
+//            return e_p->get_all_sign()==zero_;
+//        }
         if (is_function()) {
             return ((func_*)(this))->is_zero();
         }
@@ -1593,33 +1802,36 @@ namespace gravity{
     }
 
     bool constant_::is_unit() const{ /**< Returns true if constant equals 1 */
-        if(is_number() && poly_to_str(this)=="1"){
+        if(is_number() && poly_eval(this)==1 && !_is_vector && !_is_transposed){
             return true;
         }
-        if (is_param()) {
-            auto p_c = (param_*)this;
-            switch (p_c->get_intype()) {
-                case binary_:
-                    return ((param<bool>*)p_c)->is_unit();
-                    break;
-                case short_:
-                    return ((param<short>*)p_c)->is_unit();
-                    break;
-                case integer_:
-                    return ((param<int>*)p_c)->is_unit();
-                    break;
-                case float_:
-                    return ((param<float>*)p_c)->is_unit();
-                    break;
-                case double_:
-                    return ((param<double>*)p_c)->is_unit();
-                    break;
-                case long_:
-                    return ((param<long double>*)p_c)->is_unit();
-                    break;
-                default:
-                    break;
-            }
+//        if (is_param()) {
+//            auto p_c = (param_*)this;
+//            switch (p_c->get_intype()) {
+//                case binary_:
+//                    return ((param<bool>*)p_c)->is_unit();
+//                    break;
+//                case short_:
+//                    return ((param<short>*)p_c)->is_unit();
+//                    break;
+//                case integer_:
+//                    return ((param<int>*)p_c)->is_unit();
+//                    break;
+//                case float_:
+//                    return ((param<float>*)p_c)->is_unit();
+//                    break;
+//                case double_:
+//                    return ((param<double>*)p_c)->is_unit();
+//                    break;
+//                case long_:
+//                    return ((param<long double>*)p_c)->is_unit();
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+        if (is_function()) {
+            return ((func_*)(this))->is_unit();
         }
         return false;
     }
@@ -1665,6 +1877,9 @@ namespace gravity{
         }
         if (c.is_number() || (!is_constant() && c.is_param())) {
             _cst = add(_cst, c);
+            if (_cst->is_function()) {
+                embed(*(func_*)_cst);
+            }
             update_sign(*_cst);
             return *this;
         }
@@ -1675,10 +1890,16 @@ namespace gravity{
             func_* f = (func_*)&c;
             if (!is_constant() && f->is_constant()) {//check _expr
                 _cst = add(_cst, c);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
                 return *this;
             }
             if (!f->_cst->is_zero()) {
                 _cst = add(_cst, *f->_cst);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
             }
             for (auto &pair:*f->_lterms) {
                 this->insert(pair.second);
@@ -1691,16 +1912,21 @@ namespace gravity{
             }
             
             if (_expr && f->_expr) {
-                _expr = new bexpr(plus_, _expr, copy(*f->_expr));
-                embed(*_expr);
+                _expr = make_shared<bexpr>(bexpr(plus_, make_shared<func_>(func_(*_expr)), make_shared<func_>(func_(*f->_expr))));
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
             }
             if (!_expr && f->_expr) {
-                _expr = (expr*)copy(*f->_expr);
-                embed(*_expr);
+                if (f->_expr->is_uexpr()) {
+                    _expr = shared_ptr<uexpr>((uexpr*)copy(*f->_expr));
+                }
+                else {
+                    _expr = shared_ptr<bexpr>((bexpr*)copy(*f->_expr));
+                }
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
@@ -1718,6 +1944,9 @@ namespace gravity{
         }
         if (c.is_number() || (!is_constant() && c.is_param())) {
             _cst = substract(_cst, c);
+            if (_cst->is_function()) {
+                embed(*(func_*)_cst);
+            }
             update_sign(*_cst);
             return *this;
         }
@@ -1728,9 +1957,15 @@ namespace gravity{
             func_* f = (func_*)&c;
             if (!is_constant() && f->is_constant()) {
                 _cst = substract(_cst, c);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
                 return *this;
             }
             _cst = substract(_cst, *f->_cst);
+            if (_cst->is_function()) {
+                embed(*(func_*)_cst);
+            }
             for (auto &pair:*f->_lterms) {
                 this->insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
             }
@@ -1741,16 +1976,22 @@ namespace gravity{
                 this->insert(!pair.second._sign, *pair.second._coef, *pair.second._l);
             }
             if (_expr && f->_expr) {
-                _expr = new bexpr(minus_, _expr, copy(*f->_expr));
-                embed(*_expr);
+                _expr = make_shared<bexpr>(bexpr(minus_, make_shared<func_>(func_(*_expr)), make_shared<func_>(func_(*f->_expr))));
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
             }
             if (!_expr && f->_expr) {
-                _expr = (expr*)copy(-1*(*f->_expr));
-                embed(*_expr);
+                if (f->_expr->is_uexpr()) {
+                    _expr = shared_ptr<uexpr>((uexpr*)copy(*f->_expr));
+                }
+                else {
+                    _expr = shared_ptr<bexpr>((bexpr*)copy(*f->_expr));
+                }
+                _expr->_coef *= -1;
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
@@ -1767,17 +2008,25 @@ namespace gravity{
         if (is_zero()) {
             return *this;
         }
-    //    if (c.is_unit()) {
-    //        return *this;
-    //    }
         if (c.is_zero()) {
             reset();
             return *this;
         }
+        if (is_unit()) {
+            *this = func_(c);
+            return *this;
+        }
+        if (c.is_unit()) {
+            return *this;
+        }
+        
         /* Case where c is a number */
         if (c.is_number()){
             if (!_cst->is_zero()) {
                 _cst = multiply(_cst, c);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
             }
             for (auto &pair:*_lterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
@@ -1792,32 +2041,33 @@ namespace gravity{
                 reverse_sign();
             }
             if (_expr) {
-                auto be = new bexpr(product_, _expr, copy(c));
-                _expr = be;
-                embed(*_expr);
-//                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _expr->_coef *= poly_eval(&c);
             }
             return *this;
         }
-        if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
-            auto be = bexpr(product_, copy(*this), copy(c));
-            *this = func_(be);
-            return *this;
-        }
+        
         /* Case where the current function is not constant and the other operand is */
          if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
              if (!_cst->is_zero()) {
                  _cst = multiply(_cst, c);
+                 if (_cst->is_function()) {
+                     embed(*(func_*)_cst);
+                 }
              }
             for (auto &pair:*_lterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (pair.second._coef->is_function()) {
+                    embed(*(func_*)pair.second._coef);
+                }
                 if (c._is_transposed) {
                     pair.second._p->_is_vector = true;
                 }
             }
             for (auto &pair:*_qterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (pair.second._coef->is_function()) {
+                    embed(*(func_*)pair.second._coef);
+                }
                 if (c._is_transposed) {
                     pair.second._p->first->_is_vector = true;
                     pair.second._p->second->_is_vector = true;
@@ -1826,19 +2076,25 @@ namespace gravity{
             }
             for (auto &pair:*_pterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
+                if (pair.second._coef->is_function()) {
+                    embed(*(func_*)pair.second._coef);
+                }
                 if (c._is_transposed) {
                     for (auto& p: (*pair.second._l)) {
                         p.first->_is_vector = true;
                     }
                 }
-
             }
             if (_expr) {
-                auto be = new bexpr(product_, _expr, copy(c));
-                _expr = be;
-                embed(*_expr);
+                if (c.is_function() && ((func_*)&c)->is_number()) {
+                    _expr->_coef *= poly_eval(&c);
+                }
+                else {
+                    _expr = make_shared<bexpr>(bexpr(product_, make_shared<func_>(func_(*_expr)), make_shared<func_>(func_(c))));
+                    embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                    _queue->push_back(_expr);
+                }
             }
             if (c.is_negative()) {
                 reverse_sign();
@@ -1861,6 +2117,11 @@ namespace gravity{
         if (c.is_param() || c.is_var()) {
             func_ f(c);
             *this *= f;
+            return *this;
+        }
+        if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
+            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c)));
+            *this = func_(be);
             return *this;
         }
         /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
@@ -2110,6 +2371,9 @@ namespace gravity{
                     coef = multiply(coef, *f->_cst);
                     delete res._cst;
                     res._cst = coef;
+                    if (_cst->is_function()) {
+                        embed(*(func_*)_cst);
+                    }
                 }
             }
             
@@ -2132,6 +2396,9 @@ namespace gravity{
         if (c.is_number()){
             if (!_cst->is_zero()) {
                 _cst = divide(_cst, c);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
             }
             for (auto &pair:*_lterms) {
                 pair.second._coef = divide(pair.second._coef, c);
@@ -2143,11 +2410,10 @@ namespace gravity{
                 pair.second._coef = divide(pair.second._coef, c);
             }
             if (_expr) {
-                auto be = new bexpr(div_, _expr, copy(c));
-                _expr = be;
-                embed(*_expr);
+                _expr = make_shared<bexpr>(bexpr(div_, make_shared<func_>(func_(*_expr)), make_shared<func_>(func_(c))));
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
             }
             if (c.is_negative()) {
                 reverse_convexity();
@@ -2158,6 +2424,9 @@ namespace gravity{
         if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
             if (!_cst->is_zero()) {
                 _cst = divide(_cst, c);
+                if (_cst->is_function()) {
+                    embed(*(func_*)_cst);
+                }
             }
             for (auto &pair:*_lterms) {
                 pair.second._coef = divide(pair.second._coef, c);
@@ -2179,11 +2448,10 @@ namespace gravity{
                 }
             }
             if (_expr) {
-                auto be = new bexpr(div_, _expr, copy(c));
-                _expr = be;
-                embed(*_expr);
+                _expr = make_shared<bexpr>(bexpr(div_, make_shared<func_>(func_(*_expr)), make_shared<func_>(func_(c))));
+                embed(_expr);
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push(_expr);
+                _queue->push_back(_expr);
             }
             return *this;
         }
@@ -2201,7 +2469,7 @@ namespace gravity{
         }
         /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
         if (c.is_function()) {
-            auto be = bexpr(div_, copy(*this), copy(c));
+            auto be = bexpr(div_, make_shared<func_>(*this), make_shared<func_>(func_(c)));
             *this = func_(be);
             return *this;
         }
@@ -2251,17 +2519,14 @@ namespace gravity{
     //}
 
     // TODO revisit embed and make it robust
-    void func_::embed(expr& e){
-        switch (e.get_type()) {
+    void func_::embed(shared_ptr<expr> e){
+        switch (e->get_type()) {
             case uexp_c:{
-                auto ue = (uexpr*)&e;
-                if (ue->_son->is_function()) {
-                    auto f = (func_*)ue->_son;
+                auto ue = dynamic_pointer_cast<uexpr>(e);
+//                if (ue->_son->is_function()) {
+                    auto f = (func_*)(ue->_son.get());
                     embed(*f);
-                }
-                else if(ue->_son->is_expr()){
-                    embed(*(expr*)ue->_son);
-                }
+//                }
 //                else if (ue->_son->is_var()){
 //                    auto it1 = _vars->find(((param_*)ue->_son)->get_name());
 //                    if (it1==_vars->end()) {
@@ -2285,14 +2550,14 @@ namespace gravity{
                 break;
             }
             case bexp_c:{
-                auto be = (bexpr*)&e;
-                if (be->_lson->is_function()) {
-                    auto f = (func_*)be->_lson;
-                    embed(*f);
-                }
-                else if(be->_lson->is_expr()){
-                    embed(*(expr*)be->_lson);
-                }
+                auto be = dynamic_pointer_cast<bexpr>(e);
+//                if (be->_lson->is_function()) {
+                    auto fl = (func_*)(be->_lson.get());
+                    embed(*fl);
+//                }
+//                else if(be->_lson->is_expr()){
+//                    embed(*(expr*)be->_lson);
+//                }
 //                else if (be->_lson->is_var()){
 //                    auto it1 = _vars->find(((param_*)be->_lson)->get_name());
 //                    if (it1==_vars->end()) {
@@ -2313,13 +2578,13 @@ namespace gravity{
 //                        be->_lson = (*it1).second.first;
 //                    }
 //                }
-                if (be->_rson->is_function()) {
-                    auto f = (func_*)be->_rson;
-                    embed(*f);
-                }
-                else if(be->_rson->is_expr()){
-                    embed(*(expr*)be->_rson);
-                }
+//                if (be->_rson->is_function()) {
+                    auto fr = (func_*)(be->_rson.get());
+                    embed(*fr);
+//                }
+//                else if(be->_rson->is_expr()){
+//                    embed(*(expr*)be->_rson);
+//                }
 //                else if (be->_rson->is_var()){
 //                    auto it1 = _vars->find(((param_*)be->_rson)->get_name());
 //                    if (it1==_vars->end()) {
@@ -2346,12 +2611,29 @@ namespace gravity{
                 break;
         }
     }
+    
 
     void func_::embed(func_& f){
+        f._nb_instances = _nb_instances;
+        f._val->resize(max(f._val->size(),_nb_instances));
         f._embedded = true;
         param_* p = nullptr;
         param_* p1 = nullptr;
         param_* p2 = nullptr;
+//        for (auto &pair:*f._vars) {
+//            p = pair.second.first;
+//            auto it = _vars->find(p->get_name());
+//            if (it==_vars->end()) {
+//                add_var(p,pair.second.second);
+//            }
+//        }
+//        for (auto &pair:*f._params) {
+//            p = pair.second.first;
+//            auto it = _params->find(p->get_name());
+//            if (it==_params->end()) {
+//                add_param(p,pair.second.second);
+//            }
+//        }
         for (auto &pair:*f._lterms) {
             auto coef = pair.second._coef;
             if(coef->is_function()){
@@ -2462,12 +2744,12 @@ namespace gravity{
             }
         }
         if (f._expr) {
-            embed(*f._expr);
+            embed(f._expr);
         }
-        if(_cst->is_function()){
-            embed(*(func_*)_cst);
+        if(f._cst->is_function()){
+            embed(*(func_*)f._cst);
         }
-
+        
         auto old_vars = *f._vars;
         for (auto &vp: old_vars) {
             auto vv = (*_vars)[vp.first].first;
@@ -2511,10 +2793,7 @@ namespace gravity{
                 delete elem.second;
             }
         }
-        for (auto &df:_dfdx) {
-            delete df.second;
-        }
-        _dfdx.clear();
+        _dfdx->clear();
         _hess_link.clear();
         delete _range;
         _range = nullptr;
@@ -2522,7 +2801,6 @@ namespace gravity{
         _convexity = nullptr;
         delete _sign;
         _sign = nullptr;
-        delete _expr;
         _expr = nullptr;
         delete _DAG;
         _DAG = nullptr;
@@ -2541,6 +2819,7 @@ namespace gravity{
         delete _cst;
         _cst = new constant<double>(0);
         _nb_instances = 1;
+        _nb_vars = 0;
         _nnz_h = 0;
         _nnz_j = 0;
     };
@@ -2666,6 +2945,9 @@ namespace gravity{
         
         if (pair_it == _lterms->end()) {
             auto c_new = copy(coef);
+            if (c_new->is_function()) {
+                embed(*(func_*)c_new);
+            }
             if (p.is_var()) {
                 p_new = get_var(pname);
                 if (!p_new) {
@@ -2774,6 +3056,9 @@ namespace gravity{
                 }
             }
             auto c_new = copy(coef);
+            if (c_new->is_function()) {
+                embed(*(func_*)c_new);
+            }
             qterm q(sign, c_new, p_new1.get(), p_new2.get());
             update_sign(q);
             update_convexity(q);
@@ -2873,6 +3158,9 @@ namespace gravity{
                 }
             }
             auto c_new = copy(coef);
+            if (c_new->is_function()) {
+                embed(*(func_*)c_new);
+            }
             pterm p(sign, c_new, newl);
             update_sign(p);
             _pterms->insert(make_pair<>(name, move(p)));
@@ -2913,141 +3201,148 @@ namespace gravity{
         insert(term._sign, *term._coef, *term._l);
     }
 
-    void func_::insert(expr& e){
-    //    insert(term._sign, *term._coef, *term._l);
-        auto name = e.get_str();
-//        auto pair_it = _DAG->find(name);
-        
-        _ftype = nlin_;
-        
-    //    if (pair_it == _DAG->end()) {
-    //        update_sign(e);
-    //        update_convexity(e);
-    //        _DAG->insert(make_pair<>(name, e));
-    //    }
-    //    else {
-    //        if (pair_it->second._sign == e.sign) {
-    ////            pair_it->second._coef = add(pair_it->second._coef, coef);
-    ////            if (!pair_it->second._sign) { // both negative
-    ////                pair_it->second._sign = true;
-    ////            }
-    //        }
-    //        else{
-    ////            pair_it->second._coef = substract(pair_it->second._coef, coef);
-    //        }
-    ////        if (pair_it->second._coef->is_zero()) {
-    ////            if (p1.is_var()) {
-    ////                decr_occ_var(s1);
-    ////            }
-    ////            else {
-    ////                decr_occ_param(s1);
-    ////            }
-    ////            if (p2.is_var()) {
-    ////                decr_occ_var(s2);
-    ////            }
-    ////            else {
-    ////                decr_occ_param(s2);
-    ////            }
-    ////            _qterms->erase(pair_it);
-    ////            update_sign();
-    ////            update_convexity();
-    ////        }
-    ////        else {
-    ////            update_sign(pair_it->second);
-    ////            update_convexity(pair_it->second);
-    ////        }
-    ////        return false;
-    //    }
-    ////    _DAG->insert(<#const value_type &__v#>)
+//    void func_::insert(expr& e){
+//    //    insert(term._sign, *term._coef, *term._l);
+//        auto name = e.get_str();
+////        auto pair_it = _DAG->find(name);
+//        
+//        _ftype = nlin_;
+//        
+//    //    if (pair_it == _DAG->end()) {
+//    //        update_sign(e);
+//    //        update_convexity(e);
+//    //        _DAG->insert(make_pair<>(name, e));
+//    //    }
+//    //    else {
+//    //        if (pair_it->second._sign == e.sign) {
+//    ////            pair_it->second._coef = add(pair_it->second._coef, coef);
+//    ////            if (!pair_it->second._sign) { // both negative
+//    ////                pair_it->second._sign = true;
+//    ////            }
+//    //        }
+//    //        else{
+//    ////            pair_it->second._coef = substract(pair_it->second._coef, coef);
+//    //        }
+//    ////        if (pair_it->second._coef->is_zero()) {
+//    ////            if (p1.is_var()) {
+//    ////                decr_occ_var(s1);
+//    ////            }
+//    ////            else {
+//    ////                decr_occ_param(s1);
+//    ////            }
+//    ////            if (p2.is_var()) {
+//    ////                decr_occ_var(s2);
+//    ////            }
+//    ////            else {
+//    ////                decr_occ_param(s2);
+//    ////            }
+//    ////            _qterms->erase(pair_it);
+//    ////            update_sign();
+//    ////            update_convexity();
+//    ////        }
+//    ////        else {
+//    ////            update_sign(pair_it->second);
+//    ////            update_convexity(pair_it->second);
+//    ////        }
+//    ////        return false;
+//    //    }
+//    ////    _DAG->insert(<#const value_type &__v#>)
+//    }
+
+    double expr::eval(size_t i) const{
+        //        if (_to_str.compare("noname")==0) {
+        if (is_uexpr()) {
+            return ((uexpr*)this)->eval(i);
+        }
+        else {
+            return ((bexpr*)this)->eval(i);
+        }
     }
-
-
     string expr::get_str(){
-        if (_to_str.compare("noname")==0) {
+//        if (_to_str.compare("noname")==0) {
             if (is_uexpr()) {
                 return _to_str = ((uexpr*)this)->to_str();
             }
             else {
                 return _to_str = ((bexpr*)this)->to_str();
             }
-        }
-        else {
-            return _to_str;
-        }
+//        }
+//        else {
+//            return _to_str;
+//        }
     }
 
     uexpr::uexpr(const uexpr& exp){
         _otype = exp._otype;
-        _son = copy(*exp._son);
+        _son = make_shared<func_>(*exp._son.get());
         _to_str = exp._to_str;
         _type = uexp_c;
+        _coef = exp._coef;
     }
 
     uexpr::uexpr(uexpr&& exp){
         _otype = exp._otype;
         _son = move(exp._son);
-        exp._son = nullptr;
         _to_str = exp._to_str;
         _type = uexp_c;
+        _coef = exp._coef;
+    }
+    
+    uexpr::uexpr(OperatorType ot, shared_ptr<func_> son){
+        _otype = ot;
+        _son = son;        
+        _type = uexp_c;
+        _to_str = to_str();
     }
 
     uexpr& uexpr::operator=(const uexpr& exp){
-        delete _son;
-        _son = copy(*exp._son);
+        _son = make_shared<func_>(*exp._son.get());
         _otype = exp._otype;
         _to_str = exp._to_str;
+        _coef = exp._coef;
         return *this;
     }
 
     uexpr& uexpr::operator=(uexpr&& exp){
-        delete _son;
         _son = move(exp._son);
-        exp._son = nullptr;
         _otype = exp._otype;
         _to_str = exp._to_str;
+        _coef = exp._coef;
         return *this;
     }
 
 
-    bool uexpr::contains(const constant_* c) const{
-        if (!_son) {
-            return false;
-        }
-        if (equals(_son, c)) {
-            return true;
-        }
-        
-        if (_son->get_type()==uexp_c) {
-            return ((uexpr*)_son)->contains(c);
-        }
-        if (_son->get_type()==bexp_c) {
-            return ((bexpr*)_son)->contains(c);
-        }
-        return false;
-    };
+//    bool uexpr::contains(const constant_* c) const{
+//        if (!_son) {
+//            return false;
+//        }
+//        if (equals(_son, c)) {
+//            return true;
+//        }
+//        
+//        if (_son->get_type()==uexp_c) {
+//            return ((uexpr*)_son)->contains(c);
+//        }
+//        if (_son->get_type()==bexp_c) {
+//            return ((bexpr*)_son)->contains(c);
+//        }
+//        return false;
+//    };
 
 
     bool uexpr::operator==(const uexpr &c)const{
 //        return (_otype == c._otype && equals(_son,c._son));
-        return (this->_to_str.compare(c._to_str)==0);
+        return (this->to_str().compare(c.to_str())==0);
     }
 
 
 
     func_ cos(const constant_& c){
-        uexpr e;
-        e._otype = cos_;
-        if(!c.is_function()){
-            e._son = new func_(c);
-        }
-        else {
-            e._son = copy(c);
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(c))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3055,19 +3350,11 @@ namespace gravity{
     };
 
     func_ cos(constant_&& c){
-        uexpr e;
-        e._otype = cos_;
-        if(!c.is_function()){
-            e._son = new func_(move(c));
-        }
-        else {
-            e._son = copy(move(c));
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(move(c)))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3076,19 +3363,11 @@ namespace gravity{
 
 
     func_ sin(const constant_& c){
-        uexpr e;
-        e._otype = sin_;
-        if(!c.is_function()){
-            e._son = new func_(c);
-        }
-        else {
-            e._son = copy(c);
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(c))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3096,19 +3375,11 @@ namespace gravity{
     };
 
     func_ sin(constant_&& c){
-        uexpr e;
-        e._otype = sin_;
-        if(!c.is_function()){
-            e._son = new func_(move(c));
-        }
-        else {
-            e._son = copy(move(c));
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(move(c)))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3117,19 +3388,11 @@ namespace gravity{
 
 
     func_ sqrt(const constant_& c){
-        uexpr e;
-        e._otype = sqrt_;
-        if(!c.is_function()){
-            e._son = new func_(c);
-        }
-        else {
-            e._son = copy(c);
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3137,19 +3400,11 @@ namespace gravity{
     };
 
     func_ sqrt(constant_&& c){
-        uexpr e;
-        e._otype = sqrt_;
-        if(!c.is_function()){
-            e._son = new func_(move(c));
-        }
-        else {
-            e._son = copy(move(c));
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3158,19 +3413,11 @@ namespace gravity{
 
 
     func_ expo(const constant_& c){
-        uexpr e;
-        e._otype = exp_;
-        if(!c.is_function()){
-            e._son = new func_(c);
-        }
-        else {
-            e._son = copy(c);
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(exp_, make_shared<func_>(func_(c))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3179,19 +3426,11 @@ namespace gravity{
 
 
     func_ expo(constant_&& c){
-        uexpr e;
-        e._otype = exp_;
-        if(!c.is_function()){
-            e._son = new func_(move(c));
-        }
-        else {
-            e._son = copy(move(c));
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(exp_, make_shared<func_>(func_(move(c)))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3201,19 +3440,11 @@ namespace gravity{
 
 
     func_ log(const constant_& c){
-        uexpr e;
-        e._otype = log_;
-        if(!c.is_function()){
-            e._son = new func_(c);
-        }
-        else {
-            e._son = copy(c);
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
         }
@@ -3221,45 +3452,42 @@ namespace gravity{
     };
 
     func_ log(constant_&& c){
-        uexpr e;
-        e._otype = log_;
-        if(!c.is_function()){
-            e._son = new func_(move(c));
-        }
-        else {
-            e._son = copy(move(c));
-        }
         func_ res;
-        res._expr = new uexpr(move(e));
-        res.embed(*res._expr);
+        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
+        res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-//        res._queue->push(res._expr);
+        res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
-        }
+        }   
 
         return res;
     };
 
     double uexpr::eval(size_t i) const{
-        if (!_son) {
-            throw invalid_argument("Cannot evaluate empty expression!");
+        if (_son->is_constant() && !_son->_evaluated) {
+//            _son->_val = make_shared<vector<double>>();
+//            _son->_val->resize(_son->get_nb_instances());
+            for (unsigned inst = 0; inst < _son->_val->size(); inst++) {
+                _son->_val->at(inst) = _son->eval(inst);
+            }
+            _son->_evaluated = true;
         }
         switch (_otype) {
             case cos_:
-                return std::cos(poly_eval(_son,i));
+                return _coef*std::cos(_son->get_val(i));
                 break;
             case sin_:
-                return std::sin(poly_eval(_son,i));
+                return _coef*std::sin(_son->get_val(i));
                 break;
             case sqrt_:
-                return std::sqrt(poly_eval(_son,i));
+                return _coef*std::sqrt(_son->get_val(i));
                 break;
             case log_:
-                return std::log(poly_eval(_son,i));
+                return _coef*std::log(_son->get_val(i));
                 break;
             case exp_:
-                return exp(poly_eval(_son,i));
+                return _coef*std::exp(_son->get_val(i));
                 break;
             default:
                 throw invalid_argument("Unsupported unary operator");
@@ -3277,31 +3505,31 @@ namespace gravity{
     }
 
 
-    bool bexpr::contains(const constant_* c) const{
-        if(_lson){
-            if (equals(_lson, c)) {
-                return true;
-            }
-            if (_lson->get_type()==uexp_c && ((uexpr*)_lson)->contains(c)) {
-                return true;
-            }
-            if (_lson->get_type()==bexp_c && ((bexpr*)_lson)->contains(c)) {
-                return true;
-            }
-        }
-        if(_rson) {
-            if (equals(_rson, c)) {
-                return true;
-            }
-            if (_rson->get_type()==uexp_c && ((uexpr*)_rson)->contains(c)) {
-                return true;
-            }
-            if (_rson->get_type()==bexp_c && ((bexpr*)_rson)->contains(c)) {
-                return true;
-            }
-        }
-        return false;
-    };
+//    bool bexpr::contains(const constant_* c) const{
+//        if(_lson){
+//            if (equals(_lson.get(), c)) {
+//                return true;
+//            }
+//            if (_lson->get_type()==uexp_c && ((uexpr*)_lson)->contains(c)) {
+//                return true;
+//            }
+//            if (_lson->get_type()==bexp_c && ((bexpr*)_lson)->contains(c)) {
+//                return true;
+//            }
+//        }
+//        if(_rson) {
+//            if (equals(_rson, c)) {
+//                return true;
+//            }
+//            if (_rson->get_type()==uexp_c && ((uexpr*)_rson)->contains(c)) {
+//                return true;
+//            }
+//            if (_rson->get_type()==bexp_c && ((bexpr*)_rson)->contains(c)) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    };
 
     bexpr::bexpr(){
         _otype = id_;
@@ -3311,37 +3539,21 @@ namespace gravity{
         _to_str = "noname";
     }
 
-    bexpr::bexpr(OperatorType otype, constant_* lson, constant_* rson){
+    bexpr::bexpr(OperatorType otype, shared_ptr<func_> lson, shared_ptr<func_> rson){
         _otype = otype;
         _lson = lson;
         _rson = rson;
         _type = bexp_c;
-        _to_str = poly_to_str(_lson);
-        switch (otype) {
-            case plus_:
-                _to_str += " + ";
-                break;
-            case minus_:
-                _to_str += " - ";
-                break;
-            case product_:
-                _to_str += " * ";
-                break;
-            case div_:
-                _to_str += " / ";
-                break;
-            default:
-                break;
-        }
-        _to_str += poly_to_str(_rson);
+        _to_str = to_str();
     };
 
     bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
         _otype = exp._otype;
-        _lson = copy(*exp._lson);
-        _rson =  copy(*exp._rson);
+        _lson = make_shared<func_>(*exp._lson.get());
+        _rson = make_shared<func_>(*exp._rson.get());
         _type = bexp_c;
         _to_str = exp._to_str;
+        _coef = exp._coef;
     };
 
     bexpr::bexpr(bexpr&& exp){ /**< Move constructor from binary expression tree */
@@ -3350,57 +3562,48 @@ namespace gravity{
         _rson = move(exp._rson);
         _type = bexp_c;
         _to_str = exp._to_str;
+        _coef = exp._coef;
     };
 
     bexpr& bexpr::operator=(const bexpr& exp){
-        delete _lson;
-        delete _rson;
-        _lson = copy(*exp._lson);
-        _rson =  copy(*exp._rson);
+        _lson = make_shared<func_>(*exp._lson.get());
+        _rson = make_shared<func_>(*exp._rson.get());
         _otype = exp._otype;
         _to_str = exp._to_str;
+        _coef = exp._coef;
         return *this;
     }
 
     bexpr& bexpr::operator=(bexpr&& exp){
-        delete _lson;
-        delete _rson;
         _lson = move(exp._lson);
         _rson = move(exp._rson);
         _otype = exp._otype;
         _to_str = exp._to_str;
+        _coef = exp._coef;
         return *this;
     }
 
 
 
     template<typename other_type> bexpr& bexpr::operator+=(const other_type& v){
-        bexpr res(plus_, copy(*this), copy(v));
-        delete _lson;
-        delete _rson;
+        bexpr res(plus_, make_shared<func_>(func_(*this)), make_shared<func_>(func_(v)));
         return *this=res;
     }
 
 
     template<typename other_type> bexpr& bexpr::operator-=(const other_type& v){
-        bexpr res(minus_, copy(*this), copy(v));
-        delete _lson;
-        delete _rson;
+        bexpr res(minus_, make_shared<func_>(func_(*this)), make_shared<func_>(func_(v)));
         return *this=res;
     }
 
 
     template<typename other_type> bexpr& bexpr::operator*=(const other_type& v){
-        bexpr res(product_, copy(*this), copy(v));
-        delete _lson;
-        delete _rson;
+        bexpr res(product_, make_shared<func_>(func_(*this)), make_shared<func_>(func_(v)));
         return *this=res;
     }
 
     template<typename other_type> bexpr& bexpr::operator/=(const other_type& v){
-        bexpr res(div_, copy(*this), copy(v));
-        delete _lson;
-        delete _rson;
+        bexpr res(div_, make_shared<func_>(func_(*this)), make_shared<func_>(func_(v)));
         return *this=res;
     }
 
@@ -3648,24 +3851,37 @@ namespace gravity{
 //    };
 
     double  bexpr::eval(ind i) const{
-        if (!_lson || !_rson) {
-            throw invalid_argument("Cannot evaluate empty expression!");
+        if (_lson->is_constant() && !_lson->_evaluated) {
+//            _lson->_val = make_shared<vector<double>>();
+//            _lson->_val->resize(_lson->get_nb_instances());
+            for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
+                _lson->_val->at(inst) = _lson->eval(inst);
+            }
+            _lson->_evaluated = true;
+        }
+        if (_rson->is_constant() && !_rson->_evaluated) {
+//            _rson->_val = make_shared<vector<double>>();
+//            _rson->_val->resize(_rson->get_nb_instances());
+            for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
+                _rson->_val->at(inst) = _rson->eval(inst);
+            }
+            _rson->_evaluated = true;
         }
         switch (_otype) {
             case plus_:
-                return poly_eval(_lson,i) + poly_eval(_rson,i);
+                return _coef*(_lson->get_val(i) + _rson->get_val(i));
                 break;
             case minus_:
-                return poly_eval(_lson,i) - poly_eval(_rson,i);
+                return _coef*(_lson->get_val(i) - _rson->get_val(i));
                 break;
             case product_:
-                return poly_eval(_lson,i) * poly_eval(_rson,i);
+                return _coef*(_lson->get_val(i) * _rson->get_val(i));
                 break;
             case div_:
-                return poly_eval(_lson,i)/poly_eval(_rson,i);
+                return _coef*(_lson->get_val(i)/_rson->get_val(i));
                 break;
             case power_:
-                return powl(poly_eval(_lson,i),poly_eval(_rson,i));
+                return _coef*(powl(_lson->get_val(i),_rson->get_val(i)));
                 break;
             default:
                 throw invalid_argument("Unsupported binary operator");
@@ -3843,14 +4059,14 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(plus_, copy(*c1), copy(f));
+                auto res = new bexpr(plus_, make_shared<func_>(func_(*c1)), make_shared<func_>(f));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(plus_, copy(*c1), copy(f));
+                auto res = new bexpr(plus_, make_shared<func_>(func_(*c1)), make_shared<func_>(f));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -3974,14 +4190,14 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(plus_, copy(*c1), copy(c2));
+                auto res = new bexpr(plus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(plus_, copy(*c1), copy(c2));
+                auto res = new bexpr(plus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -4102,14 +4318,14 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -4154,14 +4370,14 @@ namespace gravity{
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -4286,14 +4502,14 @@ namespace gravity{
                     break;
                 }
                 case uexp_c: {
-                    auto res = new bexpr(div_, copy(*c1), copy(c2));
+                    auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                     delete c1;
                     c1 = (constant_*)res;
                     return c1;
                     break;
                 }
                 case bexp_c: {
-                    auto res = new bexpr(div_, copy(*c1), copy(c2));
+                    auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                     delete c1;
                     c1 = (constant_*)res;
                     return c1;
@@ -4495,9 +4711,9 @@ namespace gravity{
         cout << this->to_str(ind);
     }
 
-    func_* func_::get_stored_derivative(const unique_id& vid) const{
-        auto it = _dfdx.find(vid);
-        if (it!=_dfdx.end()) {
+    shared_ptr<func_> func_::get_stored_derivative(const unique_id& vid) const{
+        auto it = _dfdx->find(vid);
+        if (it!=_dfdx->end()) {
             return it->second;
         }
         else {
@@ -4507,18 +4723,19 @@ namespace gravity{
 
      func_* func_::compute_derivative(const param_ &v){
          auto vid = v._unique_id;
-        if(_dfdx.count(vid)!=0){
-            return _dfdx[vid];
+        if(_dfdx->count(vid)!=0){
+            return _dfdx->at(vid).get();
         }
          
         auto df = new func_(get_derivative(v));
-    //    embed(*df);
-//         if(_dfdx.count(v._unique_id)!=0){
+        embed(*df);
+//         if(_dfdx->count(v._unique_id)!=0){
 //             throw invalid_argument("storing same df twice! " + poly_to_str(&v) + this->to_str());
 //         }
-        _dfdx[vid] = df;
-        Debug( "First derivative with respect to " << v.get_name() << " = ");
-    //    df->print();
+         (*_dfdx)[vid] = shared_ptr<func_>(df);
+//         df->_val = make_shared<vector<double>>();
+//         df->_val->resize(df->get_nb_instances());
+         DebugOff( "First derivative with respect to " << v.get_name() << " = " << df->to_str() << endl);
         return df;
     }
 
@@ -4526,6 +4743,7 @@ namespace gravity{
         size_t vid = 0, vjd = 0;
         param_* vi;
         param_* vj;
+        DebugOff( "Computing derivatives for " << to_str() << endl);
         for (auto &vp: *_vars) {
             vi = vp.second.first.get();
             vid = vi->get_id();
@@ -4535,7 +4753,7 @@ namespace gravity{
                 vjd = vj->get_id();
                 if (df->has_var(*vj)) { //only store lower left part of hessian matrix since it is symmetric.
                     df->compute_derivative(*vj);
-                    Debug( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f.to_str());
+                    DebugOff( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f.to_str());
     //                d2f->print();
                 }
             }
@@ -4622,12 +4840,30 @@ namespace gravity{
             return res;
         }
         else { // f is a composition of functions
-            return res += get_poly_derivative(_expr, v);
+            return res += _expr->get_derivative(v);
         }
         return res;
     }
 
-    double func_::eval(size_t i) const{
+    double func_::get_val(size_t i) const{
+//        if (is_constant()) {
+//            if(eval(i)!=_val->at(i)){
+//                throw invalid_argument("error");
+//            }
+//        }
+        if (is_number()) {
+            return _val->at(0);
+        }
+        else {
+//            if (i>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
+            return _val->at(i);
+        }
+    }
+    
+    double func_::force_eval(size_t i){
+        
         double res = 0;
         for (auto &pair:*_pterms) {
             res += pair.second.eval(i);
@@ -4640,7 +4876,49 @@ namespace gravity{
         }
         res += poly_eval(_cst,i);
         if (_expr) {
-            res += poly_eval(_expr, i);
+            res += _expr->eval(i);
+        }
+        return res;
+    }
+    
+    double func_::eval(size_t i){
+//        if (!_val) {
+//            throw invalid_argument("_val not defined for function.\n");
+//        }
+        if (is_constant() && _evaluated) {
+            if (is_number()) {
+                return _val->at(0);
+            }
+            if (i>=_val->size()) {
+                throw invalid_argument("error");
+            }
+//            if (_val->at(i) != force_eval(i)) {
+//                throw invalid_argument("error");
+//            }
+            return _val->at(i);
+        }
+        double res = 0;
+        for (auto &pair:*_pterms) {
+            res += pair.second.eval(i);
+        }
+        for (auto &pair:*_qterms) {
+            res += pair.second.eval(i);
+        }
+        for (auto &pair:*_lterms) {
+            res += pair.second.eval(i);
+        }
+        res += poly_eval(_cst,i);
+        if (_expr) {
+            res += _expr->eval(i);
+        }
+        if (is_number()) {
+            _val->at(0) = res;
+        }
+        else {
+            if (i>=_val->size()) {
+                throw invalid_argument("error");
+            }
+            _val->at(i) = res;
         }
         return res;
     }
@@ -4748,38 +5026,50 @@ namespace gravity{
     
     string uexpr::to_str() const{
         string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string(_coef);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
         switch (_otype) {
             case log_:
                 str += "log(";
-                str += poly_to_str(_son);
+                str += poly_to_str(_son.get());
                 str += ")";
                 break;
                 
             case exp_:
                 str += "exp(";
-                str += poly_to_str(_son);
+                str += poly_to_str(_son.get());
                 str += ")";
                 break;
                 
             case cos_:
                 str += "cos(";
-                str += poly_to_str(_son);
+                str += poly_to_str(_son.get());
                 str += ")";
                 break;
                 
             case sin_:
                 str += "sin(";
-                str += poly_to_str(_son);
+                str += poly_to_str(_son.get());
                 str += ")";
                 break;
                 
             case sqrt_:
                 str += "sqrt(";
-                str += poly_to_str(_son);
+                str += poly_to_str(_son.get());
                 str += ")";
                 break;
             default:
                 break;
+        }
+        if (_coef!=1) {
+            str += ")";
         }
         return str;
     }
@@ -4795,18 +5085,27 @@ namespace gravity{
     vector<shared_ptr<param_>> uexpr::get_nl_vars() const{
         vector<shared_ptr<param_>> res;
         if (_son->is_function()) {
-            auto vars = ((func_*)_son)->get_vars();
+            auto vars = ((func_*)_son.get())->get_vars();
             for (auto &pairs: vars){
                 res.push_back(pairs.second.first);
             }
         }
         else if(_son->is_uexpr()) {
-            return ((uexpr*)_son)->get_nl_vars();
+            return ((uexpr*)_son.get())->get_nl_vars();
         }
         else if (_son->is_bexpr()){
-            return ((bexpr*)_son)->get_nl_vars();
+            return ((bexpr*)_son.get())->get_nl_vars();
         }
         return res;
+    }
+    
+    func_ expr::get_derivative(const param_ &v) const{
+        if(is_uexpr()){
+            return ((uexpr*)this)->get_derivative(v);
+        }
+        else {
+            return ((bexpr*)this)->get_derivative(v);
+        }
     }
     
     func_ uexpr::get_derivative(const param_ &v) const{
@@ -4814,19 +5113,19 @@ namespace gravity{
        // f(g(x))' = f'(g(x))*g'(x).
        switch (_otype) {
            case cos_:
-               return -1*get_poly_derivative(_son,v)* sin(*_son);
+               return _coef*-1*_son->get_derivative(v)* sin(*_son);
                break;
            case sin_:
-               return get_poly_derivative(_son,v)*cos(*_son);
+               return _coef*_son->get_derivative(v)*cos(*_son);
                break;
            case sqrt_:
-               return get_poly_derivative(_son,v)/(2*sqrt(*_son));
+               return _coef*_son->get_derivative(v)/(2*sqrt(*_son));
                break;
            case exp_:
-               return get_poly_derivative(_son,v)*expo(*_son);
+               return _coef*_son->get_derivative(v)*expo(*_son);
                break;
            case log_:
-               return get_poly_derivative(_son,v)/(*_son);
+               return _coef*_son->get_derivative(v)/(*_son);
                break;
            default:
                std::cerr << "ok unsupported unary operation";
@@ -4839,29 +5138,29 @@ namespace gravity{
     vector<shared_ptr<param_>> bexpr::get_nl_vars() const{
         vector<shared_ptr<param_>> res;
         if (_lson->is_function()) {
-            auto vars = ((func_*)_lson)->get_vars();
+            auto vars = ((func_*)_lson.get())->get_vars();
             for (auto &pairs: vars){
                 res.push_back(pairs.second.first);
             }
         }
         else if(_lson->is_uexpr()) {
-            res = ((uexpr*)_lson)->get_nl_vars();
+            res = ((uexpr*)_lson.get())->get_nl_vars();
         }
         else if (_lson->is_bexpr()){
-            res = ((bexpr*)_lson)->get_nl_vars();
+            res = ((bexpr*)_lson.get())->get_nl_vars();
         }
         if (_rson->is_function()) {
-            auto vars = ((func_*)_rson)->get_vars();
+            auto vars = ((func_*)_rson.get())->get_vars();
             for (auto &pairs: vars){
                 res.push_back(pairs.second.first);
             }
         }
         else if(_rson->is_uexpr()) {
-            auto vars = ((uexpr*)_rson)->get_nl_vars();
+            auto vars = ((uexpr*)_rson.get())->get_nl_vars();
             res.insert(res.end(), vars.begin(), vars.end() );
         }
         else if (_rson->is_bexpr()){
-            auto vars = ((bexpr*)_rson)->get_nl_vars();
+            auto vars = ((bexpr*)_rson.get())->get_nl_vars();
             res.insert(res.end(), vars.begin(), vars.end() );
         }
         return res;
@@ -4870,17 +5169,17 @@ namespace gravity{
     func_ bexpr::get_derivative(const param_ &v) const{
         switch (_otype) {
             case plus_:
-                return get_poly_derivative(_lson,v) + get_poly_derivative(_rson,v);
+                return _coef*(_lson->get_derivative(v) + _rson->get_derivative(v));
                 break;
             case minus_:
-                return get_poly_derivative(_lson,v) - get_poly_derivative(_rson,v);
+                return _coef*(_lson->get_derivative(v) - _rson->get_derivative(v));
                 break;
             case product_:
-                return get_poly_derivative(_lson,v)*(*_rson) + (*_lson)*get_poly_derivative(_rson,v);
+                return _coef*(_lson->get_derivative(v)*(*_rson) + (*_lson)*_rson->get_derivative(v));
                 // f'g + fg'
                 break;
             case div_:
-                return (get_poly_derivative(_lson,v)*(*_rson) - (*_lson)*get_poly_derivative(_rson,v))/((*_rson)*(*_rson));
+                return _coef*((_lson->get_derivative(v)*(*_rson) - (*_lson)*_rson->get_derivative(v))/((*_rson)*(*_rson)));
                 // (f'g - fg')/g^2
                 break;
             case power_:
@@ -4899,13 +5198,22 @@ namespace gravity{
 
     string bexpr::to_str() const{
         string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string(_coef);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
         if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
             str += "(";
-            str+= poly_to_str(_lson);
+            str+= poly_to_str(_lson.get());
             str += ")";
         }
         else
-            str+= poly_to_str(_lson);
+            str+= poly_to_str(_lson.get());
 
         if (_otype==plus_) {
             str+= " + ";
@@ -4925,12 +5233,15 @@ namespace gravity{
         }
 
         if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
-            str+= poly_to_str(_rson);
+            str+= poly_to_str(_rson.get());
         }
         else {
             str+= "(";
-            str+= poly_to_str(_rson);
+            str+= poly_to_str(_rson.get());
             str+= ")";
+        }
+        if (_coef!=1) {
+            str += ")";
         }
         return str;
     }
@@ -5023,15 +5334,577 @@ namespace gravity{
             return get<1>(*pair_it).first;
         }
     }
+    
+    template<typename Tobj>
+    func_& func_::in(const vector<Tobj*>& vec) {
+        _nb_vars = 0;
+        _nb_instances = 0;
+        string key;
+        auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+        auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+        auto iter = _vars->begin();
+        while (iter!=_vars->end()) {
+            auto pair = (*iter++);
+            auto v = pair.second.first;
+            switch (v->get_intype()) {
+                case binary_:{
+                    auto vv = ((var<bool>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case short_:{
+                    auto vv = ((var<short>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    
+                    break;
+                }
+                case integer_:{
+                    auto vv = ((var<int>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case float_:{
+                    auto vv = ((var<float>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case double_:{
+                    auto vv = ((var<double>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case long_:{
+                    auto vv = ((var<long double>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+            if (!v->_is_vector) {// i.e., it is not transposed
+                _nb_instances = max(_nb_instances, v->get_nb_instances());
+                _nb_vars++;
+            }
+            else {
+                _nb_vars += v->get_dim();
+            }
+        }
+        iter = _params->begin();
+        while (iter!=_params->end()) {
+            auto pair = (*iter++);
+            auto v = pair.second.first;
+            switch (v->get_intype()) {
+                case binary_:{
+                    auto vv = ((param<bool>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case short_:{
+                    auto vv = ((param<short>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    
+                    break;
+                }
+                case integer_:{
+                    auto vv = ((param<int>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case float_:{
+                    auto vv = ((param<float>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case double_:{
+                    auto vv = ((param<double>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                case long_:{
+                    auto vv = ((param<long double>*)v.get());
+                    if(get<1>(v->_unique_id)==unindexed_){
+                        *vv = vv->in(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==from_){
+                        *vv = vv->from(vec);
+                    }
+                    else if(get<1>(v->_unique_id)==to_){
+                        *vv = vv->to(vec);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+            if (!v->_is_vector) {// i.e., it is not transposed
+                _nb_instances = max(_nb_instances, v->get_nb_instances());
+            }
+        }
+        delete _vars;
+        _vars = new_vars;
+        delete _params;
+        _params = new_params;
+//        embed(*this);
+        return *this;
+    }
+    
+//    template<typename Tobj>
+//    func_& func_::in(const vector<Tobj*>& vec) {
+//        _nb_vars = 0;
+//        _nb_instances = 0;
+//        string key;
+//        auto iter = _vars->begin();
+//        auto pair = (*iter++);
+//        auto vf = pair.second.first;
+//        while(iter != _vars->end() && get<1>(vf->_unique_id)!=unindexed_){//Find unindexed variable in constraint, they will both have the same indexing.
+//            auto pair = (*iter++);
+//            vf = pair.second.first;
+//        }
+//        if(iter==_vars->end()){
+//            throw invalid_argument("Both constraints and variables are indexed, check your indexing!");
+//        }
+//        if (!vf->_is_vector) {// i.e., it is not transposed
+//            _nb_instances = max(_nb_instances, vf->get_nb_instances());
+//            _nb_vars++;
+//        }
+//        else {
+//            _nb_vars += vf->get_dim();
+//        }
+//        switch (vf->get_intype()) {
+//            case binary_:{
+//                auto vv = ((var<bool>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            case short_:{
+//                auto vv = ((var<short>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            case integer_:{
+//                auto vv = ((var<int>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            case float_:{
+//                auto vv = ((var<float>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            case double_:{
+//                auto vv = ((var<double>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            case long_:{
+//                auto vv = ((var<long double>*)vf.get());
+//                *vv = vv->in(vec);
+//                _ids = vv->get_ids();
+//                break;
+//            }
+//            default:
+//                break;
+//        }
+//        iter = _vars->begin();
+//        while (iter!=_vars->end()) {
+//            auto pair = (*iter++);
+//            auto v = pair.second.first;
+//            if(v==vf){
+//                continue;
+//            }
+//            switch (v->get_intype()) {
+//                case binary_:{
+//                    auto vv = ((var<bool>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//                    break;
+//                }
+//                case short_:{
+//                    auto vv = ((var<short>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//
+//                    break;
+//                }
+//                case integer_:{
+//                    auto vv = ((var<int>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//                    break;
+//                }
+//                case float_:{
+//                    auto vv = ((var<float>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//                    break;
+//                }
+//                case double_:{
+//                    auto vv = ((var<double>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//                    break;
+//                }
+//                case long_:{
+//                    auto vv = ((var<long double>*)v.get());
+//                    if(get<1>(v->_unique_id)==unindexed_){
+//                        vv->_ids = _ids;
+//                        if(vec.empty()){
+//                            vv->_name += ".in_empty";
+//                        }
+//                        else {
+//                            vv->_name += ".in_" + vec.front()->_type_name;
+//                        }
+//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                        vv->_is_indexed = true;
+//                    }
+//                    else if(get<1>(v->_unique_id)==from_){
+//                        *vv = vv->from(vec);
+//                    }
+//                    else if(get<1>(v->_unique_id)==to_){
+//                        *vv = vv->to(vec);
+//                    }
+//                    break;
+//                }
+//                default:
+//                    break;
+//                }
+//                v->_dim = v->get_nb_instances();// WRONG?
+//                if (!v->_is_vector) {// i.e., it is not transposed
+//                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+//                    _nb_vars++;
+//                }
+//                else {
+//                    _nb_vars += v->get_dim();
+//                }
+//            }
+//            iter = _params->begin();
+//            while (iter!=_params->end()) {
+//                auto pair = (*iter++);
+//                auto v = pair.second.first;
+//                
+//                switch (v->get_intype()) {
+//                    case binary_:{
+//                        auto vv = ((param<bool>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        break;
+//                    }
+//                    case short_:{
+//                        auto vv = ((param<short>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        
+//                        break;
+//                    }
+//                    case integer_:{
+//                        auto vv = ((param<int>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        break;
+//                    }
+//                    case float_:{
+//                        auto vv = ((var<float>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        break;
+//                    }
+//                    case double_:{
+//                        auto vv = ((param<double>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        break;
+//                    }
+//                    case long_:{
+//                        auto vv = ((param<long double>*)v.get());
+//                        if(get<1>(v->_unique_id)==unindexed_){
+//                            vv->_ids = _ids;
+//                            if(vec.empty()){
+//                                vv->_name += ".in_empty";
+//                            }
+//                            else {
+//                                vv->_name += ".in_" + vec.front()->_type_name;
+//                            }
+//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
+//                            vv->_is_indexed = true;
+//                        }
+//                        else if(get<1>(v->_unique_id)==from_){
+//                            *vv = vv->from(vec);
+//                        }
+//                        else if(get<1>(v->_unique_id)==to_){
+//                            *vv = vv->to(vec);
+//                        }
+//                        break;
+//                    }
+//                    default:
+//                        break;
+//                }
+//                v->_dim = v->get_nb_instances();
+//            }
+//        return *this;
+//    }
 
-
+    template func_& func_::in<Arc>(const vector<Arc*>& vec);    
+    template func_& func_::in<index_pair>(const vector<index_pair*>& vec);
+    
     void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         if (_vars->count(v->get_name())!=0) {
-            v->set_id(_vars->size());
+            throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
         _vars->insert(make_pair<>(v->get_name(), make_pair<>(v, nb)));
+        if (!_val) {
+            _val = make_shared<vector<double>>();
+        }
         if (!v->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, v->get_nb_instances());
+            _val->resize(max(_val->size(),v->get_nb_instances()));
             _nb_vars++;
         }
         else {
@@ -5041,13 +5914,17 @@ namespace gravity{
     }
 
 
-    void func_::add_param(shared_ptr<param_> p){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+    void func_::add_param(shared_ptr<param_> p, int nb){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         if (_params->count(p->get_name())!=0) {
-            p->set_id(_params->size());
+            throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
         }
-        _params->insert(make_pair<>(p->get_name(), make_pair<>(p, 1)));
+        if (!_val) {
+            _val = make_shared<vector<double>>();
+        }
+        _params->insert(make_pair<>(p->get_name(), make_pair<>(p, nb)));
         if (!p->_is_vector) {// i.e., it is not transposed
             _nb_instances = max(_nb_instances, p->get_nb_instances());
+            _val->resize(max(_val->size(), p->get_nb_instances()));
         }
     }
 
@@ -5172,16 +6049,26 @@ namespace gravity{
     bool func_::is_nonlinear() const{
         return (_ftype==nlin_);
     };
-
-    bool func_::is_zero(){/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
-        if (_ftype==const_ && _cst->is_zero()){
-            for (auto& it:*_params) {
-                if (!it.second.first->is_zero()) {
-                    return false;
-                }
-            }
+    
+    bool func_::is_unit() const{/*<< A function is one if it is constant and equals one*/
+        if (is_number() && !_is_transposed && !_is_vector && poly_eval(this)==1){
             return true;
         }
+        return false;
+    }
+
+    bool func_::is_zero() const{/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
+        if(is_number() && !_is_vector && !_is_transposed && poly_eval(this)==0){
+            return true;
+        }
+//        if (_ftype==const_ && _cst->is_zero()){
+//            for (auto& it:*_params) {
+//                if (!it.second.first->is_zero()) {
+//                    return false;
+//                }
+//            }
+//            return true;
+//        }
         return false;
     }
 

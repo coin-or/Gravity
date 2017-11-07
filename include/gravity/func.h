@@ -38,10 +38,12 @@ namespace gravity {
     class expr: public constant_{
     protected:
     public:
+        double                                 _coef = 1.; /**< coefficient multpying the expression */
         string                                 _to_str; /**< A string representation of the expression */
         
         string get_str();
-        
+        double eval(size_t i) const;
+        func_ get_derivative(const param_ &v) const;
         virtual ~expr(){};
     };
 
@@ -50,28 +52,26 @@ namespace gravity {
     class uexpr: public expr{
         
     public:
-        OperatorType    _otype;
-        constant_*      _son;
+        OperatorType                _otype;
+        shared_ptr<func_>           _son;
         
         uexpr();
         uexpr(const uexpr& exp);
         uexpr(uexpr&& exp);
-        
+        uexpr(OperatorType ot, shared_ptr<func_> son);
         uexpr& operator=(const uexpr& e);
         uexpr& operator=(uexpr&& e);
         
         
-        ~uexpr(){
-            delete _son;
-        };
-        
-        bool contains(const constant_* c) const;
+        ~uexpr(){};
+                
         
         
         void reset(){
-            delete _son;
             _son = nullptr;
-            
+            _otype = id_;
+            _to_str = "noname";
+            _coef = 1.;
         };
         
         
@@ -110,12 +110,12 @@ namespace gravity {
         
     public:
         OperatorType    _otype;
-        constant_*      _lson;
-        constant_*      _rson;
+        shared_ptr<func_>      _lson;
+        shared_ptr<func_>      _rson;
         
         bexpr();
         
-        bexpr(OperatorType otype, constant_* lson, constant_* rson);
+        bexpr(OperatorType otype, shared_ptr<func_> lson, shared_ptr<func_> rson);
         
         bexpr(const bexpr& exp);
         
@@ -125,42 +125,30 @@ namespace gravity {
         
         bexpr& operator=(bexpr&& e);
         
-        ~bexpr(){
-            delete _lson;
-            delete _rson;
-        }
+        ~bexpr(){}
         
         void reset(){
             _otype = id_;
-            delete _lson;
+            _to_str = "noname";
+            _coef = 1.;            
             _lson = nullptr;
-            delete _rson;
             _rson = nullptr;
         };
         
-        bool is_lson(const constant_* c) const{
-            return (_lson == c);
-        };
         
-        bool is_rson(const constant_* c) const{
-            return (_rson == c);
-        };
-        
-        constant_* get_lson() const{
+        shared_ptr<func_> get_lson() const{
             return _lson;
         };
         
-        constant_* get_rson() const{
+        shared_ptr<func_> get_rson() const{
             return _rson;
         };
         
-        void set_lson(constant_* c){
-            delete _lson;
+        void set_lson(shared_ptr<func_> c){
             _lson = c;
         };
         
-        void set_rson(constant_* c){
-            delete _rson;
+        void set_rson(shared_ptr<func_> c){
             _rson = c;
         };
         
@@ -168,7 +156,6 @@ namespace gravity {
             return _otype;
         };
         
-        bool contains(const constant_* c) const;
         
         bool operator==(const bexpr &c)const;
         
@@ -430,10 +417,10 @@ namespace gravity {
         map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
         map<string, qterm>*                    _qterms = nullptr; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
         map<string, pterm>*                    _pterms = nullptr; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
-        expr*                                  _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
+        shared_ptr<expr>                       _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
         map<string, expr*>*                    _DAG = nullptr; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
-        queue<expr*>*                          _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
-        map<unique_id,func_*>                  _dfdx;/**< A map storing the first derivatives of f per variable name*/
+        deque<shared_ptr<expr>>*               _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
+        shared_ptr<map<unique_id,shared_ptr<func_>>>      _dfdx;/**< A map storing the first derivatives of f per variable name*/
         Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
         pair<constant_*, constant_*>*          _all_range = nullptr; /**< Range of the return value considering all instances of the current function. >>**/
@@ -454,6 +441,7 @@ namespace gravity {
         bool                                   _is_constraint = false;
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
+        bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<double>>             _val;
         shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
@@ -488,12 +476,7 @@ namespace gravity {
         }
         
         template<typename Tobj>
-        func_& in(const vector<Tobj*>& vec) {
-            _ids = make_shared<vector<unsigned>>();
-            for (auto &var_p: get_vars()) {
-                auto var = var_p.second.first;
-            }
-        }
+        func_& in(const vector<Tobj*>& vec);
         
         void insert(const lterm& term);
         
@@ -501,7 +484,7 @@ namespace gravity {
         
         void insert(const pterm& term);
         
-        void insert(expr& e);
+//        void insert(expr& e);
         void update_to_str();
         size_t get_nb_vars() const;
         
@@ -516,7 +499,7 @@ namespace gravity {
         void add_var(shared_ptr<param_> v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         
         
-        void add_param(shared_ptr<param_> p);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+        void add_param(shared_ptr<param_> p, int nb = 1);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         
         
         
@@ -549,12 +532,12 @@ namespace gravity {
         bool is_quadratic() const;
         bool is_polynomial() const;
         bool is_nonlinear() const;
-        bool is_zero();/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
-        
+        bool is_zero() const;/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
+        bool is_unit() const;
         bool is_transposed() const;
         FType get_ftype() const;
         void embed(func_& f);
-        void embed(expr& e);
+        void embed(shared_ptr<expr> e);
         
         void reset();
         
@@ -647,11 +630,15 @@ namespace gravity {
             return *_pterms;
         }
         
-        expr* get_expr() const{
+        shared_ptr<expr> get_expr() const{
             return _expr;
         }
         
-        func_* get_stored_derivative(const unique_id& vid) const; /**< Returns the stored derivative with respect to variable v. */
+        shared_ptr<map<unique_id,shared_ptr<func_>>> get_dfdx() const{
+            return _dfdx;
+        };
+        
+        shared_ptr<func_> get_stored_derivative(const unique_id& vid) const; /**< Returns the stored derivative with respect to variable v. */
         
         func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
         
@@ -660,8 +647,10 @@ namespace gravity {
         
         void update_sign();
         
-        double eval(size_t i) const;
-        double eval() const{ return eval(0);};
+        double get_val(size_t inst) const;
+        double eval(size_t i);
+        double force_eval(size_t i);
+        double eval(){ return eval(0);};
         string to_str(bool display_input=false) const;
         void print(bool endline=false, bool display_input=false) const;
         
@@ -1059,14 +1048,14 @@ namespace gravity {
             }
 
             case uexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -1154,14 +1143,14 @@ namespace gravity {
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -1270,14 +1259,14 @@ namespace gravity {
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(minus_, copy(*c1), copy(c2));
+                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -1378,14 +1367,14 @@ namespace gravity {
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(product_, copy(*c1), copy(c2));
+                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
@@ -1483,14 +1472,14 @@ namespace gravity {
                 break;
             }
             case uexp_c: {
-                auto res = new bexpr(div_, copy(*c1), copy(c2));
+                auto res = new bexpr(div_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
                 break;
             }
             case bexp_c: {
-                auto res = new bexpr(div_, copy(*c1), copy(c2));
+                auto res = new bexpr(div_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
                 return c1;
