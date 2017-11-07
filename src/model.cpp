@@ -187,6 +187,30 @@ void Model::del_param(const param_& v){
 void Model::add_constraint(const Constraint& c){
     if (_cons_name.count(c.get_name())==0) {
         auto newc = make_shared<Constraint>(c);
+        if (newc->is_constant()) {
+            switch (newc->_ctype) {
+                case leq:
+                    if (newc->eval()>c.get_rhs()) {
+                        throw invalid_argument("Adding violated constant constraint!\n");
+                    }
+                    break;
+                case geq:
+                    if (newc->eval()<c.get_rhs()) {
+                        throw invalid_argument("Adding violated constant constraint!\n");
+                    }
+                    break;
+                case eq:
+                    if (newc->eval()!=c.get_rhs()) {
+                        throw invalid_argument("Adding violated constant constraint!\n");
+                    }
+                    break;
+                default:
+                    break;
+            }
+            DebugOn("WARNING: Adding redundant constant constraint, Gravity will be ignoring it.\n");
+            return;
+        }
+
         newc->update_to_str();
 //        newc->print();
         if (newc->is_nonlinear()) {
@@ -407,20 +431,14 @@ void Model::set_x(const double* x){
     }
 }
 
-void Model::compute_funcs() {
-    
+void Model::compute_funcs() {    
     auto it = _nl_funcs.begin();
     while (it!=_nl_funcs.end()) {
         auto f = (*it++);
         DebugOff(f->to_str() << endl);
-        //        if (!f->is_nonlinear()) {
         for (int inst = 0; inst < f->get_nb_instances(); inst++) {
             f->_val->at(inst) = f->eval(inst);
         }
-        //        }
-        //        else {
-        //
-        //        }
     }
     for (auto &c_p:_cons) {
         auto c = c_p.second;

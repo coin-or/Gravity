@@ -73,6 +73,24 @@ public:
         return res;
     }
 
+    var from(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var to(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     template<typename Tobj>
     var from(const vector<Tobj*>& vec){
         var<type> res(this->_name);
@@ -185,11 +203,11 @@ public:
 
     type    get_lb(size_t i = 0) const {
         unsigned index = 0;
-        if (param<type>::get_ids().empty()) {
+        if (param<type>::get_ids()->empty()) {
             index = i;
         }
         else {
-            index = param<type>::get_ids().at(i);
+            index = param<type>::get_ids()->at(i);
         }
         if (_lb->size() <= index) {
             throw out_of_range("get_lb(size_t i, index: " + to_string(index) + ")\n");
@@ -199,11 +217,11 @@ public:
 
     type    get_ub(size_t i = 0) const {
         unsigned index = 0;
-        if (param<type>::get_ids().empty()) {
+        if (param<type>::get_ids()->empty()) {
             index = i;
         }
         else {
-            index = param<type>::get_ids().at(i);
+            index = param<type>::get_ids()->at(i);
         }
         if (_ub->size() <= index) {
             throw out_of_range("get_ub(size_t i), index: " + to_string(index)+ ")\n");

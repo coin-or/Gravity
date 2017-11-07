@@ -476,12 +476,7 @@ namespace gravity {
         }
         
         template<typename Tobj>
-        func_& in(const vector<Tobj*>& vec) {
-            _ids = make_shared<vector<unsigned>>();
-            for (auto &var_p: get_vars()) {
-                auto var = var_p.second.first;
-            }
-        }
+        func_& in(const vector<Tobj*>& vec);
         
         void insert(const lterm& term);
         
