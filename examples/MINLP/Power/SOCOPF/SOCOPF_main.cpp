@@ -156,15 +156,15 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(PAD_LB >= 0);
     
     /* Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
-    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
-    SOCP.add_constraint(Thermal_Limit_from <= 0);
-    
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
-    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
-    SOCP.add_constraint(Thermal_Limit_to <= 0);
+//    Constraint Thermal_Limit_from("Thermal_Limit_from");
+//    Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
+//    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
+//    SOCP.add_constraint(Thermal_Limit_from <= 0);
+//    
+//    Constraint Thermal_Limit_to("Thermal_Limit_to");
+//    Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
+//    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
+//    SOCP.add_constraint(Thermal_Limit_to <= 0);
   
 //    Constraint NL("NL");
 //    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);

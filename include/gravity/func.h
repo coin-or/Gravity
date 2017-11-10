@@ -433,11 +433,12 @@ namespace gravity {
         
         size_t                                 _nb_vars = 0; /**< Number of variables */
                                                                    
-        size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
         size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
         size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Jacobian **/
         
     public:
+        size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
+
         bool                                   _is_constraint = false;
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/

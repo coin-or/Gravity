@@ -39,7 +39,7 @@ size_t Model::get_nb_vars() const{
 size_t Model::get_nb_cons() const{
     size_t n = 0;
     for (auto &cp:_cons) {
-        n += cp.second->get_nb_instances();
+        n += cp.second->_nb_instances;
     }
     return n;
 };
@@ -80,7 +80,7 @@ size_t Model::get_nb_nnz_h() const{
         vi_name = pairs.first.first;
         s = pairs.second;
         vi = (*s.begin()).first->get_var(vi_name);
-        nnz += (*s.begin()).first->get_nb_instances();
+        nnz += (*s.begin()).first->_nb_instances;
     }
     return nnz;
 };
@@ -223,7 +223,7 @@ void Model::add_constraint(const Constraint& c){
     else {
         throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
     }
-    int nb_inst = c.get_nb_instances();
+    int nb_inst = c._nb_instances;
     _nb_cons += nb_inst;
     _nnz_g += c.get_nb_vars()*nb_inst;
     if (_type==lin_m && c.is_quadratic()) {
@@ -436,21 +436,27 @@ void Model::compute_funcs() {
     while (it!=_nl_funcs.end()) {
         auto f = (*it++);
         DebugOff(f->to_str() << endl);
-        for (int inst = 0; inst < f->get_nb_instances(); inst++) {
+        for (int inst = 0; inst < f->_nb_instances; inst++) {
             f->_val->at(inst) = f->eval(inst);
         }
     }
     for (auto &c_p:_cons) {
         auto c = c_p.second;
-        for (int inst = 0; inst < c->get_nb_instances(); inst++) {
+        for (int inst = 0; inst < c->_nb_instances; inst++) {
             c->_val->at(inst) = c->eval(inst);
         }
+        if (c->is_linear() && !_first_call_jac) {
+            continue;
+        }
         for (auto &dfdx: *c->get_dfdx()) {
-            for (int inst = 0; inst < dfdx.second->get_nb_instances(); inst++) {
+            for (int inst = 0; inst < dfdx.second->_nb_instances; inst++) {
                 dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
             }
+            if (c->is_quadratic() && !_first_call_hess) {
+                continue;
+            }
             for (auto &dfd2x: *dfdx.second->get_dfdx()) {
-                for (int inst = 0; inst < dfd2x.second->get_nb_instances(); inst++) {
+                for (int inst = 0; inst < dfd2x.second->_nb_instances; inst++) {
                     dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
                 }
             }
@@ -479,6 +485,10 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     shared_ptr<func_> df;
     unsigned vid, vid_inst, index = 0;
     unique_id v_unique;
+    if (new_x) {
+        set_x(x);
+        compute_funcs();
+    }
     for (int i = 0; i<_nb_vars; i++) {
         res[i] = 0;
     }
@@ -504,10 +514,6 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
             }
         }
         return;
-    }
-    if (new_x) {
-        set_x(x);
-        compute_funcs();
     }
     for(auto& vi_p: _obj.get_vars()) {
         v = vi_p.second.first.get();
@@ -539,7 +545,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         for(auto& c_p: _cons)
         {
             c = c_p.second.get();
-            auto nb_ins = c->get_nb_instances();
+            auto nb_ins = c->_nb_instances;
             for (int inst = 0; inst< nb_ins; inst++){
                 res[c->_id+inst] = c->get_val(inst);
 //                _cons_vals[index++] = res[c->_id+inst];
@@ -551,7 +557,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //        
 //        for(auto& c_p: _cons) {
 //            c = c_p.second;
-//            auto nb_ins = c->get_nb_instances();
+//            auto nb_ins = c->_nb_instances;
 //            for (int inst = 0; inst< nb_ins; inst++){
 //                res[c->_id+inst] = _cons_vals[index++];
 //            }
@@ -562,15 +568,16 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 /* Fill the nonzero values in the jacobian */
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
 //    if (!_first_call_jac && (!new_x || _type==lin_m)) { /* No need to recompute jacobian for linear models */
+    if (new_x) {
+        set_x(x);
+        compute_funcs();
+    }
+
     if (!_first_call_jac && (_type==lin_m)) { /* No need to recompute jacobian for linear models */
         for (int i = 0; i< _nnz_g; i++) {
             res[i] = _jac_vals[i];
         }
         return;
-    }
-    if (new_x) {
-        set_x(x);
-        compute_funcs();
     }
     size_t idx=0;
     size_t cid = 0;
@@ -581,7 +588,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
-        auto nb_ins = c->get_nb_instances();
+        auto nb_ins = c->_nb_instances;
         if (c->is_linear() && !_first_call_jac) {
             DebugOff("Linear constraint, using stored jacobian!\n");
             for (int i = 0; i<c->get_nb_vars()*nb_ins; i++) {
@@ -626,7 +633,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
-        auto nb_ins = c->get_nb_instances();
+        auto nb_ins = c->_nb_instances;
         for (auto &v_p: c->get_vars()){
             v = v_p.second.first.get();
             vid = v->get_id();
@@ -689,7 +696,7 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
         else {
             lin = false;
         }
-        auto nb_ins = c->get_nb_instances();
+        auto nb_ins = c->_nb_instances;
         for (int i = 0; i< nb_ins; i++){
             cid = c->_id +i;
             if (lin) {
@@ -725,7 +732,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         }
         vid = vi->get_id();
         vjd = vj->get_id();
-        for (unsigned i = 0; i<(*s.begin()).first->get_nb_instances(); i++) {
+        for (unsigned i = 0; i<(*s.begin()).first->_nb_instances; i++) {
             idx_all += s.size();
             iRow[idx] = vid + vi->get_id_inst(i);
             jCol[idx] = vjd + vj->get_id_inst(i);
@@ -748,13 +755,13 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         }
         for (auto &pairs: _hess_link) {
             s = pairs.second;
-            for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
+            for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
                 res[idx] = 0;
                 for (auto f_pair:s) {
                     if (f_pair.first->_is_constraint) {
                         c = (Constraint*)f_pair.first;
                         df = f_pair.second;
-//                        for (unsigned inst = 0; inst < c->get_nb_instances(); inst++) {
+//                        for (unsigned inst = 0; inst < c->_nb_instances; inst++) {
                             hess = df->get_val(inst);
                             _hess_vals[idx_in++] = hess;
                             res[idx] += lambda[c->_id + inst] * hess;
@@ -772,11 +779,14 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         _first_call_hess = false;
         return;
     }
-    
+    if (new_x) {
+        set_x(x);
+        compute_funcs();
+    }
     if ((_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
         for (auto &pairs: _hess_link) {
             s = pairs.second;
-            for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
+            for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
                 res[idx] = 0;
                 for (auto f_pair:s) {
                     if (f_pair.first->_is_constraint) {
@@ -792,13 +802,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         }
         return;
     }
-    if (new_x) {
-        set_x(x);
-        compute_funcs();
-    }
     for (auto &pairs: _hess_link) {
         s = pairs.second;
-        for (unsigned inst = 0; inst<(*s.begin()).first->get_nb_instances(); inst++) {
+        for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
             res[idx] = 0;            
             for (auto f_pair:s) {
                 if (f_pair.first->_is_constraint) {
@@ -879,7 +885,7 @@ void Model::fill_in_maps() {
         c = c_p.second.get();
         c->compute_derivatives();
         c->_val = make_shared<vector<double>>();
-        c->_val->resize(c->get_nb_instances());
+        c->_val->resize(c->_nb_instances);
         if (!c->is_linear()) {
             for (auto &vi_p: c->get_vars()) {
                 vi = vi_p.second.first.get();
@@ -899,7 +905,7 @@ void Model::fill_in_maps() {
                     else {
                         _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
                     }
-//                    for (int inst = 0; inst<c->get_nb_instances(); inst++) {
+//                    for (int inst = 0; inst<c->_nb_instances; inst++) {
 //                        vid_inst = vid + vi->get_id_inst(inst);
 //                        vjd_inst = vjd + vj->get_id_inst(inst);
 //                        _hess.insert(make_pair<>(vid_inst, vjd_inst));
@@ -1008,7 +1014,7 @@ void Model::fill_in_maps() {
 //        if (c->is_linear()) {
 //            continue;
 //        }
-//        for (int inst = 0; inst<c->get_nb_instances(); inst++) {
+//        for (int inst = 0; inst<c->_nb_instances; inst++) {
 //            cid = c->_id + inst;
 //            for (auto &qt_p: c->get_qterms()) {
 //                vi = qt_p.second._p->first;
@@ -1206,7 +1212,7 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
         c = c_p.second.get();
         switch (c->get_type()) {
             case eq:{
-                auto nb_ins = c->get_nb_instances();
+                auto nb_ins = c->_nb_instances;
                 for (int i = 0; i< nb_ins; i++){
                     cid = c->_id+i;
                     g_l[cid] = c->_rhs;
@@ -1215,7 +1221,7 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
                 break;
             }
             case leq:{
-                auto nb_ins = c->get_nb_instances();
+                auto nb_ins = c->_nb_instances;
                 for (int i = 0; i< nb_ins; i++){
                     cid = c->_id+i;
                     g_l[cid] = numeric_limits<double>::lowest();
@@ -1224,7 +1230,7 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
                 break;
             }
             case geq:{
-                auto nb_ins = c->get_nb_instances();
+                auto nb_ins = c->_nb_instances;
                 for (int i = 0; i< nb_ins; i++){
                     cid = c->_id+i;
                     g_l[cid] = c->_rhs;
@@ -1280,7 +1286,7 @@ void Model::embed(expr& e){
                 embed(f);
                 _nl_funcs.push_back(f);
                 f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->get_nb_instances());
+                f->_val->resize(f->_nb_instances);
             }
             else {
                 ue->_son = f_p.first->second;
@@ -1295,7 +1301,7 @@ void Model::embed(expr& e){
                 embed(f);
                 _nl_funcs.push_back(f);
                 f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->get_nb_instances());
+                f->_val->resize(f->_nb_instances);
             }
             else {
                 be->_lson = f_p.first->second;
@@ -1306,7 +1312,7 @@ void Model::embed(expr& e){
                 embed(f);
                 _nl_funcs.push_back(f);
                 f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->get_nb_instances());
+                f->_val->resize(f->_nb_instances);
             }
             else {
                 be->_rson = f_p.first->second;
@@ -1331,7 +1337,7 @@ void Model::embed(shared_ptr<func_> f){
     if (f_p.second) {
         _nl_funcs.push_back(f_p.first->second);
         f_p.first->second->_val = make_shared<vector<double>>();
-        f_p.first->second->_val->resize(f_p.first->second->get_nb_instances());
+        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
     }
 }
 
