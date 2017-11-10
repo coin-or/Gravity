@@ -61,6 +61,9 @@ public:
      @brief Returns the vector of incoming active arcs
      */
     std::vector<Arc*> get_in();
+
+    /* return its neighbours */
+    std::vector<Node*> get_neighbours();
 };
 
 #endif

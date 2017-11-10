@@ -22,14 +22,7 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
-#ifdef USE_BOOST
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/kruskal_min_spanning_tree.hpp>
-#include <deque>
-#include <iterator>
-#endif
-
-
+#include <armadillo>
 #ifdef USE_BOOST
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
@@ -40,10 +33,8 @@
 using namespace std;
 using namespace gravity;
 
-
 static int max_line_len;
 static char* line = nullptr;
-
 
 Net::Net() {}
 
@@ -88,6 +79,37 @@ Net* Net::clone() {
     return copy_net;
 }
 
+Net* Net::clone_undirected() {
+    Net* copy_net = new Net();
+    Node* node = NULL;
+    
+    for (int i=0; i<nodes.size(); i++) {
+        node = this->nodes[i];
+        copy_net->add_node(node->clone());
+    }
+    
+    Arc* arc = NULL;
+    for (int i=0; i < arcs.size(); i++) {
+        
+        /* ignores if the arc is a paralel line to an already existing line */
+        if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
+            continue;
+        }
+        arc = arcs[i]->clone();
+        
+        /* Update the source and destination to the new nodes in copy_net */
+        arc->_src = copy_net->get_node(arc->_src->_name);
+        arc->_dest = copy_net->get_node(arc->_dest->_name);
+        
+        /* Add the undirected arc to the list of arcs */
+        copy_net->add_undirected_arc(arc);
+        
+        /* Connects it to its source and destination */
+        arc->connect();
+    }
+    return copy_net;
+}
+
 
 const bool node_compare(const Node* n1, const Node* n2) {
     return n1->fill_in > n2->fill_in;
@@ -107,7 +129,7 @@ Node* Net::get_node(string name){
     return nodeID.find(name)->second;
 }
 
-/* returns the arc formed by node n1 and n2 */
+/* returns the undirected arc formed by node n1 and n2 */
 Arc* Net::get_arc(Node* n1, Node* n2) {
     string src, dest, key, inv_key;
     src = n1->_name;
@@ -188,13 +210,34 @@ bool Net::add_arc(Arc* a) {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
         s->insert(a);
-        DebugOn("\nWARNING: adding another line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        DebugOn("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }
     arcs.push_back(a);
     return parallel;
 }
+
+void Net::add_undirected_arc(Arc* a) {
+    bool parallel = false;
+    set<Arc*>* s = NULL;
+    string src, dest, key;
+    src = a->_src->_name;
+    dest = a->_dest->_name;
+    
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    
+    if(arcID.find(key)==arcID.end()&&get_arc(src, dest) == nullptr) {
+        s = new set<Arc*>;
+        s->insert(a);
+        arcID.insert(pair<string, set<Arc*>*>(key,s));
+        arcs.push_back(a);
+    }
+}
+
 
 /** remove the arc by
 1. removing it from the arcs list, but without changing the arc id.
@@ -436,7 +479,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     Arc* arc = nullptr;
 
     string name="";
-    Net* graph_clone = clone();
+    Net* graph_clone = clone_undirected();
     int nb = 0;
 
     /** cliques with less than 1 nodes are useless for us.*/
@@ -450,10 +493,9 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         vector<Node*> bag_copy;
         vector<Node*> bag;
         Debug("new bag = { ");
-        for (auto a: n->branches) {
-            nn = a->neighbour(n);
+        for (auto nn: n->get_neighbours()) {
             bag_copy.push_back(nn);
-            bag.push_back(get_node(nn->_name)); // Note this takes original node. 
+            bag.push_back(get_node(nn->_name)); // Note it takes original node.
             Debug(nn->_name << ", ");
         }
         graph_clone->remove_end_node();
@@ -463,7 +505,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         sort(bag.begin(), bag.end(), [](Node* a, Node* b) -> bool{return a->_id < b->_id;});
 
         // update clone_graph and construct chordal extension.
-        for (int i = 0; i < bag_copy.size() - 1; i++) {
+        for (int i = 0; i < bag_copy.size(); i++) {
             u = bag_copy.at(i);
             for (int j = i+1; j<bag_copy.size(); j++) {
                 nn = bag_copy.at(j);
@@ -490,13 +532,12 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
         _bags_copy.push_back(bag_copy);
         _bags.push_back(bag); // bag original
-//        if (_bag_copys.size()==3) {
-//            return;
-//        }
+
         if (bag_copy.size()==3) {
             nb++;
         }
     }
+    sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
     Debug("\n Number of 3D bags = " << nb << endl);
 }
 
@@ -521,8 +562,8 @@ Net* Net::get_chordal_extension() {
     Net* graph_clone = clone();
     int nb = 0;
 
-    /** cliques with less than 2 nodes are useless for us.*/
-    while (graph_clone->nodes.size() > 2) {
+    /** cliques with less than 1 nodes are useless for us.*/
+    while (graph_clone->nodes.size() > 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();         
@@ -532,8 +573,7 @@ Net* Net::get_chordal_extension() {
         vector<Node*> bag;
         Debug("new bag_copy = { ");
 
-        for (auto a: n->branches) {
-            nn = a->neighbour(n);
+        for (auto nn: n->get_neighbours()) {
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name));
             Debug(nn->_name << ", ");
@@ -580,7 +620,10 @@ Net* Net::get_chordal_extension() {
             nb++;
         }
     }
-    Debug("\n Number of 3D bags = " << nb << endl);
+    // sort the bags by its size (descending order)
+    sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
+    printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
+
     return chordal_extension;
 }
 
@@ -590,19 +633,20 @@ Net* Net::get_chordal_extension() {
 // second one: use the RIP property of the tree decomposition, thus just need to check every leaf..
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 
+// use _bags instead of bag_copy
 void Net::get_cliquebags (bool print) {
-    for (unsigned i = 0; i < _bags_copy.size()-1; i++) {
-        for (unsigned j = i+1; j < _bags_copy.size();) {
-            if (std::includes(_bags_copy[i].begin(),_bags_copy[i].end(),
-                              _bags_copy[j].begin(), _bags_copy[j].end()))
+    for (unsigned i = 0; i < _bags.size(); i++) {
+        for (unsigned j = i+1; j < _bags.size();) {
+            if (std::includes(_bags[i].begin(),_bags[i].end(),
+                              _bags[j].begin(), _bags[j].end()))
             {
-                _bags_copy.erase(_bags_copy.begin()+j);
+                _bags.erase(_bags.begin()+j);
             }
             else
                 j++;
         }
     }
-    cout << "Number of maximal cliques of the chordal extension = " << _bags_copy.size() << endl <<endl;
+    cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
 }
 
 /* Destructors */
@@ -645,10 +689,9 @@ Net* Net::get_clique_tree(){
     boost::vecS,
     boost::undirectedS,
     boost::no_property,
-    boost::property < boost::edge_weight_t, int >
-    > Graph;
+    boost::property < boost::edge_weight_t, int >> Graph;
     typedef boost::graph_traits <Graph>::edge_descriptor Edge;
-    typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
+    //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
     
     // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
     typedef std::pair<int, int> E;
@@ -668,7 +711,7 @@ Net* Net::get_clique_tree(){
             }
         }
     }
-    size_t num_edges = edges.size();
+    //size_t num_edges = edges.size();
     
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
     Graph g(num_nodes);
@@ -726,8 +769,8 @@ Net* Net::get_clique_tree(){
                 if (arc != nullptr){
                     a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), arc->_active)); 
                 }
-                else 
-                    a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
+             //   else
+               //     a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
             }
         }
     }
@@ -736,3 +779,29 @@ Net* Net::get_clique_tree(){
     return cliquetree;
 }
 
+
+//void Net::chol_decompose(bool print){
+//    arma::mat adjacency_matrix = arma::zeros(nodes.size(), nodes.size());
+//    for (auto &arc: arcs){
+//        adjacency_matrix(arc->_src->_id, arc->_dest->_id) = 1;
+//        adjacency_matrix(arc->_dest->_id, arc->_src->_id) = 1;
+//
+//    }
+//    arma::mat pertubation = arma::zeros(nodes.size(),nodes.size());
+//    // if fails,  make epsilon larger.
+//    unsigned epsilon = 2;
+//    arma::mat adjacency_matrix_psd = adjacency_matrix + epsilon*pertubation.eye();
+//    arma::mat chordal_sparsity = arma::zeros(nodes.size(),nodes.size());
+//    chordal_sparsity = arma::chol(adjacency_matrix_psd);
+//    if (print){
+//        cout << "chordal sparsity matrix: \n " << chordal_sparsity << endl;
+//    }
+//    unsigned num_nonzeros = 0;
+//    for (int i = 0; i < nodes.size(); i++)
+//        for (int j = i+1; j< nodes.size(); j++){
+//            if (chordal_sparsity(i, j) != 0){
+//                num_nonzeros +=1;
+//            }
+//        }
+//    printf("With cholesky decomposition, the chordal graph added  %lu edges \n", (num_nonzeros - arcs.size()));
+//}

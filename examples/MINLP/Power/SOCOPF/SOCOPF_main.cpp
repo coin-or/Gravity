@@ -30,7 +30,7 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
-        fname = "../../data_sets/Power/nesta_case30_ieee.m";
+        fname = "../../data_sets/Power/nesta_case118_ieee.m";
 
     }
     PowerNet* grid = new PowerNet();
@@ -82,8 +82,8 @@ int main (int argc, const char * argv[])
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
-//            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+           // obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
     SOCP.set_objective(min(obj));
@@ -91,10 +91,10 @@ int main (int argc, const char * argv[])
     
     /** Define constraints */
     /* SOCP constraints */
-    Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(bus_pairs), 2) + power(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs) ;
-    SOCP.add_constraint(SOC <= 0);
-    
+//    Constraint SOC("SOC");
+//    SOC =  power(R_Wij.in(bus_pairs), 2) + power(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs) ;
+//    SOCP.add_constraint(SOC <= 0);
+//    
     //KCL
     for (auto b: grid->nodes) {
         Bus* bus = (Bus*) b;
@@ -145,17 +145,17 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(Flow_Q_To = 0);
 //
     ///* Phase Angle Bounds constraints */
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bus_pairs);
-    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_UB <= 0);
-    
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bus_pairs);
-    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_LB >= 0);
-    
-    /* Thermal Limit Constraints */
+//    Constraint PAD_UB("PAD_UB");
+//    PAD_UB = Im_Wij.in(bus_pairs);
+//    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
+//    SOCP.add_constraint(PAD_UB <= 0);
+//    
+//    Constraint PAD_LB("PAD_LB");
+//    PAD_LB =  Im_Wij.in(bus_pairs);
+//    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
+//    SOCP.add_constraint(PAD_LB >= 0);
+//    
+//    /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
     Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
