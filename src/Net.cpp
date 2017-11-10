@@ -110,7 +110,7 @@ Net* Net::clone_undirected() {
     return copy_net;
 }
 
-const bool bag_compare(vector<Node*> & a, vector<Node*>& b) {
+const bool bag_compare(const vector<Node*> & a,const vector<Node*>& b) {
     return a.size() > b.size();
 }
 
