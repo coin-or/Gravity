@@ -31,10 +31,9 @@ public:
     std::vector<Arc*> arcs;
     
     /** Set of bus pairs */
-    gravity::node_pairs _bus_pairs; // not sure why should we put _bus_pairs in Net.h..
+    gravity::node_pairs _bus_pairs; 
     
-    /** Mapping the arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
-    
+    /** Mapping the directed arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     std::map<std::string, std::set<Arc*>*> arcID;
     
     /** Mapping the node name to its position in the vector, key = node name */
@@ -45,13 +44,16 @@ public:
     
     bool duplicate(std::string name1, std::string name2, int id1);
     
-    /** Tree decomposition bags */
     // bags are sorted in an ascending order of ids.
-    std::vector<std::vector<Node*>> _bags; // each node is from this.nodes. 
+    std::vector<std::vector<Node*>> _bags; // each node is from this nodes. 
     std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node (not by reference).
-    
-    /** Cloning */
+
+    /** Clone to get a copied graph without parallel lines but may include two directed arcs between the same nodes**/
     Net* clone();
+
+    /** Clone to get a copied (Undirected) graph: no parallel lines, at most one
+     * arc between two nodes*/
+    Net* clone_undirected();
     
     Net();
     ~Net();
@@ -59,6 +61,7 @@ public:
     /** Modifiers */
     void add_node(Node* n);
     bool add_arc(Arc* a);
+    void add_undirected_arc(Arc* a);
     
     /* Accessors */
     Node* get_node(std::string name);
@@ -105,17 +108,21 @@ public:
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false);
     
-    
+   
+    /** get algorithmic graph */ 
+    void get_algorithmic_graph(); // a cloned graph without in-active, parallel lines. 
+
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
     
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     std::vector<gravity::index_pair*> get_bus_pairs();
-
-    
     
     /** Compute the tree decomposition bags **/
     void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques. 
     Net* get_clique_tree();
+    
+    /** Linear algebra based methods based on Armadillo*/
+    void chol_decompose(bool print=false); 
 };
 #endif

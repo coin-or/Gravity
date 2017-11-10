@@ -246,7 +246,6 @@ int main (int argc, const char * argv[])
     }
     else {
         //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
-//         fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         // fname = "../../data_sets/Power/nesta_case6_c.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -256,7 +255,8 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case118_ieee.m";
+          fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        //fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
         //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //                fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
     }
@@ -264,7 +264,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
 
     grid.readgrid(fname);
-    //OPF_Clique_W(grid);
+    //scopf_W(grid, true);
     OPF_Clique_WG(grid);
     //scopf_W(grid, false);
     return 0;

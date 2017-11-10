@@ -103,3 +103,19 @@ std::vector<Arc*> Node::get_in(){
     return res;
 }
 
+std::vector<Node*> Node::get_neighbours(){
+    vector<Node*> res;
+    for (auto a:branches) {
+        if(a->_dest->_id==_id && std::find(res.begin(),res.end(),a->_src) == res.end()){
+            res.push_back(a->_src);
+        }
+        
+        if(a->_src->_id==_id && std::find(res.begin(),res.end(),a->_dest)== res.end() ){
+            res.push_back(a->_dest);
+        }
+    }
+    // uniqueness.
+    
+    return res;
+}
+
