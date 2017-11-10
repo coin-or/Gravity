@@ -110,6 +110,10 @@ Net* Net::clone_undirected() {
     return copy_net;
 }
 
+const bool bag_compare(vector<Node*> & a, vector<Node*>& b) {
+    return a.size() > b.size();
+}
+
 
 const bool node_compare(const Node* n1, const Node* n2) {
     return n1->fill_in > n2->fill_in;
@@ -537,7 +541,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             nb++;
         }
     }
-    sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
+    sort(_bags.begin(), _bags.end(), bag_compare);
     Debug("\n Number of 3D bags = " << nb << endl);
 }
 
