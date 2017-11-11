@@ -47,6 +47,9 @@ void reform1(PowerNet& grid){
     grid_augment->get_tree_decomp_bags();
     auto cliquetree = grid_augment->get_clique_tree();
     const unsigned nb_cliques = grid_augment->_bags.size();
+    
+    
+    
 }
 
 

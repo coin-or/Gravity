@@ -48,12 +48,13 @@ public:
     std::vector<std::vector<Node*>> _bags; // each node is from this nodes. 
     std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node (not by reference).
 
-    /** Clone to get a copied graph without parallel lines but may include two directed arcs between the same nodes**/
+    /** Clone the graph exactly **/ 
     Net* clone();
 
     /** Clone to get a copied (Undirected) graph: no parallel lines, at most one
      * arc between two nodes*/
-    Net* clone_undirected();
+    // not that clone_undirected is often used for implementing graph algorithms. 
+    Net* clone_undirected(); 
     
     Net();
     ~Net();

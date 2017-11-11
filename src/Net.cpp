@@ -41,6 +41,7 @@ Net::Net() {}
 /* returns true if an arc is already present between the given nodes */
 bool Net::duplicate(std::string n1, std::string n2, int id1) {
     int id2 = get_arc(n1, n2)->_id;
+    
     if (id2 < id1)
         return true;
     else
@@ -60,17 +61,17 @@ Net* Net::clone() {
     Arc* arc = NULL;
     for (int i=0; i < arcs.size(); i++) {
         
-        /* ignores if the arc is a paralel line to an already existing line */
-        if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
-            continue;
-        }
+        /* ignores if the arc is a paralel line to an already existing arc */
+        //if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
+//            continue;
+//        }
         arc = arcs[i]->clone();
         
         /* Update the source and destination to the new nodes in copy_net */
         arc->_src = copy_net->get_node(arc->_src->_name);
         arc->_dest = copy_net->get_node(arc->_dest->_name);
         
-        /* Add the new arc to the list of arcs IS THIS REALLY USEFULL ? */
+        /* Add the new arc to the list of arcs */
         copy_net->add_arc(arc);
         
         /* Connects it to its source and destination */
@@ -90,9 +91,7 @@ Net* Net::clone_undirected() {
     
     Arc* arc = NULL;
     for (int i=0; i < arcs.size(); i++) {
-        
-        /* ignores if the arc is a paralel line to an already existing line */
-        if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
+        if (copy_net->get_arc(arcs[i]->_src->_name, arcs[i]->_dest->_name)!=nullptr) {
             continue;
         }
         arc = arcs[i]->clone();
@@ -162,6 +161,7 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
 }
 
 /* returns the Id of the arc formed by nodes names n1 and n2 */
+// this assumes that the graph is undirected.
 Arc* Net::get_arc(std::string src, std::string dest) {
     std::string key, inv_key;
     key.clear();
@@ -195,6 +195,11 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
+    if (src == dest){
+        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+    
+    }
+
     
     key.clear();
     key.append(src);
@@ -218,19 +223,30 @@ bool Net::add_arc(Arc* a) {
     return parallel;
 }
 
+// undirected
 void Net::add_undirected_arc(Arc* a) {
     bool parallel = false;
     set<Arc*>* s = NULL;
-    string src, dest, key;
+    string src, dest, key, key_inv;
     src = a->_src->_name;
     dest = a->_dest->_name;
+
+    if (src == dest){
+        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+    
+    }
     
     key.clear();
     key.append(src);
     key.append(",");
     key.append(dest);
     
-    if(arcID.find(key)==arcID.end()&&get_arc(src, dest) == nullptr) {
+    key_inv.clear();
+    key_inv.append(dest);
+    key_inv.append(",");
+    key_inv.append(src);
+    
+    if(arcID.find(key)==arcID.end()&& arcID.find(key_inv)==arcID.end()) {
         s = new set<Arc*>;
         s->insert(a);
         arcID.insert(pair<string, set<Arc*>*>(key,s));
@@ -479,7 +495,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     Arc* arc = nullptr;
 
     string name="";
-    Net* graph_clone = clone_undirected();
+    Net* graph_clone = clone_undirected(); //
     int nb = 0;
 
     /** cliques with less than 1 nodes are useless for us.*/
@@ -519,7 +535,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->_src = u;
                 arc->_dest = nn;
                 arc->connect();
-                graph_clone->add_arc(arc);
+                graph_clone->add_undirected_arc(arc);
             }
         }
 
@@ -559,7 +575,7 @@ Net* Net::get_chordal_extension() {
     string name="";
     string name_chordal="";
     Net* chordal_extension = clone();
-    Net* graph_clone = clone();
+    Net* graph_clone = clone_undirected();
     int nb = 0;
 
     /** cliques with less than 1 nodes are useless for us.*/
@@ -605,13 +621,13 @@ Net* Net::get_chordal_extension() {
                 arc->_src = u;
                 arc->_dest = nn;
                 arc->connect();
-                graph_clone->add_arc(arc);
+                graph_clone->add_undirected_arc(arc);
 
                 arc_chordal->_id = chordal_extension->arcs.size();
                 arc_chordal->_src = u_chordal;
                 arc_chordal->_dest = nn_chordal;
                 arc_chordal->connect();
-                chordal_extension->add_arc(arc_chordal);
+                chordal_extension->add_undirected_arc(arc_chordal);
             }
         }
         _bags_copy.push_back(bag_copy);
@@ -622,7 +638,7 @@ Net* Net::get_chordal_extension() {
     }
     // sort the bags by its size (descending order)
     sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
-    printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
+    printf("With greedy fill-in algorithm, the chordal graph introduces %li edges \n", chordal_extension->arcs.size()-arcs.size());
 
     return chordal_extension;
 }
@@ -774,7 +790,6 @@ Net* Net::get_clique_tree(){
             }
         }
     }
-
 #endif
     return cliquetree;
 }
