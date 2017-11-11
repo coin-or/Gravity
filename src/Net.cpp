@@ -109,6 +109,10 @@ Net* Net::clone_undirected() {
     return copy_net;
 }
 
+const bool bag_compare(const vector<Node*> & a,const vector<Node*>& b) {
+    return a.size() > b.size();
+}
+
 
 const bool node_compare(const Node* n1, const Node* n2) {
     return n1->fill_in > n2->fill_in;
@@ -517,8 +521,8 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(), [](Node* a, Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.begin(), bag.end(), [](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
 
         // update clone_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size(); i++) {
@@ -553,7 +557,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             nb++;
         }
     }
-    sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
+    sort(_bags.begin(), _bags.end(), bag_compare);
     Debug("\n Number of 3D bags = " << nb << endl);
 }
 
@@ -598,8 +602,8 @@ Net* Net::get_chordal_extension() {
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.begin(), bag.end(),[](Node* a, Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag_copy.begin(), bag_copy.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.begin(), bag.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size() - 1; i++) {
@@ -637,8 +641,8 @@ Net* Net::get_chordal_extension() {
         }
     }
     // sort the bags by its size (descending order)
-    sort(_bags.begin(), _bags.end(), [](vector<Node*> & a, vector<Node*>& b) -> bool{return a.size() > b.size();});
-    printf("With greedy fill-in algorithm, the chordal graph introduces %li edges \n", chordal_extension->arcs.size()-arcs.size());
+    sort(_bags.begin(), _bags.end(), bag_compare);
+    printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
 
     return chordal_extension;
 }

@@ -1917,7 +1917,7 @@ namespace gravity{
 //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
                 _queue->push_back(_expr);
             }
-            if (!_expr && f->_expr) {
+            else if (!_expr && f->_expr) {
                 if (f->_expr->is_uexpr()) {
                     _expr = shared_ptr<uexpr>((uexpr*)copy(*f->_expr));
                 }
@@ -1931,8 +1931,14 @@ namespace gravity{
                     _ftype = nlin_;
                 }
             }
+            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
             update_sign(*f);
-            update_convexity();
+//            update_convexity();
             return *this;
         }
         return *this;
@@ -1997,7 +2003,13 @@ namespace gravity{
                 }
             }
             update_sign(*f);
-            update_convexity();
+            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+//            update_convexity();
             return *this;
         }
         return *this;

@@ -31,8 +31,6 @@ int main (int argc, const char * argv[])
            //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
            fname = "../../data_sets/Power/nesta_case118_ieee.m";
 //           fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
- //       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
-//        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
     }

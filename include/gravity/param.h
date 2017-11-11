@@ -506,8 +506,7 @@ public:
         _dim = max(_dim,_val->size());
         if(pp.second) { //new index inserted
             if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                res._dim++;
-                //_dim++;
+                res._dim++;                
             };
             res._ids->push_back(param_::_indices->size()-1);
         }

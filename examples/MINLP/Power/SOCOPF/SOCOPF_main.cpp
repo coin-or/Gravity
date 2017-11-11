@@ -145,17 +145,17 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(Flow_Q_To = 0);
 //
     ///* Phase Angle Bounds constraints */
-//    Constraint PAD_UB("PAD_UB");
-//    PAD_UB = Im_Wij.in(bus_pairs);
-//    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
-//    SOCP.add_constraint(PAD_UB <= 0);
-//    
-//    Constraint PAD_LB("PAD_LB");
-//    PAD_LB =  Im_Wij.in(bus_pairs);
-//    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
-//    SOCP.add_constraint(PAD_LB >= 0);
-//    
-//    /* Thermal Limit Constraints */
+    Constraint PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij.in(bus_pairs);
+    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
+    SOCP.add_constraint(PAD_UB <= 0);
+    
+    Constraint PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij.in(bus_pairs);
+    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
+    SOCP.add_constraint(PAD_LB >= 0);
+    
+    /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
     Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
