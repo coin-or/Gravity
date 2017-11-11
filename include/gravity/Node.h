@@ -5,6 +5,7 @@
 #define Node_h
 #include <vector>
 #include <string>
+#include <set>
 
 /** A Node has:
     a name
@@ -63,7 +64,7 @@ public:
     std::vector<Arc*> get_in();
 
     /* return its neighbours */
-    std::vector<Node*> get_neighbours();
+    std::set<Node*> get_neighbours();
 };
 
 #endif

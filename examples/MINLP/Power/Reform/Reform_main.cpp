@@ -28,25 +28,25 @@ void reform1(PowerNet& grid){
     Net* grid_augment = grid.clone();
     // making each node simplicial.
     
-    for (auto &node: grid.nodes){
-        vector<Node*> neighbours = node->get_neighbours();
-        for (unsigned i = 0; i < neighbours.size(); i ++){
-            auto n1 = grid_augment->get_node(neighbours.at(i)->_name);
-            for ( unsigned j = i+1; j < neighbours.size(); j++){
-                auto n2 = grid_augment->get_node(neighbours.at(j)->_name);
-                string name = to_string((int)grid_augment->arcs.size()+1);
-                Arc* arc = new Arc(name);
-                arc->_id = grid_augment->arcs.size();
-                arc->_src = n1;
-                arc->_dest = n2;
-                arc->connect();
-                grid_augment->add_undirected_arc(arc);
-            }
-        }
-    }
-    grid_augment->get_tree_decomp_bags();
-    auto cliquetree = grid_augment->get_clique_tree();
-    const unsigned nb_cliques = grid_augment->_bags.size();
+//    for (auto &node: grid.nodes){
+//        set<Node*> neighbours = node->get_neighbours();
+//        for (unsigned i = 0; i < neighbours.size(); i ++){
+//            auto n1 = grid_augment->get_node(neighbours.at(i)->_name);
+//            for ( unsigned j = i+1; j < neighbours.size(); j++){
+//                auto n2 = grid_augment->get_node(neighbours.at(j)->_name);
+//                string name = to_string((int)grid_augment->arcs.size()+1);
+//                Arc* arc = new Arc(name);
+//                arc->_id = grid_augment->arcs.size();
+//                arc->_src = n1;
+//                arc->_dest = n2;
+//                arc->connect();
+//                grid_augment->add_undirected_arc(arc);
+//            }
+//        }
+//    }
+//    grid_augment->get_tree_decomp_bags();
+//    auto cliquetree = grid_augment->get_clique_tree();
+//    const unsigned nb_cliques = grid_augment->_bags.size();
 }
 
 
@@ -81,7 +81,8 @@ int main (int argc, const char * argv[])
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
     
-    reform1(grid);
+    grid.get_chordal_extension();
+    //reform1(grid);
     return 0;
     /** Clique tree decomposition **/
     //grid.chol_decompose(true);
