@@ -348,12 +348,21 @@ int PowerNet::readgrid(const char* fname) {
     double res = 0;
 
     Line* arc = NULL;
-    string src,dest;
+    string src,dest,key;
     file >> word;
     index = 0;
     while(word.compare("];")) {
         src = word;
         file >> dest;
+        key = dest+","+src;//Taking care of reversed direction arcs
+        if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
+            DebugOn("Adding arc linking " +src+" and "+dest);
+            DebugOn(" with reversed direction, reversing source and destination.\n");
+            key = src;
+            src = dest;
+            dest = key;
+        }
+        
         arc = new Line(to_string(index) + "," + src + "," + dest); // Name of lines
         arc->_id = index++;
         arc->_src = get_node(src);
