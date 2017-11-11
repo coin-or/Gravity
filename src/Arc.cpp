@@ -62,8 +62,8 @@ Node* Arc::neighbour(Node* n) {
 /* Connects the current arc to its source and _destination, adding itself to the list of branches in these nodes */
 void Arc::connect() {
     if (_src == _dest){
-        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-    
+        //throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+        std::cout << "It is now allowed to make a node self connected in gravity" << endl;
     }
     _src->update_fill_in(_dest);// update the fill-ins
     _dest->update_fill_in(_src);

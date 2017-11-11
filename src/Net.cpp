@@ -22,7 +22,7 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
-#include <armadillo>
+//#include <armadillo>
 #ifdef USE_BOOST
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
