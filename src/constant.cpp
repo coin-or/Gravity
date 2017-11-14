@@ -7,42 +7,43 @@
 //#include <Gravity/func.h>
 #include <sstream>
 
+namespace gravity {
+    template<> string constant<float>::to_str() const{
+        char buffer [50];
+        sprintf (buffer, "%g", _val);
+        return string(buffer);
+    }
 
-template<> string gravity::constant<float>::to_str() const{
-    char buffer [50];
-    sprintf (buffer, "%g", _val);
-    return string(buffer);
-}
 
+    template<> string constant<double>::to_str() const{
+        char buffer [50];
+        sprintf (buffer, "%g", _val);
+        return string(buffer);
+    }
 
-template<> string gravity::constant<double>::to_str() const{
-    char buffer [50];
-    sprintf (buffer, "%g", _val);
-    return string(buffer);
-}
+    template<> string constant<long double>::to_str() const{
+        char buffer [50];
+        sprintf (buffer, "%Lg", _val);
+        return string(buffer);
+    }
 
-template<> string gravity::constant<long double>::to_str() const{
-    char buffer [50];
-    sprintf (buffer, "%Lg", _val);
-    return string(buffer);
-}
+    template<> string constant<int>::to_str() const{
+        char buffer [50];
+        sprintf (buffer, "%d", _val);
+        return string(buffer);
+    }
 
-template<> string gravity::constant<int>::to_str() const{
-    char buffer [50];
-    sprintf (buffer, "%d", _val);
-    return string(buffer);
-}
+    template<> string constant<short>::to_str() const{
+        char buffer [50];
+        sprintf (buffer, "%d", _val);
+        return string(buffer);
+    }
 
-template<> string gravity::constant<short>::to_str() const{
-    char buffer [50];
-    sprintf (buffer, "%d", _val);
-    return string(buffer);
-}
-
-template<> string gravity::constant<bool>::to_str() const{
-    char buffer [5];
-    sprintf (buffer, "%d", _val);
-    return string(buffer);
+    template<> string constant<bool>::to_str() const{
+        char buffer [5];
+        sprintf (buffer, "%d", _val);
+        return string(buffer);
+    }
 }
 
 
