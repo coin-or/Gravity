@@ -333,7 +333,7 @@ public:
         return _val->back();
     }
 
-    type eval(int i) const {
+    type eval(unsigned i) const {
         if (_is_indexed) {
 //            if (i >= _ids->at(0).size()) {
 ////                if (i>=_val->size()) {
@@ -350,6 +350,28 @@ public:
 //            throw invalid_argument("error");
 //        }
         return _val->at(i);
+    }
+    
+    type eval(unsigned i, unsigned j) const {
+        if (!_is_matrix) {
+            return eval(j);
+        }
+//        if (_is_indexed) {
+            //            if (i >= _ids->at(0).size()) {
+            ////                if (i>=_val->size()) {
+            //                    throw invalid_argument("error");
+            ////                }
+            //                return _val->at(_ids->at(0).at(0));
+            //            }
+            //            if (_ids->at(0).at(i)>=_val->size()) {
+            //                throw invalid_argument("error");
+            //            }
+            return _val->at(_ids->at(i).at(j));
+//        }
+        //        if (i>=_val->size()) {
+        //            throw invalid_argument("error");
+        //        }
+//        throw invalid_argument("cannot ")
     }
 
 
@@ -503,6 +525,9 @@ public:
             }
             it++;
         }
+        if (indices.size()==2) {
+            _is_matrix = true;
+        }
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         _val->resize(max(_val->size(),param_::_indices->size()));
         _dim = max(_dim,_val->size());
@@ -545,6 +570,9 @@ public:
                 key += ",";
             }
             it++;
+        }
+        if (indices.size()==2) {
+            _is_matrix = true;
         }
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         _val->resize(max(_val->size(),param_::_indices->size()));

@@ -193,6 +193,136 @@ namespace gravity{
         return 0;
     }
     
+    double poly_eval(const constant_* c, size_t i, size_t j){
+        if (!c) {
+            throw invalid_argument("Cannot evaluate nullptr!");
+        }
+        if (!c->_is_matrix) {
+            return poly_eval(c, j);
+        }
+        switch (c->get_type()) {
+            case binary_c: {
+                return ((constant<bool>*)(c))->eval();
+                break;
+            }
+            case short_c: {
+                return ((constant<short>*)(c))->eval();
+                break;
+            }
+            case integer_c: {
+                return ((constant<int>*)(c))->eval();
+                break;
+            }
+            case float_c: {
+                return ((constant<float>*)(c))->eval();
+                break;
+            }
+            case double_c: {
+                return ((constant<double>*)(c))->eval();
+                break;
+            }
+            case long_c: {
+                return (double)((constant<long double>*)(c))->eval();
+                break;
+            }
+            case par_c:{
+                auto p_c2 = (param_*)(c);
+                switch (p_c2->get_intype()) {
+                    case binary_:
+                        return ((param<bool>*)p_c2)->eval(i,j);
+                        break;
+                    case short_:
+                        return ((param<short>*)p_c2)->eval(i,j);
+                        break;
+                    case integer_:
+                        return ((param<int>*)p_c2)->eval(i,j);
+                        break;
+                    case float_:
+                        return ((param<float>*)p_c2)->eval(i,j);
+                        break;
+                    case double_:
+                        return ((param<double>*)p_c2)->eval(i,j);
+                        break;
+                    case long_:
+                        return (double)((param<long double>*)p_c2)->eval(i,j);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case var_c:{
+                auto p_c2 = (param_*)(c);
+                switch (p_c2->get_intype()) {
+                    case binary_:
+                        return ((var<bool>*)p_c2)->eval(i,j);
+                        break;
+                    case short_:
+                        return ((var<short>*)p_c2)->eval(i,j);
+                        break;
+                    case integer_:
+                        return ((var<int>*)p_c2)->eval(i,j);
+                        break;
+                    case float_:
+                        return ((var<float>*)p_c2)->eval(i,j);
+                        break;
+                    case double_:
+                        return ((var<double>*)p_c2)->eval(i,j);
+                        break;
+                    case long_:
+                        return (double)((var<long double>*)p_c2)->eval(i,j);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+                // newly added sdpvar_c (guanglei)
+            case sdpvar_c:{
+                auto p_c2 = (param_*)(c);
+                switch (p_c2->get_intype()) {
+                    case binary_:
+                        return ((sdpvar<bool>*)p_c2)->eval(i);
+                        break;
+                    case short_:
+                        return ((sdpvar<short>*)p_c2)->eval(i);
+                        break;
+                    case integer_:
+                        return ((sdpvar<int>*)p_c2)->eval(i);
+                        break;
+                    case float_:
+                        return ((sdpvar<float>*)p_c2)->eval(i);
+                        break;
+                    case double_:
+                        return ((sdpvar<double>*)p_c2)->eval(i);
+                        break;
+                    case long_:
+                        return (double)((sdpvar<long double>*)p_c2)->eval(i);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case uexp_c: {
+                return ((uexpr*)c)->eval(i,j);
+                break;
+            }
+            case bexp_c: {
+                return ((bexpr*)c)->eval(i,j);
+                break;
+            }
+            case func_c: {
+                return ((func_*)c)->eval(i,j);
+                break;
+            }
+            default:
+                break;
+        }
+        return 0;
+    }
+
+    
     func_ get_poly_derivative(constant_* c, const param_ &v){
         if (!c) {
             throw invalid_argument("Cannot evaluate nullptr!");
@@ -679,12 +809,20 @@ namespace gravity{
         double res = 0;
         if (_coef->_is_transposed) {
             for (int j = 0; j<_p->_dim; j++) {
-                res += poly_eval(_coef,j) * poly_eval(_p, j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p, i,j);
             }
         }
         else {
             res = poly_eval(_coef,i) * poly_eval(_p, i);
         }
+        if (!_sign) {
+            res *= -1;
+        }
+        return res;
+    }
+    
+    double lterm::eval(size_t i, size_t j) const{
+        double res = poly_eval(_coef,i,j) * poly_eval(_p, i,j);
         if (!_sign) {
             res *= -1;
         }
@@ -696,12 +834,12 @@ namespace gravity{
         double res = 0;
         if (_coef->_is_transposed) {
             for (int j = 0; j<_p->first->_dim; j++) {
-                res += poly_eval(_coef,j) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p->first,i,j)* poly_eval(_p->second,i,j);
             }
         }
         else if(_p->first->_is_transposed){
             for (int j = 0; j<_p->first->_dim; j++) {
-                res += poly_eval(_coef,i) * poly_eval(_p->first, j)* poly_eval(_p->second, j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p->first,i,j)* poly_eval(_p->second,i,j);
             }
         }
         else {
@@ -712,20 +850,20 @@ namespace gravity{
         }
         return res;
     }
+    
+    double qterm::eval(size_t i, size_t j) const{
+        double res = poly_eval(_coef,i,j) * poly_eval(_p->first,i,j)* poly_eval(_p->second,i,j);
+        if (!_sign) {
+            res *= -1;
+        }
+        return res;
+    }
 
 
     double pterm::eval(size_t i) const{
         double res = 0;
         if (_coef->_is_transposed) {
-            double pterm = 0;
-            for (int j = 0; j<_l->front().first->_dim; j++) {
-                pterm = 1;
-                for (auto &pair: *_l) {
-                    pterm *= pow(poly_eval(pair.first, j), pair.second);
-                }
-                pterm *= poly_eval(_coef,j);
-                res += pterm;
-            }
+            throw invalid_argument("Unspported operation\n");
         }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
         else {
             res =1;
@@ -734,6 +872,25 @@ namespace gravity{
             }
             
             res *= poly_eval(_coef,i);
+        }
+        if (!_sign) {
+            res *= -1;
+        }
+        return res;
+    }
+    
+    double pterm::eval(size_t i, size_t j) const{
+        double res = 0;
+        if (_coef->_is_transposed) {
+            throw invalid_argument("Unspported operation\n");
+        }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
+        else {
+            res =1;
+            for (auto &pair: *_l) {
+                res *= pow(poly_eval(pair.first,i,j), pair.second);
+            }
+            
+            res *= poly_eval(_coef,i,j);
         }
         if (!_sign) {
             res *= -1;
@@ -3270,6 +3427,17 @@ namespace gravity{
             return ((bexpr*)this)->eval(i);
         }
     }
+    
+    double expr::eval(size_t i, size_t j) const{
+        //        if (_to_str.compare("noname")==0) {
+        if (is_uexpr()) {
+            return ((uexpr*)this)->eval(i,j);
+        }
+        else {
+            return ((bexpr*)this)->eval(i,j);
+        }
+    }
+    
     string expr::get_str(){
 //        if (_to_str.compare("noname")==0) {
             if (is_uexpr()) {
@@ -3500,6 +3668,44 @@ namespace gravity{
                 break;
             case exp_:
                 return _coef*std::exp(_son->get_val(i));
+                break;
+            default:
+                throw invalid_argument("Unsupported unary operator");
+                break;
+        }
+        
+    }
+    
+    double uexpr::eval(size_t i, size_t j) const{
+        if (!_is_matrix) {
+            return eval(j);
+        }
+        if (_son->is_constant() && !_son->_evaluated) {
+            auto iter = _son->_ids->begin();
+            unsigned i1 = 0;
+            while (iter != _son->_ids->end()) {
+                for (unsigned j1 = 0; j1 < iter->size(); j1++) {
+                    _son->_val->at(_son->_ids->at(i1).at(j1)) = _son->eval(i1,j1);
+                }
+                i1++;
+            }
+            _son->_evaluated = true;
+        }
+        switch (_otype) {
+            case cos_:
+                return _coef*std::cos(_son->get_val(i,j));
+                break;
+            case sin_:
+                return _coef*std::sin(_son->get_val(i,j));
+                break;
+            case sqrt_:
+                return _coef*std::sqrt(_son->get_val(i,j));
+                break;
+            case log_:
+                return _coef*std::log(_son->get_val(i,j));
+                break;
+            case exp_:
+                return _coef*std::exp(_son->get_val(i,j));
                 break;
             default:
                 throw invalid_argument("Unsupported unary operator");
@@ -3861,6 +4067,52 @@ namespace gravity{
 //    template<typename type> type  eval(const constant_* c1){
 //        return eval<type>(0,c1);
 //    };
+    
+    double  bexpr::eval(ind i, ind j) const{
+        if (_lson->is_constant() && !_lson->_evaluated) {
+            auto iter = _lson->_ids->begin();
+            unsigned i1 = 0;
+            while (iter != _lson->_ids->end()) {
+                for (unsigned j1 = 0; j1 < iter->size(); j1++) {
+                    _lson->_val->at(_lson->_ids->at(i1).at(j1)) = _lson->eval(i1,j1);
+                }
+                i1++;
+            }
+            _lson->_evaluated = true;
+        }
+        if (_rson->is_constant() && !_rson->_evaluated) {
+            auto iter = _rson->_ids->begin();
+            unsigned i1 = 0;
+            while (iter != _rson->_ids->end()) {
+                for (unsigned j1 = 0; j1 < iter->size(); j1++) {
+                    _rson->_val->at(_rson->_ids->at(i1).at(j1)) = _rson->eval(i1,j1);
+                }
+                i1++;
+            }
+            _rson->_evaluated = true;
+        }
+        switch (_otype) {
+            case plus_:
+                return _coef*(_lson->get_val(i) + _rson->get_val(i,j));
+                break;
+            case minus_:
+                return _coef*(_lson->get_val(i) - _rson->get_val(i,j));
+                break;
+            case product_:
+                return _coef*(_lson->get_val(i) * _rson->get_val(i,j));
+                break;
+            case div_:
+                return _coef*(_lson->get_val(i)/_rson->get_val(i,j));
+                break;
+            case power_:
+                return _coef*(powl(_lson->get_val(i),_rson->get_val(i,j)));
+                break;
+            default:
+                throw invalid_argument("Unsupported binary operator");
+                break;
+        }
+        
+    }
 
     double  bexpr::eval(ind i) const{
         if (_lson->is_constant() && !_lson->_evaluated) {
@@ -4874,21 +5126,65 @@ namespace gravity{
         }
     }
     
-    double func_::force_eval(size_t i){
-        
+    double func_::get_val(size_t i, size_t j) const{
+        if (is_number()) {
+            return _val->at(0);
+        }
+        else {
+            return _val->at(_ids->at(i).at(j));
+        }
+    }
+    
+//    double func_::force_eval(size_t i){
+//        
+//        double res = 0;
+//        for (auto &pair:*_pterms) {
+//            res += pair.second.eval(i);
+//        }
+//        for (auto &pair:*_qterms) {
+//            res += pair.second.eval(i);
+//        }
+//        for (auto &pair:*_lterms) {
+//            res += pair.second.eval(i);
+//        }
+//        res += poly_eval(_cst,i);
+//        if (_expr) {
+//            res += _expr->eval(i);
+//        }
+//        return res;
+//    }
+
+    double func_::eval(size_t i, size_t j){
+        if (!_is_matrix) {
+            return eval(j);
+        }
+        if (is_constant() && _evaluated) {
+            if (is_number()) {
+                return _val->at(0);
+            }
+            else {
+                return _val->at(_ids->at(i).at(j));
+            }
+        }
         double res = 0;
         for (auto &pair:*_pterms) {
-            res += pair.second.eval(i);
+            res += pair.second.eval(i,j);
         }
         for (auto &pair:*_qterms) {
-            res += pair.second.eval(i);
+            res += pair.second.eval(i,j);
         }
         for (auto &pair:*_lterms) {
-            res += pair.second.eval(i);
+            res += pair.second.eval(i,j);
         }
-        res += poly_eval(_cst,i);
+        res += poly_eval(_cst,i,j);
         if (_expr) {
-            res += _expr->eval(i);
+            res += _expr->eval(i,j);
+        }
+        if (is_number()) {
+            _val->at(0) = res;
+        }
+        else {
+            _val->at(_ids->at(i).at(j)) = res;
         }
         return res;
     }
@@ -6339,16 +6635,17 @@ namespace gravity{
     }
     
     template<typename type1, typename type2>
-    func_ product(const param<type1>& p, vector<param<type2>> v){
+    func_ product(const param<type1>& p, const param<type2> v){
         func_ res;
-        if (p.get_dim()==0 || p.is_zero() || v.empty() ) {
+        if (p.get_dim()==0 || p.is_zero() || v.get_dim()==0 || v.is_zero() ) {
             return res;
         }
         return res;
     }
     
-    template func_ product<double,double>(const param<double>& p, vector<param<double>> v);
-    template func_ product<double,int>(const param<double>& p, vector<param<int>> v);
+    template func_ product<double,double>(const param<double>& p, const param<double> v);
+    template func_ product<double,int>(const param<double>& p, const param<int> v);
+    template func_ product<double,short>(const param<double>& p, const param<short> v);
     
     template func_ sum<double>(const param<double>& v);
     template func_ sum<float>(const param<float>& v);

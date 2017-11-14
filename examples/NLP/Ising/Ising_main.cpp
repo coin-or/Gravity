@@ -17,8 +17,8 @@ using namespace std;
 using namespace gravity;
 
 size_t nb_cols = 1, nb_conf = 0, nb_spins = 0, tot_nb_samples = 0;
-vector<param<int>> configs;
-param<int> nb_samples;
+param<short> configs("configs");
+param<int> nb_samples("nb_samples");
 
 bool read_samples(const char* fname){
     int val;
@@ -31,9 +31,6 @@ bool read_samples(const char* fname){
     }
     nb_spins = nb_cols - 1;
     DebugOn("Number of spins = " << nb_spins << endl);
-    for (unsigned i = 0; i<nb_spins; i++) {
-        configs.push_back(param<int>("configs_spin_"+to_string(i)));
-    }
     io::LineReader in(fname);
     unsigned spin = 0;
     while(char* line = in.next_line()){
@@ -45,7 +42,7 @@ bool read_samples(const char* fname){
         while((key = strtok(NULL,","))!=NULL){
             val = stoi(key);
             DebugOff(val << ", ");
-            configs[spin++] = val;
+            configs(nb_conf,spin) = val;
         }
         DebugOff(endl);
         nb_conf++;
@@ -66,6 +63,7 @@ int main (int argc, const char * argv[])
     }
     
     read_samples(fname);
+//    auto indices = ordered_pairs(nb_conf, nb_spins);
     double regularizor = 0.2;
     double lambda = regularizor*sqrt(log((nb_spins^2)/0.05)/tot_nb_samples);
     DebugOn("Lambda = " << lambda << endl);
@@ -80,6 +78,8 @@ int main (int argc, const char * argv[])
     Ising.min(obj);
     Constraint Lin("in_lin");
     Lin += f + product(x,configs);
+    DebugOn("Lin b instances = " << Lin._nb_instances << endl);
+//    Ising.add_constraint(Lin.in(indices._keys)=0);
     Ising.add_constraint(Lin=0);
 //    solver NLP(Ising,ipopt);
 //    NLP.run();

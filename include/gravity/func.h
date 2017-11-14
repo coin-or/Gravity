@@ -43,6 +43,7 @@ namespace gravity {
         
         string get_str();
         double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
         virtual ~expr(){};
     };
@@ -93,6 +94,7 @@ namespace gravity {
         }
         
         double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         double eval() const{
             return eval(0);
@@ -181,6 +183,7 @@ namespace gravity {
         void print_tree() const;
         
         double eval(ind i) const;
+        double eval(ind i, ind j) const;
         
         func_ get_derivative(const param_ &v) const;
         
@@ -230,7 +233,8 @@ namespace gravity {
             _sign = ! _sign;
         }
         
-        double eval(size_t) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~lterm(){
             delete _coef;
@@ -297,7 +301,8 @@ namespace gravity {
             _sign = ! _sign;
         }
         
-        double eval(size_t) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~qterm(){
             delete _coef;
@@ -379,7 +384,8 @@ namespace gravity {
             _sign = ! _sign;
         }
         
-        double eval(size_t) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~pterm(){
             delete _coef;
@@ -649,8 +655,10 @@ namespace gravity {
         void update_sign();
         
         double get_val(size_t inst) const;
+        double get_val(size_t i, size_t j) const;
         double eval(size_t i);
-        double force_eval(size_t i);
+        double eval(size_t i, size_t j);
+//        double force_eval(size_t i);
         double eval(){ return eval(0);};
         string to_str(bool display_input=false) const;
         void print(bool endline=false, bool display_input=false) const;
@@ -666,6 +674,7 @@ namespace gravity {
     size_t get_poly_id_inst(const constant_* c, unsigned inst = 0);
 
     double poly_eval(const constant_* c, size_t i=0);
+    double poly_eval(const constant_* c, size_t i, size_t j);
 
 
     void poly_print(const constant_* c);
@@ -1604,7 +1613,7 @@ namespace gravity {
     func_ sum(const param<type>& p);
     
     template<typename type1, typename type2>
-    func_ product(const param<type1>& p, vector<param<type2>> v);
+    func_ product(const param<type1>& p, const param<type2> v);
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f);

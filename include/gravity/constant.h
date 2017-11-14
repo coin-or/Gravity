@@ -22,13 +22,14 @@ namespace gravity {
     /** Backbone class for constant */
     class constant_{
     protected:
-        CType               _type;
+        CType                           _type;
         
         
     public:
-        bool                _is_transposed = false; /**< True if the constant is considered as a transposed vector */
-        bool                _is_vector = false; /**< True if the constant is considered as a vector */
-        size_t              _dim = 0; /*<< dimension of current vector */
+        bool                            _is_transposed = false; /**< True if the constant is considered as a transposed vector */
+        bool                            _is_vector = false; /**< True if the constant is considered as a vector */
+        bool                            _is_matrix = false; /**< True if the constant is considered as a matrix */
+        size_t                          _dim = 0; /*<< dimension of current object */
         
         virtual ~constant_(){};
         CType get_type() const { return _type;}
@@ -147,6 +148,8 @@ namespace gravity {
             _val = c._val;
             _is_transposed = c._is_transposed;
             _is_vector = c._is_vector;
+            _is_matrix = c._is_matrix;
+            _dim = c._dim;
         };
 
         constant(type val):constant(){
@@ -302,19 +305,7 @@ namespace gravity {
             cout << _val;
         }
         
-        string to_str() const{
-            char buffer [50];
-            if(typeid(type)==typeid(float) || typeid(type)==typeid(double) || typeid(type)==typeid(long double)){
-                sprintf (buffer, "%g", _val);
-            }
-            else {
-                sprintf (buffer, "%d", _val);                
-            }
-    //        cout << string(buffer) << endl;
-            return string(buffer);
-//            return std::to_string(_val);
-        }
-
+        string to_str() const;
         
     };
 
