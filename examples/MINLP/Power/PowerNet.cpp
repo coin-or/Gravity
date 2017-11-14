@@ -309,7 +309,7 @@ int PowerNet::readgrid(const char* fname) {
         gens.push_back(g);
         bus->_gen.push_back(g);
         if(status!=1 || !bus->_active) {
-            DebugOn("INACTIVE GENERATOR!\n" << name << endl);
+            DebugOff("INACTIVE GENERATOR!\n" << name << endl);
             g->_active = false;
         }
         index++;

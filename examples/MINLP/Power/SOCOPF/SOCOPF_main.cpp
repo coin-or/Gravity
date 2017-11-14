@@ -83,7 +83,7 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-           // obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
+//            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
     SOCP.set_objective(min(obj));
@@ -91,10 +91,10 @@ int main (int argc, const char * argv[])
     
     /** Define constraints */
     /* SOCP constraints */
-//    Constraint SOC("SOC");
-//    SOC =  power(R_Wij.in(bus_pairs), 2) + power(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs) ;
-//    SOCP.add_constraint(SOC <= 0);
-//    
+    Constraint SOC("SOC");
+    SOC =  power(R_Wij.in(bus_pairs), 2) + power(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs) ;
+    SOCP.add_constraint(SOC <= 0);
+//
     //KCL
     for (auto b: grid->nodes) {
         Bus* bus = (Bus*) b;
@@ -171,7 +171,7 @@ int main (int argc, const char * argv[])
 //    SOCP.add_constraint(NL <= 0);
     
    solver SCOPF(SOCP,ipopt);
-   //solver SCOPF(SOCP, cplex);
+//   solver SCOPF(SOCP, cplex);
     SCOPF.run();
     return 0;
 }

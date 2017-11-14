@@ -444,7 +444,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<double>>             _val;
-        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         func_();
         
@@ -1602,6 +1602,9 @@ namespace gravity {
 
     template<typename type>
     func_ sum(const param<type>& p);
+    
+    template<typename type1, typename type2>
+    func_ product(const param<type1>& p, vector<param<type2>> v);
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f);

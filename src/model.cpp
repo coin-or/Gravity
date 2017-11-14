@@ -247,6 +247,17 @@ void Model::set_objective(const func_& f, ObjectiveType t) {
 //    embed(_obj);
 }
 
+void Model::min(const func_& f){
+    _obj = f;
+    _objt = minimize;
+}
+
+void Model::max(const func_& f){
+    _obj = f;
+    _objt = maximize;
+}
+
+
 void Model::set_objective(pair<func_*, ObjectiveType> p){
     _obj = *p.first;
     _objt = p.second;

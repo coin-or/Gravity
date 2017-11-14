@@ -1,5 +1,6 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
+file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/NLP/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/MinKPart/*.cpp)
 file(GLOB STABLE_S_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/StableSet/*.cpp)
 file(GLOB Power_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/*.cpp)
@@ -14,6 +15,7 @@ file(GLOB Decompose_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Decompose
 file(GLOB Reform_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Reform/*.cpp)
 
 add_executable(gravity101 ${PROJECT_SOURCE_DIR}/examples/Gravity101_main.cpp)
+add_executable(ising ${ISING_SOURCES}) 
 add_executable(stable_set ${STABLE_S_SOURCES}) 
 add_executable(min_k_part ${MINK_SOURCES})
 add_executable(acopf ${ACOPF_SOURCES} ${Power_SOURCES})
@@ -25,6 +27,7 @@ add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
 add_executable(decompose ${Decompose_SOURCES} ${Power_SOURCES})
 add_executable(reform ${Reform_SOURCES} ${Power_SOURCES})
 
+target_link_libraries(ising gravity)
 target_link_libraries(stable_set gravity)
 target_link_libraries(min_k_part gravity)
 target_link_libraries(acopf gravity)
@@ -37,7 +40,3 @@ target_link_libraries(neuralnet gravity)
 target_link_libraries(decompose gravity)
 target_link_libraries(reform gravity)
 
-#if (ENABLE_BOOST)
-#    add_executable(decompose ${Decompose_SOURCES} ${Power_SOURCES})
-#    target_link_libraries(decompose gravity)
-#endif()

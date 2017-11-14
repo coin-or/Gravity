@@ -6338,6 +6338,17 @@ namespace gravity{
         return p1.tr()*f;
     }
     
+    template<typename type1, typename type2>
+    func_ product(const param<type1>& p, vector<param<type2>> v){
+        func_ res;
+        if (p.get_dim()==0 || p.is_zero() || v.empty() ) {
+            return res;
+        }
+        return res;
+    }
+    
+    template func_ product<double,double>(const param<double>& p, vector<param<double>> v);
+    template func_ product<double,int>(const param<double>& p, vector<param<int>> v);
     
     template func_ sum<double>(const param<double>& v);
     template func_ sum<float>(const param<float>& v);

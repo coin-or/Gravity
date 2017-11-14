@@ -20,6 +20,18 @@ template<typename type> var<type>::var(const string& name):param<type>(name) {
     _lb = make_shared<vector<type>>();
     _ub = make_shared<vector<type>>();
 };
+    
+template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
+    param<type>::set_type(var_c);
+    _lb = make_shared<vector<type>>();
+    _ub = make_shared<vector<type>>();
+    if (s==non_neg_ || s==pos_) {
+        add_lb_only(0);
+    }
+    else if (s==non_pos_ || s==neg_) {
+        add_ub_only(0);
+    }
+};
 
 template<typename type> var<type>::var(const var<type>& v):param<type>(v) {
     param<type>::set_type(var_c);
@@ -153,15 +165,15 @@ template<typename type> void   var<type>::set_size(size_t s, type val) {
         _lb->resize(s, numeric_limits<type>::lowest());
     }
     else if(_lb->size() < s) {
-        //_lb->resize(s, _lb->at(0)); // not accurate
-        _lb->resize(s, numeric_limits<type>::lowest()); // not accurate
+        _lb->resize(s, _lb->at(0)); // not accurate
+//        _lb->resize(s, numeric_limits<type>::lowest()); // not accurate
     }
     if (_ub->empty()) {
         _ub->resize(s, numeric_limits<type>::max());
     }
     else if(_ub->size() < s) {
-        //_ub->resize(s, _ub->at(0));
-        _ub->resize(s, numeric_limits<type>::max());
+        _ub->resize(s, _ub->at(0));
+//        _ub->resize(s, numeric_limits<type>::max());
     }
 };
 
@@ -383,13 +395,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
                 if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                     res[i]._dim++;
                 }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                res[i]._ids->at(0).push_back(param_::_indices->size()-1);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res[i]._dim++;
                 }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
         /* Loop back pair */
@@ -400,13 +412,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
             if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                 res[size-1]._dim++;
             }
-            res[size-1]._ids->push_back(param_::_indices->size()-1);
+            res[size-1]._ids->at(0).push_back(param_::_indices->size()-1);
         }
         else {
             if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                 res[size-1]._dim++;
             }
-            res[size-1]._ids->push_back(pp.first->second);
+            res[size-1]._ids->at(0).push_back(pp.first->second);
         }
     }
     return res;
@@ -451,13 +463,13 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
                 if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                     res[i]._dim++;
                 }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                res[i]._ids->at(0).push_back(param_::_indices->size()-1);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res[i]._dim++;
                 }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
     }

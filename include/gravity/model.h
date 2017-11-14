@@ -128,6 +128,8 @@ namespace gravity {
         void embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void del_constraint(const Constraint& c);
+        void min(const func_& f);
+        void max(const func_& f);
         void set_objective(const func_& f, ObjectiveType t = minimize);
         void set_objective(pair<func_*, ObjectiveType> p);
         void set_objective_type(ObjectiveType);
