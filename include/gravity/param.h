@@ -600,6 +600,9 @@ public:
 
     template<typename Tobj>
     param in(const vector<Tobj*>& vec) {
+        if(vec.empty()){
+            throw invalid_argument("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -630,12 +633,7 @@ public:
             }
         }
         DebugOff(endl);
-        if(vec.empty()){
-            res._name += ".in_empty";
-        }
-        else {
-            res._name += ".in_" + vec.front()->_type_name;
-        }
+        res._name += ".in_" + vec.front()->_type_name;
         res._unique_id = make_tuple<>(res._id,in_, typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -643,6 +641,9 @@ public:
 
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec) {
+        if(vec.empty()){
+            throw invalid_argument("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -674,12 +675,7 @@ public:
             }
         }
         DebugOff(endl);
-        if(vec.empty()){
-            res._name += ".in_empty";
-        }
-        else {
-            res._name += ".in_" + vec.front()->_type_name;
-        }
+        res._name += ".in_" + vec.front()->_type_name;
         res._unique_id = make_tuple<>(res._id,in_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -687,6 +683,9 @@ public:
 
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec, unsigned T) {
+        if(vec.empty()){
+            throw invalid_argument("In function param.in_pairs(const vector<Tobj*>& vec, unsigned T), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         assert(T > 0);
         param res(this->_name);
         res._id = this->_id;
@@ -745,6 +744,9 @@ public:
     
     template<typename Tobj>
     param from(const vector<Tobj*>& vec) {
+        if(vec.empty()){
+            throw invalid_argument("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -777,12 +779,7 @@ public:
             }
         }
         DebugOff(endl);
-        if(vec.empty()){
-            res._name += ".from_empty";
-        }
-        else {
-            res._name += ".from_" + vec.front()->_type_name;
-        }
+        res._name += ".from_" + vec.front()->_type_name;
         res._unique_id = make_tuple<>(res._id,from_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -790,6 +787,9 @@ public:
 
     template<typename Tobj>
     param to(const vector<Tobj*>& vec) {
+        if(vec.empty()){
+            throw invalid_argument("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -820,12 +820,7 @@ public:
                 res._ids->at(0).push_back(pp.first->second);
             }
         }
-        if(vec.empty()){
-            res._name += ".to_empty";
-        }
-        else {
-            res._name += ".to_" + vec.front()->_type_name;
-        }
+        res._name += ".to_" + vec.front()->_type_name;
         res._unique_id = make_tuple<>(res._id,to_,typeid(Tobj).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
         res._is_indexed = true;
         return res;
@@ -873,6 +868,9 @@ public:
 
     template<typename Tobj>
     param in_at(const vector<Tobj*>& nodes, unsigned t) {
+        if(nodes.empty()){
+            throw invalid_argument("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -911,6 +909,9 @@ public:
 
     template<typename Tobj>
     param in(const vector<Tobj*>& nodes, unsigned T) {
+        if(nodes.empty()){
+            throw invalid_argument("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -956,6 +957,9 @@ public:
 
     template<typename Tobj>
     param from(const vector<Tobj*>& arcs, unsigned T) {
+        if(arcs.empty()){
+            throw invalid_argument("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -996,6 +1000,9 @@ public:
 
     template<typename Tobj>
     param to(const vector<Tobj*>& arcs, unsigned T) {
+        if(arcs.empty()){
+            throw invalid_argument("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
