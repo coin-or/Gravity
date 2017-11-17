@@ -393,15 +393,15 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res[i]._dim++;
+                    res[i]._dim[0]++;
                 }
-                res[i]._ids->at(0).push_back(param_::_indices->size()-1);
+                res[i]._ids->push_back(param_::_indices->size()-1);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res[i]._dim++;
+                    res[i]._dim[0]++;
                 }
-                res[i]._ids->at(0).push_back(pp.first->second);
+                res[i]._ids->push_back(pp.first->second);
             }
         }
         /* Loop back pair */
@@ -410,15 +410,15 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         if(pp.second) { //new index inserted
             if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                res[size-1]._dim++;
+                res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->at(0).push_back(param_::_indices->size()-1);
+            res[size-1]._ids->push_back(param_::_indices->size()-1);
         }
         else {
             if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                res[size-1]._dim++;
+                res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->at(0).push_back(pp.first->second);
+            res[size-1]._ids->push_back(pp.first->second);
         }
     }
     return res;
@@ -461,15 +461,15 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res[i]._dim++;
+                    res[i]._dim[0]++;
                 }
-                res[i]._ids->at(0).push_back(param_::_indices->size()-1);
+                res[i]._ids->push_back(param_::_indices->size()-1);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res[i]._dim++;
+                    res[i]._dim[0]++;
                 }
-                res[i]._ids->at(0).push_back(pp.first->second);
+                res[i]._ids->push_back(pp.first->second);
             }
         }
     }

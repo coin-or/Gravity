@@ -29,7 +29,7 @@ namespace gravity {
         bool                            _is_transposed = false; /**< True if the constant is considered as a transposed vector */
         bool                            _is_vector = false; /**< True if the constant is considered as a vector */
         bool                            _is_matrix = false; /**< True if the constant is considered as a matrix */
-        size_t                          _dim = 0; /*<< dimension of current object */
+        vector<size_t>                  _dim; /*<< dimension of current object. Implmented as a vector to account for multidimentional indices. */
         
         virtual ~constant_(){};
         CType get_type() const { return _type;}
@@ -115,7 +115,8 @@ namespace gravity {
     public:
         
         /** Constructors */
-        constant(){        
+        constant(){
+            _dim.resize(1,1);
             if(typeid(type)==typeid(bool)){
                 set_type(binary_c);
                 return;

@@ -287,11 +287,11 @@ namespace gravity {
             if (coef->_is_transposed && p1->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
-            if (p1->_is_transposed) {
-                if (p1->get_dim() != p2->get_dim()) {
-                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                }
-            }
+//            if (p1->_is_transposed) {
+//                if (p1->get_dim() != p2->get_dim()) {
+//                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+//                }
+//            }
             if (p2->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
@@ -450,7 +450,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<double>>             _val;
-        shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         func_();
         
@@ -469,6 +469,7 @@ namespace gravity {
         map<string, pair<shared_ptr<param_>, int>>& get_params() { return *_params;};
         
         bool has_var(const param_& v) const;
+        bool has_var(const string& name) const;
         
         void replace(param_* p, const param_& p_new);
         
@@ -1613,7 +1614,7 @@ namespace gravity {
     func_ sum(const param<type>& p);
     
     template<typename type1, typename type2>
-    func_ product(const param<type1>& p, const param<type2> v);
+    func_ product(const param<type1>& p, const param<type2>& v);
     
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f);

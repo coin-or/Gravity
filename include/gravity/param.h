@@ -43,7 +43,7 @@ public:
     int                                    _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
 
     string                                 _name;
-    shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
+    shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
     unique_id                              _unique_id = make_tuple<>(-1,unindexed_,0,0,0); /* */
 
     bool                                   _is_indexed = false;
@@ -71,8 +71,8 @@ public:
     };
 
     size_t get_id_inst(unsigned inst = 0) const {
-        if (_is_indexed && inst < _ids->at(0).size()) {
-            return _ids->at(0).at(inst);
+        if (_is_indexed && inst < _ids->size()) {
+            return _ids->at(inst);
         }
 //            throw invalid_argument("This is a non-indexed variable!\n");
         return inst;
@@ -93,21 +93,43 @@ public:
     NType get_intype() const {
         return _intype;
     }
+    
+    size_t get_dim(size_t i) const {
+        if (!_is_matrix) {
+            return get_dim();
+        }
+        return _dim[i];
+    }
+    
     size_t get_dim() const {
+//        if (_is_vector) {
+//            return 1;
+//        }
+//        if (_is_transposed && _is_matrix) {
+//            return _ids->size();
+//        }
 //        if (_is_indexed) {
-//            return _ids->at(0).size();
+//            return _ids->size();
 //        }
 //        return _dim;
-        return max(_dim, _indices->size());
+        size_t dim = 1;
+        for (auto d:_dim) {
+            dim*= d;
+        }
+        return max(dim, _indices->size());
     }
 
     size_t get_nb_instances() const {
+        if(_is_transposed){
+            if (_is_matrix) {
+                return _dim[1];
+            }
+            return 1;
+        }
         if (_is_indexed) {
-            return _ids->at(0).size();
+            return _ids->size();
         }
-        else{
-            return _dim;
-        }
+        return _dim[0];
     }
 
     shared_ptr<map<string,unsigned>> get_indices() const {
@@ -120,7 +142,7 @@ public:
         return _sdpindices;
     }
 
-    shared_ptr<vector<vector<unsigned>>> get_ids() const {
+    shared_ptr<vector<unsigned>> get_ids() const {
         return _ids;
     }
 
@@ -178,9 +200,9 @@ public:
         //    throw invalid_argument("Please enter a name in the parameter constructor");
         update_type();
         _val = make_shared<vector<type>>();
+        _dim.resize(1,0);
         _indices = make_shared<map<string,unsigned>>();
-        _ids = make_shared<vector<vector<unsigned>>>();
-        _ids->push_back(vector<unsigned>());
+        _ids = make_shared<vector<unsigned>>();
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }
@@ -203,6 +225,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_matrix = p._is_matrix;
         _is_indexed = p._is_indexed;
         _dim = p._dim;
     }
@@ -221,6 +244,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_matrix = p._is_matrix;
         _is_indexed = p._is_indexed;
         _dim = p._dim;
     }
@@ -239,6 +263,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_matrix = p._is_matrix;
         _is_indexed = p._is_indexed;
         _dim = p._dim;
         return *this;
@@ -258,6 +283,7 @@ public:
         _range = p._range;
         _is_transposed = p._is_transposed;
         _is_vector = p._is_vector;
+        _is_matrix = p._is_matrix;
         _is_indexed = p._is_indexed;
         _dim = p._dim;
         return *this;
@@ -265,7 +291,7 @@ public:
 
     param tr() const {
         auto p = param(*this);
-        p._is_transposed = true;
+        p._is_transposed = !p._is_transposed;
         return p;
     }
 
@@ -315,9 +341,9 @@ public:
         _name = s;
         update_type();
         _val = make_shared<vector<type>>();
+        _dim.resize(1,0);
         _indices = make_shared<map<string,unsigned>>();
-        _ids = make_shared<vector<vector<unsigned>>>();
-        _ids->push_back(vector<unsigned>());
+        _ids = make_shared<vector<unsigned>>();
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }
@@ -328,23 +354,23 @@ public:
 
     type eval() const {
         if (_is_indexed) {
-            return _val->at(_ids->at(0).back());
+            return _val->at(_ids->back());
         }
         return _val->back();
     }
 
     type eval(unsigned i) const {
         if (_is_indexed) {
-//            if (i >= _ids->at(0).size()) {
+//            if (i >= _ids->size()) {
 ////                if (i>=_val->size()) {
 //                    throw invalid_argument("error");
 ////                }
-//                return _val->at(_ids->at(0).at(0));
+//                return _val->at(_ids->at(0));
 //            }
-//            if (_ids->at(0).at(i)>=_val->size()) {
+//            if (_ids->at(i)>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
-            return _val->at(_ids->at(0).at(i));
+            return _val->at(_ids->at(i));
         }
 //        if (i>=_val->size()) {
 //            throw invalid_argument("error");
@@ -357,16 +383,16 @@ public:
             return eval(j);
         }
 //        if (_is_indexed) {
-            //            if (i >= _ids->at(0).size()) {
+            //            if (i >= _ids->size()) {
             ////                if (i>=_val->size()) {
             //                    throw invalid_argument("error");
             ////                }
-            //                return _val->at(_ids->at(0).at(0));
+            //                return _val->at(_ids->at(0));
             //            }
-            //            if (_ids->at(0).at(i)>=_val->size()) {
+            //            if (_ids->at(i)>=_val->size()) {
             //                throw invalid_argument("error");
             //            }
-            return _val->at(_ids->at(i).at(j));
+        return _val->at(i*_dim[1]+j);
 //        }
         //        if (i>=_val->size()) {
         //            throw invalid_argument("error");
@@ -378,7 +404,7 @@ public:
     /* Modifiers */
     void   set_size(size_t s, type val = 0) {
         _val->resize(s, val);
-        _dim = s;
+        _dim[0] = s;
     };
 
 
@@ -397,6 +423,16 @@ public:
         }
     }
 
+    void set_val(size_t i, size_t j, type val) {
+        _is_matrix = true;
+        _dim.resize(2);
+        _dim[0] = max(_dim[0],i+1);
+        _dim[1] = max(_dim[1],j+1);
+        auto index = _dim[1]*i+j;
+        _val->resize(max(_val->size(),index+1));
+        _val->at(index) = val;
+        update_range(val);
+    }
     void set_val(unsigned i, type val) {
         if (_val->size() <= i) {
             throw out_of_range("set_val(int i, type val)");
@@ -495,11 +531,11 @@ public:
 
     param& operator=(type v) {
         if (_is_indexed) {
-            _val->at(_ids->at(0).back()) = v;
+            _val->at(_ids->back()) = v;
         }
         else {
             _val->push_back(v);
-            _dim++;
+            _dim[0]++;
         }
         update_range(v);
         return *this;
@@ -525,26 +561,35 @@ public:
             }
             it++;
         }
+        size_t index = 0;
         if (indices.size()==2) {
             _is_matrix = true;
+            _dim.resize(2);
+            _dim[0] = max(_dim[0],indices.front()+1);
+            _dim[1] = max(_dim[1],indices.back()+1);
+            index = _dim[1]*indices.front()+indices.back();
         }
-        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
-        _val->resize(max(_val->size(),param_::_indices->size()));
-        _dim = max(_dim,_val->size());
+        else {
+            _dim[0] = max(_dim[0],indices.front()+1);
+            index = indices.front();
+        }
+        auto pp = param_::_indices->insert(make_pair<>(key,index));
+        _val->resize(max(_val->size(),index+1));
+        
         if(pp.second) { //new index inserted
-            if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                res._dim++;                
+            if(res._indices->insert(make_pair<>(key,index)).second) {
+                res._dim[0]++;                
             };
-            res._ids->at(0).push_back(param_::_indices->size()-1);
+            res._ids->push_back(index);
         }
         else {
             if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                res._dim++;
+                res._dim[0]++;
             }
-            res._ids->at(0).push_back(pp.first->second);
+            res._ids->push_back(pp.first->second);
         }
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), res._ids->at(0).at(0), res._ids->at(0).at(res._ids->at(0).size()-1));
+        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), indices.front(), indices.back());
         res._is_indexed = true;
         //_is_indexed = true; // Guanglei added this line.
         return res;
@@ -576,22 +621,22 @@ public:
         }
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         _val->resize(max(_val->size(),param_::_indices->size()));
-        _dim = max(_dim,_val->size());
+        _dim[0] = max(_dim[0],_val->size());
         if(pp.second) { //new index inserted
             if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                res._dim++;
+                res._dim[0]++;
             }
-            res._ids->at(0).push_back(param_::_indices->size()-1);
+            res._ids->push_back(param_::_indices->size()-1);
         }
         else {
             if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                res._dim++;
+                res._dim[0]++;
             }
-            res._ids->at(0).push_back(pp.first->second);
+            res._ids->push_back(pp.first->second);
         }
-        //res._dim++;
+        //res._dim[0]++;
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), res._ids->at(0).at(0), res._ids->at(0).at(res._ids->at(0).size()-1));
+        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
         res._is_indexed = true;
         return res;
     }
@@ -600,15 +645,17 @@ public:
 
     template<typename Tobj>
     param in(const vector<Tobj*>& vec) {
-        if(vec.empty()){
-            throw invalid_argument("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(vec.empty()){
+            DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         DebugOff(_name << " = ");
         string key;
         for(auto it = vec.begin(); it!= vec.end(); it++) {
@@ -618,18 +665,18 @@ public:
             key = (*it)->_name;
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
-            _dim = max(_dim,_val->size());
+            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(param_::_indices->size() - 1);
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(pp.first->second);
+                res._ids->push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -641,15 +688,17 @@ public:
 
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec) {
-        if(vec.empty()){
-            throw invalid_argument("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(vec.empty()){
+            DebugOff("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         DebugOff(_name << " = ");
         string key;
         for(auto it = vec.begin(); it!= vec.end(); it++) {
@@ -663,15 +712,15 @@ public:
             _dim = max(_dim,_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(param_::_indices->size() - 1);
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(pp.first->second);
+                res._ids->push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -683,9 +732,6 @@ public:
 
     template<typename Tobj>
     param in_pairs(const vector<Tobj*>& vec, unsigned T) {
-        if(vec.empty()){
-            throw invalid_argument("In function param.in_pairs(const vector<Tobj*>& vec, unsigned T), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         assert(T > 0);
         param res(this->_name);
         res._id = this->_id;
@@ -693,6 +739,11 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(vec.empty()){
+            DebugOff("In function param.in_pairs(const vector<Tobj*>& vec, unsigned T), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         DebugOff(_name << " = ");
         string key;
         for (unsigned t = 0; t < T; t++) {
@@ -708,15 +759,15 @@ public:
                 _dim = max(_dim,_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(param_::_indices->size() - 1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(pp.first->second);
+                    res._ids->push_back(pp.first->second);
                 }
             }
         }
@@ -744,15 +795,17 @@ public:
     
     template<typename Tobj>
     param from(const vector<Tobj*>& vec) {
-        if(vec.empty()){
-            throw invalid_argument("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(vec.empty()){
+            DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         DebugOff(_name << " = ");
         string key;
         for(auto it = vec.begin(); it!= vec.end(); it++) {
@@ -763,19 +816,19 @@ public:
             DebugOff(key<< ", ");
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
-            _dim = max(_dim,_val->size());
+            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                     // _dim++;
                 }
-                res._ids->at(0).push_back(param_::_indices->size() - 1);
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(pp.first->second);
+                res._ids->push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -787,15 +840,17 @@ public:
 
     template<typename Tobj>
     param to(const vector<Tobj*>& vec) {
-        if(vec.empty()){
-            throw invalid_argument("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(vec.empty()){
+            DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         DebugOff(_name << " = ");
         string key;
         for(auto it = vec.begin(); it!= vec.end(); it++) {
@@ -806,18 +861,18 @@ public:
             DebugOff(key<< ", ");
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
-            _dim = max(_dim,_val->size());
+            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(param_::_indices->size() - 1);
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(pp.first->second);
+                res._ids->push_back(pp.first->second);
             }
         }
         res._name += ".to_" + vec.front()->_type_name;
@@ -846,15 +901,15 @@ public:
                 _dim = max(_dim,_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(param_::_indices->size() - 1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(pp.first->second);
+                    res._ids->push_back(pp.first->second);
                 }
             }
         }
@@ -868,15 +923,17 @@ public:
 
     template<typename Tobj>
     param in_at(const vector<Tobj*>& nodes, unsigned t) {
-        if(nodes.empty()){
-            throw invalid_argument("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(nodes.empty()){
+            DebugOff("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++) {
             if(!(*it)->_active) {
@@ -890,15 +947,15 @@ public:
             _dim = max(_dim,_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(param_::_indices->size() - 1);
+                res._ids->push_back(param_::_indices->size() - 1);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res._dim++;
+                    res._dim[0]++;
                 }
-                res._ids->at(0).push_back(pp.first->second);
+                res._ids->push_back(pp.first->second);
             }
         }
         res._name += ".in_" + string(typeid(Tobj).name()) + "_at_" + to_string(t);
@@ -909,15 +966,17 @@ public:
 
     template<typename Tobj>
     param in(const vector<Tobj*>& nodes, unsigned T) {
-        if(nodes.empty()){
-            throw invalid_argument("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(nodes.empty()){
+            DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = nodes.begin(); it!= nodes.end(); it++) {
@@ -936,16 +995,16 @@ public:
                 _dim = max(_dim,_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                         //_dim++;
                     }
-                    res._ids->at(0).push_back(param_::_indices->size() - 1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(pp.first->second);
+                    res._ids->push_back(pp.first->second);
                 }
             }
         }
@@ -957,15 +1016,17 @@ public:
 
     template<typename Tobj>
     param from(const vector<Tobj*>& arcs, unsigned T) {
-        if(arcs.empty()){
-            throw invalid_argument("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(arcs.empty()){
+            DebugOff("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
@@ -980,15 +1041,15 @@ public:
                 _dim = max(_dim,_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(param_::_indices->size()-1);
+                    res._ids->push_back(param_::_indices->size()-1);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(pp.first->second);
+                    res._ids->push_back(pp.first->second);
                 }
             }
         }
@@ -1000,15 +1061,17 @@ public:
 
     template<typename Tobj>
     param to(const vector<Tobj*>& arcs, unsigned T) {
-        if(arcs.empty()){
-            throw invalid_argument("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-        }
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        if(arcs.empty()){
+            DebugOff("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         string key;
         for (unsigned t = 0; t < T; t++) {
             for(auto it = arcs.begin(); it!= arcs.end(); it++) {
@@ -1023,16 +1086,16 @@ public:
                 _dim = max(_dim,_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(param_::_indices->size() - 1);
+                    res._ids->push_back(param_::_indices->size() - 1);
                 }
                 else {
                     // already exists
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                        res._dim++;
+                        res._dim[0]++;
                     }
-                    res._ids->at(0).push_back(pp.first->second);
+                    res._ids->push_back(pp.first->second);
                 }
             }
         }
@@ -1057,7 +1120,7 @@ public:
 //        }
         //CLEAR OLD ENTRIES
         _indices->clear();
-        _ids->at(0).clear();
+        _ids->clear();
         //STORE NEW ENTRIES
         for(unsigned t = 0; t < T; t ++ ) {
             for (auto &entry: map_temp) {

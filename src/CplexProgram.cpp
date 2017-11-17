@@ -159,9 +159,9 @@ void CplexProgram::set_cplex_objective() {
                 coefs[j] = poly_eval(it_qterm.second._coef,j);
             }
             unsigned inst = 0;
-            auto it1 = it_qterm.second._p->first->get_ids()->begin()->begin();
-            auto it2 = it_qterm.second._p->second->get_ids()->begin()->begin();
-            while (it1 != it_qterm.second._p->first->get_ids()->begin()->end()) {
+            auto it1 = it_qterm.second._p->first->get_ids()->begin();
+            auto it2 = it_qterm.second._p->second->get_ids()->begin();
+            while (it1 != it_qterm.second._p->first->get_ids()->end()) {
                 qterm += coefs[inst++]*_cplex_vars[idx1][*it1++]*_cplex_vars[idx2][*it2++];
             }            
         }
@@ -187,8 +187,8 @@ void CplexProgram::set_cplex_objective() {
                 coefs[j] = poly_eval(it_lterm.second._coef,j);
             }
             unsigned inst = 0;
-            auto it = it_lterm.second._p->get_ids()->begin()->begin();
-            while (it != it_lterm.second._p->get_ids()->begin()->end()) {
+            auto it = it_lterm.second._p->get_ids()->begin();
+            while (it != it_lterm.second._p->get_ids()->end()) {
                 lterm += coefs[inst++]*_cplex_vars[idx][*it++];
             }
         }
@@ -235,9 +235,9 @@ void CplexProgram::create_cplex_constraints() {
                 if (it_qterm.second._coef->_is_transposed) {
 //                    throw invalid_argument("unsupported operation\n");
                     unsigned inst = 0;
-                    auto it1 = it_qterm.second._p->first->get_ids()->begin()->begin();
-                    auto it2 = it_qterm.second._p->second->get_ids()->begin()->begin();
-                    while (it1 != it_qterm.second._p->first->get_ids()->begin()->end()) {
+                    auto it1 = it_qterm.second._p->first->get_ids()->begin();
+                    auto it2 = it_qterm.second._p->second->get_ids()->begin();
+                    while (it1 != it_qterm.second._p->first->get_ids()->end()) {
                         qterm += poly_eval(it_qterm.second._coef, i, inst++)*_cplex_vars[idx1][*it1++]*_cplex_vars[idx2][*it2++];
                     }
                 }
@@ -259,8 +259,8 @@ void CplexProgram::create_cplex_constraints() {
                 if (it_lterm.second._coef->_is_transposed) {
                     IloNumArray coefs(*_cplex_env,it_lterm.second._p->get_dim());
                     unsigned inst = 0;
-                    auto it = it_lterm.second._p->get_ids()->begin()->begin();
-                    while (it != it_lterm.second._p->get_ids()->begin()->end()) {
+                    auto it = it_lterm.second._p->get_ids()->begin();
+                    while (it != it_lterm.second._p->get_ids()->end()) {
                         lterm += poly_eval(it_lterm.second._coef,i,inst++)*_cplex_vars[idx][*it++];
                     }
                     

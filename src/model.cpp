@@ -463,8 +463,23 @@ void Model::compute_funcs() {
             continue;
         }
         for (auto &dfdx: *c->get_dfdx()) {
-            for (int inst = 0; inst < dfdx.second->_nb_instances; inst++) {
-                dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
+            if (dfdx.second->_is_matrix) {
+                for (int i = 0; i<dfdx.second->_dim[0]; i++) {
+                    for (int j = 0; j<dfdx.second->_dim[1]; j++) {
+                        dfdx.second->_val->at(i*dfdx.second->_dim[1]+j) = dfdx.second->eval(i,j);
+                    }
+                }
+            }
+//            else if (dfdx.second->_is_vector) {
+//                for (int i = 0; i<dfdx.second->_dim[0]; i++) {
+//                    dfdx.second->_val->at(i) = dfdx.second->eval(i);
+//                }
+//            }
+            else {
+//                for (int inst = 0; inst < dfdx.second->_nb_instances; inst++) {
+                for (int inst = 0; inst < dfdx.second->_val->size(); inst++) {
+                    dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
+                }
             }
             if (c->is_quadratic() && !_first_call_hess) {
                 continue;
@@ -634,7 +649,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         cid = c->_id+inst;
                         if (v->_is_vector) {
                             for (int j = 0; j<v->get_dim(); j++) {
-                                res[idx] = dfdx->get_val(j);
+                                res[idx] = dfdx->get_val(inst,j);
                                 _jac_vals[idx] = res[idx];
                                 idx++;
                             }
@@ -656,7 +671,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         cid = c->_id+inst;
                         if (v->_is_vector) {
                             for (int j = 0; j<v->get_dim(); j++) {
-                                res[idx] = dfdx->eval(j);
+                                res[idx] = dfdx->eval(inst,j);
                                 _jac_vals[idx] = res[idx];
                                 idx++;
                             }

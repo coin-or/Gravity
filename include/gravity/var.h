@@ -204,11 +204,11 @@ public:
 
     type    get_lb(size_t i = 0) const {
         unsigned index = 0;
-        if (param<type>::get_ids()->at(0).empty()) {
+        if (param<type>::get_ids()->empty()) {
             index = i;
         }
         else {
-            index = param<type>::get_ids()->at(0).at(i);
+            index = param<type>::get_ids()->at(i);
         }
         if (_lb->size() <= index) {
             throw out_of_range("get_lb(size_t i, index: " + to_string(index) + ")\n");
@@ -218,11 +218,11 @@ public:
 
     type    get_ub(size_t i = 0) const {
         unsigned index = 0;
-        if (param<type>::get_ids()->at(0).empty()) {
+        if (param<type>::get_ids()->empty()) {
             index = i;
         }
         else {
-            index = param<type>::get_ids()->at(0).at(i);
+            index = param<type>::get_ids()->at(i);
         }
         if (_ub->size() <= index) {
             throw out_of_range("get_ub(size_t i), index: " + to_string(index)+ ")\n");
@@ -282,7 +282,7 @@ public:
     var& operator=(type v) {
         param<type>::_val->push_back(v);
         param<type>::update_range(v);
-        param<type>::_dim++;
+        param<type>::_dim[0]++;
         return *this;
     }
 
@@ -380,7 +380,7 @@ public:
     /* Operators */
     sdpvar& operator = (type v) {
         param<type>::_val->push_back(v);
-        param<type>::_dim++;
+        param<type>::_dim[0]++;
         return *this;
     }
 
