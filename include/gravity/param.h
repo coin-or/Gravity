@@ -709,7 +709,7 @@ public:
             DebugOff(key<< ", ");
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
-            _dim = max(_dim,_val->size());
+            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                     res._dim[0]++;
@@ -756,7 +756,7 @@ public:
                 key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
-                _dim = max(_dim,_val->size());
+                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim[0]++;
@@ -898,7 +898,7 @@ public:
                 Debug("key: " << key << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
-                _dim = max(_dim,_val->size());
+                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim[0]++;
@@ -944,7 +944,7 @@ public:
             key += to_string(t);
             auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             _val->resize(max(_val->size(),param_::_indices->size()));
-            _dim = max(_dim,_val->size());
+            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
                 if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                     res._dim[0]++;
@@ -992,7 +992,7 @@ public:
                 Debug("_indices: " << param_::_indices->size() << endl);
                 auto pp = param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
-                _dim = max(_dim,_val->size());
+                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key, param_::_indices->size() - 1)).second) {
                         res._dim[0]++;
@@ -1038,7 +1038,7 @@ public:
                 key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
-                _dim = max(_dim,_val->size());
+                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim[0]++;
@@ -1083,7 +1083,7 @@ public:
                 key += to_string(t);
                 auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
                 _val->resize(max(_val->size(),param_::_indices->size()));
-                _dim = max(_dim,_val->size());
+                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
                     if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                         res._dim[0]++;
