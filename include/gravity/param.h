@@ -433,10 +433,10 @@ public:
         _val->at(index) = val;
         update_range(val);
     }
-    void set_val(unsigned i, type val) {
-        if (_val->size() <= i) {
-            throw out_of_range("set_val(int i, type val)");
-        }
+    
+    void set_val(size_t i, type val) {
+        _dim[0] = max(_dim[0],i+1);
+        _val->resize(max(_val->size(),i+1));
         _val->at(i) = val;
         update_range(val);
     }
@@ -654,6 +654,7 @@ public:
         if(vec.empty()){
             DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            res._is_indexed = true;
             return res;
         }
         DebugOff(_name << " = ");
