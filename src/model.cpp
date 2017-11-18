@@ -79,8 +79,14 @@ size_t Model::get_nb_nnz_h() const{
     for (auto &pairs: _hess_link) {
         vi_name = pairs.first.first;
         s = pairs.second;
+        //TODO iterate over s
         vi = (*s.begin()).first->get_var(vi_name);
-        nnz += (*s.begin()).first->_nb_instances;
+        if (vi->_is_vector) {
+            nnz += (*s.begin()).first->_nb_instances*vi->get_dim();
+        }
+        else {
+            nnz += (*s.begin()).first->_nb_instances;
+        }
     }
     return nnz;
 };
@@ -476,7 +482,6 @@ void Model::compute_funcs() {
 //                }
 //            }
             else {
-//                for (int inst = 0; inst < dfdx.second->_nb_instances; inst++) {
                 for (int inst = 0; inst < dfdx.second->_val->size(); inst++) {
                     dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
                 }
@@ -485,7 +490,7 @@ void Model::compute_funcs() {
                 continue;
             }
             for (auto &dfd2x: *dfdx.second->get_dfdx()) {
-                for (int inst = 0; inst < dfd2x.second->_nb_instances; inst++) {
+                for (int inst = 0; inst < dfd2x.second->_val->size(); inst++) {
                     dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
                 }
             }
@@ -788,7 +793,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     for (auto &pairs: _hess_link) {
         vi_name = pairs.first.first;
         vj_name = pairs.first.second;
-        s = pairs.second;
+        s = pairs.second;//TODO iterate on s
         vi = (*s.begin()).first->get_var(vi_name);
         vj = (*s.begin()).first->get_var(vj_name);
         if (vi_name.compare(vj_name) > 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
@@ -799,7 +804,8 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         }
         vid = vi->get_id();
         vjd = vj->get_id();
-        for (unsigned i = 0; i<(*s.begin()).first->_nb_instances; i++) {
+        size_t nb_inst = (*s.begin()).second->_nb_instances;
+        for (unsigned i = 0; i<nb_inst; i++) {
             idx_all += s.size();
             iRow[idx] = vid + vi->get_id_inst(i);
             jCol[idx] = vjd + vj->get_id_inst(i);
@@ -822,8 +828,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         }
         for (auto &pairs: _hess_link) {
             s = pairs.second;
+            size_t nb_inst = (*s.begin()).second->_nb_instances;
             if (_type==nlin_m) {
-                for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
+                for (unsigned inst = 0; inst<nb_inst; inst++) {
                     res[idx] = 0;
                     for (auto f_pair:s) {
                         if (f_pair.first->_is_constraint) {
@@ -845,7 +852,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                 }
             }
             else {
-                for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
+                for (unsigned inst = 0; inst<nb_inst; inst++) {
                     res[idx] = 0;
                     for (auto f_pair:s) {
                         if (f_pair.first->_is_constraint) {
@@ -895,7 +902,8 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     for (auto &pairs: _hess_link) {
         s = pairs.second;
-        for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
+        size_t nb_inst = (*s.begin()).second->_nb_instances;
+        for (unsigned inst = 0; inst<nb_inst; inst++) {
             res[idx] = 0;            
             for (auto f_pair:s) {
                 if (f_pair.first->_is_constraint) {

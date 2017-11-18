@@ -120,7 +120,7 @@ public:
     }
 
     size_t get_nb_instances() const {
-        if(_is_transposed){
+        if(_is_transposed || _is_vector){
             if (_is_matrix) {
                 return _dim[1];
             }

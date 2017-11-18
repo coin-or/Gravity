@@ -45,6 +45,7 @@ namespace gravity {
         double eval(size_t i) const;
         double eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
+        void tr();
         virtual ~expr(){};
     };
 
@@ -82,6 +83,7 @@ namespace gravity {
         
         /** Operators */
         
+        void tr();
         
         bool operator==(const uexpr &c)const;
         
@@ -137,6 +139,7 @@ namespace gravity {
             _rson = nullptr;
         };
         
+        void tr();
         
         shared_ptr<func_> get_lson() const{
             return _lson;
@@ -477,10 +480,17 @@ namespace gravity {
         bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
        
-        func_ tr() const{/**< Transpose the output of the current function */
-            auto f = func_(*this);
-            f._is_transposed = true;
-            return f;
+        void tr(){/**< Transpose the output of the current function */
+            _is_transposed = !_is_transposed;
+            for (auto &vp:*_vars) {
+                vp.second.first->_is_transposed = !vp.second.first->_is_transposed;
+            }
+            for (auto &vp:*_params) {
+                vp.second.first->_is_transposed = !vp.second.first->_is_transposed;
+            }
+            if(_expr){
+                _expr->tr();
+            }
         }
         
         template<typename Tobj>

@@ -2771,6 +2771,23 @@ namespace gravity{
 //                if (be->_rson->is_function()) {
                     auto fr = (func_*)(be->_rson.get());
                     embed(*fr);
+                if (be->_otype==product_ && (be->_lson->_is_transposed || be->_rson->_is_transposed)) {
+                    _dim.resize(1,1);
+                    _val->resize(1);
+                    _nb_instances = 1;
+                    if (be->_lson->_is_transposed) {
+                        be->_rson->_is_vector = true;
+                        for (auto &vp: *be->_rson->_vars) {
+                            vp.second.first->_is_vector = true;
+                        }
+                    }
+                    else if (be->_rson->_is_transposed) {
+                        be->_lson->_is_vector = true;
+                        for (auto &vp: *be->_lson->_vars) {
+                            vp.second.first->_is_vector = true;
+                        }
+                    }
+                }
 //                }
 //                else if(be->_rson->is_expr()){
 //                    embed(*(expr*)be->_rson);
@@ -2804,7 +2821,17 @@ namespace gravity{
     
 
     void func_::embed(func_& f){
-        f._nb_instances = _nb_instances;
+//        _is_matrix = f._is_matrix;
+//        _is_vector = f._is_vector;
+//        _is_transposed = f._is_transposed;
+//        _nb_instances = max(_nb_instances, f._nb_instances);
+//        if (_dim.size() < f._dim.size()) {
+//            _dim.resize(f._dim.size());
+//        }
+//        for (int i = 0; i<f._dim.size();i++) {
+//            _dim[i] = max(_dim[i], f._dim[i]);
+//        }
+        f._nb_instances = max(f._nb_instances, _nb_instances);
         f._val->resize(max(f._val->size(),_nb_instances));
         f._embedded = true;
         param_* p = nullptr;
@@ -4113,19 +4140,19 @@ namespace gravity{
         }
         switch (_otype) {
             case plus_:
-                return _coef*(_lson->get_val(i) + _rson->get_val(i,j));
+                return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
                 break;
             case minus_:
-                return _coef*(_lson->get_val(i) - _rson->get_val(i,j));
+                return _coef*(_lson->get_val(i,j) - _rson->get_val(i,j));
                 break;
             case product_:
-                return _coef*(_lson->get_val(i) * _rson->get_val(i,j));
+                return _coef*(_lson->get_val(i,j) * _rson->get_val(i,j));
                 break;
             case div_:
-                return _coef*(_lson->get_val(i)/_rson->get_val(i,j));
+                return _coef*(_lson->get_val(i,j)/_rson->get_val(i,j));
                 break;
             case power_:
-                return _coef*(powl(_lson->get_val(i),_rson->get_val(i,j)));
+                return _coef*(powl(_lson->get_val(i,j),_rson->get_val(i,j)));
                 break;
             default:
                 throw invalid_argument("Unsupported binary operator");
@@ -4137,7 +4164,9 @@ namespace gravity{
     double  bexpr::eval(ind i) const{
         if (_lson->is_constant() && !_lson->_evaluated) {
 //            _lson->_val = make_shared<vector<double>>();
-//            _lson->_val->resize(_lson->get_nb_instances());
+//            if (_lson->_is_transposed) {
+//                _lson->_val->resize(_lson->_dim[0]);
+//            }
             for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
                 _lson->_val->at(inst) = _lson->eval(inst);
             }
@@ -4146,6 +4175,9 @@ namespace gravity{
         if (_rson->is_constant() && !_rson->_evaluated) {
 //            _rson->_val = make_shared<vector<double>>();
 //            _rson->_val->resize(_rson->get_nb_instances());
+//            if (_rson->_is_transposed) {
+//                _rson->_val->resize(_rson->_dim[0]);
+//            }
             for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
                 _rson->_val->at(inst) = _rson->eval(inst);
             }
@@ -4159,7 +4191,23 @@ namespace gravity{
                 return _coef*(_lson->get_val(i) - _rson->get_val(i));
                 break;
             case product_:
-                return _coef*(_lson->get_val(i) * _rson->get_val(i));
+                if (_lson->_is_transposed) {
+                    double res = 0;
+                    for (int j = 0; j < _lson->_val->size(); j++) {
+                        res +=_coef*(_lson->get_val(i,j) * _rson->get_val(i,j));
+                    }
+                    return res;
+                }
+                else if (_rson->_is_transposed) {
+                    double res = 0;
+                    for (int j = 0; j < _rson->_val->size(); j++) {
+                        res +=_coef*(_lson->get_val(i,j) * _rson->get_val(i,j));
+                    }
+                    return res;
+                }
+                else {
+                    return _coef*(_lson->get_val(i) * _rson->get_val(i));
+                }
                 break;
             case div_:
                 return _coef*(_lson->get_val(i)/_rson->get_val(i));
@@ -5055,13 +5103,13 @@ namespace gravity{
         for (auto &lt: *_lterms) {
             if (*lt.second._p == v) {
 //                if(lt.second._coef->_is_transposed){
-////                    lt.second._coef->_dim = v._dim;
-//                    constant<double> ones(1);
+//                    auto cp = copy(*lt.second._coef);
+//                    cp->_is_transposed = false;
 //                    if(lt.second._sign){
-//                        res += ones.tr()*(*lt.second._coef);
+//                        res += *cp;
 //                    }
 //                    else {
-//                        res -= ones.tr()*(*lt.second._coef);
+//                        res -= *cp;
 //                    }
 //                }
 //                else {
@@ -5122,12 +5170,14 @@ namespace gravity{
             }
         }
         if (!_expr) {
+//            res.tr();
             return res;
         }
         else { // f is a composition of functions
-            return res += _expr->get_derivative(v);
+            res += _expr->get_derivative(v);
+//            res.tr();
+            return res;
         }
-        return res;
     }
 
     double func_::get_val(size_t i) const{
@@ -5140,9 +5190,9 @@ namespace gravity{
             return _val->at(0);
         }
         else {
-//            if (i>=_val->size()) {
-//                throw invalid_argument("error");
-//            }
+            if (i>=_val->size()) {
+                throw invalid_argument("error");
+            }
             return _val->at(i);
         }
     }
@@ -5440,6 +5490,26 @@ namespace gravity{
         }
     }
     
+    void expr::tr() {
+        if(is_uexpr()){
+            ((uexpr*)this)->tr();
+        }
+        else {
+            ((bexpr*)this)->tr();
+        }
+    }
+    
+    void uexpr::tr() {
+        _is_transposed = false;
+        _son->tr();
+    }
+    
+    void bexpr::tr() {
+        _is_transposed = false;
+        _lson->tr();
+        _rson->tr();
+    }
+    
     func_ uexpr::get_derivative(const param_ &v) const{
        // Unary operators
        // f(g(x))' = f'(g(x))*g'(x).
@@ -5636,6 +5706,7 @@ namespace gravity{
     }
 
     size_t func_::get_nb_instances() const{
+        
         return _nb_instances;
     }
 

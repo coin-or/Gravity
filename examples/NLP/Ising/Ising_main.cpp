@@ -71,6 +71,8 @@ bool read_samples(const char* fname){
 
 int main (int argc, const char * argv[])
 {
+    int log_lev = 0;
+    bool relax = false;
     const char* fname;
     if (argc >= 2) {
         fname = argv[1];
@@ -141,18 +143,25 @@ int main (int argc, const char * argv[])
 //    }
 //    Obj += obj;
 //    Obj += obj - product(nb_samples,g);
+//    Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
+//    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
+    
+//    Obj += sum(nb_samples_pu,expo(f));
+//    Obj += obj - lambda*sum(z);
+//    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
     Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
-//    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
-//    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
+//    Obj += sum(nb_samples_pu,expo(f));
 //    Obj += obj - lambda*sum(z) - sum(g);
     Ising.add_constraint(Obj>=0);
     solver NLP(Ising,ipopt);
-    NLP.run(0,false,"ma57",1e-12);
+    NLP.run(log_lev=0,relax=false,"ma57",1e-12);
     return 0;
 }
 
 int main_ (int argc, const char * argv[])
 {
+    int log_lev = 0;
+    bool relax = false;
     const char* fname;
     if (argc >= 2) {
         fname = argv[1];
@@ -181,7 +190,7 @@ int main_ (int argc, const char * argv[])
     Obj += obj - sum(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z);
     Ising.add_constraint(Obj>=0);
     solver NLP(Ising,ipopt);
-    NLP.run(0,false,"ma57",1e-12);
+    NLP.run(log_lev=0,relax=false,"ma57",1e-12);
     return 0;
 }
 
