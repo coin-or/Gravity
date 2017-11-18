@@ -411,7 +411,7 @@ public:
     void add_val(type val) {
         _val->push_back(val);
         update_range(val);
-        _dim++;
+        _dim[0]++;
     }
 
     void update_range(type val) {

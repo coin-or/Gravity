@@ -147,7 +147,7 @@ int main (int argc, const char * argv[])
 //    Obj += obj - lambda*sum(z) - sum(g);
     Ising.add_constraint(Obj>=0);
     solver NLP(Ising,ipopt);
-    NLP.run();
+    NLP.run(0,false,"ma57",1e-12);
     return 0;
 }
 
@@ -181,7 +181,7 @@ int main_ (int argc, const char * argv[])
     Obj += obj - sum(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z);
     Ising.add_constraint(Obj>=0);
     solver NLP(Ising,ipopt);
-    NLP.run();
+    NLP.run(0,false,"ma57",1e-12);
     return 0;
 }
 
