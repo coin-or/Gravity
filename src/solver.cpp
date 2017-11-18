@@ -144,14 +144,14 @@ int solver::run(int output, bool relax){
         }
         SmartPtr<TNLP> tmp = new IpoptProgram(_model);
 //        prog.ipopt_prog;
-                        iapp->Options()->SetStringValue("linear_solver", "ma57");
+//                        iapp->Options()->SetStringValue("linear_solver", "ma57");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
 //                        iapp->Options()->SetNumericValue("print_level", 10);
         
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-                        iapp->Options()->SetNumericValue("tol", 1e-12);
+                        iapp->Options()->SetNumericValue("tol", 1e-6);
 //                        iapp->Options()->SetIntegerValue("max_iter", 50);
         
 //                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
