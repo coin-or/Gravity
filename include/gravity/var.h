@@ -367,8 +367,8 @@ public:
         else {
             auto temp = param_::_sdpindices->at(key);
             res._sdpindices->insert(make_pair<>(key,temp));
-            res._dim = 1;
-            res._symdim = 1;
+            res._dim[0] = 1;
+            res._symdim[0] = 1;
         }
         res._name += "["+key+"]";
         res._is_indexed = true;
