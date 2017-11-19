@@ -55,7 +55,7 @@ int main (int argc, const char * argv[])
     DebugOn("nb lines = " << 2*nb_lines << endl);
     DebugOn("nb buses = " << nb_buses << endl);
 
-    PowerModelType pmt = ACRECT;
+    PowerModelType pmt = ACPOL;
     /** build model */
     if (argc >= 3) {
         if(!strcmp(argv[2],"ACPOL")) pmt = ACPOL;

@@ -60,9 +60,6 @@ public:
     };
 
     size_t get_id() const {
-//            if (_is_indexed) {
-//                return _id + _indices->begin()->second;
-//            }
         return _id;
     };
 
@@ -71,10 +68,9 @@ public:
     };
 
     size_t get_id_inst(unsigned inst = 0) const {
-        if (_is_indexed && inst < _ids->size()) {
+        if (_is_indexed) {
             return _ids->at(inst);
         }
-//            throw invalid_argument("This is a non-indexed variable!\n");
         return inst;
     };
 
@@ -94,43 +90,9 @@ public:
         return _intype;
     }
     
-    size_t get_dim(size_t i) const {
-        if (!_is_matrix) {
-            return get_dim();
-        }
-        return _dim[i];
-    }
     
-    size_t get_dim() const {
-//        if (_is_vector) {
-//            return 1;
-//        }
-//        if (_is_transposed && _is_matrix) {
-//            return _ids->size();
-//        }
-//        if (_is_indexed) {
-//            return _ids->size();
-//        }
-//        return _dim;
-        size_t dim = 1;
-        for (auto d:_dim) {
-            dim*= d;
-        }
-        return max(dim, _indices->size());
-    }
-
-    size_t get_nb_instances() const {
-        if(_is_transposed || _is_vector){
-            if (_is_matrix) {
-                return _dim[1];
-            }
-            return 1;
-        }
-        if (_is_indexed) {
-            return _ids->size();
-        }
-        return _dim[0];
-    }
+    
+    
 
     shared_ptr<map<string,unsigned>> get_indices() const {
         return _indices;
@@ -199,7 +161,7 @@ public:
         _name = "noname";
         //    throw invalid_argument("Please enter a name in the parameter constructor");
         update_type();
-        _val = make_shared<vector<type>>();
+        _val = make_shared<vector<type>>();        
         _dim.resize(1,0);
         _indices = make_shared<map<string,unsigned>>();
         _ids = make_shared<vector<unsigned>>();
@@ -291,7 +253,14 @@ public:
 
     param tr() const {
         auto p = param(*this);
-        p._is_transposed = !p._is_transposed;
+        p._is_transposed = true;
+        p._is_vector = true;
+        return p;
+    }
+    
+    param vec() const {
+        auto p = param(*this);
+        p._is_vector = true;
         return p;
     }
 

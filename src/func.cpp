@@ -807,8 +807,8 @@ namespace gravity{
 
     double lterm::eval(size_t i) const{
         double res = 0;
-        if (_p->_is_vector) {
-            auto dim = _p->get_dim(1);
+        if (_coef->_is_transposed || _coef->_is_matrix) {
+            auto dim = _p->get_dim(0);
             for (int j = 0; j<dim; j++) {
                 res += poly_eval(_coef,i,j) * poly_eval(_p, i,j);
             }
@@ -2666,152 +2666,27 @@ namespace gravity{
         return *this;
     }
 
-    //func_& func_::operator+=(const constant_& c){
-    //    };
-    //
-    //func_& func_::operator-=(const constant_& c){
-    //    return *this;
-    //};
-    //
-    //func_& func_::operator*=(const constant_& c){
-    //    return *this;
-    //};
-
-    //func_::func_(const func_& f){
-    //    set_type(func_c);
-    //    _ftype = f._ftype;
-    //    _return_type = f._return_type;
-    //    _convex = f._convex;
-    //    _params = new map<string, pair<param_*, int>>();
-    //    _vars = new map<string, pair<param_*, int>>();
-    //    _lterms = new map<string, lterm>();
-    //    _qterms = new map<string, qterm>();;
-    //    _pterms = new map<string, pterm>();;
-    //    param_* p_new;
-    //    constant_* c_new;
-    //    string str;
-    //    for (auto &pair:*f._lterms) {
-    //        p_new = (param_*)copy(pair.second._p);
-    //        c_new = copy(pair.second._coef);
-    //        str = p_new->get_name();
-    //        _lterms->insert(make_pair<>(str, lterm(pair.second._sign, c_new, p_new)));
-    //        if (p_new->is_var()) {
-    //            _vars->insert(make_pair<>(str, make_pair<>(p_new, 1)));
-    //        }
-    //        else {
-    //            _params->insert(make_pair<>(str, make_pair<>(p_new, 1)));
-    //        }
-    //    }
-    //    for (auto &pair:*f._qterms) {
-    //        insert(pair.second);
-    //    }
-    //    _cst = copy(f._cst);
-    //}
-
     // TODO revisit embed and make it robust
     void func_::embed(shared_ptr<expr> e){
         switch (e->get_type()) {
             case uexp_c:{
                 auto ue = dynamic_pointer_cast<uexpr>(e);
-//                if (ue->_son->is_function()) {
-                    auto f = (func_*)(ue->_son.get());
-                    embed(*f);
-//                }
-//                else if (ue->_son->is_var()){
-//                    auto it1 = _vars->find(((param_*)ue->_son)->get_name());
-//                    if (it1==_vars->end()) {
-//                        add_var((param_*)ue->_son);
-//                    }
-//                    else{
-//                        delete ue->_son;
-//                        ue->_son = (*it1).second.first;
-//                    }
-//                }
-//                else if (ue->_son->is_param()){
-//                    auto it1 = _params->find(((param_*)ue->_son)->get_name());
-//                    if (it1==_params->end()) {
-//                        add_param((param_*)ue->_son);
-//                    }
-//                    else{
-//                        delete ue->_son;
-//                        ue->_son = (*it1).second.first;
-//                    }
-//                }
+                auto f = (func_*)(ue->_son.get());
+                embed(*f);
                 break;
             }
             case bexp_c:{
                 auto be = dynamic_pointer_cast<bexpr>(e);
-//                if (be->_lson->is_function()) {
-                    auto fl = (func_*)(be->_lson.get());
-                    embed(*fl);
-//                }
-//                else if(be->_lson->is_expr()){
-//                    embed(*(expr*)be->_lson);
-//                }
-//                else if (be->_lson->is_var()){
-//                    auto it1 = _vars->find(((param_*)be->_lson)->get_name());
-//                    if (it1==_vars->end()) {
-//                        add_var((param_*)be->_lson);
-//                    }
-//                    else{
-//                        delete be->_lson;
-//                        be->_lson = (*it1).second.first;
-//                    }
-//                }
-//                else if (be->_lson->is_param()){
-//                    auto it1 = _params->find(((param_*)be->_lson)->get_name());
-//                    if (it1==_params->end()) {
-//                        add_param((param_*)be->_lson);
-//                    }
-//                    else{
-//                        delete be->_lson;
-//                        be->_lson = (*it1).second.first;
-//                    }
-//                }
-//                if (be->_rson->is_function()) {
-                    auto fr = (func_*)(be->_rson.get());
-                    embed(*fr);
+                auto fl = (func_*)(be->_lson.get());
+                embed(*fl);
+
+                auto fr = (func_*)(be->_rson.get());
+                embed(*fr);
                 if (be->_otype==product_ && (be->_lson->_is_transposed || be->_rson->_is_transposed)) {
                     _dim.resize(1,1);
                     _val->resize(1);
                     _nb_instances = 1;
-                    if (be->_lson->_is_transposed) {
-                        be->_rson->_is_vector = true;
-                        for (auto &vp: *be->_rson->_vars) {
-                            vp.second.first->_is_vector = true;
-                        }
-                    }
-                    else if (be->_rson->_is_transposed) {
-                        be->_lson->_is_vector = true;
-                        for (auto &vp: *be->_lson->_vars) {
-                            vp.second.first->_is_vector = true;
-                        }
-                    }
                 }
-//                }
-//                else if(be->_rson->is_expr()){
-//                    embed(*(expr*)be->_rson);
-//                }
-//                else if (be->_rson->is_var()){
-//                    auto it1 = _vars->find(((param_*)be->_rson)->get_name());
-//                    if (it1==_vars->end()) {
-//                        add_var((param_*)be->_rson);
-//                    }
-//                    else{
-//                        delete be->_rson;
-//                        be->_rson = (*it1).second.first;
-//                    }
-//                }
-//                else if (be->_rson->is_param()){
-//                    auto it1 = _params->find(((param_*)be->_rson)->get_name());
-//                    if (it1==_params->end()) {
-//                        add_param((param_*)be->_rson);
-//                    }
-//                    else{
-//                        delete be->_rson;
-//                        be->_rson = (*it1).second.first;
-//                    }
-//                }
                 break;
             }
             default:
@@ -2820,37 +2695,15 @@ namespace gravity{
     }
     
 
-    void func_::embed(func_& f){
-//        _is_matrix = f._is_matrix;
-//        _is_vector = f._is_vector;
-//        _is_transposed = f._is_transposed;
-//        _nb_instances = max(_nb_instances, f._nb_instances);
-//        if (_dim.size() < f._dim.size()) {
-//            _dim.resize(f._dim.size());
-//        }
-//        for (int i = 0; i<f._dim.size();i++) {
-//            _dim[i] = max(_dim[i], f._dim[i]);
-//        }
-        f._nb_instances = max(f._nb_instances, _nb_instances);
-        f._val->resize(max(f._val->size(),_nb_instances));
+    void func_::embed(func_& f){// Merge variables and params with f, make it point to vars/params in this.
+        if (!f._is_transposed) {
+            f._nb_instances = max(f._nb_instances, _nb_instances);
+            f._val->resize(max(f._val->size(),_nb_instances));
+        }
         f._embedded = true;
         param_* p = nullptr;
         param_* p1 = nullptr;
         param_* p2 = nullptr;
-//        for (auto &pair:*f._vars) {
-//            p = pair.second.first;
-//            auto it = _vars->find(p->get_name());
-//            if (it==_vars->end()) {
-//                add_var(p,pair.second.second);
-//            }
-//        }
-//        for (auto &pair:*f._params) {
-//            p = pair.second.first;
-//            auto it = _params->find(p->get_name());
-//            if (it==_params->end()) {
-//                add_param(p,pair.second.second);
-//            }
-//        }
         for (auto &pair:*f._lterms) {
             auto coef = pair.second._coef;
             if(coef->is_function()){
@@ -5060,7 +4913,9 @@ namespace gravity{
         }
          
         auto df = new func_(get_derivative(v));
-        embed(*df);
+         df->untranspose();
+         df->_nb_instances = max(df->_nb_instances, _nb_instances);
+         df->_val->resize(max(df->_val->size(),_nb_instances));
          (*_dfdx)[vid] = shared_ptr<func_>(df);
          DebugOff( "First derivative with respect to " << v.get_name() << " = " << df->to_str() << endl);
         return df;
@@ -5102,24 +4957,12 @@ namespace gravity{
         func_ res;
         for (auto &lt: *_lterms) {
             if (*lt.second._p == v) {
-//                if(lt.second._coef->_is_transposed){
-//                    auto cp = copy(*lt.second._coef);
-//                    cp->_is_transposed = false;
-//                    if(lt.second._sign){
-//                        res += *cp;
-//                    }
-//                    else {
-//                        res -= *cp;
-//                    }
-//                }
-//                else {
                     if(lt.second._sign){
                         res += (*lt.second._coef);
                     }
                     else {
                         res -= (*lt.second._coef);
                     }
-//                }
             }
         }
         for (auto &lt: *_qterms) {
@@ -5170,12 +5013,12 @@ namespace gravity{
             }
         }
         if (!_expr) {
-//            res.tr();
+//            res.untranspose();
             return res;
         }
         else { // f is a composition of functions
             res += _expr->get_derivative(v);
-//            res.tr();
+//            res.untranspose();
             return res;
         }
     }
@@ -5490,24 +5333,24 @@ namespace gravity{
         }
     }
     
-    void expr::tr() {
+    void expr::untranspose() {
         if(is_uexpr()){
-            ((uexpr*)this)->tr();
+            ((uexpr*)this)->untranspose();
         }
         else {
-            ((bexpr*)this)->tr();
+            ((bexpr*)this)->untranspose();
         }
     }
     
-    void uexpr::tr() {
+    void uexpr::untranspose() {
         _is_transposed = false;
-        _son->tr();
+        _son->untranspose();
     }
     
-    void bexpr::tr() {
+    void bexpr::untranspose() {
         _is_transposed = false;
-        _lson->tr();
-        _rson->tr();
+        _lson->untranspose();
+        _rson->untranspose();
     }
     
     func_ uexpr::get_derivative(const param_ &v) const{
@@ -5705,10 +5548,6 @@ namespace gravity{
 //        return n;
     }
 
-    size_t func_::get_nb_instances() const{
-        
-        return _nb_instances;
-    }
 
 
     constant_* func_::get_cst() {
@@ -6305,15 +6144,25 @@ namespace gravity{
         if (!_val) {
             _val = make_shared<vector<double>>();
         }
-        if (!v->_is_vector) {// i.e., it is not transposed
-            _nb_instances = max(_nb_instances, v->get_nb_instances());
-            _val->resize(max(_val->size(),v->get_nb_instances()));
-            _nb_vars++;
+        _val->resize(max(_val->size(),v->get_nb_instances()));
+        if (_dim.size()<v->_dim.size()) {
+            _dim.resize(v->_dim.size());
+        }
+        for (unsigned i = 0; i<v->_dim.size();i++) {
+            _dim[i] = max(_dim[i], v->_dim[i]);
+        }
+
+        if (v->_is_vector) {// i.e., it appears in a sum
+            _nb_vars += v->get_dim();
+            _nb_instances = max(_nb_instances, (size_t)1);
         }
         else {
-            _nb_vars += v->get_dim();
+            _nb_instances = max(_nb_instances, v->get_nb_instances());
+            _nb_vars++;
         }
-        
+        if (v->_is_matrix) {
+            _is_matrix = true;
+        }
     }
 
 
@@ -6325,12 +6174,21 @@ namespace gravity{
             _val = make_shared<vector<double>>();
         }
         _params->insert(make_pair<>(p->get_name(), make_pair<>(p, nb)));
-        if (!p->_is_vector) {// i.e., it is not transposed
+        _val->resize(max(_val->size(), p->get_dim()));
+        if (_dim.size()<p->_dim.size()) {
+            _dim.resize(p->_dim.size());
+        }
+        for (unsigned i = 0; i<p->_dim.size();i++) {
+            _dim[i] = max(_dim[i], p->_dim[i]);
+        }
+        if (p->_is_vector) {// i.e., it appears in a sum
+            _nb_instances = max(_nb_instances,(size_t)1);
+        }
+        else {
             _nb_instances = max(_nb_instances, p->get_nb_instances());
-            _val->resize(max(_val->size(), p->get_dim()));
+            
         }
         if (p->_is_matrix) {
-            _dim = p->_dim;
             _is_matrix = true;
         }
     }
@@ -6721,7 +6579,10 @@ namespace gravity{
         if (p.get_dim()==0 || p.is_zero()) {
             return res;
         }
-        return constant<double>(1).tr()*p;
+        if (p.is_param()) {
+            return constant<double>(1).tr()*p.vec();
+        }
+        return constant<double>(1).tr()*(*(var<type>*)&p).vec();
     }
     
     template<typename type>
@@ -6730,7 +6591,16 @@ namespace gravity{
         if (p1.get_dim()==0 || p1.is_zero() || f.constant_::is_zero()) {
             return res;
         }
-        return p1.tr()*f;
+        if (p1._is_matrix) {// No need to transpose matrix
+            if (p1.get_dim(1)!=f.get_dim(0)) {
+                throw invalid_argument("In Function: func_ product(const param<type1>& p1, const param<type2>& p2), p1 and p2 have imcompatible rows/columns, check dimensions.\n");
+            }
+            return p1*f.vec();
+        }
+        if (p1.is_param()) {
+            return  p1.tr()*f.vec();
+        }
+        return (*(var<type>*)&p1).vec()*f.vec();
     }
     
     template<typename type1, typename type2>
@@ -6738,8 +6608,28 @@ namespace gravity{
         func_ res;
         if (p1.get_dim()==0 || p1.is_zero() || p2.get_dim()==0 || p2.is_zero() ) {
             return res;
+        }        
+        if (p1._is_matrix) {// No need to transpose matrix
+            if (p1.get_dim(1)!=p2.get_dim(0)) {
+                throw invalid_argument("In Function: func_ product(const param<type1>& p1, const param<type2>& p2), p1 and p2 have imcompatible rows/columns, check dimensions.\n");
+            }
+            if (p2.is_param()) {
+                return p1*p2.vec();
+            }
+            else {
+                return p1*(*(var<type2>*)&p2).vec();
+            }
         }
-        return p1.tr()*p2;
+        if (p1.is_param() && p2.is_param()) {
+            return p1.tr()*p2.vec();
+        }
+        if (p1.is_param() && p2.is_var()) {
+            return p1.tr()*(*(var<type2>*)&p2).vec();
+        }
+        if (p1.is_var() && p2.is_param()) {
+            return (*(var<type2>*)&p1).tr()*p2.vec();
+        }
+        return (*(var<type2>*)&p1).tr()*(*(var<type2>*)&p2).vec();
     }
     
     template func_ product<double,double>(const param<double>& p, const param<double>& v);

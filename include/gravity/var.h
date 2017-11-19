@@ -299,6 +299,12 @@ public:
         v._is_vector = true;
         return v;
     }
+    
+    var vec() const {
+        auto v = var(*this);
+        v._is_vector = true;
+        return v;
+    }
 
     /* Output */
     void print(bool bounds=false) const;

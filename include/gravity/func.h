@@ -45,7 +45,7 @@ namespace gravity {
         double eval(size_t i) const;
         double eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
-        void tr();
+        void untranspose();
         virtual ~expr(){};
     };
 
@@ -83,7 +83,7 @@ namespace gravity {
         
         /** Operators */
         
-        void tr();
+        void untranspose();
         
         bool operator==(const uexpr &c)const;
         
@@ -139,7 +139,7 @@ namespace gravity {
             _rson = nullptr;
         };
         
-        void tr();
+        void untranspose();
         
         shared_ptr<func_> get_lson() const{
             return _lson;
@@ -480,17 +480,27 @@ namespace gravity {
         bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
        
-        void tr(){/**< Transpose the output of the current function */
-            _is_transposed = !_is_transposed;
+        void untranspose(){/**< Untranspose the output of the current function */
+            _is_transposed = false;
+            auto vars_cpy = *_vars;
             for (auto &vp:*_vars) {
-                vp.second.first->_is_transposed = !vp.second.first->_is_transposed;
+                vars_cpy.erase(vp.first);
+                vp.second.first->untranspose();
+                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
+            *_vars = move(vars_cpy);
+            auto params_cpy = *_params;
             for (auto &vp:*_params) {
-                vp.second.first->_is_transposed = !vp.second.first->_is_transposed;
+                params_cpy.erase(vp.first);
+                vp.second.first->untranspose();
+                params_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
+            *_params = move(params_cpy);
             if(_expr){
-                _expr->tr();
+                _expr->untranspose();
+                embed(_expr);
             }
+            
         }
         
         template<typename Tobj>
@@ -505,8 +515,6 @@ namespace gravity {
 //        void insert(expr& e);
         void update_to_str();
         size_t get_nb_vars() const;
-        
-        size_t get_nb_instances() const;
         
         constant_* get_cst();
         
@@ -561,7 +569,13 @@ namespace gravity {
         
         void reverse_sign(); /*<< Reverse the sign of all terms in the function */
         
-        void reverse_convexity();    
+        void reverse_convexity();
+        
+        func_ vec() const {
+            auto f = func_(*this);
+            f._is_vector = true;
+            return f;
+        }
         
         func_& operator=(const func_& f);
         

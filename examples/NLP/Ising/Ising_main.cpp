@@ -149,6 +149,7 @@ int main (int argc, const char * argv[])
 //    Obj += sum(nb_samples_pu,expo(f));
 //    Obj += obj - lambda*sum(z);
 //    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
+//    Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
     Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
 //    Obj += sum(nb_samples_pu,expo(f));
 //    Obj += obj - lambda*sum(z) - sum(g);

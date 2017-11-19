@@ -92,6 +92,46 @@ namespace gravity {
             return (_type==func_c);
         };
         
+        size_t get_dim(size_t i) const {
+            if (_dim.size()<=i) {
+                throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
+            }
+            return _dim[i];
+        }
+        
+        size_t get_dim() const {
+            size_t dim = 1;
+            for (auto d:_dim) {
+                dim*= d;
+            }
+            return dim;
+        }
+        
+        size_t get_nb_instances() const {
+            if(_is_transposed || _is_vector){
+                if (_is_matrix) {
+                    return _dim[1];
+                }
+                return 1;
+            }
+            return _dim[0];
+        }
+        
+        void vec(){
+            _is_vector = true;
+        }
+        
+        void tr(){
+            _is_transposed = true;
+            _is_vector = true;
+        }
+        
+        void untranspose(){
+            _is_transposed = false;
+            _is_vector = false;
+        }
+        
+        
         
         Sign get_all_sign() const;
         Sign get_sign(int idx=0) const;
@@ -167,6 +207,7 @@ namespace gravity {
             newc._is_transposed = true;
             return newc;
         };
+                
         
         type eval() const { return _val;}
         
