@@ -851,6 +851,27 @@ public:
         return res;
     }
 
+    
+    
+    param excl(unsigned index) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        for (unsigned i = 0; i<get_nb_instances(); i++) {
+            if (i!=index) {
+                res._ids->push_back(i);
+                res._dim[0]++;
+            }
+        }
+        res._name += ".excl(" +  to_string(index) +")"; // _name and _unique_id should be really unique.
+        res._unique_id = make_tuple<>(res._id, in_ ,typeid(type).hash_code(), index ,index);
+        res._is_indexed = true;
+        return res;
+    }
+    
     template<typename Tobj>
     param in(const Tobj nm, unsigned T) {
         param res(this->_name);

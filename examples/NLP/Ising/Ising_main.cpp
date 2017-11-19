@@ -150,7 +150,7 @@ int main (int argc, const char * argv[])
 //    Obj += obj - lambda*sum(z);
 //    Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z);
 //    Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
-    Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z);
+    Obj += obj - sum(nb_samples_pu,g) - lambda*sum(z.excl(0));
 //    Obj += sum(nb_samples_pu,expo(f));
 //    Obj += obj - lambda*sum(z) - sum(g);
     Ising.add_constraint(Obj>=0);

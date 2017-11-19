@@ -194,6 +194,15 @@ public:
         return res;
     }
 
+    var excl(unsigned index) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::excl(index));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     var from(const ordered_pairs& pairs);
     var to(const ordered_pairs& pairs);
     var in(const ordered_pairs& pairs);
