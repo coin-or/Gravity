@@ -144,6 +144,24 @@ public:
         return (_unique_id == p._unique_id);
         //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
+    size_t get_nb_instances() const {
+        if(_is_transposed){
+            if (_is_matrix) {
+                return _dim[1];
+            }
+            return 1;
+        }
+        if(_is_matrix){
+            return _dim[0];
+        }
+        if(_is_vector){
+            return 1;
+        }
+        if (_is_indexed) {
+            return _ids->size();
+        }
+        return _dim[0];
+    }
 };
 
 
@@ -453,6 +471,8 @@ public:
         return unknown_;
     }
 
+    
+    
     bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
         return (_range->first == 1 && _range->second == 1);
     }
@@ -1136,7 +1156,7 @@ public:
         string str = get_name();
         if(vals) {
             str += " = [ ";
-            for(int i = 0 ; i < param_::get_dim(); i++) {
+            for(int i = 0 ; i < get_dim(); i++) {
                 str += std::to_string(_val->at(i));
                 str += " ";
             }

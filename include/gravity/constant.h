@@ -107,15 +107,15 @@ namespace gravity {
             return dim;
         }
         
-        size_t get_nb_instances() const {
-            if(_is_transposed || _is_vector){
-                if (_is_matrix) {
-                    return _dim[1];
-                }
-                return 1;
-            }
-            return _dim[0];
-        }
+//        virtual size_t get_nb_instances() const {
+//            if(_is_transposed || _is_vector){
+//                if (_is_matrix) {
+//                    return _dim[1];
+//                }
+//                return 1;
+//            }
+//            return _dim[0];
+//        }
         
         void vec(){
             _is_vector = true;

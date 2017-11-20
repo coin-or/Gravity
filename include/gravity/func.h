@@ -482,10 +482,12 @@ namespace gravity {
        
         void untranspose(){/**< Untranspose the output of the current function */
             _is_transposed = false;
+            _is_vector = false;
             auto vars_cpy = *_vars;
             for (auto &vp:*_vars) {
                 vars_cpy.erase(vp.first);
                 vp.second.first->untranspose();
+                _nb_instances = max(_nb_instances, vp.second.first->get_dim());
                 vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
             *_vars = move(vars_cpy);
@@ -493,12 +495,14 @@ namespace gravity {
             for (auto &vp:*_params) {
                 params_cpy.erase(vp.first);
                 vp.second.first->untranspose();
+                _nb_instances = max(_nb_instances, vp.second.first->get_dim());
                 params_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
             *_params = move(params_cpy);
+            _val->resize(max(_val->size(),_nb_instances));
             if(_expr){
                 _expr->untranspose();
-                embed(_expr);
+//                embed(_expr);
             }
             
         }
@@ -571,9 +575,44 @@ namespace gravity {
         
         void reverse_convexity();
         
+        void untranspose_derivatives(){
+            for (auto &fp:*_dfdx) {
+                auto df = fp.second;
+                df->untranspose();
+                df->_nb_instances = max(df->_nb_instances, _nb_instances);
+                df->_val->resize(max(df->_val->size(),_nb_instances));
+                df->untranspose_derivatives();
+            }
+        }
+        
+        
+        
         func_ vec() const {
             auto f = func_(*this);
             f._is_vector = true;
+            auto vars_cpy = *f._vars;
+            for (auto &vp:*f._vars) {
+                vars_cpy.erase(vp.first);
+                vp.second.first->_is_vector = true;
+                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+            }
+            *f._vars = move(vars_cpy);
+//            if (f._expr) {
+//                f._expr->_is_vector = true;
+//                if(f._expr->is_uexpr()){
+//                    auto ue = dynamic_pointer_cast<uexpr>(f._expr);
+//                    auto s = (func_*)(ue->_son.get());
+//                    *s = s->vec();
+//                }
+//                else {
+//                    auto be = dynamic_pointer_cast<bexpr>(f._expr);
+//                    auto fl = (func_*)(be->_lson.get());
+//                    *fl = fl->vec();
+//                    auto fr = (func_*)(be->_rson.get());
+//                    *fr = fr->vec();
+//                }
+//            }
             return f;
         }
         

@@ -77,16 +77,16 @@ size_t Model::get_nb_nnz_h() const{
     shared_ptr<param_> vi;
     set<pair<func_*,func_*>> s;
     for (auto &pairs: _hess_link) {
-        vi_name = pairs.first.first;
+//        vi_name = pairs.first.first;
         s = pairs.second;
         //TODO iterate over s
-        vi = (*s.begin()).first->get_var(vi_name);
-        if (vi->_is_vector) {
-            nnz += (*s.begin()).first->_nb_instances*vi->get_dim();
-        }
-        else {
-            nnz += (*s.begin()).first->_nb_instances;
-        }
+//        vi = (*s.begin()).second->get_var(vi_name);
+//        if (vi->_is_vector) {
+//            nnz += (*s.begin()).second->_nb_instances*vi->get_nb_instances();
+//        }
+//        else {
+            nnz += (*s.begin()).second->_nb_instances;
+//        }
     }
     return nnz;
 };
@@ -123,10 +123,10 @@ void Model::add_var(param_* v){
         return;
     }
 
-    if (_vars_name.count(v->get_name()) == 0) {
+    if (_vars_name.count(v->_name) == 0) {
         v->set_id(_nb_vars);
         v->set_vec_id(_vars.size());
-        _vars_name[v->get_name()] = v;
+        _vars_name[v->_name] = v;
         _vars[v->get_vec_id()] = v;
         _nb_vars += v->get_dim();
     }
@@ -136,11 +136,11 @@ void Model::add_var(param_& v){
     if (v._is_indexed) { 
         return;
     }
-    if (_vars_name.count(v.get_name())==0) {
+    if (_vars_name.count(v._name)==0) {
         v.set_id(_nb_vars);
         v.set_vec_id(_vars.size());
         auto newv = (param_*)copy(v);
-        _vars_name[v.get_name()] = newv;
+        _vars_name[v._name] = newv;
         _vars[v.get_vec_id()] = newv;
         _nb_vars += v.get_dim();
     }
@@ -954,12 +954,12 @@ void Model::fill_in_maps() {
     if (!_obj.is_linear()) {
         for (auto &vi_p: _obj.get_vars()) {
             vi = vi_p.second.first.get();
-            vi_name = vi->get_name();
+            vi_name = vi_p.first;
 //            vid = vi->get_id();
             auto df = _obj.get_stored_derivative(vi->_unique_id);
             for (auto &vj_p: df->get_vars()) {
                 vj = vj_p.second.first.get();
-                vj_name = vj->get_name();
+                vj_name = vj_p.first;
 //                vjd = vj->get_id();
                 if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
                     _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
@@ -977,6 +977,7 @@ void Model::fill_in_maps() {
             }
         }
     }
+    _obj.untranspose_derivatives();
     Constraint* c = NULL;
 //    unsigned cid = 0;
     for(auto& c_p :_cons)
@@ -988,15 +989,11 @@ void Model::fill_in_maps() {
         if (!c->is_linear()) {
             for (auto &vi_p: c->get_vars()) {
                 vi = vi_p.second.first.get();
-                vi_name = vi->get_name();
-//                vid = vi->get_id();
+                vi_name = vi_p.first;
                 auto df = c->get_stored_derivative(vi->_unique_id);
-                if (df->is_nonlinear()) {
-                    embed(df);
-                }
                 for (auto &vj_p: df->get_vars()) {
                     vj = vj_p.second.first.get();
-                    vj_name = vj->get_name();
+                    vj_name = vj_p.first;
 //                    vjd = vj->get_id();
                     if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
                         _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
@@ -1012,6 +1009,13 @@ void Model::fill_in_maps() {
                 }
 //                _v_in_cons
                 
+            }
+        }
+        c->untranspose_derivatives();
+        for (auto &df_p:*c->get_dfdx()) {
+            auto df = df_p.second;
+            if (df->is_nonlinear()) {
+                embed(df);
             }
         }
     }
@@ -1384,8 +1388,8 @@ void Model::embed(expr& e){
             if (f_p.second) {
                 embed(f);
                 _nl_funcs.push_back(f);
-                f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->_nb_instances);
+//                f->_val = make_shared<vector<double>>();
+//                f->_val->resize(f->_nb_instances);
             }
             else {
                 ue->_son = f_p.first->second;
@@ -1399,8 +1403,8 @@ void Model::embed(expr& e){
             if (f_p.second) {
                 embed(f);
                 _nl_funcs.push_back(f);
-                f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->_nb_instances);
+//                f->_val = make_shared<vector<double>>();
+//                f->_val->resize(f->_nb_instances);
             }
             else {
                 be->_lson = f_p.first->second;
@@ -1410,8 +1414,8 @@ void Model::embed(expr& e){
             if (f_p.second) {
                 embed(f);
                 _nl_funcs.push_back(f);
-                f->_val = make_shared<vector<double>>();
-                f->_val->resize(f->_nb_instances);
+//                f->_val = make_shared<vector<double>>();
+//                f->_val->resize(f->_nb_instances);
             }
             else {
                 be->_rson = f_p.first->second;
@@ -1435,8 +1439,8 @@ void Model::embed(shared_ptr<func_> f){
     auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
     if (f_p.second) {
         _nl_funcs.push_back(f_p.first->second);
-        f_p.first->second->_val = make_shared<vector<double>>();
-        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
+//        f_p.first->second->_val = make_shared<vector<double>>();
+//        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
     }
 }
 
