@@ -6630,7 +6630,8 @@ namespace gravity{
     template<typename type>
     func_ sum(const param<type>& p1, const func_& f){
         func_ res;
-        if (p1.get_dim()==0 || p1.is_zero() || f.constant_::is_zero()) {
+//        if (p1.get_dim()==0 || p1.is_zero() || f.constant_::is_zero()) {//TODO fix is_zero functions
+        if (p1.get_dim()==0) {
             return res;
         }
         if (p1._is_matrix) {// No need to transpose matrix
