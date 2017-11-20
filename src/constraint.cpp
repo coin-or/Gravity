@@ -82,6 +82,12 @@ Constraint& Constraint::operator=(const func_& f){
     return *this;
 }
 
+size_t Constraint::get_id_inst(size_t ind) const{
+    if (_nb_instances==1) {
+        return 0;
+    }
+    return ind;
+}
 
 
 /* Output */

@@ -176,14 +176,14 @@ bool IpoptProgram::eval_h(Index n, const Number* x, bool new_x,
 
 bool IpoptProgram::get_variables_linearity(Index n, LinearityType* var_types){
     assert(n==_model->get_nb_vars());
-    _model->fill_in_var_linearity(var_types);
-    return true;
-//    return false;
+//    _model->fill_in_var_linearity(var_types);
+//    return true;
+    return false;
 }
 
 bool IpoptProgram::get_constraints_linearity(Index m, LinearityType* const_types){
     assert(m==_model->get_nb_cons());
-    _model->fill_in_cstr_linearity(const_types);
-    return true;
-//    return false;
+//    _model->fill_in_cstr_linearity(const_types);
+//    return true;
+    return false;
 }

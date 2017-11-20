@@ -789,13 +789,13 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
     shared_ptr<param_> vi;
     shared_ptr<param_> vj;
     unique_id vi_unique, vj_unique;
-    set<pair<func_*,func_*>> s;
+//    set<pair<func_*,func_*>> s;
     for (auto &pairs: _hess_link) {
         vi_name = pairs.first.first;
         vj_name = pairs.first.second;
-        s = pairs.second;//TODO iterate on s
-        vi = (*s.begin()).first->get_var(vi_name);
-        vj = (*s.begin()).first->get_var(vj_name);
+//        s = pairs.second;//TODO iterate on s
+        vi = (pairs.second.begin())->first->get_var(vi_name);
+        vj = (pairs.second.begin())->first->get_var(vj_name);
         if (vi_name.compare(vj_name) > 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
 //            temp = vi;
 //            vi = vj;
@@ -804,9 +804,9 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         }
         vid = vi->get_id();
         vjd = vj->get_id();
-        size_t nb_inst = (*s.begin()).second->_nb_instances;
+        size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
         for (unsigned i = 0; i<nb_inst; i++) {
-            idx_all += s.size();
+            idx_all += pairs.second.size();// TODO fix this, assumes all constraints in pairs have the same indexing!
             iRow[idx] = vid + vi->get_id_inst(i);
             jCol[idx] = vjd + vj->get_id_inst(i);
             idx++;
@@ -816,8 +816,8 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
  
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
-    size_t idx = 0, idx_in = 0;
-    set<pair<func_*,func_*>> s;
+    size_t idx = 0, idx_in = 0, c_inst = 0;
+//    set<pair<func_*,func_*>> s;
     Constraint* c;
     func_* df;
     double hess = 0;
@@ -827,20 +827,22 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
             compute_funcs();
         }
         for (auto &pairs: _hess_link) {
-            s = pairs.second;
-            size_t nb_inst = (*s.begin()).second->_nb_instances;
+//            s = pairs.second;
+            size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
             if (_type==nlin_m) {
                 for (unsigned inst = 0; inst<nb_inst; inst++) {
                     res[idx] = 0;
-                    for (auto f_pair:s) {
+                    for (auto &f_pair:pairs.second) {
                         if (f_pair.first->_is_constraint) {
                             c = (Constraint*)f_pair.first;
+                            c_inst = c->get_id_inst(inst);
                             df = f_pair.second;
-    //                        for (unsigned inst = 0; inst < c->_nb_instances; inst++) {
-                                hess = df->get_val(inst);
-                                _hess_vals[idx_in++] = hess;
-                                res[idx] += lambda[c->_id + inst] * hess;
-    //                        }
+//                            DebugOn(df->to_str()<<endl);
+//                            for (unsigned v_inst = 0; v_inst < df->_nb_instances; v_inst++) {
+                                    hess = df->get_val(inst);
+                                    _hess_vals[idx_in++] = hess;
+                                    res[idx] += lambda[c->_id + c_inst] * hess;
+//                            }
                         }
                         else {
                             hess = f_pair.second->eval();
@@ -854,14 +856,15 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
             else {
                 for (unsigned inst = 0; inst<nb_inst; inst++) {
                     res[idx] = 0;
-                    for (auto f_pair:s) {
+                    for (auto &f_pair:pairs.second) {
                         if (f_pair.first->_is_constraint) {
                             c = (Constraint*)f_pair.first;
+                            c_inst = c->get_id_inst(inst);
                             df = f_pair.second;
                             //                        for (unsigned inst = 0; inst < c->_nb_instances; inst++) {
                             hess = df->eval(inst);
                             _hess_vals[idx_in++] = hess;
-                            res[idx] += lambda[c->_id + inst] * hess;
+                            res[idx] += lambda[c->_id + c_inst] * hess;
                             //                        }
                         }
                         else {
@@ -883,13 +886,15 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     if ((_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models or if already computed for that point */
         for (auto &pairs: _hess_link) {
-            s = pairs.second;
-            for (unsigned inst = 0; inst<(*s.begin()).first->_nb_instances; inst++) {
+//            s = pairs.second;
+            auto nb_inst = pairs.second.begin()->second->_nb_instances;
+            for (unsigned inst = 0; inst<nb_inst; inst++) {
                 res[idx] = 0;
-                for (auto f_pair:s) {
+                for (auto &f_pair:pairs.second) {
                     if (f_pair.first->_is_constraint) {
                         c = (Constraint*)f_pair.first;
-                        res[idx] += lambda[c->_id + inst] * _hess_vals[idx_in++];
+                        c_inst = c->get_id_inst(inst);
+                        res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                     }
                     else {
                         res[idx] += obj_factor * _hess_vals[idx_in++];
@@ -901,20 +906,21 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         return;
     }
     for (auto &pairs: _hess_link) {
-        s = pairs.second;
-        size_t nb_inst = (*s.begin()).second->_nb_instances;
+//        s = pairs.second;
+        size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
         for (unsigned inst = 0; inst<nb_inst; inst++) {
             res[idx] = 0;            
-            for (auto f_pair:s) {
+            for (auto &f_pair:pairs.second) {
                 if (f_pair.first->_is_constraint) {
                     c = (Constraint*)f_pair.first;
+                    c_inst = c->get_id_inst(inst);
                     if (c->is_quadratic()) {
-                        res[idx] += lambda[c->_id + inst] * _hess_vals[idx_in++];
+                        res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                     }
                     else{
                         hess = f_pair.second->get_val(inst);
                         idx_in++;
-                        res[idx] += lambda[c->_id + inst] * hess;
+                        res[idx] += lambda[c->_id + c_inst] * hess;
                     }
                     
                 }

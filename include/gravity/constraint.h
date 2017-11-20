@@ -51,7 +51,7 @@ namespace gravity {
         int get_type() const;
         double get_rhs() const;
         bool is_active() const;
-        
+        size_t get_id_inst(size_t ind) const;
         
         
         /* Modifiers */
