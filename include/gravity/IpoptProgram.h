@@ -29,7 +29,12 @@ public:
     Model* _model;
     
     IpoptProgram(Model* m):_model(m){
-        m->fill_in_maps();
+        if (!m->_built) {
+            m->fill_in_maps();
+        }
+        else {
+            m->reset_funcs();
+        }
     }
     
     ~IpoptProgram(){}

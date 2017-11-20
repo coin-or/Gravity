@@ -44,6 +44,7 @@ namespace gravity {
         void add_param(param_* v);      //Add variables without reallocating memory
         
     public:
+        bool                            _built = false; /* Indicates if this model has been already built */
         bool                            _first_call_gard_obj = true; /* Indicates if this is the first call to fill_in_grad_obj */
         bool                            _first_call_jac = true; /* Indicates if this is the first call to fill_in_jac */
         bool                            _first_call_hess = true; /* Indicates if this is the first call to fill_in_hess */
@@ -135,6 +136,7 @@ namespace gravity {
         void set_objective_type(ObjectiveType);
         void init_indices();// Initialize the indices of all variables involved in the model
         void check_feasible(const double* x);
+        void reset_funcs();
         void fill_in_maps();/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */
         void fill_in_var_bounds(double* x_l ,double* x_u);
         void fill_in_var_init(double* x);

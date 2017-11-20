@@ -45,6 +45,7 @@ namespace gravity {
         double eval(size_t i) const;
         double eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
+        void reset_val();
         void untranspose();
         virtual ~expr(){};
     };
@@ -67,7 +68,7 @@ namespace gravity {
         
         ~uexpr(){};
                 
-        
+        void reset_val();
         
         void reset(){
             _son = nullptr;
@@ -130,6 +131,8 @@ namespace gravity {
         bexpr& operator=(bexpr&& e);
         
         ~bexpr(){}
+        
+        void reset_val();
         
         void reset(){
             _otype = id_;
@@ -474,6 +477,7 @@ namespace gravity {
         bool has_var(const param_& v) const;
         bool has_var(const string& name) const;
         
+        void reset_val();
         void replace(param_* p, const param_& p_new);
         
         bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */

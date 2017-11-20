@@ -47,6 +47,13 @@ bool read_samples(const char* fname){
             val = stoi(key);
             DebugOff(val << ", ");
             configs.set_val(nb_conf, spin, val);
+            if (spin==0) {
+                nodal_stat.set_val(nb_conf,spin,val);
+            }
+            else {
+                val *= configs.eval(nb_conf,0);
+                nodal_stat.set_val(nb_conf,spin,val);
+            }
             DebugOff(val << ", ");
             spin++;
         }
@@ -71,13 +78,14 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Ising/samples_bin_sml.csv";
+           fname = "../../data_sets/Ising/samples_bin.csv";
     }
     
     read_samples(fname);
     for (unsigned i = 0; i<nb_conf; i++) {
         nb_samples_pu = nb_samples.eval(i)/(double)tot_nb_samples;
     }
+    
     
     for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
     
@@ -92,6 +100,7 @@ int main (int argc, const char * argv[])
             }
         }
         DebugOn("############ SPIN NUMBER ############\n " << "     ############ " << main_spin << " ############" << endl);
+        
         Model Ising("Ising Model");
         /** Variables */
         var<Real> x("x"), z("z", pos_), f("f"), obj("obj");
@@ -105,7 +114,7 @@ int main (int argc, const char * argv[])
         Constraint Lin("Lin");
         Lin += f + product(nodal_stat,x);
         Ising.add_constraint(Lin=0);
-
+        
         Constraint Absp("Absp");
         Absp += z - x;
         Ising.add_constraint(Absp >= 0);

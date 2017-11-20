@@ -945,15 +945,22 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 
-
+void Model::reset_funcs() {
+    for (auto& f:_nl_funcs) {
+        f->reset_val();
+    }
+    for (auto& c:_cons) {
+        c.second->reset_val();
+    }
+}
 
 /* Compute derivatives and nonzeros in Jacobian and Hessian */
 void Model::fill_in_maps() {
-//    unsigned vid, vjd, vid_inst, vjd_inst;
     string vi_name, vj_name;
     param_* vi;
     param_* vj;
-//    param_* temp;
+
+    _built = true;
     
 
     _obj.compute_derivatives();

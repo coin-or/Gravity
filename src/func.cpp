@@ -3328,6 +3328,15 @@ namespace gravity{
 //    ////    _DAG->insert(<#const value_type &__v#>)
 //    }
 
+    void expr::reset_val(){
+        if (is_uexpr()) {
+            return ((uexpr*)this)->reset_val();
+        }
+        else {
+            return ((bexpr*)this)->reset_val();
+        }
+
+    }
     double expr::eval(size_t i) const{
         //        if (_to_str.compare("noname")==0) {
         if (is_uexpr()) {
@@ -3569,7 +3578,16 @@ namespace gravity{
 
         return res;
     };
-
+    
+    void uexpr::reset_val(){
+        _son->reset_val();
+    }
+    
+    void bexpr::reset_val(){
+        _lson->reset_val();
+        _rson->reset_val();
+    }
+    
     double uexpr::eval(size_t i) const{
         if (_son->is_constant() && !_son->_evaluated) {
 //            _son->_val = make_shared<vector<double>>();
@@ -4982,10 +5000,20 @@ namespace gravity{
         }
     };
 
+    
+    void func_::reset_val(){
+        _evaluated = false;
+        if (_expr) {
+            _expr->reset_val();
+        }
+    }
+    
+    
     bool func_::has_var(const param_& v) const{
         return _vars->count(v.get_name())>0;
     }
 
+    
     bool func_::has_var(const string& name) const{
         return _vars->count(name)>0;
     }
