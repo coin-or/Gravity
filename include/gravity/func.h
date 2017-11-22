@@ -484,6 +484,21 @@ namespace gravity {
         bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
        
+        void transpose(){
+            _is_transposed = !_is_transposed;
+            if (!_is_vector) {
+                _is_vector = true;
+            }
+            if (_is_matrix) {
+                auto temp = _dim[0];
+                _dim[0] = _dim[1];
+                _dim[1] = temp;
+                for (auto &p_t:*_params) {
+                    p_t.second.first->transpose();
+                }
+            }
+        }
+        
         void untranspose(){/**< Untranspose the output of the current function */
             _is_transposed = false;
             _is_vector = false;
@@ -542,6 +557,49 @@ namespace gravity {
         void delete_param(const string& vid);
         
 
+        void update_nb_instances(const lterm& term){
+            if ((term._coef->_is_matrix || term._coef->_is_vector) && (term._p->_is_matrix || term._p->_is_vector)) {
+                if (term._coef->_is_matrix) {
+                    if (term._coef->_is_transposed) {//TODO check matrix dims match
+                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
+                    }
+                    else {
+                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
+                    }
+                    _dim[0] = _nb_instances;
+                    if (term._p->_is_matrix) {//Matrix product
+                        _dim[1] = _nb_instances;
+                    }
+                    else {
+                        _dim[1] = 1;
+                    }
+                    _is_vector = true;
+                    _is_matrix = false;
+                }
+                else {//_coef is a transposed vector
+                    if (!term._p->_is_transposed && !term._p->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
+                        _dim.resize(1);
+                        _dim[0] = 1;
+                        _nb_instances = 1;
+                        _is_vector = false;
+                        _is_matrix = false;
+                    }
+                    else {//_p is either transposed or a matrix at this stage
+                        _dim.resize(1);
+                        _dim[0] = term._coef->_dim[0];
+                        _nb_instances = _dim[0];
+                        _is_transposed = true;
+                        _is_vector = true;
+                        _is_matrix = false;
+                    }
+                }
+                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
+            }
+            else {
+                _nb_instances = max(_nb_instances, term._p->get_dim());
+            }
+            _val->resize(_nb_instances);
+        }
         
         int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
         
@@ -594,14 +652,14 @@ namespace gravity {
         func_ vec() const {
             auto f = func_(*this);
             f._is_vector = true;
-            auto vars_cpy = *f._vars;
-            for (auto &vp:*f._vars) {
-                vars_cpy.erase(vp.first);
-                vp.second.first->_is_vector = true;
-                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
-            }
-            *f._vars = move(vars_cpy);
+//            auto vars_cpy = *f._vars;
+//            for (auto &vp:*f._vars) {
+//                vars_cpy.erase(vp.first);
+//                vp.second.first->_is_vector = true;
+//                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+//                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+//            }
+//            *f._vars = move(vars_cpy);
 //            if (f._expr) {
 //                f._expr->_is_vector = true;
 //                if(f._expr->is_uexpr()){
@@ -1684,7 +1742,7 @@ namespace gravity {
     func_ product(const param<type1>& p, const param<type2>& v);
     
     template<typename type>
-    func_ sum(const param<type>& p1, const func_& f);
+    func_ product(const param<type>& p1, const func_& f);
 
     template<typename type>
     func_ innerproduct(const param<type>& p1, const param<type>& p2);

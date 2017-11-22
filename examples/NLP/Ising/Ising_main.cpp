@@ -78,7 +78,7 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Ising/samples_bin.csv";
+           fname = "../../data_sets/Ising/samples_bin_sml.csv";
     }
     
     read_samples(fname);
@@ -87,7 +87,7 @@ int main (int argc, const char * argv[])
     }
     
     
-    for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
+    for (unsigned main_spin = 0; main_spin<1; main_spin++) {
     
         for (unsigned conf = 0; conf<nb_conf; conf++) {
             for (unsigned spin = 0; spin<nb_spins; spin++) {
@@ -99,21 +99,21 @@ int main (int argc, const char * argv[])
                 }
             }
         }
-        DebugOn("############ SPIN NUMBER ############\n " << "     ############ " << main_spin << " ############" << endl);
+        DebugOn(RED << "############ SPIN NUMBER "<< main_spin << " ############\n "<< RESET);
         
         Model Ising("Ising Model");
         /** Variables */
         var<Real> x("x"), z("z", pos_), f("f"), obj("obj");
         Ising.add_var(x^nb_spins);
         Ising.add_var(z^nb_spins);
-        Ising.add_var(f^nb_conf);
+//        Ising.add_var(f^nb_conf);
         Ising.add_var(obj^1);
         Ising.min(obj);
         
         /** Constraints */
-        Constraint Lin("Lin");
-        Lin += f + product(nodal_stat,x);
-        Ising.add_constraint(Lin=0);
+//        Constraint Lin("Lin");
+//        Lin += f + product(nodal_stat,x);
+//        Ising.add_constraint(Lin=0);
         
         Constraint Absp("Absp");
         Absp += z - x;
@@ -123,7 +123,8 @@ int main (int argc, const char * argv[])
         Ising.add_constraint(Absn >= 0);
         
         Constraint Obj("Obj");
-        Obj += obj - sum(nb_samples_pu,expo(f)) - lambda*sum(z.excl(main_spin));
+        Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+//        Obj += obj - product(nb_samples_pu,expo(f)) - lambda*sum(z.excl(main_spin));
         Ising.add_constraint(Obj>=0);
         
         /** Solver */
@@ -162,7 +163,7 @@ int main_ (int argc, const char * argv[])
     Absn += z + x;
     Ising.add_constraint(Absn >= 0);
     Constraint Obj("Obj");
-    Obj += obj - sum(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(0));
+    Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(0));
 //    Obj += sum(nb_samples_pu,expo(-1*product(nodal_stat,x)));
     Ising.add_constraint(Obj>=0);
     solver NLP(Ising,ipopt);

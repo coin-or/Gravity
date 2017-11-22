@@ -145,10 +145,11 @@ int solver::run(int output, bool relax, const string& lin_solver, double tol){
         SmartPtr<TNLP> tmp = new IpoptProgram(_model);
 //        prog.ipopt_prog;
                         iapp->Options()->SetStringValue("linear_solver", lin_solver);
-//                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
+                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                        iapp->Options()->SetStringValue("derivative_test", "first-order");
 //                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
 //                        iapp->Options()->SetNumericValue("print_level", 10);
         

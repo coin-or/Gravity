@@ -218,7 +218,7 @@ void Model::add_constraint(const Constraint& c){
         }
 
         newc->update_to_str();
-//        newc->print();
+        newc->print();
         if (newc->is_nonlinear()) {
             embed(*newc->get_expr());
         }
@@ -456,8 +456,24 @@ void Model::compute_funcs() {
     while (it!=_nl_funcs.end()) {
         auto f = (*it++);
         DebugOff(f->to_str() << endl);
-        for (int inst = 0; inst < f->_nb_instances; inst++) {
-            f->_val->at(inst) = f->eval(inst);
+        if (f->is_constant() && f->_evaluated) {
+            continue;
+        }
+        if (!f->_is_matrix) {
+            for (int inst = 0; inst < f->_nb_instances; inst++) {
+                f->_val->at(inst) = f->eval(inst);
+            }
+        }
+        else {
+            f->_val->resize((f->_dim[0]*f->_dim[1]));
+            for (int i = 0; i < f->_dim[0]; i++) {
+                for (int j = 0; j < f->_dim[1]; j++) {
+                    f->_val->at(i*f->_dim[1]+j) = f->eval(i,j);
+                }
+            }
+        }
+        if (f->is_constant()) {
+            f->_evaluated = true;
         }
     }
     for (auto &c_p:_cons) {
@@ -654,7 +670,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         cid = c->_id+inst;
                         if (v->_is_vector) {
                             for (int j = 0; j<v->get_dim(); j++) {
-                                res[idx] = dfdx->get_val(inst,j);
+                                res[idx] = dfdx->get_val(j);
                                 _jac_vals[idx] = res[idx];
                                 idx++;
                             }
@@ -999,7 +1015,8 @@ void Model::fill_in_maps() {
         c->compute_derivatives();
         c->_val = make_shared<vector<double>>();
         c->_val->resize(c->_nb_instances);
-        if (!c->is_linear()) {
+//        if (!c->is_linear()) {
+        if (false) {
             for (auto &vi_p: c->get_vars()) {
                 vi = vi_p.second.first.get();
                 vi_name = vi_p.first;
@@ -1024,16 +1041,18 @@ void Model::fill_in_maps() {
                 
             }
         }
-        c->untranspose_derivatives();
+//        c->untranspose_derivatives();
+        DebugOff(c->to_str() << endl);
         for (auto &df_p:*c->get_dfdx()) {
             auto df = df_p.second;
             if (df->is_nonlinear()) {
                 embed(df);
+                DebugOn(df->to_str() << endl);
             }
         }
     }
     _nnz_h = _hess.size();
-    DebugOn("Size of _hess_link = " << _hess_link.size() << endl);
+    DebugOff("Size of _hess_link = " << _hess_link.size() << endl);
 }
 
 //void Model::fill_in_maps() {

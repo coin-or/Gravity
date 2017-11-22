@@ -92,6 +92,10 @@ namespace gravity {
             return (_type==func_c);
         };
         
+        virtual size_t get_nb_instances() const {            
+            return get_dim();
+        }
+        
         size_t get_dim(size_t i) const {
             if (_dim.size()<=i) {
                 throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
@@ -126,9 +130,21 @@ namespace gravity {
             _is_vector = true;
         }
         
+        virtual void transpose(){
+            _is_transposed = !_is_transposed;
+            if (!_is_vector) {
+                _is_vector = true;
+            }
+            if (_is_matrix) {
+                auto temp = _dim[0];
+                _dim[0] = _dim[1];
+                _dim[1] = temp;
+            }
+        }
+        
         void untranspose(){
             _is_transposed = false;
-            _is_vector = false;
+//            _is_vector = false;
         }
         
         

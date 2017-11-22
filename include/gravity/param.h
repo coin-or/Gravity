@@ -145,22 +145,10 @@ public:
         //        return (_id==p._id && _type==p._type && _intype==p._intype && get_name()==p.get_name());
     }
     size_t get_nb_instances() const {
-        if(_is_transposed){
-            if (_is_matrix) {
-                return _dim[1];
-            }
-            return 1;
-        }
-        if(_is_matrix){
-            return _dim[0];
-        }
-        if(_is_vector){
-            return 1;
-        }
         if (_is_indexed) {
             return _ids->size();
         }
-        return _dim[0];
+        return get_dim();
     }
 };
 
@@ -269,10 +257,32 @@ public:
         return *this;
     }
 
+    void transpose(){
+        _is_transposed = !_is_transposed;
+        if (!_is_vector) {
+            _is_vector = true;
+        }
+        if (_is_matrix) {
+            auto new_val = make_shared<vector<type>>();
+            new_val->resize(get_dim());
+            for (int i = 0; i<_dim[1]; i++) {
+                for (int j = 0; j<_dim[0]; j++) {
+                    new_val->at(i*_dim[0]+j) = eval(j, i);
+                }
+            }
+            auto temp = _dim[0];
+            _dim[0] = _dim[1];
+            _dim[1] = temp;
+
+            _val = new_val;
+        }
+    }
+    
     param tr() const {
         auto p = param(*this);
-        p._is_transposed = true;
-        p._is_vector = true;
+        p.transpose();
+//        p._is_transposed = true;
+//        p._is_vector = true;
         return p;
     }
     
