@@ -1147,11 +1147,8 @@ namespace gravity{
                     _is_matrix = c._is_matrix;
                     _dim = c._dim;
                     _nb_instances = c.get_nb_instances();
-                    _val->resize(_nb_instances);
-                    for (unsigned inst = 0; inst < _val->size(); inst++) {
-                        _val->at(inst) = poly_eval(p_c2.get(), inst);
-                    }
-                    _evaluated = true;
+//                    _val = move(p_c2->_val);
+//                    _evaluated = true;
                     break;
                 }
                 case var_c:{
@@ -1164,7 +1161,7 @@ namespace gravity{
                     _is_matrix = c._is_matrix;
                     _dim = c._dim;
                     _nb_instances = c.get_nb_instances();
-                    _val->resize(_nb_instances);
+//                    _val->resize(_nb_instances);
                     _cst = new constant<double>(0);
                     _all_sign = p_c2->get_all_sign();
                     _all_range = p_c2->get_range();
@@ -1210,52 +1207,57 @@ namespace gravity{
                         case sin_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(ue->_coef)); // TO UPDATE
                             _all_sign = unknown_;
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            if (ue->_son->is_constant()) {
-                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                    _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
-                                }
-                            }
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            if (ue->_son->is_constant()) {
+//                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                    _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+//                                }
+//                                _evaluated = true;
+//                            }
                             break;
                         case cos_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(ue->_coef)); // TO UPDATE
                             _all_sign = unknown_;
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            if (ue->_son->is_constant()) {
-                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                    _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
-                                }
-                            }
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            if (ue->_son->is_constant()) {
+//                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                    _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+//                                }
+//                            }
+//                            _evaluated = true;
                             break;
                         case sqrt_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = non_neg_;
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            if (ue->_son->is_constant()) {
-                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                    _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
-                                }
-                            }
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            if (ue->_son->is_constant()) {
+//                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                    _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+//                                }
+//                            }
+//                            _evaluated = true;
                             break;
                         case exp_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = pos_;
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            if (ue->_son->is_constant()) {
-                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                    _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
-                                }
-                            }
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            if (ue->_son->is_constant()) {
+//                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                    _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+//                                }
+//                            }
+//                            _evaluated = true;
                             break;
                         case log_:
                             _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                             _all_sign = unknown_;
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            if (ue->_son->is_constant()) {
-                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                    _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
-                                }
-                            }
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            if (ue->_son->is_constant()) {
+//                                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                    _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+//                                }
+//                            }
+//                            _evaluated = true;
                             break;
                         default:
                             break;
@@ -1418,11 +1420,11 @@ namespace gravity{
                 _is_matrix = c._is_matrix;
                 _dim = c._dim;
                 _nb_instances = c.get_nb_instances();
-                _val->resize(_nb_instances);
-                for (unsigned inst = 0; inst < _val->size(); inst++) {
-                    _val->at(inst) = poly_eval(p_c2.get(), inst);
-                }
-                _evaluated = true;
+//                _val->resize(_nb_instances);
+//                for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                    _val->at(inst) = poly_eval(p_c2.get(), inst);
+//                }
+//                _evaluated = true;
                 break;
             }
             case var_c:{
@@ -1436,7 +1438,7 @@ namespace gravity{
                 _is_matrix = c._is_matrix;
                 _dim = c._dim;
                 _nb_instances = c.get_nb_instances();
-                _val->resize(_nb_instances);
+//                _val->resize(_nb_instances);
                 _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
@@ -1477,52 +1479,52 @@ namespace gravity{
                         if (!_val) {
                             _val = make_shared<vector<double>>();
                         }
-                        if (ue->_son->is_constant()) {
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
-                            }
-                        }
+//                        if (ue->_son->is_constant()) {
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+//                            }
+//                        }
                         break;
                     case cos_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(-1*ue->_coef),new constant<double>(1*ue->_coef)); // TO UPDATE
                         _all_sign = unknown_;
-                        if (ue->_son->is_constant()) {
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
-                            }
-                        }
+//                        if (ue->_son->is_constant()) {
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+//                            }
+//                        }
                         break;
                     case sqrt_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(0),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = non_neg_;
-                        if (ue->_son->is_constant()) {
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
-                            }
-                        }
+//                        if (ue->_son->is_constant()) {
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+//                            }
+//                        }
                         break;
                     case exp_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = pos_;
-                        if (ue->_son->is_constant()) {
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
-                            }
-                        }
+//                        if (ue->_son->is_constant()) {
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+//                            }
+//                        }
                         break;
                     case log_:
                         _all_range = new pair<constant_*, constant_*>(new constant<double>(numeric_limits<double>::lowest()),new constant<double>(numeric_limits<double>::max())); // TO UPDATE
                         _all_sign = unknown_;
-                        if (ue->_son->is_constant()) {
-                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
-                            }
-                        }
+//                        if (ue->_son->is_constant()) {
+//                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+//                            }
+//                        }
                         break;
                     default:
                         break;
@@ -1581,33 +1583,33 @@ namespace gravity{
                 if (!_val) {
                     _val = make_shared<vector<double>>();
                 }
-                if (be->_lson->is_constant() && be->_rson->is_constant()) {
-                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
-                    switch (be->_otype) {
-                        case plus_:
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) + be->_rson->eval(inst));
-                            }
-                            break;
-                        case minus_:
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) - be->_rson->eval(inst));
-                            }
-                            break;
-                        case product_:
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) * be->_rson->eval(inst));
-                            }
-                            break;
-                        case div_:
-                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) / be->_rson->eval(inst));
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                }
+//                if (be->_lson->is_constant() && be->_rson->is_constant()) {
+//                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
+//                    switch (be->_otype) {
+//                        case plus_:
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) + be->_rson->eval(inst));
+//                            }
+//                            break;
+//                        case minus_:
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) - be->_rson->eval(inst));
+//                            }
+//                            break;
+//                        case product_:
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) * be->_rson->eval(inst));
+//                            }
+//                            break;
+//                        case div_:
+//                            for (unsigned inst = 0; inst < _val->size(); inst++) {
+//                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) / be->_rson->eval(inst));
+//                            }
+//                            break;
+//                        default:
+//                            break;
+//                    }
+//                }
                 embed(_expr);
                 _is_transposed = c._is_transposed;
                 _is_vector = c._is_vector;
@@ -1667,9 +1669,9 @@ namespace gravity{
         _is_matrix = f._is_matrix;
         _dim = f._dim;
         _embedded = f._embedded;
-//        if (is_constant()) {
-//            _evaluated = f._evaluated;
-//        }
+        if (is_constant()) {
+            _evaluated = f._evaluated;
+        }
         _dfdx = move(f._dfdx);
         _nnz_j = f._nnz_j;
         _nnz_h = f._nnz_h;
@@ -1701,9 +1703,9 @@ namespace gravity{
         _is_matrix = f._is_matrix;
         _dim = f._dim;
         _embedded = f._embedded;
-//        if (is_constant()) {
-//            _evaluated = f._evaluated;
-//        }
+        if (is_constant()) {
+            _evaluated = f._evaluated;
+        }
         _cst = copy(*f._cst);
         _all_range = new pair<constant_*, constant_*>(copy(*f._all_range->first), copy(*f._all_range->second));
         _sign = nullptr;
@@ -1736,7 +1738,9 @@ namespace gravity{
             insert(pair.second);
         }
         if (f._val) {
-            _val = make_shared<vector<double>>(*(f._val));
+            _val = make_shared<vector<double>>();
+//            _val->resize(f._val->size());
+
         }
         if (f._expr) {
             if (f._expr->is_uexpr()) {
@@ -1850,7 +1854,8 @@ namespace gravity{
             insert(pair.second);
         }
         if (f._val) {
-            _val = make_shared<vector<double>>(*f._val);
+            _val = make_shared<vector<double>>();
+//            _val->resize(f._val->size());
         }
         if (f._expr) {
             if (f._expr->is_uexpr()) {
@@ -1871,9 +1876,9 @@ namespace gravity{
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
         _nb_vars = f._nb_vars;
-//        if (is_constant()) {
-//            _evaluated = f._evaluated;
-//        }
+        if (is_constant()) {
+            _evaluated = f._evaluated;
+        }
         
         return *this;
     }
@@ -1953,9 +1958,9 @@ namespace gravity{
         _nb_vars = f._nb_vars;
         _dfdx = move(f._dfdx);
         _val = move(f._val);
-//        if (is_constant()) {
-//            _evaluated = f._evaluated;
-//        }
+        if (is_constant()) {
+            _evaluated = f._evaluated;
+        }
         return *this;
     }
 
@@ -2288,8 +2293,14 @@ namespace gravity{
             if (c.is_negative()) {
                 reverse_sign();
             }
+            auto val = poly_eval(&c);
             if (_expr) {
-                _expr->_coef *= poly_eval(&c);
+                _expr->_coef *= val;
+            }
+            if (_evaluated) {
+                for (unsigned i = 0; i<_val->size(); i++) {
+                    _val->at(i) *= val;
+                }
             }
             return *this;
         }
@@ -2346,7 +2357,7 @@ namespace gravity{
             }
             return *this;
         }
-        /* Case where the current function is constant and the other operand is not (we go to previous case) */
+        /* Case where the current function is constant and the other operand is not. */
         if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);//TODO if c is func
             if (!f._cst->is_zero()) {
@@ -2397,6 +2408,7 @@ namespace gravity{
                     f._all_convexity = undet_;
                 }
             }
+            f._evaluated = false;
             return *this = move(f);
         }
         if (c.is_param() || c.is_var()) {
@@ -2778,7 +2790,7 @@ namespace gravity{
                 if (_nb_instances<ue->_son->_nb_instances) {
                     _dim = ue->_son->_dim;
                     _nb_instances = ue->_son->_nb_instances;
-                    _val->resize(_nb_instances);
+//                    _val->resize(_nb_instances);
                 }
                 auto f = (func_*)(ue->_son.get());
                 embed(*f);
@@ -2853,7 +2865,7 @@ namespace gravity{
                         }
 //                        _is_matrix = be->_lson->_is_matrix && be->_rson->_is_matrix;
                     }
-                    _val->resize(_nb_instances);
+//                    _val->resize(_nb_instances);
                 }
                 break;
             }
@@ -3052,7 +3064,10 @@ namespace gravity{
         _is_transposed = false;
         _is_vector = false;
         _is_matrix = false;
+        _evaluated = true;
         _dim.resize(1);
+        _val->resize(1);
+        _val->at(0) = 0;
         _dim[0] = 0;
         _lterms->clear();
         _qterms->clear();
@@ -3241,7 +3256,7 @@ namespace gravity{
     void func_::insert(const lterm& term){
         insert(term._sign, *term._coef, *term._p);
         update_nb_instances(term);
-        _val->resize(_nb_instances);
+//        _val->resize(_nb_instances);
     }
 
     bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
@@ -3764,7 +3779,7 @@ namespace gravity{
     double uexpr::eval(size_t i) const{
         if (_son->is_constant() && !_son->_evaluated) {
 //            _son->_val = make_shared<vector<double>>();
-//            _son->_val->resize(_son->_nb_instances);
+            _son->_val->resize(_son->_nb_instances);
             for (unsigned inst = 0; inst < _son->_val->size(); inst++) {
                 _son->_val->at(inst) = _son->eval(inst);
             }
@@ -3798,6 +3813,7 @@ namespace gravity{
             return eval(j);
         }
         if (_son->is_constant() && !_son->_evaluated) {
+            _son->_val->resize(_son->_nb_instances);
             unsigned index = 0;
             if (_son->_is_matrix) {
                 for (unsigned row = 0; row<_son->_dim[0]; row++) {
@@ -4211,6 +4227,7 @@ namespace gravity{
     double  bexpr::eval(ind i, ind j) const{
         if (_lson->is_constant() && !_lson->_evaluated) {
             unsigned index = 0;
+            _lson->_val->resize(_lson->_nb_instances);
             if (_lson->_is_matrix) {
                 for (unsigned row = 0; row<_lson->_dim[0]; row++) {
                     for (unsigned col = 0; col<_lson->_dim[1]; col++) {
@@ -4227,6 +4244,7 @@ namespace gravity{
             _lson->_evaluated = true;
         }
         if (_rson->is_constant() && !_rson->_evaluated) {
+            _rson->_val->resize(_rson->_nb_instances);
             unsigned index = 0;
             if (_rson->_is_matrix) {
                 for (unsigned row = 0; row<_rson->_dim[0]; row++) {
@@ -4283,6 +4301,7 @@ namespace gravity{
 
     double  bexpr::eval(ind i) const{
         if (_lson->is_constant() && !_lson->_evaluated) {
+            _lson->_val->resize(_lson->_nb_instances);
 //            _lson->_val = make_shared<vector<double>>();
 //            if (_lson->_is_transposed) {
 //                _lson->_val->resize(_lson->_dim[0]);
@@ -4293,6 +4312,7 @@ namespace gravity{
             _lson->_evaluated = true;
         }
         if (_rson->is_constant() && !_rson->_evaluated) {
+            _rson->_val->resize(_rson->_nb_instances);
 //            _rson->_val = make_shared<vector<double>>();
 //            _rson->_val->resize(_rson->_nb_instances);
 //            if (_rson->_is_transposed) {
@@ -5384,6 +5404,9 @@ namespace gravity{
 //    }
 
     double func_::eval(size_t i, size_t j){
+        if (_val->size()!=_nb_instances) {
+            _val->resize(_nb_instances);
+        }
         if (!_is_matrix) {
             if (_is_transposed) {
                 return eval(i);
@@ -5422,6 +5445,7 @@ namespace gravity{
     }
     
     double func_::eval(size_t i){
+        _val->resize(_nb_instances);
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }

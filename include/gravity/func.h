@@ -505,12 +505,12 @@ namespace gravity {
             }
         }
         void set_first_derivative(const param_& v, func_&& f){
-            DebugOn(f.to_str()<<endl);
+            DebugOff(f.to_str()<<endl);
             (*_dfdx)[v._unique_id] = make_shared<func_>(move(f));
         }
         
         void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
-            DebugOn(f.to_str()<<endl);
+            DebugOff(f.to_str()<<endl);
             (*_dfdx)[v1._unique_id]->_dfdx->insert(make_pair<>(v2._unique_id, make_shared<func_>(move(f))));
         }
         
@@ -533,7 +533,7 @@ namespace gravity {
                 params_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
             *_params = move(params_cpy);
-            _val->resize(max(_val->size(),_nb_instances));
+//            _val->resize(max(_val->size(),_nb_instances));
             if(_expr){
                 _expr->untranspose();
 //                embed(_expr);
@@ -613,7 +613,7 @@ namespace gravity {
             else {
                 _nb_instances = max(_nb_instances, term._p->get_dim());
             }
-            _val->resize(_nb_instances);
+//            _val->resize(_nb_instances);
         }
         
         void update_nb_instances(const qterm& term){
@@ -657,7 +657,7 @@ namespace gravity {
             else {
                 _nb_instances = max(_nb_instances, term._p->second->get_dim());
             }
-            _val->resize(_nb_instances);
+//            _val->resize(_nb_instances);
         }
         
         int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
@@ -701,7 +701,7 @@ namespace gravity {
                 auto df = fp.second;
                 df->untranspose();
                 df->_nb_instances = max(df->_nb_instances, _nb_instances);
-                df->_val->resize(max(df->_val->size(),_nb_instances));
+//                df->_val->resize(max(df->_val->size(),_nb_instances));
                 df->untranspose_derivatives();
             }
         }

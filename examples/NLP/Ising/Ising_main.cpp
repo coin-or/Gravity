@@ -17,7 +17,8 @@ using namespace std;
 using namespace gravity;
 
 int nb_cols = 1, nb_conf = 0, nb_spins = 0, tot_nb_samples = 0;
-param<short> configs("configs"), nodal_stat("nodal_stat"), nodal_stat_tr("nodal_stat_tr");
+//param<short> configs("configs"), nodal_stat("nodal_stat"), nodal_stat_tr("nodal_stat_tr");
+param<short> configs("configs"), nodal_stat("nodal_stat");
 param<int> nb_samples("nb_samples");
 param<double> nb_samples_pu("nb_samples_pu");
 double regularizor, lambda;
@@ -49,12 +50,12 @@ bool read_samples(const char* fname){
             configs.set_val(nb_conf, spin, val);
             if (spin==0) {
                 nodal_stat.set_val(nb_conf,spin,val);
-                nodal_stat_tr.set_val(spin,nb_conf,val);
+//                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             else {
                 val *= configs.eval(nb_conf,0);
                 nodal_stat.set_val(nb_conf,spin,val);
-                nodal_stat_tr.set_val(spin,nb_conf,val);
+//                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             DebugOff(val << ", ");
             spin++;
@@ -80,7 +81,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Ising/samples_bin.csv";
+//           fname = "../../data_sets/Ising/samples_bin.csv";
+        fname = "/users/hh/Downloads/zeros-2x2-2k_2m.csv";
     }
     
     read_samples(fname);
@@ -96,12 +98,12 @@ int main (int argc, const char * argv[])
                 if (spin==main_spin) {
                     val =configs.eval(conf,spin);
                     nodal_stat.set_val(conf,spin,val);
-                    nodal_stat_tr.set_val(spin,conf,val);
+//                    nodal_stat_tr.set_val(spin,conf,val);
                 }
                 else {
                     val = configs.eval(conf,spin)*configs.eval(conf,main_spin);
                     nodal_stat.set_val(conf,spin,val);
-                    nodal_stat_tr.set_val(spin,conf,val);
+//                    nodal_stat_tr.set_val(spin,conf,val);
                 }
             }
         }
@@ -130,8 +132,8 @@ int main (int argc, const char * argv[])
         
         Constraint Obj("Obj");
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
-        Obj.set_first_derivative(x, (nodal_stat_tr*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
-        Obj.set_second_derivative(x,x,(nodal_stat_tr*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
+        Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
+        Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
         Ising.add_constraint(Obj>=0);
         
         /** Solver */
