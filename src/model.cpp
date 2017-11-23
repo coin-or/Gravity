@@ -71,24 +71,49 @@ std::vector<int> bounds(int parts, int mem) {
 
 
 /* Return the number of nonzeros in the lower left part of the hessian */
-size_t Model::get_nb_nnz_h() const{    
-    size_t nnz = 0;
+size_t Model::get_nb_nnz_h() const{
+//    //TODO call fill_in_hes_nnz and do the counting
+//    size_t nnz = 0;
+//    string vi_name;
+//    shared_ptr<param_> vi;
+//    set<pair<func_*,func_*>> s;
+//    for (auto &pairs: _hess_link) {
+////        vi_name = pairs.first.first;
+//        s = pairs.second;
+//        //TODO iterate over s
+////        vi = (*s.begin()).second->get_var(vi_name);
+////        if (vi->_is_vector) {
+////            nnz += (*s.begin()).second->_nb_instances*vi->get_nb_instances();
+////        }
+////        else {
+//            nnz += (*s.begin()).second->_nb_instances;
+////        }
+//    }
+//    return nnz;
+    size_t idx = 0;
     string vi_name;
     shared_ptr<param_> vi;
-    set<pair<func_*,func_*>> s;
+//    unique_id vi_unique, vj_unique;
+    //    set<pair<func_*,func_*>> s;
     for (auto &pairs: _hess_link) {
-//        vi_name = pairs.first.first;
-        s = pairs.second;
-        //TODO iterate over s
-//        vi = (*s.begin()).second->get_var(vi_name);
-//        if (vi->_is_vector) {
-//            nnz += (*s.begin()).second->_nb_instances*vi->get_nb_instances();
-//        }
-//        else {
-            nnz += (*s.begin()).second->_nb_instances;
-//        }
+        vi_name = pairs.first.first;
+        //        s = pairs.second;//TODO iterate on s
+        vi = (pairs.second.begin())->first->get_var(vi_name);
+        size_t nb_inst = (pairs.second.begin())->first->_nb_instances;
+        for (unsigned i = 0; i<nb_inst; i++) {
+            if (vi->_is_vector) {
+                for (unsigned i = 0; i < (pairs.second.begin())->second->_dim[0]; i++) {
+                    for (unsigned j = i; j < (pairs.second.begin())->second->_dim[1]; j++) {
+                        idx++;
+                    }
+                }
+            }
+            else {
+                idx++;
+            }
+        }
     }
-    return nnz;
+    return idx;
 };
 
 
@@ -460,6 +485,10 @@ void Model::compute_funcs() {
             continue;
         }
         if (!f->_is_matrix) {
+//            if (f->to_str().compare("[[nodal_stat_tr * [exp([( - nodal_stat)[x]])]^T] * [[nb_samples_pu]]]")==0) {
+//                cout <<"ok";
+//            }
+            DebugOff(f->to_str()<<endl);
             for (int inst = 0; inst < f->_nb_instances; inst++) {
                 f->_val->at(inst) = f->eval(inst);
             }
@@ -481,9 +510,9 @@ void Model::compute_funcs() {
         for (int inst = 0; inst < c->_nb_instances; inst++) {
             c->_val->at(inst) = c->eval(inst);
         }
-        if (c->is_linear() && !_first_call_jac) {
-            continue;
-        }
+//        if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
+//            continue;
+//        }
         for (auto &dfdx: *c->get_dfdx()) {
             if (dfdx.second->_is_matrix) {
                 for (int i = 0; i<dfdx.second->_dim[0]; i++) {
@@ -506,8 +535,17 @@ void Model::compute_funcs() {
                 continue;
             }
             for (auto &dfd2x: *dfdx.second->get_dfdx()) {
-                for (int inst = 0; inst < dfd2x.second->_val->size(); inst++) {
-                    dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
+                if (dfd2x.second->_is_matrix) {
+                    for (int i = 0; i<dfd2x.second->_dim[0]; i++) {
+                        for (int j = 0; j<dfd2x.second->_dim[1]; j++) {
+                            dfd2x.second->_val->at(i*dfd2x.second->_dim[1]+j) = dfd2x.second->eval(i,j);
+                        }
+                    }
+                }
+                else {
+                    for (int inst = 0; inst < dfd2x.second->_val->size(); inst++) {
+                        dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
+                    }
                 }
             }
         }
@@ -820,12 +858,24 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         }
         vid = vi->get_id();
         vjd = vj->get_id();
-        size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
+        size_t nb_inst = (pairs.second.begin())->first->_nb_instances;
         for (unsigned i = 0; i<nb_inst; i++) {
-            idx_all += pairs.second.size();// TODO fix this, assumes all constraints in pairs have the same indexing!
-            iRow[idx] = vid + vi->get_id_inst(i);
-            jCol[idx] = vjd + vj->get_id_inst(i);
-            idx++;
+            if (vi->_is_vector) {
+                for (unsigned i = 0; i < (pairs.second.begin())->second->_dim[0]; i++) {
+                    for (unsigned j = i; j < (pairs.second.begin())->second->_dim[1]; j++) {
+                        idx_all++;
+                        iRow[idx] = vid + vi->get_id_inst(i);
+                        jCol[idx] = vjd + vj->get_id_inst(j);
+                        idx++;
+                    }
+                }
+            }
+            else {
+                idx_all += pairs.second.size();// TODO fix this, assumes all constraints in pairs have the same indexing!
+                iRow[idx] = vid + vi->get_id_inst(i);
+                jCol[idx] = vjd + vj->get_id_inst(i);
+                idx++;
+            }
         }
     }
     _hess_vals.resize(idx_all);
@@ -837,60 +887,47 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     Constraint* c;
     func_* df;
     double hess = 0;
-    if (_first_call_hess) {
+    for (unsigned i = 0; i<_nnz_h; i++) {
+        res[i] = 0;
+    }
+    if (_first_call_hess || _type==nlin_m) {
         if (new_x) {
             set_x(x);
             compute_funcs();
         }
         for (auto &pairs: _hess_link) {
 //            s = pairs.second;
-            size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
-            if (_type==nlin_m) {
-                for (unsigned inst = 0; inst<nb_inst; inst++) {
-                    res[idx] = 0;
-                    for (auto &f_pair:pairs.second) {
-                        if (f_pair.first->_is_constraint) {
-                            c = (Constraint*)f_pair.first;
-                            c_inst = c->get_id_inst(inst);
-                            df = f_pair.second;
+            size_t nb_inst = (pairs.second.begin())->first->_nb_instances;
+            for (unsigned inst = 0; inst<nb_inst; inst++) {
+//                res[idx] = 0;
+                for (auto &f_pair:pairs.second) {
+                    if (f_pair.first->_is_constraint) {
+                        c = (Constraint*)f_pair.first;
+                        c_inst = c->get_id_inst(inst);
+                        df = f_pair.second;
 //                            DebugOn(df->to_str()<<endl);
-//                            for (unsigned v_inst = 0; v_inst < df->_nb_instances; v_inst++) {
-                                    hess = df->get_val(inst);
+                        if (df->_is_matrix) {
+                            for (unsigned i = 0; i < df->_dim[0]; i++) {
+                                for (unsigned j = i; j < df->_dim[1]; j++) {                                    
+                                    hess = df->get_val(i,j);
                                     _hess_vals[idx_in++] = hess;
-                                    res[idx] += lambda[c->_id + c_inst] * hess;
-//                            }
+                                    res[idx++] = lambda[c->_id + c_inst] * hess;
+                                }
+                            }
                         }
                         else {
-                            hess = f_pair.second->eval();
-                            _hess_vals[idx_in++] = hess;
-                            res[idx] += obj_factor * hess;
-                        }
-                    }
-                    idx++;
-                }
-            }
-            else {
-                for (unsigned inst = 0; inst<nb_inst; inst++) {
-                    res[idx] = 0;
-                    for (auto &f_pair:pairs.second) {
-                        if (f_pair.first->_is_constraint) {
-                            c = (Constraint*)f_pair.first;
-                            c_inst = c->get_id_inst(inst);
-                            df = f_pair.second;
-                            //                        for (unsigned inst = 0; inst < c->_nb_instances; inst++) {
-                            hess = df->eval(inst);
+                            hess = df->get_val(inst);
                             _hess_vals[idx_in++] = hess;
                             res[idx] += lambda[c->_id + c_inst] * hess;
-                            //                        }
-                        }
-                        else {
-                            hess = f_pair.second->eval();
-                            _hess_vals[idx_in++] = hess;
-                            res[idx] += obj_factor * hess;
                         }
                     }
-                    idx++;
+                    else {
+                        hess = f_pair.second->eval();
+                        _hess_vals[idx_in++] = hess;
+                        res[idx] += obj_factor * hess;
+                    }
                 }
+                idx++;
             }
         }
         _first_call_hess = false;
@@ -923,7 +960,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     for (auto &pairs: _hess_link) {
 //        s = pairs.second;
-        size_t nb_inst = (pairs.second.begin())->second->_nb_instances;
+        size_t nb_inst = (pairs.second.begin())->first->_nb_instances;
         for (unsigned inst = 0; inst<nb_inst; inst++) {
             res[idx] = 0;            
             for (auto &f_pair:pairs.second) {
@@ -1015,8 +1052,8 @@ void Model::fill_in_maps() {
         c->compute_derivatives();
         c->_val = make_shared<vector<double>>();
         c->_val->resize(c->_nb_instances);
-//        if (!c->is_linear()) {
-        if (false) {
+        if (!c->is_linear()) {
+//        if (false) {
             for (auto &vi_p: c->get_vars()) {
                 vi = vi_p.second.first.get();
                 vi_name = vi_p.first;
@@ -1047,7 +1084,7 @@ void Model::fill_in_maps() {
             auto df = df_p.second;
             if (df->is_nonlinear()) {
                 embed(df);
-                DebugOn(df->to_str() << endl);
+                DebugOff(df->to_str() << endl);
             }
         }
     }
@@ -1460,6 +1497,7 @@ void Model::embed(expr& e){
 }
 
 void Model::embed(shared_ptr<func_> f){
+    DebugOff(f->to_str() << endl);
     if (f->get_expr()) {
         embed(*f->get_expr());
         for (auto &dfp:*f->get_dfdx()) {

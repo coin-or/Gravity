@@ -17,7 +17,7 @@ using namespace std;
 using namespace gravity;
 
 int nb_cols = 1, nb_conf = 0, nb_spins = 0, tot_nb_samples = 0;
-param<short> configs("configs"), nodal_stat("nodal_stat");
+param<short> configs("configs"), nodal_stat("nodal_stat"), nodal_stat_tr("nodal_stat_tr");
 param<int> nb_samples("nb_samples");
 param<double> nb_samples_pu("nb_samples_pu");
 double regularizor, lambda;
@@ -49,10 +49,12 @@ bool read_samples(const char* fname){
             configs.set_val(nb_conf, spin, val);
             if (spin==0) {
                 nodal_stat.set_val(nb_conf,spin,val);
+                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             else {
                 val *= configs.eval(nb_conf,0);
                 nodal_stat.set_val(nb_conf,spin,val);
+                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             DebugOff(val << ", ");
             spin++;
@@ -86,16 +88,20 @@ int main (int argc, const char * argv[])
         nb_samples_pu = nb_samples.eval(i)/(double)tot_nb_samples;
     }
     
-    
-    for (unsigned main_spin = 0; main_spin<1; main_spin++) {
+    short val;
+    for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
     
         for (unsigned conf = 0; conf<nb_conf; conf++) {
             for (unsigned spin = 0; spin<nb_spins; spin++) {
                 if (spin==main_spin) {
-                    nodal_stat.set_val(conf,spin,configs.eval(conf,spin));
+                    val =configs.eval(conf,spin);
+                    nodal_stat.set_val(conf,spin,val);
+                    nodal_stat_tr.set_val(spin,conf,val);
                 }
                 else {
-                    nodal_stat.set_val(conf,spin,configs.eval(conf,spin)*configs.eval(conf,main_spin));
+                    val = configs.eval(conf,spin)*configs.eval(conf,main_spin);
+                    nodal_stat.set_val(conf,spin,val);
+                    nodal_stat_tr.set_val(spin,conf,val);
                 }
             }
         }
@@ -124,7 +130,8 @@ int main (int argc, const char * argv[])
         
         Constraint Obj("Obj");
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
-//        Obj += obj - product(nb_samples_pu,expo(f)) - lambda*sum(z.excl(main_spin));
+        Obj.set_first_derivative(x, (nodal_stat_tr*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
+        Obj.set_second_derivative(x,x,(nodal_stat_tr*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
         Ising.add_constraint(Obj>=0);
         
         /** Solver */
