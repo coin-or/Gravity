@@ -80,7 +80,7 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Ising/samples_bin_sml.csv";
+           fname = "../../data_sets/Ising/samples_bin.csv";
     }
     
     read_samples(fname);

@@ -126,7 +126,7 @@ namespace gravity {
         
         void add_constraint(const Constraint& c);
         
-        void embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
+        shared_ptr<func_> embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void del_constraint(const Constraint& c);
         void min(const func_& f);

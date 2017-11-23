@@ -510,9 +510,9 @@ void Model::compute_funcs() {
         for (int inst = 0; inst < c->_nb_instances; inst++) {
             c->_val->at(inst) = c->eval(inst);
         }
-//        if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
-//            continue;
-//        }
+        if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
+            continue;
+        }
         for (auto &dfdx: *c->get_dfdx()) {
             if (dfdx.second->_is_matrix) {
                 for (int i = 0; i<dfdx.second->_dim[0]; i++) {
@@ -1082,10 +1082,10 @@ void Model::fill_in_maps() {
         DebugOff(c->to_str() << endl);
         for (auto &df_p:*c->get_dfdx()) {
             auto df = df_p.second;
-            if (df->is_nonlinear()) {
-                embed(df);
+//            if (df->is_nonlinear()) {
+                df_p.second = embed(df);
                 DebugOff(df->to_str() << endl);
-            }
+//            }
         }
     }
     _nnz_h = _hess.size();
@@ -1496,22 +1496,24 @@ void Model::embed(expr& e){
     }
 }
 
-void Model::embed(shared_ptr<func_> f){
+shared_ptr<func_> Model::embed(shared_ptr<func_> f){
     DebugOff(f->to_str() << endl);
     if (f->get_expr()) {
         embed(*f->get_expr());
         for (auto &dfp:*f->get_dfdx()) {
-            if (dfp.second->is_nonlinear()) {
-                embed(dfp.second);
-            }
+//            if (dfp.second->is_nonlinear()) {
+                dfp.second = embed(dfp.second);
+//            }
         }
     }
     auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
     if (f_p.second) {
         _nl_funcs.push_back(f_p.first->second);
+        return f;
 //        f_p.first->second->_val = make_shared<vector<double>>();
 //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
     }
+    return f_p.first->second;
 }
 
 
