@@ -9,13 +9,13 @@ Mathematical Modeling for Optimization and Machine Learning
 -----------
 Created by Hassan Hijazi in 2016-17
 
-http://hhijazi.github.io/Gravity/
+www.allinsights.io/gravity
 -----------
 
 
 ## License
 
-Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE.md](https://github.com/hhijazi/Gravity/blob/master/LICENSE.md) file for details.
+Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE.md](https://github.com/Allinsights/Gravity/blob/master/LICENSE.md) file for details.
 
 
 ### ** Contributors **
