@@ -12,9 +12,9 @@ namespace gravity{
         if (_is_vector) {
             name = "[" + name + "]";
         }
-        if (_is_transposed) {
-            name += "^T";
-        }
+//        if (_is_transposed) {
+//            name += "^T";
+//        }
         return name;
     };
 
