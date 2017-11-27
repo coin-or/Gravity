@@ -204,10 +204,10 @@ public:
         _id = p._id;
         _unique_id = p._unique_id;
         _vec_id = p._vec_id;
-        _val = p._val;
+        _val = move(p._val);
         _name = p._name;
-        _indices = p._indices;
-        _ids = p._ids;
+        _indices = move(p._indices);
+        _ids = move(p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -243,10 +243,10 @@ public:
         _id = p._id;
         _unique_id = p._unique_id;
         _vec_id = p._vec_id;
-        _val = p._val;
+        _val = move(p._val);
         _name = p._name;
-        _indices = p._indices;
-        _ids = p._ids;
+        _indices = move(p._indices);
+        _ids = move(p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;

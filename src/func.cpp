@@ -1143,7 +1143,6 @@ namespace gravity{
                     _is_matrix = c._is_matrix;
                     _dim = c._dim;
                     _nb_instances = c.get_nb_instances();
-//                    _val = move(p_c2->_val);
 //                    _evaluated = true;
                     break;
                 }
@@ -5522,7 +5521,7 @@ namespace gravity{
         }
         if (is_number()) {
             _val->at(0) = res;
-            _evaluated = false;//TODO fix this
+            _evaluated = true;//TODO fix this
         }
         else {
 //            if (i>=_val->size()) {
