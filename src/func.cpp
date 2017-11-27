@@ -184,6 +184,10 @@ namespace gravity{
                 break;
             }
             case func_c: {
+                auto f = (func_*)c;
+                if (f->is_constant() && f->_evaluated) {
+                    return f->get_val(i);
+                }
                 return ((func_*)c)->eval(i);
                 break;
             }
@@ -313,6 +317,10 @@ namespace gravity{
                 break;
             }
             case func_c: {
+                auto f = (func_*)c;
+                if (f->is_constant() && f->_evaluated) {
+                    return f->get_val(i, j);
+                }
                 return ((func_*)c)->eval(i,j);
                 break;
             }
@@ -4259,52 +4267,52 @@ namespace gravity{
 //    };
     
     double  bexpr::eval(ind i, ind j) const{
-        if (_lson->is_constant() && !_lson->_evaluated) {
-            unsigned index = 0;
-            _lson->_val->resize(_lson->_nb_instances);
-            if (_lson->_is_matrix) {
-                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
-                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-                        if (_is_transposed) {
-                            index = _lson->_dim[0]*col + row;
-                        }
-                        else {
-                            index = _lson->_dim[1]*row + col;
-                        }
-                        _lson->_val->at(index) = _lson->eval(row,col);
-                    }
-                }
-            }
-            else {
-                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
-                    _lson->_val->at(index) = _lson->eval(index);
-                }
-            }
-            _lson->_evaluated = true;
-        }
-        if (_rson->is_constant() && !_rson->_evaluated) {
-            _rson->_val->resize(_rson->_nb_instances);
-            unsigned index = 0;
-            if (_rson->_is_matrix) {
-                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
-                    for (unsigned col = 0; col<_rson->_dim[1]; col++) {
-                        if (_is_transposed) {
-                            index = _rson->_dim[0]*col + row;
-                        }
-                        else {
-                            index = _rson->_dim[1]*row + col;
-                        }
-                        _rson->_val->at(index) = _rson->eval(row,col);
-                    }
-                }
-            }
-            else {
-                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
-                    _rson->_val->at(index) = _rson->eval(index);
-                }
-            }
-            _rson->_evaluated = true;
-        }
+//        if (_lson->is_constant() && !_lson->_evaluated) {
+//            unsigned index = 0;
+//            _lson->_val->resize(_lson->_nb_instances);
+//            if (_lson->_is_matrix) {
+//                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
+//                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
+//                        if (_is_transposed) {
+//                            index = _lson->_dim[0]*col + row;
+//                        }
+//                        else {
+//                            index = _lson->_dim[1]*row + col;
+//                        }
+//                        _lson->_val->at(index) = _lson->eval(row,col);
+//                    }
+//                }
+//            }
+//            else {
+//                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
+//                    _lson->_val->at(index) = _lson->eval(index);
+//                }
+//            }
+//            _lson->_evaluated = true;
+//        }
+//        if (_rson->is_constant() && !_rson->_evaluated) {
+//            _rson->_val->resize(_rson->_nb_instances);
+//            unsigned index = 0;
+//            if (_rson->_is_matrix) {
+//                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
+//                    for (unsigned col = 0; col<_rson->_dim[1]; col++) {
+//                        if (_is_transposed) {
+//                            index = _rson->_dim[0]*col + row;
+//                        }
+//                        else {
+//                            index = _rson->_dim[1]*row + col;
+//                        }
+//                        _rson->_val->at(index) = _rson->eval(row,col);
+//                    }
+//                }
+//            }
+//            else {
+//                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
+//                    _rson->_val->at(index) = _rson->eval(index);
+//                }
+//            }
+//            _rson->_evaluated = true;
+//        }
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
@@ -4317,7 +4325,7 @@ namespace gravity{
                 if (_lson->_is_matrix && _rson->_is_matrix) {
                     //matrix product
                     for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-                        res += _lson->eval(i,col) * _rson->eval(col,j);
+                        res += _lson->get_val(i,col) * _rson->get_val(col,j);
                     }
                     return _coef*res;
                 }
@@ -4344,29 +4352,29 @@ namespace gravity{
     }
 
     double  bexpr::eval(ind i) const{
-        if (_lson->is_constant() && !_lson->_evaluated) {
-            _lson->_val->resize(_lson->_nb_instances);//TODO what if son is a matrix?
-//            _lson->_val = make_shared<vector<double>>();
-//            if (_lson->_is_transposed) {
-//                _lson->_val->resize(_lson->_dim[0]);
+//        if (_lson->is_constant() && !_lson->_evaluated) {
+//            _lson->_val->resize(_lson->_nb_instances);//TODO what if son is a matrix?
+////            _lson->_val = make_shared<vector<double>>();
+////            if (_lson->_is_transposed) {
+////                _lson->_val->resize(_lson->_dim[0]);
+////            }
+//            for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
+//                _lson->_val->at(inst) = _lson->eval(inst);
 //            }
-            for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
-                _lson->_val->at(inst) = _lson->eval(inst);
-            }
-            _lson->_evaluated = true;
-        }
-        if (_rson->is_constant() && !_rson->_evaluated) {
-            _rson->_val->resize(_rson->_nb_instances);
-//            _rson->_val = make_shared<vector<double>>();
+//            _lson->_evaluated = true;
+//        }
+//        if (_rson->is_constant() && !_rson->_evaluated) {
 //            _rson->_val->resize(_rson->_nb_instances);
-//            if (_rson->_is_transposed) {
-//                _rson->_val->resize(_rson->_dim[0]);
+////            _rson->_val = make_shared<vector<double>>();
+////            _rson->_val->resize(_rson->_nb_instances);
+////            if (_rson->_is_transposed) {
+////                _rson->_val->resize(_rson->_dim[0]);
+////            }
+//            for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
+//                _rson->_val->at(inst) = _rson->eval(inst);
 //            }
-            for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
-                _rson->_val->at(inst) = _rson->eval(inst);
-            }
-            _rson->_evaluated = true;
-        }
+//            _rson->_evaluated = true;
+//        }
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i) + _rson->get_val(i));
