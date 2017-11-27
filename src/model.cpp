@@ -248,6 +248,33 @@ void Model::add_constraint(const Constraint& c){
         newc->update_to_str();
         DebugOff(newc->_to_str << endl);
         if (newc->is_nonlinear()) {
+            for (auto &p_t: newc->get_lterms()) {
+                if (p_t.second._coef->is_function()) {
+                    auto f = (func_*)p_t.second._coef;
+                    auto exp = f->get_expr();
+                    if (exp) {
+                        embed(*exp);
+                    }
+                }
+            }
+            for (auto &p_t: newc->get_qterms()) {
+                if (p_t.second._coef->is_function()) {
+                    auto f = (func_*)p_t.second._coef;
+                    auto exp = f->get_expr();
+                    if (exp) {
+                        embed(*exp);
+                    }
+                }
+            }
+            for (auto &p_t: newc->get_pterms()) {
+                if (p_t.second._coef->is_function()) {
+                    auto f = (func_*)p_t.second._coef;
+                    auto exp = f->get_expr();
+                    if (exp) {
+                        embed(*exp);
+                    }
+                }
+            }
             embed(*newc->get_expr());
         }
         newc->_id = _nb_cons;
@@ -499,9 +526,18 @@ void Model::compute_funcs() {
         else {
             DebugOff(f->to_str()<<endl);
             f->_val->resize((f->_dim[0]*f->_dim[1]));
-            for (int i = 0; i < f->_dim[0]; i++) {
-                for (int j = 0; j < f->_dim[1]; j++) {
-                    f->set_val(i,j,f->eval(i,j));
+            if (!f->_is_hessian) {
+                for (int i = 0; i < f->_dim[0]; i++) {
+                    for (int j = 0; j < f->_dim[1]; j++) {
+                        f->set_val(i,j,f->eval(i,j));
+                    }
+                }
+            }
+            else {
+                for (int i = 0; i < f->_dim[0]; i++) {
+                    for (int j = i; j < f->_dim[1]; j++) {
+                        f->set_val(i,j,f->eval(i,j));
+                    }
                 }
             }
         }
@@ -1555,7 +1591,7 @@ void Model::embed(expr& e){
                 if (f_p.second) {
                     embed(f);
                     _nl_funcs.push_back(f);
-                    DebugOn(f->to_str() << endl);
+                    DebugOff(f->to_str() << endl);
     //                f->_val = make_shared<vector<double>>();
     //                f->_val->resize(f->_nb_instances);
                 }
@@ -1599,7 +1635,7 @@ void Model::embed(expr& e){
                 auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
                 if (f_p.second) {
                     embed(f);
-                    DebugOn(f->to_str() << endl);
+                    DebugOff(f->to_str() << endl);
                     _nl_funcs.push_back(f);
     //                f->_val = make_shared<vector<double>>();
     //                f->_val->resize(f->_nb_instances);
@@ -1640,7 +1676,7 @@ void Model::embed(expr& e){
                 auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
                 if (f_p.second) {
                     embed(f);
-                    DebugOn(f->to_str() << endl);
+                    DebugOff(f->to_str() << endl);
                     _nl_funcs.push_back(f);
     //                f->_val = make_shared<vector<double>>();
     //                f->_val->resize(f->_nb_instances);
@@ -1658,6 +1694,40 @@ void Model::embed(expr& e){
 
 shared_ptr<func_> Model::embed(shared_ptr<func_> f){
     DebugOff(f->to_str() << endl);
+    for (auto &p_t: f->get_lterms()) {
+        if (p_t.second._coef->is_function()) {
+            auto cf = (func_*)p_t.second._coef;
+            auto exp = cf->get_expr();
+            if (exp) {
+                embed(*exp);
+            }
+        }
+    }
+    for (auto &p_t: f->get_qterms()) {
+        if (p_t.second._coef->is_function()) {
+            auto cf = (func_*)p_t.second._coef;
+            auto exp = cf->get_expr();
+            if (exp) {
+                embed(*exp);
+            }
+        }
+    }
+    for (auto &p_t: f->get_pterms()) {
+        if (p_t.second._coef->is_function()) {
+            auto cf = (func_*)p_t.second._coef;
+            auto exp = cf->get_expr();
+            if (exp) {
+                embed(*exp);
+            }
+        }
+    }
+    if (f->get_cst()->is_function()) {
+        auto c = (func_*) f->get_cst();
+        auto exp = c->get_expr();
+        if (exp) {
+            embed(*exp);
+        }
+    }
     if (f->get_expr()) {
         embed(*f->get_expr());
         for (auto &dfp:*f->get_dfdx()) {
@@ -1697,7 +1767,7 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
         auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
         if (f_p.second) {
             _nl_funcs.push_back(f_p.first->second);
-            DebugOn(f->to_str() << endl);
+            DebugOff(f->to_str() << endl);
             return f;
     //        f_p.first->second->_val = make_shared<vector<double>>();
     //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);

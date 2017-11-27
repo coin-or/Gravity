@@ -453,6 +453,7 @@ namespace gravity {
         size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
 
         bool                                   _is_constraint = false;
+        bool                                   _is_hessian = false;
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
@@ -513,6 +514,7 @@ namespace gravity {
         void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
             DebugOff(f.to_str()<<endl);
             (*_dfdx)[v1._unique_id]->_dfdx->insert(make_pair<>(v2._unique_id, make_shared<func_>(move(f))));
+            (*_dfdx)[v1._unique_id]->_dfdx->at(v2._unique_id)->_is_hessian = true;
         }
         
         void set_val(unsigned i, unsigned j, double val){
@@ -1327,6 +1329,16 @@ namespace gravity {
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
+//                auto c = new param<T>(c2);
+//                
+//                if (c->_is_matrix) {
+//                    for (unsigned i = 0; i<c->_dim[0]; i++) {
+//                        for (unsigned j = 0; j<c->_dim[1]; j++) {
+//    //                    <#statements#>
+//                    }
+//                }
+//                *f *= val;
+//                c1 = c;
                 return c1;
                 break;
             }
