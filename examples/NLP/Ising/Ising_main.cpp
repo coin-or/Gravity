@@ -17,7 +17,6 @@ using namespace std;
 using namespace gravity;
 
 int nb_cols = 1, nb_conf = 0, nb_spins = 0, tot_nb_samples = 0;
-//param<short> configs("configs"), nodal_stat("nodal_stat"), nodal_stat_tr("nodal_stat_tr");
 param<short> configs("configs"), nodal_stat("nodal_stat");
 param<int> nb_samples("nb_samples");
 param<double> nb_samples_pu("nb_samples_pu");
@@ -50,12 +49,10 @@ bool read_samples(const char* fname){
             configs.set_val(nb_conf, spin, val);
             if (spin==0) {
                 nodal_stat.set_val(nb_conf,spin,val);
-//                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             else {
                 val *= configs.eval(nb_conf,0);
                 nodal_stat.set_val(nb_conf,spin,val);
-//                nodal_stat_tr.set_val(spin,nb_conf,val);
             }
             DebugOff(val << ", ");
             spin++;
@@ -81,8 +78,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-//           fname = "../../data_sets/Ising/samples_bin.csv";
-        fname = "/users/hh/Downloads/zeros-2x2-2k_2m.csv";
+           fname = "../../data_sets/Ising/samples_bin_sml.csv";
+//        fname = "/users/hh/Downloads/zeros-2x2-2k_2m.csv";
     }
     
     read_samples(fname);
@@ -98,12 +95,10 @@ int main (int argc, const char * argv[])
                 if (spin==main_spin) {
                     val =configs.eval(conf,spin);
                     nodal_stat.set_val(conf,spin,val);
-//                    nodal_stat_tr.set_val(spin,conf,val);
                 }
                 else {
                     val = configs.eval(conf,spin)*configs.eval(conf,main_spin);
                     nodal_stat.set_val(conf,spin,val);
-//                    nodal_stat_tr.set_val(spin,conf,val);
                 }
             }
         }
@@ -111,10 +106,11 @@ int main (int argc, const char * argv[])
         
         Model Ising("Ising Model");
         /** Variables */
-        var<Real> x("x"), z("z", pos_), f("f"), obj("obj");
+        var<Real> x("x"), z("z", pos_), f("f"), g("g", pos_), obj("obj");
         Ising.add_var(x^nb_spins);
         Ising.add_var(z^nb_spins);
 //        Ising.add_var(f^nb_conf);
+//        Ising.add_var(g^nb_conf);
         Ising.add_var(obj^1);
         Ising.min(obj);
         
@@ -122,7 +118,15 @@ int main (int argc, const char * argv[])
 //        Constraint Lin("Lin");
 //        Lin += f + product(nodal_stat,x);
 //        Ising.add_constraint(Lin=0);
+//
+//        Constraint Exp("exp");
+//        Exp += g - expo(f);
+//        Ising.add_constraint(Exp>=0);
         
+//        Constraint NLin("NLin");
+//        NLin += f - expo(-1*product(nodal_stat,x));
+//        Ising.add_constraint(NLin>=0);
+
         Constraint Absp("Absp");
         Absp += z - x;
         Ising.add_constraint(Absp >= 0);
@@ -131,6 +135,7 @@ int main (int argc, const char * argv[])
         Ising.add_constraint(Absn >= 0);
         
         Constraint Obj("Obj");
+//        Obj += obj - product(nb_samples_pu,g) - lambda*sum(z.excl(main_spin));
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
         Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
         Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
@@ -138,45 +143,8 @@ int main (int argc, const char * argv[])
         
         /** Solver */
         solver NLP(Ising,ipopt);
-        NLP.run(log_lev=0,relax=false,"ma57",1e-12);
+        NLP.run(log_lev=0,relax=false,"ma57",1e-12,"yes");
     }
-    return 0;
-}
-
-int main_ (int argc, const char * argv[])
-{
-    int log_lev = 0;
-    bool relax = false;
-    const char* fname;
-    if (argc >= 2) {
-        fname = argv[1];
-    }
-    else {
-        fname = "../../data_sets/Ising/samples_bin_sml.csv";
-    }
-    read_samples(fname);
-    for (unsigned i = 0; i<nb_conf; i++) {
-        nb_samples_pu = nb_samples.eval(i)/tot_nb_samples;
-    }
-    Model Ising("Ising Model");
-    /** Variables */
-    var<Real> x("x"), z("z", pos_), obj("obj");
-    Ising.add_var(x^nb_spins);
-    Ising.add_var(z^nb_spins);
-    Ising.add_var(obj^1);
-    Ising.min(obj);
-    Constraint Absp("Absp");
-    Absp += z - x;
-    Ising.add_constraint(Absp >= 0);
-    Constraint Absn("Absn");
-    Absn += z + x;
-    Ising.add_constraint(Absn >= 0);
-    Constraint Obj("Obj");
-    Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(0));
-//    Obj += sum(nb_samples_pu,expo(-1*product(nodal_stat,x)));
-    Ising.add_constraint(Obj>=0);
-    solver NLP(Ising,ipopt);
-    NLP.run(log_lev=0,relax=false,"ma57",1e-12);
     return 0;
 }
 

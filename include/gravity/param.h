@@ -263,18 +263,18 @@ public:
             _is_vector = true;
         }
         if (_is_matrix) {
-            auto new_val = make_shared<vector<type>>();
-            new_val->resize(get_dim());
-            for (int i = 0; i<_dim[1]; i++) {
-                for (int j = 0; j<_dim[0]; j++) {
-                    new_val->at(i*_dim[0]+j) = eval(j, i);
-                }
-            }
+//            auto new_val = make_shared<vector<type>>();
+//            new_val->resize(get_dim());
+//            for (int i = 0; i<_dim[1]; i++) {
+//                for (int j = 0; j<_dim[0]; j++) {
+//                    new_val->at(i*_dim[0]+j) = eval(j, i);
+//                }
+//            }
             auto temp = _dim[0];
             _dim[0] = _dim[1];
             _dim[1] = temp;
 
-            _val = new_val;
+//            _val = new_val;
         }
     }
     
@@ -389,6 +389,9 @@ public:
             //            if (_ids->at(i)>=_val->size()) {
             //                throw invalid_argument("error");
             //            }
+        if (_is_transposed) {
+            return _val->at(j*_dim[0]+i);//TODO same for vars
+        }
         return _val->at(i*_dim[1]+j);
 //        }
         //        if (i>=_val->size()) {

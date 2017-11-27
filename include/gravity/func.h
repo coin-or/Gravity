@@ -175,6 +175,7 @@ namespace gravity {
             return unknown_; // TO UPDATE
         }
         
+        bool is_inner_product() const;
         
         template<typename other_type> bexpr& operator +=(const other_type& v);
         template<typename other_type> bexpr& operator -=(const other_type& v);
@@ -490,7 +491,7 @@ namespace gravity {
             return f;
         }
 
-        void transpose(){
+        void transpose(){//TODO make the transpose implicit
             _is_transposed = !_is_transposed;
             if (!_is_vector) {
                 _is_vector = true;
@@ -514,6 +515,14 @@ namespace gravity {
             (*_dfdx)[v1._unique_id]->_dfdx->insert(make_pair<>(v2._unique_id, make_shared<func_>(move(f))));
         }
         
+        void set_val(unsigned i, unsigned j, double val){
+            if (_is_transposed) {
+                _val->at(_dim[0]*j + i) = val;
+            }
+            else {
+                _val->at(_dim[1]*i + j) = val;
+            }
+        }
         void untranspose(){/**< Untranspose the output of the current function */
             _is_transposed = false;
             _is_vector = false;
@@ -521,7 +530,7 @@ namespace gravity {
             for (auto &vp:*_vars) {
                 vars_cpy.erase(vp.first);
                 vp.second.first->untranspose();
-                _nb_instances = max(_nb_instances, vp.second.first->get_dim());
+                _nb_instances = max(_nb_instances, vp.second.first->get_nb_instances());
                 vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
             *_vars = move(vars_cpy);
@@ -529,7 +538,7 @@ namespace gravity {
             for (auto &vp:*_params) {
                 params_cpy.erase(vp.first);
                 vp.second.first->untranspose();
-                _nb_instances = max(_nb_instances, vp.second.first->get_dim());
+                _nb_instances = max(_nb_instances, vp.second.first->get_nb_instances());
                 params_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
             }
             *_params = move(params_cpy);
@@ -583,11 +592,12 @@ namespace gravity {
                     }
                     _dim[0] = _nb_instances;
                     if (term._p->_is_matrix) {//Matrix product
+                        _dim.resize(2);
                         _dim[1] = _nb_instances;
                     }
-                    else {
-                        _dim[1] = 1;
-                    }
+//                    else {
+//                        _dim[1] = 1;
+//                    }
                     _is_vector = true;
                     _is_matrix = false;
                 }
@@ -595,23 +605,23 @@ namespace gravity {
                     if (!term._p->_is_transposed && !term._p->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
                         _dim.resize(1);
                         _dim[0] = 1;
-                        _nb_instances = 1;
+                        _nb_instances = 1;//TODO seems not correct
                         _is_vector = false;
                         _is_matrix = false;
                     }
                     else {//_p is either transposed or a matrix at this stage
                         _dim.resize(1);
                         _dim[0] = term._coef->_dim[0];
-                        _nb_instances = _dim[0];
+                        _nb_instances = _dim[0];//TODO check nb_instances vs dim
                         _is_transposed = true;
                         _is_vector = true;
                         _is_matrix = false;
                     }
                 }
-                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
+                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
             }
             else {
-                _nb_instances = max(_nb_instances, term._p->get_dim());
+                _nb_instances = max(_nb_instances, term._p->get_nb_instances());
             }
 //            _val->resize(_nb_instances);
         }
@@ -655,7 +665,7 @@ namespace gravity {
 //                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
             }
             else {
-                _nb_instances = max(_nb_instances, term._p->second->get_dim());
+                _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
             }
 //            _val->resize(_nb_instances);
         }

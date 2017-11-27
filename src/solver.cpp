@@ -124,7 +124,7 @@ solver::~solver(){
 //}
 
 
-int solver::run(int output, bool relax, const string& lin_solver, double tol){
+int solver::run(int output, bool relax, const string& lin_solver, double tol, const string& mehrotra){
     //GurobiProgram* grbprog;
     // Initialize the IpoptApplication and process the options
 
@@ -145,6 +145,8 @@ int solver::run(int output, bool relax, const string& lin_solver, double tol){
         SmartPtr<TNLP> tmp = new IpoptProgram(_model);
 //        prog.ipopt_prog;
                         iapp->Options()->SetStringValue("linear_solver", lin_solver);
+                        iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
+        
 //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");

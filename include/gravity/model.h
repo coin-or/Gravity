@@ -98,7 +98,7 @@ namespace gravity {
         
         size_t get_nb_nnz_g() const;
         
-        size_t get_nb_nnz_h() const;
+        size_t get_nb_nnz_h();
         
         param_* get_var(const string& vname) const;
         

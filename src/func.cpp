@@ -197,9 +197,9 @@ namespace gravity{
         if (!c) {
             throw invalid_argument("Cannot evaluate nullptr!");
         }
-        if (!c->_is_matrix) {
-            return poly_eval(c, j);
-        }
+//        if (!c->_is_matrix) {
+//            return poly_eval(c, j);
+//        }
         switch (c->get_type()) {
             case binary_c: {
                 return ((constant<bool>*)(c))->eval();
@@ -807,10 +807,10 @@ namespace gravity{
 
     double lterm::eval(size_t i) const{
         double res = 0;
-        if (_coef->_is_transposed || _coef->_is_matrix) {
-            auto dim = _p->get_dim(0);
+        if ((_coef->_is_transposed || _coef->_is_matrix) && !_p->_is_matrix) {
+            auto dim = _p->get_nb_instances();
             for (int j = 0; j<dim; j++) {
-                res += poly_eval(_coef,i,j) * poly_eval(_p, i,j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p, j);
             }
         }
         else {
@@ -835,14 +835,13 @@ namespace gravity{
         double res = 0;
         if ((_p->first->_is_vector || _p->first->_is_matrix) && !_p->second->_is_transposed) {
             double res = 0;
-            unsigned dim = _p->first->_dim[0];
+            unsigned dim = _p->first->get_nb_instances();
             if (_p->first->_is_matrix) {
                 dim = _p->first->_dim[1];
             }
             for (int j = 0; j < dim; j++) {
                 res +=poly_eval(_coef,i)*(poly_eval(_p->first,i,j) * poly_eval(_p->second,i,j));
             }
-            return res;
         }
         else if ((_p->first->_is_vector || _p->first->_is_matrix) && _p->second->_is_transposed) {
             double res = 0;
@@ -852,19 +851,16 @@ namespace gravity{
                         res +=poly_eval(_coef,i)*(poly_eval(_p->first, i1,j) * poly_eval(_p->second, i1,j));
                     }
                 }
-                return res;
             }
-            if (_p->first->_is_matrix && !_p->second->_is_matrix ) {//matrix * transposed vect
+            else if (_p->first->_is_matrix && !_p->second->_is_matrix ) {//matrix * transposed vect
                 for (int j = 0; j < _p->first->get_dim(1); j++) {
                     res +=poly_eval(_coef,i)*(poly_eval(_p->first, i,j) * poly_eval(_p->second, j));
                 }
-                return res;
             }
-            if (!_p->first->_is_matrix && _p->second->_is_matrix ) {//transposed vect * matrix
+            else if (!_p->first->_is_matrix && _p->second->_is_matrix ) {//transposed vect * matrix
                 for (int j = 0; j < _p->second->get_dim(1); j++) {
                     res +=poly_eval(_coef,i)*(poly_eval(_p->first, j) * poly_eval(_p->second, i, j));
                 }
-                return res;
             }
             else {// (!_lson->_is_matrix && !_rson->_is_matrix )
                 if (!_p->first->_is_transposed) {
@@ -873,7 +869,6 @@ namespace gravity{
                 for (int j = 0; j < _p->second->get_dim(0); j++) {
                     res +=poly_eval(_coef,i)*poly_eval(_p->first, j) * poly_eval(_p->second, j);
                 }
-                return res;
             }
         }
         else {
@@ -1060,6 +1055,7 @@ namespace gravity{
         _range = nullptr;
         _val = make_shared<vector<double>>();
         _val->push_back(0);
+        _dim.resize(1,0);
     };
 
     func_::func_(constant_&& c){
@@ -1136,7 +1132,7 @@ namespace gravity{
                 }
                 case par_c:{
                     auto p_c2 =     shared_ptr<param_>((param_*)copy(move(c)));
-                    p_c2->untranspose();
+//                    p_c2->untranspose();
                     _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                     add_param(p_c2);
                     _cst = new constant<double>(0);
@@ -1409,7 +1405,7 @@ namespace gravity{
             }
             case par_c:{
                 auto p_c2 =     shared_ptr<param_>((param_*)copy(c));
-                p_c2->untranspose();
+//                p_c2->untranspose();//TODO what is this doing here?
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                 add_param(p_c2);
                 _cst = new constant<double>(0);
@@ -1429,7 +1425,7 @@ namespace gravity{
             }
             case var_c:{
                 auto p_c2 = shared_ptr<param_>((param_*)copy(c));
-                p_c2->untranspose();
+//                p_c2->untranspose();
                 _lterms->insert(make_pair<>(p_c2->get_name(), p_c2.get()));
                 add_var(p_c2);
                 _ftype = lin_;
@@ -2116,6 +2112,7 @@ namespace gravity{
         if (c.is_zero()) {
             return *this;
         }
+        _evaluated = false;
         if (c.is_number() || (!is_constant() && c.is_param())) {
             _cst = add(_cst, c);
             if (_cst->is_function()) {
@@ -2189,6 +2186,7 @@ namespace gravity{
         if (c.is_zero()) {
             return *this;
         }
+        _evaluated = false;
         if (c.is_number() || (!is_constant() && c.is_param())) {
             _cst = substract(_cst, c);
             if (_cst->is_function()) {
@@ -2304,7 +2302,7 @@ namespace gravity{
             }
             return *this;
         }
-        
+        _evaluated = false;
         /* Case where the current function is not constant and the other operand is */
          if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
              if (!_cst->is_zero()) {
@@ -2326,7 +2324,7 @@ namespace gravity{
                 if (pair.second._coef->is_function()) {
                     embed(*(func_*)pair.second._coef);
                 }
-//                update_nb_instances(pair.second); // TODO
+                update_nb_instances(pair.second);
             }
             for (auto &pair:*_pterms) {
                 pair.second._coef = multiply(pair.second._coef, c);
@@ -2359,7 +2357,7 @@ namespace gravity{
         }
         /* Case where the current function is constant and the other operand is not. */
         if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
-            func_ f(c);//TODO if c is func
+            func_ f(c);
             if (!f._cst->is_zero()) {
                 f._cst = multiply(f._cst, *this);
                 if (f._cst->is_function()) {
@@ -2374,14 +2372,14 @@ namespace gravity{
                 f.update_nb_instances(pair.second);
                 
             }
-            for (auto &pair:*_qterms) {
+            for (auto &pair:*f._qterms) {
                 pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
                     f.embed(*(func_*)pair.second._coef);
                 }
-                //                update_nb_instances(pair.second); // TODO
+                update_nb_instances(pair.second);
             }
-            for (auto &pair:*_pterms) {
+            for (auto &pair:*f._pterms) {
                 pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
                     f.embed(*(func_*)pair.second._coef);
@@ -2694,6 +2692,7 @@ namespace gravity{
         if (c.is_zero()) {
             throw invalid_argument("dividing by zero!\n");
         }
+        _evaluated = false;
         /* Case where c is a number */
         if (c.is_number()){
             if (!_cst->is_zero()) {
@@ -2778,7 +2777,7 @@ namespace gravity{
         return *this;
     }
 
-    // TODO revisit embed and make it robust
+    // TODO revisit embed
     void func_::embed(shared_ptr<expr> e){
         e->_is_vector = _is_vector;
         e->_is_transposed = _is_transposed;
@@ -2792,6 +2791,11 @@ namespace gravity{
                     _nb_instances = ue->_son->_nb_instances;
 //                    _val->resize(_nb_instances);
                 }
+                if (ue->_son->_nb_instances<_nb_instances) {
+                    ue->_son->_dim = _dim ;
+                    ue->_son->_nb_instances = _nb_instances;
+                    //                    _val->resize(_nb_instances);
+                }
                 auto f = (func_*)(ue->_son.get());
                 embed(*f);
                 break;
@@ -2799,9 +2803,30 @@ namespace gravity{
             case bexp_c:{
                 auto be = dynamic_pointer_cast<bexpr>(e);
                 auto fl = (func_*)(be->_lson.get());
+                auto fr = (func_*)(be->_rson.get());
+                if (_nb_instances<fl->_nb_instances  && !be->is_inner_product()) {
+                    _dim = fl->_dim;
+                    _nb_instances = fl->_nb_instances;
+                    //                    _val->resize(_nb_instances);
+                }
+                if (fl->_nb_instances<_nb_instances) {
+                    fl->_dim = _dim ;
+                    fl->_nb_instances = _nb_instances;
+                    //                    _val->resize(_nb_instances);
+                }
                 embed(*fl);
 
-                auto fr = (func_*)(be->_rson.get());
+                
+                if (_nb_instances<fr->_nb_instances) {
+                    _dim = fr->_dim;
+                    _nb_instances = fr->_nb_instances;
+                    //                    _val->resize(_nb_instances);
+                }
+                if (fr->_nb_instances<_nb_instances && !be->is_inner_product()) {
+                    fr->_dim = _dim ;
+                    fr->_nb_instances = _nb_instances;
+                    //                    _val->resize(_nb_instances);
+                }
                 embed(*fr);
                 if (be->_otype==product_) {
                     if ((be->_lson->_is_matrix || be->_lson->_is_vector) && (be->_rson->_is_matrix || be->_rson->_is_vector)) {
@@ -3064,7 +3089,7 @@ namespace gravity{
         _is_transposed = false;
         _is_vector = false;
         _is_matrix = false;
-        _evaluated = true;
+        _evaluated = false;
         _dim.resize(1);
         _val->resize(1);
         _val->at(0) = 0;
@@ -3226,6 +3251,7 @@ namespace gravity{
             }
             lterm l(sign, c_new, p_new.get());
             update_sign(l);
+            update_nb_instances(l);
             _lterms->insert(make_pair<>(pname, move(l)));
             return true;
         }
@@ -3254,8 +3280,7 @@ namespace gravity{
     };
 
     void func_::insert(const lterm& term){
-        insert(term._sign, *term._coef, *term._p);
-        update_nb_instances(term);
+        insert(term._sign, *term._coef, *term._p);        
 //        _val->resize(_nb_instances);
     }
 
@@ -3776,8 +3801,12 @@ namespace gravity{
         _rson->reset_val();
     }
     
+    bool bexpr::is_inner_product() const{
+        return _otype==product_ && (_lson->get_dim(1)==_rson->get_dim(0) || (_lson->_is_transposed && _lson->get_dim(0)==_rson->get_dim(0)));
+    }
+    
     double uexpr::eval(size_t i) const{
-        if (_son->is_constant() && !_son->_evaluated) {
+        if (_son->is_constant() && !_son->_evaluated) {//TODO what if son is matrix?
 //            _son->_val = make_shared<vector<double>>();
             _son->_val->resize(_son->_nb_instances);
             for (unsigned inst = 0; inst < _son->_val->size(); inst++) {
@@ -3810,7 +3839,7 @@ namespace gravity{
     
     double uexpr::eval(size_t i, size_t j) const{
         if (!_is_matrix) {
-            return eval(j);
+            return eval(j);//TODO what if son is transposed
         }
         if (_son->is_constant() && !_son->_evaluated) {
             _son->_val->resize(_son->_nb_instances);
@@ -3818,13 +3847,19 @@ namespace gravity{
             if (_son->_is_matrix) {
                 for (unsigned row = 0; row<_son->_dim[0]; row++) {
                     for (unsigned col = 0; col<_son->_dim[1]; col++) {
-                        index = _son->_dim[1]*row + col;
+                        if (_is_transposed) {
+                            index = _son->_dim[0]*col + row;
+                        }
+                        else {
+                            index = _son->_dim[1]*row + col;
+                        }
+                        
                         _son->_val->at(index) = _son->eval(row,col);
                     }
                 }
             }
             else {
-                for (unsigned row = 0; row<_son->_dim[0]; row++) {
+                for (unsigned row = 0; row<_son->_nb_instances; row++) {
                     _son->_val->at(index) = _son->eval(index);
                 }
             }
@@ -4231,13 +4266,18 @@ namespace gravity{
             if (_lson->_is_matrix) {
                 for (unsigned row = 0; row<_lson->_dim[0]; row++) {
                     for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-                        index = _lson->_dim[1]*row + col;
+                        if (_is_transposed) {
+                            index = _lson->_dim[0]*col + row;
+                        }
+                        else {
+                            index = _lson->_dim[1]*row + col;
+                        }
                         _lson->_val->at(index) = _lson->eval(row,col);
                     }
                 }
             }
             else {
-                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
+                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
                     _lson->_val->at(index) = _lson->eval(index);
                 }
             }
@@ -4249,13 +4289,18 @@ namespace gravity{
             if (_rson->_is_matrix) {
                 for (unsigned row = 0; row<_rson->_dim[0]; row++) {
                     for (unsigned col = 0; col<_rson->_dim[1]; col++) {
-                        index = _rson->_dim[1]*row + col;
+                        if (_is_transposed) {
+                            index = _rson->_dim[0]*col + row;
+                        }
+                        else {
+                            index = _rson->_dim[1]*row + col;
+                        }
                         _rson->_val->at(index) = _rson->eval(row,col);
                     }
                 }
             }
             else {
-                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
+                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
                     _rson->_val->at(index) = _rson->eval(index);
                 }
             }
@@ -4277,13 +4322,13 @@ namespace gravity{
                     }
                     return _coef*res;
                 }
-                if (_lson->_is_matrix && !_rson->_is_matrix ) {//matrix * transposed vect
+                if (_lson->_is_matrix && !_rson->_is_matrix && _rson->_is_transposed) {//matrix * transposed vect
                     return _coef*(_lson->get_val(i,j) * _rson->get_val(j));
                 }
-                if (!_lson->_is_matrix && _rson->_is_matrix ) {//transposed vect * matrix
-                    return _coef*(_lson->get_val(i) * _rson->get_val(i,j));
+                if (!_lson->_is_matrix && !_lson->_is_transposed && _rson->_is_matrix ) {//vect * matrix
+                    return _coef*(_lson->get_val(i) * _rson->get_val(i,j));//TODO i ot j?
                 }
-                return _coef*(_lson->get_val(i,j) * _rson->get_val(i,j));
+                throw invalid_argument("eval(i,j) on non matrix function");
                 break;
             }
             case div_:
@@ -4301,7 +4346,7 @@ namespace gravity{
 
     double  bexpr::eval(ind i) const{
         if (_lson->is_constant() && !_lson->_evaluated) {
-            _lson->_val->resize(_lson->_nb_instances);
+            _lson->_val->resize(_lson->_nb_instances);//TODO what if son is a matrix?
 //            _lson->_val = make_shared<vector<double>>();
 //            if (_lson->_is_transposed) {
 //                _lson->_val->resize(_lson->_dim[0]);
@@ -4331,52 +4376,28 @@ namespace gravity{
                 return _coef*(_lson->get_val(i) - _rson->get_val(i));
                 break;
             case product_:
-                if ((_lson->_is_vector || _lson->_is_matrix) && !_rson->_is_transposed) {
+                if (_lson->_is_matrix && !_rson->_is_matrix && !_rson->_is_transposed) {//matrix * vect
                     double res = 0;
-                    unsigned dim = _lson->_dim[0];
-                    if (_lson->_is_matrix) {
-                        dim = _lson->_dim[1];
+                    for (unsigned j = 0; j<_rson->_nb_instances; j++) {
+                        res += _lson->get_val(i,j) * _rson->get_val(j);
                     }
-                    for (int j = 0; j < dim; j++) {
-                        res +=_coef*(_lson->get_val(i,j) * _rson->get_val(i,j));
-                    }
-                    return res;
+                    return _coef*(res);
                 }
-                else if ((_lson->_is_vector || _lson->_is_matrix) && _rson->_is_transposed) {
+                if (!_lson->_is_matrix && _lson->_is_transposed && _rson->_is_matrix ) {//transposed vect * matrix
                     double res = 0;
-                    if (_lson->_is_matrix && _rson->_is_matrix ) {
-                        for (int i1 = 0; i1 < _lson->get_dim(0); i1++) {
-                            for (int j = 0; j < _lson->get_dim(1); j++) {
-                                res +=_coef*(_lson->get_val(i1,j) * _rson->get_val(i1,j));
-                            }
-                        }
-                        return res;
+                    for (unsigned j = 0; j<_lson->_nb_instances; j++) {
+                        res += _lson->get_val(j) * _rson->get_val(j,i);
                     }
-                    if (_lson->_is_matrix && !_rson->_is_matrix ) {//matrix * transposed vect
-                        for (int j = 0; j < _lson->get_dim(1); j++) {
-                            res +=_coef*(_lson->get_val(i,j) * _rson->get_val(j));
-                        }
-                        return res;
-                    }
-                    if (!_lson->_is_matrix && _rson->_is_matrix ) {//transposed vect * matrix
-                        for (int j = 0; j < _rson->get_dim(1); j++) {
-                            res +=_coef*(_lson->get_val(j) * _rson->get_val(i,j));
-                        }
-                        return res;
-                    }
-                    else {// (!_lson->_is_matrix && !_rson->_is_matrix )
-                        if (!_lson->_is_transposed) {
-                            throw invalid_argument("vector * transposed vector => dimension issue\n");
-                        }
-                        for (int j = 0; j < _rson->get_dim(0); j++) {
-                            res +=_coef*(_lson->get_val(j) * _rson->get_val(j));
-                        }
-                        return res;
-                    }
+                    return _coef*(res);
                 }
-                else {
-                    return _coef*(_lson->get_val(i) * _rson->get_val(i));
+                if (!_lson->_is_matrix && _lson->_is_transposed && !_rson->_is_matrix && i==0) {//transposed vect * vec, a dot product of two vectors
+                    double res = 0;
+                    for (unsigned j = 0; j<_lson->_nb_instances; j++) {
+                        res += _lson->get_val(j) * _rson->get_val(j);
+                    }
+                    return _coef*(res);
                 }
+                return _coef*(_lson->get_val(i)*_rson->get_val(i));
                 break;
             case div_:
                 return _coef*(_lson->get_val(i)/_rson->get_val(i));
@@ -4419,7 +4440,7 @@ namespace gravity{
 
     func_ operator*(const constant_& c1, const constant_& c2){// Rewrite this to change res after the multiplication is done, make sure both vars are now vecs.
         if(c1.is_number()) {
-            if (c1._is_transposed) {
+            if (c1._is_transposed) {//TODO check when matrix
                 auto new_c2 = copy(c2);
                 new_c2->_is_vector = true;
                 auto res = func_(c1) *= move(*new_c2);
@@ -5282,14 +5303,12 @@ namespace gravity{
         for (auto &lt: *_lterms) {
             if (*lt.second._p == v) {
                 auto coef = copy(*lt.second._coef);
-                if (coef->_is_transposed || coef->_is_matrix) {
+                if (coef->_is_vector || coef->_is_matrix) {
                     coef->transpose();
                 }
-                if(lt.second._sign){
-                    res = (*coef);
-                }
-                else {
-                    res = (*coef);
+                res = move(*coef);
+                delete coef;
+                if(!lt.second._sign){
                     res *= -1;
                 }
             }
@@ -5362,9 +5381,9 @@ namespace gravity{
             return _val->at(0);
         }
         else {
-            if (i>=_val->size()) {
-                throw invalid_argument("error");
-            }
+//            if (i>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
             return _val->at(i);
         }
     }
@@ -5374,12 +5393,16 @@ namespace gravity{
 //            if (_is_transposed) {
 //                return get_val(i);
 //            }
+            throw invalid_argument("get_val i,j");
             return get_val(j);
         }
         if (is_number()) {
             return _val->at(0);
         }
         else {
+            if (_is_transposed) {
+                return _val->at(j*_dim[0]+i);
+            }
             return _val->at(i*_dim[1]+j);
         }
     }
@@ -5408,9 +5431,10 @@ namespace gravity{
             _val->resize(_nb_instances);
         }
         if (!_is_matrix) {
-            if (_is_transposed) {
-                return eval(i);
-            }
+//            if (_is_transposed) {
+//                return eval(i);
+//            }
+            
             return eval(j);
         }
         if (is_constant() && _evaluated) {
@@ -5418,6 +5442,9 @@ namespace gravity{
                 return _val->at(0);
             }
             else {
+                if (_is_transposed) {
+                    return _val->at(j*_dim[0]+i);
+                }
                 return _val->at(i*_dim[1]+j);
             }
         }
@@ -5439,7 +5466,7 @@ namespace gravity{
             _val->at(0) = res;
         }
         else {
-            _val->at(i*_dim[1]+j) = res;
+            set_val(i,j,res);
         }
         return res;
     }
@@ -5473,16 +5500,34 @@ namespace gravity{
         }
         res += poly_eval(_cst,i);
         if (_expr) {
+            if (_expr->is_uexpr()) {
+                auto ue = (uexpr*)_expr.get();
+//                if (ue->_son->is_constant()) {
+                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
+//                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
+//                }
+
+            }
+            else {
+                auto be = (bexpr*)_expr.get();
+                if(!be->is_inner_product()) {
+                    _nb_instances = max(_nb_instances, max(be->_lson->_nb_instances,be->_rson->_nb_instances));
+                }
+//                if (be->_lson->is_constant() && be->_rson->is_constant()) {
+//                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
+//                }
+
+            }
             res += _expr->eval(i);
         }
         if (is_number()) {
             _val->at(0) = res;
-            _evaluated = true;
+            _evaluated = false;//TODO fix this
         }
         else {
-            if (i>=_val->size()) {
-                throw invalid_argument("error");
-            }
+//            if (i>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
             _val->at(i) = res;
         }
         return res;
@@ -5769,25 +5814,14 @@ namespace gravity{
                 return _coef*(_lson->get_derivative(v) - _rson->get_derivative(v));
                 break;
             case product_:{
-                auto rson_df = _rson->get_derivative(v);
-//                if (rson_df._is_transposed) {
-//                    rson_df._is_transposed = false;
+                    return _coef*(_lson->get_derivative(v)*(*_rson) + (*_lson)*_rson->get_derivative(v));
+//                else {
+//                    auto lson = *_lson;
+////                    rson_df._is_transposed = !rson_df._is_transposed ;
+////                    lson._is_transposed = !lson._is_transposed;
+////                    lson.transpose();
+//                    return _coef*(_lson->get_derivative(v)*(*_rson) + rson_df*lson);
 //                }
-//                else if(rson_df._is_matrix){
-//                }
-                if (rson_df._is_transposed) {
-                    auto lson = *_lson;
-                    rson_df.transpose();
-                    lson.transpose();
-                    return _coef*(_lson->get_derivative(v)*(*_rson) + lson*rson_df);
-                }
-                else {
-                    auto lson = *_lson;
-//                    rson_df._is_transposed = !rson_df._is_transposed ;
-//                    lson._is_transposed = !lson._is_transposed;
-                    lson.transpose();
-                    return _coef*(_lson->get_derivative(v)*(*_rson) + rson_df*lson);
-                }
                 // f'g + fg'
                 break;
             }
@@ -6147,7 +6181,9 @@ namespace gravity{
         _vars = new_vars;
         delete _params;
         _params = new_params;
-//        embed(*this);
+        if (_expr) {
+            embed(_expr);
+        }
         return *this;
     }
     

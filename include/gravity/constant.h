@@ -98,7 +98,8 @@ namespace gravity {
         
         size_t get_dim(size_t i) const {
             if (_dim.size()<=i) {
-                throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
+//                throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
+                return 1;
             }
             return _dim[i];
         }
