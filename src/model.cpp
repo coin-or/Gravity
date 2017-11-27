@@ -1523,44 +1523,131 @@ void Model::embed(expr& e){
         case uexp_c:{
             auto ue = (uexpr*)&e;
             auto f = ue->_son;
-            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-            if (f_p.second) {
-                embed(f);
-                _nl_funcs.push_back(f);
-                DebugOn(f->to_str() << endl);
-//                f->_val = make_shared<vector<double>>();
-//                f->_val->resize(f->_nb_instances);
+            bool found_cpy = false;
+            auto name = f->to_str();
+            if (name.back()=='T') {
+                name = name.substr(0,name.size()-2);
+                if (_nl_funcs_map.count(name)>0) {
+                    auto cpy = _nl_funcs_map.at(name);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
             }
             else {
-                ue->_son = f_p.first->second;
+                auto name1 = "[["+name+"]]^T";
+                if (_nl_funcs_map.count(name1)>0) {
+                    auto cpy = _nl_funcs_map.at(name1);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+                auto name2 = name+"^T";
+                if (_nl_funcs_map.count(name2)>0) {
+                    auto cpy = _nl_funcs_map.at(name2);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+            }
+            if (!found_cpy) {
+                auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+                if (f_p.second) {
+                    embed(f);
+                    _nl_funcs.push_back(f);
+                    DebugOn(f->to_str() << endl);
+    //                f->_val = make_shared<vector<double>>();
+    //                f->_val->resize(f->_nb_instances);
+                }
+                else {
+                    ue->_son = f_p.first->second;
+                }
             }
             break;
         }
         case bexp_c:{
             auto be = (bexpr*)&e;
             auto f = be->_lson;
-            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-            if (f_p.second) {
-                embed(f);
-                DebugOn(f->to_str() << endl);
-                _nl_funcs.push_back(f);
-//                f->_val = make_shared<vector<double>>();
-//                f->_val->resize(f->_nb_instances);
+            bool found_cpy = false;
+            auto name = f->to_str();
+            if (name.back()=='T') {
+                name = name.substr(0,name.size()-2);
+                if (_nl_funcs_map.count(name)>0) {
+                    auto cpy = _nl_funcs_map.at(name);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
             }
             else {
-                be->_lson = f_p.first->second;
+                auto name1 = "[["+name+"]]^T";
+                if (_nl_funcs_map.count(name1)>0) {
+                    auto cpy = _nl_funcs_map.at(name1);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+                auto name2 = name+"^T";
+                if (_nl_funcs_map.count(name2)>0) {
+                    auto cpy = _nl_funcs_map.at(name2);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+            }
+            if (!found_cpy) {
+                auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+                if (f_p.second) {
+                    embed(f);
+                    DebugOn(f->to_str() << endl);
+                    _nl_funcs.push_back(f);
+    //                f->_val = make_shared<vector<double>>();
+    //                f->_val->resize(f->_nb_instances);
+                }
+                else {
+                    be->_lson = f_p.first->second;
+                }
             }
             f = be->_rson;
-            f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-            if (f_p.second) {
-                embed(f);
-                DebugOn(f->to_str() << endl);
-                _nl_funcs.push_back(f);
-//                f->_val = make_shared<vector<double>>();
-//                f->_val->resize(f->_nb_instances);
+            found_cpy = false;
+            name = f->to_str();
+            if (name.back()=='T') {
+                name = name.substr(0,name.size()-2);
+                if (_nl_funcs_map.count(name)>0) {
+                    auto cpy = _nl_funcs_map.at(name);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
             }
             else {
-                be->_rson = f_p.first->second;
+                auto name1 = "[["+name+"]]^T";
+                if (_nl_funcs_map.count(name1)>0) {
+                    auto cpy = _nl_funcs_map.at(name1);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+                auto name2 = name+"^T";
+                if (_nl_funcs_map.count(name2)>0) {
+                    auto cpy = _nl_funcs_map.at(name2);
+                    f->_val = cpy->_val;
+                    f->_evaluated = true;
+                    found_cpy = true;
+                }
+            }
+            if (!found_cpy) {
+                auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+                if (f_p.second) {
+                    embed(f);
+                    DebugOn(f->to_str() << endl);
+                    _nl_funcs.push_back(f);
+    //                f->_val = make_shared<vector<double>>();
+    //                f->_val->resize(f->_nb_instances);
+                }
+                else {
+                    be->_rson = f_p.first->second;
+                }
             }
             break;
         }
@@ -1579,15 +1666,45 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
 //            }
         }
     }
-    auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-    if (f_p.second) {
-        _nl_funcs.push_back(f_p.first->second);
-        DebugOn(f->to_str() << endl);
-        return f;
-//        f_p.first->second->_val = make_shared<vector<double>>();
-//        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
+    bool found_cpy = false;
+    auto name = f->to_str();
+    if (name.back()=='T') {
+        name = name.substr(0,name.size()-2);
+        if (_nl_funcs_map.count(name)>0) {
+            auto cpy = _nl_funcs_map.at(name);
+            f->_val = cpy->_val;
+            f->_evaluated = true;
+            found_cpy = true;
+        }
     }
-    return f_p.first->second;
+    else {
+        auto name1 = "[["+name+"]]^T";
+        if (_nl_funcs_map.count(name1)>0) {
+            auto cpy = _nl_funcs_map.at(name1);
+            f->_val = cpy->_val;
+            f->_evaluated = true;
+            found_cpy = true;
+        }
+        auto name2 = name+"^T";
+        if (_nl_funcs_map.count(name2)>0) {
+            auto cpy = _nl_funcs_map.at(name2);
+            f->_val = cpy->_val;
+            f->_evaluated = true;
+            found_cpy = true;
+        }
+    }
+    if (!found_cpy) {
+        auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
+        if (f_p.second) {
+            _nl_funcs.push_back(f_p.first->second);
+            DebugOn(f->to_str() << endl);
+            return f;
+    //        f_p.first->second->_val = make_shared<vector<double>>();
+    //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
+        }
+        return f_p.first->second;
+    }
+    return f;
 }
 
 
