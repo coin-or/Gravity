@@ -5521,7 +5521,7 @@ namespace gravity{
         }
         if (is_number()) {
             _val->at(0) = res;
-            _evaluated = true;//TODO fix this
+            _evaluated = false;//TODO fix this
         }
         else {
 //            if (i>=_val->size()) {
