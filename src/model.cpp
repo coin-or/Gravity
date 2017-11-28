@@ -520,7 +520,7 @@ void Model::compute_funcs() {
 //            }
             DebugOff(f->to_str()<<endl);
             for (int inst = 0; inst < f->_nb_instances; inst++) {
-                f->_val->at(inst) = f->eval(inst);
+                f->eval(inst);
             }
         }
         else {
@@ -529,14 +529,14 @@ void Model::compute_funcs() {
             if (!f->_is_hessian) {
                 for (int i = 0; i < f->_dim[0]; i++) {
                     for (int j = 0; j < f->_dim[1]; j++) {
-                        f->set_val(i,j,f->eval(i,j));
+                        f->eval(i,j);
                     }
                 }
             }
             else {
                 for (int i = 0; i < f->_dim[0]; i++) {
                     for (int j = i; j < f->_dim[1]; j++) {
-                        f->set_val(i,j,f->eval(i,j));
+                        f->eval(i,j);
                     }
                 }
             }
@@ -548,7 +548,7 @@ void Model::compute_funcs() {
     for (auto &c_p:_cons) {
         auto c = c_p.second;
         for (int inst = 0; inst < c->_nb_instances; inst++) {
-            c->_val->at(inst) = c->eval(inst);
+            c->eval(inst);
         }
         if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
             continue;
@@ -557,7 +557,7 @@ void Model::compute_funcs() {
             if (dfdx.second->_is_matrix) {
                 for (int i = 0; i<dfdx.second->_dim[0]; i++) {
                     for (int j = 0; j<dfdx.second->_dim[1]; j++) {
-                        dfdx.second->_val->at(i*dfdx.second->_dim[1]+j) = dfdx.second->eval(i,j);
+                        dfdx.second->eval(i,j);
                     }
                 }
             }
@@ -568,7 +568,7 @@ void Model::compute_funcs() {
 //            }
             else {
                 for (int inst = 0; inst < dfdx.second->_val->size(); inst++) {
-                    dfdx.second->_val->at(inst) = dfdx.second->eval(inst);
+                    dfdx.second->eval(inst);
                 }
             }
             if (c->is_quadratic() && !_first_call_hess) {
@@ -578,13 +578,13 @@ void Model::compute_funcs() {
                 if (dfd2x.second->_is_matrix) {
                     for (int i = 0; i<dfd2x.second->_dim[0]; i++) {
                         for (int j = 0; j<dfd2x.second->_dim[1]; j++) {
-                            dfd2x.second->_val->at(i*dfd2x.second->_dim[1]+j) = dfd2x.second->eval(i,j);
+                            dfd2x.second->eval(i,j);
                         }
                     }
                 }
                 else {
                     for (int inst = 0; inst < dfd2x.second->_val->size(); inst++) {
-                        dfd2x.second->_val->at(inst) = dfd2x.second->eval(inst);
+                        dfd2x.second->eval(inst);
                     }
                 }
             }
@@ -748,20 +748,20 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         cid = c->_id+inst;
                         if (v->_is_vector) {
                             auto dim = v->get_dim();
-//                            if (dfdx->_is_matrix) {
-//                                for (int j = 0; j<dim; j++) {
-//                                    res[idx] = dfdx->get_val(j,inst);
-//                                    _jac_vals[idx] = res[idx];
-//                                    idx++;
-//                                }
-//                            }
-//                            else {
+                            if (dfdx->_is_matrix) {
+                                for (int j = 0; j<dim; j++) {
+                                    res[idx] = dfdx->get_val(j,inst);
+                                    _jac_vals[idx] = res[idx];
+                                    idx++;
+                                }
+                            }
+                            else {
                                 for (int j = 0; j<dim; j++) {
                                     res[idx] = dfdx->get_val(j);
                                     _jac_vals[idx] = res[idx];
                                     idx++;
                                 }
-//                            }
+                            }
                         }
                         else {
                             res[idx] = dfdx->get_val(inst);
@@ -963,7 +963,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 for (unsigned j = i; j < df->_dim[1]; j++) {                                    
                                     hess = df->get_val(i,j);
                                     _hess_vals[idx_in++] = hess;
-                                    res[idx++] = lambda[c->_id + c_inst] * hess;
+                                    res[idx] += lambda[c->_id + c_inst] * hess;
                                 }
                             }
                         }
@@ -1154,6 +1154,11 @@ void Model::fill_in_maps() {
             DebugOff(df->to_str() << endl);
             df_p.second = embed(df);
             
+            for (auto &df2_p:*df_p.second->get_dfdx()) {
+                //            if (dfp.second->is_nonlinear()) {
+                df2_p.second = embed(df2_p.second);
+                //            }
+            }
 //                        }
         }
         c->_val = make_shared<vector<double>>();
@@ -1730,11 +1735,6 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
     }
     if (f->get_expr()) {
         embed(*f->get_expr());
-        for (auto &dfp:*f->get_dfdx()) {
-//            if (dfp.second->is_nonlinear()) {
-                dfp.second = embed(dfp.second);
-//            }
-        }
     }
     bool found_cpy = false;
     auto name = f->to_str();
