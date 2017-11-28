@@ -71,8 +71,8 @@ int Constraint::get_type() const{
     return _ctype;
 };
 
-bool Constraint::is_active() const{
-    return fabs(_dual) >  EPS;
+bool Constraint::is_active(unsigned inst) const{
+    return fabs(_dual[inst]) >  EPS;
 }
 
 /* Modifiers */
