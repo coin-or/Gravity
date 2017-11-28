@@ -138,9 +138,16 @@ int main (int argc, const char * argv[])
     else {
            fname = "../../data_sets/Ising/samples_bin_sml.csv";
     }
+    unsigned nr_threads = 5;
+    if (argc >= 3) {
+        auto opt = argv[2];
+        strtok(strdup(opt), "=");
+        nr_threads = atoi(strtok(NULL, "="));
+    }
+    DebugOn("Using " << nr_threads << " threads" << endl);
     read_samples(fname);
     solution.resize(nb_spins);
-    int nr_threads = 5;
+    
     std::vector<std::thread> threads;
     //Split constraints into nr_threads parts
     std::vector<int> limits = bounds(nr_threads, nb_spins);

@@ -184,7 +184,6 @@ namespace gravity {
         void add_McCormick(string name, var<>& v, var<>& v1, var<>& v2);
 
         
-        friend std::vector<int> bounds(int parts, int mem);
         
         /* Operators */
         
