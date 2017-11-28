@@ -115,7 +115,26 @@ namespace gravity {
         void set_x(const double* x); // Assign values to all variables based on array x.
         void compute_funcs();
         
-        void add_var(param_& v); //Add variables by copying variable
+        template <typename type>
+        void add_var(var<type>& v){//Add variables by copying variable
+            if (v._is_indexed) {
+                return;
+            }
+            if (_vars_name.count(v._name)==0) {
+                v.set_id(_nb_vars);
+                v.set_vec_id(_vars.size());
+                param_* newv;
+                if (v._dim[0]==0) {
+                    newv = (param_*)copy(v^1);
+                }
+                else {
+                    newv = (param_*)copy(v);
+                }
+                _vars_name[v._name] = newv;
+                _vars[v.get_vec_id()] = newv;        
+                _nb_vars += v.get_dim();        
+            }
+        };
         void del_var(const param_& v);
         
         

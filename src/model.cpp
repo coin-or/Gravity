@@ -160,19 +160,7 @@ void Model::add_var(param_* v){
     }
 };
 
-void Model::add_var(param_& v){
-    if (v._is_indexed) { 
-        return;
-    }
-    if (_vars_name.count(v._name)==0) {
-        v.set_id(_nb_vars);
-        v.set_vec_id(_vars.size());
-        auto newv = (param_*)copy(v);
-        _vars_name[v._name] = newv;
-        _vars[v.get_vec_id()] = newv;
-        _nb_vars += v.get_dim();
-    }
-};
+
 
 
 void Model::del_var(const param_& v){
