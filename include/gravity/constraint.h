@@ -50,7 +50,7 @@ namespace gravity {
         string get_name() const;
         int get_type() const;
         double get_rhs() const;
-        bool is_active() const;
+        bool is_active(unsigned inst = 0) const;
         size_t get_id_inst(size_t ind) const;
         
         
