@@ -138,11 +138,14 @@ int main (int argc, const char * argv[])
     else {
            fname = "../../data_sets/Ising/samples_bin_sml.csv";
     }
-    unsigned nr_threads = 5;
+    unsigned nr_threads = std::thread::hardware_concurrency();
     if (argc >= 3) {
         auto opt = argv[2];
         strtok(strdup(opt), "=");
         nr_threads = atoi(strtok(NULL, "="));
+    }
+    if (nr_threads<1) {
+        nr_threads=1;
     }
     DebugOn("Using " << nr_threads << " threads" << endl);
     read_samples(fname);
