@@ -12,6 +12,7 @@
 #include <gravity/solver.h>
 #include <gravity/csv.h>
 #include <stdlib.h>
+#include <thread>
 
 using namespace std;
 using namespace gravity;
@@ -67,53 +68,54 @@ bool read_samples(const char* fname){
 }
 
 
-void solve_spin(unsigned main_spin, int log_lev=0, bool relax=false){
-    param<short> nodal_stat("nodal_stat");
-    double val;
-    for (unsigned conf = 0; conf<nb_conf; conf++) {
-        for (unsigned spin = 0; spin<nb_spins; spin++) {
-            if (spin==main_spin) {
-                val =configs.eval(conf,spin);
-                nodal_stat.set_val(conf,spin,val);
-            }
-            else {
-                val = configs.eval(conf,spin)*configs.eval(conf,main_spin);
-                nodal_stat.set_val(conf,spin,val);
+void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false){
+    for (unsigned main_spin = spin1; main_spin<spin2; main_spin++) {
+        param<short> nodal_stat("nodal_stat");
+        double val;
+        for (unsigned conf = 0; conf<nb_conf; conf++) {
+            for (unsigned spin = 0; spin<nb_spins; spin++) {
+                if (spin==main_spin) {
+                    val =configs.eval(conf,spin);
+                    nodal_stat.set_val(conf,spin,val);
+                }
+                else {
+                    val = configs.eval(conf,spin)*configs.eval(conf,main_spin);
+                    nodal_stat.set_val(conf,spin,val);
+                }
             }
         }
+        DebugOn(RED << "############ SPIN NUMBER "<< main_spin << " ############\n "<< RESET);
+        
+        Model Ising("Ising Model");
+        /** Variables */
+        var<Real> x("x"), z("z", pos_), obj("obj");
+        Ising.add_var(x^nb_spins);
+        Ising.add_var(z^nb_spins);
+        Ising.add_var(obj);
+        Ising.min(obj);
+        
+        /** Constraints */
+        Constraint Absp("Absp");
+        Absp += z - x;
+        Ising.add_constraint(Absp >= 0);
+        Constraint Absn("Absn");
+        Absn += z + x;
+        Ising.add_constraint(Absn >= 0);
+        
+        Constraint Obj("Obj");
+        Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+        Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
+        Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
+        Ising.add_constraint(Obj>=0);
+        
+        /** Solver */
+        solver NLP(Ising,ipopt);
+        NLP.run(log_lev=0,relax=false,"ma57",1e-12,"yes");
+        solution[main_spin].resize(nb_spins);
+        for (unsigned spin = 0; spin<nb_spins; spin++) {
+            solution[main_spin][spin] = x.eval(spin);
+        }
     }
-    DebugOn(RED << "############ SPIN NUMBER "<< main_spin << " ############\n "<< RESET);
-    
-    Model Ising("Ising Model");
-    /** Variables */
-    var<Real> x("x"), z("z", pos_), obj("obj");
-    Ising.add_var(x^nb_spins);
-    Ising.add_var(z^nb_spins);
-    Ising.add_var(obj);
-    Ising.min(obj);
-    
-    /** Constraints */
-    Constraint Absp("Absp");
-    Absp += z - x;
-    Ising.add_constraint(Absp >= 0);
-    Constraint Absn("Absn");
-    Absn += z + x;
-    Ising.add_constraint(Absn >= 0);
-    
-    Constraint Obj("Obj");
-    Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
-    Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
-    Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
-    Ising.add_constraint(Obj>=0);
-    
-    /** Solver */
-    solver NLP(Ising,ipopt);
-    NLP.run(log_lev=0,relax=false,"ma57",1e-12,"yes");
-    solution[main_spin].resize(nb_spins);
-    for (unsigned spin = 0; spin<nb_spins; spin++) {
-        solution[main_spin][spin] = x.eval(spin);
-    }
-
 }
 
 void print_sol() {
@@ -138,8 +140,18 @@ int main (int argc, const char * argv[])
     }
     read_samples(fname);
     solution.resize(nb_spins);
-    for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
-        solve_spin(main_spin,log_lev,relax);
+    int nr_threads = 5;
+    std::vector<std::thread> threads;
+    //Split constraints into nr_threads parts
+    std::vector<int> limits = bounds(nr_threads, nb_spins);
+    vector<double*> sub_res;
+    //Launch nr_threads threads:
+    for (int i = 0; i < nr_threads; ++i) {
+        threads.push_back(std::thread(solve_spin, limits[i], limits[i+1], log_lev, relax));
+    }
+    //Join the threads with the main thread
+    for(auto &t : threads){
+        t.join();
     }
     print_sol();
     return 0;

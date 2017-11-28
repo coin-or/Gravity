@@ -26,7 +26,12 @@
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
+#include <vector>
 double get_wall_time();
 double get_cpu_time();
 
+//Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
+//if possible the function will split mem into equal chuncks, if not
+//the last chunck will be slightly larger
+std::vector<int> bounds(int parts, int mem);
 #endif
