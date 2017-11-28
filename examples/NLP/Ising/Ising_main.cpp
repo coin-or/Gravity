@@ -78,8 +78,8 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-//           fname = "../../data_sets/Ising/samples_bin_sml.csv";
-        fname = "../../data_sets/Ising/samples_bin.csv";
+           fname = "../../data_sets/Ising/samples_bin_sml.csv";
+//        fname = "../../data_sets/Ising/samples_bin.csv";
 //        fname = "/users/hh/Downloads/zeros-2x2-2k_2m.csv";
     }
     
@@ -125,7 +125,9 @@ int main (int argc, const char * argv[])
 //        Ising.add_constraint(Exp>=0);
         
 //        Constraint NLin("NLin");
-//        NLin += f - expo(-1*product(nodal_stat,x));
+//        NLin += g - expo(-1*product(nodal_stat,x));
+//        NLin.set_first_derivative(x, nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr());
+//        NLin.set_second_derivative(x, x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*nodal_stat));
 //        Ising.add_constraint(NLin>=0);
 
         Constraint Absp("Absp");

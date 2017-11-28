@@ -492,7 +492,7 @@ namespace gravity {
             return f;
         }
 
-        void transpose(){//TODO make the transpose implicit
+        void transpose(){
             _is_transposed = !_is_transposed;
             if (!_is_vector) {
                 _is_vector = true;
@@ -501,9 +501,9 @@ namespace gravity {
                 auto temp = _dim[0];
                 _dim[0] = _dim[1];
                 _dim[1] = temp;
-//                for (auto &p_t:*_params) {
-//                    p_t.second.first->transpose();
-//                }
+                for (auto &p_t:*_params) {
+                    p_t.second.first->transpose();
+                }
             }
         }
         void set_first_derivative(const param_& v, func_&& f){
