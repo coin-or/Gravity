@@ -24,6 +24,26 @@ param<double> nb_samples_pu("nb_samples_pu");
 vector<vector<double>> solution;
 double regularizor, lambda;
 
+void write_sol(string input_file, string output_file=""){
+    ofstream fs;
+    // create a name for the output file
+    std::string filename = input_file;
+    if (output_file=="") {
+        filename = filename.substr(0,filename.size()-4);//remove csv extension
+        filename +="_solution.csv";
+    }
+    else {
+        filename = output_file;
+    }
+    fs.open(filename);
+    for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
+        for (unsigned spin = 0; spin<nb_spins-1; spin++) {
+            fs << solution[main_spin][spin] << ",";
+        }
+        fs << solution[main_spin][nb_spins-1] << endl;
+    }
+    fs.close();
+}
 
 bool read_samples(const char* fname){
     int val;
@@ -164,6 +184,7 @@ int main (int argc, const char * argv[])
         t.join();
     }
     print_sol();
+    write_sol(fname);
     return 0;
 }
 
