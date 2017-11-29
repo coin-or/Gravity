@@ -21,6 +21,10 @@ using namespace gravity;
 
 int main (int argc, const char * argv[])
 {
+    int output = 0;
+    bool relax = false;
+    double tol = 1e-6;
+    string mehrotra = "no";
     const char* fname;
     if (argc >= 2) {
         fname = argv[1];
@@ -64,7 +68,7 @@ int main (int argc, const char * argv[])
     var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
 
     SOCP.add_var(Pf_from^(nb_lines));
-    SOCP.add_var(Qf_from^(nb_lines));
+    SOCP.add_var(Qf_from^(nb_lines));//TODO change to .in(grid->arcs), remove .in(grid->arcs) from bounds declaration
     SOCP.add_var(Pf_to^(nb_lines));
     SOCP.add_var(Qf_to^(nb_lines));
     
@@ -86,7 +90,7 @@ int main (int argc, const char * argv[])
 //            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
-    SOCP.set_objective(min(obj));
+    SOCP.min(obj);
     
     
     /** Define constraints */
@@ -115,63 +119,63 @@ int main (int argc, const char * argv[])
 
     //AC Power Flow
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(grid->arcs);
-    Flow_P_From -= grid->g_ff.in(grid->arcs)*Wii.from(grid->arcs);
-    Flow_P_From -= grid->g_ft.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
-    Flow_P_From -= grid->b_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
+    Flow_P_From += Pf_from;
+    Flow_P_From -= grid->g_ff*Wii.from(grid->arcs);
+    Flow_P_From -= grid->g_ft*R_Wij.in_pairs(grid->arcs);
+    Flow_P_From -= grid->b_ft*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_P_From = 0);
     
     
     Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(grid->arcs);
-    Flow_P_To -= grid->g_tt.in(grid->arcs)*Wii.to(grid->arcs);
-    Flow_P_To -= grid->g_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
-    Flow_P_To += grid->b_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
+    Flow_P_To += Pf_to;
+    Flow_P_To -= grid->g_tt*Wii.to(grid->arcs);
+    Flow_P_To -= grid->g_tf*R_Wij.in_pairs(grid->arcs);
+    Flow_P_To += grid->b_tf*Im_Wij.in_pairs(grid->arcs);
     SOCP.add_constraint(Flow_P_To = 0);
 
     
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(grid->arcs);
-    Flow_Q_From += grid->b_ff.in(grid->arcs)*Wii.from(grid->arcs);
-    Flow_Q_From += grid->b_ft.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
-    Flow_Q_From -= grid->g_ft.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_Q_From = 0);
+    Flow_Q_From += Qf_from;
+    Flow_Q_From += grid->b_ff*Wii.from(grid->arcs);
+    Flow_Q_From += grid->b_ft*R_Wij.in_pairs(grid->arcs);
+    Flow_Q_From -= grid->g_ft*Im_Wij.in_pairs(grid->arcs);
+    SOCP.add_constraint(Flow_Q_From.in(grid->arcs) = 0);
 //
     Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(grid->arcs);
-    Flow_Q_To += grid->b_tt.in(grid->arcs)*Wii.to(grid->arcs);
-    Flow_Q_To += grid->b_tf.in(grid->arcs)*R_Wij.in_pairs(grid->arcs);
-    Flow_Q_To += grid->g_tf.in(grid->arcs)*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_Q_To = 0);
+    Flow_Q_To += Qf_to;
+    Flow_Q_To += grid->b_tt*Wii.to(grid->arcs);
+    Flow_Q_To += grid->b_tf*R_Wij.in_pairs(grid->arcs);
+    Flow_Q_To += grid->g_tf*Im_Wij.in_pairs(grid->arcs);
+    SOCP.add_constraint(Flow_Q_To.in(grid->arcs) = 0);
 //
     ///* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bus_pairs);
-    PAD_UB -= (grid->tan_th_max).in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_UB <= 0);
+    PAD_UB = Im_Wij;
+    PAD_UB -= (grid->tan_th_max)*R_Wij;
+    SOCP.add_constraint(PAD_UB.in(bus_pairs) <= 0);
     
     Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bus_pairs);
-    PAD_LB -= grid->tan_th_min.in(bus_pairs)*R_Wij.in(bus_pairs);
-    SOCP.add_constraint(PAD_LB >= 0);
+    PAD_LB =  Im_Wij;
+    PAD_LB -= grid->tan_th_min*R_Wij;
+    SOCP.add_constraint(PAD_LB.in(bus_pairs) >= 0);
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from.in(grid->arcs), 2) + power(Qf_from.in(grid->arcs), 2);
-    Thermal_Limit_from -= power(grid->S_max.in(grid->arcs),2);
-    SOCP.add_constraint(Thermal_Limit_from <= 0);
+    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
+    Thermal_Limit_from -= power(grid->S_max,2);
+    SOCP.add_constraint(Thermal_Limit_from.in(grid->arcs) <= 0);
     
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to.in(grid->arcs), 2) + power(Qf_to.in(grid->arcs), 2);
-    Thermal_Limit_to -= power(grid->S_max.in(grid->arcs),2);
-    SOCP.add_constraint(Thermal_Limit_to <= 0);
+    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to -= power(grid->S_max,2);
+    SOCP.add_constraint(Thermal_Limit_to.in(grid->arcs) <= 0);
   
 //    Constraint NL("NL");
 //    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
 //    SOCP.add_constraint(NL <= 0);
     
    solver SCOPF(SOCP,ipopt);
-//   solver SCOPF(SOCP, cplex);
-    SCOPF.run();
+//   solver SCOPF(SOCP, cplex);    
+    SCOPF.run(output = 0, relax = false, "ma27", tol = 1e-6, mehrotra = "no");
     return 0;
 }

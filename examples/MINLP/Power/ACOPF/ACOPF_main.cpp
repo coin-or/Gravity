@@ -19,6 +19,10 @@ using namespace gravity;
 
 int main (int argc, const char * argv[])
 {
+    int output = 0;
+    bool relax = false;
+    double tol = 1e-6;
+    string mehrotra = "no";
     const char* fname;
     if (argc >= 2) {
         fname = argv[1];
@@ -286,6 +290,6 @@ int main (int argc, const char * argv[])
 
     //solver OPF(ACOPF,cplex);
     solver OPF(ACOPF,ipopt);
-    OPF.run();
+    OPF.run(output = 0, relax = false, "ma27", tol = 1e-6, mehrotra = "no");
     return 0;
 }
