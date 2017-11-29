@@ -56,7 +56,8 @@ public:
     //var<> pg;
     /** @brief Reactive power generation variable */
     //var<> qg;
-    
+    Bus* _src = nullptr;
+    Bus* _dest = nullptr;
     
     /** @brief Initialiser with linked Bus and generator properties
      */

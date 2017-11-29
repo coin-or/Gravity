@@ -34,8 +34,10 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
-        fname = "../../data_sets/Power/nesta_case118_ieee.m";
-
+//        fname = "../../data_sets/Power/nesta_case118_ieee.m";
+//        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
+        //       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
+        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
     }
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname);
@@ -87,7 +89,6 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-//            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c0(g->_name);
         }
     }
     SOCP.min(obj);
@@ -96,8 +97,8 @@ int main (int argc, const char * argv[])
     /** Define constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
-    SOC =  power(R_Wij.in(bus_pairs), 2) + power(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs) ;
-    SOCP.add_constraint(SOC <= 0);
+    SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
+    SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
 //
     //KCL
     for (auto b: grid->nodes) {
@@ -120,32 +121,32 @@ int main (int argc, const char * argv[])
     //AC Power Flow
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from;
-    Flow_P_From -= grid->g_ff*Wii.from(grid->arcs);
-    Flow_P_From -= grid->g_ft*R_Wij.in_pairs(grid->arcs);
-    Flow_P_From -= grid->b_ft*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_P_From = 0);
+    Flow_P_From -= grid->g_ff*Wii.from();
+    Flow_P_From -= grid->g_ft*R_Wij.in_pairs();
+    Flow_P_From -= grid->b_ft*Im_Wij.in_pairs();
+    SOCP.add_constraint(Flow_P_From.in(grid->arcs) = 0);
     
     
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to;
-    Flow_P_To -= grid->g_tt*Wii.to(grid->arcs);
-    Flow_P_To -= grid->g_tf*R_Wij.in_pairs(grid->arcs);
-    Flow_P_To += grid->b_tf*Im_Wij.in_pairs(grid->arcs);
-    SOCP.add_constraint(Flow_P_To = 0);
+    Flow_P_To -= grid->g_tt*Wii.to();
+    Flow_P_To -= grid->g_tf*R_Wij.in_pairs();
+    Flow_P_To += grid->b_tf*Im_Wij.in_pairs();
+    SOCP.add_constraint(Flow_P_To.in(grid->arcs) = 0);
 
     
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from;
-    Flow_Q_From += grid->b_ff*Wii.from(grid->arcs);
-    Flow_Q_From += grid->b_ft*R_Wij.in_pairs(grid->arcs);
-    Flow_Q_From -= grid->g_ft*Im_Wij.in_pairs(grid->arcs);
+    Flow_Q_From += grid->b_ff*Wii.from();
+    Flow_Q_From += grid->b_ft*R_Wij.in_pairs();
+    Flow_Q_From -= grid->g_ft*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_Q_From.in(grid->arcs) = 0);
 //
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to;
-    Flow_Q_To += grid->b_tt*Wii.to(grid->arcs);
-    Flow_Q_To += grid->b_tf*R_Wij.in_pairs(grid->arcs);
-    Flow_Q_To += grid->g_tf*Im_Wij.in_pairs(grid->arcs);
+    Flow_Q_To += grid->b_tt*Wii.to();
+    Flow_Q_To += grid->b_tf*R_Wij.in_pairs();
+    Flow_Q_To += grid->g_tf*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_Q_To.in(grid->arcs) = 0);
 //
     ///* Phase Angle Bounds constraints */

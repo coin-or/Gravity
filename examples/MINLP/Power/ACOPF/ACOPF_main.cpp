@@ -36,7 +36,7 @@ int main (int argc, const char * argv[])
 //           fname = "../../data_sets/Power/nesta_case118_ieee.m";
 //           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
 //       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
-        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
+        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case14_ieee.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
@@ -122,14 +122,16 @@ int main (int argc, const char * argv[])
     }
 
     /** Construct the objective function */
+//    func_ obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
+//    ACOPF.min(obj.in(grid.gens));
     func_ obj;
     for (auto g:grid.gens) {
         if (g->_active) {
             obj += grid.c1(g->_name)*Pg(g->_name) + grid.c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid.c0(g->_name);
         }
     }
-
-    ACOPF.set_objective(min(obj));
+    ACOPF.min(obj);
+    
     /** Define constraints */
     
     /* REF BUS */

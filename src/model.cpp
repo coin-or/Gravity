@@ -645,9 +645,9 @@ void Model::compute_funcs() {
     }
     for (auto &c_p:_cons) {
         auto c = c_p.second;
-        for (int inst = 0; inst < c->_nb_instances; inst++) {
-            c->eval(inst);
-        }
+//        for (int inst = 0; inst < c->_nb_instances; inst++) {
+//            c->eval(inst);
+//        }
         if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
             continue;
         }
@@ -768,19 +768,19 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         set_x(x);
         compute_funcs();
     }
-    if (_type==nlin_m) {
-        for(auto& c_p: _cons)
-        {
-            c = c_p.second.get();
-            auto nb_ins = c->_nb_instances;
-            for (int inst = 0; inst< nb_ins; inst++){
-                res[c->_id+inst] = c->get_val(inst);
-//                _cons_vals[index++] = res[c->_id+inst];
-                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-            }
-        }
-    }
-    else {
+//    if (_type==nlin_m) {
+//        for(auto& c_p: _cons)
+//        {
+//            c = c_p.second.get();
+//            auto nb_ins = c->_nb_instances;
+//            for (int inst = 0; inst< nb_ins; inst++){
+//                res[c->_id+inst] = c->get_val(inst);
+////                _cons_vals[index++] = res[c->_id+inst];
+//                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+//            }
+//        }
+//    }
+//    else {
         for(auto& c_p: _cons)
         {
             c = c_p.second.get();
@@ -791,7 +791,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
                 DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
             }
         }
-    }
+//    }
 //    }
 //    else {
 //        
