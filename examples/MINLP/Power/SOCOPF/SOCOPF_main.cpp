@@ -22,7 +22,7 @@ using namespace gravity;
 int main (int argc, const char * argv[])
 {
     int output = 0;
-    bool relax = false;
+    bool relax = false, use_cplex = false;
     double tol = 1e-6;
     string mehrotra = "no";
     const char* fname;
@@ -84,7 +84,7 @@ int main (int argc, const char * argv[])
     
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
-    /** Construct the objective function*/
+    /**  Objective */
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
@@ -94,13 +94,13 @@ int main (int argc, const char * argv[])
     SOCP.min(obj);
     
     
-    /** Define constraints */
+    /** Constraints */
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
     SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
-//
-    //KCL
+
+    /* KCL */
     for (auto b: grid->nodes) {
         Bus* bus = (Bus*) b;
         Constraint KCL_P("KCL_P"+bus->_name);
@@ -118,7 +118,7 @@ int main (int argc, const char * argv[])
         SOCP.add_constraint(KCL_Q = 0);
     }
 
-    //AC Power Flow
+    /* AC Power Flow */
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from;
     Flow_P_From -= grid->g_ff*Wii.from();
@@ -141,15 +141,15 @@ int main (int argc, const char * argv[])
     Flow_Q_From += grid->b_ft*R_Wij.in_pairs();
     Flow_Q_From -= grid->g_ft*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_Q_From.in(grid->arcs) = 0);
-//
+
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to;
     Flow_Q_To += grid->b_tt*Wii.to();
     Flow_Q_To += grid->b_tf*R_Wij.in_pairs();
     Flow_Q_To += grid->g_tf*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_Q_To.in(grid->arcs) = 0);
-//
-    ///* Phase Angle Bounds constraints */
+
+    /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB -= (grid->tan_th_max)*R_Wij;
@@ -170,13 +170,17 @@ int main (int argc, const char * argv[])
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid->S_max,2);
     SOCP.add_constraint(Thermal_Limit_to.in(grid->arcs) <= 0);
-  
-//    Constraint NL("NL");
-//    NL = Wii(grid->get_ref_bus())*R_Wij(bus_pairs.front()->_name)*Im_Wij(bus_pairs.front()->_name);
-//    SOCP.add_constraint(NL <= 0);
+
     
-   solver SCOPF(SOCP,ipopt);
-//   solver SCOPF(SOCP, cplex);    
-    SCOPF.run(output = 0, relax = false, "ma27", tol = 1e-6, mehrotra = "no");
+    
+    if (use_cplex) {
+        solver SCOPF_CPX(SOCP, cplex);
+        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
+    }
+    else {
+        solver SCOPF(SOCP,ipopt);
+        SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    }
+    
     return 0;
 }

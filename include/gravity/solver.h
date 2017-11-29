@@ -47,7 +47,7 @@ namespace gravity {
         /* Destructor */
         ~solver();
         
-        int run(int output = 0, bool relax = false, const string& lin_solver = "ma27", double tol = 1e-6, const string& mehrotra = "no");
+        int run(int output = 0, bool relax = false, double tol = 1e-6, const string& lin_solver = "ma27", const string& mehrotra = "no");
     };
 }
 #endif /* defined(__PowerTools____Solver__) */

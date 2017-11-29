@@ -131,7 +131,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         
         /** Solver */
         solver NLP(Ising,ipopt);
-        NLP.run(log_lev=0,relax=false,"ma27",1e-12,mehrotra);
+        NLP.run(log_lev=0,relax=false,1e-12,"ma27",mehrotra);
         
         
         solution[main_spin].resize(nb_spins);
