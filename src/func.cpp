@@ -1670,6 +1670,8 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _is_matrix = f._is_matrix;
+        _is_constraint = f._is_constraint;
+        _is_hessian = f._is_hessian;
         _dim = f._dim;
         _embedded = f._embedded;
         if (is_constant()) {
@@ -1704,6 +1706,8 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _is_matrix = f._is_matrix;
+        _is_constraint = f._is_constraint;
+        _is_hessian = f._is_hessian;
         _dim = f._dim;
         _embedded = f._embedded;
         if (is_constant()) {
@@ -1822,6 +1826,8 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _is_matrix = f._is_matrix;
+        _is_constraint = f._is_constraint;
+        _is_hessian = f._is_hessian;
         _dim = f._dim;
         _embedded = f._embedded;
         _return_type = f._return_type;
@@ -1952,6 +1958,8 @@ namespace gravity{
         _is_transposed = f._is_transposed;
         _is_vector = f._is_vector;
         _is_matrix = f._is_matrix;
+        _is_constraint = f._is_constraint;
+        _is_hessian = f._is_hessian;
         _dim = f._dim;
         _embedded = f._embedded;
         _nnz_j = f._nnz_j;

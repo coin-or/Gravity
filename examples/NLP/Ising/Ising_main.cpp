@@ -22,7 +22,7 @@ param<short> configs("configs");
 param<int> nb_samples("nb_samples");
 param<double> nb_samples_pu("nb_samples_pu");
 vector<vector<double>> solution;
-double regularizor, lambda;
+double regularizor=0.2, lambda;
 
 void write_sol(string input_file, string output_file=""){
     ofstream fs;
@@ -80,7 +80,6 @@ bool read_samples(const char* fname){
     for (unsigned i = 0; i<nb_conf; i++) {
         nb_samples_pu = nb_samples.eval(i)/(double)tot_nb_samples;
     }
-    regularizor = 0.2;
     lambda = regularizor*sqrt(log((pow(nb_spins,2))/0.05)/tot_nb_samples);
     DebugOn("Lambda = " << lambda << endl);
 
@@ -88,7 +87,7 @@ bool read_samples(const char* fname){
 }
 
 
-void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false){
+void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false, string mehrotra="yes"){
     for (unsigned main_spin = spin1; main_spin<spin2; main_spin++) {
         param<short> nodal_stat("nodal_stat");
         double val;
@@ -115,12 +114,14 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false)
         Ising.min(obj);
         
         /** Constraints */
-        Constraint Absp("Absp");
-        Absp += z - x;
-        Ising.add_constraint(Absp >= 0);
-        Constraint Absn("Absn");
-        Absn += z + x;
-        Ising.add_constraint(Absn >= 0);
+        if (lambda>0) {
+            Constraint Absp("Absp");
+            Absp += z - x;
+            Ising.add_constraint(Absp >= 0);
+            Constraint Absn("Absn");
+            Absn += z + x;
+            Ising.add_constraint(Absn >= 0);
+        }
         
         Constraint Obj("Obj");
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
@@ -130,7 +131,9 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false)
         
         /** Solver */
         solver NLP(Ising,ipopt);
-        NLP.run(log_lev=0,relax=false,"ma57",1e-12,"yes");
+        NLP.run(log_lev=0,relax=false,"ma27",1e-12,mehrotra);
+        
+        
         solution[main_spin].resize(nb_spins);
         for (unsigned spin = 0; spin<nb_spins; spin++) {
             solution[main_spin][spin] = x.eval(spin);
@@ -158,7 +161,8 @@ int main (int argc, const char * argv[])
     else {
            fname = "../../data_sets/Ising/samples_bin_sml.csv";
     }
-    unsigned nr_threads = std::thread::hardware_concurrency();
+//    unsigned nr_threads = std::thread::hardware_concurrency();
+    unsigned nr_threads = 1;
     if (argc >= 3) {
         auto opt = argv[2];
         strtok(strdup(opt), "=");
@@ -168,6 +172,17 @@ int main (int argc, const char * argv[])
         nr_threads=1;
     }
     DebugOn("Using " << nr_threads << " threads" << endl);
+    if (argc >= 4) {
+        auto reg = argv[3];
+        strtok(strdup(reg), "=");
+        regularizor = atof(strtok(NULL, "="));
+    }
+    DebugOn("Regularizor = " << regularizor << endl);
+    string mehrotra="yes";
+    if (regularizor==0) {
+//        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
+        regularizor = 1e-6;
+    }
     read_samples(fname);
     solution.resize(nb_spins);
     
@@ -177,7 +192,7 @@ int main (int argc, const char * argv[])
     vector<double*> sub_res;
     //Launch nr_threads threads:
     for (int i = 0; i < nr_threads; ++i) {
-        threads.push_back(std::thread(solve_spin, limits[i], limits[i+1], log_lev, relax));
+        threads.push_back(std::thread(solve_spin, limits[i], limits[i+1], log_lev, relax, mehrotra));
     }
     //Join the threads with the main thread
     for(auto &t : threads){
