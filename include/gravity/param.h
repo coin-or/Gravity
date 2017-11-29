@@ -812,6 +812,14 @@ public:
         res._name += ".from";
         return res;
     }
+
+    param in_pairs() {
+        auto res(*this);
+        get<1>(res._unique_id) = in_pairs_;
+        res._name += ".in_pairs";
+        return res;
+    }
+
     
     template<typename Tobj>
     param from(const vector<Tobj*>& vec) {

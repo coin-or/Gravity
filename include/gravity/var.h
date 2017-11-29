@@ -74,6 +74,16 @@ public:
         return res;
     }
 
+    
+    var in_pairs(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pairs());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     var from(){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::from());
