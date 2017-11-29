@@ -437,6 +437,20 @@ public:
         update_range(val);
     }
     
+    void set_val(string key, type val) {
+        auto index = param_::_indices->size();
+        auto pp = param_::_indices->insert(make_pair<>(key,index));
+        if (pp.second) {//new index inserted
+            _val->resize(max(_val->size(),index+1));
+            _dim[0] = max(_dim[0],_val->size());
+            _val->at(index) = val;
+        }
+        else {
+            _val->at(pp.first->second) = val;
+        }
+        update_range(val);
+    }
+    
     void set_val(size_t i, type val) {
         _dim[0] = max(_dim[0],i+1);
         _val->resize(max(_val->size(),i+1));

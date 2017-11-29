@@ -27,10 +27,12 @@ int main (int argc, const char * argv[])
 //            fname = "../../data_sets/Power/nesta_case5_pjm.m";
            //fname = "../../data_sets/Power/nesta_case14_ieee.m";
            //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-           //fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+//           fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
            //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
 //           fname = "../../data_sets/Power/nesta_case118_ieee.m";
-           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
+//           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
+//       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
+        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case14_ieee.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
 //        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
@@ -147,6 +149,7 @@ int main (int argc, const char * argv[])
         Constraint KCL_Q("KCL_Q"+bus->_name);
 
         /* Power Conservation */
+//        KCL_P = Pf_from.in() + Pf_to.out() + grid.pl - Pg.in() + grid.gs*power(v,2);
         KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl()- sum(Pg.in(bus->_gen));
         KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
         
@@ -235,14 +238,14 @@ int main (int argc, const char * argv[])
     // AC voltage limit constraints.
     if (!polar) {
         Constraint Vol_limit_UB("Vol_limit_UB");
-        Vol_limit_UB = power(vr.in(grid.nodes), 2) + power(vi.in(grid.nodes), 2);
-        Vol_limit_UB -= power(grid.v_max.in(grid.nodes), 2);
-        ACOPF.add_constraint(Vol_limit_UB <= 0);
+        Vol_limit_UB = power(vr, 2) + power(vi, 2);
+        Vol_limit_UB -= power(grid.v_max, 2);
+        ACOPF.add_constraint(Vol_limit_UB.in(grid.nodes) <= 0);
 
         Constraint Vol_limit_LB("Vol_limit_LB");
-        Vol_limit_LB = power(vr.in(grid.nodes), 2) + power(vi.in(grid.nodes), 2);
-        Vol_limit_LB -= power(grid.v_min.in(grid.nodes),2);    
-        ACOPF.add_constraint(Vol_limit_LB >= 0);
+        Vol_limit_LB = power(vr, 2) + power(vi, 2);
+        Vol_limit_LB -= power(grid.v_min,2);
+        ACOPF.add_constraint(Vol_limit_LB.in(grid.nodes) >= 0);
     }
 
     
