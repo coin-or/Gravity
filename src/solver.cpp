@@ -124,7 +124,7 @@ solver::~solver(){
 //}
 
 
-int solver::run(int output, bool relax, const string& lin_solver, double tol, const string& mehrotra){
+int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
     //GurobiProgram* grbprog;
     // Initialize the IpoptApplication and process the options
 

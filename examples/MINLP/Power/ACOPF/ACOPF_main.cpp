@@ -292,6 +292,6 @@ int main (int argc, const char * argv[])
 
     //solver OPF(ACOPF,cplex);
     solver OPF(ACOPF,ipopt);
-    OPF.run(output = 0, relax = false, "ma27", tol = 1e-6, mehrotra = "no");
+    OPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
     return 0;
 }
