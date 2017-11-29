@@ -554,7 +554,7 @@ namespace gravity {
         
         template<typename Tobj>
         func_& in(const vector<Tobj*>& vec);
-        
+        func_& in(const vector<Node*>& vec);
         void insert(const lterm& term);
         
         void insert(const qterm& term);
