@@ -330,12 +330,19 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2.set_val(i,atof(word.c_str())*pow(bMVA,2));
+//        c2.set_val(i,atof(word.c_str())*pow(bMVA,2));
+//        file >> word;
+//        c1.set_val(i,atof(word.c_str())*bMVA);
+//        file >> word;
+//        c0.set_val(i,atof(word.c_str()));
+//        gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
+        c2(i) = atof(word.c_str())*pow(bMVA,2);
         file >> word;
-        c1.set_val(i,atof(word.c_str())*bMVA);
+        c1(i) = atof(word.c_str())*bMVA;
         file >> word;
-        c0.set_val(i,atof(word.c_str()));
+        c0(i) = atof(word.c_str());
         gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
+//        gens[gen_counter++]->set_costs(c0(name).eval(), c1(name).eval(), c2(name).eval());
         getline(file, word);
     }
     file.seekg (0, file.beg);
