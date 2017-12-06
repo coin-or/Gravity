@@ -281,28 +281,28 @@ int PowerNet::readgrid(const char* fname) {
         bus = (Bus*)(Net::get_node(bus_name));
         name = to_string(index);
         file >> word;
-        pg_s.set_val(name,atof(word.c_str())/bMVA);
+        pg_s.set_val(index,atof(word.c_str())/bMVA);
         file >> word;
-        qg_s.set_val(name,atof(word.c_str())/bMVA);
+        qg_s.set_val(index,atof(word.c_str())/bMVA);
         file >> word;
-        qg_max.set_val(name,atof(word.c_str())/bMVA);
+        qg_max.set_val(index,atof(word.c_str())/bMVA);
         file >> word;
-        qg_min.set_val(name,atof(word.c_str())/bMVA);
+        qg_min.set_val(index,atof(word.c_str())/bMVA);
 
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atoi(word.c_str());
         file >> word;
-        pg_max.set_val(name,atof(word.c_str())/bMVA);
+        pg_max.set_val(index,atof(word.c_str())/bMVA);
 
         file >> word;
-        pg_min.set_val(name,atof(word.c_str())/bMVA);
+        pg_min.set_val(index,atof(word.c_str())/bMVA);
         getline(file, word,'\n');
 //        gen_status.push_back(status==1);
 
 
         bus->_has_gen = true;
         /** generator name, ID */
-        Gen* g = new Gen(bus, name, pg_min(name).eval(), pg_max(name).eval(), qg_min(name).eval(), qg_max(name).eval());
+        Gen* g = new Gen(bus, name, pg_min.eval(index), pg_max.eval(index), qg_min.eval(index), qg_max.eval(index));
         g->_id = index;
         g->_ps = pg_s.eval();
         g->_qs = qg_s.eval();

@@ -18,25 +18,24 @@ namespace gravity{
         return name;
     };
 
-    pair<constant_*, constant_*>* param_::get_range() const{
+    pair<Real, Real>* param_::get_range() const{
         switch (get_intype()) {
             case binary_:
-                return new pair<constant_*,constant_*>(new constant<bool>(((param<bool>*)this)->_range->first), new constant<bool>(((param<bool>*)this)->_range->second));
+                return new pair<Real,Real>(((param<bool>*)this)->_range->first, ((param<bool>*)this)->_range->second);
                 break;
             case short_:
-                return new pair<constant_*,constant_*>(new constant<short>(((param<short>*)this)->_range->first), new constant<short>(((param<short>*)this)->_range->second));
+                return new pair<Real,Real>(((param<short>*)this)->_range->first, ((param<short>*)this)->_range->second);
                 break;
             case integer_:
-                return new pair<constant_*,constant_*>(new constant<int>(((param<int>*)this)->_range->first), new constant<int>(((param<int>*)this)->_range->second));
+                return new pair<Real,Real>(((param<int>*)this)->_range->first, ((param<int>*)this)->_range->second);
                 break;
             case float_:
-                return new pair<constant_*,constant_*>(new constant<float>(((param<float>*)this)->_range->first), new constant<float>(((param<float>*)this)->_range->second));
-                break;
+                return new pair<Real,Real>(((param<float>*)this)->_range->first, ((param<float>*)this)->_range->second);
             case double_:
-                return new pair<constant_*,constant_*>(new constant<double>(((param<double>*)this)->_range->first), new constant<double>(((param<double>*)this)->_range->second));
+                return new pair<Real,Real>(((param<double>*)this)->_range->first, ((param<double>*)this)->_range->second);
                 break;
             case long_:
-                return new pair<constant_*,constant_*>(new constant<long double>(((param<long double>*)this)->_range->first), new constant<long double>(((param<long double>*)this)->_range->second));
+                return new pair<Real,Real>(((param<long double>*)this)->_range->first, ((param<long double>*)this)->_range->second);
                 break;
             default:
                 break;

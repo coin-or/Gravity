@@ -16,10 +16,12 @@
 #include <list>
 #include <limits>
 
-//class func;
+
+
 using namespace std;
 
 namespace gravity {
+class func_;
 /** Backbone class for parameter */
 class var_ {
 public:
@@ -32,8 +34,9 @@ template<typename type = double>
 class var: public param<type>, public var_ {
 
 public:
-    shared_ptr<vector<type>>   _lb; /**< Lower Bound */
-    shared_ptr<vector<type>>   _ub; /**< Upper Bound */
+    shared_ptr<func_>   _lb; /**< Lower Bound */
+    shared_ptr<func_>   _ub; /**< Upper Bound */
+    
     /* Constructors */
     //@{
     /** Unbounded variable constructor */
@@ -48,8 +51,10 @@ public:
     //@{
     /** Bounded variable constructor */
     var(const string& name, type lb, type ub);
-    var(const string& name, param<type> lb, param<type> ub);
-    var(const string& name, param<type> sb);// Constructor with symmetric bound: [-sb, sb]
+    var(const string& name, const param<type>& lb, const param<type>& ub);//TODO move version of bounds
+//    var(const string& name, func_&& lb, func_&& ub);
+    var(const string& name, const param<type>& sb);// Constructor with symmetric bound: [-sb, sb]
+//    var(const string& name, func_&& sb);// Constructor with symmetric bound: [-sb, sb]
     //@}
 
 
@@ -221,65 +226,18 @@ public:
 
     /* Querries */
 
-    type    get_lb(size_t i = 0) const {
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        if (_lb->size() <= index) {
-            throw out_of_range("get_lb(size_t i, index: " + to_string(index) + ")\n");
-        }
-        return _lb->at(index);
-    };
+    type    get_lb(size_t i = 0) const;
 
-    type    get_ub(size_t i = 0) const {
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        if (_ub->size() <= index) {
-            throw out_of_range("get_ub(size_t i), index: " + to_string(index)+ ")\n");
-        }
-        return _ub->at(index);
-    };
+    type    get_ub(size_t i = 0) const;
 
 
-    bool is_bounded_above(int i = 0) const {
-        return (_ub!=nullptr &&  i < _ub->size() && _ub->at(i)!=numeric_limits<type>::max());
-    };
+    bool is_bounded_above(int i = 0) const;
 
-    bool is_bounded_below(int i = 0) const {
-        return (_lb!=nullptr &&  i < _lb->size() && _lb->at(i)!=numeric_limits<type>::lowest());
-    };
+    bool is_bounded_below(int i = 0) const;
 
-    bool is_constant(int i=0) const {
-        return (is_bounded_below() && is_bounded_above() && _lb->at(i)==_ub->at(i));
-    };
+    bool is_constant(int i=0) const;
 
-    Sign get_sign(int idx = 0) const {
-        if (_lb->at(idx) == 0 && _ub->at(idx) == 0) {
-            return zero_;
-        }
-        if (_ub->at(idx) < 0) {
-            return neg_;
-        }
-        if (_lb->at(idx) > 0) {
-            return pos_;
-        }
-        if (_ub->at(idx) == 0) {
-            return non_pos_;
-        }
-        if (_lb->at(idx) == 0) {
-            return non_neg_;
-        }
-        return unknown_;
-    }
+    Sign get_sign(int idx = 0) const;
 
     /* Modifiers */
     void    set_size(size_t s, type val = 0);

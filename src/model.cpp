@@ -613,9 +613,6 @@ void Model::compute_funcs() {
             continue;
         }
         if (!f->_is_matrix) {
-//            if (f->to_str().compare("[[nodal_stat_tr * [exp([( - nodal_stat)[x]])]^T] * [[nb_samples_pu]]]")==0) {
-//                cout <<"ok";
-//            }
             DebugOff(f->to_str()<<endl);
             for (int inst = 0; inst < f->_nb_instances; inst++) {
                 f->eval(inst);
@@ -649,6 +646,7 @@ void Model::compute_funcs() {
 //            c->eval(inst);
 //        }
         if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
+//        if ((c->is_linear() && !_first_call_jac)) {
             continue;
         }
         for (auto &dfdx: *c->get_dfdx()) {
@@ -665,7 +663,7 @@ void Model::compute_funcs() {
 //                }
 //            }
             else {
-                for (int inst = 0; inst < dfdx.second->_val->size(); inst++) {
+                for (int inst = 0; inst < dfdx.second->_nb_instances; inst++) {
                     dfdx.second->eval(inst);
                 }
             }
@@ -681,7 +679,7 @@ void Model::compute_funcs() {
                     }
                 }
                 else {
-                    for (int inst = 0; inst < dfd2x.second->_val->size(); inst++) {
+                    for (int inst = 0; inst < dfd2x.second->_nb_instances; inst++) {
                         dfd2x.second->eval(inst);
                     }
                 }
@@ -1246,18 +1244,22 @@ void Model::fill_in_maps() {
     {
         c = c_p.second.get();
         c->compute_derivatives();
-        for (auto &df_p:*c->get_dfdx()) {
-            auto df = df_p.second;
-//                        if (df->is_nonlinear()) {
-            DebugOff(df->to_str() << endl);
-            df_p.second = embed(df);
-            
-            for (auto &df2_p:*df_p.second->get_dfdx()) {
-                //            if (dfp.second->is_nonlinear()) {
-                df2_p.second = embed(df2_p.second);
-                //            }
+//        if (false) {
+        if (_type==nlin_m) {
+            for (auto &df_p:*c->get_dfdx()) {
+                auto df = df_p.second;
+    //                        if (df->is_nonlinear()) {
+                DebugOff(df->to_str() << endl);
+                df_p.second = embed(df);
+//                embed(df);
+                
+                for (auto &df2_p:*df_p.second->get_dfdx()) {
+                    //            if (dfp.second->is_nonlinear()) {
+                    df2_p.second = embed(df2_p.second);
+//                    embed(df2_p.second);
+                    //            }
+                }
             }
-//                        }
         }
         c->_val = make_shared<vector<double>>();
         c->_val->resize(c->_nb_instances);
@@ -1277,14 +1279,7 @@ void Model::fill_in_maps() {
                     else {
                         _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
                     }
-//                    for (int inst = 0; inst<c->_nb_instances; inst++) {
-//                        vid_inst = vid + vi->get_id_inst(inst);
-//                        vjd_inst = vjd + vj->get_id_inst(inst);
-//                        _hess.insert(make_pair<>(vid_inst, vjd_inst));
-//                    }
                 }
-//                _v_in_cons
-                
             }
         }
 //        c->untranspose_derivatives();
@@ -1297,6 +1292,9 @@ void Model::fill_in_maps() {
 ////            }
 //        }
     }
+//    for (auto &pairs:_nl_funcs) {
+//        cout << pairs->to_str() << endl;
+//    }
 //    _nnz_h = _hess.size();
 //    DebugOff("Size of _hess_link = " << _hess_link.size() << endl);
 }
@@ -1695,8 +1693,8 @@ void Model::embed(expr& e){
                     embed(f);
                     _nl_funcs.push_back(f);
                     DebugOff(f->to_str() << endl);
-    //                f->_val = make_shared<vector<double>>();
-    //                f->_val->resize(f->_nb_instances);
+                    //                f->_val = make_shared<vector<double>>();
+                    //                f->_val->resize(f->_nb_instances);
                 }
                 else {
                     ue->_son = f_p.first->second;
@@ -1740,8 +1738,8 @@ void Model::embed(expr& e){
                     embed(f);
                     DebugOff(f->to_str() << endl);
                     _nl_funcs.push_back(f);
-    //                f->_val = make_shared<vector<double>>();
-    //                f->_val->resize(f->_nb_instances);
+                    //                f->_val = make_shared<vector<double>>();
+                    //                f->_val->resize(f->_nb_instances);
                 }
                 else {
                     be->_lson = f_p.first->second;
@@ -1781,8 +1779,8 @@ void Model::embed(expr& e){
                     embed(f);
                     DebugOff(f->to_str() << endl);
                     _nl_funcs.push_back(f);
-    //                f->_val = make_shared<vector<double>>();
-    //                f->_val->resize(f->_nb_instances);
+                    //                f->_val = make_shared<vector<double>>();
+                    //                f->_val->resize(f->_nb_instances);
                 }
                 else {
                     be->_rson = f_p.first->second;
@@ -1867,8 +1865,8 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
             _nl_funcs.push_back(f_p.first->second);
             DebugOff(f->to_str() << endl);
             return f;
-    //        f_p.first->second->_val = make_shared<vector<double>>();
-    //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
+            //        f_p.first->second->_val = make_shared<vector<double>>();
+            //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
         }
         return f_p.first->second;
     }

@@ -117,8 +117,43 @@ namespace gravity {
         
         template <typename type>
         void add_var(var<type>& v){//Add variables by copying variable
+//
+//                auto nb_ind = v.get_nb_instances();
+//                v._lb->_nb_instances = nb_ind;
+//                v._lb->_val->resize(nb_ind);
+//                v._ub->_nb_instances = nb_ind;
+//                v._ub->_val->resize(nb_ind);
+//                if (!v._lb->_ids->empty()) {
+//                    for (auto ind: *v._lb->_ids) {
+//                        v._lb->eval(ind);
+//                        v._ub->eval(ind);
+//                    }
+//                }
+//                else {
+//                    for (unsigned ind = 0; ind< nb_ind; ind++) {
+//                        v._lb->eval(ind);
+//                        v._ub->eval(ind);
+//                    }
+//                }
+//                v._lb->_evaluated = true;
+//                v._ub->_evaluated = true;
+//            }
             if (v._is_indexed) {
-                return;
+                auto nb_ind = v.get_nb_instances();
+                v._lb->_nb_instances = nb_ind;
+                v._lb->_val->resize(nb_ind);
+                v._ub->_nb_instances = nb_ind;
+                v._ub->_val->resize(nb_ind);
+                v._lb->_val->resize(v._lb->_nb_instances);
+                v._ub->_val->resize(v._ub->_nb_instances);
+                unsigned i = 0;
+                for (auto &p: *v.get_indices()) {//TODO just copy ids?
+                    v._lb->_val->at(i) = v._lb->eval(p.second);
+                    v._ub->_val->at(i) = v._ub->eval(p.second);
+                    i++;
+                }
+                v._lb->_evaluated = true;
+                v._ub->_evaluated = true;
             }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
