@@ -25,8 +25,11 @@ export SOLVERNAME_ROOT_DIR="your_location". For instance, I have the following: 
 4) You're now ready to compile everything, just enter:
 
 mkdir build
+
 cd build
+
 cmake ..
+
 make -j4
 
 This will install all the models found under Gravity/examples.
