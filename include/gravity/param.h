@@ -140,7 +140,7 @@ public:
 
     Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
     Sign get_sign(int idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
-    pair<constant_*, constant_*>* get_range() const;
+    pair<Real,Real>* get_range() const;
 
     /** Operators */
     bool operator==(const param_& p) const {
@@ -160,9 +160,10 @@ public:
 template<typename type = double>
 class param: public param_ {
 protected:
-    shared_ptr<vector<type>>                _val;
+    
 
 public:
+    shared_ptr<vector<type>>                _val;
     shared_ptr<pair<type,type>>             _range; /**< (Min,Max) values in vals **/
 
     param() {
@@ -361,21 +362,13 @@ public:
 
     type eval(unsigned i) const {
         if (_is_indexed) {
-//            if (i >= _ids->size()) {
-////                if (i>=_val->size()) {
-//                    throw invalid_argument("error");
-////                }
-//                return _val->at(_ids->at(0));
-//            }
-//            if (_ids->at(i)>=_val->size()) {
-//                throw invalid_argument("error");
-//            }
-            return _val->at(_ids->at(i));
+           return _val->at(_ids->at(i));
         }
-//        if (i>=_val->size()) {
-//            throw invalid_argument("error");
-//        }
         return _val->at(i);
+    }
+    
+    type eval(string key) const{
+        return _val->at(param_::_indices->at(key));
     }
     
     type eval(unsigned i, unsigned j) const {

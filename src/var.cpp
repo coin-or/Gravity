@@ -6,6 +6,7 @@
 //  note: Sdpvar needs to be tested (Guanglei).
 //
 #include <gravity/var.h>
+#include <gravity/func.h>
 #define DebugOn(x) cout << x
 #define DebugOff(x)
 
@@ -17,14 +18,14 @@ template<typename type> var<type>::var():param<type>() {
 
 template<typename type> var<type>::var(const string& name):param<type>(name) {
     param<type>::set_type(var_c);
-    _lb = make_shared<vector<type>>();
-    _ub = make_shared<vector<type>>();
+    _lb = make_shared<func_>(constant<type>(numeric_limits<type>::lowest()));
+    _ub = make_shared<func_>(constant<type>(numeric_limits<type>::max()));
 };
     
 template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
     param<type>::set_type(var_c);
-    _lb = make_shared<vector<type>>();
-    _ub = make_shared<vector<type>>();
+    _lb = make_shared<func_>();
+    _ub = make_shared<func_>();
     if (s==non_neg_ || s==pos_) {
         add_lb_only(0);
     }
@@ -41,13 +42,13 @@ template<typename type> var<type>::var(const var<type>& v):param<type>(v) {
 
 template<typename type> var<type>::var(var<type>&& v):param<type>(v) {
     param<type>::set_type(var_c);
-    _lb = v._lb;
-    _ub = v._ub;
+    _lb = move(v._lb);
+    _ub = move(v._ub);
 };
 
 template<typename type> var<type>::var(const string& name, type lb, type ub):var(name) {
-    _lb->push_back(lb);
-    _ub->push_back(ub);
+    _lb = make_shared<func_>(constant<type>(lb));
+    _ub = make_shared<func_>(constant<type>(ub));
     if (lb < param<type>::_range->first) {
         param<type>::_range->first = lb;
     }
@@ -56,90 +57,57 @@ template<typename type> var<type>::var(const string& name, type lb, type ub):var
     }
 };
 
-template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name) {
-    Debug("lb.get_dim(): " << lb.get_dim() << endl);
-    _lb->resize(lb.get_dim());
-    _ub->resize(ub.get_dim());
-    set_size(min(lb.get_dim(), ub.get_dim()), 0); // add this?
-    unsigned i = 0;
-    if (lb.get_indices()->size() > 0) {
-        for (auto &p: *lb.get_indices()) {
-//                if(param_::_indices->size() != p.second){
-//                    cerr << "diff\n";
-//                    auto ss = param_::_indices->size();
-//                }
-            param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
-            _lb->at(i) = lb(p.first).eval();
-            _ub->at(i) = ub(p.first).eval();
-
-            if (_lb->at(i) < param<type>::_range->first) {
-                param<type>::_range->first = _lb->at(i);
-            }
-            if (_ub->at(i) > param<type>::_range->second) {
-                param<type>::_range->second = _ub->at(i);
-            }
-            i++;
-        }
-    }
-    else {
-        for (int i= 0; i<lb.get_dim(); i++) {
-            _lb->at(i) = lb.eval(i);
-            _ub->at(i) = ub.eval(i);
-            if (_lb->back() < param<type>::_range->first) {
-                param<type>::_range->first = _lb->back() ;
-            }
-            if (_ub->back() > param<type>::_range->second) {
-                param<type>::_range->second = _ub->back();
-            }
-        }
-    }
-};
-//    template<typename type> var<type>::var(const string& name, param<type> lb, param<type> ub):var(name){
-//        for (int i= 0; i<lb.get_dim(); i++) {
-//            _lb->push_back(lb.eval(i));
-//            _ub->push_back(ub.eval(i));
-//            if (_lb->back() < param<type>::_range->first) {
-//                param<type>::_range->first = _lb->back() ;
-//            }
-//            if (_ub->back() > param<type>::_range->second) {
-//                param<type>::_range->second = _ub->back();
-//            }
-//        }
-//    };
-
-//    template<typename type> var<type>::var(const string& name, param<type> sb):var(name){
-//        for (int i= 0; i<sb.get_dim(); i++) {
-//            _lb->push_back(-1.*sb.eval(i));
-//            _ub->push_back(sb.eval(i));
-//            if (_lb->back() < param<type>::_range->first) {
-//                param<type>::_range->first = _lb->back() ;
-//            }
-//            if (_ub->back() > param<type>::_range->second) {
-//                param<type>::_range->second = _ub->back();
-//            }
-//        }
-//    };
-
-template<typename type> var<type>::var(const string& name, param<type> sb):var(name) {
-    _lb->resize(sb.get_dim());
-    _ub->resize(sb.get_dim());
-    unsigned i = 0;
-    for (auto &p: *sb.get_indices()) {
-//            if(param_::_indices->size() != p.second){
-//                cerr << "diff\n";
-//            }
+template<typename type> var<type>::var(const string& name, const param<type>& lb, const param<type>& ub):var(name) {
+    _lb = make_shared<func_>(lb);
+    _ub = make_shared<func_>(ub);
+    _lb->_val->resize(_lb->_nb_instances);
+    _ub->_val->resize(_ub->_nb_instances);
+    param<type>::_range->first = lb._range->first;
+    param<type>::_range->second = ub._range->second;
+     unsigned i = 0;
+    for (auto &p: *lb.get_indices()) {
         param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
-        _lb->at(i) = -1.*sb(p.first).eval();
-        _ub->at(i) = sb(p.first).eval();
-        if (_lb->at(i) < param<type>::_range->first) {
-            param<type>::_range->first = _lb->at(i);
-        }
-        if (_ub->at(i) > param<type>::_range->second) {
-            param<type>::_range->second = _ub->at(i);
-        }
+        _lb->_val->at(i) = lb.eval(p.first);
+        _ub->_val->at(i) = ub.eval(p.first);
         i++;
     }
+    _lb->_evaluated = true;
+    _ub->_evaluated = true;
+}
+    
+//template<typename type> var<type>::var(const string& name, func_&& lb, func_&& ub):var(name) {
+//    _lb = make_shared<func_>(move(lb));
+//    _ub = make_shared<func_>(move(ub));
+//    param<type>::_range->first = lb.get_all_range()->first;
+//    param<type>::_range->second = ub.get_all_range()->second;
+//}
+
+template<typename type> var<type>::var(const string& name, const param<type>& sb):var(name) {
+    _lb = make_shared<func_>(-1*sb);
+    _ub = make_shared<func_>(sb);
+    _lb->_val->resize(_lb->_nb_instances);
+    _ub->_val->resize(_ub->_nb_instances);
+    param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
+    param<type>::_range->second = sb._range->second;
+    unsigned i = 0;
+    for (auto &p: *sb.get_indices()) {
+        param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
+        _lb->_val->at(i) = -1*sb.eval(p.first);
+        _ub->_val->at(i) = sb.eval(p.first);
+        i++;
+    }
+    _lb->_evaluated = true;
+    _ub->_evaluated = true;
 };
+    
+//    template<typename type> var<type>::var(const string& name, func_&& sb):var(name) {
+//        _lb = make_shared<func_>(sb*-1);
+//        _ub = make_shared<func_>(move(sb));
+//        param<type>::_range->first = min(-1*sb.get_all_range()->first,-1*sb.get_all_range()->second);
+//        param<type>::_range->second = sb.get_all_range()->second;
+//        param<type>::_ids = sb._ids;
+//    };
+
 
 
 template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
@@ -161,40 +129,84 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 /* Modifiers */
 template<typename type> void   var<type>::set_size(size_t s, type val) {
     param<type>::set_size(s,val);
-    if (_lb->empty()) {
-        _lb->resize(s, numeric_limits<type>::lowest());
-    }
-    else if(_lb->size() < s) {
-        _lb->resize(s, _lb->at(0)); // not accurate
-//        _lb->resize(s, numeric_limits<type>::lowest()); // not accurate
-    }
-    if (_ub->empty()) {
-        _ub->resize(s, numeric_limits<type>::max());
-    }
-    else if(_ub->size() < s) {
-        _ub->resize(s, _ub->at(0));
-//        _ub->resize(s, numeric_limits<type>::max());
-    }
 };
 
+    template<typename type>
+    type    var<type>::get_lb(size_t i) const {
+        unsigned index = 0;
+        if (param<type>::get_ids()->empty()) {
+            index = i;
+        }
+        else {
+            index = param<type>::get_ids()->at(i);
+        }
+        return _lb->get_val(i);
+    };
+    
+    template<typename type>
+    type    var<type>::get_ub(size_t i) const {
+        unsigned index = 0;
+        if (param<type>::get_ids()->empty()) {
+            index = i;
+        }
+        else {
+            index = param<type>::get_ids()->at(i);
+        }
+        return _ub->get_val(index);
+    };
+    
+    template<typename type>
+    bool var<type>::is_bounded_above(int i) const {
+        return (_ub!=nullptr && _ub->eval(i)!=numeric_limits<type>::max());
+    };
+    
+    template<typename type>
+    bool var<type>::is_bounded_below(int i) const {
+        return (_lb!=nullptr && _lb->eval(i)!=numeric_limits<type>::lowest());
+    };
+    
+    template<typename type>
+    bool var<type>::is_constant(int i) const {
+        return (is_bounded_below() && is_bounded_above() && _lb->eval(i)==_ub->eval(i));
+    };
+    
+    template<typename type>
+    Sign var<type>::get_sign(int idx) const {
+        if (_lb->eval(idx) == 0 && _ub->eval(idx) == 0) {
+            return zero_;
+        }
+        if (_ub->eval(idx) < 0) {
+            return neg_;
+        }
+        if (_lb->eval(idx) > 0) {
+            return pos_;
+        }
+        if (_ub->eval(idx) == 0) {
+            return non_pos_;
+        }
+        if (_lb->eval(idx) == 0) {
+            return non_neg_;
+        }
+        return unknown_;
+    }
 
-template<typename type> void  var<type>::add_bounds(type lb, type ub) {
-    if (ub<lb) {
-        throw invalid_argument("add_bounds(lb, ub): Invalid bounds!");
-    }
-    _lb->push_back(lb);
-    _ub->push_back(ub);
-    if (lb < param<type>::_range->first) {
-        param<type>::_range->first = lb;
-    }
-    if (ub > param<type>::_range->second) {
-        param<type>::_range->second = ub;
-    }
-}
+//template<typename type> void  var<type>::add_bounds(type lb, type ub) {
+//    if (ub<lb) {
+//        throw invalid_argument("add_bounds(lb, ub): Invalid bounds!");
+//    }
+//    _lb->set_val(lb);
+//    _ub->push_back(ub);
+//    if (lb < param<type>::_range->first) {
+//        param<type>::_range->first = lb;
+//    }
+//    if (ub > param<type>::_range->second) {
+//        param<type>::_range->second = ub;
+//    }
+//}
 
 template<typename type> void   var<type>::add_lb_only(type val) {
-    _lb->push_back(val);
-    _ub->push_back(numeric_limits<type>::max());
+    *_lb = constant<type>(0);
+    *_ub = constant<type>(numeric_limits<type>::max());
     if (val < param<type>::_range->first) {
         param<type>::_range->first = val;
     }
@@ -202,8 +214,8 @@ template<typename type> void   var<type>::add_lb_only(type val) {
 }
 
 template<typename type> void   var<type>::add_ub_only(type val) {
-    _lb->push_back(numeric_limits<type>::lowest());
-    _ub->push_back(val);
+    *_lb = constant<type>(numeric_limits<type>::lowest());
+    *_ub = constant<type>(val);
     param<type>::_range->first = numeric_limits<type>::lowest();
     if (val > param<type>::_range->second) {
         param<type>::_range->second = val;
@@ -211,20 +223,14 @@ template<typename type> void   var<type>::add_ub_only(type val) {
 }
 
 template<typename type> void   var<type>::set_lb(int i, type val) {
-    if (_lb->size() <= i) {
-        throw out_of_range("set_lb(int i, type val)");
-    }
-    _lb->at(i) = val;
+    *_lb = constant<type>(val);
     if (val < param<type>::_range->first) {
         param<type>::_range->first = val;
     }
 }
 
 template<typename type> void   var<type>::set_ub(int i, type val) {
-    if (_ub->size() <= i) {
-        throw out_of_range("set_lb(int i, type val)");
-    }
-    _ub->at(i) = val;
+    *_ub = constant<type>(val);
     if (val > param<type>::_range->second) {
         param<type>::_range->second = val;
     }
@@ -279,12 +285,12 @@ template<typename type> void var<type>::print(bool bounds) const {
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
             cout << "(" << idx << ") = ";
-            cout << " [ -inf , " << (*_ub)[idx] << " ]";
+            cout << " [ -inf , " << (*_ub->_val)[idx] << " ]";
         }
         else {
             for(int i = 0 ; i < param_::get_dim(); i++) {
                 cout << "(" << idx << ") = ";
-                cout << " [ -inf , " << (*_ub)[i] << " ]\n";
+                cout << " [ -inf , " << (*_ub->_val)[i] << " ]\n";
             }
         }
         cout << ";\n";
@@ -292,12 +298,12 @@ template<typename type> void var<type>::print(bool bounds) const {
     if(_lb != nullptr && _ub == nullptr) {
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
-            cout << " [ " << (*_lb)[idx] << ", inf ]";
+            cout << " [ " << (*_lb->_val)[idx] << ", inf ]";
         }
         else {
             for(int i = 0 ; i < param_::get_dim(); i++) {
                 cout << "(" << i << ") = ";
-                cout << " [ " << (*_lb)[i] << ", inf ]\n";
+                cout << " [ " << (*_lb->_val)[i] << ", inf ]\n";
             }
         }
         cout << ";\n";
@@ -305,12 +311,12 @@ template<typename type> void var<type>::print(bool bounds) const {
     if(_lb != nullptr && _ub != nullptr) {
         if (param_::_is_indexed) {
             idx = param_::get_id_inst();
-            cout << " [ " << (*_lb)[idx] << ", " << (*_ub)[idx] << "]";
+            cout << " [ " << (*_lb->_val)[idx] << ", " << (*_ub->_val)[idx] << "]";
         }
         else {
             for(int i = 0 ; i < param_::get_dim(); i++) {
                 cout << "(" << i << ") = ";
-                cout << " [ " << (*_lb)[i] << ", " << (*_ub)[i] << "]\n";
+                cout << " [ " << (*_lb->_val)[i] << ", " << (*_ub->_val)[i] << "]\n";
             }
         }
         cout << ";\n";

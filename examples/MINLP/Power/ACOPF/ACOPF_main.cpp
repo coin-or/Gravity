@@ -88,6 +88,7 @@ int main (int argc, const char * argv[])
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
+//    var<Real> Pg("Pg", grid.pg_min.in(grid.gens), grid.pg_max.in(grid.gens));
     var<Real> Pg("Pg", grid.pg_min.in(grid.gens), grid.pg_max.in(grid.gens));
     var<Real> Qg ("Qg", grid.qg_min.in(grid.gens), grid.qg_max.in(grid.gens));
     ACOPF.add_var(Pg^(nb_gen));
@@ -98,6 +99,10 @@ int main (int argc, const char * argv[])
     var<Real> Qf_from("Qf_from", grid.S_max.in(grid.arcs));
     var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs));
     var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs));
+//    var<Real> Pf_from("Pf_from");
+//    var<Real> Qf_from("Qf_from");
+//    var<Real> Pf_to("Pf_to");
+//    var<Real> Qf_to("Qf_to");
 
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
@@ -107,6 +112,8 @@ int main (int argc, const char * argv[])
     // voltage related variables.
         var<Real> theta("theta");
         var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
+//    var<Real> vr("vr");
+//    var<Real> vi("vi");
         var<Real> vr("vr", grid.v_max.in(grid.nodes));
         var<Real> vi("vi", grid.v_max.in(grid.nodes));
     
