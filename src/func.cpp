@@ -3830,7 +3830,7 @@ namespace gravity{
         return _otype==product_ && (_lson->get_dim(1)==_rson->get_dim(0) || (_lson->_is_transposed && _lson->get_dim(0)==_rson->get_dim(0)));
     }
     
-    double uexpr::eval(size_t i) const{
+    Real uexpr::eval(size_t i) const{
         if (_son->is_constant() && !_son->_evaluated) {//TODO what if son is matrix?
 //            _son->_val = make_shared<vector<double>>();
             _son->_val->resize(_son->_nb_instances);
@@ -3839,21 +3839,28 @@ namespace gravity{
             }
             _son->_evaluated = true;
         }
+        Real val = 0;
+        if (_son->is_number()) {
+            val = _son->_val->at(0);
+        }
+        else {
+            val = _son->get_val(i);
+        }
         switch (_otype) {
             case cos_:
-                return _coef*std::cos(_son->get_val(i));
+                return _coef*std::cos(val);
                 break;
             case sin_:
-                return _coef*std::sin(_son->get_val(i));
+                return _coef*std::sin(val);
                 break;
             case sqrt_:
-                return _coef*std::sqrt(_son->get_val(i));
+                return _coef*std::sqrt(val);
                 break;
             case log_:
-                return _coef*std::log(_son->get_val(i));
+                return _coef*std::log(val);
                 break;
             case exp_:
-                return _coef*std::exp(_son->get_val(i));
+                return _coef*std::exp(val);
                 break;
             default:
                 throw invalid_argument("Unsupported unary operator");
@@ -3862,7 +3869,7 @@ namespace gravity{
         
     }
     
-    double uexpr::eval(size_t i, size_t j) const{
+    Real uexpr::eval(size_t i, size_t j) const{
         if (!_is_matrix) {
             return eval(j);//TODO what if son is transposed
         }
@@ -3890,21 +3897,28 @@ namespace gravity{
             }
             _son->_evaluated = true;
         }
+        Real val = 0;
+        if (_son->is_number()) {
+            val = _son->_val->at(0);
+        }
+        else {
+            val = _son->get_val(i,j);
+        }
         switch (_otype) {
             case cos_:
-                return _coef*std::cos(_son->get_val(i,j));
+                return _coef*std::cos(val);
                 break;
             case sin_:
-                return _coef*std::sin(_son->get_val(i,j));
+                return _coef*std::sin(val);
                 break;
             case sqrt_:
-                return _coef*std::sqrt(_son->get_val(i,j));
+                return _coef*std::sqrt(val);
                 break;
             case log_:
-                return _coef*std::log(_son->get_val(i,j));
+                return _coef*std::log(val);
                 break;
             case exp_:
-                return _coef*std::exp(_son->get_val(i,j));
+                return _coef*std::exp(val);
                 break;
             default:
                 throw invalid_argument("Unsupported unary operator");
@@ -4331,6 +4345,19 @@ namespace gravity{
 //            }
 //            _rson->_evaluated = true;
 //        }
+//        Real lval = 0, rval = 0;
+//        if (_lson->is_number()) {
+//            lval = _lson->_val->at(0);
+//        }
+//        else {
+//            lval = _lson->get_val(i,j);
+//        }
+//        if (_rson->is_number()) {
+//            rval = _rson->_val->at(0);
+//        }
+//        else {
+//            rval = _rson->get_val(i,j);
+//        }
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
@@ -4393,12 +4420,25 @@ namespace gravity{
 //            }
 //            _rson->_evaluated = true;
 //        }
+        Real lval = 0, rval = 0;
+        if (_lson->is_number()) {
+            lval = _lson->_val->at(0);
+        }
+        else {
+            lval = _lson->get_val(i);
+        }
+        if (_rson->is_number()) {
+            rval = _rson->_val->at(0);
+        }
+        else {
+            rval = _rson->get_val(i);
+        }
         switch (_otype) {
             case plus_:
-                return _coef*(_lson->get_val(i) + _rson->get_val(i));
+                return _coef*(lval + rval);
                 break;
             case minus_:
-                return _coef*(_lson->get_val(i) - _rson->get_val(i));
+                return _coef*(lval - rval);
                 break;
             case product_:
                 if (_lson->_is_matrix && !_rson->_is_matrix && !_rson->_is_transposed) {//matrix * vect
@@ -4422,13 +4462,13 @@ namespace gravity{
                     }
                     return _coef*(res);
                 }
-                return _coef*(_lson->get_val(i)*_rson->get_val(i));
+                return _coef*(lval*rval);
                 break;
             case div_:
-                return _coef*(_lson->get_val(i)/_rson->get_val(i));
+                return _coef*(lval/rval);
                 break;
             case power_:
-                return _coef*(powl(_lson->get_val(i),_rson->get_val(i)));
+                return _coef*(powl(lval,rval));
                 break;
             default:
                 throw invalid_argument("Unsupported binary operator");
@@ -5405,15 +5445,15 @@ namespace gravity{
 //                throw invalid_argument("error");
 //            }
 //        }
-        if (is_number()) {
-            return _val->at(0);
-        }
-        else {
+//        if (is_number()) {
+//            return _val->at(0);
+//        }
+//        else {
 //            if (i>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
             return _val->at(i);
-        }
+//        }
     }
     
     double func_::get_val(size_t i, size_t j) const{
@@ -5428,15 +5468,21 @@ namespace gravity{
 //            throw invalid_argument("get_val i,j");
 //            return get_val(j);
 //        }
-        if (is_number()) {
-            return _val->at(0);
-        }
-        else {
+//        if (is_number()) {
+//            return _val->at(0);
+//        }
+//        else {
             if (_is_transposed) {
+//                if (j*_dim[0]+i>=_val->size()) {
+//                    throw invalid_argument("error");
+//                }
                 return _val->at(j*_dim[0]+i);
             }
+//            if (i*_dim[1]+j>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
             return _val->at(i*_dim[1]+j);
-        }
+//        }
     }
     
 //    double func_::force_eval(size_t i){

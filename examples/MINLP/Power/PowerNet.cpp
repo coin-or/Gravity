@@ -281,21 +281,21 @@ int PowerNet::readgrid(const char* fname) {
         bus = (Bus*)(Net::get_node(bus_name));
         name = to_string(index);
         file >> word;
-        pg_s.set_val(index,atof(word.c_str())/bMVA);
+        pg_s.set_val(name,atof(word.c_str())/bMVA);
         file >> word;
-        qg_s.set_val(index,atof(word.c_str())/bMVA);
+        qg_s.set_val(name,atof(word.c_str())/bMVA);
         file >> word;
-        qg_max.set_val(index,atof(word.c_str())/bMVA);
+        qg_max.set_val(name,atof(word.c_str())/bMVA);
         file >> word;
-        qg_min.set_val(index,atof(word.c_str())/bMVA);
+        qg_min.set_val(name,atof(word.c_str())/bMVA);
 
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atoi(word.c_str());
         file >> word;
-        pg_max.set_val(index,atof(word.c_str())/bMVA);
+        pg_max.set_val(name,atof(word.c_str())/bMVA);
 
         file >> word;
-        pg_min.set_val(index,atof(word.c_str())/bMVA);
+        pg_min.set_val(name,atof(word.c_str())/bMVA);
         getline(file, word,'\n');
 //        gen_status.push_back(status==1);
 
@@ -330,16 +330,16 @@ int PowerNet::readgrid(const char* fname) {
     int gen_counter = 0;
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-//        c2.set_val(i,atof(word.c_str())*pow(bMVA,2));
-//        file >> word;
-//        c1.set_val(i,atof(word.c_str())*bMVA);
-//        file >> word;
-//        c0.set_val(i,atof(word.c_str()));
-        c2(i) = atof(word.c_str())*pow(bMVA,2);
+        c2.set_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
         file >> word;
-        c1(i) = atof(word.c_str())*bMVA;
+        c1.set_val(to_string(i),atof(word.c_str())*bMVA);
         file >> word;
-        c0(i) = atof(word.c_str());
+        c0.set_val(to_string(i),atof(word.c_str()));
+//        c2(i) = atof(word.c_str())*pow(bMVA,2);
+//        file >> word;
+//        c1(i) = atof(word.c_str())*bMVA;
+//        file >> word;
+//        c0(i) = atof(word.c_str());
         gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
         getline(file, word);
     }
