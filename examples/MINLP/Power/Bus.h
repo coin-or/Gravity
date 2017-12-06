@@ -79,7 +79,7 @@ public:
     /** @brief Initialiser with Bus id and conductor properties
      @note By default, the network is in one phase, thus exactly one conductor is added to the bus when created. In a three phase network, this array will contain three conductors.
      */
-    Bus(std::string name, double pl, double ql, double bs, double gs, double v_min, double v_max, double kvb,  int phase);
+    Bus(std::string name, double pl=0, double ql=0, double bs=0, double gs=0, double v_min=0, double v_max=0, double kvb=0,  int phase=0);
     
    // void init_complex(bool polar);
     

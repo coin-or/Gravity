@@ -114,15 +114,14 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         Ising.min(obj);
         
         /** Constraints */
-        if (lambda>0) {
-            Constraint Absp("Absp");
-            Absp += z - x;
-            Ising.add_constraint(Absp >= 0);
-            Constraint Absn("Absn");
-            Absn += z + x;
-            Ising.add_constraint(Absn >= 0);
-        }
         
+        Constraint Absp("Absp");
+        Absp += z - x;
+        Ising.add_constraint(Absp >= 0);
+        Constraint Absn("Absn");
+        Absn += z + x;
+        Ising.add_constraint(Absn >= 0);
+    
         Constraint Obj("Obj");
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
         Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
@@ -186,15 +185,14 @@ int main (int argc, const char * argv[])
     read_samples(fname);
     solution.resize(nb_spins);
     
-    std::vector<std::thread> threads;
-    //Split constraints into nr_threads parts
-    std::vector<int> limits = bounds(nr_threads, nb_spins);
-    vector<double*> sub_res;
-    //Launch nr_threads threads:
+    vector<thread> threads;
+    /* Split subproblems into nr_threads parts */
+    vector<int> limits = bounds(nr_threads, nb_spins);
+    /* Launch all threads in parallel */
     for (int i = 0; i < nr_threads; ++i) {
-        threads.push_back(std::thread(solve_spin, limits[i], limits[i+1], log_lev, relax, mehrotra));
+        threads.push_back(thread(solve_spin, limits[i], limits[i+1], log_lev, relax, mehrotra));
     }
-    //Join the threads with the main thread
+    /* Join the threads with the main thread */
     for(auto &t : threads){
         t.join();
     }

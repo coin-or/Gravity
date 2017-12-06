@@ -8,13 +8,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
+option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
+
+# Find xlnt (optional)
+option(ENABLE_XLNT "Link to XLNT libraries" ON)
 
 # Find BONMIN (optional)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
 # Find CPLEX (optional)
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
 # Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
@@ -40,6 +43,16 @@ if (ENABLE_IPOPT)
 	include_directories(${IPOPT_INCLUDE_DIRS}/..)
 	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 endif()
+
+# Find xlnt
+if (ENABLE_XLNT)
+	message(STATUS "Enable XLNT")
+	add_definitions(-DUSE_XLNT)
+	find_package(XLNT REQUIRED)
+	include_directories(${XLNT_INCLUDE_DIRS}/..)
+	set(LIBS ${LIBS} ${XLNT_LIBRARIES})
+endif()
+
 
 # Find SDPA.
 if (ENABLE_SDPA)
@@ -112,7 +125,7 @@ set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CMAKE_BUILD_TYPE "Release")
 #set(CMAKE_BUILD_TYPE "Debug")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 #set( CMAKE_VERBOSE_MAKEFILE on )
 
