@@ -186,6 +186,9 @@ namespace gravity{
             case func_c: {
                 auto f = (func_*)c;
                 if (f->is_constant() && f->_evaluated) {
+                    if (f->is_number()) {
+                        return f->_val->at(0);
+                    }
                     return f->get_val(i);
                 }
                 return ((func_*)c)->eval(i);
@@ -319,6 +322,9 @@ namespace gravity{
             case func_c: {
                 auto f = (func_*)c;
                 if (f->is_constant() && f->_evaluated) {
+                    if (f->is_number()) {
+                        return f->_val->at(0);
+                    }
                     return f->get_val(i, j);
                 }
                 return ((func_*)c)->eval(i,j);
@@ -5412,15 +5418,18 @@ namespace gravity{
     
     double func_::get_val(size_t i, size_t j) const{
         
+//        if () {
+//            return _val->at(0);
+//        }
+//        if (!_is_matrix) {
+//            //            if (_is_transposed) {
+//            //                return get_val(i);
+//            //            }
+//            throw invalid_argument("get_val i,j");
+//            return get_val(j);
+//        }
         if (is_number()) {
             return _val->at(0);
-        }
-        if (!_is_matrix) {
-            //            if (_is_transposed) {
-            //                return get_val(i);
-            //            }
-            throw invalid_argument("get_val i,j");
-            return get_val(j);
         }
         else {
             if (_is_transposed) {
