@@ -133,6 +133,9 @@ template<typename type> void   var<type>::set_size(size_t s, type val) {
 
     template<typename type>
     type    var<type>::get_lb(size_t i) const {
+        if (_lb->is_number()) {
+            return _lb->_val->at(0);
+        }
         unsigned index = 0;
         if (param<type>::get_ids()->empty()) {
             index = i;
@@ -145,6 +148,9 @@ template<typename type> void   var<type>::set_size(size_t s, type val) {
     
     template<typename type>
     type    var<type>::get_ub(size_t i) const {
+        if (_ub->is_number()) {
+            return _ub->_val->at(0);
+        }
         unsigned index = 0;
         if (param<type>::get_ids()->empty()) {
             index = i;
