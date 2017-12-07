@@ -158,7 +158,7 @@ int main (int argc, const char * argv[])
         fname = argv[1];
     }
     else {
-           fname = "../../data_sets/Ising/samples_bin.csv";
+           fname = "../data_sets/Ising/samples_bin_sml.csv";
     }
 //    unsigned nr_threads = std::thread::hardware_concurrency();
     unsigned nr_threads = 1;

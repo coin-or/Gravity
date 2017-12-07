@@ -29,6 +29,7 @@ public:
     double dd;
     double smax;
     int status; // on /off, failure or not.
+    unsigned b_type;
     Bound tbound;
     //Complex _Si_;
     //Complex _Sj_;

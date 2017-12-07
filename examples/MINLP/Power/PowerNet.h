@@ -28,7 +28,9 @@ class PowerNet: public Net {
 public:
     string ref_bus;
     double bMVA; /**< Base MVA */
+    double bV; /**< Base Voltage */
     double m_theta_lb = 0, m_theta_ub = 0; /**< BigM values for phase angles */
+    size_t nb_nodes = 0, nb_branches = 0, nb_gens = 0;
     
     param<Real> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<Real> c0, c1, c2; /**< Generation costs */
