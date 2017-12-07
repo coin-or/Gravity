@@ -53,37 +53,40 @@ int main (int argc, const char * argv[])
     DebugOff("nb buses = " << nb_buses << endl);
     DebugOff("nb bus_pairs = " << nb_bus_pairs << endl);
     
-    /** build model */
+    /** Build model */
     Model SOCP("SOCP Model");
     
     /** Variables */
-    // power generation
+    /* power generation variables */
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
     SOCP.add_var(Pg^(nb_gen));
     SOCP.add_var(Qg^(nb_gen));
     
-    // power flow
+    /* power flow variables */
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
     var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
     var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
-
     SOCP.add_var(Pf_from^(nb_lines));
-    SOCP.add_var(Qf_from^(nb_lines));//TODO change to .in(grid->arcs), remove .in(grid->arcs) from bounds declaration
+    SOCP.add_var(Qf_from^(nb_lines));
     SOCP.add_var(Pf_to^(nb_lines));
     SOCP.add_var(Qf_to^(nb_lines));
     
-    // LIFTED VARIABLES.
-    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs)); // real part of Wij
-    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs)); // imaginary part of Wij.
+    /* Real part of Wij = ViVj */
+    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs));
+    /* Imaginary part of Wij = ViVj */
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs));
+    /* Magnitude of Wii = Vi^2 */
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
     SOCP.add_var(Wii^nb_buses);
     SOCP.add_var(R_Wij^nb_bus_pairs);
     SOCP.add_var(Im_Wij^nb_bus_pairs);
     
+    /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
+    
     /**  Objective */
     func_ obj;
     for (auto g:grid->gens) {
@@ -95,20 +98,18 @@ int main (int argc, const char * argv[])
     
     
     /** Constraints */
-    /* SOCP constraints */
+    /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
     SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
 
-    /* KCL */
+    /* Flow conservation */
     for (auto b: grid->nodes) {
         Bus* bus = (Bus*) b;
         Constraint KCL_P("KCL_P"+bus->_name);
         Constraint KCL_Q("KCL_Q"+bus->_name);
-
-        /* Power Conservation */
-        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl()- sum(Pg.in(bus->_gen));
-        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql()- sum(Qg.in(bus->_gen));
+        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl() - sum(Pg.in(bus->_gen));
+        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
 
         /* Shunts */
         KCL_P +=  bus->gs()*(Wii(bus->_name));
@@ -126,14 +127,12 @@ int main (int argc, const char * argv[])
     Flow_P_From -= grid->b_ft*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_P_From.in(grid->arcs) = 0);
     
-    
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to;
     Flow_P_To -= grid->g_tt*Wii.to();
     Flow_P_To -= grid->g_tf*R_Wij.in_pairs();
     Flow_P_To += grid->b_tf*Im_Wij.in_pairs();
     SOCP.add_constraint(Flow_P_To.in(grid->arcs) = 0);
-
     
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from;
@@ -172,7 +171,7 @@ int main (int argc, const char * argv[])
     SOCP.add_constraint(Thermal_Limit_to.in(grid->arcs) <= 0);
 
     
-    
+    /* Solver selection */
     if (use_cplex) {
         solver SCOPF_CPX(SOCP, cplex);
         SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
