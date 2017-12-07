@@ -13,9 +13,16 @@
 #include <gravity/csv.h>
 #include <stdlib.h>
 #include <thread>
+#include <cxxopts.hpp>
 
 using namespace std;
 using namespace gravity;
+
+vector<double> solver_time;
+vector<double> obj_val;
+double x_sum;
+
+
 
 int nb_cols = 1, nb_conf = 0, nb_spins = 0, tot_nb_samples = 0;
 param<short> configs("configs");
@@ -82,7 +89,8 @@ bool read_samples(const char* fname){
     }
     lambda = regularizor*sqrt(log((pow(nb_spins,2))/0.05)/tot_nb_samples);
     DebugOn("Lambda = " << lambda << endl);
-
+    obj_val.resize(nb_spins);
+    solver_time.resize(nb_spins);
     return true;
 }
 
@@ -130,9 +138,11 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         
         /** Solver */
         solver NLP(Ising,ipopt);
+        auto solver_time_start = get_wall_time();
         NLP.run(log_lev=0,relax=false,1e-12,"ma27",mehrotra);
-        
-        
+        auto solver_time_end = get_wall_time();
+        solver_time[main_spin] = solver_time_end - solver_time_start;
+        obj_val[main_spin] = Ising._obj_val;
         solution[main_spin].resize(nb_spins);
         for (unsigned spin = 0; spin<nb_spins; spin++) {
             solution[main_spin][spin] = x.eval(spin);
@@ -147,42 +157,57 @@ void print_sol() {
             cout << solution[main_spin][spin] << " ";
         }
     }
-    cout << "]";
+    cout << "]\n";
 }
-int main (int argc, const char * argv[])
+
+double sum_x(){
+    double res = 0;
+    for (unsigned main_spin = 0; main_spin<nb_spins; main_spin++) {
+        for (unsigned spin = 0; spin<nb_spins; spin++) {
+            res += solution[main_spin][spin];
+        }
+    }
+    return res;
+}
+
+int main (int argc, char * argv[])
 {
     int log_lev = 0;
     bool relax = false;
-    const char* fname;
-    if (argc >= 2) {
-        fname = argv[1];
-    }
-    else {
-           fname = "../data_sets/Ising/samples_bin_sml.csv";
-    }
-//    unsigned nr_threads = std::thread::hardware_concurrency();
+    string fname;
     unsigned nr_threads = 1;
-    if (argc >= 3) {
-        auto opt = argv[2];
-        strtok(strdup(opt), "=");
-        nr_threads = atoi(strtok(NULL, "="));
-    }
+    try
+    {
+        cxxopts::Options options("Reverse Ising", "This is an implementation of the Reverse Ising problem in Gravity");
+        options.add_options()
+        ("h,help", "Enter ising -f Filename -t Number of threads, default is 1)")
+        ("f,file", "File name", cxxopts::value<std::string>(fname))
+        ("t,thread", "Number of threads", cxxopts::value<unsigned>(nr_threads));
+        ("r,regularizer", "Regularizer", cxxopts::value<double>(regularizor));
+        auto result = options.parse(argc, argv);
+        if (result.count("help"))
+        {
+            std::cout << options.help({""}) << std::endl;
+            exit(0);
+        }
+    } catch (const cxxopts::OptionException& e)
+    {
+        std::cout << "error parsing options: " << e.what() << std::endl;
+        exit(1);
+    }//    unsigned nr_threads = std::thread::hardware_concurrency();
+    
     if (nr_threads<1) {
         nr_threads=1;
     }
     DebugOn("Using " << nr_threads << " threads" << endl);
-    if (argc >= 4) {
-        auto reg = argv[3];
-        strtok(strdup(reg), "=");
-        regularizor = atof(strtok(NULL, "="));
-    }
     DebugOn("Regularizor = " << regularizor << endl);
     string mehrotra="yes";
     if (regularizor==0) {
 //        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
         regularizor = 1e-6;
     }
-    read_samples(fname);
+    auto total_time_start = get_wall_time();
+    read_samples(fname.c_str());
     solution.resize(nb_spins);
     
     vector<thread> threads;
@@ -196,8 +221,20 @@ int main (int argc, const char * argv[])
     for(auto &t : threads){
         t.join();
     }
-    print_sol();
+//    print_sol();
     write_sol(fname);
+    auto total_time_end = get_wall_time();
+    auto total_time = total_time_end - total_time_start;
+    fname = strtok(strdup(fname.c_str()), "/");
+    char* key;
+    while((key = strtok(NULL,"/"))!=NULL){
+        fname = key;
+    }
+    string out = "DATA_REV_ISING, " + fname + ", " + to_string(nb_spins) + ", " + to_string(nb_conf) + ", " + to_string(tot_nb_samples) + ", " + to_string(sum_x()) + ", " + to_string(total_time);;
+//    for (unsigned spin = 0; spin <nb_spins; spin++) {
+//        out += ", " + to_string(obj_val[spin]) + ", " + to_string(solver_time[spin]);
+//    }
+    DebugOn(out <<endl);
     return 0;
 }
 

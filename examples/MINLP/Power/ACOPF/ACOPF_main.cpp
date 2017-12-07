@@ -2,7 +2,7 @@
 //  ACOPF.cpp
 //  Gravity
 //
-//  Created by Guanglei Wang on 6/9/17.
+//  Created by Hassan Hijazi on Dec 7 2017
 //
 //
 #include <iostream>
@@ -12,44 +12,41 @@
 #include "../PowerNet.h"
 #include <gravity/solver.h>
 #include <stdlib.h>
+#include <cxxopts.hpp>
 
 using namespace std;
 using namespace gravity;
 
 
-int main (int argc, const char * argv[])
+int main (int argc, char * argv[])
 {
+    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
     string mehrotra = "no";
-    const char* fname;
-    if (argc >= 2) {
-        fname = argv[1];
-    }
-    else {
-            fname = "../data_sets/Power/nesta_case5_pjm.m";
-           //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-           //fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-//           fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-           //fname = "../../data_sets/Power/nesta_case1354_pegase_api.m";
-//           fname = "../../data_sets/Power/nesta_case118_ieee.m";
-//           fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
-//       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
-//        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
-//        fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case14_ieee.m";
-//        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3_lmbd.m";
-//        fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case5_pjm.m";
+    try
+    {
+        cxxopts::Options options("ACOPF", "This is an implementation of the ACOPF problem in Gravity");
+        options.add_options()
+        ("h,help", "enter acopf -f Filename -m Modeltype(ACPOL/ACRECT), default is ACPOL")
+        ("f,file", "File name", cxxopts::value<std::string>(fname))
+        ("m,model", "Model type", cxxopts::value<std::string>(mtype));
+        auto result = options.parse(argc, argv);
+        if (result.count("help"))
+        {
+            std::cout << options.help({""}) << std::endl;
+            exit(0);
+        }
+    } catch (const cxxopts::OptionException& e)
+    {
+        std::cout << "error parsing options: " << e.what() << std::endl;
+        exit(1);
     }
     // ACOPF
+    double total_time_start = get_wall_time();
     PowerNet grid;
-//    fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-//    fname = "../../data_sets/Power/nesta_case14_ieee.m";
-//    fname = "../../data_sets/Power/nesta_case9241_pegase.m";
-//    fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case3375wp_mp.m";
-//    fname = "../../data_sets/Power/nesta_case300_ieee.m";
-//    fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-    grid.readgrid(fname);
+    grid.readgrid(fname.c_str());
 
     // Grid Parameters
     unsigned nb_gen = grid.get_nb_active_gens();
@@ -62,33 +59,17 @@ int main (int argc, const char * argv[])
     DebugOn("nb buses = " << nb_buses << endl);
 
     PowerModelType pmt = ACPOL;
-//    PowerModelType pmt = ACRECT;
-    /** build model */
-    if (argc >= 3) {
-        if(!strcmp(argv[2],"ACPOL")) pmt = ACPOL;
-        else if(!strcmp(argv[2],"ACRECT")) pmt = ACRECT;
-        else if(!strcmp(argv[2],"QC")) pmt = QC;
-        else if(!strcmp(argv[2],"QC_SDP")) pmt = QC_SDP;
-        else if(!strcmp(argv[2],"OTS")) pmt = OTS;
-        else if(!strcmp(argv[2],"SOCP")) pmt = SOCP;
-        else if(!strcmp(argv[2],"SDP")) pmt = SDP;
-        else if(!strcmp(argv[2],"DC")) pmt = DC;
-        else if(!strcmp(argv[2],"QC_OTS_O")) pmt = QC_OTS_O;
-        else if(!strcmp(argv[2],"QC_OTS_N")) pmt = QC_OTS_N;
-        else if(!strcmp(argv[2],"QC_OTS_L")) pmt = QC_OTS_L;
-        else if(!strcmp(argv[2],"SOCP_OTS")) pmt = SOCP_OTS;
-        else{
-            throw invalid_argument("Unknown model type.\n");            
-        }
-    }
+    if(!strcmp(mtype.c_str(),"ACRECT")) pmt = ACRECT;
     bool polar = (pmt==ACPOL);
     if (polar) {
         DebugOn("Using polar model\n");
     }
+    else {
+        DebugOn("Using rectangular model\n");
+    }
     Model ACOPF("AC-OPF Model");
     /** Variables */
     // power generation
-//    var<Real> Pg("Pg", grid.pg_min.in(grid.gens), grid.pg_max.in(grid.gens));
     var<Real> Pg("Pg", grid.pg_min.in(grid.gens), grid.pg_max.in(grid.gens));
     var<Real> Qg ("Qg", grid.qg_min.in(grid.gens), grid.qg_max.in(grid.gens));
     ACOPF.add_var(Pg^(nb_gen));
@@ -99,10 +80,6 @@ int main (int argc, const char * argv[])
     var<Real> Qf_from("Qf_from", grid.S_max.in(grid.arcs));
     var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs));
     var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs));
-//    var<Real> Pf_from("Pf_from");
-//    var<Real> Qf_from("Qf_from");
-//    var<Real> Pf_to("Pf_to");
-//    var<Real> Qf_to("Qf_to");
 
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
@@ -112,8 +89,6 @@ int main (int argc, const char * argv[])
     // voltage related variables.
         var<Real> theta("theta");
         var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
-//    var<Real> vr("vr");
-//    var<Real> vi("vi");
         var<Real> vr("vr", grid.v_max.in(grid.nodes));
         var<Real> vi("vi", grid.v_max.in(grid.nodes));
     
@@ -264,7 +239,7 @@ int main (int argc, const char * argv[])
     
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
-    Constraint PAD_LB("PAD_LB:");
+    Constraint PAD_LB("PAD_LB");
     auto bus_pairs = grid.get_bus_pairs();
     if (polar) {
         PAD_UB = theta.from() - theta.to();
@@ -299,6 +274,14 @@ int main (int argc, const char * argv[])
 
     //solver OPF(ACOPF,cplex);
     solver OPF(ACOPF,ipopt);
+    double solver_time_start = get_wall_time();
     OPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    double solver_time_end = get_wall_time();
+    double total_time_end = get_wall_time();
+    auto solve_time = solver_time_end - solver_time_start;
+    auto total_time = total_time_end - total_time_start;
+    
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", " + to_string(total_time);
+    DebugOn(out <<endl);
     return 0;
 }

@@ -25,7 +25,7 @@ option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 # Find MOSEK (optional)
 option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 
-# include BOOST (optional) 
+# include BOOST (optional)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
 # configure a header file to pass some of the CMake settings
@@ -112,6 +112,9 @@ if (ENABLE_BOOST)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
+
+
+include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cxxopts/include)
 
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
