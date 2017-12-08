@@ -31,7 +31,7 @@ int main (int argc, char * argv[])
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname );
-    opt.add_option("m", "model", "power flow model", mtype );
+    opt.add_option("m", "model", "power flow model: ACPOL/ACRECT", mtype );
     
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
