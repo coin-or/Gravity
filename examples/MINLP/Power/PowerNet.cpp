@@ -477,7 +477,7 @@ int PowerNet::readgrid(const char* fname) {
 
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
@@ -489,7 +489,9 @@ int PowerNet::readgrid(const char* fname) {
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+            if (arc->_active) {
+                _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+            }
         }
         else {
             th_min.set_val(name,max(th_min(name).eval(), arc->tbound.min));

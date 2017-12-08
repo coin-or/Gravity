@@ -2821,6 +2821,49 @@ namespace gravity{
         }
         return *this;
     }
+    
+    void func_::propagate_nb_ind(size_t nb){
+        _nb_instances = nb;
+        if (!_is_matrix) {
+            _dim[0] = _nb_instances;
+        }
+        for (auto &pair:*_lterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                ((func_*)coef)->propagate_nb_ind(nb);
+            }
+        }
+        for (auto &pair:*_qterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                ((func_*)coef)->propagate_nb_ind(nb);
+            }
+        }
+        for (auto &pair:*_pterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                ((func_*)coef)->propagate_nb_ind(nb);
+            }
+        }
+        if (_cst->is_function()) {
+            ((func_*)_cst)->propagate_nb_ind(nb);
+        }
+        if (_expr) {
+            _expr->propagate_nb_ind(nb);
+        }
+    }
+    
+    void expr::propagate_nb_ind(size_t nb){
+        if (is_uexpr()) {
+            auto ue = (uexpr*)(this);
+            ue->_son->propagate_nb_ind(nb);
+        }
+        else {
+            auto be = (bexpr*)(this);
+            be->_lson->propagate_nb_ind(nb);
+            be->_rson->propagate_nb_ind(nb);
+        }
+    }
 
     // TODO revisit embed
     void func_::embed(shared_ptr<expr> e){
@@ -5475,9 +5518,9 @@ namespace gravity{
 //            return _val->at(0);
 //        }
 //        else {
-//            if (i>=_val->size()) {
-//                throw invalid_argument("error");
-//            }
+            if (i>=_val->size()) {
+                throw invalid_argument("error");
+            }
             return _val->at(i);
 //        }
     }
@@ -5584,9 +5627,9 @@ namespace gravity{
             if (is_number()) {
                 return _val->at(0);
             }
-//            if (i>=_val->size()) {
-//                throw invalid_argument("error");
-//            }
+            if (i>=_val->size()) {
+                throw invalid_argument("error");
+            }
 //            if (_val->at(i) != force_eval(i)) {
 //                throw invalid_argument("error");
 //            }

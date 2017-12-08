@@ -211,7 +211,7 @@ void MosekProgram::create_mosek_constraints() {
     //size_t nb_inst = 0;
     size_t idx = 0, idx_inst = 0,idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     size_t c_idx_inst = 0;
-    Constraint* c;
+    shared_ptr<Constraint> c;
     for(auto& p: _model->_cons) {
         c = p.second;
         //c->print();
