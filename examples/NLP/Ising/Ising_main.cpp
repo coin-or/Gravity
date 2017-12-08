@@ -13,7 +13,7 @@
 #include <gravity/csv.h>
 #include <stdlib.h>
 #include <thread>
-#include <cxxopts.hpp>
+#include <optionParser.hpp>
 
 using namespace std;
 using namespace gravity;
@@ -174,28 +174,33 @@ int main (int argc, char * argv[])
 {
     int log_lev = 0;
     bool relax = false;
-    string fname;
+    string fname = "../data_sets/Ising/samples_bin_sml.csv";
     unsigned nr_threads = 1;
-    try
-    {
-        cxxopts::Options options("Reverse Ising", "This is an implementation of the Reverse Ising problem in Gravity");
-        options.add_options()
-        ("h,help", "Enter ising -f Filename -t Number of threads, default is 1)")
-        ("f,file", "File name", cxxopts::value<std::string>(fname))
-        ("t,thread", "Number of threads", cxxopts::value<unsigned>(nr_threads));
-        ("r,regularizer", "Regularizer", cxxopts::value<double>(regularizor));
-        auto result = options.parse(argc, argv);
-        if (result.count("help"))
-        {
-            std::cout << options.help({""}) << std::endl;
-            exit(0);
-        }
-    } catch (const cxxopts::OptionException& e)
-    {
-        std::cout << "error parsing options: " << e.what() << std::endl;
-        exit(1);
-    }//    unsigned nr_threads = std::thread::hardware_concurrency();
     
+    // create a OptionParser with options
+    op::OptionParser opt;
+    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
+    opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("t", "threads", "Number of threads to use", "1");
+    opt.add_option("r", "regularizer", "Value of regularizer", "0.0");
+    
+    // parse the options and verify that all went well. If not, errors and help will be shown
+    bool correct_parsing = opt.parse_options(argc, argv);
+    
+    if(!correct_parsing){
+        return EXIT_FAILURE;
+    }
+    
+    fname = opt["f"];
+    nr_threads = op::str2int(opt["t"]);
+    regularizor = op::str2double(opt["r"]);
+    
+    bool has_help = op::str2bool(opt["h"]);
+    // show help
+    if(has_help) {
+        opt.show_help();
+        exit(0);
+    }
     if (nr_threads<1) {
         nr_threads=1;
     }

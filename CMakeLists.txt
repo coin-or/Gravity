@@ -8,7 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
+option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 
 # Find xlnt (optional)
 option(ENABLE_XLNT "Link to XLNT libraries" OFF)
@@ -114,8 +114,8 @@ if (ENABLE_BOOST)
 endif()
 
 
-include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cxxopts/include)
-
+include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
+set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
 
@@ -134,6 +134,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 add_subdirectory(examples)
+add_subdirectory(ext_lib/cpp_option_parser)
+
 # Install
 install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
 
