@@ -1155,8 +1155,9 @@ namespace gravity {
         
         pair<ind,func_*> operator[](ind i);
         
-        bool is_convex(int idx=0) const;
-        bool is_concave(int idx=0) const;
+        bool is_convex() const;
+        bool is_convex(int idx) const;
+        bool is_concave(int idx) const;
         bool is_number() const;
         bool is_constant() const;
         bool is_linear() const;
