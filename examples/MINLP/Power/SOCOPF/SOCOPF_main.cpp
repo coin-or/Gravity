@@ -45,6 +45,7 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
+    double total_time_start = get_wall_time();
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname.c_str());
     
@@ -178,14 +179,20 @@ int main (int argc, char * argv[])
 
     
     /* Solver selection */
-    if (use_cplex) {
-        solver SCOPF_CPX(SOCP, cplex);
-        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
-    }
-    else {
+//    if (use_cplex) {
+//        solver SCOPF_CPX(SOCP, cplex);
+//        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
+//    }
+//    else {
         solver SCOPF(SOCP,ipopt);
+        double solver_time_start = get_wall_time();
         SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
-    }
-    
+        double solver_time_end = get_wall_time();
+        double total_time_end = get_wall_time();
+        auto solve_time = solver_time_end - solver_time_start;
+        auto total_time = total_time_end - total_time_start;
+//    }
+    string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", " + to_string(total_time);
+    DebugOn(out <<endl);
     return 0;
 }
