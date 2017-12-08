@@ -15,32 +15,38 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <optionParser.hpp>
 
 using namespace std;
 using namespace gravity;
 
-int main (int argc, const char * argv[])
+int main (int argc, char * argv[])
 {
     int output = 0;
     bool relax = false, use_cplex = false;
     double tol = 1e-6;
     string mehrotra = "no";
-    const char* fname;
-    if (argc >= 2) {
-        fname = argv[1];
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    // create a OptionParser with options
+    op::OptionParser opt;
+    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
+    opt.add_option("f", "file", "Input file name", fname );
+    
+    // parse the options and verify that all went well. If not, errors and help will be shown
+    bool correct_parsing = opt.parse_options(argc, argv);
+    
+    if(!correct_parsing){
+        return EXIT_FAILURE;
     }
-    else {
-       // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        //fname = "../../data_sets/Power/nesta_case6_c.m";
-//        fname = "../../data_sets/Power/nesta_case118_ieee.m";
-//        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case5_pjm.m";
-        //       fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case6495_rte.m";
-        fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case2383wp_k.m";
+    
+    fname = opt["f"];
+    bool has_help = op::str2bool(opt["h"]);
+    if(has_help) {
+        opt.show_help();
+        exit(0);
     }
     PowerNet* grid = new PowerNet();
-    grid->readgrid(fname);
+    grid->readgrid(fname.c_str());
     
     // Grid Parameters
     auto bus_pairs = grid->get_bus_pairs();
