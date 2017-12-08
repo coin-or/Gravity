@@ -45,6 +45,7 @@ namespace gravity {
         Real eval(size_t i) const;
         Real eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
+        void propagate_nb_ind(size_t);/*<< Propagates number of indices */
         void reset_val();
         void untranspose();
         virtual ~expr(){};
@@ -810,9 +811,7 @@ namespace gravity {
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            if (_expr) {
-                embed(_expr);
-            }
+            propagate_nb_ind(_nb_instances);
             return *this;
         }
         
@@ -1170,6 +1169,8 @@ namespace gravity {
         FType get_ftype() const;
         void embed(func_& f);
         void embed(shared_ptr<expr> e);
+        void propagate_nb_ind(size_t);/*<< Propagates number of indices */
+        
         
         void reset();
         
