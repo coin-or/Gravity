@@ -8,7 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
+option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
 
 # Find xlnt (optional)
 option(ENABLE_XLNT "Link to XLNT libraries" OFF)
