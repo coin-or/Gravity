@@ -401,7 +401,7 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         }
         for (int i = 0; i< size-1; i++) {
             key = bag[i]->_name + "," + bag[i+1]->_name;
-            assert(bag[i+2]->ID > bag[i]->ID);
+//            assert(bag[i+2]->ID > bag[i]->ID);
             auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
             if(pp.second) { //new index inserted
                 if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
@@ -418,7 +418,7 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         }
         /* Loop back pair */
         key = bag[0]->_name + "," + bag[size-1]->_name;
-        assert(bag[size-1]->ID > bag[0]->ID);
+//        assert(bag[size-1]->ID > bag[0]->ID);
         auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
         if(pp.second) { //new index inserted
             if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {

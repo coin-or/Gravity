@@ -12,7 +12,8 @@
 #include "../PowerNet.h"
 #include <gravity/solver.h>
 #include <stdlib.h>
-#include <cxxopts.hpp>
+#include <optionParser.hpp>
+
 
 using namespace std;
 using namespace gravity;
@@ -25,24 +26,30 @@ int main (int argc, char * argv[])
     bool relax = false;
     double tol = 1e-6;
     string mehrotra = "no";
-    try
-    {
-        cxxopts::Options options("ACOPF", "This is an implementation of the ACOPF problem in Gravity");
-        options.add_options()
-        ("h,help", "enter acopf -f Filename -m Modeltype(ACPOL/ACRECT), default is ACPOL")
-        ("f,file", "File name", cxxopts::value<std::string>(fname))
-        ("m,model", "Model type", cxxopts::value<std::string>(mtype));
-        auto result = options.parse(argc, argv);
-        if (result.count("help"))
-        {
-            std::cout << options.help({""}) << std::endl;
-            exit(0);
-        }
-    } catch (const cxxopts::OptionException& e)
-    {
-        std::cout << "error parsing options: " << e.what() << std::endl;
-        exit(1);
+    
+    // create a OptionParser with options
+    op::OptionParser opt;
+    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
+    opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("m", "model", "power flow model", mtype );
+    
+    // parse the options and verify that all went well. If not, errors and help will be shown
+    bool correct_parsing = opt.parse_options(argc, argv);
+    
+    if(!correct_parsing){
+        return EXIT_FAILURE;
     }
+    
+    fname = opt["f"];
+    mtype = opt["m"];
+    
+    bool has_help = op::str2bool(opt["h"]);
+    // show help
+    if(has_help) {
+        opt.show_help();
+        exit(0);
+    }
+    
     // ACOPF
     double total_time_start = get_wall_time();
     PowerNet grid;
