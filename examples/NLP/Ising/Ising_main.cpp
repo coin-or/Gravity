@@ -132,9 +132,6 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
     
         Constraint Obj("Obj");
         Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
-        if (Obj.is_convex()) {
-            DebugOn("convex function detected");
-        }
         Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
         Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
         Ising.add_constraint(Obj>=0);
@@ -177,7 +174,7 @@ int main (int argc, char * argv[])
 {
     int log_lev = 0;
     bool relax = false;
-    string fname = "../../data_sets/Ising/samples_bin_sml.csv";
+    string fname = "../data_sets/Ising/samples_bin_sml.csv";
     unsigned nr_threads = 1;
     
     // create a OptionParser with options
@@ -238,7 +235,7 @@ int main (int argc, char * argv[])
     while((key = strtok(NULL,"/"))!=NULL){
         fname = key;
     }
-    string out = "DATA_INV_ISING, " + fname + ", " + to_string(nb_spins) + ", " + to_string(nb_conf) + ", " + to_string(tot_nb_samples) + ", " + to_string(sum_x()) + ", GlobalOptimal, " + to_string(total_time);;
+    string out = "DATA_INV_ISING, " + fname + ", " + to_string(nb_spins) + ", " + to_string(nb_conf) + ", " + to_string(tot_nb_samples) + ", " + to_string(sum_x()) + ", " + to_string(total_time);;
 //    for (unsigned spin = 0; spin <nb_spins; spin++) {
 //        out += ", " + to_string(obj_val[spin]) + ", " + to_string(solver_time[spin]);
 //    }
