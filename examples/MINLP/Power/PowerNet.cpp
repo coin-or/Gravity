@@ -178,7 +178,7 @@ void PowerNet::time_expand(unsigned T) {
 }
 
 int PowerNet::readgrid(const char* fname) {
-    double pi = 4*atan(1);
+    double pi = 4.*atan(1.);
     string name;
     double kvb = 0;
 //    int id = 0;
@@ -413,6 +413,12 @@ int PowerNet::readgrid(const char* fname) {
         file >>  ws >>word;
 
         arc->tbound.max = atof(word.c_str())*pi/180.;
+        if (arc->tbound.min==0 && arc->tbound.max) {
+            DebugOn("Angle bounds are equal to zero. Setting them to -+60");
+             arc->tbound.min = -60*pi/180;
+            arc->tbound.max = 60*pi/180;
+            
+        }
 //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
 
@@ -435,10 +441,10 @@ int PowerNet::readgrid(const char* fname) {
         g_tf.set_val(name,(-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
 
 
-        b_ff.set_val(name,(arc->ch/2. + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
+        b_ff.set_val(name,(arc->ch*0.5 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         b_ft.set_val(name,(-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
 
-        b_tt.set_val(name,(arc->ch/2. + arc->b));
+        b_tt.set_val(name,(arc->ch*0.5 + arc->b));
         b_tf.set_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
 
         Y.set_val(name,sqrt(arc->g*arc->g + arc->b*arc->b));
@@ -452,20 +458,20 @@ int PowerNet::readgrid(const char* fname) {
         }
         else {
         if(arc->b < 0){
-            Y_t.set_val(name,-pi/2);
+            Y_t.set_val(name,-pi*0.5);
         } else {
-            Y_t.set_val(name,pi/2);
+            Y_t.set_val(name,pi*0.5);
         }
     }
     
-    Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch/2.),2)));
+    Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch*0.5),2)));
     if(arc->g != 0) {
-        Y_charge_t.set_val(name,atan((arc->b+arc->ch/2.)/arc->g));
+        Y_charge_t.set_val(name,atan((arc->b+arc->ch*0.5)/arc->g));
     } else {
         if(arc->b < 0) {
-            Y_charge_t.set_val(name,-pi/2);
+            Y_charge_t.set_val(name,-pi*0.5);
         } else {
-            Y_charge_t.set_val(name,pi/2);
+            Y_charge_t.set_val(name,pi*0.5);
         }
     }
         ch.set_val(name,arc->ch);
@@ -477,7 +483,7 @@ int PowerNet::readgrid(const char* fname) {
 
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
@@ -489,15 +495,13 @@ int PowerNet::readgrid(const char* fname) {
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-            if (arc->_active) {
-                _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
-            }
+            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
         }
         else {
-            th_min.set_val(name,max(th_min(name).eval(), arc->tbound.min));
-            th_max.set_val(name,min(th_max(name).eval(), arc->tbound.max));
-            tan_th_min.set_val(name,tan(th_min(name).eval()));
-            tan_th_max.set_val(name,tan(th_max(name).eval()));
+            th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
+            th_max.set_val(name,min(th_max.eval(name), arc->tbound.max));
+            tan_th_min.set_val(name,tan(th_min.eval(name)));
+            tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
         if (arc->tbound.min >= 0) {
             wr_max.set_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval()));

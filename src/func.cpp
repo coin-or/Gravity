@@ -5518,9 +5518,9 @@ namespace gravity{
 //            return _val->at(0);
 //        }
 //        else {
-            if (i>=_val->size()) {
-                throw invalid_argument("error");
-            }
+//            if (i>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
             return _val->at(i);
 //        }
     }
@@ -5627,9 +5627,9 @@ namespace gravity{
             if (is_number()) {
                 return _val->at(0);
             }
-            if (i>=_val->size()) {
-                throw invalid_argument("error");
-            }
+//            if (i>=_val->size()) {
+//                throw invalid_argument("error");
+//            }
 //            if (_val->at(i) != force_eval(i)) {
 //                throw invalid_argument("error");
 //            }

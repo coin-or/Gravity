@@ -1185,14 +1185,21 @@ public:
 
     string to_str(bool vals=false) const {
         string str = get_name();
-        if(vals) {
-            str += " = [ ";
-            for(int i = 0 ; i < get_dim(); i++) {
-                str += std::to_string(_val->at(i));
-                str += " ";
-            }
-            str += "];";
+        str += " = [ ";
+        for(auto &indsp: *_indices) {
+            str += "("+indsp.first + "=" + to_string(_val->at(indsp.second)) + ")";
+            str += " ";
         }
+        str += "];\n";
+//        if(vals) {
+//            str += " = [ ";
+//            for(int i = 0 ; i < get_dim(); i++) {
+//                str += "(" + ;
+//                str += std::to_string(eval(i));
+//                str += " ";
+//            }
+//            str += "];";
+//        }
         return str;
     }
 
