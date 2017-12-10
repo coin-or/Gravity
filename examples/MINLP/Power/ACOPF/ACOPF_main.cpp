@@ -96,8 +96,10 @@ int main (int argc, char * argv[])
     // voltage related variables.
         var<Real> theta("theta");
         var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
-        var<Real> vr("vr", grid.v_max.in(grid.nodes));
-        var<Real> vi("vi", grid.v_max.in(grid.nodes));
+        var<Real> vr("vr");
+        var<Real> vi("vi");
+//        var<Real> vr("vr", grid.v_max.in(grid.nodes));
+//        var<Real> vi("vi", grid.v_max.in(grid.nodes));
     
     if (polar) {
         ACOPF.add_var(v^(nb_buses));
@@ -107,7 +109,7 @@ int main (int argc, char * argv[])
     else {
         ACOPF.add_var(vr^(nb_buses));
         ACOPF.add_var(vi^(nb_buses));
-        vr.initialize_all(1);
+        vr.initialize_all(1.0);
     }
 
     /** Construct the objective function */
@@ -241,6 +243,8 @@ int main (int argc, char * argv[])
         Vol_limit_LB = power(vr, 2) + power(vi, 2);
         Vol_limit_LB -= power(grid.v_min,2);
         ACOPF.add_constraint(Vol_limit_LB.in(grid.nodes) >= 0);
+        DebugOff(grid.v_min.to_str(true) << endl);
+        DebugOff(grid.v_max.to_str(true) << endl);
     }
 
     
@@ -262,7 +266,9 @@ int main (int argc, char * argv[])
         PAD_UB -= grid.tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
         
         PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_LB -= grid.tan_th_min*(vr.from()*vr.to() + vi.to()*vi.from());
+        PAD_LB -= grid.tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
+        DebugOff(grid.th_min.to_str(true) << endl);
+        DebugOff(grid.th_max.to_str(true) << endl);
     }
     ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
     ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
@@ -278,6 +284,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid.S_max,2);
     ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
+    DebugOff(grid.S_max.in(grid.arcs).to_str(true) << endl);
 
     //solver OPF(ACOPF,cplex);
     solver OPF(ACOPF,ipopt);

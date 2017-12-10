@@ -214,7 +214,7 @@ void Model::add_constraint(const Constraint& c){
         }
 
         newc->update_to_str();
-        DebugOff(newc->_to_str << endl);
+//        newc->print();
         if (newc->is_nonlinear()) {
             for (auto &p_t: newc->get_lterms()) {
                 if (p_t.second._coef->is_function()) {
