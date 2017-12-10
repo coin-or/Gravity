@@ -88,6 +88,12 @@ int main (int argc, char * argv[])
     var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs));
     var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs));
 
+//    var<Real> Pf_to("Pf_to");
+//    var<Real> Qf_to("Qf_to");
+//    var<Real> Pf_from("Pf_from");
+//    var<Real> Qf_from("Qf_from");
+
+
     ACOPF.add_var(Pf_from^(nb_lines));
     ACOPF.add_var(Qf_from^(nb_lines));
     ACOPF.add_var(Pf_to^(nb_lines));
@@ -96,10 +102,10 @@ int main (int argc, char * argv[])
     // voltage related variables.
         var<Real> theta("theta");
         var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
-//        var<Real> vr("vr");
-//        var<Real> vi("vi");
-        var<Real> vr("vr", grid.v_max.in(grid.nodes));
-        var<Real> vi("vi", grid.v_max.in(grid.nodes));
+        var<Real> vr("vr");
+        var<Real> vi("vi");
+//        var<Real> vr("vr", grid.v_max.in(grid.nodes));
+//        var<Real> vi("vi", grid.v_max.in(grid.nodes));
     
     if (polar) {
         ACOPF.add_var(v^(nb_buses));
