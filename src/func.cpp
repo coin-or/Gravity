@@ -1070,6 +1070,7 @@ namespace gravity{
         _val = make_shared<vector<Real>>();
         _val->push_back(0);
         _dim.resize(1,0);
+        _evaluated = true;
     };
 
     func_::func_(constant_&& c){
@@ -1168,7 +1169,7 @@ namespace gravity{
                     _is_matrix = c._is_matrix;
                     _dim = c._dim;
                     _nb_instances = c.get_nb_instances();
-                    _ids = move(p_c2->_ids);
+                    _ids = p_c2->_ids;
 //                    _evaluated = true;
                     break;
                 }
@@ -1820,7 +1821,7 @@ namespace gravity{
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
         _nb_vars = f._nb_vars;
-        _ids = move(f._ids);
+        _ids = f._ids;
         
 
     }
@@ -2347,7 +2348,6 @@ namespace gravity{
             }
             return *this;
         }
-        _evaluated = false;
         /* Case where the current function is not constant and the other operand is */
          if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
              if (!_cst->is_zero()) {
@@ -2398,6 +2398,7 @@ namespace gravity{
                     _all_convexity = undet_;
                 }
             }
+             _evaluated = false;
             return *this;
         }
         /* Case where the current function is constant and the other operand is not. */
@@ -2462,11 +2463,13 @@ namespace gravity{
                 func_ f(c);
                 *this *= f;
             }
+            _evaluated = false;
             return *this;
         }
         if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
             auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c)));
             *this = func_(be);
+            _evaluated = false;
             return *this;
         }
         /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
@@ -2724,6 +2727,7 @@ namespace gravity{
             
             *this = move(res);
         }
+        _evaluated = false;
         return *this;
     }
 
@@ -2824,6 +2828,7 @@ namespace gravity{
     
     void func_::propagate_nb_ind(size_t nb){
         _nb_instances = nb;
+//        _evaluated = false;
         if (!_is_matrix) {
             _dim[0] = _nb_instances;
         }
@@ -4596,9 +4601,12 @@ namespace gravity{
 ////                delete new_c2;
 //                return func_(c1) *= c2;
 //            }
-//            else {
+            if (c2.is_var()) {
+                return func_(c2) *= c1;
+            }
+            else {
                 return func_(c1) *= c2;
-//            }
+            }
         }
     }
 
@@ -5645,7 +5653,7 @@ namespace gravity{
         for (auto &pair:*_lterms) {
             res += pair.second.eval(i);
         }
-        res += poly_eval(_cst,i);
+        res += poly_eval(_cst,i);        
         if (_expr) {
             if (_expr->is_uexpr()) {
                 auto ue = (uexpr*)_expr.get();
@@ -5675,6 +5683,9 @@ namespace gravity{
 //            if (i>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
+            if (is_constant() && i==_val->size()-1) {
+                _evaluated = true;
+            }
             _val->at(i) = res;
         }
         return res;

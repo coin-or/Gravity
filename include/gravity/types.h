@@ -60,13 +60,7 @@ namespace gravity{
         bool   _active = true;
         index_* _src;
         index_* _dest;
-        index_pair(const index_& src, const index_& dest, bool active = true):_name(src._name+","+dest._name), _active(active), _src(new index_(src)), _dest(new index_(dest))
-        {
-            if (!_active) {
-                _src->_active = false;
-                _dest->_active = false;
-            }
-        };
+        index_pair(const index_& src, const index_& dest, bool active = true):_name(src._name+","+dest._name), _active(active), _src(new index_(src)), _dest(new index_(dest)){};
         ~index_pair(){
             delete _src;
             delete _dest;

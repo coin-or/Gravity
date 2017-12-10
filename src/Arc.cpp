@@ -73,7 +73,7 @@ void Arc::connect() {
         common = a->neighbour(_src);
         if (common->is_connected(_dest)) {
             common->fill_in--;
-            assert(common->fill_in >=0);
+//            assert(common->fill_in >=0);
         }
     }
     _src->addArc(this);

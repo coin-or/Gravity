@@ -46,6 +46,9 @@ PowerNet::PowerNet() {
     c2.set_name("c2");
     th_min.set_name("th_min");
     th_max.set_name("th_max");
+    cphi.set_name("cphi");
+    sphi.set_name("sphi");
+    cos_d.set_name("cos_d");
     tan_th_min.set_name("tan_th_min");
     tan_th_max.set_name("tan_th_max");
     v_min.set_name("v_min");
@@ -116,6 +119,17 @@ unsigned PowerNet::get_nb_active_gens() const {
     }
     return nb;
 }
+
+unsigned PowerNet::get_nb_active_bus_pairs() const {
+    unsigned nb=0;
+    for (auto bp: _bus_pairs._keys) {
+        if (bp->_active) {
+            nb++;
+        }
+    }
+    return nb;
+}
+
 
 unsigned PowerNet::get_nb_active_arcs() const {
     unsigned nb=0;
@@ -413,7 +427,7 @@ int PowerNet::readgrid(const char* fname) {
         file >>  ws >>word;
 
         arc->tbound.max = atof(word.c_str())*pi/180.;
-        if (arc->tbound.min==0 && arc->tbound.max) {
+        if (arc->tbound.min==0 && arc->tbound.max==0) {
             DebugOn("Angle bounds are equal to zero. Setting them to -+60");
              arc->tbound.min = -60*pi/180;
             arc->tbound.max = 60*pi/180;
@@ -495,7 +509,9 @@ int PowerNet::readgrid(const char* fname) {
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+//            if (arc->_active) {
+                _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+//            }
         }
         else {
             th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
@@ -521,6 +537,9 @@ int PowerNet::readgrid(const char* fname) {
             wi_max.set_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
             wi_min.set_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
         }
+        cphi.set_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
+        sphi.set_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
+        cos_d.set_val(name, cos(0.5*(arc->tbound.max-arc->tbound.min)));
         getline(file, word,'\n');
         file >> word;
     }
