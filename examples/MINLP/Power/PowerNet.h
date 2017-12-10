@@ -34,7 +34,7 @@ public:
     
     param<Real> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<Real> c0, c1, c2; /**< Generation costs */
-    param<Real> th_min, th_max, tan_th_min, tan_th_max; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
+    param<Real> th_min, th_max, tan_th_min, tan_th_max, cphi, sphi, cos_d; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
     param<Real> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
     param<Real> w_min, w_max; /**< Voltage bounds in lifted W space */
     param<Real> pl, ql; /**< Load vectors */
@@ -56,6 +56,7 @@ public:
     /** Accessors */
     string get_ref_bus();
     unsigned get_nb_active_gens() const;
+    unsigned get_nb_active_bus_pairs() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
     void time_expand(unsigned T); /* < Time expansion of the grid parameters */    

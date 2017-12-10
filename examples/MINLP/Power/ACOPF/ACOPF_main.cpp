@@ -96,10 +96,10 @@ int main (int argc, char * argv[])
     // voltage related variables.
         var<Real> theta("theta");
         var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
-        var<Real> vr("vr");
-        var<Real> vi("vi");
-//        var<Real> vr("vr", grid.v_max.in(grid.nodes));
-//        var<Real> vi("vi", grid.v_max.in(grid.nodes));
+//        var<Real> vr("vr");
+//        var<Real> vi("vi");
+        var<Real> vr("vr", grid.v_max.in(grid.nodes));
+        var<Real> vi("vi", grid.v_max.in(grid.nodes));
     
     if (polar) {
         ACOPF.add_var(v^(nb_buses));

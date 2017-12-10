@@ -192,7 +192,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = p._ids;
+        _ids = make_shared<vector<unsigned>>(*p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -230,7 +230,7 @@ public:
         _val = p._val;
         _name = p._name;
         _indices = p._indices;
-        _ids = p._ids;
+        _ids = make_shared<vector<unsigned>>(*p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;

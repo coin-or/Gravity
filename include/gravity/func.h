@@ -1760,16 +1760,22 @@ namespace gravity {
         switch (c1->get_type()) {
             case binary_c: {
                 auto val = ((constant<bool>*)c1)->eval();
-                delete c1;
-                auto f = new func_(c2);
-                *f *= val;
-                c1 = (constant_*)(f);
+                if (val==true) {
+                    delete c1;
+                    return c1 = new param<T>(c2);
+                }
                 return c1;
                 break;
             }
             case short_c: {
                 auto val = ((constant<short>*)c1)->eval();
+                if (val==0) {
+                    return c1;
+                }
                 delete c1;
+//                if (val==1) {
+//                    return c1 = new param<T>(c2);
+//                }
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
@@ -1778,7 +1784,13 @@ namespace gravity {
             }
             case integer_c: {
                 auto val = ((constant<int>*)c1)->eval();
+                if (val==0) {
+                    return c1;
+                }
                 delete c1;
+//                if (val==1) {
+//                    return c1 = new param<T>(c2);
+//                }
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
@@ -1787,7 +1799,13 @@ namespace gravity {
             }
             case float_c: {
                 auto val = ((constant<float>*)c1)->eval();
+                if (val==0) {
+                    return c1;
+                }
                 delete c1;
+//                if (val==1) {
+//                    return c1 = new param<T>(c2);
+//                }
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
@@ -1796,7 +1814,13 @@ namespace gravity {
             }
             case double_c: {
                 auto val = ((constant<double>*)c1)->eval();
+                if (val==0) {
+                    return c1;
+                }
                 delete c1;
+//                if (val==1) {
+//                    return c1 = new param<T>(c2);
+//                }
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
@@ -1815,7 +1839,13 @@ namespace gravity {
             }
             case long_c: {
                 auto val = ((constant<long double>*)c1)->eval();
+                if (val==0) {
+                    return c1;
+                }
                 delete c1;
+//                if (val==1) {
+//                    return c1 = new param<T>(c2);
+//                }
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
