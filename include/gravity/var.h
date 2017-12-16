@@ -116,6 +116,18 @@ public:
         res._ub = this->_ub;
         return res;
     }
+    
+    template<typename Tobj>
+    var from(const vector<Tobj>& vec){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
 
     template<typename Tobj>
     var from(const vector<Tobj*>& vec, unsigned T){
@@ -129,6 +141,16 @@ public:
     
     template<typename Tobj>
     var to(const vector<Tobj*>& vec){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var to(const vector<Tobj>& vec){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::to(vec));
         res.param<type>::set_type(var_c);
@@ -159,7 +181,27 @@ public:
     }
     
     template<typename Tobj>
+    var in(const vector<Tobj>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
     var in_pairs(const vector<Tobj*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pairs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var in_pairs(const vector<Tobj>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_pairs(vec));
         res.param<type>::set_type(var_c);

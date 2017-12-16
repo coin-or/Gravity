@@ -58,12 +58,16 @@ namespace gravity{
         string _name;
         string _type_name="index_pair";
         bool   _active = true;
-        index_* _src;
-        index_* _dest;
+        index_* _src = nullptr;
+        index_* _dest = nullptr;
         index_pair(const index_& src, const index_& dest, bool active = true):_name(src._name+","+dest._name), _active(active), _src(new index_(src)), _dest(new index_(dest)){};
+        index_pair(const string& src, const string& dest, bool active = true):_name(src+","+dest), _active(active), _src(new index_(src)), _dest(new index_(dest)){};
+        index_pair(const index_pair& p):_name(p._name), _active(p._active), _src(new index_(*p._src)), _dest(new index_(*p._dest)){};
         ~index_pair(){
             delete _src;
+            _src = nullptr;
             delete _dest;
+            _dest = nullptr;
         }
     };
     

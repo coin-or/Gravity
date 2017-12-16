@@ -25,8 +25,8 @@ int main (int argc, char * argv[])
     int output = 0;
     bool relax = false, use_cplex = false;
     double tol = 1e-6;
+    double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
-//    string fname = "/users/hh/Dropbox/Work/Dev/pglib-opf/sad/pglib_opf_case6470_rte__sad.m";
     string fname = "../../data_sets/Power/nesta_case5_pjm.m";
     
     // create a OptionParser with options
@@ -204,19 +204,24 @@ int main (int argc, char * argv[])
 
     
     /* Solver selection */
-//    if (use_cplex) {
-//        solver SCOPF_CPX(SOCP, cplex);
-//        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
-//    }
-//    else {
+    if (use_cplex) {
+        solver SCOPF_CPX(SOCP, cplex);
+        auto solver_time_start = get_wall_time();
+        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
+    else {
         solver SCOPF(SOCP,ipopt);
-        double solver_time_start = get_wall_time();
+        auto solver_time_start = get_wall_time();
         SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
-        double solver_time_end = get_wall_time();
-        double total_time_end = get_wall_time();
-        auto solve_time = solver_time_end - solver_time_start;
-        auto total_time = total_time_end - total_time_start;
-//    }
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

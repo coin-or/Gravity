@@ -61,8 +61,13 @@ namespace gravity {
             return *this;
         };
         
+        template<typename Tobj> Constraint& in(const vector<Tobj>& vec){
+            this->func_::in(vec);
+            return *this;
+        };
+        
         /* Output */
-        void print() const;
+        void print();
         
         
     };
