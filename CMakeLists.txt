@@ -8,7 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
+option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
 
 # Find xlnt (optional)
 option(ENABLE_XLNT "Link to XLNT libraries" OFF)
@@ -17,7 +17,7 @@ option(ENABLE_XLNT "Link to XLNT libraries" OFF)
 option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
 
 # Find CPLEX (optional)
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(ENABLE_CPLEX "Link to Cplex libraries" ON)
 
 # Find SDPA (optional)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
@@ -26,7 +26,7 @@ option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 
 # include BOOST (optional)
-option(ENABLE_BOOST "Link to BOOST libraries" OFF)
+option(ENABLE_BOOST "Link to BOOST libraries" ON)
 
 
 execute_process(

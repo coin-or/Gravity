@@ -23,9 +23,12 @@
 #include <queue>
 #include <time.h>
 //#include <armadillo>
+//#include "/usr/local/include/igraph/igraph.h"
 #ifdef USE_BOOST
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
+#include <boost/graph/prim_minimum_spanning_tree.hpp>
+
 #include <deque>
 #include <iterator>
 #endif
@@ -38,10 +41,10 @@ static char* line = nullptr;
 
 Net::Net() {}
 
-/* returns true if an arc is already present between the given nodes */
+/* returns true if an directed arc is already present between the given nodes */
 bool Net::duplicate(std::string n1, std::string n2, int id1) {
     int id2 = get_arc(n1, n2)->_id;
-    
+
     if (id2 < id1)
         return true;
     else
@@ -52,28 +55,28 @@ bool Net::duplicate(std::string n1, std::string n2, int id1) {
 Net* Net::clone() {
     Net* copy_net = new Net();
     Node* node = NULL;
-    
+
     for (int i=0; i<nodes.size(); i++) {
         node = this->nodes[i];
         copy_net->add_node(node->clone());
     }
-    
+
     Arc* arc = NULL;
     for (int i=0; i < arcs.size(); i++) {
-        
+
         /* ignores if the arc is a paralel line to an already existing arc */
         //if (duplicate(arcs[i]->_src->_name, arcs[i]->_dest->_name, arcs[i]->_id)) {
 //            continue;
 //        }
         arc = arcs[i]->clone();
-        
+
         /* Update the source and destination to the new nodes in copy_net */
         arc->_src = copy_net->get_node(arc->_src->_name);
         arc->_dest = copy_net->get_node(arc->_dest->_name);
-        
+
         /* Add the new arc to the list of arcs */
         copy_net->add_arc(arc);
-        
+
         /* Connects it to its source and destination */
         arc->connect();
     }
@@ -83,26 +86,26 @@ Net* Net::clone() {
 Net* Net::clone_undirected() {
     Net* copy_net = new Net();
     Node* node = NULL;
-    
+
     for (int i=0; i<nodes.size(); i++) {
         node = this->nodes[i];
         copy_net->add_node(node->clone());
     }
-    
+
     Arc* arc = NULL;
     for (int i=0; i < arcs.size(); i++) {
-        if (copy_net->get_arc(arcs[i]->_src->_name, arcs[i]->_dest->_name)!=nullptr) {
+        if (copy_net->get_undirected_arc(arcs[i]->_src->_name, arcs[i]->_dest->_name)!=nullptr) {
             continue;
         }
         arc = arcs[i]->clone();
-        
+
         /* Update the source and destination to the new nodes in copy_net */
         arc->_src = copy_net->get_node(arc->_src->_name);
         arc->_dest = copy_net->get_node(arc->_dest->_name);
-        
+
         /* Add the undirected arc to the list of arcs */
         copy_net->add_undirected_arc(arc);
-        
+
         /* Connects it to its source and destination */
         arc->connect();
     }
@@ -120,20 +123,63 @@ const bool node_compare(const Node* n1, const Node* n2) {
 
 void Net::add_node(Node* node) {
     node->_id = (int) nodes.size();
-    
+
     if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
         cerr << "ERROR: adding the same node twice!";
     }
-    
+
     nodes.push_back(node);
 }
 
-Node* Net::get_node(string name){
+Node* Net::get_node(string name) {
     return nodeID.find(name)->second;
 }
 
-/* returns the undirected arc formed by node n1 and n2 */
+/* returns the directed arc formed by node n1 and n2 */
 Arc* Net::get_arc(Node* n1, Node* n2) {
+    string src, dest, key, inv_key;
+    src = n1->_name;
+    dest = n2->_name;
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
+        for (auto a: *it->second) {
+            if (!a->_parallel) {
+                return a;
+            }
+            else {
+                throw invalid_argument( "WARNING: there are parallel (directed) lines from A to B ");
+                //cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+            }
+        }
+    }
+    return nullptr;
+}
+
+/* returns the directed arc formed by node n1 and n2 */
+std::vector<Arc*> Net::get_arcs(Node* n1, Node* n2) {
+    vector<Arc*> vec;
+    string src, dest, key;
+    src = n1->_name;
+    dest = n2->_name;
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
+        vec.assign(it->second->begin(), it->second->end());
+    }
+    return vec;
+}
+
+
+
+/* returns the undirected arc formed by node n1 and n2 */
+Arc* Net::get_undirected_arc(Node* n1, Node* n2) {
     string src, dest, key, inv_key;
     src = n1->_name;
     dest = n2->_name;
@@ -148,25 +194,34 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     map<string, set<Arc*>*>::iterator it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            //   if (!a->parallel) {
-            return a;
-            // }
+            if (!a->_parallel) {
+                return a;
+            }
+            else {
+                throw invalid_argument( "WARNING: there are parallel (directed) lines from A to B ");
+                //cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+            }
         }
     }
     it = arcID.find(inv_key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            //   if (!a->parallel) {
-            return a;
-            // }
+            if (!a->_parallel) {
+                return a;
+            }
+            else {
+                throw invalid_argument( "WARNING: there are parallel (directed) lines from A to B ");
+                //cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+            }
         }
     }
     return nullptr;
 }
 
+
 /* returns the Id of the arc formed by nodes names n1 and n2 */
 // this assumes that the graph is undirected.
-Arc* Net::get_arc(std::string src, std::string dest) {
+Arc* Net::get_undirected_arc(std::string src, std::string dest) {
     std::string key, inv_key;
     key.clear();
     inv_key.clear();
@@ -179,17 +234,48 @@ Arc* Net::get_arc(std::string src, std::string dest) {
     map<string, set<Arc*>*>::iterator it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            if (!a->_parallel) {
+                return a;
+            }
+            else {
+                cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+            }
+        }
+
+        it = arcID.find(inv_key);
+        if (it != arcID.end()) {
+            for (auto a: *it->second) {
+                if (!a->_parallel) {
+                    return a;
+                }
+                else {
+                    cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+                }
+            }
         }
     }
-    
-    it = arcID.find(inv_key);
+
+    return nullptr;
+}
+
+
+Arc* Net::get_arc(std::string src, std::string dest) {
+    std::string key;
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            if (!a->_parallel) {
+                return a;
+            }
+            else {
+                cout << "WARNING: there are parallel (directed) lines from A to B " << endl;
+            }
         }
     }
-    
     return nullptr;
 }
 
@@ -215,27 +301,26 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
-    if (src == dest){
+    if (src == dest) {
         throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-    
+
     }
 
-    
+
     key.clear();
     key.append(src);
     key.append(",");
     key.append(dest);
-    
+
     if(arcID.find(key)==arcID.end()) {
         s = new set<Arc*>;
         s->insert(a);
         arcID.insert(pair<string, set<Arc*>*>(key,s));
     }
     else {
-        if(arcID.find(key)!=arcID.end())
-            s = arcID[key];
+        s = arcID[key];
         s->insert(a);
-        DebugOff("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        DebugOn("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }
@@ -251,21 +336,21 @@ void Net::add_undirected_arc(Arc* a) {
     src = a->_src->_name;
     dest = a->_dest->_name;
 
-    if (src == dest){
+    if (src == dest) {
         throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-    
+
     }
-    
+
     key.clear();
     key.append(src);
     key.append(",");
     key.append(dest);
-    
+
     key_inv.clear();
     key_inv.append(dest);
     key_inv.append(",");
     key_inv.append(src);
-    
+
     if(arcID.find(key)==arcID.end()&& arcID.find(key_inv)==arcID.end()) {
         s = new set<Arc*>;
         s->insert(a);
@@ -325,7 +410,7 @@ void Net::readrudy(const char* fname) {
         iss >> Num_nodes;
         iss >> Num_edges;
     }
-    else{
+    else {
         fprintf(stderr,"can’t open input file %s\n",fname);
         exit(1);
     }
@@ -390,7 +475,7 @@ void Net::read_adjacency_matrix(const char* fname) {
             row.push_back(temp);
         matrix.push_back(row);
     }
-    
+
     int n=0;
     n =matrix.size();
 
@@ -517,9 +602,9 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
-
+    int nb_added = 0;
     /** cliques with less than 1 nodes are useless for us.*/
-    while (graph_clone->nodes.size()> 2) {
+    while (graph_clone->nodes.size()> 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
 
         // last element has the minimum fill-in.
@@ -533,8 +618,11 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         vector<Node*> bag_copy;
         vector<Node*> bag;
         DebugOn("new bag = { ");
-        for (auto nn: n->get_neighbours()) {
+        for (const auto& nn: n->get_neighbours()) {
             if(!nn->_active) continue;
+        // vector<Node*> N = n->get_neighbours();
+        //for (auto iter = N.begin(); iter != N.end(); ++iter) {
+          //  nn = *iter;
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
             DebugOn(nn->_name << ", ");
@@ -569,6 +657,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
+                nb_added += 1;
             }
         }
 
@@ -587,17 +676,90 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
         delete n;
     }
-//    sort(_bags.begin(), _bags.end(), bag_compare);
-
-
+    sort(_bags.begin(), _bags.end(), bag_compare);
     Debug("\n Number of 3D bags = " << nb << endl);
-
     delete graph_clone;
-    
+    //printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
 }
 
+}
+
+// use greedy fill-in algorithm.
+vector<Node*> Net::get_PEO(bool print_bags) {
+    vector<Node*> PEO;
+    Node* n = nullptr;
+    Node* u = nullptr;
+    Node* nn = nullptr;
+    Arc* arc = nullptr;
+
+    string name="";
+    Net* graph_clone = clone_undirected(); //
+    int nb_added = 0;
+    /** cliques with less than 1 nodes are useless for us.*/
+    while (graph_clone->nodes.size()> 0) {
+        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+
+        // last element has the minimum fill-in.
+        n = graph_clone->nodes.back();
+        PEO.push_back(n);
+        Debug(n->_name << endl);
+        Debug(_clone->nodes.size() << endl);
+        vector<Node*> bag_copy;
+        vector<Node*> bag;
+        Debug("new bag = { ");
+        vector<Node*> N = n->get_neighbours();
+        for (auto iter = N.begin(); iter != N.end(); ++iter) {
+            nn = *iter;
+            bag_copy.push_back(nn);
+            bag.push_back(get_node(nn->_name)); // Note it takes original node.
+            Debug(nn->_name << ", ");
+        }
+        graph_clone->remove_end_node();
+        bag_copy.push_back(n);
+        bag.push_back(get_node(n->_name)); // node in this graph
+        sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+
+        // update clone_graph and construct chordal extension.
+        for (int i = 0; i < bag_copy.size(); i++) {
+            u = bag_copy.at(i);
+            for (int j = i+1; j<bag_copy.size(); j++) {
+                nn = bag_copy.at(j);
+                if (u->is_connected(nn)) {
+                    continue;
+                }
+                name = to_string((int) graph_clone->arcs.size()+1);
+                arc = new Arc(name);
+
+                arc->_id = arcs.size();
+                arc->_src = u;
+                arc->_dest = nn;
+                arc->connect();
+                graph_clone->add_undirected_arc(arc);
+                nb_added += 1;
+            }
+        }
+
+        if (print_bags) {
+            DebugOn("bag_copy = {");
+            for (int i=0; i<bag_copy.size();     i++) {
+                cout << bag_copy.at(i)->_name << " ";
+            }
+            DebugOn("}" << endl);
+        }
+        _bags_copy.push_back(bag_copy);
+        _bags.push_back(bag); // bag original
+
+    }
+    sort(_bags.begin(), _bags.end(), bag_compare);
+    printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
+    return PEO;
+>>>>>>> build a new decompose branch
+}
+
+
 /** Return the vector of arcs ignoring parallel lines **/
-std::vector<gravity::index_pair*> Net::get_bus_pairs(){
+std::vector<gravity::index_pair*> Net::get_bus_pairs() {
     return _bus_pairs._keys;
 }
 
@@ -626,19 +788,20 @@ Net* Net::get_chordal_extension() {
     while (graph_clone->nodes.size() > 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
-        n = graph_clone->nodes.back();         
+        n = graph_clone->nodes.back();
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
         vector<Node*> bag_copy;
         vector<Node*> bag;
         Debug("new bag_copy = { ");
 
-        for (auto nn: n->get_neighbours()) {
+        vector<Node*> N = n->get_neighbours();
+        for (auto iter = N.begin(); iter != N.end(); ++iter) {
+            nn = *iter;
             bag_copy.push_back(nn);
-            bag.push_back(get_node(nn->_name));
+            bag.push_back(get_node(nn->_name)); // Note it takes original node.
             Debug(nn->_name << ", ");
         }
-
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
@@ -699,8 +862,8 @@ Net* Net::get_chordal_extension() {
 void Net::get_cliquebags (bool print) {
     for (unsigned i = 0; i < _bags.size(); i++) {
         for (unsigned j = i+1; j < _bags.size();) {
-            if (std::includes(_bags[i].begin(),_bags[i].end(),
-                              _bags[j].begin(), _bags[j].end()))
+            if (std::includes(_bags[i].begin(),_bags[i].end(),_bags[j].begin(), _bags[j].end(),
+                              [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;}))
             {
                 _bags.erase(_bags.begin()+j);
             }
@@ -710,6 +873,8 @@ void Net::get_cliquebags (bool print) {
     }
     cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
 }
+
+
 
 /* Destructors */
 Net::~Net() {
@@ -738,43 +903,54 @@ Net::~Net() {
     }
 }
 
-Net* Net::get_clique_tree(){
+Net* Net::get_clique_tree_kruskal() {
     Net* cliquetree = new Net();
     Node* node = nullptr;
     Arc*  a = nullptr;
     string name;
     get_cliquebags(true);
+
+    for (int i = 0; i < _bags.size(); i++) {
+        sort(_bags[i].begin(), this->_bags[i].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+    }
+
 #ifdef USE_BOOST
     /** Note that we also need the edge information of the clique tree **/
     /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
     typedef boost::adjacency_list <boost::vecS,
-    boost::vecS,
-    boost::undirectedS,
-    boost::no_property,
-    boost::property < boost::edge_weight_t, int >> Graph;
+            boost::vecS,
+            boost::undirectedS,
+            boost::no_property,
+            boost::property < boost::edge_weight_t, int >> Graph;
     typedef boost::graph_traits <Graph>::edge_descriptor Edge;
     //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
-    
+
     // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
     typedef std::pair<int, int> E;
     std::vector<E> edges;
     std::vector<int> weights;
-    int nb_cliques = this->_bags.size();
+
+    unsigned weights_interesction = 0;
+    int nb_cliques = _bags.size();
+
+
     for (int i = 0; i < nb_cliques; i++) {
-        DebugOn("bag " << i << " has " << this->_bags[i].size() << " nodes." <<endl);
-        sort(this->_bags[i].begin(), this->_bags[i].end());
-        for (int j = i +1; j < nb_cliques; j++) {
+        DebugOff("bag " << i << " has " << _bags[i].size() << " nodes." <<endl);
+        for (int j = i+1; j < nb_cliques; j++) {
             vector<Node*> v3;
-            sort(this->_bags[j].begin(), this->_bags[j].end());
-            set_intersection(this->_bags[i].begin(), this->_bags[i].end(), this->_bags[j].begin(), this->_bags[j].end(), back_inserter(v3));
-            if (v3.size() > 0) {
+            set_intersection(_bags.at(i).begin(),_bags.at(i).end(), _bags.at(j).begin(), _bags.at(j).end(), back_inserter(v3),
+                             [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+            if ( (int)v3.size() > 0) {
                 edges.push_back(E(i, j));
-                weights.push_back(-v3.size());
+                weights.push_back(-(int)(v3.size()));
+                DebugOff("W(" << i << "," << j << "),  "<< (int)v3.size() << endl);
+                weights_interesction += (int)v3.size();
             }
         }
     }
+    DebugOff("weights of the intersection graph: " << weights_interesction << endl);
     //size_t num_edges = edges.size();
-    
+
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
     Graph g(num_nodes);
     boost::property_map<Graph, edge_weight_t>::type weightmap = get(edge_weight, g);
@@ -789,18 +965,20 @@ Net* Net::get_clique_tree(){
 #endif
     boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
     std::vector < Edge > spanning_tree;
+    // complexity: O(ElogE).
     boost::kruskal_minimum_spanning_tree(g, std::back_inserter(spanning_tree));
-    
-    DebugOn("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
-    
+
+    //DebugOff("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
+
+
     //////////CLIQUE TREE /////////////////////////////
     for (int i = 0; i < nb_cliques; i++) {
         node= new Node(to_string(i), i);
         cliquetree->add_node(node);
     }
-    
+    double total_weight = 0;
     for (std::vector < Edge >::iterator ei = spanning_tree.begin();
-         ei != spanning_tree.end(); ++ei) {
+            ei != spanning_tree.end(); ++ei) {
         int u = source(*ei, g);
         int v = target(*ei, g);
         DebugOn(u << " <--> " << v
@@ -809,33 +987,132 @@ Net* Net::get_clique_tree(){
         name = (int) cliquetree->arcs.size();
         a = new Arc(name);
         a->_id = cliquetree->arcs.size();
-        
+        total_weight -= weight[*ei];
         // intersection
         vector<Node*> v3;
-        sort(this->_bags[u].begin(), this->_bags[u].end());
-        sort(this->_bags[v].begin(), this->_bags[v].end());
+        sort(this->_bags[u].begin(), this->_bags[u].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(this->_bags[v].begin(), this->_bags[v].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         set_intersection(this->_bags[u].begin(), this->_bags[u].end(),
                          this->_bags[v].begin(), this->_bags[v].end(),
-                         back_inserter(v3));
+                         back_inserter(v3), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         a->_src = cliquetree->get_node(to_string(u));
         a->_dest = cliquetree->get_node(to_string(v));
         a->_weight = -weight[*ei];
         a->_intersection = v3;
         cliquetree->add_arc(a);
         a->connect();
-        
-        for (int i = 0; i < v3.size(); i++){
-                auto  node = v3.at(i);
-            for (int j = i+1; j < v3.size(); j++){
-                auto arc = get_arc(node, v3.at(j)); 
-                if (arc != nullptr){
-                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), arc->_active)); 
-                }
-             //   else
-               //     a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
+//        for (int i = 0; i < v3.size()-1; i++) {
+//            auto node = v3.at(i);
+//            for (int j = i+1; j < v3.size(); j++) {
+//                auto arc = get_undirected_arc(node, v3.at(j));
+//                if (arc != nullptr){
+//                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), true));
+//                }
+//            }
+//        }
+    }
+    DebugOn("total weight of the clique tree is: " << total_weight<< endl);
+#endif
+    return cliquetree;
+}
+
+Net* Net::get_clique_tree_prim() {
+    Net* cliquetree = new Net();
+    Node* node = nullptr;
+    Arc*  a = nullptr;
+    string name;
+    get_cliquebags(true);
+
+    for (int i = 0; i < _bags.size(); i++) {
+        sort(_bags[i].begin(), this->_bags[i].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+    }
+
+#ifdef USE_BOOST
+    /** Note that we also need the edge information of the clique tree **/
+    /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
+    typedef boost::adjacency_list <boost::vecS,
+            boost::vecS,
+            boost::undirectedS,
+            boost::no_property,
+            boost::property < boost::edge_weight_t, int >> Graph;
+    typedef boost::graph_traits <Graph>::edge_descriptor Edge;
+    //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
+
+    // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
+    typedef std::pair<int, int> E;
+    std::vector<E> edges;
+    std::vector<int> weights;
+    size_t big_M = nodes.size();
+
+    unsigned weights_interesction = 0;
+    int nb_cliques = _bags.size();
+
+
+    for (int i = 0; i < nb_cliques; i++) {
+        DebugOff("bag " << i << " has " << _bags[i].size() << " nodes." <<endl);
+        for (int j = i+1; j < nb_cliques; j++) {
+            vector<Node*> v3;
+            set_intersection(_bags.at(i).begin(),_bags.at(i).end(), _bags.at(j).begin(), _bags.at(j).end(), back_inserter(v3),
+                             [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+            if ( (int)v3.size() > 0) {
+                edges.push_back(E(i, j));
+                weights.push_back((int)(big_M -v3.size()));
+                DebugOff("W(" << i << "," << j << "),  "<< (int)v3.size() << endl);
+                weights_interesction += (int)v3.size();
             }
         }
     }
+    DebugOff("weights of the interesction graph: " << weights_interesction << endl);
+
+#if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
+    Graph g(num_nodes);
+    boost::property_map<Graph, edge_weight_t>::type weightmap = get(edge_weight, g);
+    for (std::size_t j = 0; j < num_edges; ++j) {
+        Edge e;
+        bool inserted;
+        boost::tie(e, inserted) = boost::add_edge(edges[j].first, edges[j].second, g);
+        boost::weightmap[e] = weights[j];
+    }
+#else
+    Graph g(edges.begin(), edges.end(), weights.begin(), nb_cliques);
+#endif
+    boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
+    //prim: O(ElogV).
+    std::vector <boost::graph_traits<Graph>::vertex_descriptor> p(num_vertices(g));
+    boost::prim_minimum_spanning_tree(g, &p[0]);
+
+    //////////CLIQUE TREE /////////////////////////////
+    for (int i = 0; i < nb_cliques; i++) {
+        node= new Node(to_string(i), i);
+        cliquetree->add_node(node);
+    }
+    double total_weight = 0;
+
+    // build up the clique tree rooted at the first node
+    for (int v = 0 ; v < p.size(); v++) {
+        if (p[v] !=v) {
+            int u = p[v];
+            DebugOn(p[v] << " --> " << v << endl);
+            a = new Arc(name);
+            a->_id = cliquetree->arcs.size();
+            // intersection
+            vector<Node*> v3;
+            sort(this->_bags[u].begin(), this->_bags[u].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+            sort(this->_bags[v].begin(), this->_bags[v].end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+            set_intersection(this->_bags[u].begin(), this->_bags[u].end(),
+                             this->_bags[v].begin(), this->_bags[v].end(),
+                             back_inserter(v3), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+            a->_src = cliquetree->get_node(to_string(u));
+            a->_dest = cliquetree->get_node(to_string(v));
+            a->_weight = v3.size();
+            total_weight += v3.size();
+            a->_intersection = v3;
+            cliquetree->add_arc(a);
+            a->connect();
+        }
+    }
+
+    DebugOn("total weight of the clique tree is: " << total_weight<< endl);
 #endif
     return cliquetree;
 }
