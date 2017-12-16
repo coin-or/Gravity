@@ -381,6 +381,7 @@ void Model::add_constraint(const Constraint& c){
 //        embed(newc);
         _cons_name[c.get_name()] = newc;
         _cons[newc->_id] = newc;
+        _built = false;
     }
     else {
         throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
