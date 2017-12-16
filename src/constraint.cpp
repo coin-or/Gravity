@@ -91,7 +91,7 @@ size_t Constraint::get_id_inst(size_t ind) const{
 
 
 /* Output */
-void Constraint::print() const{
+void Constraint::print(){    
     cout << _name << " : ";
     
     this->func_::print(false,false);

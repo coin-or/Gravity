@@ -5775,7 +5775,10 @@ namespace gravity{
     }
 
 
-    void func_::print(bool endline, bool display_input) const{
+    void func_::print(bool endline, bool display_input){
+//        if (_to_str.compare("noname")==0) {
+            update_to_str(display_input);
+//        }
         cout << this->_to_str;
         if (endline)
             cout << endl;
@@ -6090,8 +6093,8 @@ namespace gravity{
             cout << endl;
     }
     
-    void func_::update_to_str(){
-        _to_str = to_str();
+    void func_::update_to_str(bool input){
+        _to_str = to_str(input);
     }
     
     size_t func_::get_nb_vars() const{

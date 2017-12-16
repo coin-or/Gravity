@@ -291,71 +291,137 @@ int main (int argc, const char * argv[])
 //    X.print();
 //    auto t2 =X(3,3)+X(4, 2);
 //    t2.print();
-    var<double> x("x");
-    var<double> y("y");
-    var<double> v1("v1");
-    var<double> v2("v2");
-    Model toy_nlp;
-    toy_nlp.add_var(x^3);
-    toy_nlp.add_var(y^3);
-    toy_nlp.add_var(v1^3);
-    toy_nlp.add_var(v2^3);
-//    auto vec = constant<double>(1).tr()*power(X,2);
-//    vec.print();
+//    var<double> x("x");
+//    var<double> y("y");
+//    var<double> v1("v1");
+//    var<double> v2("v2");
+//    Model toy_nlp;
+//    toy_nlp.add_var(x^3);
+//    toy_nlp.add_var(y^3);
+//    toy_nlp.add_var(v1^3);
+//    toy_nlp.add_var(v2^3);
+////    auto vec = constant<double>(1).tr()*power(X,2);
+////    vec.print();
+////
+//    param<double> a("a");
+//    param<double> b("b");
+//    a^3;
+//    b^3;
+//    auto nl = cos(a*x+b*y) + sin(a*x - b*y);
+//    nl.print(true);
+//    auto dfdx = nl.get_derivative(x);
+//    dfdx.print(true);
+//    auto dfdy = nl.get_derivative(y);
+//    dfdy.print(true);
+//    
+//    auto nl2 = v1*v2*cos(a*x+b*y) + v1*v2*sin(a*x - b*y) + expo(v1*a*x*y);
+//    nl2.print(true);
+//    auto dfdx2 = nl2.get_derivative(x);
+//    dfdx2.print(true);
+//    auto dfdy2 = nl2.get_derivative(y);
+//    dfdy2.print(true);
+//    auto dfdv1 = nl2.get_derivative(v1);
+//    dfdv1.print(true);
+//    
+////    p.push_back(&b);
+////    p[1]->print(true);
+////    cout << "\n";
+////    a = 0;
+////    p[0]->print(true);
+////    cout << "\n";
+////    p[1]->print(true);
+//    
+//    func_ polynomial;
+//    var<Real> xvar("x", -1, 1);
+//    param<Real> c("c");
+//    param<double> d("d");
 //
-    param<double> a("a");
-    param<double> b("b");
-    a^3;
-    b^3;
-    auto nl = cos(a*x+b*y) + sin(a*x - b*y);
-    nl.print(true);
-    auto dfdx = nl.get_derivative(x);
-    dfdx.print(true);
-    auto dfdy = nl.get_derivative(y);
-    dfdy.print(true);
-    
-    auto nl2 = v1*v2*cos(a*x+b*y) + v1*v2*sin(a*x - b*y) + expo(v1*a*x*y);
-    nl2.print(true);
-    auto dfdx2 = nl2.get_derivative(x);
-    dfdx2.print(true);
-    auto dfdy2 = nl2.get_derivative(y);
-    dfdy2.print(true);
-    auto dfdv1 = nl2.get_derivative(v1);
-    dfdv1.print(true);
-    
-//    p.push_back(&b);
-//    p[1]->print(true);
-//    cout << "\n";
-//    a = 0;
-//    p[0]->print(true);
-//    cout << "\n";
-//    p[1]->print(true);
-    
-    func_ polynomial;
-    var<Real> xvar("x", -1, 1);
-    param<Real> c("c");
-    param<double> d("d");
+//    c = 1;
+//    d = -0.2;
+//    x^3;
+//    polynomial += xvar(1)*xvar(2)*xvar(3) + power(xvar(1), 2) + power(xvar(3),2) - 2*xvar(1)*c + c*1.2*d + c + d;
+//    polynomial.print(true);
+//    cout << "the constant of this polynomial function is: " << poly_eval(polynomial.get_cst()) << endl;
+//    
+//    unsigned n = 10;
+//    param<Real> ones("ones");
+//    param<Real> zeros("zeros");
+//
+//    ones.set_size(n, 1);
+//    zeros.set_size(n, 0);
+//    var<Real> yvar("y", zeros, ones);
+//    var<Real> Xvar("X", -1, 1);
+//
+//    Xvar(1,1) =2;
+//    Xvar.print(true);
+//    yvar.print(true);
 
-    c = 1;
-    d = -0.2;
-    x^3;
-    polynomial += xvar(1)*xvar(2)*xvar(3) + power(xvar(1), 2) + power(xvar(3),2) - 2*xvar(1)*c + c*1.2*d + c + d;
-    polynomial.print(true);
-    cout << "the constant of this polynomial function is: " << poly_eval(polynomial.get_cst()) << endl;
+//    param<> p("def_p"); /* Default type is double */
+//    p("bus1") = 0.3; /* Adding bus1 to the set of indices and assigning corresponding real value */
+//    p("bus2") = 2.3; /* Adding bus2 to the set of indices and assigning corresponding real value */
+//    p.print(true); /* Will print:  def_p = [ (bus1=0.300000) (bus2=2.300000) ]; */
+//    p.set_val("bus1", 0.6); /* The function set_val can be used to set the value of the corresponding indices */
+//    p.print(true);/* Will print:  def_p = [ (bus1=0.600000) (bus2=2.300000) ]; */
+//    
+//    param<int> pi("int_p"); /* Integer constant */
+//    pi(1) = 0; /* Indexing can also be done using numerical indices */
+//    pi(5) = 1;
+//    pi.print(true);/* Will print:  int_p = [ (1=0) (5=1) ];*/
+//    
+//    param<int> lb("lb"), ub("ub");
+//    lb("bus1") = -1;
+//    ub("bus1") = 2;
+//    var<> x("x", -0.1, 3.5);
+//    var<int> y("y", lb,ub);
+//    
+//    x(0).print(true);
+//    y("bus1").print(true);
+//    
+//    Constraint cstr1("cstr1");
+//    cstr1 += power(x,4) - power(y, 2) + pi*x*y + 2*x;
+//    cstr1 <= 2;
+//    cstr1.print();
+//    Constraint cstr2("cstr2");
+//    cstr2 += cos(pi*x) + expo(2*y);
+//    cstr2 <= 2;
+//    cstr2.print();
     
-    unsigned n = 10;
-    param<Real> ones("ones");
-    param<Real> zeros("zeros");
-
-    ones.set_size(n, 1);
-    zeros.set_size(n, 0);
-    var<Real> yvar("y", zeros, ones);
-    var<Real> Xvar("X", -1, 1);
-
-    Xvar(1,1) =2;
-    Xvar.print(true);
-    yvar.print(true);
+    var<> x("x"), y("y"), z("z",pos_);
+    vector<index_pair> bus_pairs;
+    bus_pairs.push_back(index_pair("bus1", "bus2"));
+    /* Second-order cone constraints */
+    Constraint SOC("SOC");
+    SOC =  power(x, 2) + power(y, 2);
+    SOC.in(bus_pairs) <= 0;
+    SOC.print();
+    if (SOC.is_convex()) {
+        DebugOn("SOC is convex function" << endl);
+    }
 
     
+//    auto cc = p*p + q*q;
+//    DebugOn(cc.to_str(true) << endl);
+//    auto cc1 = cc * -1;
+//    DebugOn(cc1.to_str(true) << endl);//SHOULD PRINT CONCAVE
+//    cc1 += 2*p*q;
+//    DebugOn(cc1.to_str(true) << endl);
+
+    
+    param<int> a("a");
+    a(0) = -1;
+    a(1) = -3;
+    a.print(true);
+    auto f = (a)*power(x,2);
+    f.print(true,true);
+    f *= a;
+    f.print(true,true);
+    f *= -1;
+    f.print(true,true);
+    
+    /* Declare model */
+    Model SOCP("Second-Order Cone Model");
+    SOCP.add_var(x^10); /* Will add a vector of size 10 representing variables named x */
+    SOCP.add_constraint(SOC.in(bus_pairs) <= 0); /* Will add second-order constraints indexed by bus_pairs (see previous Code Block) */
+    SOCP.min(x+2*y); /* Declaring the objective function */
     return 0;
    } 
