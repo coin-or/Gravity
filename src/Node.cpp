@@ -10,6 +10,7 @@
 #include <gravity/Arc.h>
 #include <iostream>
 #include <limits.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -28,7 +29,7 @@ Node* Node::clone(){
 };
 
 /*
- @brief Adds a to the list of incident arcs
+ @brief Adds directed arc to the list of incident arcs
  */
 
 void Node::addArc(Arc* a){
@@ -103,22 +104,25 @@ std::vector<Arc*> Node::get_in(){
     return res;
 }
 
-std::set<Node*> Node::get_neighbours(){
-    set<Node*> res;
+
+
+std::vector<Node*> Node::get_neighbours(){
+    vector<Node*> res;
+    set<Node*> temp;
     for (auto a:branches) {
         //if(a->_dest->_id=_id && std::find(res.begin(),res.end(), a->_src)== res.end()){
        if(a->_dest->_id== _id){
-            res.insert(a->_src);
-        }
+           temp.insert(a->_src);
+       }
         
         //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
         //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
             if(a->_src->_id==_id ){
-            res.insert(a->_dest);
+            temp.insert(a->_dest);
         }
     }
-    // uniqueness.
-    
+    res.assign(temp.begin(), temp.end());
+    std::sort(res.begin(), res.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
     return res;
 }
 
