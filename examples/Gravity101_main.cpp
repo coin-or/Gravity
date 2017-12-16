@@ -356,6 +356,12 @@ int main (int argc, const char * argv[])
     Xvar.print(true);
     yvar.print(true);
 
-    
+    param<int> l("a");
+    var<> yz("yz", -1, 1);
+    yz(0).print(true);
+    l(0) = -1;
+    l(1) = -3;
+    auto f = (l)*power(yz, 2);
+    f.print(true,true);
     return 0;
    } 

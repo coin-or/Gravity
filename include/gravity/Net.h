@@ -42,6 +42,8 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
+    
+    // avoid using this ...
     bool duplicate(std::string name1, std::string name2, int id1);
     
     // bags are sorted in an ascending order of ids.
@@ -68,10 +70,16 @@ public:
     Node* get_node(std::string name);
 
     /** returns the arc formed by node n1 and n2 */
-    Arc* get_arc(Node* n1, Node* n2);
+    Arc* get_undirected_arc(Node* n1, Node* n2);
+    
+    Arc* get_arc(Node* src, Node* dest);
+    std::vector<Arc*> get_arcs(Node* src, Node* dest);
+
 
     /** returns the arc formed by node names n1 and n2 */
-    Arc* get_arc(std::string n1, std::string n2);
+    Arc* get_undirected_arc(std::string n1, std::string n2);
+    Arc* get_arc(std::string src, std::string dest);
+
     
     bool has_arc(std::string n1, std::string n2) {
         return get_arc(n1,n2)!=nullptr;
@@ -109,6 +117,9 @@ public:
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false);
     
+    // same with get_tree_decomp_bags, additionally it turns a PEO by minimum-fill-in heuristic.
+    std::vector<Node*> get_PEO(bool print_bags=false);
+
    
     /** get algorithmic graph */ 
     void get_algorithmic_graph(); // a cloned graph without in-active, parallel lines. 
@@ -116,12 +127,14 @@ public:
     /** Return a chordal extension graph with tree decomposition **/
     Net* get_chordal_extension();
     
+    
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     std::vector<gravity::index_pair*> get_bus_pairs();
     
     /** Compute the tree decomposition bags **/
     void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques. 
-    Net* get_clique_tree();
+    Net* get_clique_tree_kruskal(); // return a tree in graph 
+    Net* get_clique_tree_prim(); // return a tree rooted at the first node of the graph.
     
     /** Linear algebra based methods based on Armadillo*/
     void chol_decompose(bool print=false); 

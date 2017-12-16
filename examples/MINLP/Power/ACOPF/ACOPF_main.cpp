@@ -21,7 +21,7 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
+    string fname = "../../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
