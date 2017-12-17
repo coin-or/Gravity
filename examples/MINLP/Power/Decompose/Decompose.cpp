@@ -924,7 +924,7 @@ int inout (PowerNet& grid) {
             DebugOff("master problem value: " << Master._obj_val << endl);
 
             // update the out point.
-            //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+            gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
             for (auto a: cliquetree->arcs) {
                 lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
                 R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
