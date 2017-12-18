@@ -23,7 +23,7 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = false;
+    bool relax = false, use_cplex = false, use_gurobi = true;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
@@ -208,6 +208,15 @@ int main (int argc, char * argv[])
         solver SCOPF_CPX(SOCP, cplex);
         auto solver_time_start = get_wall_time();
         SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
+    else if (use_gurobi) {
+        solver SCOPF_GRB(SOCP, gurobi);
+        auto solver_time_start = get_wall_time();
+        SCOPF_GRB.run(output = 0, relax = false, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
