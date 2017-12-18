@@ -24,7 +24,7 @@ Hassan Hijazi, Los Alamos National Laboratory, The Australian National Universit
 Guanglei Wang, The Australian National University | guanglei.wang@anu.edu.au
 
 *****************************
-See INSTALL.md for instructions on compiling Gravity
+See [INSTALL.md](INSTALL.md) for instructions on compiling Gravity
 
 After running make, the Gravity executables can be found under Gravity/bin/
 
