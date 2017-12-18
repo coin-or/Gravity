@@ -1,10 +1,13 @@
-#ifndef __PowerTools____GurobiProgram
-#define __PowerTools____GurobiProgram
+#ifndef __Gravity____GurobiProgram
+#define __Gravity____GurobiProgram
 
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
 #endif
 #include <Gravity/model.h>
+#include <gravity/model.h>
+using namespace gravity;
+
 
 class GurobiProgram {
 private:
@@ -33,4 +36,4 @@ public:
 };
 
 
-#endif /* defined(__PowerTools____GurobiProgram) */
+#endif /* defined(__Gravity____GurobiProgram) */
