@@ -1402,8 +1402,11 @@ int main (int argc, const char * argv[])
 {
     // Decompose
     const char* fname;
+    bool l = 0;
+
     if (argc >= 2) {
         fname = argv[1];
+        l = argv[2];
     }
     else {
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -1416,11 +1419,21 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
+        l = 0;
     }
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-    inout(grid);
-    //ADMM(grid);
+    
+    // 1 in-out
+    // 0: default ADMM
+    
+    if (l == 1){
+        inout(grid);
+    }
+    else{
+        ADMM(grid);
+    }
+    
     return 0;
 }

@@ -28,6 +28,9 @@ add_executable(sdpopf ${SDPOPF_SOURCES} ${Power_SOURCES})
 add_executable(svm ${CLASS_SOURCES} ${SVM_SOURCES})
 add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
 #add_executable(microg ${MICROGRID_SOURCES} ${Power_SOURCES})
+add_executable(decompose ${Decompose_SOURCES} ${Power_SOURCES})
+add_executable(decompose2 ${Decompose_SOURCES} ${Power_SOURCES})
+add_executable(min_k_part ${MINK_SOURCES})
 #add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 
 target_link_libraries(ising gravity)
@@ -45,6 +48,6 @@ target_link_libraries(neuralnet gravity)
 target_link_libraries(decompose gravity)
 target_link_libraries(decompose2 gravity)
 #target_link_libraries(acuc gravity)
-#target_link_libraries(min_k_part gravity)
+target_link_libraries(min_k_part gravity)
 
 
