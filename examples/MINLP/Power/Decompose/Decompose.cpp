@@ -332,7 +332,7 @@ void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Rea
 //    cout << "val: " << val << endl;
 }
 
-int inout (PowerNet& grid) {
+int inout (PowerNet& grid, unsigned iter_limit) {
     cout << "////////////////////////////////////////" << endl;
     Net* grid_augment = grid.clone_undirected();
     DebugOn("number of edges of the augmented graph, " << grid_augment->arcs.size() << endl);
@@ -683,19 +683,14 @@ int inout (PowerNet& grid) {
     Master.add_constraint(UB <= 0);
 
 ////////////////  CONVERGENCE INFORMATION /////////////////////////
-    unsigned iter_limit;
-    cout << "Enter the limit of the number of iterations: ";
-    cin >> iter_limit;
-    cout << endl;
+    //unsigned iter_limit;
+    //cout << "Enter the limit of the number of iterations: ";
+    //cin >> iter_limit;
+    //cout << endl;
 
     double alpha = .5;
     double LBlog[iter_limit];
     double UBlog[iter_limit];
-
-    for(int iter = 0; iter < iter_limit; iter++) {
-        LBlog[iter] = 0.0;
-        UBlog[iter] = 0.0;
-    }
 
     double LDlog[iter_limit];
 
@@ -740,7 +735,7 @@ int inout (PowerNet& grid) {
 ///////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    double dual = 0;
+    double dual = 0.0;
     double value_dual[nb_cliques];
     //std::vector<std::thread> threads;
     for (int c = 0; c < nb_cliques; c++) {
@@ -764,7 +759,7 @@ int inout (PowerNet& grid) {
     }
 
     cout << "Initialization_value,   " << dual <<endl;
-
+    LBlog[0] = std::max(0.0, dual);
     // initialise the in values.
     for (int i= 0; i < nb_cliques; i++) {
         gamma_in(i) = value_dual[i];
@@ -819,11 +814,14 @@ int inout (PowerNet& grid) {
 
     cout << "................  Initialization of Master problem ....................."  <<endl;
     cout << "value: " << Master._obj_val  <<endl;
-
+    UBlog[0] = Master._obj_val;
+    
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
-    cout<< setw(15) << left <<"ITERATION" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-    for(int itcount = 1; itcount < iter_limit  ; itcount++) {
+    //for(int itcount = 1; itcount < iter_limit  ; itcount++) {
+    double epsilon = 0.05;
+    int itcount = 1;
+    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit){;
         //////// CONSTRUCT SEPARATION POINTS
         for (int c = 0; c < nb_cliques; c++) {
             gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
@@ -951,18 +949,21 @@ int inout (PowerNet& grid) {
             UBlog[itcount] = std::min(Master._obj_val, UBlog[itcount - 1]);
         else
             UBlog[itcount] = Master._obj_val;
+        itcount +=1;
     }
     double wall1 = get_wall_time();
     double cpu1 = get_cpu_time();
     cout << "CPU time: " << cpu1 -cpu0 << endl;
     cout << "Wall time: " << wall1 -wall0 << endl;
-    for(int itcount = 1; itcount < iter_limit  ; itcount++) {
-        cout<< setw(15) << left <<itcount << setw(15) << LDlog[itcount]<<setw(15)<< LBlog[itcount] << setw(15) << UBlog[itcount] << endl;
+    
+    cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
+    for(int i = 0; i < itcount -1; i++) {
+        cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
     }
     return 0;
 }
 
-int ADMM(PowerNet& grid) {
+int ADMM(PowerNet& grid, unsigned iter_limit) {
     cout << "///////////////////// ADMM algorithm //////////////////////////" << endl;
     Net* grid_augment = grid.clone_undirected();
     DebugOn("number of edges of the augmented graph, " << grid_augment->arcs.size() << endl);
@@ -1252,10 +1253,10 @@ int ADMM(PowerNet& grid) {
     }
 
 ///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
-    unsigned iter_limit;
-    cout << "Enter the limit of the number of iterations: ";
-    cin >> iter_limit;
-    cout << endl;
+    //unsigned iter_limit;
+    //cout << "Enter the limit of the number of iterations: ";
+    //cin >> iter_limit;
+    //cout << endl;
     double epsilon = 0.0;
 
     double LRlog[iter_limit];
@@ -1392,8 +1393,8 @@ int ADMM(PowerNet& grid) {
     cout << "Wall time: " << wall1 -wall0 << endl;
 
 
-    for(int itcount = 0; itcount < iter_limit  ; itcount++) {
-        cout<< setw(15) << left <<itcount << setw(15) << LRlog[itcount]<<setw(15) << P_res[itcount]<<setw(15)<< D_res[itcount] << endl;
+    for(int i = 0; i < iter_limit - 1 ; i++) {
+        cout<< setw(15) << left <<i << setw(15) << LRlog[i]<<setw(15) << P_res[i]<<setw(15)<< D_res[i] << endl;
     }
     return 0;
 }
@@ -1402,11 +1403,13 @@ int main (int argc, const char * argv[])
 {
     // Decompose
     const char* fname;
-    bool l = 0;
+    double l = 0.0;
+    unsigned iter_limit = 100;
 
     if (argc >= 2) {
         fname = argv[1];
-        l = argv[2];
+        l = atof(argv[2]);
+        iter_limit = 100;
     }
     else {
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -1428,11 +1431,11 @@ int main (int argc, const char * argv[])
     // 1 in-out
     // 0: default ADMM
     
-    if (l == 1){
-        inout(grid);
+    if (l > 0){
+        inout(grid, iter_limit);
     }
     else{
-        ADMM(grid);
+        ADMM(grid, iter_limit);
     }
     
     return 0;
