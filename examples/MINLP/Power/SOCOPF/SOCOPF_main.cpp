@@ -23,16 +23,18 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = false, use_gurobi = true;
+    bool relax = false, use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
     string fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    string solver_str="ipopt";
     
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -46,6 +48,13 @@ int main (int argc, char * argv[])
     if(has_help) {
         opt.show_help();
         exit(0);
+    }
+    solver_str = opt["s"];
+    if (solver_str.compare("gurobi")==0) {
+        use_gurobi = true;
+    }
+    else if(solver_str.compare("cplex")==0) {
+        use_cplex = true;
     }
     double total_time_start = get_wall_time();
     PowerNet* grid = new PowerNet();
