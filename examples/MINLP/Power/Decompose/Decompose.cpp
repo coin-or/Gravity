@@ -17,6 +17,10 @@
 #include <stdlib.h>
 //#include "functions.h"
 #include <thread>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <chrono>
 #include <iomanip>
 
 #ifdef USE_BOOST
@@ -43,6 +47,75 @@ bool arc_id_compare(const Arc* n1, const Arc* n2) {
 bool bus_pair_compare(const index_pair* n1, const index_pair* n2) {
     return n1->_name < n2->_name;
 }
+
+class ThreadPool
+{
+public:
+    std::mutex lock_;
+    std::condition_variable condVar_;
+    bool shutdown_;
+    std::queue <std::function <void (void)>> jobs_;
+    std::vector <std::thread> threads_;
+
+    ThreadPool(int threads) : shutdown_ (false)
+    {
+        // Create the specified number of threads
+        threads_.reserve (threads);
+        for (int i = 0; i < threads; ++i)
+            threads_.emplace_back(std::bind(&ThreadPool::threadEntry, this, i));
+    }
+
+    ~ThreadPool ()
+    {
+        {
+            // Unblock any threads and tell them to stop
+            std::unique_lock <std::mutex> l (lock_);
+            shutdown_ = true;
+            condVar_.notify_all();
+            // Wait for all threads to stop
+            std::cerr << "Joining threads" << std::endl;
+        }
+
+        for (auto& thread : threads_)
+            thread.join();
+    }
+
+    void doJob (std::function<void (void)> func)
+    {
+        // Place a job on the queue and unblock a thread
+        std::unique_lock <std::mutex> l(lock_);
+        jobs_.emplace(std::move(func));
+        condVar_.notify_one();
+    }
+
+protected:
+    void threadEntry (int i)
+    {
+        std::function <void (void)> job;
+        while (1)
+        {
+            {
+                std::unique_lock <std::mutex> l (lock_);
+                while ((!shutdown_) && jobs_.empty())
+                    condVar_.wait(l); 
+                if (jobs_.empty ())
+                {
+                    // No jobs to do and we are shutting down
+                    std::cerr << "Thread " << i << " terminates" << std::endl;
+                    //out << "Thread " << i << " terminates" << std::endl;
+                    return;
+                }
+                std::cerr << "Thread " << i << " does a job" << std::endl;
+                //out << "Thread " << i << " does a job" << std::endl;
+                job = std::move (jobs_.front ());
+                jobs_.pop();
+            }
+            // mutex becomes unlocked out of scope.
+            // Do the job without holding any locks
+            job ();
+        }
+    }
+};
 
 /** INITIALISE SUBPROBLEM MODEL */
 void sub1(net_param np, unsigned c, double rho, var<Real> Pg, var<Real> Qg, var<Real> Wii, var<Real> R_Wij, var<Real> Im_Wij,
@@ -181,7 +254,6 @@ void sub1(net_param np, unsigned c, double rho, var<Real> Pg, var<Real> Qg, var<
     val = Subr._obj_val;
 }
 
-
 /** INITIALISE SUBPROBLEM MODEL */
 void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Real> Qg,
                 var<Real> Wii, var<Real> R_Wij, var<Real> Im_Wij,
@@ -190,7 +262,7 @@ void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Rea
                 vector<param<Real>> R_lambda_sep, vector<param<Real>> Im_lambda_sep, vector<param<Real>> lambda_sep,
                 param<Real>& Wii_log, param<Real>& R_Wij_log, param<Real>& Im_Wij_log, double& val)
 {
-    DebugOff("Solving subproblem associated with maximal clique, "<< c << endl);
+    DebugOff("Solving subproblem associated with maximal clique "<< c << endl);
     Model Subr("Subr");
     Subr.add_var(Pg);
     Subr.add_var(Qg);
@@ -683,11 +755,7 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     Master.add_constraint(UB <= 0);
 
 ////////////////  CONVERGENCE INFORMATION /////////////////////////
-    //unsigned iter_limit;
-    //cout << "Enter the limit of the number of iterations: ";
-    //cin >> iter_limit;
-    //cout << endl;
-
+    int nb_threads = std::min(std::thread::hardware_concurrency(), nb_cliques);
     double alpha = .5;
     double LBlog[iter_limit];
     double UBlog[iter_limit];
@@ -737,22 +805,12 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     double cpu0  = get_cpu_time();
     double dual = 0.0;
     double value_dual[nb_cliques];
-    //std::vector<std::thread> threads;
     for (int c = 0; c < nb_cliques; c++) {
         subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                                 bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                                  R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
-                                  (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
-        //threads.push_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-        //                              bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-        //                              R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-        //                              std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+                   bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                   R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
+                   (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
     }
-    //
-// join the threads with the main thread
-    //for(auto &t: threads) {
-    //    t.join();
-    //}
 
     for (int c = 0; c < nb_cliques; c++) {
         dual += value_dual[c] ;
@@ -763,7 +821,6 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     // initialise the in values.
     for (int i= 0; i < nb_cliques; i++) {
         gamma_in(i) = value_dual[i];
-        cout << "value_dual[i]: " << value_dual[i]<< endl;
     }
 
 /////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
@@ -815,13 +872,13 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     cout << "................  Initialization of Master problem ....................."  <<endl;
     cout << "value: " << Master._obj_val  <<endl;
     UBlog[0] = Master._obj_val;
-    
+
 ////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
     cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
-    //for(int itcount = 1; itcount < iter_limit  ; itcount++) {
-    double epsilon = 0.05;
+    double epsilon = 0.01;
     int itcount = 1;
-    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit){;
+    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
+        ;
         //////// CONSTRUCT SEPARATION POINTS
         for (int c = 0; c < nb_cliques; c++) {
             gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
@@ -847,25 +904,39 @@ int inout (PowerNet& grid, unsigned iter_limit) {
 
         double value_dual[nb_cliques];
         //std::vector<std::thread> threads;
-        for (int c = 0; c < nb_cliques; c++) {
-             subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                                      bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                                       R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
-                                       (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
-            //threads.push_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-            //                              bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-            //                              R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-            //                              std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+        //threads.reserve(nb_threads);
+        //int delta = nb_cliques/nb_threads;
+        //int reminder = nb_cliques % nb_threads;
+        {
+            ThreadPool p(nb_threads);
+            for (int c = 0; c < nb_cliques; c++) {
+                //subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+                //                         bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                //                          R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
+                //                          (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
+//            threads.emplace_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+//                                          bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+//                                          R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+//                                          std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+                p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+                                  bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                                  R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+                                  std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+            }
         }
 // join the threads with the main thread
-        //for(auto &t: threads) {
-        //    t.join();
-        //}
+//        for(auto &t: threads) {
+//            t.join();
+//        }
+
+
+//
         dual =0;
         for (int c = 0; c < nb_cliques; c++) {
             dual += value_dual[c] ;
         }
 
+        cout << "dual: " << dual << endl;
 // UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
         if (dual- sum(gamma_sep).eval() < 0) {
             for (auto bag: cliquetree->nodes) {
@@ -955,9 +1026,9 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     double cpu1 = get_cpu_time();
     cout << "CPU time: " << cpu1 -cpu0 << endl;
     cout << "Wall time: " << wall1 -wall0 << endl;
-    
+
     cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-    for(int i = 0; i < itcount -1; i++) {
+    for(int i = 0; i < itcount; i++) {
         cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
     }
     return 0;
@@ -1257,6 +1328,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     //cout << "Enter the limit of the number of iterations: ";
     //cin >> iter_limit;
     //cout << endl;
+    int nb_threads = std::min(std::thread::hardware_concurrency(), nb_cliques);
     double epsilon = 0.0;
 
     double LRlog[iter_limit];
@@ -1298,23 +1370,30 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     int itcount =  0;
     P_res[0] = 100;
     D_res[0]=100;
-    while ((P_res[itcount] > epsilon || D_res[itcount] < epsilon) && itcount < iter_limit){
+    while ((P_res[itcount] > epsilon || D_res[itcount] < epsilon) && itcount < iter_limit) {
         itcount += 1;
-        std::vector<std::thread> threads;
+        //std::vector<std::thread> threads;
         double val[nb_cliques];
-        for (int c = 0; c < nb_cliques; c++) {
+        {
+            ThreadPool p(nb_threads);
+            for (int c = 0; c < nb_cliques; c++) {
 //        sub1(bag_param[c], c, rho, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c], bag_bus_pairs[c],
 //                bag_bus[c],bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
 //                   u, Im_u, R_u,  Wii_log[c], R_Wij_log[c], Im_Wij_log[c], Zii_log,  Im_Zij_log, R_Zij_log, val[c]);
-            threads.push_back(std::thread(sub1, bag_param[c],  c, rho, Pg[c], Qg[c],Wii[c], R_Wij[c], Im_Wij[c], bag_bus_pairs[c],
-                                          bag_bus[c],bag_bus_disjoint[c], bag_arcs_disjoint[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                                          u, Im_u, R_u, std::ref(Wii_log[c]), std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), Zii_log,
-                                          Im_Zij_log, R_Zij_log, std::ref(val[c])));
-        }
+                //threads.push_back(std::thread(sub1, bag_param[c],  c, rho, Pg[c], Qg[c],Wii[c], R_Wij[c], Im_Wij[c], bag_bus_pairs[c],
+                //                              bag_bus[c],bag_bus_disjoint[c], bag_arcs_disjoint[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                //                              u, Im_u, R_u, std::ref(Wii_log[c]), std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), Zii_log,
+                //                              Im_Zij_log, R_Zij_log, std::ref(val[c])));
+                p.doJob(std::bind(sub1, bag_param[c],  c, rho, Pg[c], Qg[c],Wii[c], R_Wij[c], Im_Wij[c], bag_bus_pairs[c],
+                                  bag_bus[c],bag_bus_disjoint[c], bag_arcs_disjoint[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                                  u, Im_u, R_u, std::ref(Wii_log[c]), std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), Zii_log,
+                                  Im_Zij_log, R_Zij_log, std::ref(val[c])));
+            }
 
 // join the threads with the main thread
-        for(auto &t: threads) {
-            t.join();
+            //for(auto &t: threads) {
+            //    t.join();
+            //}
         }
 
         for (int c = 0; c < nb_cliques; c++) {
@@ -1392,8 +1471,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     cout << "CPU time: " << cpu1 -cpu0 << endl;
     cout << "Wall time: " << wall1 -wall0 << endl;
 
-
-    for(int i = 0; i < iter_limit - 1 ; i++) {
+    for(int i = 0; i < iter_limit ; i++) {
         cout<< setw(15) << left <<i << setw(15) << LRlog[i]<<setw(15) << P_res[i]<<setw(15)<< D_res[i] << endl;
     }
     return 0;
@@ -1404,39 +1482,37 @@ int main (int argc, const char * argv[])
     // Decompose
     const char* fname;
     double l = 0.0;
-    unsigned iter_limit = 100;
+    unsigned iter_limit = 10;
 
     if (argc >= 2) {
         fname = argv[1];
         l = atof(argv[2]);
-        iter_limit = 100;
+        iter_limit = (int) atof(argv[3]);
     }
     else {
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case6_c.m";
+        fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        l = 0;
+        l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-    
     // 1 in-out
     // 0: default ADMM
-    
-    if (l > 0){
+    if (l > 0) {
         inout(grid, iter_limit);
     }
-    else{
+    else {
         ADMM(grid, iter_limit);
     }
-    
+
     return 0;
 }
