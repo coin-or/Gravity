@@ -97,7 +97,7 @@ protected:
             {
                 std::unique_lock <std::mutex> l (lock_);
                 while ((!shutdown_) && jobs_.empty())
-                    condVar_.wait(l); 
+                    condVar_.wait(l);
                 if (jobs_.empty ())
                 {
                     // No jobs to do and we are shutting down
@@ -352,7 +352,6 @@ void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Rea
         Subr.add_constraint(KCL_P = 0);
         Subr.add_constraint(KCL_Q = 0);
     }
-
     /* Phase Angle Bounds onstraints */
     if (bag_bus_pairs_disjoint.size() > 0) {
         Constraint PAD_UB("PAD_UB" + to_string(c));
@@ -805,23 +804,26 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     double cpu0  = get_cpu_time();
     double dual = 0.0;
     double value_dual[nb_cliques];
-    for (int c = 0; c < nb_cliques; c++) {
-        subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                   bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                   R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
-                   (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
+    {
+        ThreadPool p(nb_threads);
+        for (int c = 0; c < nb_cliques; c++) {
+            p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+                              bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+                              R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+                              std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+        }
     }
 
     for (int c = 0; c < nb_cliques; c++) {
         dual += value_dual[c] ;
+        // initialise the in values.
+        gamma_in(c) = value_dual[c];
+
     }
 
     cout << "Initialization_value,   " << dual <<endl;
     LBlog[0] = std::max(0.0, dual);
-    // initialise the in values.
-    for (int i= 0; i < nb_cliques; i++) {
-        gamma_in(i) = value_dual[i];
-    }
+
 
 /////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
     if (iter_limit > 0) {
@@ -878,7 +880,7 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     double epsilon = 0.01;
     int itcount = 1;
     while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
-        ;
+
         //////// CONSTRUCT SEPARATION POINTS
         for (int c = 0; c < nb_cliques; c++) {
             gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
@@ -924,13 +926,7 @@ int inout (PowerNet& grid, unsigned iter_limit) {
                                   std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
             }
         }
-// join the threads with the main thread
-//        for(auto &t: threads) {
-//            t.join();
-//        }
 
-
-//
         dual =0;
         for (int c = 0; c < nb_cliques; c++) {
             dual += value_dual[c] ;
@@ -1482,7 +1478,7 @@ int main (int argc, const char * argv[])
     // Decompose
     const char* fname;
     double l = 0.0;
-    unsigned iter_limit = 10;
+    unsigned iter_limit = 50;
 
     if (argc >= 2) {
         fname = argv[1];
@@ -1492,15 +1488,15 @@ int main (int argc, const char * argv[])
     else {
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
-        fname = "../../data_sets/Power/nesta_case6_c.m";
+        //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        l = 1;
+        l = 0;
     }
     PowerNet grid;
     grid.readgrid(fname);
@@ -1513,6 +1509,5 @@ int main (int argc, const char * argv[])
     else {
         ADMM(grid, iter_limit);
     }
-
     return 0;
 }
