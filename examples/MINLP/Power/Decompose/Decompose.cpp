@@ -974,8 +974,6 @@ int inout (PowerNet& grid, unsigned iter_limit) {
             
             Master.add_constraint(Concavity <= 0);
 
-            
-            std::cout << Concavity.to_str() << endl;
             //Master.add_constraint(Concavity <= 0);
             
     
@@ -998,8 +996,8 @@ int inout (PowerNet& grid, unsigned iter_limit) {
                     }
                 }
             }
-            //solver solve_master(Master, ipopt);
-            solve_Master.run();
+            solver solve_master(Master, cplex);
+            solve_master.run();
             DebugOff("master problem value: " << Master._obj_val << endl);
 
             // update the out point.
