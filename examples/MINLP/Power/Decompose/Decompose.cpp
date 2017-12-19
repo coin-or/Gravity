@@ -716,16 +716,21 @@ int inout (PowerNet& grid, unsigned iter_limit) {
 /////////////////////////////////// Master Problem ///////////////////////////////////
     Model Master("Master");
     /** param **/
-    param<Real> gamma_in("gamma_C_in");
-    param<Real> gamma_out("gamma_C_out");
-    param<Real> gamma_sep("gamma_C_sep");
-    gamma_in^nb_cliques;
-    gamma_out^nb_cliques;
-    gamma_sep^nb_cliques;
+    //param<Real> gamma_in("gamma_C_in");
+    //param<Real> gamma_out("gamma_C_out");
+    //param<Real> gamma_sep("gamma_C_sep");
+    //gamma_in^nb_cliques;
+    //gamma_out^nb_cliques;
+    //gamma_sep^nb_cliques;
+    double gamma_in = 0.0;
+    double gamma_out = 0.0;
+    double gamma_sep = 0.0;
 
     /** Variables  */
-    var<Real> gamma_C("gamma_C");
-    Master.add_var(gamma_C^nb_cliques);
+    //var<Real> gamma_C("gamma_C");
+    //Master.add_var(gamma_C^nb_cliques);
+    var<Real> gamma("gamma", pos_);
+    Master.add_var(gamma);
 
     vector<var<Real>> R_lambda_var;
     vector<var<Real>> Im_lambda_var;
@@ -745,12 +750,14 @@ int inout (PowerNet& grid, unsigned iter_limit) {
 
     /////////** OBJ*//////////////
     func_ master_obj;
-    master_obj += sum(gamma_C);
+    //master_obj += sum(gamma_C);
+    master_obj += gamma;
     Master.set_objective(max(master_obj));
     double bound = 100000;
 
     Constraint UB;
-    UB = sum(gamma_C) - bound;
+    //UB = sum(gamma_C) - bound;
+    UB = gamma - bound;
     Master.add_constraint(UB <= 0);
 
 ////////////////  CONVERGENCE INFORMATION /////////////////////////
@@ -817,9 +824,10 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     for (int c = 0; c < nb_cliques; c++) {
         dual += value_dual[c] ;
         // initialise the in values.
-        gamma_in(c) = value_dual[c];
+        //gamma_in(c) = value_dual[c];
 
     }
+    gamma_in = dual;
 
     cout << "Initialization_value,   " << dual <<endl;
     LBlog[0] = std::max(0.0, dual);
@@ -827,22 +835,20 @@ int inout (PowerNet& grid, unsigned iter_limit) {
 
 /////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
     if (iter_limit > 0) {
+        Constraint Concavity("Iter_0_Concavity");
+        Concavity += gamma - dual;
         for (auto bag: cliquetree->nodes) {
             unsigned c = bag->_id;
-            Constraint Concavity("Iter_0_Concavity_" + to_string(c));
-            Concavity += gamma_C(c);
-            Concavity -= value_dual[c];
+            //Constraint Concavity("Iter_0_Concavity_" + to_string(c));
+            //Concavity += gamma_C(c);
             for (auto arc: bag->get_out()) {
                 for (auto nn: arc->_intersection) {
                     Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                    DebugOff("Wii_log, " << Wii_log[c](nn->_name).getvalue()<< endl);
                 }
 
                 for (auto pair: arc->_intersection_clique) {
                     Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
                     Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                    DebugOff("R_Wij_log, " << R_Wij_log[c](pair->_name).getvalue()<< endl);
-                    DebugOff("Im_Wij_log, " << Im_Wij_log[c](pair->_name).getvalue()<< endl);
                 }
             }
 
@@ -855,15 +861,16 @@ int inout (PowerNet& grid, unsigned iter_limit) {
                     Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
                 }
             }
-            Master.add_constraint(Concavity <= 0);
         }
+        Master.add_constraint(Concavity <= 0);
     }
     solver solve_Master(Master, ipopt);
     //solver solve_Master(Master, cplex);
     solve_Master.run();
 
     // initialise the outer point.
-    gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+    //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+    gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
 
     for (auto a: cliquetree->arcs) {
         lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
@@ -882,9 +889,10 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
 
         //////// CONSTRUCT SEPARATION POINTS
-        for (int c = 0; c < nb_cliques; c++) {
-            gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
-        }
+        //for (int c = 0; c < nb_cliques; c++) {
+        //    gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
+        //}
+        gamma_sep = alpha*gamma_out + (1 - alpha)*gamma_in;
 
         for (auto a: cliquetree->arcs) {
             int l = a->_id;
@@ -934,43 +942,49 @@ int inout (PowerNet& grid, unsigned iter_limit) {
 
         cout << "dual: " << dual << endl;
 // UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
-        if (dual- sum(gamma_sep).eval() < 0) {
+        //if (dual- sum(gamma_sep).eval() < 0) {
+        if (dual- gamma_sep < 0) {
+            Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity");
+            Concavity += gamma- dual;
             for (auto bag: cliquetree->nodes) {
                 unsigned c = bag->_id;
-                Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
-                Concavity += gamma_C(c);
-                Concavity -= value_dual[c];
+                //Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
+                //Concavity += gamma_C(c);
+                //Concavity -= value_dual[c];
                 for (auto arc: bag->get_out()) {
                     for (auto nn: arc->_intersection) {
                         Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                        DebugOff("Wii_log, " << Wii_log[c](nn->_name).getvalue()<< endl);
                     }
                     for (auto pair: arc->_intersection_clique) {
                         Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
                         Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                        DebugOff("R_Wij_log, " << R_Wij_log[c](pair->_name).getvalue()<< endl);
-                        DebugOff("Im_Wij_log, " << Im_Wij_log[c](pair->_name).getvalue()<< endl);
                     }
                 }
 
                 for (auto arc: bag->get_in()) {
                     for (auto nn: arc->_intersection) {
                         Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                        DebugOff("Wii_log, " << Wii_log[c](nn->_name).getvalue()<< endl);
                     }
                     for (auto pair: arc->_intersection_clique) {
                         Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
                         Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                        DebugOff("R_Wij_log, " << R_Wij_log[c](pair->_name).getvalue()<< endl);
-                        DebugOff("Im_Wij_log, " << Im_Wij_log[c](pair->_name).getvalue()<< endl);
                     }
                 }
-                Master.add_constraint(Concavity <= 0);
             }
+            
+            Master.add_constraint(Concavity <= 0);
 
-            if (dual > sum(gamma_in).eval()) {
-                for (int c = 0; c < nb_cliques; c++)
-                    gamma_in(c) = value_dual[c];
+            
+            std::cout << Concavity.to_str() << endl;
+            //Master.add_constraint(Concavity <= 0);
+            
+    
+
+            //if (dual > sum(gamma_in).eval()) {
+            if (dual > gamma_in) {
+                //for (int c = 0; c < nb_cliques; c++)
+                //    gamma_in(c) = value_dual[c];
+                 gamma_in = dual;
 
                 for (auto a: cliquetree->arcs) {
                     int l = a->_id;
@@ -984,12 +998,13 @@ int inout (PowerNet& grid, unsigned iter_limit) {
                     }
                 }
             }
-            solver solve_master(Master, ipopt);
+            //solver solve_master(Master, ipopt);
             solve_Master.run();
             DebugOff("master problem value: " << Master._obj_val << endl);
 
             // update the out point.
-            gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+            //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+            gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
             for (auto a: cliquetree->arcs) {
                 lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
                 R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
@@ -997,8 +1012,9 @@ int inout (PowerNet& grid, unsigned iter_limit) {
             }
         }
         else {
-            for (int c = 0; c < nb_cliques; c++)
-                gamma_in(c) = value_dual[c];
+            //for (int c = 0; c < nb_cliques; c++)
+            //    gamma_in(c) = value_dual[c];
+            gamma_in = dual;
             for (auto a: cliquetree->arcs) {
                 int l = a->_id;
                 for (auto arc: a->_intersection) {
@@ -1477,7 +1493,7 @@ int main (int argc, const char * argv[])
 {
     // Decompose
     const char* fname;
-    double l = 0.0;
+    double l = 0;
     unsigned iter_limit = 50;
 
     if (argc >= 2) {
@@ -1496,7 +1512,7 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        l = 0;
+        l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
