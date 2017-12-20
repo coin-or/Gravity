@@ -22,19 +22,10 @@ class IpoptProgram : public TNLP {
 
     
 public:
-    Model* _model;
+    Model* _model = nullptr;
     
-    IpoptProgram(Model* m):_model(m){
-        if (!m->_built) {
-            m->fill_in_maps();
-        }
-        else {
-            m->reset_funcs();
-        }
-    }
-    
-    ~IpoptProgram(){}
-    
+    IpoptProgram(Model* m);
+
     /** Method to return some info about the nlp */
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, IndexStyleEnum& index_style);

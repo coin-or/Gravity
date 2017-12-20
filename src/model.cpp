@@ -483,6 +483,67 @@ void Model::check_feasible(const double* x){
 }
 
 
+#ifdef USE_BONMIN
+void Model::fill_in_var_types(Bonmin::TMINLP::VariableType* var_types){
+    unsigned vid;
+    param_* v;
+    for(auto& v_p: _vars)
+    {
+        v = v_p.second;
+        vid = v->get_id();
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                   var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                DebugOff(real_var->get_name() << " in:" << endl);
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
+                }
+                DebugOff(";" << endl);
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    var_types[vid+i] = Bonmin::TMINLP::INTEGER;
+                }
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    var_types[vid+i] = Bonmin::TMINLP::INTEGER;
+                }
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    var_types[vid+i] = Bonmin::TMINLP::BINARY;
+                }
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+}
+#endif
+
+
 void Model::fill_in_var_bounds(double* x_l ,double* x_u) {
     unsigned vid;
     param_* v;
@@ -1663,35 +1724,6 @@ void Model::fill_in_cstr_bounds(double* g_l ,double* g_u) {
         }
     }
 }
-
-#ifdef USE_BONMIN
-void Model::fill_in_param_types(Bonmin::TMINLP::VariableType* param_types){
-    size_t vid;
-    param_* v;
-    for(auto& v_p: _vars)
-    {
-        v = v_p.second;
-        vid = v->get_id();
-        if (v->get_intype()== short_ || v->get_intype() == integer_) {
-            for (int i = 0; i < v->get_dim(); i++) {
-                param_types[vid + i] = Bonmin::TMINLP::INTEGER;
-            }
-            
-        }
-        else if (v->get_intype()== binary_) {
-            for (int i = 0; i < v->get_dim(); i++) {
-                param_types[vid + i] = Bonmin::TMINLP::BINARY;
-            }
-        }
-        else {
-            for (int i = 0; i < v->get_dim(); i++) {
-                param_types[vid + i] = Bonmin::TMINLP::CONTINUOUS;
-            }
-        }
-    }
-}
-
-#endif
 
 
 void Model::embed(expr& e){

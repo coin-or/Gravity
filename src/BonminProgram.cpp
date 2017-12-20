@@ -6,6 +6,22 @@
 
 using namespace std;
 
+
+BonminProgram::BonminProgram(Model* m):_model(m){
+    if (!m->_built) {
+        m->fill_in_maps();
+    }
+    else {
+        m->reset_funcs();
+    }
+}
+
+bool BonminProgram::get_variables_types(Index n, VariableType* var_types){
+    assert(n==model->get_nb_vars());
+    _model->fill_in_var_types(var_types);
+    return true;
+}
+
 bool BonminProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                                 Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
     index_style = Ipopt::TNLP::C_STYLE;
@@ -126,21 +142,6 @@ bool BonminProgram::eval_jac_g(Index n, const Number* x, bool new_x,
     return true;
 }
 
-std::vector<int> bounds2(int parts, int mem) {
-    std::vector<int>bnd;
-    int delta = mem / parts;
-    int reminder = mem % parts;
-    int N1 = 0, N2 = 0;
-    bnd.push_back(N1);
-    for (int i = 0; i < parts; ++i) {
-        N2 = N1 + delta;
-        if (i == parts - 1)
-            N2 += reminder;
-        bnd.push_back(N2);
-        N1 = N2;
-    }
-    return bnd;
-}
 
 bool BonminProgram::eval_h(Index n, const Number* x, bool new_x,
                           Number obj_factor, Index m, const Number* lambda,
@@ -185,4 +186,13 @@ bool BonminProgram::get_constraints_linearity(Index m, Ipopt::TNLP::LinearityTyp
     //    _model->fill_in_cstr_linearity(const_types);
     //    return true;
     return false;
+}
+
+
+const BonminProgram::SosInfo* BonminProgram::sosConstraints() const{
+    return nullptr;
+}
+
+const BonminProgram::BranchingInfo* BonminProgram::branchingInfo() const{
+    return nullptr;
 }
