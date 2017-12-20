@@ -25,7 +25,7 @@ Guanglei Wang, The Australian National University | guanglei.wang@anu.edu.au
 
 Ksenia Bestuzheva, The Australian National University | k_best_7@mail.ru
 
-Carleton Coffrin, Los Alamos National Laboratory,| cjc@lanl.gov
+Carleton Coffrin, Los Alamos National Laboratory| cjc@lanl.gov
 
 *****************************
 See [INSTALL.md](INSTALL.md) for instructions on compiling Gravity

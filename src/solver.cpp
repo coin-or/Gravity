@@ -262,7 +262,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         using namespace Bonmin;
         BonminSetup bonmin;
         bonmin.initializeOptionsAndJournalist();
-        SmartPtr<TNLP> tmp = new BonminProgram(_model);
+        SmartPtr<TMINLP> tmp = new BonminProgram(_model);
         bonmin.initialize(tmp);
 //        bonmin.initialize(prog.bonmin_prog);
         try {
