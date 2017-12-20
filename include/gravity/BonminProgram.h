@@ -5,11 +5,12 @@
 #include <coin/BonTMINLP.hpp>
 #include <coin/IpIpoptApplication.hpp>
 #include <coin/IpTNLP.hpp>
-#include <Gravity/model.h>
+#include <gravity/model.h>
 
 using   Ipopt::IpoptApplication;
 using namespace  Ipopt;
 using namespace Bonmin;
+using namespace gravity;
 
 class BonminProgram : public TMINLP {
 public:
@@ -67,12 +68,9 @@ public:
                         Index* jCol, Number* values);
 
     /** Method called by Ipopt */
-    virtual void finalize_solution(
-            TMINLP::SolverReturn              status    ,
-            Index                             n         ,
-            const Number*                     x         ,
-            Number                            obj_value
-    );
+    virtual void finalize_solution(TMINLP::SolverReturn status,
+                                   Index n, const Number* x, Number obj_value);
+
 
     virtual bool get_variables_linearity(Index n, TNLP::LinearityType* var_types);
     virtual bool get_constraints_linearity(Index m, TNLP::LinearityType* const_types);

@@ -89,6 +89,19 @@ public:
     void set_name(const string s) {
         _name = s;
     };
+    
+    string get_name(size_t inst) const {
+        string name = _name;
+        if (_is_indexed) {
+            name += to_string(_ids->at(inst));
+        }
+        else {
+            name += to_string(inst);
+        }
+        return name;
+    };
+
+    
     NType get_intype() const {
         return _intype;
     }
@@ -1366,10 +1379,21 @@ public:
     }
 
     /** Output */
-    void print(bool vals=false) const {
-        cout << this->to_str(vals);
+    
+    
+    string to_str(size_t index) const {
+        if (_is_indexed) {
+            return to_string(_val->at(_ids->at(index)));
+        }
+        else {
+            return to_string(_val->at(index));
+        }
     }
 
+    void print(size_t index) const {
+        cout << to_str(index);
+    }
+    
     string to_str(bool vals=false) const {
         string str = get_name();
         if (vals) {
@@ -1380,18 +1404,14 @@ public:
             }
             str += "];\n";
         }
-//        if(vals) {
-//            str += " = [ ";
-//            for(int i = 0 ; i < get_dim(); i++) {
-//                str += "(" + ;
-//                str += std::to_string(eval(i));
-//                str += " ";
-//            }
-//            str += "];";
-//        }
         return str;
     }
 
+    void print(bool vals=false) const {
+        cout << this->to_str(vals);
+    }
+
+    
     type getvalue() const {
         if (_is_indexed) {
             return (_val->at(_indices->begin()->second));
