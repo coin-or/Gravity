@@ -2167,7 +2167,7 @@ namespace gravity{
             update_sign(*_cst);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             this->insert(true, constant<double>(1), *(param_*)&c);
         }
         if (c.is_function()) {
@@ -2241,7 +2241,7 @@ namespace gravity{
             update_sign(*_cst);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             this->insert(false, constant<double>(1), *(param_*)&c);
         }
         if (c.is_function()) {
@@ -2402,7 +2402,7 @@ namespace gravity{
             return *this;
         }
         /* Case where the current function is constant and the other operand is not. */
-        if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+        if (is_constant() && (c.is_sdpvar() || c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);
             if (!f._cst->is_zero()) {
                 f._cst = multiply(f._cst, *this);
@@ -2455,7 +2455,7 @@ namespace gravity{
             f._evaluated = false;
             return *this = move(f);
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             if (c._is_matrix || _is_matrix) {
                 *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c))));
             }
@@ -2806,13 +2806,13 @@ namespace gravity{
             return *this;
         }
     //    /* Case where the current function is constant and the other operand is not (we go to previous case) */
-        if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+        if (is_constant() && (c.is_sdpvar() || c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);
             f /= *this;
             *this = move(f);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             func_ f(c);
             *this /= f;
             return *this;
@@ -3314,7 +3314,7 @@ namespace gravity{
             if (c_new->is_function()) {
                 embed(*(func_*)c_new);
             }
-            if (p.is_var()) {
+            if (p.is_var() || p.is_sdpvar()) {
                 p_new = get_var(pname);
                 if (!p_new) {
                     p_new = shared_ptr<param_>((param_*)copy(p));

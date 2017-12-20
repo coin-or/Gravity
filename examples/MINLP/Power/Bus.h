@@ -23,6 +23,8 @@ class Bus: public Node{
 public:
     /** @brief Bus base kvolts */
     double _kvb;
+
+    double w;
     
     /** @brief Indicates if bus has integrated generation */
     bool _has_gen;

@@ -30,6 +30,8 @@ public:
     double smax;
     int status; // on /off, failure or not.
     unsigned b_type;
+    double wr;
+    double wi;
     Bound tbound;
     //Complex _Si_;
     //Complex _Sj_;

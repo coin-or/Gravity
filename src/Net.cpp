@@ -193,6 +193,22 @@ Arc* Net::get_arc(std::string src, std::string dest) {
     return nullptr;
 }
 
+Arc* Net::get_directed_arc(std::string src, std::string dest) {
+    std::string key;
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
+        for (auto a: *it->second) {
+            return a;
+        }
+    }
+
+    return nullptr;
+}
+
 bool Net::add_arc(Arc* a) {
     bool parallel = false;
     set<Arc*>* s = NULL;

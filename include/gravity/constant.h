@@ -61,7 +61,7 @@ namespace gravity {
         };
         
         virtual bool is_number() const{
-            return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=func_c);
+            return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=sdpvar_c && _type!=func_c);
         }
         bool is_param() const{
             return (_type==par_c);

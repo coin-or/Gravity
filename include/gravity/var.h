@@ -36,6 +36,7 @@ class var: public param<type>, public var_ {
 public:
     shared_ptr<func_>   _lb; /**< Lower Bound */
     shared_ptr<func_>   _ub; /**< Upper Bound */
+    bool _in_q_cone = false;
     
     /* Constructors */
     //@{
@@ -291,6 +292,8 @@ public:
     void    set_lb(int i, type v);
     void    set_ub(int i, type v);
 
+    void in_q_cone(); /**< States that the variable is contained in a quadratic cone, for mosek */
+
     //void    set_lb(string name, type v); // change lb and ub via names.
     //void    set_ub(string name, type v);
 
@@ -388,6 +391,8 @@ public:
             auto temp = make_pair<>(t1, (*(++indices.begin())));
             res._sdpindices->insert(make_pair<>(key,temp));
             param_::_sdpindices->insert(make_pair<>(key,temp));
+//            res._dim[0] = 1;
+//            res._symdim = 1;
         }
         else {
             auto temp = param_::_sdpindices->at(key);
@@ -425,7 +430,7 @@ public:
         return v;
     }
     /* Output */
-    void print() const;
+    void print(bool vals = false) const;
 };
 }
 #endif /* sdpvar_h */
