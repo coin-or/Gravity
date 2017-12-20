@@ -124,6 +124,8 @@ public:
     Net* get_clique_tree();
     
     /** Linear algebra based methods based on Armadillo*/
-    void chol_decompose(bool print=false); 
+    void chol_decompose(bool print=false);
+
+    Arc *get_directed_arc(std::string src, std::string dest);
 };
 #endif

@@ -38,6 +38,7 @@ template<typename type> var<type>::var(const var<type>& v):param<type>(v) {
     param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
+    _in_q_cone = v._in_q_cone;
 };
 
 template<typename type> var<type>::var(var<type>&& v):param<type>(v) {
@@ -242,6 +243,10 @@ template<typename type> void   var<type>::set_ub(int i, type val) {
     }
 }
 
+template<typename type> void   var<type>::in_q_cone() {
+        _in_q_cone = true;
+    };
+
 //    template<typename type> void  var<type>::set_lb(string name, type val){
 //        auto it = param_::_indices->find(name);
 //        if (it !=param_::_indices->end()) {
@@ -363,8 +368,8 @@ template<typename type> bool sdpvar<type>::operator!=(const sdpvar& v) const {
 }
 
 /* output */
-template<typename type> void sdpvar<type>::print() const {
-    param<type>::print(false);
+template<typename type> void sdpvar<type>::print(bool vals) const {
+    param<type>::print(vals);
 };
 
 
