@@ -105,6 +105,7 @@ namespace gravity {
         }
         
         string to_str() const;
+        string to_str(size_t) const;
         void print(bool endline = true) const;
         func_ get_derivative(const param_ &v) const;
         vector<shared_ptr<param_>> get_nl_vars() const;
@@ -185,8 +186,18 @@ namespace gravity {
         
         
         string to_str() const;
+        string to_str(size_t) const;
+        void print(size_t inst) const{
+            cout << to_str(inst) << endl;
+        }
+        void print_expanded() const{
+            auto nb_inst = get_nb_instances();
+            for (unsigned inst = 0; inst<nb_inst; inst++) {
+                print(inst);
+            }
+        }
         
-        void print(bool endline = true) const;
+        void print() const;
         
         void print_tree() const;
         
@@ -1572,7 +1583,8 @@ namespace gravity {
         Real eval(){ return eval(0);};
         string to_str(bool display_input=false) const;
         void print(bool endline=false, bool display_input=false);
-        
+        void print(size_t index);
+
     };
 
 
@@ -1590,6 +1602,7 @@ namespace gravity {
     void poly_print(const constant_* c);
 
     string poly_to_str(const constant_* c);
+    string poly_to_str(const constant_* c, size_t inst);
 
 
     func_ operator+(const constant_& c1, const constant_& c2);

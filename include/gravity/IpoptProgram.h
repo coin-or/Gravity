@@ -1,13 +1,9 @@
 //
 //  IpoptProgram.h
-//  PowerTools++
-//
-//  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#ifndef __PowerTools____IpoptProgram__
-#define __PowerTools____IpoptProgram__
+#ifndef __Gravity____IpoptProgram__
+#define __Gravity____IpoptProgram__
 
 #include <stdio.h>
 #include <assert.h>
@@ -101,4 +97,4 @@ public:
 
 
 
-#endif /* defined(__PowerTools____IpoptProgram__) */
+#endif /* defined(__Gravity____IpoptProgram__) */

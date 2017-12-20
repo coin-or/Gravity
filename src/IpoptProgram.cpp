@@ -1,11 +1,6 @@
 //
 //  IpoptProgram.cpp
-//  PowerTools++
 //
-//  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
-//
-#define DebugOn(x) cout << x
 #include <gravity/IpoptProgram.h>
 
 using namespace std;
