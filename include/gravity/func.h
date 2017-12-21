@@ -190,12 +190,6 @@ namespace gravity {
         void print(size_t inst) const{
             cout << to_str(inst) << endl;
         }
-        void print_expanded() const{
-            auto nb_inst = get_nb_instances();
-            for (unsigned inst = 0; inst<nb_inst; inst++) {
-                print(inst);
-            }
-        }
         
         void print() const;
         
@@ -1582,9 +1576,9 @@ namespace gravity {
 //        Real force_eval(size_t i);
         Real eval(){ return eval(0);};
         string to_str(bool display_input=false) const;
-        void print(bool endline=false, bool display_input=false);
+        void print(bool endline, bool display_input);
         void print(size_t index);
-
+        void print_expanded();
     };
 
 

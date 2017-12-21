@@ -1960,6 +1960,13 @@ void Model::print_solution() const{
     
 }
 
+
+void Model::print_expanded() const{
+    for(auto& p: _cons){
+        p.second->func_::print_expanded();
+    }
+}
+
 void Model::print_constraints() const{
     for(auto& p: _cons){
         p.second->print();
