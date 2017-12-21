@@ -48,12 +48,12 @@ int main (int argc, const char * argv[])
     
     /**  Constraints **/
     Constraint c("Stable_Set");
-    c = x.from(graph.arcs) + x.to(graph.arcs);
+    c = x.from() + x.to();
     c <= 1;
-    DebugOff(c.print();)
-    model.add_constraint(c);
+    c.print();
+    model.add_constraint(c.in(graph.arcs));
     /**  Solver **/
-    SolverType stype = ipopt;
+    SolverType stype = cplex;
     solver s(model,stype);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();

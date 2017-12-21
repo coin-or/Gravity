@@ -115,7 +115,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub, ILOINT);
             break;
         }
         case short_: {
@@ -126,7 +126,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.push_back(IloNumVarArray(*_cplex_env,lb,ub, ILOINT));
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub, ILOINT);
             break;
         }
         case binary_: {
@@ -137,7 +137,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
+            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub, ILOINT);
             break;
         }
         default:
