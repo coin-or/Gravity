@@ -5976,7 +5976,14 @@ namespace gravity{
         }
         //            str += "\n";
         //        }
-        cout << str;
+        cout << str << endl;
+    }
+    
+    void func_::print_expanded(){
+        auto nb_inst = get_nb_instances();
+        for (unsigned inst = 0; inst<nb_inst; inst++) {
+            print(inst);
+        }
     }
 
     /* UNARY EXPRESSIONS */

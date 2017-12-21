@@ -226,6 +226,7 @@ namespace gravity {
         /* Output */
         void print_nl_functions() const;
         void print() const;
+        void print_expanded() const;
         void print_solution() const;
         void print_constraints() const;
         
