@@ -25,29 +25,7 @@ int main (int argc, const char * argv[])
 {
     //  Start Timers
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF THE STABLE SET PROBLEM AND SOME OF ITS RELAXATIONS IN GRAVITY\n";
-    std::cout << "Understanding the numerical limits of your machine:" << endl;
-    std::cout << "type\tlowest\thighest\n";
     
-    std::cout << "bool\t"
-    << std::numeric_limits<bool>::lowest() << '\t'
-    << std::numeric_limits<bool>::max() << '\n';
-    std::cout << "short\t"
-    << std::numeric_limits<short>::lowest() << '\t'
-    << std::numeric_limits<short>::max() << '\n';
-    std::cout << "unsigned\t"
-    << std::numeric_limits<unsigned>::lowest() << '\t'
-    << std::numeric_limits<unsigned>::max() << '\n';
-    std::cout << "int\t"
-    << std::numeric_limits<int>::lowest() << '\t'
-    << std::numeric_limits<int>::max() << '\n';
-    std::cout << "long int\t"
-    << std::numeric_limits<long int>::lowest() << '\t'
-    << std::numeric_limits<long int>::max() << '\n';
-    std::cout << "double\t"
-    << std::numeric_limits<double>::lowest() << '\t'
-    << std::numeric_limits<double>::max() << '\n';
-    std::cout << "long double\t"
-    << std::numeric_limits<long double>::lowest() << '\t' << std::numeric_limits<long double>::max() << '\n';
     unsigned i, j;
     
     Net graph;
@@ -55,44 +33,32 @@ int main (int argc, const char * argv[])
     const char* fname = "../../data_sets/stable_set/p.3n150.txt";
     graph.read_adjacency_matrix(fname);
     
-//    Net complement_graph;
-//    complement_graph.get_complement(fname);
-//    complement_graph.get_tree_decomp_bags();
-//    graph.get_tree_decomp_bags();
-//    cout << "total bags: " << complement_graph._bags.size() << endl;
-    
     Model model;
     unsigned n = graph.nodes.size();
-    unsigned m = graph.arcs.size();
     
     /**  IP model for the stable set problem. **/
+    
+    /**  Variables **/
     var<bool> x("x");
+//    var<> x("x", 0,1);
     model.add_var(x^n);
-    constant<int> ones(1);
-    func_ obj = ones.tr()*x;
-    obj.print(true,true);
-    model.set_objective(max(obj));
+    
+    /**  Objective **/
+    model.max(sum(x));
+    
+    /**  Constraints **/
     Constraint c("Stable_Set");
     c = x.from(graph.arcs) + x.to(graph.arcs);
     c <= 1;
     DebugOff(c.print();)
     model.add_constraint(c);
-//    for (unsigned l=0; l<m;l++){
-//        Arc* a = graph.arcs[l];
-//        i = (a->src)->ID;
-//        j = (a->dest)->ID;
-//        Constraint c("Stable_Set("+to_string(i)+","+to_string(j)+")");
-//        c = x(i) + x(j);
-//        c <= 1;
-//        DebugOff(c.print();)
-//        model.add_constraint(c);
-//    }
-    SolverType stype = cplex;
+    /**  Solver **/
+    SolverType stype = ipopt;
     solver s(model,stype);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
     cout << "Running the IP model\n";
-//    s.run();
+    s.run();
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
     cout << "Done running the IP model\n";
@@ -102,35 +68,16 @@ int main (int argc, const char * argv[])
     /* Schriver's SDP relaxation for the stable set problem */
     Model SDP;
     /* Variable declaration */
-    param<double> zero("zero");
-    param<double> one("one");
-    param<double> zero2("zero2");
-    param<double> one2("one2");
-    zero.set_size(n, 0);
-    one.set_size(n, 1);
-    zero2.set_size(n*(n-1)/2, 0);
-    one2.set_size(n*(n-1)/2, 1);
-    var<double> Xii("Xii", zero, one);
-    var<double> Xij("Xij", zero2, one2);
+    var<double> Xii("Xii", 0, 1);
+    var<double> Xij("Xij", 0, 1);
     SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
     SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
     /* Constraints declaration */
     ordered_pairs indices(1, n);
     Constraint SOCP("SOCP");
-    SOCP =  power(Xij.in(indices._keys), 2) - Xii.from(indices._keys)*Xii.to(indices._keys) ;
-    //SOCP =  power(Xij.in(indices),2) - Xii.from(indices)*Xii.to(indices) ;
-
-    SDP.add_constraint(SOCP <= 0);
-//    unsigned index = 0;
-//    for (int i = 0; i < n; i++){
-//        for (int j = i+1; j < n; j++){
-//            Constraint SOCP("SOCP("+to_string(i)+","+to_string(j)+")");
-//            SOCP =  Xij(index,i,j)*Xij(index,i,j) - Xii(i)*Xii(j);
-//            SDP.add_constraint(SOCP<=0);
-//            index++;
-//        }
-//    }
+    SOCP =  power(Xij, 2) - Xii.from()*Xii.to() ;
+    SDP.add_constraint(SOCP.in(indices._keys) <= 0);
     Constraint diag("diag");
     diag = sum(Xii);
     SDP.add_constraint(diag = 1); // diagonal sum is 1
@@ -139,17 +86,6 @@ int main (int argc, const char * argv[])
     zeros = Xij.in(graph.arcs);
     SDP.add_constraint(zeros = 0); // zero elements
     
-//        for(auto a: graph.arcs){
-//            i = (a->src)->ID;
-//            j = (a->dest)->ID;
-//            Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
-//            zeros = Xij(i,j);
-//            SDP.add_constraint(zeros=0);
-//        }
-//    
-
-//    auto Xij_ = Xij.pairs_in(complement_graph._bags, 3);
-//    auto Xii_ = Xii.in(complement_graph._bags, 3);
     auto Xij_ = Xij.pairs_in(graph._bags, 3);
     auto Xii_ = Xii.in(graph._bags, 3);
     Constraint SDP3("SDP_3D");
@@ -158,8 +94,8 @@ int main (int argc, const char * argv[])
     SDP3 += power(Xij_[0],2)*Xii_[2];
     SDP3 += power(Xij_[2],2)*Xii_[1];
     SDP3 += power(Xij_[1],2)*Xii_[0];
-    SDP3.print();
-    SDP.add_constraint(SDP3);
+//    SDP3.print();
+//    SDP.add_constraint(SDP3);
 //    set<tuple<int,int,int>> ids;
 //        for (i = 0; i < complement_graph._bags.size(); i++){
 ////        for (i = 0; i < 1; i++){
@@ -191,20 +127,16 @@ int main (int argc, const char * argv[])
 //        }
     
     /* Objective declaration */
-//    constant<int> twos(2);
-    auto obj_SDP = 2*sum(Xij) + sum(Xii);
-    SDP.set_objective(max(obj_SDP));
+    SDP.max(2*sum(Xij) + sum(Xii));
     
 
-   //solver s1(SDP,ipopt);
+//   solver s1(SDP,ipopt);
     solver s1(SDP,cplex);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
     cout << "Running the SDP relaxation\n";
     s1.run();
-    return 0;
-    
     wall1 = get_wall_time();
     cpu1  = get_cpu_time();
     cout << "Done running the SDP relaxation\n";
@@ -233,7 +165,7 @@ int main (int argc, const char * argv[])
         zeros = Xij(i,j);
         OA.add_constraint(zeros=0);
     }
-    OA.set_objective(max(obj_SDP));
+    OA.max(2*sum(Xij) + sum(Xii));
     solver s2(OA,cplex);
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
