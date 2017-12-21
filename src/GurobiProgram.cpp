@@ -346,9 +346,10 @@ void GurobiProgram::set_grb_objective(){
 //            idx = it1.second._p->get_id();
             if (it1.second._coef->_is_transposed) {
                 auto dim = it1.second._p->get_dim();
+                auto idx = it1.second._p->get_id();
                 for (int j = 0; j<dim; j++) {
                     coeff = poly_eval(it1.second._coef,j);
-                    gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(j)];
+                    gvar1 = _grb_vars[idx + it1.second._p->get_id_inst(j)];
                     lterm += coeff*gvar1;
                 }
             }
