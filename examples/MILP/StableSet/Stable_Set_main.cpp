@@ -70,7 +70,7 @@ int main (int argc, const char * argv[])
     model.add_var(x^n);
     constant<int> ones(1);
     func_ obj = ones.tr()*x;
-    obj.print();
+    obj.print(true,true);
     model.set_objective(max(obj));
     Constraint c("Stable_Set");
     c = x.from(graph.arcs) + x.to(graph.arcs);
