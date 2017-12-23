@@ -91,6 +91,35 @@ size_t Constraint::get_id_inst(size_t ind) const{
 
 
 /* Output */
+
+void Constraint::print_expanded(){
+    auto nb_inst = get_nb_instances();
+    for (unsigned inst = 0; inst<nb_inst; inst++) {
+        print(inst);
+    }
+}
+
+void Constraint::print(unsigned inst){
+    cout << _name << " : ";
+    
+    this->func_::print(inst);
+    switch (_ctype) {
+        case leq:
+            cout << " <= ";
+            break;
+        case geq:
+            cout << " >=  ";
+            break;
+        case eq:
+            cout << " = ";
+            break;
+        default:
+            break;
+    }
+    //    printf("%f;\n", _rhs);
+    cout << _rhs << ";\n";
+};
+
 void Constraint::print(){    
     cout << _name << " : ";
     

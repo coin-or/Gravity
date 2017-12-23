@@ -93,10 +93,10 @@ public:
     string get_name(size_t inst) const {
         string name = _name;
         if (_is_indexed) {
-            name += to_string(_ids->at(inst));
+            name += "["+to_string(_ids->at(inst))+"]";
         }
         else {
-            name += to_string(inst);
+            name += "["+to_string(inst)+"]";
         }
         return name;
     };

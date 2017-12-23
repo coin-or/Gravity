@@ -42,6 +42,7 @@ namespace gravity {
         string                                 _to_str; /**< A string representation of the expression */
         
         string get_str();
+        string to_str(unsigned inst);
         Real eval(size_t i) const;
         Real eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
@@ -260,6 +261,7 @@ namespace gravity {
         lterm& operator=(lterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
     };
 
@@ -332,6 +334,7 @@ namespace gravity {
         qterm& operator=(qterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
     };
 
@@ -414,6 +417,7 @@ namespace gravity {
         pterm& operator=(pterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
         
     };
@@ -1575,7 +1579,8 @@ namespace gravity {
         Real eval(size_t i, size_t j);
 //        Real force_eval(size_t i);
         Real eval(){ return eval(0);};
-        string to_str(bool display_input=false) const;
+        string to_str() const;
+        string to_str(size_t inst) const;
         void print(bool endline, bool display_input);
         void print(size_t index);
         void print_expanded();

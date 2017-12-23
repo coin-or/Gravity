@@ -3660,6 +3660,20 @@ namespace gravity{
 //            return _to_str;
 //        }
     }
+    
+    string expr::to_str(unsigned inst){
+        //        if (_to_str.compare("noname")==0) {
+        if (is_uexpr()) {
+            return _to_str = ((uexpr*)this)->to_str(inst);
+        }
+        else {
+            return _to_str = ((bexpr*)this)->to_str(inst);
+        }
+        //        }
+        //        else {
+        //            return _to_str;
+        //        }
+    }
 
     uexpr::uexpr(const uexpr& exp){
         _otype = exp._otype;
@@ -5374,6 +5388,63 @@ namespace gravity{
         }
         return str;
     }
+    
+    string pterm::to_str(int ind, unsigned inst) const{
+        string str;
+        constant_* c_new = _coef;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        for (auto& p: *_l) {
+            str += poly_to_str(p.first, inst);
+            if (p.second != 1) {
+                str += "^" + to_string(p.second);
+            }
+        }
+        return str;
+    }
 
     void pterm::print(int ind) const{
         cout << this->to_str(ind);
@@ -5439,6 +5510,67 @@ namespace gravity{
         }
         return str;
     }
+    
+    string qterm::to_str(int ind, unsigned inst) const {
+        string str;
+        constant_* c_new = _coef;
+        param_* p_new1 = (param_*)_p->first;
+        param_* p_new2 = (param_*)_p->second;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        str += poly_to_str(p_new1, inst);
+        if (p_new1==p_new2) {
+            str += "^2";
+        }
+        else {
+            str += "*";
+            str += poly_to_str(p_new2, inst);
+        }
+        return str;
+    }
 
 
     void qterm::print(int ind) const {
@@ -5496,6 +5628,59 @@ namespace gravity{
             str += ")";
         }
         str += poly_to_str(p_new);
+        return str;
+    }
+    
+    string lterm::to_str(int ind, unsigned inst) const{
+        string str;
+        constant_* c_new = _coef;
+        param_* p_new = (param_*)_p;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        str += poly_to_str(p_new, inst);
         return str;
     }
 
@@ -5818,35 +6003,13 @@ namespace gravity{
         return res;
     }
 
-    string func_::to_str(bool display_input) const{
+    string func_::to_str() const{        
         string str;
         int ind = 0;
         string sign = " + ";
 //        for (int inst = 0; inst < _nb_instances ; inst++) {
             ind = 0;
-            if (display_input) {
-                if (!_embedded && !is_constant() && _all_convexity==convex_) {
-                    str += "Convex function: ";
-                }
-                if (!_embedded && !is_constant() && _all_convexity==concave_) {
-                    str += "Concave function: ";
-                }
-                if (!_embedded && !is_constant()) {
-                    str += "f(";
-                    for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-        //                if (!pair_it->second.first->_is_vector) {
-//                        str += pair_it->second.first->get_name();
-                            str += pair_it->second.first->get_name()+"[";
-                        str += to_string(pair_it->second.first->get_id_inst())+"]";
-                            if (next(pair_it) != _vars->end()) {
-                                str += ",";
-                            }
-        //                }
-                        pair_it++;
-                    }
-                    str += ") = ";
-                }
-            }
+        
             for (auto &pair:*_pterms) {
                 str += pair.second.to_str(ind++);
             }
@@ -5903,44 +6066,68 @@ namespace gravity{
 
 
     void func_::print(bool endline, bool display_input){
-//        if (_to_str.compare("noname")==0) {
-            update_to_str(display_input);
-//        }
+        string str;
+        if (display_input) {
+            if (!_embedded && !is_constant() && _all_convexity==convex_) {
+                str += "Convex function: ";
+            }
+            if (!_embedded && !is_constant() && _all_convexity==concave_) {
+                str += "Concave function: ";
+            }
+            if (!_embedded && !is_constant()) {
+                str += "f(";
+                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+                    //                if (!pair_it->second.first->_is_vector) {
+                    //                        str += pair_it->second.first->get_name();
+                    str += pair_it->second.first->get_name()+"[";
+                    str += to_string(pair_it->second.first->get_id_inst())+"]";
+                    if (next(pair_it) != _vars->end()) {
+                        str += ",";
+                    }
+                    //                }
+                    pair_it++;
+                }
+                str += ") = ";
+            }
+        }
+        str += to_str();
         cout << this->_to_str;
         if (endline)
             cout << endl;
     }
 
-    void func_::print(size_t index) {
+    string func_::to_str(size_t index) const{
+        string str;
         if (is_constant()) {
-            if (!_ids->empty()) {
-                cout << _val->at(_ids->at(index));
+            if (_ids && !_ids->empty()) {
+                str += to_string(_val->at(_ids->at(index)));
             }
             else {
-                cout << _val->at(index);
+                str += to_string(_val->at(index));
             }
+            return str;
         }
-        string str;
+        
         int ind = 0;
         string sign = " + ";
         //        for (int inst = 0; inst < _nb_instances ; inst++) {
         ind = 0;
         for (auto &pair:*_pterms) {
-            str += pair.second.to_str(ind++);
+            str += pair.second.to_str(ind++, index);
         }
         if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
             str += " + ";
         }
         ind = 0;
         for (auto &pair:*_qterms) {
-            str += pair.second.to_str(ind++);
+            str += pair.second.to_str(ind++, index);
         }
         if (!_qterms->empty() && !_lterms->empty()) {
             str += " + ";
         }
         ind = 0;
         for (auto &pair:*_lterms) {
-            str += pair.second.to_str(ind++);
+            str += pair.second.to_str(ind++, index);
         }
         if (_cst->is_number()) {
             auto val = poly_to_str(_cst);
@@ -5959,14 +6146,14 @@ namespace gravity{
                 str += " + ";
             }
             str += "(";
-            str += poly_to_str(_cst);
+            str += poly_to_str(_cst, index);
             str += ")";
         }
         if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
             str += " + ";
         }
         if (_expr) {
-            str += _expr->get_str();
+            str += _expr->to_str(index);
         }
         if (_is_vector) {
             str = "[" + str +"]";
@@ -5976,7 +6163,11 @@ namespace gravity{
         }
         //            str += "\n";
         //        }
-        cout << str << endl;
+        return str;
+    }
+    
+    void func_::print(size_t index) {
+        cout << to_str(index);
     }
     
     void func_::print_expanded(){
@@ -6397,7 +6588,7 @@ namespace gravity{
     }
     
     void func_::update_to_str(bool input){
-        _to_str = to_str(input);
+        _to_str = to_str();
     }
     
     size_t func_::get_nb_vars() const{

@@ -67,6 +67,8 @@ namespace gravity {
         };
         
         /* Output */
+        void print_expanded();
+        void print(unsigned);
         void print();
         
         
