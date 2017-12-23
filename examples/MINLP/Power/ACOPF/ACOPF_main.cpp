@@ -175,8 +175,6 @@ int main (int argc, char * argv[])
             }
             DebugOff("Bus" << bus->_name << " : Shunt bs = " << bus->bs() << endl);
         }
-        KCL_P = 0;
-        KCL_Q = 0;
         ACOPF.add_constraint(KCL_P = 0);
         ACOPF.add_constraint(KCL_Q = 0);
     }
