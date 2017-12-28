@@ -1,13 +1,9 @@
 //
 //  IpoptProgram.h
-//  PowerTools++
-//
-//  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
 //
 
-#ifndef __PowerTools____IpoptProgram__
-#define __PowerTools____IpoptProgram__
+#ifndef __Gravity____IpoptProgram__
+#define __Gravity____IpoptProgram__
 
 #include <stdio.h>
 #include <assert.h>
@@ -26,19 +22,10 @@ class IpoptProgram : public TNLP {
 
     
 public:
-    Model* _model;
+    Model* _model = nullptr;
     
-    IpoptProgram(Model* m):_model(m){
-        if (!m->_built) {
-            m->fill_in_maps();
-        }
-        else {
-            m->reset_funcs();
-        }
-    }
-    
-    ~IpoptProgram(){}
-    
+    IpoptProgram(Model* m);
+
     /** Method to return some info about the nlp */
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, IndexStyleEnum& index_style);
@@ -101,4 +88,4 @@ public:
 
 
 
-#endif /* defined(__PowerTools____IpoptProgram__) */
+#endif /* defined(__Gravity____IpoptProgram__) */

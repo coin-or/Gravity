@@ -864,7 +864,7 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     }
     solver solve_Master(Master, ipopt);
     //solver solve_Master(Master, cplex);
-    solve_Master.run();
+    solve_Master.run(0,false,1e-1,"ma27");
 
     // initialise the outer point.
     gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
@@ -1494,14 +1494,13 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        l = 1;
+        l = 0;
     }
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
     // 1 in-out
     // 0: default ADMM
-
     if (l > 0) {
         inout(grid, iter_limit);
     }

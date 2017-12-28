@@ -20,23 +20,28 @@ Mosek: https://www.mosek.com
 Follow these simple instructions:
 1) cd Gravity
 
-2) open the file CMakeLists.txt and turn the solvers you have to on. For instance, if you would like to use ipopt you should go to line 11 and change it to: option(ENABLE_IPOPT "Link to IPOPT libraries" ON)
-
-3) If your solver is not installed in a default location, you need to add the following to your bash_profile:
+2) If your solver is not installed in a default location, you need to add the following to your bash_profile:
 export SOLVERNAME_ROOT_DIR="your_location". 
 
 For instance, I have the following: export IPOPT_ROOT_DIR="/Users/hlh/Dev/CoinIpopt/build"
 
-4) You're now ready to compile everything, just enter:
+Cmake should automatically locare Cplex and Gurobi.
+
+3) You're now ready to compile everything, just enter:
 
 mkdir build
 
 cd build
 
-cmake ..
+cmake -DENABLE_IPOPT=ON -DENABLE_GUROBI=ON -DENABLE_CPLEX=ON -DENABLE_BONMIN=ON ..
+(All dependencies are switched off by default, to enable a solver that is installed on your system, add the flag -DENABLE_$SOLVERNAME$=ON as shown above)
+
+Note: To build an Xcode project append -G Xcode to the command above
 
 make -j4
 
 This will install all the models found under Gravity/examples.
+
 The corresponding binaries will then appear under Gravity/bin.
 
+All executables can be called with the flag --help or -h to get help on running instructions.

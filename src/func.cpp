@@ -3660,6 +3660,20 @@ namespace gravity{
 //            return _to_str;
 //        }
     }
+    
+    string expr::to_str(unsigned inst){
+        //        if (_to_str.compare("noname")==0) {
+        if (is_uexpr()) {
+            return _to_str = ((uexpr*)this)->to_str(inst);
+        }
+        else {
+            return _to_str = ((bexpr*)this)->to_str(inst);
+        }
+        //        }
+        //        else {
+        //            return _to_str;
+        //        }
+    }
 
     uexpr::uexpr(const uexpr& exp){
         _otype = exp._otype;
@@ -4290,6 +4304,133 @@ namespace gravity{
             }
             case func_c: {
                 return ((func_*)c)->to_str();
+                break;
+            }
+            default:
+                break;
+        }
+        return "null";
+    }
+    
+    string poly_to_str(const constant_* c, size_t inst){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+        
+        if (!c) {
+            return "null";
+        }
+        switch (c->get_type()) {
+            case binary_c: {
+                return ((constant<bool>*)(c))->to_str();
+                break;
+            }
+            case short_c: {
+                return ((constant<short>*)(c))->to_str();
+                break;
+            }
+            case integer_c: {
+                return ((constant<int>*)(c))->to_str();
+                break;
+            }
+            case float_c: {
+                return ((constant<float>*)(c))->to_str();
+                break;
+            }
+            case double_c: {
+                return ((constant<double>*)(c))->to_str();
+                break;
+            }
+            case long_c: {
+                return ((constant<long double>*)(c))->to_str();
+                break;
+            }
+            case par_c:{
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((param<bool>*)p_c)->to_str(inst);
+                        break;
+                    case short_:
+                        return ((param<short>*)p_c)->to_str(inst);
+                        break;
+                    case integer_:
+                        return ((param<int>*)p_c)->to_str(inst);
+                        break;
+                    case float_:
+                        return ((param<float>*)p_c)->to_str(inst);
+                        break;
+                    case double_:
+                        return ((param<double>*)p_c)->to_str(inst);
+                        break;
+                    case long_:
+                        return ((param<long double>*)p_c)->to_str(inst);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case uexp_c: {
+                return ((uexpr*)c)->to_str(inst);
+                break;
+            }
+            case bexp_c: {
+                return ((bexpr*)c)->to_str(inst);
+                break;
+            }
+            case var_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((var<bool>*)p_c)->get_name(inst);
+                        break;
+                    case short_:
+                        return ((var<short>*)p_c)->get_name(inst);
+                        break;
+                    case integer_:
+                        return ((var<int>*)p_c)->get_name(inst);
+                        break;
+                    case float_:
+                        return ((var<float>*)p_c)->get_name(inst);
+                        break;
+                    case double_:
+                        return ((var<double>*)p_c)->get_name(inst);
+                        break;
+                    case long_:
+                        return ((var<long double>*)p_c)->get_name(inst);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+                
+            case sdpvar_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((sdpvar<bool>*)p_c)->get_name();
+                        break;
+                    case short_:
+                        return ((sdpvar<short>*)p_c)->get_name();
+                        break;
+                    case integer_:
+                        return ((sdpvar<int>*)p_c)->get_name();
+                        break;
+                    case float_:
+                        return ((sdpvar<float>*)p_c)->get_name();
+                        break;
+                    case double_:
+                        return ((sdpvar<double>*)p_c)->get_name();
+                        break;
+                    case long_:
+                        return ((sdpvar<long double>*)p_c)->get_name();
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case func_c: {
+                return ((func_*)c)->to_str(inst);
                 break;
             }
             default:
@@ -5247,6 +5388,63 @@ namespace gravity{
         }
         return str;
     }
+    
+    string pterm::to_str(int ind, unsigned inst) const{
+        string str;
+        constant_* c_new = _coef;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        for (auto& p: *_l) {
+            str += poly_to_str(p.first, inst);
+            if (p.second != 1) {
+                str += "^" + to_string(p.second);
+            }
+        }
+        return str;
+    }
 
     void pterm::print(int ind) const{
         cout << this->to_str(ind);
@@ -5312,6 +5510,67 @@ namespace gravity{
         }
         return str;
     }
+    
+    string qterm::to_str(int ind, unsigned inst) const {
+        string str;
+        constant_* c_new = _coef;
+        param_* p_new1 = (param_*)_p->first;
+        param_* p_new2 = (param_*)_p->second;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        str += poly_to_str(p_new1, inst);
+        if (p_new1==p_new2) {
+            str += "^2";
+        }
+        else {
+            str += "*";
+            str += poly_to_str(p_new2, inst);
+        }
+        return str;
+    }
 
 
     void qterm::print(int ind) const {
@@ -5369,6 +5628,59 @@ namespace gravity{
             str += ")";
         }
         str += poly_to_str(p_new);
+        return str;
+    }
+    
+    string lterm::to_str(int ind, unsigned inst) const{
+        string str;
+        constant_* c_new = _coef;
+        param_* p_new = (param_*)_p;
+        if (c_new->is_number()){
+            string v = poly_to_str(c_new);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(c_new, inst);
+            str += ")";
+        }
+        str += poly_to_str(p_new, inst);
         return str;
     }
 
@@ -5691,35 +6003,13 @@ namespace gravity{
         return res;
     }
 
-    string func_::to_str(bool display_input) const{
+    string func_::to_str() const{        
         string str;
         int ind = 0;
         string sign = " + ";
 //        for (int inst = 0; inst < _nb_instances ; inst++) {
             ind = 0;
-            if (display_input) {
-                if (!_embedded && !is_constant() && _all_convexity==convex_) {
-                    str += "Convex function: ";
-                }
-                if (!_embedded && !is_constant() && _all_convexity==concave_) {
-                    str += "Concave function: ";
-                }
-                if (!_embedded && !is_constant()) {
-                    str += "f(";
-                    for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-        //                if (!pair_it->second.first->_is_vector) {
-//                        str += pair_it->second.first->get_name();
-                            str += pair_it->second.first->get_name()+"[";
-                        str += to_string(pair_it->second.first->get_id_inst())+"]";
-                            if (next(pair_it) != _vars->end()) {
-                                str += ",";
-                            }
-        //                }
-                        pair_it++;
-                    }
-                    str += ") = ";
-                }
-            }
+        
             for (auto &pair:*_pterms) {
                 str += pair.second.to_str(ind++);
             }
@@ -5775,12 +6065,117 @@ namespace gravity{
     }
 
 
-    void func_::print(bool endline, bool display_input) const{
+    void func_::print(bool endline, bool display_input){
+        string str;
+        if (display_input) {
+            if (!_embedded && !is_constant() && _all_convexity==convex_) {
+                str += "Convex function: ";
+            }
+            if (!_embedded && !is_constant() && _all_convexity==concave_) {
+                str += "Concave function: ";
+            }
+            if (!_embedded && !is_constant()) {
+                str += "f(";
+                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+                    //                if (!pair_it->second.first->_is_vector) {
+                    //                        str += pair_it->second.first->get_name();
+                    str += pair_it->second.first->get_name()+"[";
+                    str += to_string(pair_it->second.first->get_id_inst())+"]";
+                    if (next(pair_it) != _vars->end()) {
+                        str += ",";
+                    }
+                    //                }
+                    pair_it++;
+                }
+                str += ") = ";
+            }
+        }
+        str += to_str();
         cout << this->_to_str;
         if (endline)
             cout << endl;
     }
 
+    string func_::to_str(size_t index) const{
+        string str;
+        if (is_constant()) {
+            if (_ids && !_ids->empty()) {
+                str += to_string(_val->at(_ids->at(index)));
+            }
+            else {
+                str += to_string(_val->at(index));
+            }
+            return str;
+        }
+        
+        int ind = 0;
+        string sign = " + ";
+        //        for (int inst = 0; inst < _nb_instances ; inst++) {
+        ind = 0;
+        for (auto &pair:*_pterms) {
+            str += pair.second.to_str(ind++, index);
+        }
+        if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
+            str += " + ";
+        }
+        ind = 0;
+        for (auto &pair:*_qterms) {
+            str += pair.second.to_str(ind++, index);
+        }
+        if (!_qterms->empty() && !_lterms->empty()) {
+            str += " + ";
+        }
+        ind = 0;
+        for (auto &pair:*_lterms) {
+            str += pair.second.to_str(ind++, index);
+        }
+        if (_cst->is_number()) {
+            auto val = poly_to_str(_cst);
+            if (val.front()=='-') {
+                str += " - " + val.substr(1);
+            }
+            else if (val != "0"){
+                if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
+                    str += " + ";
+                }
+                str += val;
+            }
+        }
+        else {
+            if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
+                str += " + ";
+            }
+            str += "(";
+            str += poly_to_str(_cst, index);
+            str += ")";
+        }
+        if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
+            str += " + ";
+        }
+        if (_expr) {
+            str += _expr->to_str(index);
+        }
+        if (_is_vector) {
+            str = "[" + str +"]";
+        }
+        if (_is_transposed) {
+            str += "^T";
+        }
+        //            str += "\n";
+        //        }
+        return str;
+    }
+    
+    void func_::print(size_t index) {
+        cout << to_str(index);
+    }
+    
+    void func_::print_expanded(){
+        auto nb_inst = get_nb_instances();
+        for (unsigned inst = 0; inst<nb_inst; inst++) {
+            print(inst);
+        }
+    }
 
     /* UNARY EXPRESSIONS */
 
@@ -5841,6 +6236,57 @@ namespace gravity{
         }
         return str;
     }
+    
+    string uexpr::to_str(size_t inst) const{
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string(_coef);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        switch (_otype) {
+            case log_:
+                str += "log(";
+                str += _son->to_str(inst);
+                str += ")";
+                break;
+                
+            case exp_:
+                str += "exp(";
+                str += _son->to_str(inst);
+                str += ")";
+                break;
+                
+            case cos_:
+                str += "cos(";
+                str += _son->to_str(inst);
+                str += ")";
+                break;
+                
+            case sin_:
+                str += "sin(";
+                str += _son->to_str(inst);
+                str += ")";
+                break;
+                
+            case sqrt_:
+                str += "sqrt(";
+                str += _son->to_str(inst);
+                str += ")";
+                break;
+            default:
+                break;
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
+
 
     void uexpr::print(bool endline) const{
         cout << _to_str;
@@ -6050,8 +6496,59 @@ namespace gravity{
         }
         return str;
     }
+    
+    string bexpr::to_str(size_t inst) const{
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string(_coef);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+            str += "(";
+            str+= _lson->to_str(inst);
+            str += ")";
+        }
+        else
+            str+= _lson->to_str(inst);
+        
+        if (_otype==plus_) {
+            str+= " + ";
+        }
+        if (_otype==minus_) {
+            str+= " - ";
+        }
+        if (_otype==product_) {
+            str+= " * ";
+        }
+        if (_otype==div_) {
+            str+= "/";
+        }
+        
+        if (_otype==power_) {
+            str+= "^";
+        }
+        
+        if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+            str+= _rson->to_str(inst);
+        }
+        else {
+            str+= "(";
+            str+= _rson->to_str(inst);
+            str+= ")";
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
 
-    void bexpr::print(bool endline) const {
+
+    void bexpr::print() const {
         cout << _to_str;
     //    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
     //        cout << "(";
@@ -6086,11 +6583,11 @@ namespace gravity{
     //        poly_print(_rson);
     //        cout << ")";
     //    }
-        if(endline)
+//        if(endline)
             cout << endl;
     }
     
-    void func_::update_to_str(){
+    void func_::update_to_str(bool input){
         _to_str = to_str();
     }
     
