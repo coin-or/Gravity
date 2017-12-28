@@ -1228,9 +1228,6 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
 
 
 
-
-
-
 void Model::reset_funcs() {
     for (auto& f:_nl_funcs) {
         f->reset_val();

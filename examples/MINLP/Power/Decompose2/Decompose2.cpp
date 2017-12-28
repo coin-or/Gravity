@@ -30,6 +30,176 @@
 #include <iterator>
 #endif
 
+// multieigenvector cuts
+void get_ncut(PowerNet& grid, unsigned nbparts) {
+    //arma::mat adjacency_matrix = arma::zeros(grid.nodes.size(), grid.nodes.size());
+    //arma::mat W = arma::zeros(grid.nodes.size(), grid.nodes.size());
+    arma::SpMat<double> P(grid.nodes.size(), grid.nodes.size());
+
+    arma::SpMat<double> adjacency_matrix(grid.nodes.size(), grid.nodes.size());
+    for (auto &arc: grid.arcs) {
+        adjacency_matrix(arc->_src->_id, arc->_dest->_id) = 1.0;
+        adjacency_matrix(arc->_dest->_id, arc->_src->_id) = 1.0;
+    }
+
+    if (nbparts > grid.nodes.size()) {
+        cerr << "Error: partion size > \# buses" << endl;
+    }
+    unsigned nb_eigvals= nbparts;
+
+
+    // Wx = lambda Dx --->  D^0.5 W D^-0.5 x = lambda x
+    // parameters
+    double offset = 1e-5;
+
+    // degrees and regularisation
+    arma::sp_vec d = arma::sum(arma::abs(adjacency_matrix), 1); // node degree.
+    arma::sp_vec dr = 0.5*(d-arma::sum(adjacency_matrix,1)); // dr = 0;
+    // d = d + offset*2;
+    //dr = dr + offset;
+    //for (auto t: dr)
+    //    t += offset;
+    // convert dr to a sparse diagonal matrix.
+    //W = adjacency_matrix + arma::spdiags(dr,0,grid.nodes.size(), grid.nodes.size());// sparsified form. regularisation
+    double eps = 0.0;
+    arma::sp_vec a = arma::ones<arma::vec>(grid.nodes.size())/arma::sqrt(d);
+    // diag(a)*adjacency_matrix*diag(a)
+    P = arma::diagmat(a)*adjacency_matrix*arma::diagmat(a);
+    // compute the eigenvalues
+    arma::vec eigval;
+    arma::mat eigvec;
+    // nbparts is equal to the number of returned eigenvalues.
+    arma::eigs_sym(eigval,eigvec, P, nbparts, "la", 1e-5);
+    // eigvals are
+    auto eigenvalues = -arma::sort(-eigval); // by default, ascending order.
+    arma::uvec index = arma::sort_index(-eigval);
+    arma::mat V;
+    for (int i = 0; i < index.size(); i++) {
+        V= arma::join_horiz(V, eigvec.col(index(i)));
+    }
+    arma::mat eigenvectors = arma::diagmat(a)*V; //grid.nodes.size()*nbparts
+    //
+    for (int i=0; i < arma::size(eigenvectors, 1); i++) {
+        //normalisation of each vector
+        eigenvectors.col(i) = (eigenvectors.col(i)/arma::norm(eigenvectors.col(i)))*arma::norm(arma::ones(grid.nodes.size(),1));
+        if (eigenvectors(0, i)!= 0) {
+            int l = (0 < eigenvectors(0,i)) - (eigenvectors(0, i) < 0);
+            if (l > 0)
+                eigenvectors.col(i)*=-1;
+        }
+    }
+    // discretisation of normalised cuts.
+    //norm 2 root of eigenvectors.
+    double vm = arma::norm(eigenvectors);
+    //normalised eigenvectors
+    eigenvectors *= 1/vm;
+
+    arma::mat R = arma::zeros<arma::mat>(nbparts, nbparts);
+
+    // randomly choose a vector
+    double pos = rand() % grid.nodes.size(); // random number between 0 to size-1.
+    R.col(0) = eigenvectors.row(pos).t();
+
+    arma::vec c = arma::zeros<arma::mat>(grid.nodes.size(), 1);
+    for (int j= 1; j < nbparts; j++) {
+        arma::vec temp =arma::abs(eigenvectors*R.col(j-1));
+        c += temp;
+        arma::uword i = c.index_min();
+        R.col(j) = eigenvectors.row(i).t();
+    }
+
+    double lastObjectiveValue=0;
+    double exitLoop=0;
+    unsigned nbIterationsDiscretisation = 0;
+    unsigned nbIterationsDiscretisationMax = 20; //voir
+
+    // discrete eigenvectors.
+    arma::sp_mat Discrete;
+    while (exitLoop == 0) {
+        nbIterationsDiscretisation = nbIterationsDiscretisation + 1 ;
+        //discretizes previously rotated eigenvectors in discretisation
+        arma::mat Eigenvector = eigenvectors*R;
+        // J is the index of the maxima of each row corresponding to grid.nodes.size x nparts matrix
+        // So it is grid.nodes.size x 1
+        arma::uvec J = arma::index_max(Eigenvector, 1); //column vector
+        Discrete.reset();
+        Discrete.set_size(grid.nodes.size(), nbparts);
+        for (int i = 0; i < grid.nodes.size(); i++) {
+            Discrete(i, J(i)) = 1;
+        }
+        arma::mat U,V;
+        arma::vec S;
+        arma::mat X = Discrete.t()*eigenvectors;
+        arma::svd(U,S,V, X);   //svd
+        double NcutValue=2*(grid.nodes.size()- arma::trace(S));
+        if (abs(NcutValue-lastObjectiveValue) < eps | nbIterationsDiscretisation > nbIterationsDiscretisationMax)
+            exitLoop=1;
+        else {
+            lastObjectiveValue = NcutValue;
+            R=V*U.t();
+        }
+    }
+    Discrete.print();
+    // store the partition results in a vector.
+    std::vector<std::vector<Node*>> partition;
+    vector<vector<Arc*>> bag_arcs;
+    for (auto i =0 ; i < nbparts; ++i) {
+        std::vector<Node*> temp;
+        std::vector<Arc*> temparcs;
+        partition.push_back(temp);
+        bag_arcs.push_back(temparcs);
+    }
+
+
+    std::map<unsigned, unsigned> node_partition;
+    for (auto a = Discrete.begin(); a != Discrete.end(); ++a) {
+        partition.at(a.col()).push_back(grid.nodes.at(a.row()));
+        node_partition.insert(std::make_pair(a.row(), a.col()));
+    }
+    // generate a graph to represent the resulting partition where an edge is formed between two nodes that induces cuts.
+    Net graph;
+
+    for (int i = 0; i < nbparts; i++) {
+        Node* node= new Node(to_string(i), i);
+        graph.add_node(node);
+    }
+
+
+    for (auto arc: grid.arcs) {
+        unsigned from =node_partition.at(arc->_src->_id);
+        unsigned to =node_partition.at(arc->_dest->_id);
+
+        if (from == to) {
+            bag_arcs.at(from).push_back(arc);
+        }
+        else {
+            string name = to_string(from)+","+to_string(to);
+            auto a = graph.get_arc(to_string(from), to_string(to));
+            if (graph.get_arc(to_string(from), to_string(to)) !=nullptr){
+                a->_intersection_clique.push_back(new index_pair(index_(to_string(from)), index_(to_string(to)), true));
+                a->_weight +=1;
+            }
+            else{
+                a = new Arc(name);
+                a->_id = graph.arcs.size();
+                a->_src = graph.nodes.at(from);
+                a->_dest = graph.nodes.at(to);
+                a->connect();
+                a->_intersection_clique.push_back(new index_pair(index_(to_string(from)), index_(to_string(to)), true));
+                a->_weight =1;
+                graph.add_arc(a);
+            }
+        }
+    }
+    
+    double total_weights = 0.0;
+    for (auto arc:graph.arcs){
+        total_weights += arc->_weight;
+    }
+    
+    cout << "total intersection: " << total_weights <<  endl;
+}
+
 struct net_param {
     param<Real> c0, c1, c2; /**< Generation costs */
     param<Real> tan_th_min, tan_th_max;
@@ -972,18 +1142,18 @@ int inout (PowerNet& grid, unsigned iter_limit) {
                     }
                 }
             }
-            
+
             Master.add_constraint(Concavity <= 0);
 
             //Master.add_constraint(Concavity <= 0);
-            
-    
+
+
 
             //if (dual > sum(gamma_in).eval()) {
             if (dual > gamma_in) {
                 //for (int c = 0; c < nb_cliques; c++)
                 //    gamma_in(c) = value_dual[c];
-                 gamma_in = dual;
+                gamma_in = dual;
 
                 for (auto a: cliquetree->arcs) {
                     int l = a->_id;
@@ -1516,13 +1686,13 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-    
-    get_ncut(grid, 3);
-    
+
+    get_ncut(grid, 2);
+
     return 0;
     // 1 in-out
     // 0: default ADMM
-    
+
 //    if (l > 0) {
 //        inout(grid, iter_limit);
 //    }
