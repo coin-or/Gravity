@@ -1687,7 +1687,7 @@ int main (int argc, const char * argv[])
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
 
-    get_ncut(grid, 2);
+    get_ncut(grid, 3);
 
     return 0;
     // 1 in-out
