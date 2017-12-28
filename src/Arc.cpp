@@ -27,7 +27,7 @@ Arc::Arc(string name):_src(NULL), _dest(NULL) {
 Arc::Arc(Node* s, Node* d) {
     _src = s;
     _dest = d;
-    _weight = 1;
+    _weight = 1; // why 1?
 //   in_cycle = false;
     //  parallel = false;
     //  connect();
