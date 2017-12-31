@@ -52,10 +52,10 @@ For instance, if you install MOSEK 8 under `DIR/mosek8/` on a linux machine, you
 
 * `cmake -DENABLE_IPOPT=ON -DENABLE_GUROBI=ON -DENABLE_CPLEX=ON -DENABLE_BONMIN=ON ..`
 
-All dependencies are switched off by default, to enable a solver that is installed on your system, add the flag 
+All dependencies are switched off by default, to enable a solver that is installed on your system, append the flag 
 `-DENABLE_$SOLVERNAME$=ON` as shown above.
 
-Note: To build an Xcode project append -G Xcode to the command above
+Note: To build an Xcode project append `-G Xcode` to the command above
 
 * `make -j4`
 
