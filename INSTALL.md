@@ -18,10 +18,10 @@ Mosek: https://www.mosek.com
 -------
 
 Follow these simple instructions:
-1) cd Gravity
+1) * `cd Gravity`
 
-2) If your solver is not installed in a default location, you need to add the following to your `.bash_profile` file:
-* `export SOLVERNAME_ROOT_DIR="your_location"`, where your location contains include/headers and lib/libraries.
+2) If your solver is not installed in a default location, you need to add the following to your `~/.bash_profile` (edit or create the file named `bash_profile` under your home and add the following lines):
+* `export SOLVERNAME_ROOT_DIR="your_location"`, where `your_location` contains the corresponding include/headers and lib/libraries.
 
 For instance, I have the following: 
 
