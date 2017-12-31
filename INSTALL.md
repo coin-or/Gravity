@@ -21,11 +21,14 @@ Follow these simple instructions:
 1) cd Gravity
 
 2) If your solver is not installed in a default location, you need to add the following to your bash_profile:
-export SOLVERNAME_ROOT_DIR="your_location". 
+export SOLVERNAME_ROOT_DIR="your_location", where your location contains include/headers and lib/libraries.
 
-For instance, I have the following: export IPOPT_ROOT_DIR="/Users/hlh/Dev/CoinIpopt/build"
+For instance, I have the following: 
+export IPOPT_ROOT_DIR="/Users/hh/Dev/CoinIpopt/build"
 
-Cmake should automatically locare Cplex and Gurobi.
+export MOSEK_ROOT_DIR="/Users/hh/mosek/8/tools/platform/osx64x86"
+
+Note: If Cplex and Guraobi were installed using the standard installer, Cmake should automatically locate the latest version on your system, no need to add anything to your bash_profile.
 
 3) You're now ready to compile everything, just enter:
 
