@@ -18,7 +18,7 @@ Mosek: https://www.mosek.com
 -------
 
 Follow these simple instructions:
-1) * `cd Gravity`
+1) `cd Gravity`
 
 2) If your solver is not installed in a default location, you need to add the following to your `~/.bash_profile` (edit or create the file named `bash_profile` under your home and add the following lines):
 * `export SOLVERNAME_ROOT_DIR="your_location"`, where `your_location` contains the corresponding include/headers and lib/libraries.
@@ -51,7 +51,8 @@ For instance, if you install MOSEK 8 under `DIR/mosek8/` on a linux machine, you
 * `cd build`
 
 * `cmake -DENABLE_IPOPT=ON -DENABLE_GUROBI=ON -DENABLE_CPLEX=ON -DENABLE_BONMIN=ON ..`
-(All dependencies are switched off by default, to enable a solver that is installed on your system, add the flag -DENABLE_$SOLVERNAME$=ON as shown above)
+
+All dependencies are switched off by default, to enable a solver that is installed on your system, add the flag -DENABLE_$SOLVERNAME$=ON as shown above.
 
 Note: To build an Xcode project append -G Xcode to the command above
 
