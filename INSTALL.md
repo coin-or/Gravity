@@ -24,6 +24,7 @@ Follow these simple instructions:
 export SOLVERNAME_ROOT_DIR="your_location", where your location contains include/headers and lib/libraries.
 
 For instance, I have the following: 
+
 export IPOPT_ROOT_DIR="/Users/hh/Dev/CoinIpopt/build"
 
 export MOSEK_ROOT_DIR="/Users/hh/mosek/8/tools/platform/osx64x86"
