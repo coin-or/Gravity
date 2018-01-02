@@ -5641,7 +5641,14 @@ namespace gravity{
         }
         for (unsigned idx = 0; idx <dim; idx++) {
             if (c_new->is_number()){
-                string v = poly_to_str(c_new,idx);
+                string v;
+                if (c_new->_is_transposed) {
+                    v = poly_to_str(c_new,idx);
+                }
+                else{
+                    v = poly_to_str(c_new,inst);
+                }
+                
                 if (_sign) {
                     if (v=="-1") {
                         str += " - ";
@@ -5682,10 +5689,20 @@ namespace gravity{
                     str += " + ";
                 }
                 str += "(";
-                str += poly_to_str(c_new, idx);
+                if (c_new->_is_transposed) {
+                    str += poly_to_str(c_new, idx);
+                }
+                else{
+                    str += poly_to_str(c_new, inst);
+                }
                 str += ")";
             }
-            str += poly_to_str(p_new, idx);
+            if (c_new->_is_transposed) {
+                str += poly_to_str(p_new, idx);
+            }
+            else{
+                str += poly_to_str(p_new, inst);
+            }
         }
         return str;
     }
