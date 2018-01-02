@@ -5635,52 +5635,58 @@ namespace gravity{
         string str;
         constant_* c_new = _coef;
         param_* p_new = (param_*)_p;
-        if (c_new->is_number()){
-            string v = poly_to_str(c_new);
-            if (_sign) {
-                if (v=="-1") {
-                    str += " - ";
-                }
-                else if (ind>0) {
-                    str += " + ";
-                    if(v!="1") {
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new->get_nb_instances();
+        }
+        for (unsigned idx = 0; idx <dim; idx++) {
+            if (c_new->is_number()){
+                string v = poly_to_str(c_new,idx);
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else if (idx>0 || ind>0) {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                    else if(v!="1") {
                         str += v;
                     }
                 }
-                else if(v!="1") {
-                    str += v;
-                }
-            }
-            if(!_sign) {
-                if (v == "-1" && ind>0) {
-                    str += " + ";
-                }
-                else if (v.front()=='-'){
-                    if (ind > 0) {
+                if(!_sign) {
+                    if (v == "-1" && (idx>0 || ind>0)) {
                         str += " + ";
                     }
-                    str += v.substr(1);
+                    else if (v.front()=='-'){
+                        if (ind > 0) {
+                            str += " + ";
+                        }
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
                 }
-                else if (v=="1"){
+            }
+            else{
+                if (!_sign) {
                     str += " - ";
                 }
-                else if(v!="-1"){
-                    str += " - " + v;
+                if(ind > 0 && _sign) {
+                    str += " + ";
                 }
+                str += "(";
+                str += poly_to_str(c_new, idx);
+                str += ")";
             }
+            str += poly_to_str(p_new, idx);
         }
-        else{
-            if (!_sign) {
-                str += " - ";
-            }
-            if(ind > 0 && _sign) {
-                str += " + ";
-            }
-            str += "(";
-            str += poly_to_str(c_new, inst);
-            str += ")";
-        }
-        str += poly_to_str(p_new, inst);
         return str;
     }
 
@@ -6099,7 +6105,10 @@ namespace gravity{
     string func_::to_str(size_t index) const{
         string str;
         if (is_constant()) {
-            if (_ids && !_ids->empty()) {
+            if (is_number()) {
+                str += poly_to_str(_cst);
+            }
+            else if (_ids && !_ids->empty()) {
                 str += to_string(_val->at(_ids->at(index)));
             }
             else {
