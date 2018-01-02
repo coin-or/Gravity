@@ -100,8 +100,11 @@ void Constraint::print_expanded(){
 }
 
 void Constraint::print(unsigned inst){
-    cout << _name << "[" << to_string(inst) << "] : ";
-    
+    cout << _name;
+    if (_nb_instances>1) {
+        cout << "[" << to_string(inst) << "]";
+    }
+    cout << " : ";
     this->func_::print(inst);
     switch (_ctype) {
         case leq:
