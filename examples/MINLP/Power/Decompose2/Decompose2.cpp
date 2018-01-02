@@ -31,9 +31,10 @@
 #endif
 
 // multieigenvector cuts
-void get_ncut(PowerNet& grid, unsigned nbparts) {
-    //arma::mat adjacency_matrix = arma::zeros(grid.nodes.size(), grid.nodes.size());
-    //arma::mat W = arma::zeros(grid.nodes.size(), grid.nodes.size());
+void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, vector<vector<Gen*>>& bag_gens,
+   	      vector<vector<Line*>>& bag_arcs_disjoint, vector<vector<Line*>>& bag_arcs_neighbour
+	      vector<vector<gravity::index_pair*>>& bag_bus_pairs_disjoint, 
+	      vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour) {
     arma::SpMat<double> P(grid.nodes.size(), grid.nodes.size());
 
     arma::SpMat<double> adjacency_matrix(grid.nodes.size(), grid.nodes.size());
@@ -574,191 +575,24 @@ void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Rea
 //    cout << "val: " << val << endl;
 }
 
-int inout (PowerNet& grid, unsigned iter_limit) {
-    cout << "////////////////////////////////////////" << endl;
-    Net* grid_augment = grid.clone_undirected();
-    DebugOn("number of edges of the augmented graph, " << grid_augment->arcs.size() << endl);
-    for (auto &node: grid.nodes) {
-        vector<Node*> neighbours = node->get_neighbours();
-        for (int i=0; i < neighbours.size()-1; i++) {
-            auto n1 = grid_augment->get_node(neighbours.at(i)->_name);
-            for (int j = i+1; j < neighbours.size(); j++) {
-                auto n2 = grid_augment->get_node(neighbours.at(j)->_name);
-                if (grid_augment->get_undirected_arc(n1, n2) !=nullptr) {
-                    continue;
-                }
-                else {
-                    string name = to_string((int)grid_augment->arcs.size()) + "," +n1->_name + "," + n2->_name;
-                    Arc* arc = new Arc(name);
-                    arc->_id = grid_augment->arcs.size();
-                    arc->_src = n1;
-                    arc->_dest = n2;
-                    arc->connect();
-                    grid_augment->add_undirected_arc(arc);
-                }
-            }
-        }
-    }
-
-// NOTE that grid_augment may NOT be chordal.
-    grid_augment->get_tree_decomp_bags();
-    auto cliquetree = grid_augment->get_clique_tree_prim(); // Note: it builds on grid_augment.
-
-    const unsigned nb_cliques = grid_augment->_bags.size();
+int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
 
     vector<net_param> bag_param;
     vector<vector<Bus*>> bag_bus;
-    vector<vector<Bus*>> bag_bus_disjoint;
     vector<vector<Gen*>> bag_gens;
-    vector<vector<Gen*>> bag_gens_disjoint;
-    vector<vector<Line*>> bag_arcs; // bag_arcs contains the arcs of the power grid while variables associated with W are defined on chordal graph.
     vector<vector<Line*>> bag_arcs_disjoint;
-    vector<vector<gravity::index_pair*>> bag_bus_pairs; // bus_pairs in each bag.
     vector<vector<gravity::index_pair*> > bag_bus_pairs_disjoint; // bus_pairs in each bag.
+    vector<vector<gravity::index_pair*>> bag_bus_pairs_neighbour; //
 
-    map<string, unsigned> indexij;
-    map<Bus*, unsigned> indexii;
-
-    for (int c = 0; c < nb_cliques; c++) {
-        net_param np;
-        vector<Bus*> bag_B;
-        vector<Gen*> bag_G;
-        DebugOff("bag " << c << ": ");
-        for (int i = 0; i < grid_augment->_bags[c].size(); i++) {
-            Node* n = grid_augment->_bags[c].at(i);
-            Bus* b = (Bus*) grid.get_node(n->_name);
-            DebugOff(b->_name << " ");
-            bag_B.push_back(b);
-            if (b->_has_gen) {
-                bag_G.insert(bag_G.end(), b->_gen.begin(), b->_gen.end());
-            }
-        }
-        DebugOff(" "<< endl);
-        bag_bus.push_back(bag_B);
-        bag_gens.push_back(bag_G);
-        np.b_ff=grid.b_ff;
-        np.b_ft=grid.b_ft;
-        np.b_tf=grid.b_tf;
-        np.b_tt=grid.b_tt;
-        np.g_ff=grid.g_ff;
-        np.g_ft=grid.g_ft;
-        np.g_tf=grid.g_tf;
-        np.g_tt=grid.g_tt;
-        np.c0=grid.c0;
-        np.c1=grid.c1;
-        np.c2=grid.c2;
-        np.tan_th_min=grid.tan_th_min;
-        np.tan_th_max=grid.tan_th_max;
-        np.S_max=grid.S_max;
-        bag_param.push_back(np);
-    }
-
-
-    for (int c = 0; c < nb_cliques; c++) {
-        vector<Bus*> bag_B_disjoint;
-        vector<Gen*> bag_G_disjoint;
-
-        vector<Line*> bag_A;
-        vector<Line*> bag_A_disjoint;
-
-        vector<gravity::index_pair*> bag_BP;
-        vector<gravity::index_pair*> bag_BP_disjoint;
-
-        sort(bag_bus[c].begin(), bag_bus[c].end(),node_id_compare);
-        for (int i = 0; i < bag_bus[c].size(); i++) {
-            Bus* b = bag_bus[c].at(i);
-            vector<Node*> N = b->get_neighbours();
-            sort(N.begin(), N.end(),node_id_compare);
-
-            if (indexii.find(b)==indexii.end()) {
-                bool inclusion = std::includes(bag_bus[c].begin(), bag_bus[c].end(), N.begin(),N.end(),node_id_compare);
-                if (inclusion) {
-                    indexii.insert(make_pair<>(b,c));
-                    bag_B_disjoint.push_back(b);
-                    if (b->_has_gen) {
-                        bag_G_disjoint.insert(bag_G_disjoint.end(), b->_gen.begin(), b->_gen.end());
-                    }
-                }
-            }
-            for (int j = i+1; j < bag_bus[c].size(); j++) {
-                std::vector<Arc*> vec_arcs1 = grid.get_arcs(b, bag_bus[c].at(j));
-                std::vector<Arc*> vec_arcs2 = grid.get_arcs(bag_bus[c].at(j), b);
-                if (vec_arcs1.size() +vec_arcs2.size() > 0) {
-                    if (vec_arcs1.size() > 0) {
-                        bag_BP.push_back(new index_pair(index_(b->_name), index_(bag_bus[c].at(j)->_name), true));
-                    }
-                    else {
-                        bag_BP.push_back(new index_pair(index_(bag_bus[c].at(j)->_name),index_(b->_name), true));
-                    }
-
-                    for (auto a: vec_arcs1)
-                        bag_A.push_back((Line*)a);
-                    for (auto a: vec_arcs2)
-                        bag_A.push_back((Line*)a);
-                    string key = b->_name + "," +bag_bus[c].at(j)->_name ;
-                    string key_inv = bag_bus[c].at(j)->_name + ","+b->_name;
-                    if (indexij.find(key) == indexij.end() && indexij.find(key_inv) == indexij.end()) {
-                        if (vec_arcs1.size() > 0) {
-                            indexij.insert(make_pair<>(key, c));
-                            bag_BP_disjoint.push_back(new index_pair(index_(b->_name), index_(bag_bus[c].at(j)->_name), true));
-                        }
-                        else {
-                            indexij.insert(make_pair<>(key_inv, c));
-                            bag_BP_disjoint.push_back(new index_pair(index_(bag_bus[c].at(j)->_name),index_(b->_name), true));
-                        }
-
-                        for (auto a: vec_arcs1) {
-                            bag_A_disjoint.push_back((Line*)a);
-                        }
-
-                        for (auto a: vec_arcs2) {
-                            bag_A_disjoint.push_back((Line*)a);
-                        }
-                    }
-                }
-            }
-        }
-
-        sort(bag_BP.begin(), bag_BP.end(), bus_pair_compare);
-        sort(bag_BP_disjoint.begin(), bag_BP_disjoint.end(), bus_pair_compare);
-        bag_bus_disjoint.push_back(bag_B_disjoint);
-        bag_gens_disjoint.push_back(bag_G_disjoint);
-        bag_arcs.push_back(bag_A);
-        bag_arcs_disjoint.push_back(bag_A_disjoint);
-        bag_bus_pairs.push_back(bag_BP);
-        bag_bus_pairs_disjoint.push_back(bag_BP_disjoint);
-    }
-
+    get_ncut(grid, nbparts, bag_bus, bag_gens, bag_arcs_disjoint, 
+	     bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour);
     unsigned  nb_arcs = 0;
     unsigned  nb_buses = 0;
     unsigned  nb_bus_pairs = 0;
     unsigned  nb_gens = 0;
 
-    for (int c =0 ; c < nb_cliques; c++) {
-        nb_buses += bag_bus_disjoint[c].size();
-        nb_arcs += bag_arcs_disjoint[c].size();
-        nb_gens += bag_gens_disjoint[c].size();
-        nb_bus_pairs += bag_bus_pairs_disjoint[c].size();
-    }
-
-    DebugOn("the number of total arcs: " <<  nb_arcs << endl);
-    DebugOn("the number of total bus pairs: " <<  nb_bus_pairs << endl);
-    DebugOn("the number of total buses: " <<  nb_buses << endl);
-    DebugOn("the number of total gens: " <<  nb_gens << endl);
-
-    // intersection_cliques
-    for (auto a: cliquetree->arcs) {
-        std::vector<gravity::index_pair*> v3;
-        std::set_intersection(bag_bus_pairs[a->_src->_id].begin(), bag_bus_pairs[a->_src->_id].end(),
-                              bag_bus_pairs[a->_dest->_id].begin(), bag_bus_pairs[a->_dest->_id].end(),
-                              back_inserter(v3), bus_pair_compare);
-        if (v3.size() > 0) {
-            a->_intersection_clique = v3;
-        }
-    }
-
     /** build model */
-    Model CLT("Clique tree based Model");
+    Model CLT("A hierarchicial Model");
 
     /** Variables */
     vector<var<Real>> R_Wij;
@@ -766,17 +600,17 @@ int inout (PowerNet& grid, unsigned iter_limit) {
     vector<var<Real>> Wii;
     vector<var<Real>> Pg;
     vector<var<Real>> Qg;
-    for (int c = 0; c < nb_cliques; c++) {
+    for (int c = 0; c < nbparts; c++) {
         var<Real>  bag_Wii("Wii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
         CLT.add_var(bag_Wii^(bag_bus[c].size()));
         bag_Wii.initialize_all(1.001);
         Wii.push_back(bag_Wii);
 
-        if (bag_bus_pairs[c].size() > 0) {
-            var<Real>  bag_R_Wij("R_Wij_" + to_string(c), grid.wr_min.in(bag_bus_pairs[c]), grid.wr_max.in(bag_bus_pairs[c]));
-            var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs[c]), grid.wi_max.in(bag_bus_pairs[c]));
-            CLT.add_var(bag_R_Wij^(bag_bus_pairs[c].size()));
-            CLT.add_var(bag_Im_Wij^(bag_bus_pairs[c].size()));
+        if (bag_bus_pairs_disjoint[c].size() > 0) {
+            var<Real>  bag_R_Wij("R_Wij_" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
+            var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
+            CLT.add_var(bag_R_Wij^(bag_bus_pairs_disjoint[c].size()));
+            CLT.add_var(bag_Im_Wij^(bag_bus_pairs_disjoint[c].size()));
             bag_R_Wij.initialize_all(1.0);
             R_Wij.push_back(bag_R_Wij);
             Im_Wij.push_back(bag_Im_Wij);
