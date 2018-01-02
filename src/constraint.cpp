@@ -100,7 +100,7 @@ void Constraint::print_expanded(){
 }
 
 void Constraint::print(unsigned inst){
-    cout << _name << " : ";
+    cout << _name << "[" << to_string(inst) << "] : ";
     
     this->func_::print(inst);
     switch (_ctype) {
