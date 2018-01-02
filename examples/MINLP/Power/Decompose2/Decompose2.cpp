@@ -1413,6 +1413,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     DebugOn("the number of total gens: " <<  nb_gens << endl);
 
     // intersection_cliques
+   double weights_clique = 0.0;
     for (auto a: cliquetree->arcs) {
         std::vector<gravity::index_pair*> v3;
         std::set_intersection(bag_bus_pairs[a->_src->_id].begin(), bag_bus_pairs[a->_src->_id].end(),
@@ -1421,8 +1422,9 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
         if (v3.size() > 0) {
             a->_intersection_clique = v3;
         }
+	weights_clique += a->_intersection_clique.size();
     }
-
+    DebugOn("size of intersection clique is: " << weights_clique << endl;);
     /** build model */
     Model CLT("Clique tree based Model");
 
@@ -1677,9 +1679,9 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
@@ -1687,8 +1689,8 @@ int main (int argc, const char * argv[])
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
 
-    get_ncut(grid, 3);
-
+    get_ncut(grid, 10);
+    ADMM(grid,0);
     return 0;
     // 1 in-out
     // 0: default ADMM
