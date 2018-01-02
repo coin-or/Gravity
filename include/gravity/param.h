@@ -93,6 +93,9 @@ public:
     string get_name(size_t inst) const {
         string name = _name;
         name = name.substr(0, name.find(".", 0));
+        if (_is_indexed && name.find("[")!=std::string::npos) {// Name has index already 
+            return name;
+        }
         if (_is_indexed) {
             name += "["+_rev_indices->at(_ids->at(inst))+"]";
         }
