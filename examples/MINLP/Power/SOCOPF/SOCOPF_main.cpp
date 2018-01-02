@@ -27,13 +27,17 @@ int main (int argc, char * argv[])
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
-    string fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    string path = argv[0];
+    if (path.find("/bin/acopf")!=string::npos) {//Not running from terminal
+        fname = "../" + fname;
+    }
     string solver_str="ipopt";
     
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
-    opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     // parse the options and verify that all went well. If not, errors and help will be shown
