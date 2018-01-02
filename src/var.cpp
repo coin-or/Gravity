@@ -66,7 +66,10 @@ template<typename type> var<type>::var(const string& name, const param<type>& lb
     param<type>::_range->second = ub._range->second;
      unsigned i = 0;
     for (auto &p: *lb.get_indices()) {
-        param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
+        auto index = param_::_indices->size();
+        param_::_indices->insert(make_pair<>(p.first, index));
+        param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+        param_::_rev_indices->at(index) = p.first;
         _lb->_val->at(i) = lb.eval(p.first);
         _ub->_val->at(i) = ub.eval(p.first);
         i++;
@@ -91,7 +94,10 @@ template<typename type> var<type>::var(const string& name, const param<type>& sb
     param<type>::_range->second = sb._range->second;
     unsigned i = 0;
     for (auto &p: *sb.get_indices()) {
-        param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
+        auto index =param_::_indices->size();
+        param_::_indices->insert(make_pair<>(p.first, index));
+        param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+        param_::_rev_indices->at(index) = p.first;
         _lb->_val->at(i) = -1*sb.eval(p.first);
         _ub->_val->at(i) = sb.eval(p.first);
         i++;
@@ -402,12 +408,15 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         for (int i = 0; i< size-1; i++) {
             key = bag[i]->_name + "," + bag[i+1]->_name;
 //            assert(bag[i+2]->ID > bag[i]->ID);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
-                if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+                param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+                param_::_rev_indices->at(index) = key;
+                if(res[i]._indices->insert(make_pair<>(key,index)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                res[i]._ids->push_back(index);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
@@ -419,12 +428,15 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         /* Loop back pair */
         key = bag[0]->_name + "," + bag[size-1]->_name;
 //        assert(bag[size-1]->ID > bag[0]->ID);
-        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        auto index = param_::_indices->size();
+        auto pp = param_::_indices->insert(make_pair<>(key,index));
         if(pp.second) { //new index inserted
-            if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+            param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+            param_::_rev_indices->at(index) = key;
+            if(res[size-1]._indices->insert(make_pair<>(key,index)).second) {
                 res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->push_back(param_::_indices->size()-1);
+            res[size-1]._ids->push_back(index);
         }
         else {
             if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second) {
@@ -470,12 +482,15 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
 
         for (int i = 0; i<size; i++) {
             key = bag[i]->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
-                if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+                param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+                param_::_rev_indices->at(index) = key;
+                if(res[i]._indices->insert(make_pair<>(key,index)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                res[i]._ids->push_back(index);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
