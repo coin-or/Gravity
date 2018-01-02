@@ -21,7 +21,8 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
+//    string fname = "../../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";
+    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case30_ieee.m", mtype = "ACRECT";
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
@@ -298,7 +299,7 @@ int main (int argc, char * argv[])
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    
+    ACOPF.print_expanded();
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;
