@@ -175,6 +175,10 @@ int main (int argc, char * argv[])
     int log_lev = 0;
     bool relax = false;
     string fname = "../data_sets/Ising/samples_bin_sml.csv";
+    string path = argv[0];
+    if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
+        fname = "../" + fname;
+    }
     unsigned nr_threads = 1;
     
     // create a OptionParser with options

@@ -29,7 +29,7 @@ int main (int argc, char * argv[])
     string mehrotra = "no";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
     string path = argv[0];
-    if (path.find("/bin/acopf")!=string::npos) {//Not running from terminal
+    if (path.find("/bin")!=string::npos && path.find("/bin/socopf")==string::npos) {//Not running from terminal
         fname = "../" + fname;
     }
     string solver_str="ipopt";
