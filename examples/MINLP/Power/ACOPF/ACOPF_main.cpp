@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";
     DebugOn("argv[0] =" << argv[0] << endl);
     string path = argv[0];
-    if (path.find("/bin/acopf")==string::npos) {//Not running from terminal
+    if (path.find("/bin")!=string::npos && path.find("/bin/acopf")==string::npos) {//Not running from terminal
         fname = "../" + fname;
     }
     int output = 0;
