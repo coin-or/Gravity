@@ -4,7 +4,6 @@
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
 #endif
-#include <Gravity/model.h>
 #include <gravity/model.h>
 using namespace gravity;
 

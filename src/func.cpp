@@ -837,7 +837,7 @@ namespace gravity{
     }
     
     Real lterm::eval(size_t i, size_t j) const{
-        Real res = poly_eval(_coef,i,j) * poly_eval(_p, i,j);
+        Real res = poly_eval(_coef,i,j) * poly_eval(_p,i,j);
         if (!_sign) {
             res *= -1;
         }
@@ -1192,7 +1192,7 @@ namespace gravity{
                     _is_matrix = p_c2->_is_matrix;
                     _dim = p_c2->_dim;
                     if (p_c2->_ids) {
-                        _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                        _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                     }
                     break;
                 }
@@ -1464,7 +1464,7 @@ namespace gravity{
                 _dim = c._dim;
                 _nb_instances = c.get_nb_instances();
                 if (p_c2->_ids) {
-                    _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                    _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                 }
 //                _val->resize(_nb_instances);
 //                for (unsigned inst = 0; inst < _val->size(); inst++) {
@@ -1489,7 +1489,7 @@ namespace gravity{
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 if (p_c2->_ids) {
-                    _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                    _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                 }
                 break;
             }
@@ -1930,7 +1930,7 @@ namespace gravity{
         _nb_instances = f._nb_instances;
         _nb_vars = f._nb_vars;
         if (f._ids) {
-            _ids = make_shared<vector<unsigned>>(*f._ids);
+            _ids = make_shared<vector<vector<unsigned>>>(*f._ids);
         }
         
         if (is_constant()) {
@@ -5982,13 +5982,13 @@ namespace gravity{
         if (_val->size()!=_nb_instances) {
             _val->resize(_nb_instances);
         }
-        if (!_is_matrix) {
+        if (!_is_matrix && (!_ids || _ids->size()==1)) {
 //            if (_is_transposed) {
 //                return eval(i);
 //            }
-            
             return eval(j);
         }
+        
         if (is_constant() && _evaluated) {
             if (is_number()) {
                 return _val->at(0);
@@ -6188,7 +6188,7 @@ namespace gravity{
                 str += poly_to_str(_cst);
             }
             else if (_ids && !_ids->empty()) {
-                str += to_string(_val->at(_ids->at(index)));
+                str += to_string(_val->at(_ids->at(0).at(index)));
             }
             else {
                 str += to_string(_val->at(index));
@@ -6722,360 +6722,6 @@ namespace gravity{
             return get<1>(*pair_it).first;
         }
     }
-    
-//    template<typename Tobj>
-//    func_& func_::in(const vector<Tobj*>& vec) {
-//        _nb_vars = 0;
-//        _nb_instances = 0;
-//        string key;
-//        auto iter = _vars->begin();
-//        auto pair = (*iter++);
-//        auto vf = pair.second.first;
-//        while(iter != _vars->end() && get<1>(vf->_unique_id)!=unindexed_){//Find unindexed variable in constraint, they will both have the same indexing.
-//            auto pair = (*iter++);
-//            vf = pair.second.first;
-//        }
-//        if(iter==_vars->end()){
-//            throw invalid_argument("Both constraints and variables are indexed, check your indexing!");
-//        }
-//        if (!vf->_is_vector) {// i.e., it is not transposed
-//            _nb_instances = max(_nb_instances, vf->_nb_instances);
-//            _nb_vars++;
-//        }
-//        else {
-//            _nb_vars += vf->get_dim();
-//        }
-//        switch (vf->get_intype()) {
-//            case binary_:{
-//                auto vv = ((var<bool>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case short_:{
-//                auto vv = ((var<short>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case integer_:{
-//                auto vv = ((var<int>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case float_:{
-//                auto vv = ((var<float>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case double_:{
-//                auto vv = ((var<double>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case long_:{
-//                auto vv = ((var<long double>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        iter = _vars->begin();
-//        while (iter!=_vars->end()) {
-//            auto pair = (*iter++);
-//            auto v = pair.second.first;
-//            if(v==vf){
-//                continue;
-//            }
-//            switch (v->get_intype()) {
-//                case binary_:{
-//                    auto vv = ((var<bool>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case short_:{
-//                    auto vv = ((var<short>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//
-//                    break;
-//                }
-//                case integer_:{
-//                    auto vv = ((var<int>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case float_:{
-//                    auto vv = ((var<float>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case double_:{
-//                    auto vv = ((var<double>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case long_:{
-//                    auto vv = ((var<long double>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                default:
-//                    break;
-//                }
-//                v->_dim = v->_nb_instances;// WRONG?
-//                if (!v->_is_vector) {// i.e., it is not transposed
-//                    _nb_instances = max(_nb_instances, v->_nb_instances);
-//                    _nb_vars++;
-//                }
-//                else {
-//                    _nb_vars += v->get_dim();
-//                }
-//            }
-//            iter = _params->begin();
-//            while (iter!=_params->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((param<bool>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((param<short>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((param<int>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((var<float>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((param<double>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((param<long double>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                v->_dim = v->_nb_instances;
-//            }
-//        return *this;
-//    }
-
-//    template func_& func_::in<Arc>(const vector<Arc*>& vec);
-//    template func_& func_::in<Gen>(const vector<Gen*>& vec);
-//    template func_& func_::in<index_pair>(const vector<index_pair*>& vec);
     
     void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         if (_vars->count(v->get_name())!=0) {
