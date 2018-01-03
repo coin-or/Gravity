@@ -16,6 +16,13 @@ GurobiProgram::GurobiProgram(){
 GurobiProgram::GurobiProgram(Model* m):GurobiProgram(){
     grb_mod = new GRBModel(*grb_env);
     _model = m;
+    if (!m->_built) {
+        m->fill_in_maps();
+    }
+    else {
+        m->reset_funcs();
+    }
+    m->compute_funcs();
 }
 
 GurobiProgram::~GurobiProgram() {
