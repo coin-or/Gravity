@@ -21,7 +21,7 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
     DebugOn("argv[0] =" << argv[0] << endl);
     string path = argv[0];
     if (path.find("/bin")!=string::npos && path.find("/bin/acopf")==string::npos) {//Not running from terminal

@@ -4,6 +4,13 @@ CplexProgram::CplexProgram(Model* m) {
     _cplex_env = new IloEnv();
     _cplex_model = new IloModel(*_cplex_env);
     _model = m;
+    if (!m->_built) {
+        m->fill_in_maps();
+    }
+    else {
+        m->reset_funcs();
+    }
+    m->compute_funcs();
 }
 
 
