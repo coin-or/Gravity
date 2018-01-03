@@ -1,4 +1,4 @@
-#include <Gravity/GurobiProgram.h>
+#include <gravity/GurobiProgram.h>
 
 GurobiProgram::GurobiProgram(){
 //    model = m;

@@ -137,35 +137,35 @@ template<typename type> void   var<type>::set_size(size_t s, type val) {
     param<type>::set_size(s,val);
 };
 
-    template<typename type>
-    type    var<type>::get_lb(size_t i) const {
-        if (_lb->is_number()) {
-            return _lb->_val->at(0);
-        }
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        return _lb->get_val(i);
-    };
-    
-    template<typename type>
-    type    var<type>::get_ub(size_t i) const {
-        if (_ub->is_number()) {
-            return _ub->_val->at(0);
-        }
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        return _ub->get_val(index);
-    };
+template<typename type>
+type    var<type>::get_lb(size_t i) const {
+    if (_lb->is_number()) {
+        return _lb->_val->at(0);
+    }
+    unsigned index = 0;
+    if (param<type>::get_ids()->at(0).empty()) {
+        index = i;
+    }
+    else {
+        index = param<type>::get_ids()->at(0).at(i);
+    }
+    return _lb->get_val(i);
+};
+
+template<typename type>
+type    var<type>::get_ub(size_t i) const {
+    if (_ub->is_number()) {
+        return _ub->_val->at(0);
+    }
+    unsigned index = 0;
+    if (param<type>::get_ids()->at(0).empty()) {
+        index = i;
+    }
+    else {
+        index = param<type>::get_ids()->at(0).at(i);
+    }
+    return _ub->get_val(index);
+};
     
     template<typename type>
     bool var<type>::is_bounded_above(int i) const {
@@ -416,13 +416,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
                 if(res[i]._indices->insert(make_pair<>(key,index)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(index);
+                res[i]._ids->at(0).push_back(index);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
         /* Loop back pair */
@@ -436,13 +436,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
             if(res[size-1]._indices->insert(make_pair<>(key,index)).second) {
                 res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->push_back(index);
+            res[size-1]._ids->at(0).push_back(index);
         }
         else {
             if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                 res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->push_back(pp.first->second);
+            res[size-1]._ids->at(0).push_back(pp.first->second);
         }
     }
     return res;
@@ -490,13 +490,13 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
                 if(res[i]._indices->insert(make_pair<>(key,index)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(index);
+                res[i]._ids->at(0).push_back(index);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
     }

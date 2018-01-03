@@ -43,7 +43,7 @@ public:
     int                                    _vec_id = -1; /**< index in the vector array (useful for Cplex). **/
 
     string                                 _name;
-    shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
+    shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
     unique_id                              _unique_id = make_tuple<>(-1,unindexed_,0,0,0); /* */
 
     bool                                   _is_indexed = false;
@@ -72,7 +72,7 @@ public:
 
     size_t get_id_inst(unsigned inst = 0) const {
         if (_is_indexed) {
-            return _ids->at(inst);
+            return _ids->at(0).at(inst);
         }
         return inst;
     };
@@ -97,7 +97,7 @@ public:
             return name;
         }
         if (_is_indexed) {
-            name += "["+_rev_indices->at(_ids->at(inst))+"]";
+            name += "["+_rev_indices->at(_ids->at(0).at(inst))+"]";
         }
         else {
             name += "["+_rev_indices->at(inst)+"]";
@@ -124,7 +124,7 @@ public:
         return _sdpindices;
     }
 
-    shared_ptr<vector<unsigned>> get_ids() const {
+    shared_ptr<vector<vector<unsigned>>> get_ids() const {
         return _ids;
     }
 
@@ -166,7 +166,10 @@ public:
     }
     size_t get_nb_instances() const {
         if (_is_indexed) {
-            return _ids->size();
+            if (_ids->size()>1) {
+                throw invalid_argument("get_nb_instances sould be called with index here\n");
+            }
+            return _ids->at(0).size();
         }
         return get_dim();
     }
@@ -192,7 +195,8 @@ public:
         _dim.resize(1,0);
         _indices = make_shared<map<string,unsigned>>();
         _rev_indices = make_shared<vector<string>>();
-        _ids = make_shared<vector<unsigned>>();
+        _ids = make_shared<vector<vector<unsigned>>>();
+        _ids->resize(1);
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }
@@ -211,7 +215,7 @@ public:
         _name = p._name;
         _indices = p._indices;
         _rev_indices = p._rev_indices;
-        _ids = make_shared<vector<unsigned>>(*p._ids);
+        _ids = make_shared<vector<vector<unsigned>>>(*p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -251,7 +255,7 @@ public:
         _name = p._name;
         _indices = p._indices;
         _rev_indices = p._rev_indices;
-        _ids = make_shared<vector<unsigned>>(*p._ids);
+        _ids = make_shared<vector<vector<unsigned>>>(*p._ids);
         _sdpindices = p._sdpindices;
         _range = p._range;
         _is_transposed = p._is_transposed;
@@ -367,7 +371,8 @@ public:
         _dim.resize(1,0);
         _indices = make_shared<map<string,unsigned>>();
         _rev_indices = make_shared<vector<string>>();
-        _ids = make_shared<vector<unsigned>>();
+        _ids = make_shared<vector<vector<unsigned>>>();
+        _ids->resize(1);
         _sdpindices = make_shared<map<string,pair<unsigned, unsigned>>>();
         _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
     }
@@ -378,14 +383,17 @@ public:
 
     type eval() const {
         if (_is_indexed) {
-            return _val->at(_ids->back());
+            return _val->at(_ids->at(0).back());
         }
         return _val->back();
     }
 
     type eval(unsigned i) const {
         if (_is_indexed) {
-           return _val->at(_ids->at(i));
+            if (_ids->size()>1) {
+                throw invalid_argument("get_nb_instances sould be called with index here\n");
+            }
+           return _val->at(_ids->at(0).at(i));
         }
         return _val->at(i);
     }
@@ -395,6 +403,12 @@ public:
     }
     
     type eval(unsigned i, unsigned j) const {
+        
+        if (_is_indexed && _ids->size()>1) {
+            return _val->at(_ids->at(i).at(j));
+        }
+
+        
         if (!_is_matrix) {
             return eval(j);
         }
@@ -568,7 +582,7 @@ public:
 
     param& operator=(type v) {
         if (_is_indexed) {
-            _val->at(_ids->back()) = v;
+            _val->at(_ids->at(0).back()) = v;
         }
         else {
             _val->push_back(v);
@@ -619,13 +633,13 @@ public:
             if(res._indices->insert(make_pair<>(key,index)).second) {
                 res._dim[0]++;
             };
-            res._ids->push_back(index);
+            res._ids->at(0).push_back(index);
         }
         else {
             if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                 res._dim[0]++;
             }
-            res._ids->push_back(pp.first->second);
+            res._ids->at(0).push_back(pp.first->second);
         }
         res._name += "["+key+"]";
         res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), indices.front(), indices.back());
@@ -669,17 +683,17 @@ public:
             if(res._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
                 res._dim[0]++;
             }
-            res._ids->push_back(param_::_indices->size()-1);
+            res._ids->at(0).push_back(param_::_indices->size()-1);
         }
         else {
             if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                 res._dim[0]++;
             }
-            res._ids->push_back(pp.first->second);
+            res._ids->at(0).push_back(pp.first->second);
         }
         //res._dim[0]++;
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), res._ids->at(0), res._ids->at(res._ids->size()-1));
+        res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), res._ids->at(0).at(0), res._ids->at(0).at(res._ids->at(0).size()-1));
         res._is_indexed = true;
         return res;
     }
@@ -718,13 +732,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -766,13 +780,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -815,13 +829,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -863,13 +877,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -915,13 +929,13 @@ public:
                     if(res._indices->insert(make_pair<>(key, index)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(index);
+                    res._ids->at(0).push_back(index);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(pp.first->second);
+                    res._ids->at(0).push_back(pp.first->second);
                 }
             }
         }
@@ -988,13 +1002,13 @@ public:
                     res._dim[0]++;
                     // _dim++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -1040,13 +1054,13 @@ public:
                     res._dim[0]++;
                     // _dim++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         DebugOff(endl);
@@ -1091,13 +1105,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         if (get<1>(_unique_id)!=to_) {
@@ -1142,13 +1156,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         if (get<1>(_unique_id)!=to_) {
@@ -1170,7 +1184,7 @@ public:
         res._rev_indices = this->_rev_indices;
         for (unsigned i = 0; i<get_nb_instances(); i++) {
             if (i!=index) {
-                res._ids->push_back(i);
+                res._ids->at(0).push_back(i);
                 res._dim[0]++;
             }
         }
@@ -1206,13 +1220,13 @@ public:
                     if(res._indices->insert(make_pair<>(key, index)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(index);
+                    res._ids->at(0).push_back(index);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(pp.first->second);
+                    res._ids->at(0).push_back(pp.first->second);
                 }
             }
         }
@@ -1256,13 +1270,13 @@ public:
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(index);
+                res._ids->at(0).push_back(index);
             }
             else {
                 if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res._dim[0]++;
                 }
-                res._ids->push_back(pp.first->second);
+                res._ids->at(0).push_back(pp.first->second);
             }
         }
         res._name += ".in_" + string(typeid(Tobj).name()) + "_at_" + to_string(t);
@@ -1309,13 +1323,13 @@ public:
                         res._dim[0]++;
                         //_dim++;
                     }
-                    res._ids->push_back(index);
+                    res._ids->at(0).push_back(index);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(pp.first->second);
+                    res._ids->at(0).push_back(pp.first->second);
                 }
             }
         }
@@ -1358,13 +1372,13 @@ public:
                     if(res._indices->insert(make_pair<>(key,index)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(index);
+                    res._ids->at(0).push_back(index);
                 }
                 else {
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(pp.first->second);
+                    res._ids->at(0).push_back(pp.first->second);
                 }
             }
         }
@@ -1407,14 +1421,14 @@ public:
                     if(res._indices->insert(make_pair<>(key,index)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(index);
+                    res._ids->at(0).push_back(index);
                 }
                 else {
                     // already exists
                     if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
                         res._dim[0]++;
                     }
-                    res._ids->push_back(pp.first->second);
+                    res._ids->at(0).push_back(pp.first->second);
                 }
             }
         }
@@ -1439,7 +1453,7 @@ public:
 //        }
         //CLEAR OLD ENTRIES
         _indices->clear();
-        _ids->clear();
+        _ids->at(0).clear();
         //STORE NEW ENTRIES
         for(unsigned t = 0; t < T; t ++ ) {
             for (auto &entry: map_temp) {
@@ -1460,7 +1474,7 @@ public:
     
     string to_str(size_t index) const {
         if (_is_indexed) {
-            return to_string(_val->at(_ids->at(index)));
+            return to_string(_val->at(_ids->at(0).at(index)));
         }
         else {
             return to_string(_val->at(index));

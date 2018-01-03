@@ -469,7 +469,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<Real>>             _val;
-        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         func_();
         
