@@ -243,6 +243,13 @@ void Model::add_constraint(const Constraint& c){
                     }
                 }
             }
+            if (newc->get_cst()->is_function()) {
+                auto cc = (func_*) newc->get_cst();
+                auto exp = cc->get_expr();
+                if (exp) {
+                    embed(*exp);
+                }
+            }
             auto exp = newc->get_expr();
         if (exp) {
             if (exp->is_uexpr()) {

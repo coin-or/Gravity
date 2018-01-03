@@ -183,25 +183,17 @@ int main (int argc, char * argv[])
     
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
-//    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-//    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-//    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-//    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
-    LNC1 -= grid->v_max.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC1 -= grid->v_max.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC1 -= grid->v_max.from()*grid->v_max.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
-//    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-//    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-//    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-//    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
-    LNC2 -= grid->v_min.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC2 -= grid->v_min.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC2 += grid->v_min.from()*grid->v_min.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
     
     /* Thermal Limit Constraints */

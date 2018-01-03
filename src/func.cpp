@@ -2466,7 +2466,7 @@ namespace gravity{
             _evaluated = false;
             return *this;
         }
-        if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
+        if (_expr || (c.is_function() && ((func_*)&c)->_expr)) {
             auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c)));
             *this = func_(be);
             _evaluated = false;
@@ -3758,6 +3758,12 @@ namespace gravity{
 
     func_ cos(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::cos(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3770,6 +3776,12 @@ namespace gravity{
 
     func_ cos(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::cos(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3783,6 +3795,12 @@ namespace gravity{
 
     func_ sin(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sin(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3795,6 +3813,12 @@ namespace gravity{
 
     func_ sin(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sin(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3808,6 +3832,12 @@ namespace gravity{
 
     func_ sqrt(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sqrt(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3820,6 +3850,12 @@ namespace gravity{
 
     func_ sqrt(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sqrt(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3833,6 +3869,12 @@ namespace gravity{
 
     func_ expo(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::exp(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._is_vector = c._is_vector;
         res._is_matrix = c._is_matrix;
         res._is_transposed = c._is_transposed;
@@ -3857,6 +3899,12 @@ namespace gravity{
 
     func_ expo(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::exp(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._is_vector = c._is_vector;
         res._is_matrix = c._is_matrix;
         res._is_transposed = c._is_transposed;
@@ -3882,6 +3930,12 @@ namespace gravity{
 
     func_ log(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::log(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3894,6 +3948,12 @@ namespace gravity{
 
     func_ log(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::log(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -4064,6 +4124,8 @@ namespace gravity{
         _rson = rson;
         _type = bexp_c;
         _to_str = to_str();
+        _dim = lson->_dim;
+        _dim[0] = max(_dim[0], rson->_dim[0]);
     };
 
     bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
