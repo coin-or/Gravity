@@ -29,12 +29,31 @@
 #include <deque>
 #include <iterator>
 #endif
+bool node_id_compare(const Node* n1, const Node* n2) {
+    return n1->_id < n2->_id;
+}
+
+bool arc_id_compare(const Arc* n1, const Arc* n2) {
+    return n1->_id < n2->_id;
+}
+
+bool bus_pair_compare(const index_pair* n1, const index_pair* n2) {
+    return n1->_name < n2->_name;
+}
+
+struct net_param {
+    param<Real> c0, c1, c2; /**< Generation costs */
+    param<Real> tan_th_min, tan_th_max;
+    param<Real> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt;
+    param<Real> S_max;
+};
+
 
 // multieigenvector cuts
 void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, vector<vector<Gen*>>& bag_gens,
-   	      vector<vector<Line*>>& bag_arcs_disjoint, vector<vector<Line*>>& bag_arcs_neighbour
-	      vector<vector<gravity::index_pair*>>& bag_bus_pairs_disjoint, 
-	      vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour) {
+              vector<vector<Line*>>& bag_arcs_disjoint, vector<vector<Line*>>& bag_arcs_neighbour,
+              vector<vector<gravity::index_pair*>>& bag_bus_pairs_disjoint,
+              vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour) {
     arma::SpMat<double> P(grid.nodes.size(), grid.nodes.size());
 
     arma::SpMat<double> adjacency_matrix(grid.nodes.size(), grid.nodes.size());
@@ -142,24 +161,21 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
     }
     Discrete.print();
     // store the partition results in a vector.
-    std::vector<std::vector<Node*>> partition;
-    vector<vector<Arc*>> bag_arcs;
     for (auto i =0 ; i < nbparts; ++i) {
-        std::vector<Node*> temp;
-        std::vector<Arc*> temparcs;
-        partition.push_back(temp);
-        bag_arcs.push_back(temparcs);
+        std::vector<Bus*> temp;
+        std::vector<Line*> temparcs;
+        bag_bus.push_back(temp);
+        bag_arcs_disjoint.push_back(temparcs);
+        bag_arcs_neighbour.push_back(temparcs);
     }
 
-
-    std::map<unsigned, unsigned> node_partition;
+    std::map<unsigned, unsigned> node_partition; // key:node_id value:subset_id;
     for (auto a = Discrete.begin(); a != Discrete.end(); ++a) {
-        partition.at(a.col()).push_back(grid.nodes.at(a.row()));
+        bag_bus.at(a.col()).push_back((Bus*)grid.nodes.at(a.row()));
         node_partition.insert(std::make_pair(a.row(), a.col()));
     }
     // generate a graph to represent the resulting partition where an edge is formed between two nodes that induces cuts.
     Net graph;
-
     for (int i = 0; i < nbparts; i++) {
         Node* node= new Node(to_string(i), i);
         graph.add_node(node);
@@ -171,16 +187,19 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
         unsigned to =node_partition.at(arc->_dest->_id);
 
         if (from == to) {
-            bag_arcs.at(from).push_back(arc);
+            bag_arcs_disjoint.at(from).push_back((Line*)arc);
         }
         else {
+            bag_arcs_neighbour.at(from).push_back((Line*)arc);
+            bag_arcs_neighbour.at(to).push_back((Line*)arc);
+
             string name = to_string(from)+","+to_string(to);
             auto a = graph.get_arc(to_string(from), to_string(to));
-            if (graph.get_arc(to_string(from), to_string(to)) !=nullptr){
+            if (graph.get_arc(to_string(from), to_string(to)) !=nullptr) {
                 a->_intersection_clique.push_back(new index_pair(index_(to_string(from)), index_(to_string(to)), true));
                 a->_weight +=1;
             }
-            else{
+            else {
                 a = new Arc(name);
                 a->_id = graph.arcs.size();
                 a->_src = graph.nodes.at(from);
@@ -192,33 +211,54 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
             }
         }
     }
-    
+
     double total_weights = 0.0;
-    for (auto arc:graph.arcs){
+    for (auto arc:graph.arcs) {
         total_weights += arc->_weight;
     }
-    
-    cout << "total intersection: " << total_weights <<  endl;
-}
 
-struct net_param {
-    param<Real> c0, c1, c2; /**< Generation costs */
-    param<Real> tan_th_min, tan_th_max;
-    param<Real> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt;
-    param<Real> S_max;
-};
+    DebugOn("total intersection: " << total_weights <<  endl);
 
-bool node_id_compare(const Node* n1, const Node* n2) {
-    return n1->_id < n2->_id;
-}
+    for (int c = 0; c < nbparts; c++) {
+        vector<Gen*> bag_G;
+        vector<Bus*> VB = bag_bus.at(c);
+        for (int i = 0; i < VB.size(); i++) {
+            if (VB.at(i)->_has_gen) {
+                bag_G.insert(bag_G.end(), VB[i]->_gen.begin(), VB[i]->_gen.end());
+            }
+        }
+        bag_gens.push_back(bag_G);
+    }
 
-bool arc_id_compare(const Arc* n1, const Arc* n2) {
-    return n1->_id < n2->_id;
-}
+    // bag_bus
+    map<string, unsigned> indexij;
+    map<string, unsigned> indexijc;
 
-bool bus_pair_compare(const index_pair* n1, const index_pair* n2) {
-    return n1->_name < n2->_name;
-}
+    // for each bag, collect the index
+    for (int c = 0; c < nbparts; c++) {
+        std::vector<gravity::index_pair*> pair;
+        for (auto a: bag_arcs_disjoint[c]) {
+            string key = a->_src->_name + "," + a->_dest->_name ;
+            string key_inv = a->_dest->_name + ","+ a->_src->_name;
+            if (indexij.find(key) == indexij.end() && indexij.find(key_inv) == indexij.end()) {
+                pair.push_back(new index_pair(a->_src->_name, a->_dest->_name,true));
+                indexij.insert(make_pair<>(key, c));
+            }
+        }
+        bag_bus_pairs_disjoint.push_back(pair);
+    }
+    for (int c = 0; c < nbparts; c++) {
+        std::vector<gravity::index_pair*> pair;
+        for (auto a: bag_arcs_neighbour[c]) {
+            string key = a->_src->_name + "," + a->_dest->_name + to_string(c);
+            string key_inv = a->_dest->_name + ","+ a->_src->_name + to_string(c);
+            if (indexij.find(key) == indexij.end() && indexij.find(key_inv) == indexij.end()) {
+                pair.push_back(new index_pair(a->_src->_name, a->_dest->_name,true));
+                }
+            }
+            bag_bus_pairs_neighbour.push_back(pair);
+        }
+    }
 
 class ThreadPool
 {
@@ -576,476 +616,476 @@ void subproblem(net_param np, Net* cliquetree, unsigned c, var<Real> Pg, var<Rea
 }
 
 int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
-
     vector<net_param> bag_param;
     vector<vector<Bus*>> bag_bus;
     vector<vector<Gen*>> bag_gens;
     vector<vector<Line*>> bag_arcs_disjoint;
+    vector<vector<Line*>> bag_arcs_neighbour;
     vector<vector<gravity::index_pair*> > bag_bus_pairs_disjoint; // bus_pairs in each bag.
     vector<vector<gravity::index_pair*>> bag_bus_pairs_neighbour; //
 
-    get_ncut(grid, nbparts, bag_bus, bag_gens, bag_arcs_disjoint, 
-	     bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour);
+    get_ncut(grid, nbparts, bag_bus, bag_gens, bag_arcs_disjoint,
+             bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour);
     unsigned  nb_arcs = 0;
     unsigned  nb_buses = 0;
     unsigned  nb_bus_pairs = 0;
     unsigned  nb_gens = 0;
 
     /** build model */
-    Model CLT("A hierarchicial Model");
-
-    /** Variables */
-    vector<var<Real>> R_Wij;
-    vector<var<Real>> Im_Wij;
-    vector<var<Real>> Wii;
-    vector<var<Real>> Pg;
-    vector<var<Real>> Qg;
-    for (int c = 0; c < nbparts; c++) {
-        var<Real>  bag_Wii("Wii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
-        CLT.add_var(bag_Wii^(bag_bus[c].size()));
-        bag_Wii.initialize_all(1.001);
-        Wii.push_back(bag_Wii);
-
-        if (bag_bus_pairs_disjoint[c].size() > 0) {
-            var<Real>  bag_R_Wij("R_Wij_" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
-            var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
-            CLT.add_var(bag_R_Wij^(bag_bus_pairs_disjoint[c].size()));
-            CLT.add_var(bag_Im_Wij^(bag_bus_pairs_disjoint[c].size()));
-            bag_R_Wij.initialize_all(1.0);
-            R_Wij.push_back(bag_R_Wij);
-            Im_Wij.push_back(bag_Im_Wij);
-        }
-        else {
-            var<Real> empty1("R_Wij_"+to_string(c));
-            var<Real> empty2("Im_Wij_"+to_string(c));
-            empty1.set_size(0);
-            empty2.set_size(0);
-            R_Wij.push_back(empty1);
-            Im_Wij.push_back(empty2);
-        }
-
-        if (bag_gens_disjoint[c].size() > 0) {
-            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens_disjoint[c]), grid.pg_max.in(bag_gens_disjoint[c]));
-            var<Real>  bag_Qg ("Qg_" + to_string(c), grid.qg_min.in(bag_gens_disjoint[c]), grid.qg_max.in(bag_gens_disjoint[c]));
-            CLT.add_var(bag_Pg^(bag_gens_disjoint[c].size()));
-            CLT.add_var(bag_Qg^(bag_gens_disjoint[c].size()));
-            Pg.push_back(bag_Pg);
-            Qg.push_back(bag_Qg);
-        }
-        else {
-            var<Real> empty("empty");
-            empty.set_size(0);
-            Pg.push_back(empty);
-            Qg.push_back(empty);
-        }
-    }
-
-///////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
-    vector<param<Real>> R_lambda_in;
-    vector<param<Real>> Im_lambda_in;
-    vector<param<Real>> lambda_in;
-
-    vector<param<Real>> R_lambda_out;
-    vector<param<Real>> Im_lambda_out;
-    vector<param<Real>> lambda_out;
-
-    vector<param<Real>> R_lambda_sep;
-    vector<param<Real>> Im_lambda_sep;
-    vector<param<Real>> lambda_sep;
-
-    vector<param<Real>> R_lambda_grad;
-    vector<param<Real>> Im_lambda_grad;
-    vector<param<Real>> lambda_grad;
-
-    for (auto a: cliquetree->arcs) {
-        auto l = a->_id;
-        param<Real> lambda_arc_in("R_lambda_arc_in" + to_string(l));
-        param<Real> R_lambda_arc_in("R_lambda_arc_in" + to_string(l));
-        param<Real> Im_lambda_arc_in("Im_lambda_arc_in" + to_string(l));
-        lambda_arc_in^(a->_weight);
-        R_lambda_arc_in^(a->_intersection_clique.size());
-        Im_lambda_arc_in^(a->_intersection_clique.size());
-
-        param<Real> R_lambda_arc_out("R_lambda_arc_out" + to_string(l));
-        param<Real> Im_lambda_arc_out("Im_lambda_arc_out" + to_string(l));
-        param<Real> lambda_arc_out("lambda_arc_out" + to_string(l));
-        R_lambda_arc_out^(a->_intersection_clique.size());
-        Im_lambda_arc_out^(a->_intersection_clique.size());
-        lambda_arc_out^(a->_weight);
-
-        param<Real> R_lambda_arc_sep("R_lambda_arc_sep" + to_string(l));
-        param<Real> Im_lambda_arc_sep("Im_lambda_arc_sep" + to_string(l));
-        param<Real> lambda_arc_sep("lambda_arc_sep" + to_string(l));
-        R_lambda_arc_sep^(a->_intersection_clique.size());
-        Im_lambda_arc_sep^(a->_intersection_clique.size());
-        lambda_arc_sep^(a->_intersection.size());
-
-        param<Real> R_lambda_arc_grad("R_lambda_arc_grad" + to_string(l));
-        param<Real> Im_lambda_arc_grad("Im_lambda_arc_grad" + to_string(l));
-        param<Real> lambda_arc_grad("lambda_arc_grad" + to_string(l));
-        R_lambda_arc_grad^(a->_intersection_clique.size());
-        Im_lambda_arc_grad^(a->_intersection_clique.size());
-        lambda_arc_grad^(a->_weight);
-
-
-        R_lambda_arc_in.initialize_all(0);
-        Im_lambda_arc_in.initialize_all(0);
-        lambda_arc_in.initialize_all(0);
-
-        R_lambda_arc_out.initialize_all(0);
-        Im_lambda_arc_out.initialize_all(0);
-        lambda_arc_out.initialize_all(0);
-
-        R_lambda_arc_sep.initialize_all(0);
-        Im_lambda_arc_sep.initialize_all(0);
-        lambda_arc_sep.initialize_all(0);
-
-        R_lambda_in.push_back(R_lambda_arc_in);
-        Im_lambda_in.push_back(Im_lambda_arc_in);
-        lambda_in.push_back(lambda_arc_in);
-
-        R_lambda_out.push_back(R_lambda_arc_out);
-        Im_lambda_out.push_back(Im_lambda_arc_out);
-        lambda_out.push_back(lambda_arc_out);
-
-
-        lambda_sep.push_back(lambda_arc_sep);
-        R_lambda_sep.push_back(R_lambda_arc_sep);
-        Im_lambda_sep.push_back(Im_lambda_arc_sep);
-
-        R_lambda_grad.push_back(R_lambda_arc_grad);
-        Im_lambda_grad.push_back(Im_lambda_arc_grad);
-        lambda_grad.push_back(lambda_arc_grad);
-    }
-
-/////////////////////////////////// Master Problem ///////////////////////////////////
-    Model Master("Master");
-    /** param **/
-    //param<Real> gamma_in("gamma_C_in");
-    //param<Real> gamma_out("gamma_C_out");
-    //param<Real> gamma_sep("gamma_C_sep");
-    //gamma_in^nb_cliques;
-    //gamma_out^nb_cliques;
-    //gamma_sep^nb_cliques;
-    double gamma_in = 0.0;
-    double gamma_out = 0.0;
-    double gamma_sep = 0.0;
-
-    /** Variables  */
-    //var<Real> gamma_C("gamma_C");
-    //Master.add_var(gamma_C^nb_cliques);
-    var<Real> gamma("gamma", pos_);
-    Master.add_var(gamma);
-
-    vector<var<Real>> R_lambda_var;
-    vector<var<Real>> Im_lambda_var;
-    vector<var<Real>> lambda_var;
-    for (auto a: cliquetree->arcs) {
-        var<Real> lambda("lambda_arc_" + to_string(a->_id));
-        var<Real> R_lambda("R_lambda_arc_" + to_string(a->_id));
-        var<Real> Im_lambda("Im_lambda_arc_" + to_string(a->_id));
-        Master.add_var(lambda^(a->_weight));
-        Master.add_var(R_lambda^(a->_intersection_clique.size()));
-        Master.add_var(Im_lambda^(a->_intersection_clique.size()));
-
-        lambda_var.push_back(lambda);
-        R_lambda_var.push_back(R_lambda);
-        Im_lambda_var.push_back(Im_lambda);
-    }
-
-    /////////** OBJ*//////////////
-    func_ master_obj;
-    //master_obj += sum(gamma_C);
-    master_obj += gamma;
-    Master.set_objective(max(master_obj));
-    double bound = 100000;
-
-    Constraint UB;
-    //UB = sum(gamma_C) - bound;
-    UB = gamma - bound;
-    Master.add_constraint(UB <= 0);
-
-////////////////  CONVERGENCE INFORMATION /////////////////////////
-    int nb_threads = std::min(std::thread::hardware_concurrency(), nb_cliques);
-    double alpha = .5;
-    double LBlog[iter_limit];
-    double UBlog[iter_limit];
-
-    double LDlog[iter_limit];
-
-    // LOG OF SOLUTIONS
-    // Log here means the previous primal and dual solution.
-    vector<param<Real>> R_lambda_log;
-    vector<param<Real>> Im_lambda_log;
-    vector<param<Real>> lambda_log;
-
-    vector<param<Real>> R_Wij_log;
-    vector<param<Real>> Im_Wij_log;
-    vector<param<Real>> Wii_log;
-
-    for (auto a: cliquetree->arcs) {
-        int l = a->_id;
-        param<Real> R_lambda_C_log("R_lambda_C_log" + to_string(l));
-        param<Real> Im_lambda_C_log("Im_lambda_C_log" + to_string(l));
-        param<Real> lambda_C_log("Im_lambda_C_log" + to_string(l));
-
-        lambda_C_log^(a->_weight);
-        R_lambda_C_log^(a->_intersection_clique.size());
-        Im_lambda_C_log^(a->_intersection_clique.size());
-
-        lambda_log.push_back(lambda_C_log);
-        R_lambda_log.push_back(R_lambda_C_log);
-        Im_lambda_log.push_back(Im_lambda_C_log);
-    }
-
-    for (int c = 0; c < nb_cliques; c++) {
-        param<Real> Wii_C_log("Wii_C_log" + to_string(c));
-        param<Real> Im_Wij_C_log("Im_Wij_C_log" + to_string(c));
-        param<Real> R_Wij_C_log("R_Wij_C_log" + to_string(c));
-        Wii_C_log^(bag_bus[c].size());
-        R_Wij_C_log^(bag_bus_pairs[c].size());
-        Im_Wij_C_log^(bag_bus_pairs[c].size());
-
-        Wii_log.push_back(Wii_C_log);
-        R_Wij_log.push_back(R_Wij_C_log);
-        Im_Wij_log.push_back(Im_Wij_C_log);
-    }
-
-///////////////////////////////// INITIALIZATION ///////////////////////////////////////////
-    double wall0 = get_wall_time();
-    double cpu0  = get_cpu_time();
-    double dual = 0.0;
-    double value_dual[nb_cliques];
-    {
-        ThreadPool p(nb_threads);
-        for (int c = 0; c < nb_cliques; c++) {
-            p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                              bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                              R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-                              std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
-        }
-    }
-
-    for (int c = 0; c < nb_cliques; c++) {
-        dual += value_dual[c] ;
-        // initialise the in values.
-        //gamma_in(c) = value_dual[c];
-
-    }
-    gamma_in = dual;
-
-    cout << "Initialization_value,   " << dual <<endl;
-    LBlog[0] = std::max(0.0, dual);
-
-
-/////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
-    if (iter_limit > 0) {
-        Constraint Concavity("Iter_0_Concavity");
-        Concavity += gamma - dual;
-        for (auto bag: cliquetree->nodes) {
-            unsigned c = bag->_id;
-            //Constraint Concavity("Iter_0_Concavity_" + to_string(c));
-            //Concavity += gamma_C(c);
-            for (auto arc: bag->get_out()) {
-                for (auto nn: arc->_intersection) {
-                    Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                }
-
-                for (auto pair: arc->_intersection_clique) {
-                    Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-                    Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                }
-            }
-
-            for (auto arc: bag->get_in()) {
-                for (auto nn: arc->_intersection) {
-                    Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                }
-                for (auto pair: arc->_intersection_clique) {
-                    Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-                    Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                }
-            }
-        }
-        Master.add_constraint(Concavity <= 0);
-    }
-    solver solve_Master(Master, ipopt);
-    //solver solve_Master(Master, cplex);
-    solve_Master.run();
-
-    // initialise the outer point.
-    //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
-    gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
-
-    for (auto a: cliquetree->arcs) {
-        lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
-        R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
-        Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
-    }
-
-    cout << "................  Initialization of Master problem ....................."  <<endl;
-    cout << "value: " << Master._obj_val  <<endl;
-    UBlog[0] = Master._obj_val;
-
-////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
-    cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
-    double epsilon = 0.01;
-    int itcount = 1;
-    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
-
-        //////// CONSTRUCT SEPARATION POINTS
-        //for (int c = 0; c < nb_cliques; c++) {
-        //    gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
-        //}
-        gamma_sep = alpha*gamma_out + (1 - alpha)*gamma_in;
-
-        for (auto a: cliquetree->arcs) {
-            int l = a->_id;
-            for (auto nn: a->_intersection) {
-                lambda_sep[l](nn->_name) = alpha*lambda_out[l](nn->_name).getvalue()
-                                           + (1 - alpha)*lambda_in[l](nn->_name).getvalue();
-                DebugOff("lambda_sep, " << lambda_sep[a->_id](nn->_name).getvalue() << endl);
-            }
-
-            for (auto pair: a->_intersection_clique) {
-                R_lambda_sep[l](pair->_name) = alpha*R_lambda_out[l](pair->_name).getvalue()
-                                               + (1 - alpha)*R_lambda_in[l](pair->_name).getvalue();
-                Im_lambda_sep[l](pair->_name)= alpha*Im_lambda_out[l](pair->_name).getvalue()
-                                               + (1 - alpha)*Im_lambda_in[l](pair->_name).getvalue();
-            }
-        }
-
-        /////////////////SLOVE SUBPROBLEM/////////////////////
-
-        double value_dual[nb_cliques];
-        //std::vector<std::thread> threads;
-        //threads.reserve(nb_threads);
-        //int delta = nb_cliques/nb_threads;
-        //int reminder = nb_cliques % nb_threads;
-        {
-            ThreadPool p(nb_threads);
-            for (int c = 0; c < nb_cliques; c++) {
-                //subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                //                         bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                //                          R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
-                //                          (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
-//            threads.emplace_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-//                                          bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-//                                          R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-//                                          std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
-                p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-                                  bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-                                  R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-                                  std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
-            }
-        }
-
-        dual =0;
-        for (int c = 0; c < nb_cliques; c++) {
-            dual += value_dual[c] ;
-        }
-
-        cout << "dual: " << dual << endl;
-// UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
-        //if (dual- sum(gamma_sep).eval() < 0) {
-        if (dual- gamma_sep < 0) {
-            Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity");
-            Concavity += gamma- dual;
-            for (auto bag: cliquetree->nodes) {
-                unsigned c = bag->_id;
-                //Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
-                //Concavity += gamma_C(c);
-                //Concavity -= value_dual[c];
-                for (auto arc: bag->get_out()) {
-                    for (auto nn: arc->_intersection) {
-                        Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                    }
-                    for (auto pair: arc->_intersection_clique) {
-                        Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-                        Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                    }
-                }
-
-                for (auto arc: bag->get_in()) {
-                    for (auto nn: arc->_intersection) {
-                        Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-                    }
-                    for (auto pair: arc->_intersection_clique) {
-                        Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-                        Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-                    }
-                }
-            }
-
-            Master.add_constraint(Concavity <= 0);
-
-            //Master.add_constraint(Concavity <= 0);
-
-
-
-            //if (dual > sum(gamma_in).eval()) {
-            if (dual > gamma_in) {
-                //for (int c = 0; c < nb_cliques; c++)
-                //    gamma_in(c) = value_dual[c];
-                gamma_in = dual;
-
-                for (auto a: cliquetree->arcs) {
-                    int l = a->_id;
-                    for (auto arc: a->_intersection) {
-                        lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
-                    }
-
-                    for (auto arc: a->_intersection_clique) {
-                        R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
-                        Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
-                    }
-                }
-            }
-            solver solve_master(Master, cplex);
-            solve_master.run();
-            DebugOff("master problem value: " << Master._obj_val << endl);
-
-            // update the out point.
-            //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
-            gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
-            for (auto a: cliquetree->arcs) {
-                lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
-                R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
-                Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
-            }
-        }
-        else {
-            //for (int c = 0; c < nb_cliques; c++)
-            //    gamma_in(c) = value_dual[c];
-            gamma_in = dual;
-            for (auto a: cliquetree->arcs) {
-                int l = a->_id;
-                for (auto arc: a->_intersection) {
-                    lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
-                }
-                for (auto arc: a->_intersection_clique) {
-                    R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
-                    Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
-                }
-            }
-        }
-        LDlog[itcount] = dual;
-        LBlog[itcount] = std::max(dual, LBlog[itcount-1]);
-        if (itcount > 1)
-            UBlog[itcount] = std::min(Master._obj_val, UBlog[itcount - 1]);
-        else
-            UBlog[itcount] = Master._obj_val;
-        itcount +=1;
-    }
-    double wall1 = get_wall_time();
-    double cpu1 = get_cpu_time();
-    cout << "CPU time: " << cpu1 -cpu0 << endl;
-    cout << "Wall time: " << wall1 -wall0 << endl;
-
-    cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-    for(int i = 0; i < itcount; i++) {
-        cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
-    }
+//    Model CLT("A hierarchicial Model");
+//
+//    /** Variables */
+//    vector<var<Real>> R_Wij;
+//    vector<var<Real>> Im_Wij;
+//    vector<var<Real>> Wii;
+//    vector<var<Real>> Pg;
+//    vector<var<Real>> Qg;
+//    for (int c = 0; c < nbparts; c++) {
+//        var<Real>  bag_Wii("Wii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
+//        CLT.add_var(bag_Wii^(bag_bus[c].size()));
+//        bag_Wii.initialize_all(1.001);
+//        Wii.push_back(bag_Wii);
+//
+//        if (bag_bus_pairs_disjoint[c].size() > 0) {
+//            var<Real>  bag_R_Wij("R_Wij_" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
+//            var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
+//            CLT.add_var(bag_R_Wij^(bag_bus_pairs_disjoint[c].size()));
+//            CLT.add_var(bag_Im_Wij^(bag_bus_pairs_disjoint[c].size()));
+//            bag_R_Wij.initialize_all(1.0);
+//            R_Wij.push_back(bag_R_Wij);
+//            Im_Wij.push_back(bag_Im_Wij);
+//        }
+//        else {
+//            var<Real> empty1("R_Wij_"+to_string(c));
+//            var<Real> empty2("Im_Wij_"+to_string(c));
+//            empty1.set_size(0);
+//            empty2.set_size(0);
+//            R_Wij.push_back(empty1);
+//            Im_Wij.push_back(empty2);
+//        }
+//
+//        if (bag_gens_disjoint[c].size() > 0) {
+//            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens_disjoint[c]), grid.pg_max.in(bag_gens_disjoint[c]));
+//            var<Real>  bag_Qg ("Qg_" + to_string(c), grid.qg_min.in(bag_gens_disjoint[c]), grid.qg_max.in(bag_gens_disjoint[c]));
+//            CLT.add_var(bag_Pg^(bag_gens_disjoint[c].size()));
+//            CLT.add_var(bag_Qg^(bag_gens_disjoint[c].size()));
+//            Pg.push_back(bag_Pg);
+//            Qg.push_back(bag_Qg);
+//        }
+//        else {
+//            var<Real> empty("empty");
+//            empty.set_size(0);
+//            Pg.push_back(empty);
+//            Qg.push_back(empty);
+//        }
+//    }
+//
+/////////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
+//    vector<param<Real>> R_lambda_in;
+//    vector<param<Real>> Im_lambda_in;
+//    vector<param<Real>> lambda_in;
+//
+//    vector<param<Real>> R_lambda_out;
+//    vector<param<Real>> Im_lambda_out;
+//    vector<param<Real>> lambda_out;
+//
+//    vector<param<Real>> R_lambda_sep;
+//    vector<param<Real>> Im_lambda_sep;
+//    vector<param<Real>> lambda_sep;
+//
+//    vector<param<Real>> R_lambda_grad;
+//    vector<param<Real>> Im_lambda_grad;
+//    vector<param<Real>> lambda_grad;
+//
+//    for (auto a: cliquetree->arcs) {
+//        auto l = a->_id;
+//        param<Real> lambda_arc_in("R_lambda_arc_in" + to_string(l));
+//        param<Real> R_lambda_arc_in("R_lambda_arc_in" + to_string(l));
+//        param<Real> Im_lambda_arc_in("Im_lambda_arc_in" + to_string(l));
+//        lambda_arc_in^(a->_weight);
+//        R_lambda_arc_in^(a->_intersection_clique.size());
+//        Im_lambda_arc_in^(a->_intersection_clique.size());
+//
+//        param<Real> R_lambda_arc_out("R_lambda_arc_out" + to_string(l));
+//        param<Real> Im_lambda_arc_out("Im_lambda_arc_out" + to_string(l));
+//        param<Real> lambda_arc_out("lambda_arc_out" + to_string(l));
+//        R_lambda_arc_out^(a->_intersection_clique.size());
+//        Im_lambda_arc_out^(a->_intersection_clique.size());
+//        lambda_arc_out^(a->_weight);
+//
+//        param<Real> R_lambda_arc_sep("R_lambda_arc_sep" + to_string(l));
+//        param<Real> Im_lambda_arc_sep("Im_lambda_arc_sep" + to_string(l));
+//        param<Real> lambda_arc_sep("lambda_arc_sep" + to_string(l));
+//        R_lambda_arc_sep^(a->_intersection_clique.size());
+//        Im_lambda_arc_sep^(a->_intersection_clique.size());
+//        lambda_arc_sep^(a->_intersection.size());
+//
+//        param<Real> R_lambda_arc_grad("R_lambda_arc_grad" + to_string(l));
+//        param<Real> Im_lambda_arc_grad("Im_lambda_arc_grad" + to_string(l));
+//        param<Real> lambda_arc_grad("lambda_arc_grad" + to_string(l));
+//        R_lambda_arc_grad^(a->_intersection_clique.size());
+//        Im_lambda_arc_grad^(a->_intersection_clique.size());
+//        lambda_arc_grad^(a->_weight);
+//
+//
+//        R_lambda_arc_in.initialize_all(0);
+//        Im_lambda_arc_in.initialize_all(0);
+//        lambda_arc_in.initialize_all(0);
+//
+//        R_lambda_arc_out.initialize_all(0);
+//        Im_lambda_arc_out.initialize_all(0);
+//        lambda_arc_out.initialize_all(0);
+//
+//        R_lambda_arc_sep.initialize_all(0);
+//        Im_lambda_arc_sep.initialize_all(0);
+//        lambda_arc_sep.initialize_all(0);
+//
+//        R_lambda_in.push_back(R_lambda_arc_in);
+//        Im_lambda_in.push_back(Im_lambda_arc_in);
+//        lambda_in.push_back(lambda_arc_in);
+//
+//        R_lambda_out.push_back(R_lambda_arc_out);
+//        Im_lambda_out.push_back(Im_lambda_arc_out);
+//        lambda_out.push_back(lambda_arc_out);
+//
+//
+//        lambda_sep.push_back(lambda_arc_sep);
+//        R_lambda_sep.push_back(R_lambda_arc_sep);
+//        Im_lambda_sep.push_back(Im_lambda_arc_sep);
+//
+//        R_lambda_grad.push_back(R_lambda_arc_grad);
+//        Im_lambda_grad.push_back(Im_lambda_arc_grad);
+//        lambda_grad.push_back(lambda_arc_grad);
+//    }
+//
+///////////////////////////////////// Master Problem ///////////////////////////////////
+//    Model Master("Master");
+//    /** param **/
+//    //param<Real> gamma_in("gamma_C_in");
+//    //param<Real> gamma_out("gamma_C_out");
+//    //param<Real> gamma_sep("gamma_C_sep");
+//    //gamma_in^nb_cliques;
+//    //gamma_out^nb_cliques;
+//    //gamma_sep^nb_cliques;
+//    double gamma_in = 0.0;
+//    double gamma_out = 0.0;
+//    double gamma_sep = 0.0;
+//
+//    /** Variables  */
+//    //var<Real> gamma_C("gamma_C");
+//    //Master.add_var(gamma_C^nb_cliques);
+//    var<Real> gamma("gamma", pos_);
+//    Master.add_var(gamma);
+//
+//    vector<var<Real>> R_lambda_var;
+//    vector<var<Real>> Im_lambda_var;
+//    vector<var<Real>> lambda_var;
+//    for (auto a: cliquetree->arcs) {
+//        var<Real> lambda("lambda_arc_" + to_string(a->_id));
+//        var<Real> R_lambda("R_lambda_arc_" + to_string(a->_id));
+//        var<Real> Im_lambda("Im_lambda_arc_" + to_string(a->_id));
+//        Master.add_var(lambda^(a->_weight));
+//        Master.add_var(R_lambda^(a->_intersection_clique.size()));
+//        Master.add_var(Im_lambda^(a->_intersection_clique.size()));
+//
+//        lambda_var.push_back(lambda);
+//        R_lambda_var.push_back(R_lambda);
+//        Im_lambda_var.push_back(Im_lambda);
+//    }
+//
+//    /////////** OBJ*//////////////
+//    func_ master_obj;
+//    //master_obj += sum(gamma_C);
+//    master_obj += gamma;
+//    Master.set_objective(max(master_obj));
+//    double bound = 100000;
+//
+//    Constraint UB;
+//    //UB = sum(gamma_C) - bound;
+//    UB = gamma - bound;
+//    Master.add_constraint(UB <= 0);
+//
+//////////////////  CONVERGENCE INFORMATION /////////////////////////
+//    int nb_threads = std::min(std::thread::hardware_concurrency(), nb_cliques);
+//    double alpha = .5;
+//    double LBlog[iter_limit];
+//    double UBlog[iter_limit];
+//
+//    double LDlog[iter_limit];
+//
+//    // LOG OF SOLUTIONS
+//    // Log here means the previous primal and dual solution.
+//    vector<param<Real>> R_lambda_log;
+//    vector<param<Real>> Im_lambda_log;
+//    vector<param<Real>> lambda_log;
+//
+//    vector<param<Real>> R_Wij_log;
+//    vector<param<Real>> Im_Wij_log;
+//    vector<param<Real>> Wii_log;
+//
+//    for (auto a: cliquetree->arcs) {
+//        int l = a->_id;
+//        param<Real> R_lambda_C_log("R_lambda_C_log" + to_string(l));
+//        param<Real> Im_lambda_C_log("Im_lambda_C_log" + to_string(l));
+//        param<Real> lambda_C_log("Im_lambda_C_log" + to_string(l));
+//
+//        lambda_C_log^(a->_weight);
+//        R_lambda_C_log^(a->_intersection_clique.size());
+//        Im_lambda_C_log^(a->_intersection_clique.size());
+//
+//        lambda_log.push_back(lambda_C_log);
+//        R_lambda_log.push_back(R_lambda_C_log);
+//        Im_lambda_log.push_back(Im_lambda_C_log);
+//    }
+//
+//    for (int c = 0; c < nb_cliques; c++) {
+//        param<Real> Wii_C_log("Wii_C_log" + to_string(c));
+//        param<Real> Im_Wij_C_log("Im_Wij_C_log" + to_string(c));
+//        param<Real> R_Wij_C_log("R_Wij_C_log" + to_string(c));
+//        Wii_C_log^(bag_bus[c].size());
+//        R_Wij_C_log^(bag_bus_pairs[c].size());
+//        Im_Wij_C_log^(bag_bus_pairs[c].size());
+//
+//        Wii_log.push_back(Wii_C_log);
+//        R_Wij_log.push_back(R_Wij_C_log);
+//        Im_Wij_log.push_back(Im_Wij_C_log);
+//    }
+//
+/////////////////////////////////// INITIALIZATION ///////////////////////////////////////////
+//    double wall0 = get_wall_time();
+//    double cpu0  = get_cpu_time();
+//    double dual = 0.0;
+//    double value_dual[nb_cliques];
+//    {
+//        ThreadPool p(nb_threads);
+//        for (int c = 0; c < nb_cliques; c++) {
+//            p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+//                              bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+//                              R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+//                              std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+//        }
+//    }
+//
+//    for (int c = 0; c < nb_cliques; c++) {
+//        dual += value_dual[c] ;
+//        // initialise the in values.
+//        //gamma_in(c) = value_dual[c];
+//
+//    }
+//    gamma_in = dual;
+//
+//    cout << "Initialization_value,   " << dual <<endl;
+//    LBlog[0] = std::max(0.0, dual);
+//
+//
+///////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
+//    if (iter_limit > 0) {
+//        Constraint Concavity("Iter_0_Concavity");
+//        Concavity += gamma - dual;
+//        for (auto bag: cliquetree->nodes) {
+//            unsigned c = bag->_id;
+//            //Constraint Concavity("Iter_0_Concavity_" + to_string(c));
+//            //Concavity += gamma_C(c);
+//            for (auto arc: bag->get_out()) {
+//                for (auto nn: arc->_intersection) {
+//                    Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
+//                }
+//
+//                for (auto pair: arc->_intersection_clique) {
+//                    Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
+//                    Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
+//                }
+//            }
+//
+//            for (auto arc: bag->get_in()) {
+//                for (auto nn: arc->_intersection) {
+//                    Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
+//                }
+//                for (auto pair: arc->_intersection_clique) {
+//                    Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
+//                    Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
+//                }
+//            }
+//        }
+//        Master.add_constraint(Concavity <= 0);
+//    }
+//    solver solve_Master(Master, ipopt);
+//    //solver solve_Master(Master, cplex);
+//    solve_Master.run();
+//
+//    // initialise the outer point.
+//    //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+//    gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
+//
+//    for (auto a: cliquetree->arcs) {
+//        lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
+//        R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
+//        Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
+//    }
+//
+//    cout << "................  Initialization of Master problem ....................."  <<endl;
+//    cout << "value: " << Master._obj_val  <<endl;
+//    UBlog[0] = Master._obj_val;
+//
+//////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
+//    cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
+//    double epsilon = 0.01;
+//    int itcount = 1;
+//    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
+//
+//        //////// CONSTRUCT SEPARATION POINTS
+//        //for (int c = 0; c < nb_cliques; c++) {
+//        //    gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
+//        //}
+//        gamma_sep = alpha*gamma_out + (1 - alpha)*gamma_in;
+//
+//        for (auto a: cliquetree->arcs) {
+//            int l = a->_id;
+//            for (auto nn: a->_intersection) {
+//                lambda_sep[l](nn->_name) = alpha*lambda_out[l](nn->_name).getvalue()
+//                                           + (1 - alpha)*lambda_in[l](nn->_name).getvalue();
+//                DebugOff("lambda_sep, " << lambda_sep[a->_id](nn->_name).getvalue() << endl);
+//            }
+//
+//            for (auto pair: a->_intersection_clique) {
+//                R_lambda_sep[l](pair->_name) = alpha*R_lambda_out[l](pair->_name).getvalue()
+//                                               + (1 - alpha)*R_lambda_in[l](pair->_name).getvalue();
+//                Im_lambda_sep[l](pair->_name)= alpha*Im_lambda_out[l](pair->_name).getvalue()
+//                                               + (1 - alpha)*Im_lambda_in[l](pair->_name).getvalue();
+//            }
+//        }
+//
+//        /////////////////SLOVE SUBPROBLEM/////////////////////
+//
+//        double value_dual[nb_cliques];
+//        //std::vector<std::thread> threads;
+//        //threads.reserve(nb_threads);
+//        //int delta = nb_cliques/nb_threads;
+//        //int reminder = nb_cliques % nb_threads;
+//        {
+//            ThreadPool p(nb_threads);
+//            for (int c = 0; c < nb_cliques; c++) {
+//                //subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+//                //                         bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+//                //                          R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
+//                //                          (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
+////            threads.emplace_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+////                                          bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+////                                          R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+////                                          std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+//                p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
+//                                  bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
+//                                  R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
+//                                  std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
+//            }
+//        }
+//
+//        dual =0;
+//        for (int c = 0; c < nb_cliques; c++) {
+//            dual += value_dual[c] ;
+//        }
+//
+//        cout << "dual: " << dual << endl;
+//// UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
+//        //if (dual- sum(gamma_sep).eval() < 0) {
+//        if (dual- gamma_sep < 0) {
+//            Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity");
+//            Concavity += gamma- dual;
+//            for (auto bag: cliquetree->nodes) {
+//                unsigned c = bag->_id;
+//                //Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
+//                //Concavity += gamma_C(c);
+//                //Concavity -= value_dual[c];
+//                for (auto arc: bag->get_out()) {
+//                    for (auto nn: arc->_intersection) {
+//                        Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
+//                    }
+//                    for (auto pair: arc->_intersection_clique) {
+//                        Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
+//                        Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
+//                    }
+//                }
+//
+//                for (auto arc: bag->get_in()) {
+//                    for (auto nn: arc->_intersection) {
+//                        Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
+//                    }
+//                    for (auto pair: arc->_intersection_clique) {
+//                        Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
+//                        Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
+//                    }
+//                }
+//            }
+//
+//            Master.add_constraint(Concavity <= 0);
+//
+//            //Master.add_constraint(Concavity <= 0);
+//
+//
+//
+//            //if (dual > sum(gamma_in).eval()) {
+//            if (dual > gamma_in) {
+//                //for (int c = 0; c < nb_cliques; c++)
+//                //    gamma_in(c) = value_dual[c];
+//                gamma_in = dual;
+//
+//                for (auto a: cliquetree->arcs) {
+//                    int l = a->_id;
+//                    for (auto arc: a->_intersection) {
+//                        lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
+//                    }
+//
+//                    for (auto arc: a->_intersection_clique) {
+//                        R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
+//                        Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
+//                    }
+//                }
+//            }
+//            solver solve_master(Master, cplex);
+//            solve_master.run();
+//            DebugOff("master problem value: " << Master._obj_val << endl);
+//
+//            // update the out point.
+//            //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+//            gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
+//            for (auto a: cliquetree->arcs) {
+//                lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
+//                R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
+//                Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
+//            }
+//        }
+//        else {
+//            //for (int c = 0; c < nb_cliques; c++)
+//            //    gamma_in(c) = value_dual[c];
+//            gamma_in = dual;
+//            for (auto a: cliquetree->arcs) {
+//                int l = a->_id;
+//                for (auto arc: a->_intersection) {
+//                    lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
+//                }
+//                for (auto arc: a->_intersection_clique) {
+//                    R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
+//                    Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
+//                }
+//            }
+//        }
+//        LDlog[itcount] = dual;
+//        LBlog[itcount] = std::max(dual, LBlog[itcount-1]);
+//        if (itcount > 1)
+//            UBlog[itcount] = std::min(Master._obj_val, UBlog[itcount - 1]);
+//        else
+//            UBlog[itcount] = Master._obj_val;
+//        itcount +=1;
+//    }
+//    double wall1 = get_wall_time();
+//    double cpu1 = get_cpu_time();
+//    cout << "CPU time: " << cpu1 -cpu0 << endl;
+//    cout << "Wall time: " << wall1 -wall0 << endl;
+//
+//    cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
+//    for(int i = 0; i < itcount; i++) {
+//        cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
+//    }
     return 0;
 }
 
@@ -1092,7 +1132,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     vector<vector<gravity::index_pair*> > bag_bus_pairs_disjoint; // bus_pairs in each bag.
 
     map<string, unsigned> indexij;
-    map<string, vector<unsigned>> indexij_occurance;
+    map<string, vector<unsigned>> indexij_occurance;// key: pair_name, value: subsets
     map<Bus*, unsigned> indexii;
     map<Bus*, vector<unsigned>> indexii_occurance;
 
@@ -1247,7 +1287,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     DebugOn("the number of total gens: " <<  nb_gens << endl);
 
     // intersection_cliques
-   double weights_clique = 0.0;
+    double weights_clique = 0.0;
     for (auto a: cliquetree->arcs) {
         std::vector<gravity::index_pair*> v3;
         std::set_intersection(bag_bus_pairs[a->_src->_id].begin(), bag_bus_pairs[a->_src->_id].end(),
@@ -1256,7 +1296,7 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
         if (v3.size() > 0) {
             a->_intersection_clique = v3;
         }
-	weights_clique += a->_intersection_clique.size();
+        weights_clique += a->_intersection_clique.size();
     }
     DebugOn("size of intersection clique is: " << weights_clique << endl;);
     /** build model */
