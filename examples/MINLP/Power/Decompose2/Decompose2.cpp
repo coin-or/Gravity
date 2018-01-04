@@ -53,12 +53,13 @@ struct net_param {
 void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, vector<vector<Gen*>>& bag_gens,
               vector<vector<Line*>>& bag_arcs_disjoint, vector<vector<Line*>>& bag_arcs_neighbour,
               vector<vector<gravity::index_pair*>>& bag_bus_pairs_disjoint,
-              vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour) {
+              vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour,
+              vector<gravity::index_pair*>& inter_pairs) {
     arma::SpMat<double> P(grid.nodes.size(), grid.nodes.size());
 
     arma::SpMat<double> adjacency_matrix(grid.nodes.size(), grid.nodes.size());
     for (auto &arc: grid.arcs) {
-        adjacency_matrix(arc->_src->_id, arc->_dest->_id) = 1.0;
+        adjacency_matrix(arc->_src->_id, arc->_dest->_id) = 1.0; // += generalises the case of parallel edges, but it is not necessarily better.
         adjacency_matrix(arc->_dest->_id, arc->_src->_id) = 1.0;
     }
 
@@ -174,7 +175,8 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
         bag_bus.at(a.col()).push_back((Bus*)grid.nodes.at(a.row()));
         node_partition.insert(std::make_pair(a.row(), a.col()));
     }
-    // generate a graph to represent the resulting partition where an edge is formed between two nodes that induces cuts.
+    
+    //Generate a graph to represent the resulting partition where an edge is formed between two nodes that induces cuts.
     Net graph;
     for (int i = 0; i < nbparts; i++) {
         Node* node= new Node(to_string(i), i);
@@ -182,6 +184,7 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
     }
 
 
+    std::unordered_set<string> indexpair1;
     for (auto arc: grid.arcs) {
         unsigned from =node_partition.at(arc->_src->_id);
         unsigned to =node_partition.at(arc->_dest->_id);
@@ -194,19 +197,30 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
             bag_arcs_neighbour.at(to).push_back((Line*)arc);
 
             string name = to_string(from)+","+to_string(to);
-            auto a = graph.get_arc(to_string(from), to_string(to));
-            if (graph.get_arc(to_string(from), to_string(to)) !=nullptr) {
-                a->_intersection_clique.push_back(new index_pair(index_(to_string(from)), index_(to_string(to)), true));
-                a->_weight +=1;
+            auto a = graph.get_undirected_arc(to_string(from), to_string(to));
+            if (graph.get_arc(to_string(from), to_string(to)) != nullptr) {
+                string key = arc->_src->_name + "," + arc->_dest->_name;
+                string key_inv = arc->_dest->_name + ","+ arc->_src->_name;
+                if (indexpair1.find(key) == indexpair1.end() && indexpair1.find(key_inv) == indexpair1.end()) {
+                    indexpair1.insert(key);
+                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), true));
+                    a->_weight =a->_intersection_clique.size();
+                }
             }
-            else {
+            else {//must bus_pair must be unique
                 a = new Arc(name);
                 a->_id = graph.arcs.size();
                 a->_src = graph.nodes.at(from);
                 a->_dest = graph.nodes.at(to);
                 a->connect();
-                a->_intersection_clique.push_back(new index_pair(index_(to_string(from)), index_(to_string(to)), true));
-                a->_weight =1;
+                string key = arc->_src->_name + "," + arc->_dest->_name;
+//                string key_inv = arc->_dest->_name + ","+ arc->_src->_name;
+//                if (indexpair1.find(key) == indexpair1.end() && indexpair1.find(key_inv) == indexpair1.end()) {
+//                    inter_pairs.push_back(new index_pair(arc->_src->_name, a->_dest->_name,true));
+                    indexpair1.insert(key);
+                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), true));
+                    a->_weight = a->_intersection_clique.size();
+                //}
                 graph.add_arc(a);
             }
         }
@@ -247,18 +261,35 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
         }
         bag_bus_pairs_disjoint.push_back(pair);
     }
+
     for (int c = 0; c < nbparts; c++) {
         std::vector<gravity::index_pair*> pair;
         for (auto a: bag_arcs_neighbour[c]) {
             string key = a->_src->_name + "," + a->_dest->_name + to_string(c);
             string key_inv = a->_dest->_name + ","+ a->_src->_name + to_string(c);
-            if (indexij.find(key) == indexij.end() && indexij.find(key_inv) == indexij.end()) {
+            if (indexijc.find(key) == indexijc.end() && indexijc.find(key_inv) == indexijc.end()) {
                 pair.push_back(new index_pair(a->_src->_name, a->_dest->_name,true));
-                }
+                indexijc.insert(make_pair<>(key, c));
             }
-            bag_bus_pairs_neighbour.push_back(pair);
+        }
+        bag_bus_pairs_neighbour.push_back(pair);
+    }
+
+    // inter-partition pairs.
+    //map<string, unsigned> indexpair;
+    std::unordered_set<string> indexpair;
+    for (auto b: graph.arcs) {
+        for (auto a: b->_intersection_clique){
+            string key = a->_src->_name + "," + a->_dest->_name;
+            string key_inv = a->_dest->_name + ","+ a->_src->_name;
+            if (indexpair.find(key) == indexpair.end() && indexpair.find(key_inv) == indexpair.end()) {
+                inter_pairs.push_back(new index_pair(a->_src->_name, a->_dest->_name,true));
+                indexpair.insert(key);
+            }
         }
     }
+
+}
 
 class ThreadPool
 {
@@ -623,62 +654,97 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     vector<vector<Line*>> bag_arcs_neighbour;
     vector<vector<gravity::index_pair*> > bag_bus_pairs_disjoint; // bus_pairs in each bag.
     vector<vector<gravity::index_pair*>> bag_bus_pairs_neighbour; //
+    vector<gravity::index_pair*> inter_pairs;
 
     get_ncut(grid, nbparts, bag_bus, bag_gens, bag_arcs_disjoint,
-             bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour);
+             bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour, inter_pairs);
     unsigned  nb_arcs = 0;
     unsigned  nb_buses = 0;
     unsigned  nb_bus_pairs = 0;
     unsigned  nb_gens = 0;
+    for (int c =0 ; c < nbparts; c++) {
+        nb_buses += bag_bus[c].size();
+        nb_arcs += bag_arcs_disjoint[c].size();
+        nb_gens += bag_gens[c].size();
+        nb_bus_pairs += bag_bus_pairs_disjoint[c].size();
+    }
+        nb_bus_pairs += inter_pairs.size();
+
+    DebugOn("the number of total arcs: " <<  nb_arcs << endl);
+    DebugOn("the number of total bus pairs: " <<  nb_bus_pairs << endl);
+    DebugOn("the number of total buses: " <<  nb_buses << endl);
+    DebugOn("the number of total gens: " <<  nb_gens << endl);
 
     /** build model */
-//    Model CLT("A hierarchicial Model");
-//
-//    /** Variables */
-//    vector<var<Real>> R_Wij;
-//    vector<var<Real>> Im_Wij;
-//    vector<var<Real>> Wii;
-//    vector<var<Real>> Pg;
-//    vector<var<Real>> Qg;
-//    for (int c = 0; c < nbparts; c++) {
-//        var<Real>  bag_Wii("Wii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
-//        CLT.add_var(bag_Wii^(bag_bus[c].size()));
-//        bag_Wii.initialize_all(1.001);
-//        Wii.push_back(bag_Wii);
-//
-//        if (bag_bus_pairs_disjoint[c].size() > 0) {
-//            var<Real>  bag_R_Wij("R_Wij_" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
-//            var<Real>  bag_Im_Wij("Im_Wij_" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
-//            CLT.add_var(bag_R_Wij^(bag_bus_pairs_disjoint[c].size()));
-//            CLT.add_var(bag_Im_Wij^(bag_bus_pairs_disjoint[c].size()));
-//            bag_R_Wij.initialize_all(1.0);
-//            R_Wij.push_back(bag_R_Wij);
-//            Im_Wij.push_back(bag_Im_Wij);
-//        }
-//        else {
-//            var<Real> empty1("R_Wij_"+to_string(c));
-//            var<Real> empty2("Im_Wij_"+to_string(c));
-//            empty1.set_size(0);
-//            empty2.set_size(0);
-//            R_Wij.push_back(empty1);
-//            Im_Wij.push_back(empty2);
-//        }
-//
-//        if (bag_gens_disjoint[c].size() > 0) {
-//            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens_disjoint[c]), grid.pg_max.in(bag_gens_disjoint[c]));
-//            var<Real>  bag_Qg ("Qg_" + to_string(c), grid.qg_min.in(bag_gens_disjoint[c]), grid.qg_max.in(bag_gens_disjoint[c]));
-//            CLT.add_var(bag_Pg^(bag_gens_disjoint[c].size()));
-//            CLT.add_var(bag_Qg^(bag_gens_disjoint[c].size()));
-//            Pg.push_back(bag_Pg);
-//            Qg.push_back(bag_Qg);
-//        }
-//        else {
-//            var<Real> empty("empty");
-//            empty.set_size(0);
-//            Pg.push_back(empty);
-//            Qg.push_back(empty);
-//        }
-//    }
+    Model CLT("A hierarchicial Model");
+
+    /** Variables */
+    vector<var<Real>> R_Xij_C;
+    vector<var<Real>> Im_Xij_C; // E_C
+    vector<var<Real>> R_Xij_N; 
+    vector<var<Real>> Im_Xij_N; //E^N_C
+    vector<var<Real>> Xii;
+    vector<var<Real>> Pg; 
+    vector<var<Real>> Qg;
+    for (int c = 0; c < nbparts; c++) {
+        var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
+        CLT.add_var(bag_Xii^(bag_bus[c].size()));
+        bag_Xii.initialize_all(1.001);
+        Xii.push_back(bag_Xii);
+
+        if (bag_bus_pairs_disjoint[c].size() > 0) {
+            var<Real>  bag_R_Xij_C("R_Xij_C" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
+            var<Real>  bag_Im_Xij_C("Im_Xij_C" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
+            CLT.add_var(bag_R_Xij_C^(bag_bus_pairs_disjoint[c].size()));
+            CLT.add_var(bag_Im_Xij_C^(bag_bus_pairs_disjoint[c].size()));
+            bag_R_Xij_C.initialize_all(1.0);
+            R_Xij_C.push_back(bag_R_Xij_C);
+            Im_Xij_C.push_back(bag_Im_Xij_C);
+        }
+        else {
+            var<Real> empty1("R_Xij_C"+to_string(c));
+            var<Real> empty2("Im_Xij_C"+to_string(c));
+            empty1.set_size(0);
+            empty2.set_size(0);
+            R_Xij_C.push_back(empty1);
+            Im_Xij_C.push_back(empty2);
+        }
+
+        if (bag_bus_pairs_neigbour[c].size() > 0) {
+            var<Real>  bag_R_Xij_N("R_Xij_N" + to_string(c), grid.wr_min.in(bag_bus_pairs_neigbhour[c]), grid.wr_max.in(bag_bus_pairs_neigbhour[c]));
+            var<Real>  bag_Im_Xij_N("Im_Xij_N" + to_string(c), grid.wi_min.in(bag_bus_pairs_neigbhour[c]), grid.wi_max.in(bag_bus_pairs_neigbhour[c]));
+            NLT.add_var(bag_R_Xij_N^(bag_bus_pairs_neigbhour[c].size()));
+            NLT.add_var(bag_Im_Xij_N^(bag_bus_pairs_neigbhour[c].size()));
+            bag_R_Xij_N.initialize_all(1.0);
+            R_Xij_N.push_back(bag_R_Xij_N);
+            Im_Xij_N.push_back(bag_Im_Xij_N);
+        }
+        else {
+            var<Real> empty1("R_Xij_N"+to_string(c));
+            var<Real> empty2("Im_Xij_N"+to_string(c));
+            empty1.set_size(0);
+            empty2.set_size(0);
+            R_Xij_N.push_back(empty1);
+            Im_Xij_N.push_back(empty2);
+        }
+
+        if (bag_gens[c].size() > 0) {
+            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens[c]), grid.pg_max.in(bag_gens[c]));
+            var<Real>  bag_Qg ("Qg_" + to_string(c), grid.qg_min.in(bag_gens[c]), grid.qg_max.in(bag_gens[c]));
+            CLT.add_var(bag_Pg^(bag_gens[c].size()));
+            CLT.add_var(bag_Qg^(bag_gens[c].size()));
+            Pg.push_back(bag_Pg);
+            Qg.push_back(bag_Qg);
+        }
+        else {
+            var<Real> empty("empty");
+            empty.set_size(0);
+            Pg.push_back(empty);
+            Qg.push_back(empty);
+        }
+    }
+    // common variables. 
+    var<real> Z("Z", grid.wr_min.in(inter_pairs), grid.w_max.in(inter_pairs));
 //
 /////////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
 //    vector<param<Real>> R_lambda_in;
@@ -1563,8 +1629,8 @@ int main (int argc, const char * argv[])
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
 
-    get_ncut(grid, 10);
-    ADMM(grid,0);
+    inout(grid, 10, 100);
+    //ADMM(grid,0);
     return 0;
     // 1 in-out
     // 0: default ADMM
