@@ -71,7 +71,7 @@ Bag::~Bag(){
 }
 
 bool Bag::add_lines(){
-    if(_nodes.size() != 3 || _all_lines) return;
+//    if(_nodes.size() != 3 || _all_lines) return;
     Line *a12, *a13, *a23;
     Bus *n1, *n2, *n3;
     double tol = 0.00001;
@@ -81,8 +81,8 @@ bool Bag::add_lines(){
     a12 = (Line*)_grid->get_arc(n1,n2);
     a13 = (Line*)_grid->get_arc(n1,n3);
     a23 = (Line*)_grid->get_arc(n2,n3);
-    if((a12->_free && a13->_free) || (a23->_free && a13->_free) || (a12->_free && a23->_free)) //more than 2 unassigned lines
-        return;
+//    if((a12->_free && a13->_free) || (a23->_free && a13->_free) || (a12->_free && a23->_free)) //more than 2 unassigned lines
+//        return;
 
     double wr12, wi12, wr13, wi13, wr23, wi23;
     double w1 = n1->w; double w2 = n2->w; double w3 = n3->w;
@@ -148,45 +148,37 @@ bool Bag::add_lines(){
 //            cout << "\nR1 = " << R1 << ", SOC = " << wr12*wr12 + wi12*wi12 - w1*w2 << ", SOC2 = " << wr13*wr13 + wi13*wi13 - w1*w3;
         cout << "\nNo a32, SDP = " << SDP;
 
-        if(_net->sdp_alg==1) return false;
+//        if(_net->sdp_alg==1) return false;
 
-        if (!(wr32 >= a32->wr.get_lb()-tol && wr32 <= a32->wr.get_ub()+tol && wi32 >= a32->wi.get_lb()-tol
-              && wi32 <= a32->wi.get_ub()+tol + wr32*wr32+wi32*wi32 <= w3*w2+tol)) {
-//            cout << "\nBounds are violated";
+        if (!(wr23 >= _grid->wr_min(s23).eval()-tol && wr23 <= _grid->wr_max(s23).eval()+tol && wi23 >= _grid->wi_min(s23).eval()-tol
+              && wi23 <= _grid->wi_max(s23).eval()+tol && wr23*wr23+wi23*wi23 > w2*w3+tol)){
+//            cout << "\nBounds or SOCP is violated";
             return false;
         }
         return true;
     }
 
-    if(!a12 || a12->status == 0) {
-//        cout << "\nCalculating line vals";
-        if (!a12) {
-            a12 = _net->_clone->get_arc(n1,n2)->clone();
-            a12->src = _net->get_node(a12->src->_name);
-            a12->dest = _net->get_node(a12->dest->_name);
-            a12->connect();
-            _net->add_arc(a12);
-        }
-        a12->status = 1;
+    if(a12->_free) {
+        a12->_free = false;
 
 //        cout << "Calculating values for " << a12->_name;
-        if(!(b->_rot)) {
-            wr12 = (wr32 * wr13 - wi32 * wi13) / w3;
-            wi12 = (wi32 * wr13 + wr32 * wi13) / w3;
-//            double SDP = wr12*(wr32*wr13 - wi32*wi13) + wi12*(wi32*wr13 + wr32*wi13);
-//            SDP *= 2;
-//            SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr32*wr32 + wi32*wi32)*w1;
-//            SDP += w1*w2*w3;
+        a12->wr = (wr23 * wr13 + wi23 * wi13) / w3;
+        if(_grid->get_directed_arc(n1->_name,n2->_name)!=nullptr) a12->wi = (-wi23 * wr13 + wr23 * wi13) / w3;
+        else a12->wi = -(-wi23 * wr13 + wr23 * wi13) / w3;
+
+        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+        SDP *= 2;
+        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+        SDP += w1*w2*w3;
 //            double R1 = wr12*wr12 + wi12*wi12 - ((wr13*wr13+wi13*wi13)*w2 + (wr32*wr32+wi32*wi32)*w1 - w1*w2*w3)/w3;
 //            cout << "\nR1 = " << R1;
-//            cout << "\nNo a12, SDP = " << SDP;
-        }
+        cout << "\nNo a12, SDP = " << SDP;
 
-        if(_net->sdp_alg==1) return false;
+//        if(_net->sdp_alg==1) return false;
 
-        if (!(wr12 >= a12->wr.get_lb()-tol && wr12 <= a12->wr.get_ub()+tol && wi12 >= a12->wi.get_lb()-tol
-              && wi12 <= a12->wi.get_ub()+tol && wr12*wr12+wi12*wi12 <= w1*w2+tol)) {
-//            cout << "\nBounds are violated";
+        if (!(wr12 >= _grid->wr_min(s12).eval()-tol && wr12 <= _grid->wr_max(s12).eval()+tol && wi12 >= _grid->wi_min(s12).eval()-tol
+              && wi12 <= _grid->wi_max(s12).eval()+tol && wr12*wr12+wi12*wi12 > w1*w2+tol)){
+//            cout << "\nBounds or SOCP is violated";
             return false;
         }
         return true;
@@ -198,8 +190,9 @@ bool Bag::is_PSD(){
     if(_nodes.size() != 3) return true;
     int free_lines = 0;
     for(int i = 0; i < _nodes.size()-1; i++){
-        for(int j = 0; j < _nodes.size(); j++){
-            if(_grid->get_arc(_nodes[i]->_name,_nodes[j]->_name)->_free) free_lines++;
+        for(int j = i+1; j < _nodes.size(); j++){
+            Arc *aij = _grid->get_arc(_nodes[i]->_name, _nodes[j]->_name);
+            if(aij->_free) free_lines++;
         }
     }
     if(free_lines > 1) return true;

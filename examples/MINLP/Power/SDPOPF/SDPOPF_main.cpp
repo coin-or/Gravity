@@ -320,40 +320,95 @@ int main (int argc, char * argv[]) {
     param<double> what;
     string namew, namewr, namewi;
     int numcuts = 0;
-    for(auto& b: bags){
-        b->add_lines();
-        if(b->is_PSD()){
-            continue;
-        }
-        what = b->nfp();
-        /* add the linear cut */
-        // the cuts for different dimesions don't have the same form...
-        cout << "\nAdding lin cut";
-        Constraint sdpcut("sdpcut_"+to_string(numcuts));
-        Node* ni;
-        Arc* aij;
-        for(int i = 0; i < b->_nodes.size(); i++){
-            for(int j = i; j < b->_nodes.size(); j++){
-                if(i==j){
-                    namew = "w(" + b->_nodes[i]->_name + ")";
-                    ni = b->_nodes[i];
-                    sdpcut += ( ((Bus*)ni)->w - what(namew))*(Wii(ni->_name) - what(namew));
-                }
-                else {
-                    namewr = "wr(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
-                    namewi = "wi(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
-                    aij = grid->get_arc(b->_nodes[i]->_name,b->_nodes[j]->_name);
-                    sdpcut += ( ((Line*)aij)->wr - what(namewr))*(R_Wij(aij->_src->_name+","+aij->_dest->_name) - what(namewr));
-                    sdpcut += ( ((Line*)aij)->wi - what(namewi))*(Im_Wij(aij->_src->_name+","+aij->_dest->_name) - what(namewi));
+    node_pairs bus_pairs_sdp;
+    double prev_opt = 0;
+    double fp_tol = 0.0001;
+    cout << "\nBags size = " << bags.size();
+
+    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
+        prev_opt = SDP._obj_val;
+        for (auto &b: bags) {
+//            b->add_lines();
+            if (b->is_PSD()) {
+                continue;
+            }
+            what = b->nfp();
+            node_pairs b_pairs;
+//            param<> R_Wij_star("R_Wij_star"), R_Wij_hat("I_Wij_hat"),
+            param<double> R_diff("R_Diff"), I_diff("I_diff"), W_diff("W_diff");
+            param<double> R_hat("R_hat"), I_hat("I_hat"), W_hat("W_hat");
+//            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
+            // the cuts for different dimensions don't have the same form...
+            Constraint sdpcut("sdpcut_" + to_string(numcuts));
+            Node *ni;
+            Arc *aij;
+            for (int i = 0; i < b->_nodes.size(); i++) {
+                for (int j = i; j < b->_nodes.size(); j++) {
+                    if (i == j) {
+                        namew = "w(" + b->_nodes[i]->_name + ")";
+                        ni = b->_nodes[i];
+                        sdpcut += (((Bus *) ni)->w - what(namew)) * (Wii(ni->_name) - what(namew));
+
+                        W_diff.set_val(ni->_name,((Bus *) ni)->w - what(namew).eval());
+                        W_hat.set_val(ni->_name,what(namew).eval());
+                    } else {
+                        aij = grid->get_arc(b->_nodes[i]->_name, b->_nodes[j]->_name);
+                        if(aij->_imaginary && !aij->_active) {
+                            bus_pairs_sdp._keys.push_back(new index_pair(index_(aij->_src->_name), index_(aij->_dest->_name)));
+                            aij->_active = true;
+                        }
+                        b_pairs._keys.push_back(new index_pair(index_(aij->_src->_name), index_(aij->_dest->_name)));
+
+                        namewr = "wr(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
+                        namewi = "wi(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
+                        sdpcut += (((Line *) aij)->wr - what(namewr)) *
+                                  (R_Wij(aij->_src->_name + "," + aij->_dest->_name) - what(namewr));
+                        sdpcut += (((Line *) aij)->wi - what(namewi)) *
+                                  (Im_Wij(aij->_src->_name + "," + aij->_dest->_name) - what(namewi));
+
+                        R_diff.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr - what(namewr).eval());
+                        I_diff.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - what(namewi).eval());
+                        R_hat.set_val(aij->_src->_name + "," + aij->_dest->_name,what(namewr).eval());
+                        I_hat.set_val(aij->_src->_name + "," + aij->_dest->_name,what(namewi).eval());
+                    }
                 }
             }
+            sdpcut.print();
+            SDP.add_constraint(sdpcut <= 0);
+
+
+            Constraint lin("lin"+to_string(numcuts));
+            cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
+//            lin = (R_diff.in(b_pairs._keys) + R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys));
+            lin = product(R_diff.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
+//            lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
+//            lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
+            SDP.add_constraint(lin <= 0);
+            lin.print_expanded();
+
+            numcuts++;
         }
-        sdpcut.print();
-        SDP.add_constraint(sdpcut <= 0);
-        numcuts++;
+
+//        if(!bus_pairs_sdp._keys.empty()) {
+//            Constraint SOC_im("SOC_im");
+//            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
+//            SDP.add_constraint(SOC_im.in(bus_pairs_sdp._keys) <= 0);
+//            bus_pairs_sdp._keys.clear();
+//        }
+
+
+//        param<> R_Wij_star("R_Wij_star"), R_Wij_hat("I_Wij_hat"), R_diff("R_Diff");
+//        param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
+
+        for(auto& a: grid->arcs){
+            if(a->_imaginary && !a->_active) a->_free = true;
+        }
+
+        SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        DebugOn("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
     }
 
-    SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+
 
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
