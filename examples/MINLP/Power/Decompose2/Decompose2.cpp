@@ -48,9 +48,8 @@ struct net_param {
     param<Real> S_max;
 };
 
-
-// multieigenvector cuts
-void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, vector<vector<Gen*>>& bag_gens,
+// multi-eigenvector cuts
+void get_ncut(PowerNet& grid, PowerNet& graph, unsigned nbparts, vector<vector<Bus*>>& bag_bus, vector<vector<Gen*>>& bag_gens,
               vector<vector<Line*>>& bag_arcs_disjoint, vector<vector<Line*>>& bag_arcs_neighbour,
               vector<vector<gravity::index_pair*>>& bag_bus_pairs_disjoint,
               vector<vector<gravity::index_pair*>>& bag_bus_pairs_neighbour,
@@ -64,10 +63,9 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
     }
 
     if (nbparts > grid.nodes.size()) {
-        cerr << "Error: partion size > \# buses" << endl;
+        cerr << "Error: partition size > \# buses" << endl;
     }
     unsigned nb_eigvals= nbparts;
-
 
     // Wx = lambda Dx --->  D^0.5 W D^-0.5 x = lambda x
     // parameters
@@ -175,14 +173,12 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
         bag_bus.at(a.col()).push_back((Bus*)grid.nodes.at(a.row()));
         node_partition.insert(std::make_pair(a.row(), a.col()));
     }
-    
+
     //Generate a graph to represent the resulting partition where an edge is formed between two nodes that induces cuts.
-    Net graph;
     for (int i = 0; i < nbparts; i++) {
-        Node* node= new Node(to_string(i), i);
+        Bus* node= new Bus(to_string(i), i);
         graph.add_node(node);
     }
-
 
     std::unordered_set<string> indexpair1;
     for (auto arc: grid.arcs) {
@@ -217,11 +213,11 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
 //                string key_inv = arc->_dest->_name + ","+ arc->_src->_name;
 //                if (indexpair1.find(key) == indexpair1.end() && indexpair1.find(key_inv) == indexpair1.end()) {
 //                    inter_pairs.push_back(new index_pair(arc->_src->_name, a->_dest->_name,true));
-                    indexpair1.insert(key);
-                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), true));
-                    a->_weight = a->_intersection_clique.size();
+                indexpair1.insert(key);
+                a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), true));
+                a->_weight = a->_intersection_clique.size();
                 //}
-                graph.add_arc(a);
+                graph.add_arc((Line*)a);
             }
         }
     }
@@ -279,7 +275,7 @@ void get_ncut(PowerNet& grid, unsigned nbparts, vector<vector<Bus*>>& bag_bus, v
     //map<string, unsigned> indexpair;
     std::unordered_set<string> indexpair;
     for (auto b: graph.arcs) {
-        for (auto a: b->_intersection_clique){
+        for (auto a: b->_intersection_clique) {
             string key = a->_src->_name + "," + a->_dest->_name;
             string key_inv = a->_dest->_name + ","+ a->_src->_name;
             if (indexpair.find(key) == indexpair.end() && indexpair.find(key_inv) == indexpair.end()) {
@@ -498,12 +494,12 @@ void sub1(net_param np, unsigned c, double rho, var<Real> Pg, var<Real> Qg, var<
 }
 
 /** INITIALISE SUBPROBLEM MODEL */
-double subproblem(PowerNet& grid, unsigned c, var<Real> Pg, var<Real> Qg, var<Real> Xii, var<Real> R_Xij, var<Real> Im_Xij,
-                vector<Bus*>&  bag_bus, vector<Gen*>& bag_gens,
-                vector<Line*>& bag_arcs_disjoint, vector<Line*> &bag_arcs_neighbours,vector<Line*>& bag_arcs_union,                 
-                vector<gravity::index_pair*>& bag_bus_pairs_disjoint, vector<gravity::index_pair*>& bag_bus_pairs_neighbour,
-                vector<gravity::index_pair*>& bag_bus_pairs_union, param<Real>& R_lambda_sep, param<Real>& Im_lambda_sep,
-                param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log, double& val)
+double subproblem(PowerNet& grid, PowerNet& G_part, unsigned c, var<Real> Pg, var<Real> Qg, var<Real> Xii, var<Real> R_Xij, var<Real> Im_Xij,
+                  vector<Bus*>&  bag_bus, vector<Gen*>& bag_gens,
+                  vector<Line*>& bag_arcs_disjoint, vector<Line*>& bag_arcs_neighbours,vector<Line*>& bag_arcs_union,
+                  vector<gravity::index_pair*>& bag_bus_pairs_disjoint, vector<gravity::index_pair*>& bag_bus_pairs_neighbour,
+                  vector<gravity::index_pair*>& bag_bus_pairs_union, param<Real>& R_lambda_sep, param<Real>& Im_lambda_sep,
+                  param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
 {
     DebugOff("Solving subproblem associated with maximal clique "<< c << endl);
     Model Subr("Subr");
@@ -520,19 +516,28 @@ double subproblem(PowerNet& grid, unsigned c, var<Real> Pg, var<Real> Qg, var<Re
             obj += grid.c1(g->_name)*Pg(g->_name)+ grid.c2(g->_name)*Pg(g->_name)*Pg(g->_name)+grid.c0(g->_name);
         }
     }
-    // relaxed terms  
-    for (int i = 0; i< bag_bus_pairs_neighbour.size(); i++){
-        string name =  bag_bus_pairs_neighbour[i]->_name;
-        obj += R_lambda_sep(name)*R_Xij(name) + Im_lambda_sep(name)*Im_Xij(name); 
+    // relaxed terms
+    auto bag = G_part.get_node(to_string(c));
+    for (auto a: bag->get_out()) {
+        for (auto pair: a->_intersection_clique) {
+            obj += R_lambda_sep(pair->_name)*R_Xij(pair->_name) + Im_lambda_sep(pair->_name)*Im_Xij(pair->_name);
+        }
+    }
+
+    for (auto a: bag->get_in()) {
+        for (auto pair: a->_intersection_clique) {
+            obj -= R_lambda_sep(pair->_name)*R_Xij(pair->_name) + Im_lambda_sep(pair->_name)*Im_Xij(pair->_name);
+        }
     }
 
     Subr.set_objective(min(obj));
 
-    if (bag_bus_pairs_union.size() > 0) {
+    // note that: one cannot replace disjoint with union as we do not have Xjj!
+    if (bag_bus_pairs_disjoint.size() > 0) {
         Constraint SOC("SOC_" + to_string(c));
-        SOC =  power(R_Xij.in(bag_bus_pairs_union), 2)
-               + power(Im_Xij.in(bag_bus_pairs_union), 2)
-               - Xii.from(bag_bus_pairs_union)*Xii.to(bag_bus_pairs_union) ;
+        SOC =  power(R_Xij.in(bag_bus_pairs_disjoint), 2)
+               + power(Im_Xij.in(bag_bus_pairs_disjoint), 2)
+               - Xii.from(bag_bus_pairs_disjoint)*Xii.to(bag_bus_pairs_disjoint) ;
         Subr.add_constraint(SOC <= 0);
     }
 
@@ -552,6 +557,7 @@ double subproblem(PowerNet& grid, unsigned c, var<Real> Pg, var<Real> Qg, var<Re
         }
 
         for (auto a: bus->get_in()) {
+            // always Xii... no Xij. So no problem!
             KCL_P  += grid.g_tt(a->_name)*Xii(a->_dest->_name)
                       +grid.g_tf(a->_name)*R_Xij(a->_src->_name+","+a->_dest->_name)
                       -grid.b_tf(a->_name)*Im_Xij(a->_src->_name+","+a->_dest->_name);
@@ -576,42 +582,42 @@ double subproblem(PowerNet& grid, unsigned c, var<Real> Pg, var<Real> Qg, var<Re
         Subr.add_constraint(KCL_P = 0);
         Subr.add_constraint(KCL_Q = 0);
     }
-    /* Phase Angle Bounds onstraints */
-    if (bag_bus_pairs_union.size() > 0) {
+    /* Phase Angle Bounds constraints */
+    if (bag_bus_pairs_disjoint.size() > 0) {
         Constraint PAD_UB("PAD_UB");
-        PAD_UB = Im_Xij.in(bag_bus_pairs_union);
-        PAD_UB -= (grid.tan_th_max).in(bag_bus_pairs_union)*R_Xij.in(bag_bus_pairs_union);
+        PAD_UB = Im_Xij.in(bag_bus_pairs_disjoint);
+        PAD_UB -= (grid.tan_th_max).in(bag_bus_pairs_disjoint)*R_Xij.in(bag_bus_pairs_disjoint);
         Subr.add_constraint(PAD_UB <= 0);
 
         Constraint PAD_LB("PAD_LB");
-        PAD_LB = Im_Xij.in(bag_bus_pairs_union);
-        PAD_LB -= (grid.tan_th_min).in(bag_bus_pairs_union)*R_Xij.in(bag_bus_pairs_union);
+        PAD_LB = Im_Xij.in(bag_bus_pairs_disjoint);
+        PAD_LB -= (grid.tan_th_min).in(bag_bus_pairs_disjoint)*R_Xij.in(bag_bus_pairs_disjoint);
         Subr.add_constraint(PAD_LB >= 0);
     }
 
-    if (bag_arcs_union.size() > 0) {
+    if (bag_arcs_disjoint.size() > 0) {
         /* Thermal Limit Constraints */
         Constraint Thermal_Limit_from("Thermal_Limit_from");
-        Thermal_Limit_from += power(grid.g_ff.in(bag_arcs_union)*Xii.from(bag_arcs_union)+
-                                    grid.g_ft.in(bag_arcs_union)*R_Xij.in_pairs(bag_arcs_union)
-                                    +grid.b_ft.in(bag_arcs_union)*Im_Xij.in_pairs(bag_arcs_union), 2)
-                              + power(grid.b_ff.in(bag_arcs_union)*Xii.from(bag_arcs_union)
-                                      +grid.b_ft.in(bag_arcs_union)*R_Xij.in_pairs(bag_arcs_union)
-                                      -grid.g_ft.in(bag_arcs_union)*Im_Xij.in_pairs(bag_arcs_union), 2);
+        Thermal_Limit_from += power(grid.g_ff.in(bag_arcs_disjoint)*Xii.from(bag_arcs_disjoint)
+                                    + grid.g_ft.in(bag_arcs_disjoint)*R_Xij.in_pairs(bag_arcs_disjoint)
+                                    + grid.b_ft.in(bag_arcs_disjoint)*Im_Xij.in_pairs(bag_arcs_disjoint), 2)
+                              + power(grid.b_ff.in(bag_arcs_disjoint)*Xii.from(bag_arcs_disjoint)
+                                      +grid.b_ft.in(bag_arcs_disjoint)*R_Xij.in_pairs(bag_arcs_disjoint)
+                                      -grid.g_ft.in(bag_arcs_disjoint)*Im_Xij.in_pairs(bag_arcs_disjoint), 2);
 
-        Thermal_Limit_from -= power(grid.S_max.in(bag_arcs_union), 2);
+        Thermal_Limit_from -= power(grid.S_max.in(bag_arcs_disjoint), 2);
         Subr.add_constraint(Thermal_Limit_from <= 0);
 
 
         Constraint Thermal_Limit_to("Thermal_Limit_to");
-        Thermal_Limit_to += power(grid.g_tt.in(bag_arcs_union)*Xii.to(bag_arcs_union)
-                                  + grid.g_tf.in(bag_arcs_union)*R_Xij.in_pairs(bag_arcs_union)
-                                  + grid.b_tf.in(bag_arcs_union)*Im_Xij.in_pairs(bag_arcs_union), 2)
-                            + power(grid.b_tt.in(bag_arcs_union)*Xii.to(bag_arcs_union)
-                                    + grid.b_tf.in(bag_arcs_union)*R_Xij.in_pairs(bag_arcs_union)
-                                    + grid.g_tf.in(bag_arcs_union)*Im_Xij.in_pairs(bag_arcs_union), 2);
+        Thermal_Limit_to += power(grid.g_tt.in(bag_arcs_disjoint)*Xii.to(bag_arcs_disjoint)
+                                  + grid.g_tf.in(bag_arcs_disjoint)*R_Xij.in_pairs(bag_arcs_disjoint)
+                                  + grid.b_tf.in(bag_arcs_disjoint)*Im_Xij.in_pairs(bag_arcs_disjoint), 2)
+                            + power(grid.b_tt.in(bag_arcs_disjoint)*Xii.to(bag_arcs_disjoint)
+                                    + grid.b_tf.in(bag_arcs_disjoint)*R_Xij.in_pairs(bag_arcs_disjoint)
+                                    + grid.g_tf.in(bag_arcs_disjoint)*Im_Xij.in_pairs(bag_arcs_disjoint), 2);
 
-        Thermal_Limit_to -= power(grid.S_max.in(bag_arcs_union), 2);
+        Thermal_Limit_to -= power(grid.S_max.in(bag_arcs_disjoint), 2);
         Subr.add_constraint(Thermal_Limit_to <= 0);
     }
     /* solve it! */
@@ -622,10 +628,10 @@ double subproblem(PowerNet& grid, unsigned c, var<Real> Pg, var<Real> Qg, var<Re
     Xii_log   = (*(var<Real>*) Subr.get_var("Xii_"+ to_string(c)));
     R_Xij_log  = (*(var<Real>*) Subr.get_var("R_Xij_" + to_string(c)));
     Im_Xij_log = (*(var<Real>*) Subr.get_var("Im_Xij_"+ to_string(c)));
-    val = Subr._obj_val;
+    return Subr._obj_val;
 }
 
-int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
+int reform_inout (PowerNet& grid,unsigned nbparts) {
     vector<net_param> bag_param;
     vector<vector<Bus*>> bag_bus;
     vector<vector<Gen*>> bag_gens;
@@ -636,8 +642,9 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     vector<vector<gravity::index_pair*>> bag_bus_pairs_neighbour; //
     vector<vector<gravity::index_pair*>> bag_bus_pairs_union; //
     vector<gravity::index_pair*> inter_pairs;
+    PowerNet G_part; //graph partition
 
-    get_ncut(grid, nbparts, bag_bus, bag_gens, bag_arcs_disjoint,
+    get_ncut(grid, G_part, nbparts, bag_bus, bag_gens, bag_arcs_disjoint,
              bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour, inter_pairs);
     unsigned  nb_arcs = 0;
     unsigned  nb_buses = 0;
@@ -657,7 +664,7 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
         bag_bus_pairs_union.push_back(test);
         bag_arcs_union.push_back(temp);
     }
-        nb_bus_pairs += inter_pairs.size();
+    nb_bus_pairs += inter_pairs.size();
 
     DebugOn("the number of total arcs: " <<  nb_arcs << endl);
     DebugOn("the number of total bus pairs: " <<  nb_bus_pairs << endl);
@@ -668,14 +675,10 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     Model CLT("A hierarchicial Model");
 
     /** Variables */
-    //vector<var<Real>> R_Xij_C;
-    //vector<var<Real>> Im_Xij_C; // E_C
-    //vector<var<Real>> R_Xij_N; 
-    //vector<var<Real>> Im_Xij_N; //E^N_C
-    vector<var<Real>> R_Xij; 
-    vector<var<Real>> Im_Xij; 
+    vector<var<Real>> R_Xij;
+    vector<var<Real>> Im_Xij;
     vector<var<Real>> Xii;
-    vector<var<Real>> Pg; 
+    vector<var<Real>> Pg;
     vector<var<Real>> Qg;
     for (int c = 0; c < nbparts; c++) {
         var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
@@ -683,49 +686,13 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
         bag_Xii.initialize_all(1.001);
         Xii.push_back(bag_Xii);
 
-        var<Real>  bag_R_Xij("R_Xij" + to_string(c), grid.wr_min.in(bag_bus_pairs_union[c]), grid.wr_max.in(bag_bus_pairs_union[c]));
-        var<Real>  bag_Im_Xij("Im_Xij" + to_string(c), grid.wi_min.in(bag_bus_pairs_union[c]), grid.wi_max.in(bag_bus_pairs_union[c]));
+        var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min.in(bag_bus_pairs_union[c]), grid.wr_max.in(bag_bus_pairs_union[c]));
+        var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min.in(bag_bus_pairs_union[c]), grid.wi_max.in(bag_bus_pairs_union[c]));
         CLT.add_var(bag_R_Xij^(bag_bus_pairs_union[c].size()));
         CLT.add_var(bag_Im_Xij^(bag_bus_pairs_union[c].size()));
         bag_R_Xij.initialize_all(1.0);
         R_Xij.push_back(bag_R_Xij);
         Im_Xij.push_back(bag_Im_Xij);
-
-        //if (bag_bus_pairs_disjoint[c].size() > 0) {
-        //    var<Real>  bag_R_Xij_C("R_Xij_C" + to_string(c), grid.wr_min.in(bag_bus_pairs_disjoint[c]), grid.wr_max.in(bag_bus_pairs_disjoint[c]));
-        //    var<Real>  bag_Im_Xij_C("Im_Xij_C" + to_string(c), grid.wi_min.in(bag_bus_pairs_disjoint[c]), grid.wi_max.in(bag_bus_pairs_disjoint[c]));
-        //    CLT.add_var(bag_R_Xij_C^(bag_bus_pairs_disjoint[c].size()));
-        //    CLT.add_var(bag_Im_Xij_C^(bag_bus_pairs_disjoint[c].size()));
-        //    bag_R_Xij_C.initialize_all(1.0);
-        //    R_Xij_C.push_back(bag_R_Xij_C);
-        //    Im_Xij_C.push_back(bag_Im_Xij_C);
-        //}
-        //else {
-        //    var<Real> empty1("R_Xij_C"+to_string(c));
-        //    var<Real> empty2("Im_Xij_C"+to_string(c));
-        //    empty1.set_size(0);
-        //    empty2.set_size(0);
-        //    R_Xij_C.push_back(empty1);
-        //    Im_Xij_C.push_back(empty2);
-        //}
-
-        //if (bag_bus_pairs_neighbour[c].size() > 0) {
-        //    var<Real>  bag_R_Xij_N("R_Xij_N" + to_string(c), grid.wr_min.in(bag_bus_pairs_neighbour[c]), grid.wr_max.in(bag_bus_pairs_neighbour[c]));
-        //    var<Real>  bag_Im_Xij_N("Im_Xij_N" + to_string(c), grid.wi_min.in(bag_bus_pairs_neighbour[c]), grid.wi_max.in(bag_bus_pairs_neighbour[c]));
-        //    CLT.add_var(bag_R_Xij_N^(bag_bus_pairs_neighbour[c].size()));
-        //    CLT.add_var(bag_Im_Xij_N^(bag_bus_pairs_neighbour[c].size()));
-        //    bag_R_Xij_N.initialize_all(1.0);
-        //    R_Xij_N.push_back(bag_R_Xij_N);
-        //    Im_Xij_N.push_back(bag_Im_Xij_N);
-        //}
-        //else {
-        //    var<Real> empty1("R_Xij_N"+to_string(c));
-        //    var<Real> empty2("Im_Xij_N"+to_string(c));
-        //    empty1.set_size(0);
-        //    empty2.set_size(0);
-        //    R_Xij_N.push_back(empty1);
-        //    Im_Xij_N.push_back(empty2);
-        //}
 
         if (bag_gens[c].size() > 0) {
             var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens[c]), grid.pg_max.in(bag_gens[c]));
@@ -742,66 +709,226 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
             Qg.push_back(empty);
         }
     }
-    // common variables. 
-    var<Real> Z("Z", grid.wr_min.in(inter_pairs), grid.w_max.in(inter_pairs));
-//
-/////////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
-    vector<param<Real>> Im_lambda_in;
-    vector<param<Real>> R_lambda_in;
 
-    vector<param<Real>> Im_lambda_out;
-    vector<param<Real>> R_lambda_out;
-
-    vector<param<Real>> Im_lambda_sep;
-    vector<param<Real>> R_lambda_sep;
-
-    vector<param<Real>> Im_lambda_grad;
-    vector<param<Real>> R_lambda_grad;
-
-    for (int l= 0; l < nbparts; l++) {
-        vector<gravity::index_pair*>  temp = bag_bus_pairs_neighbour[l];
-
-        param<Real> R_lambda_arc_in("R_lambda_arc_in" + to_string(l));
-        param<Real> Im_lambda_arc_in("Im_lambda_arc_in" + to_string(l));
-        R_lambda_arc_in^(temp.size());
-        Im_lambda_arc_in^(temp.size());
-
-        param<Real> R_lambda_arc_out("R_lambda_arc_out" + to_string(l));
-        param<Real> Im_lambda_arc_out("Im_lambda_arc_out" + to_string(l));
-        R_lambda_arc_out^(temp.size());
-        Im_lambda_arc_out^(temp.size());
-
-        param<Real> R_lambda_arc_sep("R_lambda_arc_sep" + to_string(l));
-        param<Real> Im_lambda_arc_sep("Im_lambda_arc_sep" + to_string(l));
-        R_lambda_arc_sep^(temp.size());
-        Im_lambda_arc_sep^(temp.size());
-
-        param<Real> R_lambda_arc_grad("R_lambda_arc_grad" + to_string(l));
-        param<Real> Im_lambda_arc_grad("Im_lambda_arc_grad" + to_string(l));
-        R_lambda_arc_grad^(temp.size());
-        Im_lambda_arc_grad^(temp.size());
-
-        R_lambda_arc_in.initialize_all(0);
-        Im_lambda_arc_in.initialize_all(0);
-
-        R_lambda_arc_out.initialize_all(0);
-        Im_lambda_arc_out.initialize_all(0);
-
-        R_lambda_arc_sep.initialize_all(0);
-        Im_lambda_arc_sep.initialize_all(0);
-
-        R_lambda_in.push_back(R_lambda_arc_in);
-        Im_lambda_in.push_back(Im_lambda_arc_in);
-
-        R_lambda_out.push_back(R_lambda_arc_out);
-        Im_lambda_out.push_back(Im_lambda_arc_out);
-
-        R_lambda_sep.push_back(R_lambda_arc_sep);
-        Im_lambda_sep.push_back(Im_lambda_arc_sep);
-
-        R_lambda_grad.push_back(R_lambda_arc_grad);
-        Im_lambda_grad.push_back(Im_lambda_arc_grad);
+    func_ obj;
+    for (int c = 0; c < nbparts; c++) {
+        for (auto g:bag_gens[c]) {
+            if (g->_active) {
+                obj += grid.c1(g->_name)*Pg[c](g->_name)+ grid.c2(g->_name)*Pg[c](g->_name)*Pg[c](g->_name)+grid.c0(g->_name);
+            }
+        }
     }
+    CLT.set_objective(min(obj));
+    for (int c = 0; c < nbparts; c++) {
+        if (bag_bus_pairs_disjoint[c].size() > 0) {
+            Constraint SOC("SOC_" + to_string(c));
+            SOC =  power(R_Xij[c].in(bag_bus_pairs_disjoint[c]), 2)
+                   + power(Im_Xij[c].in(bag_bus_pairs_disjoint[c]), 2)
+                   - Xii[c].from(bag_bus_pairs_disjoint[c])*Xii[c].to(bag_bus_pairs_disjoint[c]) ;
+            CLT.add_constraint(SOC <= 0);
+        }
+    }
+//
+    //* KCL */
+    for (int c = 0; c < nbparts; c++) {
+        for (auto bus:  bag_bus[c]) {
+            Constraint KCL_P("KCL_P"+bus->_name);
+            Constraint KCL_Q("KCL_Q"+bus->_name);
+
+            for (auto a: bus->get_out()) {
+                KCL_P += grid.g_ff(a->_name)*Xii[c](a->_src->_name)
+                         +grid.g_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+                         +grid.b_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+
+                KCL_Q += -1*grid.b_ff(a->_name)*Xii[c](a->_src->_name)
+                         - grid.b_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+                         +grid.g_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+            }
+
+            for (auto a: bus->get_in()) {
+                // always Xii[c]... no Xij[c]. So no problem!
+                KCL_P  += grid.g_tt(a->_name)*Xii[c](a->_dest->_name)
+                          +grid.g_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+                          -grid.b_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+
+                KCL_Q  -= grid.b_tt(a->_name)*Xii[c](a->_dest->_name)
+                          + grid.b_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+                          + grid.g_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+            }
+            if(bus->_has_gen) {
+                KCL_P += bus->pl()- sum(Pg[c].in(bus->_gen));
+                KCL_Q += bus->ql()- sum(Qg[c].in(bus->_gen));
+            }
+            else {
+                KCL_P += bus->pl();
+                KCL_Q += bus->ql();
+            }
+
+            /* Shunts */
+            KCL_P += bus->gs()*(Xii[c](bus->_name));
+            KCL_Q -= bus->bs()*(Xii[c](bus->_name));
+
+            CLT.add_constraint(KCL_P = 0);
+            CLT.add_constraint(KCL_Q = 0);
+        }
+    }
+
+    // something wrong with bus_pairs..
+    /* Phase Angle Bounds constraints */
+    for (int c = 0; c < nbparts; c++) {
+        if (bag_bus_pairs_disjoint[c].size() > 0) {
+            Constraint PAD_UB("PAD_UB_"+to_string(c));
+            PAD_UB += Im_Xij[c].in(bag_bus_pairs_disjoint[c]);
+            PAD_UB -= (grid.tan_th_max).in(bag_bus_pairs_disjoint[c])*(R_Xij[c].in(bag_bus_pairs_disjoint[c]));
+            CLT.add_constraint(PAD_UB <= 0);
+
+            Constraint PAD_LB("PAD_LB_"+to_string(c));
+            PAD_LB += Im_Xij[c].in(bag_bus_pairs_disjoint[c]);
+            //PAD_LB -= (grid.tan_th_min).in(bag_bus_pairs_disjoint[c])*R_Xij[c].in(bag_bus_pairs_disjoint[c]);
+            CLT.add_constraint(PAD_LB >= 0);
+        }
+    }
+
+    //for (int c = 0; c < nbparts; c++) {
+    //    if (bag_arcs_disjoint[c].size() > 0) {
+    //        /* Thermal Limit Constraints */
+    //        Constraint Thermal_Limit_from("Thermal_Limit_from"+to_string(c));
+    //        Thermal_Limit_from += power(grid.g_ff.in(bag_arcs_disjoint[c])*Xii[c].from(bag_arcs_disjoint[c])
+    //                                    + grid.g_ft.in(bag_arcs_disjoint[c])*R_Xij[c].in_pairs(bag_arcs_disjoint[c])
+    //                                    + grid.b_ft.in(bag_arcs_disjoint[c])*Im_Xij[c].in_pairs(bag_arcs_disjoint[c]), 2)
+    //                              + power(grid.b_ff.in(bag_arcs_disjoint[c])*Xii[c].from(bag_arcs_disjoint[c])
+    //                                      +grid.b_ft.in(bag_arcs_disjoint[c])*R_Xij[c].in_pairs(bag_arcs_disjoint[c])
+    //                                      -grid.g_ft.in(bag_arcs_disjoint[c])*Im_Xij[c].in_pairs(bag_arcs_disjoint[c]), 2);
+
+    //        Thermal_Limit_from -= power(grid.S_max.in(bag_arcs_disjoint[c]), 2);
+    //        CLT.add_constraint(Thermal_Limit_from <= 0);
+
+
+    //        Constraint Thermal_Limit_to("Thermal_Limit_to"+to_string(c));
+    //        Thermal_Limit_to += power(grid.g_tt.in(bag_arcs_disjoint[c])*Xii[c].to(bag_arcs_disjoint[c])
+    //                                  + grid.g_tf.in(bag_arcs_disjoint[c])*R_Xij[c].in_pairs(bag_arcs_disjoint[c])
+    //                                  + grid.b_tf.in(bag_arcs_disjoint[c])*Im_Xij[c].in_pairs(bag_arcs_disjoint[c]), 2)
+    //                            + power(grid.b_tt.in(bag_arcs_disjoint[c])*Xii[c].to(bag_arcs_disjoint[c])
+    //                                    + grid.b_tf.in(bag_arcs_disjoint[c])*R_Xij[c].in_pairs(bag_arcs_disjoint[c])
+    //                                    + grid.g_tf.in(bag_arcs_disjoint[c])*Im_Xij[c].in_pairs(bag_arcs_disjoint[c]), 2);
+
+    //        Thermal_Limit_to -= power(grid.S_max.in(bag_arcs_disjoint[c]), 2);
+    //        CLT.add_constraint(Thermal_Limit_to <= 0);
+    //    }
+    //}
+    /* solve it! */
+    solver solve_CLT(CLT, ipopt);
+    solve_CLT.run();
+}
+
+
+int inout(PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
+    vector<net_param> bag_param;
+    vector<vector<Bus*>> bag_bus;
+    vector<vector<Gen*>> bag_gens;
+    vector<vector<Line*>> bag_arcs_disjoint;
+    vector<vector<Line*>> bag_arcs_neighbour;
+    vector<vector<Line*>> bag_arcs_union;
+    vector<vector<gravity::index_pair*> > bag_bus_pairs_disjoint; // bus_pairs in each bag.
+    vector<vector<gravity::index_pair*>> bag_bus_pairs_neighbour; //
+    vector<vector<gravity::index_pair*>> bag_bus_pairs_union; //
+    vector<gravity::index_pair*> inter_pairs;
+    PowerNet G_part; //graph partition
+
+    get_ncut(grid, G_part, nbparts, bag_bus, bag_gens, bag_arcs_disjoint,
+             bag_arcs_neighbour, bag_bus_pairs_disjoint, bag_bus_pairs_neighbour, inter_pairs);
+    unsigned  nb_arcs = 0;
+    unsigned  nb_buses = 0;
+    unsigned  nb_bus_pairs = 0;
+    unsigned  nb_gens = 0;
+    for (int c =0 ; c < nbparts; c++) {
+        nb_buses += bag_bus[c].size();
+        nb_arcs += bag_arcs_disjoint[c].size();
+        nb_gens += bag_gens[c].size();
+        nb_bus_pairs += bag_bus_pairs_disjoint[c].size();
+        vector<gravity::index_pair*> test;
+        vector<Line*> temp;
+        test.insert(test.end(), bag_bus_pairs_disjoint[c].begin(), bag_bus_pairs_disjoint[c].end());
+        test.insert(test.end(), bag_bus_pairs_neighbour[c].begin(), bag_bus_pairs_neighbour[c].end());
+        temp.insert(temp.end(), bag_arcs_disjoint[c].begin(), bag_arcs_disjoint[c].end());
+        temp.insert(temp.end(), bag_arcs_neighbour[c].begin(), bag_arcs_neighbour[c].end());
+        bag_bus_pairs_union.push_back(test);
+        bag_arcs_union.push_back(temp);
+    }
+    nb_bus_pairs += inter_pairs.size();
+
+    DebugOn("the number of total arcs: " <<  nb_arcs << endl);
+    DebugOn("the number of total bus pairs: " <<  nb_bus_pairs << endl);
+    DebugOn("the number of total buses: " <<  nb_buses << endl);
+    DebugOn("the number of total gens: " <<  nb_gens << endl);
+
+    /** build model */
+    Model CLT("Clique tree based Model");
+
+    /** Variables */
+    vector<var<Real>> R_Xij;
+    vector<var<Real>> Im_Xij;
+    vector<var<Real>> Xii;
+    vector<var<Real>> Pg;
+    vector<var<Real>> Qg;
+    for (int c = 0; c < nbparts; c++) {
+        var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min.in(bag_bus[c]), grid.w_max.in(bag_bus[c]));
+        CLT.add_var(bag_Xii^(bag_bus[c].size()));
+        bag_Xii.initialize_all(1.001);
+        Xii.push_back(bag_Xii);
+
+        var<Real>  bag_R_Xij("R_Xij_" + to_string(c), grid.wr_min.in(bag_bus_pairs_union[c]), grid.wr_max.in(bag_bus_pairs_union[c]));
+        var<Real>  bag_Im_Xij("Im_Xij_" + to_string(c), grid.wi_min.in(bag_bus_pairs_union[c]), grid.wi_max.in(bag_bus_pairs_union[c]));
+        bag_R_Xij^(bag_bus_pairs_union[c].size());
+        bag_Im_Xij^(bag_bus_pairs_union[c].size());
+        bag_R_Xij.initialize_all(1.0);
+        R_Xij.push_back(bag_R_Xij);
+        Im_Xij.push_back(bag_Im_Xij);
+
+        if (bag_gens[c].size() > 0) {
+            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(bag_gens[c]), grid.pg_max.in(bag_gens[c]));
+            var<Real>  bag_Qg ("Qg_" + to_string(c), grid.qg_min.in(bag_gens[c]), grid.qg_max.in(bag_gens[c]));
+            bag_Pg^(bag_gens[c].size());
+            bag_Qg^(bag_gens[c].size());
+            Pg.push_back(bag_Pg);
+            Qg.push_back(bag_Qg);
+        }
+        else {
+            var<Real> empty("empty");
+            empty.set_size(0);
+            Pg.push_back(empty);
+            Qg.push_back(empty);
+        }
+    }
+/////////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
+    unsigned l = inter_pairs.size();
+    param<Real> R_lambda_in("R_lambda_in");
+    param<Real> Im_lambda_in("Im_lambda_in");
+    R_lambda_in^(l);
+    Im_lambda_in^(l);
+
+    param<Real> R_lambda_out("R_lambda_out");
+    param<Real> Im_lambda_out("Im_lambda_out");
+    R_lambda_out^(l);
+    Im_lambda_out^(l);
+
+    param<Real> R_lambda_sep("R_lambda_sep");
+    param<Real> Im_lambda_sep("Im_lambda_sep");
+    R_lambda_sep^(l);
+    Im_lambda_sep^(l);
+
+    param<Real> R_lambda_grad("R_lambda_grad");
+    param<Real> Im_lambda_grad("Im_lambda_grad");
+    R_lambda_grad^(l);
+    Im_lambda_grad^(l);
+
+    R_lambda_in.initialize_all(0);
+    Im_lambda_in.initialize_all(0);
+    R_lambda_out.initialize_all(0);
+    Im_lambda_out.initialize_all(0);
+    R_lambda_sep.initialize_all(0);
+    Im_lambda_sep.initialize_all(0);
+
 
 ///////////////////////////////////// Master Problem ///////////////////////////////////
     Model Master("Master");
@@ -817,18 +944,10 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     var<Real> gamma_C("gamma_C");
     Master.add_var(gamma_C^nbparts);
 
-    vector<var<Real>> R_lambda_var;
-    vector<var<Real>> Im_lambda_var;
-    for (int l= 0; l < nbparts; l++) {
-        vector<gravity::index_pair*>  temp = bag_bus_pairs_neighbour[l];
-        var<Real> R_lambda("R_lambda_arc_" + to_string(l));
-        var<Real> Im_lambda("Im_lambda_arc_" + to_string(l));
-        Master.add_var(R_lambda^(temp.size()));
-        Master.add_var(Im_lambda^(temp.size()));
-
-        R_lambda_var.push_back(R_lambda);
-        Im_lambda_var.push_back(Im_lambda);
-    }
+    var<Real> R_lambda_var("R_lambda_var");
+    var<Real> Im_lambda_var("Im_lambda_var");
+    Master.add_var(R_lambda_var^(inter_pairs.size()));
+    Master.add_var(Im_lambda_var^(inter_pairs.size()));
 
     /////////** OBJ*//////////////
     func_ master_obj;
@@ -841,7 +960,7 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     Master.add_constraint(UB <= 0);
 
 //////////////////  CONVERGENCE INFORMATION /////////////////////////
-    int nb_threads = std::min(std::thread::hardware_concurrency(), nbparts);
+    //int nb_threads = std::min(std::thread::hardware_concurrency(), nbparts);
     double alpha = .5;
     double LBlog[iter_limit];
     double UBlog[iter_limit];
@@ -865,10 +984,6 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
         R_lambda_log.push_back(R_lambda_C_log);
         Im_lambda_log.push_back(Im_lambda_C_log);
     }
-    //vector<param<Real>> R_XijC_log;
-    //vector<param<Real>> Im_XijC_log;
-    //vector<param<Real>> R_XijN_log;
-    //vector<param<Real>> Im_XijN_log;
     vector<param<Real>> Xii_log;
     vector<param<Real>> R_Xij_log;
     vector<param<Real>> Im_Xij_log;
@@ -885,25 +1000,7 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
         Im_Xij_C_log^(bag_bus_pairs_union[c].size());
         R_Xij_log.push_back(R_Xij_C_log);
         Im_Xij_log.push_back(Im_Xij_C_log);
-
-
-        //param<Real> Im_Xij_C_log("Im_Xij_C_log" + to_string(c));
-        //param<Real> R_Xij_C_log("R_Xij_C_log" + to_string(c));
-        //R_Xij_C_log^(bag_bus_pairs_disjoint[c].size());
-        //Im_Xij_C_log^(bag_bus_pairs_disjoint[c].size());
-
-        //param<Real> Im_Xij_N_log("Im_Xij_N_log" + to_string(c));
-        //param<Real> R_Xij_N_log("R_Xij_N_log" + to_string(c));
-        //R_Xij_N_log^(bag_bus_pairs_neighbour[c].size());
-        //Im_Xij_N_log^(bag_bus_pairs_neighbour[c].size());
-
-        //Xii_log.push_back(Xii_C_log);
-        //R_XijC_log.push_back(R_Xij_C_log);
-        //Im_XijC_log.push_back(Im_Xij_C_log);
-        //R_XijN_log.push_back(R_Xij_N_log);
-        //Im_XijN_log.push_back(Im_Xij_N_log);
     }
-
 /////////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
@@ -912,234 +1009,155 @@ int inout (PowerNet& grid,unsigned nbparts, unsigned iter_limit) {
     {
         //ThreadPool p(nb_threads);
         for (int c = 0; c < nbparts; c++) {
-            subproblem(grid, c, Pg[c], Qg[c], Xii[c], R_Xij[c], Im_Xij[c],
-                        bag_bus[c], bag_gens[c], 
-                        bag_arcs_disjoint[c], bag_arcs_neighbour[c], bag_arcs_union[c],
-                        bag_bus_pairs_disjoint[c], bag_bus_pairs_neighbour[c], bag_bus_pairs_union[c],
-                        R_lambda_sep[c], Im_lambda_sep[c], Xii_log[c], R_Xij_log[c], Im_Xij_log[c], value_dual[c]);
+            value_dual[c] = subproblem(grid, G_part, c, Pg[c], Qg[c], Xii[c], R_Xij[c], Im_Xij[c],
+                                       bag_bus[c], bag_gens[c],
+                                       bag_arcs_disjoint[c], bag_arcs_neighbour[c], bag_arcs_union[c],
+                                       bag_bus_pairs_disjoint[c], bag_bus_pairs_neighbour[c], bag_bus_pairs_union[c],
+                                       R_lambda_sep, Im_lambda_sep, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
         }
     }
 
     for (int c = 0; c < nbparts; c++) {
         dual += value_dual[c] ;
-        // initialise the in values.
-        //gamma_in(c) = value_dual[c];
-
     }
     gamma_in = dual;
-
     cout << "Initialization_value,   " << dual <<endl;
     LBlog[0] = std::max(0.0, dual);
 
-
 ///////////////////// APPEND MORE CONSTRAINTS TO MAIN //////////////////////////////////
-//    if (iter_limit > 0) {
-//        Constraint Concavity("Iter_0_Concavity");
-//        Concavity += gamma - dual;
-//        for (auto bag: cliquetree->nodes) {
-//            unsigned c = bag->_id;
-//            //Constraint Concavity("Iter_0_Concavity_" + to_string(c));
-//            //Concavity += gamma_C(c);
-//            for (auto arc: bag->get_out()) {
-//                for (auto nn: arc->_intersection) {
-//                    Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-//                }
+    if (iter_limit > 0) {
+        Constraint Concavity("Iter_0_Concavity");
+        for (auto bag: G_part.nodes) {
+            unsigned c = bag->_id;
+            Constraint Concavity("Iter_0_Concavity_" + to_string(c));
+            Concavity += gamma_C(c);
+            for (auto a: bag->get_out()) {
+                for (auto pair: a->_intersection_clique) {
+                    Concavity += (R_lambda_var(pair->_name) - R_lambda_sep(pair->_name).getvalue())*R_Xij_log[c](pair->_name)
+                                 + (Im_lambda_var(pair->_name)- Im_lambda_sep(pair->_name).getvalue())*Im_Xij_log[c](pair->_name);
+                }
+            }
+
+            for (auto a: bag->get_in()) {
+                for (auto pair: a->_intersection_clique) {
+                    Concavity -= (R_lambda_var(pair->_name) - R_lambda_sep(pair->_name).getvalue())*R_Xij_log[c](pair->_name)
+                                 + Im_lambda_sep(pair->_name)*Im_Xij_log[c](pair->_name);
+                }
+            }
+            Master.add_constraint(Concavity <= 0);
+        }
+    }
+    solver solve_Master(Master, ipopt);
+    //solver solve_Master(Master, cplex);
+    solve_Master.run();
 //
-//                for (auto pair: arc->_intersection_clique) {
-//                    Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-//                    Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-//                }
-//            }
-//
-//            for (auto arc: bag->get_in()) {
-//                for (auto nn: arc->_intersection) {
-//                    Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-//                }
-//                for (auto pair: arc->_intersection_clique) {
-//                    Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-//                    Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-//                }
-//            }
-//        }
-//        Master.add_constraint(Concavity <= 0);
-//    }
-//    solver solve_Master(Master, ipopt);
-//    //solver solve_Master(Master, cplex);
-//    solve_Master.run();
-//
-//    // initialise the outer point.
-//    //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
-//    gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
-//
-//    for (auto a: cliquetree->arcs) {
-//        lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
-//        R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
-//        Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
-//    }
-//
-//    cout << "................  Initialization of Master problem ....................."  <<endl;
-//    cout << "value: " << Master._obj_val  <<endl;
-//    UBlog[0] = Master._obj_val;
+    // initialise the outer point.
+    gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+
+    R_lambda_out = (*(var<Real>*) Master.get_var("R_lambda_var"));
+    Im_lambda_out = (*(var<Real>*) Master.get_var("Im_lambda_var"));
+
+    cout << "................  Initialization of Master problem ....................."  <<endl;
+    cout << "value: " << Master._obj_val  <<endl;
+    UBlog[0] = Master._obj_val;
 //
 //////////////////////////// BEGIN LAGRANGE ITERATIONS HERE /////////////////////////////////////
-//    cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
-//    double epsilon = 0.01;
-//    int itcount = 1;
-//    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
-//
-//        //////// CONSTRUCT SEPARATION POINTS
-//        //for (int c = 0; c < nb_cliques; c++) {
-//        //    gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
-//        //}
-//        gamma_sep = alpha*gamma_out + (1 - alpha)*gamma_in;
-//
-//        for (auto a: cliquetree->arcs) {
-//            int l = a->_id;
-//            for (auto nn: a->_intersection) {
-//                lambda_sep[l](nn->_name) = alpha*lambda_out[l](nn->_name).getvalue()
-//                                           + (1 - alpha)*lambda_in[l](nn->_name).getvalue();
-//                DebugOff("lambda_sep, " << lambda_sep[a->_id](nn->_name).getvalue() << endl);
-//            }
-//
-//            for (auto pair: a->_intersection_clique) {
-//                R_lambda_sep[l](pair->_name) = alpha*R_lambda_out[l](pair->_name).getvalue()
-//                                               + (1 - alpha)*R_lambda_in[l](pair->_name).getvalue();
-//                Im_lambda_sep[l](pair->_name)= alpha*Im_lambda_out[l](pair->_name).getvalue()
-//                                               + (1 - alpha)*Im_lambda_in[l](pair->_name).getvalue();
-//            }
-//        }
-//
-//        /////////////////SLOVE SUBPROBLEM/////////////////////
-//
-//        double value_dual[nb_cliques];
-//        //std::vector<std::thread> threads;
-//        //threads.reserve(nb_threads);
-//        //int delta = nb_cliques/nb_threads;
-//        //int reminder = nb_cliques % nb_threads;
-//        {
-//            ThreadPool p(nb_threads);
-//            for (int c = 0; c < nb_cliques; c++) {
-//                //subproblem(bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-//                //                         bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-//                //                          R_lambda_sep,  Im_lambda_sep, lambda_sep, (Wii_log[c]),
-//                //                          (R_Wij_log[c]), (Im_Wij_log[c]), (value_dual[c]));
-////            threads.emplace_back(std::thread(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-////                                          bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-////                                          R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-////                                          std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
-//                p.doJob(std::bind(subproblem, bag_param[c], cliquetree, c, Pg[c], Qg[c], Wii[c], R_Wij[c], Im_Wij[c],
-//                                  bag_bus_disjoint[c], bag_arcs[c], bag_gens_disjoint[c], bag_bus_pairs_disjoint[c],
-//                                  R_lambda_sep,  Im_lambda_sep, lambda_sep, std::ref(Wii_log[c]),
-//                                  std::ref(R_Wij_log[c]), std::ref(Im_Wij_log[c]), std::ref(value_dual[c])));
-//            }
-//        }
-//
-//        dual =0;
-//        for (int c = 0; c < nb_cliques; c++) {
-//            dual += value_dual[c] ;
-//        }
-//
-//        cout << "dual: " << dual << endl;
-//// UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
-//        //if (dual- sum(gamma_sep).eval() < 0) {
-//        if (dual- gamma_sep < 0) {
-//            Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity");
-//            Concavity += gamma- dual;
-//            for (auto bag: cliquetree->nodes) {
-//                unsigned c = bag->_id;
-//                //Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
-//                //Concavity += gamma_C(c);
-//                //Concavity -= value_dual[c];
-//                for (auto arc: bag->get_out()) {
-//                    for (auto nn: arc->_intersection) {
-//                        Concavity -= (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-//                    }
-//                    for (auto pair: arc->_intersection_clique) {
-//                        Concavity -= (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-//                        Concavity -= (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-//                    }
-//                }
-//
-//                for (auto arc: bag->get_in()) {
-//                    for (auto nn: arc->_intersection) {
-//                        Concavity += (lambda_var[arc->_id](nn->_name)-lambda_sep[arc->_id](nn->_name).getvalue())*Wii_log[c](nn->_name).getvalue();
-//                    }
-//                    for (auto pair: arc->_intersection_clique) {
-//                        Concavity += (R_lambda_var[arc->_id](pair->_name)- R_lambda_sep[arc->_id](pair->_name).getvalue())*R_Wij_log[c](pair->_name).getvalue();
-//                        Concavity += (Im_lambda_var[arc->_id](pair->_name)-Im_lambda_sep[arc->_id](pair->_name).getvalue())*Im_Wij_log[c](pair->_name).getvalue();
-//                    }
-//                }
-//            }
-//
-//            Master.add_constraint(Concavity <= 0);
-//
-//            //Master.add_constraint(Concavity <= 0);
-//
-//
-//
-//            //if (dual > sum(gamma_in).eval()) {
-//            if (dual > gamma_in) {
-//                //for (int c = 0; c < nb_cliques; c++)
-//                //    gamma_in(c) = value_dual[c];
-//                gamma_in = dual;
-//
-//                for (auto a: cliquetree->arcs) {
-//                    int l = a->_id;
-//                    for (auto arc: a->_intersection) {
-//                        lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
-//                    }
-//
-//                    for (auto arc: a->_intersection_clique) {
-//                        R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
-//                        Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
-//                    }
-//                }
-//            }
-//            solver solve_master(Master, cplex);
-//            solve_master.run();
-//            DebugOff("master problem value: " << Master._obj_val << endl);
-//
-//            // update the out point.
-//            //gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
-//            gamma_out = (*(var<Real>*) Master.get_var("gamma")).getvalue();
-//            for (auto a: cliquetree->arcs) {
-//                lambda_out[a->_id] = (*(var<Real>*) Master.get_var("lambda_arc_"+ to_string(a->_id)));
-//                R_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("R_lambda_arc_" + to_string(a->_id)));
-//                Im_lambda_out[a->_id] = (*(var<Real>*) Master.get_var("Im_lambda_arc_"+ to_string(a->_id)));
-//            }
-//        }
-//        else {
-//            //for (int c = 0; c < nb_cliques; c++)
-//            //    gamma_in(c) = value_dual[c];
-//            gamma_in = dual;
-//            for (auto a: cliquetree->arcs) {
-//                int l = a->_id;
-//                for (auto arc: a->_intersection) {
-//                    lambda_in[l](arc->_name)  = lambda_sep[l](arc->_name).getvalue();
-//                }
-//                for (auto arc: a->_intersection_clique) {
-//                    R_lambda_in[l](arc->_name)  = R_lambda_sep[l](arc->_name).getvalue();
-//                    Im_lambda_in[l](arc->_name)  = Im_lambda_sep[l](arc->_name).getvalue();
-//                }
-//            }
-//        }
-//        LDlog[itcount] = dual;
-//        LBlog[itcount] = std::max(dual, LBlog[itcount-1]);
-//        if (itcount > 1)
-//            UBlog[itcount] = std::min(Master._obj_val, UBlog[itcount - 1]);
-//        else
-//            UBlog[itcount] = Master._obj_val;
-//        itcount +=1;
-//    }
-//    double wall1 = get_wall_time();
-//    double cpu1 = get_cpu_time();
-//    cout << "CPU time: " << cpu1 -cpu0 << endl;
-//    cout << "Wall time: " << wall1 -wall0 << endl;
-//
-//    cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
-//    for(int i = 0; i < itcount; i++) {
-//        cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
-//    }
+    cout << "<<<<<<<<<<< Lagrangian decomposition algorithm >>>>>>>>>"<< endl;
+    double epsilon = 0.01;
+    int itcount = 1;
+    while ((UBlog[itcount-1] -LBlog[itcount-1] > epsilon*std::abs(LBlog[itcount-1])) && itcount < iter_limit) {
+
+        //////// CONSTRUCT SEPARATION POINTS
+        for (int c = 0; c < nbparts; c++) {
+            gamma_sep(c) = alpha*gamma_out(c).getvalue() + (1 - alpha)*gamma_in(c).getvalue();
+        }
+
+        for (auto a: inter_pairs) {
+            R_lambda_sep(a->_name) = alpha*R_lambda_out(a->_name).getvalue()
+                                     + (1 - alpha)*R_lambda_in(a->_name).getvalue();
+            Im_lambda_sep(a->_name) = alpha*Im_lambda_out(a->_name).getvalue()
+                                      + (1 - alpha)*Im_lambda_in(a->_name).getvalue();
+        }
+
+        /////////////////SLOVE SUBPROBLEM/////////////////////
+
+        double value_dual[nbparts];
+        for (int c = 0; c < nbparts; c++) {
+            value_dual[c] =subproblem(grid, G_part, c, Pg[c], Qg[c], Xii[c], R_Xij[c], Im_Xij[c],
+                                      bag_bus[c], bag_gens[c],
+                                      bag_arcs_disjoint[c], bag_arcs_neighbour[c], bag_arcs_union[c],
+                                      bag_bus_pairs_disjoint[c], bag_bus_pairs_neighbour[c], bag_bus_pairs_union[c],
+                                      R_lambda_sep, Im_lambda_sep, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
+        }
+
+        dual = 0;
+        for (int c = 0; c < nbparts; c++) {
+            dual += value_dual[c] ;
+        }
+        cout << "dual: " << dual << endl;
+// UPDATE POINTS of Kelly using in-out algorithm (Ben-Ameur and Neto)
+        if (dual- sum(gamma_sep).eval() < 0) {
+            for (auto bag: G_part.nodes) {
+                unsigned c = bag->_id;
+                Constraint Concavity("Iter_" + to_string(itcount) + "_Concavity_" + to_string(c));
+                for (auto a: bag->get_out()) {
+                    for (auto pair: a->_intersection_clique) {
+                        Concavity += (R_lambda_var(pair->_name) - R_lambda_sep(pair->_name).getvalue())*R_Xij_log[c](pair->_name)
+                                     + (Im_lambda_var(pair->_name)- Im_lambda_sep(pair->_name).getvalue())*Im_Xij_log[c](pair->_name);
+                    }
+                }
+
+                for (auto a: bag->get_in()) {
+                    for (auto pair: a->_intersection_clique) {
+                        Concavity -= (R_lambda_var(pair->_name) - R_lambda_sep(pair->_name).getvalue())*R_Xij_log[c](pair->_name)
+                                     + Im_lambda_sep(pair->_name)*Im_Xij_log[c](pair->_name);
+                    }
+                }
+                Master.add_constraint(Concavity <= 0);
+            }
+
+            if (dual > sum(gamma_in).eval()) {
+                for (int c = 0; c < nbparts; c++)
+                    gamma_in(c) = value_dual[c];
+                for (auto pair: inter_pairs) {
+                    R_lambda_in(pair->_name)  = R_lambda_sep(pair->_name).getvalue();
+                    Im_lambda_in(pair->_name) = Im_lambda_sep(pair->_name).getvalue();
+                }
+            }
+            solver solve_master(Master, cplex);
+            solve_master.run();
+            DebugOff("master problem value: " << Master._obj_val << endl);
+
+            // update the out point.
+            gamma_out = (*(var<Real>*) Master.get_var("gamma_C"));
+            R_lambda_out = (*(var<Real>*) Master.get_var("R_lambda_var"));
+            Im_lambda_out = (*(var<Real>*) Master.get_var("Im_lambda_var"));
+        }
+        else {
+            for (int c = 0; c < nbparts; c++)
+                gamma_in(c) = value_dual[c];
+            for (auto pair: inter_pairs) {
+                R_lambda_in(pair->_name)  = R_lambda_sep(pair->_name).getvalue();
+                Im_lambda_in(pair->_name) = Im_lambda_sep(pair->_name).getvalue();
+            }
+        }
+        LDlog[itcount] = dual;
+        LBlog[itcount] = std::max(dual, LBlog[itcount-1]);
+        if (itcount > 1)
+            UBlog[itcount] = std::min(Master._obj_val, UBlog[itcount - 1]);
+        else
+            UBlog[itcount] = Master._obj_val;
+        itcount +=1;
+    }
+    double wall1 = get_wall_time();
+    double cpu1 = get_cpu_time();
+    cout << "CPU time: " << cpu1 -cpu0 << endl;
+    cout << "Wall time: " << wall1 -wall0 << endl;
+
+    cout<< setw(15) << left <<"ITERATION" << setw(15) << "Current" << setw(15) << "LB" << setw(15)  << "UB" << endl;
+    for(int i = 0; i < itcount; i++) {
+        cout<< setw(15) << left <<i << setw(15) << LDlog[i]<<setw(15)<< LBlog[i] << setw(15) << UBlog[i] << endl;
+    }
     return 0;
 }
 
@@ -1477,7 +1495,6 @@ int ADMM(PowerNet& grid, unsigned iter_limit) {
     double cpu0  = get_cpu_time();
     //STRUCTURE
     cout << "<<<<<<<<<<< The standard ADMM algorithm starts >>>>>>>>>"<< endl;
-    //for(int itcount = 0; itcount < iter_limit  ; itcount++) {
     int itcount =  0;
     P_res[0] = 100;
     D_res[0]=100;
@@ -1601,13 +1618,14 @@ int main (int argc, const char * argv[])
         iter_limit = (int) atof(argv[3]);
     }
     else {
-        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case6_c.m";
+        ////fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
+        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
@@ -1617,17 +1635,8 @@ int main (int argc, const char * argv[])
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
 
-    inout(grid, 10, 100);
+    reform_inout(grid, 2);
+    //inout(grid, 2, 5);
     //ADMM(grid,0);
     return 0;
-    // 1 in-out
-    // 0: default ADMM
-
-//    if (l > 0) {
-//        inout(grid, iter_limit);
-//    }
-//    else {
-//        ADMM(grid, iter_limit);
-//    }
-//    return 0;
 }
