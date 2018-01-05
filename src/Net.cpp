@@ -525,15 +525,16 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();         
         Debug(n->_name << endl);
-        Debug(_clone->nodes.size() << endl);
+        Debug(graph_clone->nodes.size() << endl);
         vector<Node*> bag_copy;
         vector<Node*> bag;
-        Debug("new bag = { ");
+        DebugOn("new bag = { ");
         for (auto nn: n->get_neighbours()) {
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
-            Debug(nn->_name << ", ");
+            DebugOn(nn->_name << ", ");
         }
+        DebugOn(n->_name << "}\n");
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
@@ -554,6 +555,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->_id = arcs.size();
                 arc->_src = u;
                 arc->_dest = nn;
+                arc->_imaginary = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
             }
@@ -574,12 +576,18 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
     }
     sort(_bags.begin(), _bags.end(), bag_compare);
+
     Debug("\n Number of 3D bags = " << nb << endl);
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
 std::vector<gravity::index_pair*> Net::get_bus_pairs(){
     return _bus_pairs._keys;
+}
+
+/** Return the vector of arcs of the chordal completion ignoring parallel lines **/
+std::vector<gravity::index_pair*> Net::get_bus_pairs_chord(){
+    return _bus_pairs_chord._keys;
 }
 
 Net* Net::get_chordal_extension() {
