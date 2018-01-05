@@ -1,14 +1,21 @@
 //
 //  IpoptProgram.cpp
-//  PowerTools++
 //
-//  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
-//
-#define DebugOn(x) cout << x
 #include <gravity/IpoptProgram.h>
 
 using namespace std;
+
+
+IpoptProgram::IpoptProgram(Model* m):_model(m){
+    if (!m->_built) {
+        m->fill_in_maps();
+    }
+    else {
+        m->reset_funcs();
+    }
+}
+
+
 
 bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                               Index& nnz_h_lag, Ipopt::TNLP::IndexStyleEnum& index_style){
@@ -137,22 +144,6 @@ bool IpoptProgram::eval_jac_g(Index n, const Number* x, bool new_x,
     }
     
     return true;
-}
-
-std::vector<int> bounds2(int parts, int mem) {
-    std::vector<int>bnd;
-    int delta = mem / parts;
-    int reminder = mem % parts;
-    int N1 = 0, N2 = 0;
-    bnd.push_back(N1);
-    for (int i = 0; i < parts; ++i) {
-        N2 = N1 + delta;
-        if (i == parts - 1)
-            N2 += reminder;
-        bnd.push_back(N2);
-        N1 = N2;
-    }
-    return bnd;
 }
 
 bool IpoptProgram::eval_h(Index n, const Number* x, bool new_x,

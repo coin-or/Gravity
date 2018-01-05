@@ -42,6 +42,7 @@ namespace gravity {
         string                                 _to_str; /**< A string representation of the expression */
         
         string get_str();
+        string to_str(unsigned inst);
         Real eval(size_t i) const;
         Real eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
@@ -105,6 +106,7 @@ namespace gravity {
         }
         
         string to_str() const;
+        string to_str(size_t) const;
         void print(bool endline = true) const;
         func_ get_derivative(const param_ &v) const;
         vector<shared_ptr<param_>> get_nl_vars() const;
@@ -185,8 +187,12 @@ namespace gravity {
         
         
         string to_str() const;
+        string to_str(size_t) const;
+        void print(size_t inst) const{
+            cout << to_str(inst) << endl;
+        }
         
-        void print(bool endline = true) const;
+        void print() const;
         
         void print_tree() const;
         
@@ -255,6 +261,7 @@ namespace gravity {
         lterm& operator=(lterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
     };
 
@@ -327,6 +334,7 @@ namespace gravity {
         qterm& operator=(qterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
     };
 
@@ -409,6 +417,7 @@ namespace gravity {
         pterm& operator=(pterm&& l);
         
         string to_str(int ind) const;
+        string to_str(int ind, unsigned inst) const;
         void print(int ind) const;
         
     };
@@ -460,7 +469,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<Real>>             _val;
-        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         func_();
         
@@ -1570,9 +1579,11 @@ namespace gravity {
         Real eval(size_t i, size_t j);
 //        Real force_eval(size_t i);
         Real eval(){ return eval(0);};
-        string to_str(bool display_input=false) const;
-        void print(bool endline=false, bool display_input=false);
-        
+        string to_str() const;
+        string to_str(size_t inst) const;
+        void print(bool endline, bool display_input);
+        void print(size_t index);
+        void print_expanded();
     };
 
 
@@ -1590,6 +1601,7 @@ namespace gravity {
     void poly_print(const constant_* c);
 
     string poly_to_str(const constant_* c);
+    string poly_to_str(const constant_* c, size_t inst);
 
 
     func_ operator+(const constant_& c1, const constant_& c2);
