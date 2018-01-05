@@ -11,7 +11,7 @@
 #include <gravity/solver.h>
 #include <stdlib.h>
 #include "../PowerNet.h"
-#include "/nh/nest/u/kbestuzheva/usr/include/armadillo"
+#include "armadillo"
 
 class Bag{
 public:
