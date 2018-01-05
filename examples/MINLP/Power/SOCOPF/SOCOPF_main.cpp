@@ -27,13 +27,17 @@ int main (int argc, char * argv[])
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
-    string fname = "../../data_sets/Power/nesta_case5_pjm.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    string path = argv[0];
+    if (path.find("/bin")!=string::npos && path.find("/bin/socopf")==string::npos) {//Not running from terminal
+        fname = "../" + fname;
+    }
     string solver_str="ipopt";
     
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
-    opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     // parse the options and verify that all went well. If not, errors and help will be shown
@@ -179,25 +183,17 @@ int main (int argc, char * argv[])
     
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
-//    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-//    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-//    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-//    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
-    LNC1 -= grid->v_max.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC1 -= grid->v_max.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC1 -= grid->v_max.from()*grid->v_max.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
-//    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-//    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-//    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-//    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
-    LNC2 -= grid->v_min.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC2 -= grid->v_min.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC2 += grid->v_min.from()*grid->v_min.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
     
     /* Thermal Limit Constraints */
@@ -240,6 +236,7 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
+//    SOCP.print_expanded();
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

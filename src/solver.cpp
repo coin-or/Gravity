@@ -251,15 +251,20 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
     }
     else if(_stype==bonmin) {
 #ifdef USE_BONMIN
-        if(prog.bonmin_prog->model->_objt==maximize){
-            *prog.bonmin_prog->model->_obj *= -1;
+        
+        
+        if(_model->_objt==maximize){
+            _model->_obj *= -1;
         }
+        
 
         bool ok = true;
         using namespace Bonmin;
         BonminSetup bonmin;
         bonmin.initializeOptionsAndJournalist();
-        bonmin.initialize(prog.bonmin_prog);
+        SmartPtr<TMINLP> tmp = new BonminProgram(_model);
+        bonmin.initialize(tmp);
+//        bonmin.initialize(prog.bonmin_prog);
         try {
             Bab bb;
             bb(bonmin);
@@ -292,10 +297,10 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
             ok = false;
         }
 
-        if(prog.bonmin_prog->model->_objt==maximize){
-            *prog.bonmin_prog->model->_obj *= -1;
+        if(_model->_objt==maximize){
+            _model->_obj_val *= -1;
         }
-
+        
         return ok ? 100 : -1;
 #else
         bonminNotAvailable();

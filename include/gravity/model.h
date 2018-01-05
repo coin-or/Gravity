@@ -209,9 +209,8 @@ namespace gravity {
     #endif
         
     #ifdef USE_BONMIN
-        void fill_in_param_types(Bonmin::TMINLP::VariableType* param_types);
-    #endif    
-        
+        void fill_in_var_types(Bonmin::TMINLP::VariableType* var_types);
+    #endif        
         void add_on_off(const Constraint& c, var<bool>& on);
         void add_on_off(var<>& v, var<bool>& on);
         
@@ -227,6 +226,7 @@ namespace gravity {
         /* Output */
         void print_nl_functions() const;
         void print() const;
+        void print_expanded() const;
         void print_solution() const;
         void print_constraints() const;
         

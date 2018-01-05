@@ -1,4 +1,4 @@
-set(BONMIN_ROOT_DIR "/home/kbestuzheva/Bonmin-1.8.4" CACHE PATH "BONMIN root directory.")
+set(BONMIN_ROOT_DIR "$ENV{BONMIN_ROOT_DIR}" CACHE PATH "BONMIN root directory.")
 
 message("Looking for Bonmin in ${BONMIN_ROOT_DIR}")
 

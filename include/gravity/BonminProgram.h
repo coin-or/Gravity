@@ -1,26 +1,23 @@
-#ifndef __PowerTools____BonminProgram__
-#define __PowerTools____BonminProgram__
+#ifndef __Gravity____BonminProgram__
+#define __Gravity____BonminProgram__
 
-//#include <config_ipopt.h>
+#ifdef USE_BONMIN
 #include <coin/BonTMINLP.hpp>
 #include <coin/IpIpoptApplication.hpp>
 #include <coin/IpTNLP.hpp>
-#include <Gravity/model.h>
+#endif
+#include <gravity/model.h>
 
 using   Ipopt::IpoptApplication;
 using namespace  Ipopt;
 using namespace Bonmin;
+using namespace gravity;
 
 class BonminProgram : public TMINLP {
 public:
-    Model* _model;
-
-    //BonminProgram(Model* m):model(m){}
+    Model* _model = nullptr;
+    
     BonminProgram(Model* m);
-
-
-    BonminProgram(){};
-    virtual ~BonminProgram(){}
 
     /** Pass the type of the variables (INTEGER, BINARY, CONTINUOUS) to the optimizer */
     virtual bool get_variables_types(Index n, VariableType* var_types);
@@ -67,19 +64,16 @@ public:
                         Index* jCol, Number* values);
 
     /** Method called by Ipopt */
-    virtual void finalize_solution(
-            TMINLP::SolverReturn              status    ,
-            Index                             n         ,
-            const Number*                     x         ,
-            Number                            obj_value
-    );
+    virtual void finalize_solution(TMINLP::SolverReturn status,
+                                   Index n, const Number* x, Number obj_value);
+
 
     virtual bool get_variables_linearity(Index n, TNLP::LinearityType* var_types);
     virtual bool get_constraints_linearity(Index m, TNLP::LinearityType* const_types);
 
-    virtual const SosInfo* sosConstraints() const{return NULL;}
-    virtual const BranchingInfo* branchingInfo() const{return NULL;}
+    virtual const SosInfo* sosConstraints() const;
+    virtual const BranchingInfo* branchingInfo() const;
 };
 
 
-#endif // __PowerTools____BonminProgram__
+#endif // __Gravity____BonminProgram__
