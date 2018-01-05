@@ -59,6 +59,7 @@ public:
     unsigned get_nb_active_bus_pairs() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
-    void time_expand(unsigned T); /* < Time expansion of the grid parameters */    
+    void time_expand(unsigned T); /* < Time expansion of the grid parameters */
+    void update_net();
 };
 #endif

@@ -25,6 +25,8 @@ public:
     double _weight;
     bool _active = true;
     bool _parallel = false;
+    bool _imaginary = false;
+    int _free = false;
     std::vector<Node*> _intersection; // intersection of node _src and node _dest
     std::vector<gravity::index_pair*> _intersection_clique; // useful for clique tree 
 
