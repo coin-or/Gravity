@@ -98,6 +98,33 @@ public:
         return res;
     }
     
+    var out_arcs(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_arcs(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_gens(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     var to(){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::to());
@@ -184,6 +211,35 @@ public:
     var in(const vector<Tobj>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
+    var in_arcs(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var out_arcs(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
+    var in_gens(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens(vec));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;

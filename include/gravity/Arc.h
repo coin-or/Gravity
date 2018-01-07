@@ -40,7 +40,7 @@ public:
     
     Arc();
     Arc(std::string name);
-    ~Arc();
+    virtual ~Arc();
     Arc(Node* s, Node* d);
     Arc(Node* s, Node* d, double weight);
     Arc* clone();
