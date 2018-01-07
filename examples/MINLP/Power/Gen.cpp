@@ -13,7 +13,9 @@ using namespace std;
 /** @brief Initialiser with linked Bus and generator properties
  @note Designated initialiser
  */
-Gen::Gen(Bus* bus, string name, double p_min, double p_max, double q_min, double q_max):_name(name),_active(true), _bus(bus), _cost(new GenCost()), _ps(0), _qs(0){
+Gen::Gen(Bus* bus, string name, double p_min, double p_max, double q_min, double q_max):_bus(bus), _cost(new GenCost()), _ps(0), _qs(0){
+    _active = true;
+    _name = name;
     _pbound.min = p_min;
     _pbound.max = p_max;
     _qbound.min = q_min;

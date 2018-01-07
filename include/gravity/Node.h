@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <gravity/Auxiliary.h>
 
 /** A Node has:
     a name
@@ -32,7 +33,7 @@ public:
     // constructions
     Node();
     Node(std::string name, int idx= -1);
-    ~Node();
+    virtual ~Node();
     Node* clone();
     
       /*
@@ -62,6 +63,9 @@ public:
      @brief Returns the vector of incoming active arcs
      */
     std::vector<Arc*> get_in();
+    
+    
+    virtual vector<gravity::aux*> get_gens(){};
 
     /* return its neighbours */
     std::set<Node*> get_neighbours();
