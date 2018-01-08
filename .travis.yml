@@ -6,6 +6,7 @@ compiler:
 os:
 - linux
 before_install:
+- if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update && sudo apt-get install liblapack-dev && sudo apt-get install libblas-dev
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake ..
