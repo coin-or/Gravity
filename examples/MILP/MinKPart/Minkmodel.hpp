@@ -14,11 +14,7 @@
 #include <gravity/model.h>
 #include <gravity/solver.h>
 #include <stdlib.h>
-#ifdef __APPLE__
-    #include "/usr/local/include/armadillo"
-#elif __linux__
-    #include "/usr/include/armadillo"
-#endif
+#include "armadillo"
 
 typedef enum {MIP,MIP_tree,SDP,SDP_tree, Node_edge} ModelType;
 
