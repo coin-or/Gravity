@@ -25,12 +25,7 @@ if (NOT ENABLE_MOSEK)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/MosekProgram.cpp)
 endif()
 
-if(UNIX)
-  set(ARMADILLO_LIBRARIES armadillo lapack blas)
-else()
-  set(ARMADILLO_LIBRARIES armadillo)
-endif()
-
+set(ARMADILLO_LIBRARIES armadillo)
 set(CPP_OPTION_PARSER option_parser)
 
 add_library(gravity ${SOURCES} ${HEADERS})
