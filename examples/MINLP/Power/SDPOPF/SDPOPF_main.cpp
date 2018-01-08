@@ -23,7 +23,7 @@ int main (int argc, char * argv[]) {
     bool relax = false, use_cplex = false;
     double tol = 1e-6;
     string mehrotra = "no";
-    string fname = "../../nesta-0.7.0/opf/nesta_case3_lmbd.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",

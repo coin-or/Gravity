@@ -23,13 +23,16 @@ option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
 option(ENABLE_SDPA "Link to SDPA libraries" OFF)
 
 # Find MOSEK (optional)
-option(ENABLE_MOSEK "Link to MOSEK libraries" ON)
+option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 
 # include BOOST (optional)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
-# include ARMADILLO (optional)
-option(ENABLE_ARMADILLO "Link to ARMADILLO libraries" ON)
+
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
+  )
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
@@ -116,16 +119,17 @@ if (ENABLE_BOOST)
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
 
-if (ENABLE_ARMADILLO)
-    message(STATUS "Enable ARMADILLO")
-    add_definitions(-DUSE_ARMADILLO)
-    find_package(ARMADILLO)
-    include_directories(${ARMADILLO_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${ARMADILLO_LIBRARIES})
-endif()
+# Include Armadillo
+find_package(ARMADILLO)
+include_directories(${ARMADILLO_ROOT_DIR})
+set(LIBS ${LIBS} armadillo)
+add_subdirectory(${ARMADILLO_ROOT_DIR})
 
-
+# Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
+add_subdirectory(ext_lib/cpp_option_parser)
+set(LIBS ${LIBS} option_parser)
+
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
@@ -136,8 +140,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
-#set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "Debug")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -145,7 +149,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(ext_lib/cpp_option_parser)
 
 # Install
 install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
