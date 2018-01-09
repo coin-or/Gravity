@@ -85,6 +85,14 @@ std::vector<Line*> Bus::get_in(){
 }
 
 
+vector<gravity::aux*> Bus::get_gens(){
+    vector<gravity::aux*> res;
+    for (auto g:_gen) {
+        res.push_back(g);
+    }
+    return res;
+}
+
 /** @brief Returns the lower bound on the voltage magnitude at this bus */
 double Bus::vmin(){
     return vbound.min;

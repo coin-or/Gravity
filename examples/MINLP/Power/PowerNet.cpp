@@ -94,11 +94,11 @@ PowerNet::~PowerNet() {
         gens.clear();
     }
     for (Node* n:nodes) {
-        delete (Bus*)n;
+        delete n;
     }
     nodes.clear();
     for (Arc* a:arcs) {
-        delete (Line*)a;
+        delete a;
     }
     arcs.clear();
 }
@@ -200,7 +200,11 @@ int PowerNet::readgrid(const char* fname) {
     cout << "Loading file " << fname << endl;
     ifstream file(fname, std::ifstream::in);
     if(!file.is_open()) {
-        throw invalid_argument("Could not open file\n");
+        auto new_fname = "../" + string(fname);
+        file.open(new_fname);
+        if(!file.is_open()) {
+            throw invalid_argument("Could not open file\n");
+        }
     }
     string word;
     while (word.compare("function")) {

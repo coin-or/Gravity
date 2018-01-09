@@ -585,7 +585,7 @@ namespace gravity {
         template<typename Tobj>
         func_& in(const vector<Tobj*>& vec) {
             _nb_vars = 0;
-            _nb_instances = 0;
+            _nb_instances = 1;
             string key;
             auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
             auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
@@ -820,7 +820,7 @@ namespace gravity {
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            propagate_nb_ind(_nb_instances);
+            propagate_nb_ind(_nb_instances);            
             return *this;
         }
         
@@ -864,9 +864,6 @@ namespace gravity {
                         }
                         else if(get<1>(v->_unique_id)==to_){
                             *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
                         }
                         break;
                     }
@@ -1083,11 +1080,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1097,25 +1097,31 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
+                        }
                         break;
                     }
                     case integer_:{
                         auto vv = ((var<int>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
-                            _ids = vv->get_ids();                    }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                            _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1123,12 +1129,16 @@ namespace gravity {
                         auto vv = ((var<float>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
-                            _ids = vv->get_ids();                    }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                            _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1138,11 +1148,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1152,11 +1165,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1165,7 +1181,7 @@ namespace gravity {
                 }
                 (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
                 if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
                     _nb_vars++;
                 }
                 else {
@@ -1182,11 +1198,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1195,13 +1214,15 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
+                        }
                         break;
                     }
                     case integer_:{
@@ -1209,11 +1230,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1222,11 +1246,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1234,11 +1261,14 @@ namespace gravity {
                         auto vv = ((param<double>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);                    }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1247,11 +1277,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1260,16 +1293,14 @@ namespace gravity {
                 }
                 (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
                 if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
                 }
             }
             delete _vars;
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            if (_expr) {
-                embed(_expr);
-            }
+            propagate_nb_ind(_nb_instances);
             return *this;
         }
         
@@ -1282,6 +1313,26 @@ namespace gravity {
 //        void insert(expr& e);
         void update_to_str(bool input = false);
         size_t get_nb_vars() const;
+        
+        size_t get_nb_vars(unsigned inst) const{
+            unsigned n = 0;
+            for (auto &vp:*_vars) {
+                if(vp.second.first->_is_indexed && vp.second.first->_ids->size()>1){
+                    n += vp.second.first->get_dim(inst);
+                }
+                else if(vp.second.first->_is_vector){
+                    n += vp.second.first->get_dim();
+                }
+                else {
+                    n += 1;
+                }
+            }
+            return n;
+        };
+        
+        size_t get_nb_instances() const {
+            return max((size_t)1,constant_::get_nb_instances());
+        }
         
         constant_* get_cst();
         
@@ -1341,7 +1392,7 @@ namespace gravity {
                 _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
             }
             else {
-                _nb_instances = max(_nb_instances, term._p->get_nb_instances());
+                _nb_instances = max(_nb_instances, term._p->get_nb_instances(0));
             }
 //            _val->resize(_nb_instances);
         }
@@ -1445,11 +1496,18 @@ namespace gravity {
             auto f = func_(*this);
             f._is_vector = true;
 //            auto vars_cpy = *f._vars;
-//            for (auto &vp:*f._vars) {
+            for (auto &vp:*f._vars) {
 //                vars_cpy.erase(vp.first);
-//                vp.second.first->_is_vector = true;
+                vp.second.first->_is_vector = true;
 //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
 //                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+            }
+            
+//            for (auto &vp:*f._params) {
+                //                vars_cpy.erase(vp.first);
+//                vp.second.first->_is_vector = true;
+//                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+                //                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
 //            }
 //            *f._vars = move(vars_cpy);
 //            if (f._expr) {
@@ -2579,6 +2637,8 @@ namespace gravity {
     
     template<typename type>
     func_ product(const param<type>& p1, const func_& f);
+    
+    func_ product(const func_& f1, const func_& f2);
 
     template<typename type>
     func_ innerproduct(const param<type>& p1, const param<type>& p2);

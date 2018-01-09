@@ -72,9 +72,23 @@ public:
 
     size_t get_id_inst(unsigned inst = 0) const {
         if (_is_indexed) {
+            if(_ids->at(0).size() <= inst){
+                throw invalid_argument("get_id_inst out of range");
+            }
             return _ids->at(0).at(inst);
         }
         return inst;
+    };
+    
+    size_t get_id_inst(unsigned inst1, unsigned inst2) const {
+        if (_is_indexed) {
+            if (_ids->size()==1) {
+                return _ids->at(0).at(inst2);
+            }
+            return _ids->at(inst1).at(inst2);
+        }
+        return inst2;
+//        throw invalid_argument("Calling get_id_inst on a non indexed parpam\n");
     };
 
     // newly added part by guanglei
@@ -167,9 +181,16 @@ public:
     size_t get_nb_instances() const {
         if (_is_indexed) {
             if (_ids->size()>1) {
-                throw invalid_argument("get_nb_instances sould be called with index here\n");
+                throw invalid_argument("get_nb_instances should be called with index here\n");
             }
             return _ids->at(0).size();
+        }
+        return get_dim();
+    }
+    
+    size_t get_nb_instances(unsigned inst) const {
+        if (_is_indexed) {
+            return _ids->at(inst).size();
         }
         return get_dim();
     }
@@ -391,7 +412,7 @@ public:
     type eval(unsigned i) const {
         if (_is_indexed) {
             if (_ids->size()>1) {
-                throw invalid_argument("get_nb_instances sould be called with index here\n");
+                throw invalid_argument("get_nb_instances should be called with index here\n");
             }
            return _val->at(_ids->at(0).at(i));
         }
@@ -405,6 +426,9 @@ public:
     type eval(unsigned i, unsigned j) const {
         
         if (_is_indexed && _ids->size()>1) {
+//            if (_ids->at(i).at(j) >= _val->size()) {
+//                throw invalid_argument("eval(i,j): out of range");
+//            }
             return _val->at(_ids->at(i).at(j));
         }
 
@@ -600,6 +624,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         list<size_t> indices;
         indices = {forward<size_t>(args)...};
@@ -656,6 +683,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         list<string> indices;
         //indices = {forward<size_t>(args)...};
@@ -700,14 +730,16 @@ public:
 
 
 
-    template<typename Tobj>
-    param in(const vector<Tobj*>& vec) {
+    template<typename Tobj> param in(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -724,9 +756,9 @@ public:
             key = (*it)->_name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 if(res._indices->insert(make_pair<>(key, index)).second) {
@@ -748,14 +780,16 @@ public:
         return res;
     }
     
-    template<typename Tobj>
-    param in(const vector<Tobj>& vec) {
+    template<typename Tobj> param in(const vector<Tobj>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -772,9 +806,9 @@ public:
             key = (*it)._name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 if(res._indices->insert(make_pair<>(key, index)).second) {
@@ -795,15 +829,197 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-    template<typename Tobj>
-    param in_pairs(const vector<Tobj*>& vec) {
+    
+    
+    
+    param in_arcs(const vector<Node*>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._rev_indices = this->_rev_indices;
+        res._is_vector = _is_vector;
+        res._is_matrix = _is_matrix;
+        res._is_transposed = _is_transposed;
+        if(vec.empty()){
+            DebugOff("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
+        DebugOff(_name << " = ");
+        string key;
+        unsigned inst = 0;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            if (inst>0) {
+                res._ids->push_back(vector<unsigned>());
+                res._dim.push_back(0);
+            }
+            for (auto &a:(*it)->get_in()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto index = _indices->size();
+                auto pp = param_::_indices->insert(make_pair<>(key, index));
+                if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(),index+1));
+                    _dim[0] = max(_dim[0],_val->size());
+                    _rev_indices->resize(_val->size());
+                    _rev_indices->at(index) = key;
+                    if(res._indices->insert(make_pair<>(key, index)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(index);
+                }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(pp.first->second);
+                }
+            }
+            ++inst;
+        }
+        res._unique_id = make_tuple<>(res._id,in_arcs_, typeid(Node).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    param out_arcs(const vector<Node*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._rev_indices = this->_rev_indices;
+        res._is_vector = _is_vector;
+        res._is_matrix = _is_matrix;
+        res._is_transposed = _is_transposed;
+        if(vec.empty()){
+            DebugOff("In function param.out_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
+        DebugOff(_name << " = ");
+        string key;
+        unsigned inst = 0;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            if (inst>0) {
+                res._ids->push_back(vector<unsigned>());
+                res._dim.push_back(0);
+            }
+            for (auto &a:(*it)->get_out()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto index = _indices->size();
+                auto pp = param_::_indices->insert(make_pair<>(key, index));
+                if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(),index+1));
+                    _dim[0] = max(_dim[0],_val->size());
+                    _rev_indices->resize(_val->size());
+                    _rev_indices->at(index) = key;
+                    if(res._indices->insert(make_pair<>(key, index)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(index);
+                }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(pp.first->second);
+                }
+            }
+            ++inst;
+        }
+        res._unique_id = make_tuple<>(res._id,out_arcs_, typeid(Node).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    
+    param in_gens(const vector<Node*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._rev_indices = this->_rev_indices;
+        res._is_vector = _is_vector;
+        res._is_matrix = _is_matrix;
+        res._is_transposed = _is_transposed;
+        if(vec.empty()){
+            DebugOff("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
+        DebugOff(_name << " = ");
+        string key;
+        unsigned inst = 0;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            if (inst>0) {
+                res._ids->push_back(vector<unsigned>());
+                res._dim.push_back(0);
+            }
+            for (auto &g:(*it)->get_gens()) {
+                if (!g->_active) {
+                    continue;
+                }
+                key = g->_name;
+                auto index = _indices->size();
+                auto pp = param_::_indices->insert(make_pair<>(key, index));
+                if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(),index+1));
+                    _dim[0] = max(_dim[0],_val->size());
+                    _rev_indices->resize(_val->size());
+                    _rev_indices->at(index) = key;
+                    if(res._indices->insert(make_pair<>(key, index)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(index);
+                }
+                else {
+                    if(res._indices->insert(make_pair<>(key,pp.first->second)).second) {
+                        res._dim[inst]++;
+                    }
+                    res._ids->at(inst).push_back(pp.first->second);
+                }
+            }
+            ++inst;
+        }
+        res._unique_id = make_tuple<>(res._id,in_gens_, typeid(Node).hash_code(), res.get_id_inst(0),res.get_id_inst(res.get_dim()));
+        res._is_indexed = true;
+        return res;
+    }
+    
+    template<typename Tobj> param in_pairs(const vector<Tobj*>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -825,7 +1041,7 @@ public:
             if(pp.second) { //new index inserted
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
-
+                
                 if(res._indices->insert(make_pair<>(key, index)).second) {
                     res._dim[0]++;
                 }
@@ -845,14 +1061,16 @@ public:
         return res;
     }
     
-    template<typename Tobj>
-    param in_pairs(const vector<Tobj>& vec) {
+    template<typename Tobj> param in_pairs(const vector<Tobj>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -892,9 +1110,8 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-    template<typename Tobj>
-    param in_pairs(const vector<Tobj*>& vec, unsigned T) {
+    
+    template<typename Tobj> param in_pairs(const vector<Tobj*>& vec, unsigned T) {
         assert(T > 0);
         param res(this->_name);
         res._id = this->_id;
@@ -902,6 +1119,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.in_pairs(const vector<Tobj*>& vec, unsigned T), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -925,7 +1145,7 @@ public:
                 if(pp.second) { //new index inserted
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
-
+                    
                     if(res._indices->insert(make_pair<>(key, index)).second) {
                         res._dim[0]++;
                     }
@@ -946,37 +1166,17 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-    param to() {
-        auto res(*this);
-        get<1>(res._unique_id) = to_;
-        res._name += ".to";
-        return res;
-    }
     
-    param from() {
-        auto res(*this);
-        get<1>(res._unique_id) = from_;
-        res._name += ".from";
-        return res;
-    }
-
-    param in_pairs() {
-        auto res(*this);
-        get<1>(res._unique_id) = in_pairs_;
-        res._name += ".in_pairs";
-        return res;
-    }
-
-    
-    template<typename Tobj>
-    param from(const vector<Tobj*>& vec) {
+    template<typename Tobj> param from(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1021,14 +1221,16 @@ public:
         return res;
     }
     
-    template<typename Tobj>
-    param from(const vector<Tobj>& vec) {
+    template<typename Tobj> param from(const vector<Tobj>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1072,15 +1274,17 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-    template<typename Tobj>
-    param to(const vector<Tobj*>& vec) {
+    
+    template<typename Tobj> param to(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1122,16 +1326,18 @@ public:
         res._is_indexed = true;
         return res;
     }
-
     
-    template<typename Tobj>
-    param to(const vector<Tobj>& vec) {
+    
+    template<typename Tobj> param to(const vector<Tobj>& vec) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(vec.empty()){
             DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1173,6 +1379,48 @@ public:
         res._is_indexed = true;
         return res;
     }
+
+    param to() {
+        auto res(*this);
+        get<1>(res._unique_id) = to_;
+        res._name += ".to";
+        return res;
+    }
+    
+    param from() {
+        auto res(*this);
+        get<1>(res._unique_id) = from_;
+        res._name += ".from";
+        return res;
+    }
+    
+    param in_arcs() {
+        auto res(*this);
+        get<1>(res._unique_id) = in_arcs_;
+        res._name += ".incoming_arcs";
+        return res;
+    }
+    
+    param out_arcs() {
+        auto res(*this);
+        get<1>(res._unique_id) = out_arcs_;
+        res._name += ".outgoing_arcs";
+        return res;
+    }
+    
+    param in_gens() {
+        auto res(*this);
+        get<1>(res._unique_id) = in_gens_;
+        res._name += ".in_gens";
+        return res;
+    }
+
+    param in_pairs() {
+        auto res(*this);
+        get<1>(res._unique_id) = in_pairs_;
+        res._name += ".in_pairs";
+        return res;
+    }
     
     param excl(unsigned index) {
         param res(this->_name);
@@ -1181,6 +1429,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         for (unsigned i = 0; i<get_nb_instances(); i++) {
             if (i!=index) {
@@ -1202,6 +1453,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         string key;
         if (nm->_active) {
@@ -1246,6 +1500,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(nodes.empty()){
             DebugOff("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1293,6 +1550,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(nodes.empty()){
             DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1347,6 +1607,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(arcs.empty()){
             DebugOff("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1396,6 +1659,9 @@ public:
         res._intype = this->_intype;
         res._range = this->_range;
         res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         if(arcs.empty()){
             DebugOff("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");

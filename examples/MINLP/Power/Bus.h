@@ -115,12 +115,17 @@ public:
      @brief Returns the vector of incoming active arcs
      */
     std::vector<Line*> get_in();
+    
+    /*
+     @brief Returns the vector of connected gens
+     */
+    vector<gravity::aux*> get_gens();
 
     /** @brief Returns the lower bound on the voltage magnitude at this bus */
-    double vmin();
+    double vmin(void);
 
     /** @brief Returns the upper bound on the voltage magnitude at this bus */
-    double vmax();
+    double vmax(void);
 
     /** @brief Connect a generator to the current bus */
     void connect_gen(Gen* g);
