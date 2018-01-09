@@ -100,7 +100,8 @@ void MosekProgram::fill_in_mosek_vars() {
                     (*lb)[i] = real_var->get_lb(i);
                     (*ub)[i] = real_var->get_ub(i);
                 }
-                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                if(!real_var->_in_q_cone) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                else _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inQCone(real_var->get_dim())));
             }
             else {
                 auto sdp_var = (sdpvar<float>*)v;
@@ -120,7 +121,8 @@ void MosekProgram::fill_in_mosek_vars() {
                     (*lb)[i] = real_var->get_lb(i);
                     (*ub)[i] = real_var->get_ub(i);
                 }
-                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                if(!real_var->_in_q_cone)_mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                else _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inQCone(real_var->get_dim())));
             }
             else {
                 auto sdp_var = (sdpvar<long double>*)v;
@@ -140,7 +142,8 @@ void MosekProgram::fill_in_mosek_vars() {
                     (*lb)[i] = real_var->get_lb(i);
                     (*ub)[i] = real_var->get_ub(i);
                 }
-                _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                if(!real_var->_in_q_cone) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_dim(), fusion::Domain::inRange(lb,ub)));
+                else _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inQCone(real_var->get_dim())));
             }
             else {
                 auto sdp_var = (sdpvar<double>*)v;
@@ -214,7 +217,7 @@ void MosekProgram::create_mosek_constraints() {
     shared_ptr<Constraint> c;
     for(auto& p: _model->_cons) {
         c = p.second;
-        //c->print();
+        c->print();
         if (c->is_nonlinear()) {
             cout <<  "We haven't implemented quadratic expressions interface for mosek" << endl;
             throw invalid_argument("Mosek cannot handle nonlinear constraints that are not convex quadratic.\n");
@@ -241,7 +244,7 @@ void MosekProgram::create_mosek_constraints() {
                     }
                     else {
                         if (is_indexed(it1.second._p)) {
-                            idx_inst = it1.second._p->get_id_inst();
+                            idx_inst = it1.second._p->get_id_inst(i);
                         }
                         else {
                             idx_inst = inst;
@@ -253,13 +256,14 @@ void MosekProgram::create_mosek_constraints() {
                             c_idx_inst = inst;
                         }
                         auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst), _mosek_vars[idx]->index(idx_inst));
+
                         if (!it1.second._sign) {
                             lterm = fusion::Expr::mul(-1, lterm);
                         }
                         expr = fusion::Expr::add(expr,lterm);
                     }
                 }
-                else {
+                else if(vartype == sdpvar_c) {
                     if (it1.second._coef->_is_transposed) {
                         auto coefs = new_array_ptr<double,1>(it1.second._p->get_dim());
                         for (int j = 0; j<it1.second._p->get_dim(); j++) {
@@ -273,7 +277,7 @@ void MosekProgram::create_mosek_constraints() {
                         if (is_indexed(it1.second._p)) {
                             pair = it1.second._p->get_sdpid();
                         }
-                      
+
                         if (is_indexed(it1.second._coef)) {
                             c_idx_inst = get_poly_id_inst(it1.second._coef);
                         }
@@ -287,18 +291,44 @@ void MosekProgram::create_mosek_constraints() {
                         expr = fusion::Expr::add(expr,lterm);
                     }
 
+                }else{ //param
+                    if (it1.second._coef->_is_transposed) {
+                        auto coefs = new_array_ptr<double,1>(it1.second._p->get_dim());
+                        for (int j = 0; j<it1.second._p->get_dim(); j++) {
+                            (*coefs)(j) = poly_eval(it1.second._coef,j);
+                        }
+                        expr = fusion::Expr::add(expr,fusion::Expr::dot(coefs,_mosek_vars[idx]));
+                        //    cout << "expr" << expr->toString() << endl;
+                    }
+                    else { //this results in always taking the first instance? it doesn't use i at all?
+                        if (is_indexed(it1.second._p)) {
+                            idx_inst = it1.second._p->get_id_inst(i); //fixed here, look for similar errors
+                        }
+                        else {
+                            idx_inst = inst;
+                        }
+                        if (is_indexed(it1.second._coef)) {
+                            c_idx_inst = get_poly_id_inst(it1.second._coef);
+                        }
+                        else {
+                            c_idx_inst = inst;
+                        }
+                        auto lterm = fusion::Expr::constTerm(poly_eval(it1.second._coef, c_idx_inst) * poly_eval(it1.second._p, idx_inst));
+                        if (!it1.second._sign) {
+                            lterm = fusion::Expr::mul(-1, lterm);
+                        }
+                        expr = fusion::Expr::add(expr,lterm);
+                    }
                 }
             }
-
-
             if(c->get_type()==geq) {
-                _mosek_model->constraint(c->get_name(), expr, fusion::Domain::greaterThan(c->get_rhs()));
+                _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::greaterThan(c->get_rhs()));
             }
             else if(c->get_type()==leq) {
-                _mosek_model->constraint(c->get_name(), expr, fusion::Domain::lessThan(c->get_rhs()));
+                _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::lessThan(c->get_rhs()));
             }
             else if(c->get_type()==eq) {
-                _mosek_model->constraint(c->get_name(), expr, fusion::Domain::equalsTo(c->get_rhs()));
+                _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::equalsTo(c->get_rhs()));
             }
             inst++;
         }
@@ -310,6 +340,7 @@ void MosekProgram::set_mosek_objective() {
     size_t c_idx_inst = 0;
     // initialize with the constant part.
     monty::rc_ptr< ::mosek::fusion::Expression >  expr= fusion::Expr::constTerm(poly_eval(_model->_obj.get_cst())); // expr is a pointer to the Expression.
+    if(_model->_obj.get_qterms().empty() == false) cerr << "\nMosek doesn't support quadratic objectives!\n";
     for (auto& it1: _model->_obj.get_lterms()) {
         //idx = it1.second._p->get_id();
         idx = it1.second._p->get_vec_id();
