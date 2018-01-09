@@ -91,7 +91,7 @@ void GurobiProgram::update_model(){
             case binary_c:{
                 auto vb =  (var<bool>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vb->get_dim();
+                auto dim = vb->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     vid_inst = vid + it.second->get_id_inst(i);
                     gvar = _grb_vars.at(vid_inst);
@@ -102,7 +102,7 @@ void GurobiProgram::update_model(){
             case integer_c:{
                 auto vi =  (var<int>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vi->get_dim();
+                auto dim = vi->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     vid_inst = vid + it.second->get_id_inst(i);
                     gvar = _grb_vars.at(vid_inst);
@@ -113,7 +113,7 @@ void GurobiProgram::update_model(){
             case short_c:{
                 auto vs =  (var<short>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vs->get_dim();
+                auto dim = vs->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     vid_inst = vid + it.second->get_id_inst(i);
                     gvar = _grb_vars.at(vid_inst);
@@ -124,7 +124,7 @@ void GurobiProgram::update_model(){
             case float_c:{
                 auto vf =  (var<float>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vf->get_dim();
+                auto dim = vf->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     vid_inst = vid + it.second->get_id_inst(i);
                     gvar = _grb_vars.at(vid_inst);
@@ -135,7 +135,7 @@ void GurobiProgram::update_model(){
             case double_c:{
                 auto vd =  (var<double>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vd->get_dim();
+                auto dim = vd->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     vid_inst = vid + it.second->get_id_inst(i);
                     gvar = _grb_vars.at(vid_inst);
@@ -147,7 +147,7 @@ void GurobiProgram::update_model(){
             case long_c:{
                 auto vl =  (var<long double>*)it.second;
                 vid = it.second->get_id();
-                auto dim = vl->get_dim();
+                auto dim = vl->get_dim(0);
                 for (int i = 0; i < dim; i++) {
                     gvar = _grb_vars.at(vid+i);
                     vl->set_val(vid+i,gvar.get(GRB_DoubleAttr_X));
@@ -178,7 +178,7 @@ void GurobiProgram::fill_in_grb_vmap(){
         switch (v->get_intype()) {
             case float_: {
                 auto real_var = (var<float>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
                 }
@@ -186,7 +186,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             case long_:{
                 auto real_var = (var<long double>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i))));
                 }
@@ -194,7 +194,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             case double_:{
                 auto real_var = (var<double>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name()+"_"+to_string(i)));
                 }
@@ -202,7 +202,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             case integer_:{
                 auto real_var = (var<int>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
                 }
@@ -210,7 +210,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             case short_:{
                 auto real_var = (var<short>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name()+"_"+to_string(i))));
                 }
@@ -218,7 +218,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             case binary_:{
                 auto real_var = (var<bool>*)v;
-                for (int i = 0; i < real_var->get_dim(); i++) {
+                for (int i = 0; i < real_var->get_dim(0); i++) {
                     auto vid = idx + v->get_id_inst(i);
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_BINARY, v->get_name()+"_"+to_string(i))));
                 }
@@ -232,7 +232,7 @@ void GurobiProgram::fill_in_grb_vmap(){
 //    {
 //        v = v_p.second;
 //        auto real_var = (var<double>*)v;
-//        for (int i = 0; i < real_var->get_dim(); i++) {
+//        for (int i = 0; i < real_var->get_dim(0); i++) {
 //            auto vid = v->get_id() + v->get_id_inst(i);
 //            DebugOn("VID = "<< vid <<" : " << _grb_vars.at(vid).get(GRB_StringAttr_VarName) << " in [" << _grb_vars.at(vid).get(GRB_DoubleAttr_LB) << "," << _grb_vars.at(vid).get(GRB_DoubleAttr_UB) << "]\n" );
 //        }
@@ -264,17 +264,17 @@ void GurobiProgram::create_grb_constraints(){
             default:
                 break;
         }
-        nb_inst = c->get_nb_instances();
+        nb_inst = c->_nb_instances;
         if (c->is_linear()) {
             for (int i = 0; i< nb_inst; i++){
                 linlhs = 0;
                 for (auto& it1: c->get_lterms()) {
                     lterm = 0;
                     if (it1.second._coef->_is_transposed) {
-                        auto dim =it1.second._p->get_dim();
+                        auto dim =it1.second._p->get_dim(i);
                         for (int j = 0; j<dim; j++) {
-                            coeff = poly_eval(it1.second._coef,j);
-                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(j)];
+                            coeff = poly_eval(it1.second._coef,i,j);
+                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
                             lterm += coeff*gvar1;
                         }
                     }
@@ -298,10 +298,10 @@ void GurobiProgram::create_grb_constraints(){
                 for (auto& it1: c->get_lterms()) {
                     lterm = 0;
                     if (it1.second._coef->_is_transposed) {
-                        auto dim =it1.second._p->get_dim();
+                        auto dim =it1.second._p->get_dim(i);
                         for (int j = 0; j<dim; j++) {
-                            coeff = poly_eval(it1.second._coef,j);
-                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(j)];
+                            coeff = poly_eval(it1.second._coef,i,j);
+                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
                             lterm += coeff*gvar1;
                         }
                     }
@@ -319,16 +319,27 @@ void GurobiProgram::create_grb_constraints(){
                     gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
                     gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
                     if (it1.second._coef->_is_transposed) {
-                        throw invalid_argument("unsupported operation");
+                        auto dim =it1.second._p->first->get_dim(i);
+                        for (int j = 0; j<dim; j++) {
+                            coeff = poly_eval(it1.second._coef,i,j);
+                            gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i,j)];
+                            gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i,j)];
+                            if (!it1.second._sign) {
+                                quadlhs += -1*coeff*gvar1*gvar2;
+                            }
+                            else {
+                                quadlhs += coeff*gvar1*gvar2;
+                            }
+                        }
                     }
                     else {
                         coeff = poly_eval(it1.second._coef,i);
-                    }
-                    if (!it1.second._sign) {
-                        quadlhs += -1*coeff*gvar1*gvar2;
-                    }
-                    else {
-                        quadlhs += coeff*gvar1*gvar2;
+                        if (!it1.second._sign) {
+                            quadlhs += -1*coeff*gvar1*gvar2;
+                        }
+                        else {
+                            quadlhs += coeff*gvar1*gvar2;
+                        }
                     }
                 }
                 quadlhs += poly_eval(c->get_cst(), i);
@@ -352,7 +363,7 @@ void GurobiProgram::set_grb_objective(){
             lterm = 0;
 //            idx = it1.second._p->get_id();
             if (it1.second._coef->_is_transposed) {
-                auto dim = it1.second._p->get_dim();
+                auto dim = it1.second._p->get_dim(0);
                 auto idx = it1.second._p->get_id();
                 for (int j = 0; j<dim; j++) {
                     coeff = poly_eval(it1.second._coef,j);
@@ -376,16 +387,27 @@ void GurobiProgram::set_grb_objective(){
 //        idx = it1.second._p->second->get_id();
         gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst()];
         if (it1.second._coef->_is_transposed) {
-            throw invalid_argument("unsupported operation");
+            auto dim =it1.second._p->first->get_dim();
+            for (int j = 0; j<dim; j++) {
+                coeff = poly_eval(it1.second._coef,j);
+                gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(j)];
+                gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(j)];
+                if (!it1.second._sign) {
+                    qobj += -1*coeff*gvar1*gvar2;
+                }
+                else {
+                    qobj += coeff*gvar1*gvar2;
+                }
+            }
         }
         else {
             coeff = poly_eval(it1.second._coef);
-        }
-        if (!it1.second._sign) {
-            qobj += -1*coeff*gvar1*gvar2;
-        }
-        else {
-            qobj += coeff*gvar1*gvar2;
+            if (!it1.second._sign) {
+                qobj += -1*coeff*gvar1*gvar2;
+            }
+            else {
+                qobj += coeff*gvar1*gvar2;
+            }
         }
     }
     qobj += poly_eval(_model->_obj.get_cst());

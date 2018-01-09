@@ -27,20 +27,17 @@ int main (int argc, char * argv[])
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
-    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";    
     string path = argv[0];
-    if (path.find("/bin")!=string::npos && path.find("/bin/socopf")==string::npos) {//Not running from terminal
-        fname = "../" + fname;
-    }
     string solver_str="ipopt";
     
-    // create a OptionParser with options
+    /** Create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
-    // parse the options and verify that all went well. If not, errors and help will be shown
+    /** Parse the options and verify that all went well. If not, errors and help will be shown */
     bool correct_parsing = opt.parse_options(argc, argv);
     
     if(!correct_parsing){
@@ -64,7 +61,7 @@ int main (int argc, char * argv[])
     PowerNet* grid = new PowerNet();
     grid->readgrid(fname.c_str());
     
-    // Grid Parameters
+    /* Grid Parameters */
     auto bus_pairs = grid->get_bus_pairs();
     auto nb_bus_pairs = grid->get_nb_active_bus_pairs();
     auto nb_gen = grid->get_nb_active_gens();
@@ -110,15 +107,9 @@ int main (int argc, char * argv[])
     Wii.initialize_all(1.001);
     
     /**  Objective */
-    func_ obj;
-    for (auto g:grid->gens) {
-        if (g->_active) {
-            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-        }
-    }
-    SOCP.min(obj);
-    
-    
+    auto obj = product(grid->c1, Pg) + product(grid->c2, power(Pg,2)) + sum(grid->c0);
+    SOCP.min(obj.in(grid->gens));
+
     /** Constraints */
     /* Second-order cone constraints */
     Constraint SOC("SOC");
@@ -126,20 +117,15 @@ int main (int argc, char * argv[])
     SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
 
     /* Flow conservation */
-    for (auto b: grid->nodes) {
-        Bus* bus = (Bus*) b;
-        Constraint KCL_P("KCL_P"+bus->_name);
-        Constraint KCL_Q("KCL_Q"+bus->_name);
-        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl() - sum(Pg.in(bus->_gen));
-        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
-
-        /* Shunts */
-        KCL_P +=  bus->gs()*(Wii(bus->_name));
-        KCL_Q -=  bus->bs()*(Wii(bus->_name));
-        
-        SOCP.add_constraint(KCL_P = 0);
-        SOCP.add_constraint(KCL_Q = 0);
-    }
+    Constraint KCL_P("KCL_P");
+    Constraint KCL_Q("KCL_Q");
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid->pl - sum(Pg.in_gens());
+    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid->ql - sum(Qg.in_gens());
+    /* Shunts */
+    KCL_P +=  grid->gs*Wii;
+    KCL_Q -=  grid->bs*Wii;
+    SOCP.add_constraint(KCL_P.in(grid->nodes) = 0);
+    SOCP.add_constraint(KCL_Q.in(grid->nodes) = 0);
 
     /* AC Power Flow */
     Constraint Flow_P_From("Flow_P_From");
@@ -209,6 +195,7 @@ int main (int argc, char * argv[])
 
     
     /* Solver selection */
+    /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
     if (use_cplex) {
         solver SCOPF_CPX(SOCP, cplex);
         auto solver_time_start = get_wall_time();
@@ -236,7 +223,8 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-//    SOCP.print_expanded();
+    /** Uncomment next line to print expanded model */
+    /* SOCP.print_expanded(); */
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

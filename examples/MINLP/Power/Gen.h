@@ -15,23 +15,20 @@
 #include "GenCost.h"
 #include <iostream>
 #include <stdio.h>
+#include <gravity/Auxiliary.h>
 
 class Bus;
 
-class Gen{
+class Gen: public gravity::aux{
 public:
     /** @brief Identifier
      @note One bus may have multiple generators
-     */
-    std::string _name;
+     */    
 
     std::string _type_name="Gen";
     
     /** Position of a generator in a container. **/
     int _id;
-    
-    /** @brief Gen status, in/out of the network */
-    bool _active;
     
     /** @brief Corresponding Bus */
     Bus* _bus;
