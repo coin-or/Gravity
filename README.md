@@ -1,4 +1,4 @@
-Dev:
+
 [![Build Status](https://travis-ci.org/Allinsights/Gravity.svg?branch=master)](https://travis-ci.org/Allinsights/Gravity)
 
 
@@ -7,7 +7,7 @@ Gravity
 
 Mathematical Modeling for Optimization and Machine Learning
 -----------
-Created by Hassan Hijazi in 2016-17
+Created by Hassan Hijazi.
 
 www.allinsights.io/gravity
 -----------
