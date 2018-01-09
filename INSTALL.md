@@ -6,6 +6,7 @@ Included ThirdParty Libraries
 -------
 
 Armadillo: http://arma.sourceforge.net/
+
 cpp_option_parser: https://github.com/nerzadler/cpp_option_parser
 
 OPTIONAL
@@ -20,6 +21,10 @@ Gurobi: http://www.gurobi.com
 Cplex: https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/
 
 Mosek: https://www.mosek.com
+
+Boost: http://www.boost.org/
+
+XLNT: https://github.com/tfussell/xlnt
 
 -------
 
