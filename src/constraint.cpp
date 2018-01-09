@@ -93,7 +93,6 @@ size_t Constraint::get_id_inst(size_t ind) const{
 /* Output */
 
 void Constraint::print_expanded(){
-    
     auto nb_inst = get_nb_instances();
     for (unsigned inst = 0; inst<nb_inst; inst++) {
         eval(inst);
