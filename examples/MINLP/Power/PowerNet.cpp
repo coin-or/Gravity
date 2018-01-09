@@ -555,3 +555,175 @@ int PowerNet::readgrid(const char* fname) {
     return 0;
 }
 
+/* Create imaginary lines, fill bus_pairs_chord, set lower and upper bounds */
+void PowerNet::update_net(){
+    string name;
+    double cos_max_, cos_min_, sin_max_, sin_min_;
+    double wr_max_, wr_min_, wi_max_, wi_min_, w_max_, w_min_;
+    Node *src, *dest, *n;
+    Arc *new_arc;
+    int fixed = 1, id_sorted = 0; //id of the current bag in bags_sorted
+    Arc *a12, *a13, *a32;
+    std::vector<std::vector<Node*>> bags_sorted;
+
+    // bags are cliques in the chordal completion graph
+    for(auto& b: _bags){
+        for(int i = 0; i < b.size()-1; i++) {
+            for(int j = i+1; j < b.size(); j++) {
+                Arc* a = get_arc(b[i]->_name,b[j]->_name);
+                if (a==nullptr) {
+                    src = get_node(b[i]->_name);
+                    dest = get_node(b[j]->_name);
+                    new_arc = new Line(to_string((int) arcs.size() + 1));
+                    new_arc->_id = arcs.size();
+                    new_arc->_src = src;
+                    new_arc->_dest = dest;
+                    new_arc->_active = false;
+                    new_arc->_imaginary = true;
+                    new_arc->_free = true;
+                    new_arc->connect();
+                    add_undirected_arc(new_arc);
+                }
+            }
+        }
+    }
+
+    while (fixed != 0) {
+        fixed = 0;
+        DebugOn("\nNew iteration");
+        for(auto b_it = _bags.begin(); b_it != _bags.end();) {
+            std::vector<Node*> b = *b_it;
+            if(b.size() == 3) {
+                cout << "\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name;
+                a12 = get_arc(b[0], b[1]);
+                a13 = get_arc(b[0], b[2]);
+                a32 = get_arc(b[2], b[1]);
+                if ((a12->_free && a13->_free) || (a12->_free && a32->_free) || (a13->_free && a32->_free) ||
+                    (!a12->_free && !a13->_free && !a32->_free)) { // at least two missing lines or all lines real
+                    ++b_it;
+                    continue;
+                }
+                if (a12->_free) {
+                    a12->_free = false;
+                    DebugOn("\nFixing arc a12 (" << a12->_src->_name << ", " << a12->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                if (a13->_free) {
+                    a13->_free = false;
+                    DebugOn("\nFixing arc a13 (" << a13->_src->_name << ", " << a13->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                if (a32->_free) {
+                    a32->_free = false;
+                    DebugOn("\nFixing arc a32 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                bags_sorted.push_back(b);
+                _bags.erase(b_it);
+                id_sorted++;
+            }
+            else{ // Bags with size > 3; todo: leave only this as the general case?
+                DebugOn("\nBag with size > 3");
+
+                for(int i = 0; i < b.size()-1; i++) {
+                    for (int j = i + 1; j < b.size(); j++) {
+                        Arc* a = get_arc(b[i]->_name, b[j]->_name);
+                        if (!a->_free) continue;
+                        n = a->_src;
+                        //by now, all arcs in bags should be created
+                        for (auto n1: b) {
+                            if(n==n1) continue;
+                            Arc* a2 = get_arc(n->_name, n1->_name);
+                            if (a2->_free) continue;
+                            Arc *a1 = get_arc(a->_dest, n1);
+                            if (!a1->_free) {
+                                a->_free = false;
+
+                                vector<Node *> bag;
+                                bag.push_back(get_node(n->_name));
+                                bag.push_back(get_node(a->_dest->_name));
+                                bag.push_back(get_node(n1->_name));
+//                                sort(bag.begin(), bag.end(),
+//                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
+
+                                fixed++;
+                                bags_sorted.push_back(bag);
+                                id_sorted++;
+                                DebugOn("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
+                                break;
+                            }
+                        }
+                    } // j
+                } // i
+                ++b_it;
+
+            } // size > 3
+        } // bags loop
+    } // while
+
+    //add all remaining bags to bags_sorted
+    for(auto b_it = _bags.begin(); b_it != _bags.end();) {
+        std::vector<Node*> b = *b_it;
+            if(b.size() > 2) bags_sorted.push_back(b);
+            _bags.erase(b_it);
+//            id_sorted++;
+    }
+    _bags = bags_sorted;
+
+    for(auto& a: arcs) {
+        if(a->_imaginary) a->_free = true;
+    }
+
+
+    for(auto& k: _bus_pairs._keys){
+        _bus_pairs_chord._keys.push_back(k);
+    }
+
+    for(auto& a: arcs){
+        if(a->_imaginary){
+            Bus* bus_s = (Bus*)(a->_src);
+            Bus* bus_d = (Bus*)(a->_dest);
+
+            name = bus_s->_name + "," + bus_d->_name;
+            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+
+            if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+                cos_max_ = 1;
+                cos_min_ = -1;
+            } else if (m_theta_lb < 0 && m_theta_ub > 0){
+                cos_max_ = 1;
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            } else{
+                cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            }
+            w_max_ = bus_s->vbound.max*bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min*bus_d->vbound.min;
+
+            wr_max_ = cos_max_*w_max_;
+            if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
+            else wr_min_ = cos_min_*w_min_;
+
+            if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
+                sin_max_ = 1;
+                sin_min_ = -1;
+            } else{
+                sin_max_ = sin(m_theta_lb);
+                sin_min_ = sin(m_theta_ub);
+            }
+
+            if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
+            else wi_max_ = sin_max_*w_min_;
+            if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
+            else wi_min_ = sin_min_*w_max_;
+
+//            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
+
+            wr_max.set_val(name,wr_max_);
+            wr_min.set_val(name,wr_min_);
+            wi_max.set_val(name,wi_max_);
+            wi_min.set_val(name,wi_min_);
+        }
+    }
+}
+

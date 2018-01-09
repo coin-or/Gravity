@@ -28,6 +28,12 @@ option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 # include BOOST (optional)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
+
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
+  )
+
 # configure a header file to pass some of the CMake settings
 # to the source code.
 configure_file (
@@ -113,8 +119,17 @@ if (ENABLE_BOOST)
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
 
+# Include Armadillo
+find_package(ARMADILLO)
+include_directories(${ARMADILLO_ROOT_DIR})
+set(LIBS ${LIBS} armadillo)
+add_subdirectory(${ARMADILLO_ROOT_DIR})
 
+# Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
+add_subdirectory(ext_lib/cpp_option_parser)
+set(LIBS ${LIBS} option_parser)
+
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
@@ -134,7 +149,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(ext_lib/cpp_option_parser)
 
 # Install
 install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
