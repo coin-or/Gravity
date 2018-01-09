@@ -58,7 +58,8 @@ size_t Model::get_nb_nnz_h(){
     size_t idx = 0;
     bool idx_inc = false;
     for (auto &pairs: _hess_link) {
-        for (auto &f_pair:pairs.second) {
+        auto f_pair = *pairs.second.begin();
+//        for (auto &f_pair:pairs.second) {
             idx_inc = false;
             auto f = f_pair.first;
             auto d2f = f_pair.second;
@@ -81,7 +82,7 @@ size_t Model::get_nb_nnz_h(){
                 }
             }
         }
-    }
+//    }
     _nnz_h = idx;
     return idx;
 };
@@ -1052,12 +1053,11 @@ void Model::fill_in_cstr_linearity(Ipopt::TNLP::LinearityType* const_types){
 
 
 void Model::fill_in_hess_nnz(int* iRow , int* jCol){
-    size_t idx = 0, idx_all=0, vid, vjd;
+    size_t idx = 0, idx_all=0, idx_pair=0, vid, vjd;
     string vi_name, vj_name;
     shared_ptr<param_> vi;
     shared_ptr<param_> vj;
     Constraint* c;
-    bool idx_inc = false;
     for (auto &pairs: _hess_link) {
         vi_name = pairs.first.first;
         vj_name = pairs.first.second;
@@ -1068,8 +1068,10 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         }
         vid = vi->get_id();
         vjd = vj->get_id();
+        idx_pair = idx;
         for (auto &f_pair:pairs.second) {
-            idx_inc = false;
+            idx = idx_pair;
+//        auto f_pair = *pairs.second.begin();
             auto f = f_pair.first;
             if (f->_is_constraint) {
                 c = (Constraint*)f;
@@ -1088,9 +1090,9 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
                     }
                 }
                 else if(d2f->_is_vector){
-                    if (d2f->_dim[0] != d2f->_nb_instances) {
-                        throw invalid_argument("error");
-                    }
+//                    if (d2f->_dim[0] != d2f->_nb_instances) {
+//                        throw invalid_argument("error");
+//                    }
                     for (unsigned j = 0; j < d2f->_dim[0]; j++) {
                         idx_all++;
                         iRow[idx] = vid + vi->get_id_inst(j);
@@ -1114,7 +1116,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
 }
  
 void Model::fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
-    size_t idx = 0, idx_in = 0, c_inst = 0;
+    size_t idx = 0, idx_in = 0, c_inst = 0, idx_pair=0;
     Constraint* c;
     bool idx_inc = false;
     double hess = 0;
@@ -1127,7 +1129,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     if (_first_call_hess) {
         for (auto &pairs: _hess_link) {
+            idx_pair = idx;
             for (auto &f_pair:pairs.second) {
+                idx = idx_pair;
                 idx_inc = false;
                 auto f = f_pair.first;
                 if (f->_is_constraint) {
@@ -1196,7 +1200,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
     }
     if ((_type==lin_m || _type==quad_m)) { /* No need to recompute Hessian for quadratic models, used stored values */
         for (auto &pairs: _hess_link) {
+            idx_pair = idx;
             for (auto &f_pair:pairs.second) {
+                idx = idx_pair;
                 idx_inc = false;
                 auto f = f_pair.first;
                 if (f->_is_constraint) {
@@ -1211,6 +1217,8 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                             for (unsigned i = 0; i < d2f->_dim[0]; i++) {
                                 for (unsigned j = i; j < d2f->_dim[1]; j++) {
                                     res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
+                                    idx++;
+                                    idx_inc = true;
                                 }
                             }
                         }
@@ -1246,7 +1254,9 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         return;
     }
     for (auto &pairs: _hess_link) {
+        idx_pair = idx;
         for (auto &f_pair:pairs.second) {
+            idx = idx_pair;
             idx_inc = false;
             auto f = f_pair.first;
             if (f->_is_constraint) {
