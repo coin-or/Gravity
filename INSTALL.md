@@ -2,6 +2,12 @@ DEPENDENCIES
 -------
 cmake: http://www.cmake.org (Version 3.2 or better)
 
+Included ThirdParty Libraries
+-------
+
+Armadillo: http://arma.sourceforge.net/
+cpp_option_parser: https://github.com/nerzadler/cpp_option_parser
+
 OPTIONAL
 -------
 
