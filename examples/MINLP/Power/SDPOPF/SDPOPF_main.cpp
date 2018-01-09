@@ -373,18 +373,19 @@ int main (int argc, char * argv[]) {
                     }
                 }
             }
-            sdpcut.print();
-            SDP.add_constraint(sdpcut <= 0);
+            sdpcut.print_expanded();
+//            SDP.add_constraint(sdpcut <= 0);
 
 
             Constraint lin("lin"+to_string(numcuts));
             cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
 //            lin = (R_diff.in(b_pairs._keys) + R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys));
             lin = product(R_diff.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
-//            lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
-//            lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
-            SDP.add_constraint(lin <= 0);
+            lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
+            lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
+            lin.print();
             lin.print_expanded();
+            SDP.add_constraint(lin <= 0);
 
             numcuts++;
         }

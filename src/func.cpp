@@ -856,6 +856,12 @@ namespace gravity{
                 res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
             }
         }
+        else if(_p->first->_is_transposed){
+            auto dim = _p->first->get_nb_instances(i);
+            for (int j = 0; j<dim; j++) {
+                res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
+            }
+        }
         else {
             res = poly_eval(_coef,i) * poly_eval(_p->first, i) * poly_eval(_p->second, i);
         }
@@ -917,9 +923,15 @@ namespace gravity{
         _coef = coef;
         _p = p;
         _sign = sign;
-//        if (coef->_is_transposed && p->_is_transposed) {
-//            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+//        if (coef->_is_transposed){
+//            _p->_is_vector = true;
 //        }
+//        if (_p->_is_vector) {
+//            _coef->_is_transposed = true;
+//        }
+        if (coef->_is_transposed && p->_is_transposed) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
         if (coef->is_function()) {
             assert(((func_*)coef)->is_constant());
         }
@@ -2382,37 +2394,53 @@ namespace gravity{
         if (is_constant() && (c.is_sdpvar() || c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);
             if (!f._cst->is_zero()) {
-                f._cst = multiply(f._cst, *this);
                 if (f._cst->is_function()) {
-                    f.embed(*(func_*)f._cst);
+                    auto fc = (func_*)f._cst;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    f._cst = multiply(f._cst, *this);
                 }
             }
             for (auto &pair:*f._lterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
+                if (pair.second._coef->is_function()) {
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
+                }
                 if (pair.second._coef->_is_transposed) {
                     pair.second._p->_is_vector = true;
-                }
-                if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
                 }
                 f.update_nb_instances(pair.second);
                 
             }
             for (auto &pair:*f._qterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
+                if (pair.second._coef->is_function()) {
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
+                }
                 if (pair.second._coef->_is_transposed) {
                     pair.second._p->first->_is_vector = true;
                     pair.second._p->second->_is_vector = true;
                 }
-                if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
-                }
                 update_nb_instances(pair.second);
             }
             for (auto &pair:*f._pterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
                 }
                 //                update_nb_instances(pair.second); // TODO
             }
@@ -4804,7 +4832,7 @@ namespace gravity{
                 return res;
             }
             else {
-                return func_(c2) *= c1;
+                return func_(c1) *= c2;
             }
         }
         else {
@@ -4816,12 +4844,12 @@ namespace gravity{
 ////                delete new_c2;
 //                return func_(c1) *= c2;
 //            }
-            if (c2.is_var()) {
-                return func_(c2) *= c1;
-            }
-            else {
+//            if (c2.is_var()) {
+//                return func_(c2) *= c1;
+//            }
+//            else {
                 return func_(c1) *= c2;
-            }
+//            }
         }
     }
 
@@ -7230,6 +7258,8 @@ namespace gravity{
         else {
             res =  f1.tr()*f2.vec();
         }
+        res._nb_instances = 1;
+        res._dim[0] = 1;
         return res;
     }
     
@@ -7251,7 +7281,9 @@ namespace gravity{
         }
         else {
             res = (*(var<type>*)&p1).vec()*f.vec();
-        }        
+        }
+        res._nb_instances = 1;
+        res._dim[0] = 1;
         return res;
     }
     
