@@ -363,7 +363,7 @@ public:
         param<type>::_dim[0]++;
         return *this;
     }
-
+    
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
     var& operator^(size_t d) {

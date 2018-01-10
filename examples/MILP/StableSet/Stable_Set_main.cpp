@@ -80,11 +80,11 @@ int main (int argc, const char * argv[])
     SDP.add_constraint(SOCP.in(indices._keys) <= 0);
     Constraint diag("diag");
     diag = sum(Xii);
-    SDP.add_constraint(diag = 1); // diagonal sum is 1
+    SDP.add_constraint(diag == 1); // diagonal sum is 1
     
     Constraint zeros("zeros");
     zeros = Xij.in(graph.arcs);
-    SDP.add_constraint(zeros = 0); // zero elements
+    SDP.add_constraint(zeros == 0); // zero elements
     
     auto Xij_ = Xij.pairs_in(graph._bags, 3);
     auto Xii_ = Xii.in(graph._bags, 3);
@@ -163,7 +163,7 @@ int main (int argc, const char * argv[])
         j = (a->_dest)->_id;
         Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
         zeros = Xij(i,j);
-        OA.add_constraint(zeros=0);
+        OA.add_constraint(zeros==0);
     }
     OA.max(2*sum(Xij) + sum(Xii));
     solver s2(OA,cplex);

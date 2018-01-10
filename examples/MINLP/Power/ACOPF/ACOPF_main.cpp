@@ -125,7 +125,7 @@ int main (int argc, char * argv[])
     else {
         Ref_Bus = vi(grid.get_ref_bus());
     }
-    ACOPF.add_constraint(Ref_Bus = 0);
+    ACOPF.add_constraint(Ref_Bus == 0);
     
     /** KCL Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -141,8 +141,8 @@ int main (int argc, char * argv[])
         KCL_P +=  grid.gs*(power(vr,2)+power(vi,2));
         KCL_Q -=  grid.bs*(power(vr,2)+power(vi,2));
     }
-    ACOPF.add_constraint(KCL_P.in(grid.nodes) = 0);
-    ACOPF.add_constraint(KCL_Q.in(grid.nodes) = 0);
+    ACOPF.add_constraint(KCL_P.in(grid.nodes) == 0);
+    ACOPF.add_constraint(KCL_Q.in(grid.nodes) == 0);
     
     /** AC Power Flows */
     /** TODO write the constraints in Complex form */
@@ -158,7 +158,7 @@ int main (int argc, char * argv[])
         Flow_P_From -= grid.g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
         Flow_P_From -= grid.b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
-    ACOPF.add_constraint(Flow_P_From.in(grid.arcs)=0);
+    ACOPF.add_constraint(Flow_P_From.in(grid.arcs)==0);
 
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to;
@@ -172,7 +172,7 @@ int main (int argc, char * argv[])
         Flow_P_To -= grid.g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
         Flow_P_To -= grid.b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
-    ACOPF.add_constraint(Flow_P_To.in(grid.arcs)=0);
+    ACOPF.add_constraint(Flow_P_To.in(grid.arcs)==0);
 
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from;
@@ -186,7 +186,7 @@ int main (int argc, char * argv[])
         Flow_Q_From += grid.b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
         Flow_Q_From -= grid.g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
-    ACOPF.add_constraint(Flow_Q_From.in(grid.arcs)=0);
+    ACOPF.add_constraint(Flow_Q_From.in(grid.arcs)==0);
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to;
     if (polar) {
@@ -199,7 +199,7 @@ int main (int argc, char * argv[])
         Flow_Q_To += grid.b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
         Flow_Q_To -= grid.g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
-    ACOPF.add_constraint(Flow_Q_To.in(grid.arcs)=0);
+    ACOPF.add_constraint(Flow_Q_To.in(grid.arcs)==0);
     
     /** AC voltage limit constraints. */
     if (!polar) {
