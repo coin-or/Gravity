@@ -41,16 +41,25 @@ namespace gravity {
         /* Boolean Requests */
         
         /* Operators */
+        Constraint& operator=(const Constraint& c);
+        Constraint& operator=(Constraint&& c);
+        
         Constraint& operator <=(double rhs);
-        Constraint& operator >=(double rhs);
-        Constraint& operator =(double rhs);
-        Constraint& operator =(const func_& f);
+        Constraint& operator >=(double rhs);        
+        Constraint& operator ==(double rhs);
+        Constraint& operator <=(const func_& rhs);
+        Constraint& operator >=(const func_& rhs);
+        Constraint& operator ==(const func_& rhs);
+        Constraint& operator =(const func_& rhs);
         
         /* Accessors */
         string get_name() const;
         int get_type() const;
         double get_rhs() const;
         bool is_active(unsigned inst = 0) const;
+        bool is_convex() const;
+        bool is_concave() const;
+        
         size_t get_id_inst(size_t ind) const;
         
         

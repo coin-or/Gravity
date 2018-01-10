@@ -139,8 +139,8 @@ int main (int argc, const char * argv[])
             KCL_P +=  grid->gs(bus->_name, to_string(t))*Wii(bus->_name, to_string(t));
             KCL_Q -=  grid->bs(bus->_name, to_string(t))*Wii(bus->_name, to_string(t));
 
-            ACUC.add_constraint(KCL_P = 0);
-            ACUC.add_constraint(KCL_Q = 0);
+            ACUC.add_constraint(KCL_P == 0);
+            ACUC.add_constraint(KCL_Q == 0);
         }
 
     ////AC Power Flow.
@@ -149,7 +149,7 @@ int main (int argc, const char * argv[])
     Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
     Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
     Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_From = 0);
+    ACUC.add_constraint(Flow_P_From == 0);
     
 
     Constraint Flow_P_To("Flow_P_To");
@@ -157,21 +157,21 @@ int main (int argc, const char * argv[])
     Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
     Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
     Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_To = 0);
+    ACUC.add_constraint(Flow_P_To == 0);
 
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from.in(grid->arcs, T);
     Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
     Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
     Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_From = 0);
+    ACUC.add_constraint(Flow_Q_From == 0);
 
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to.in(grid->arcs, T);
     Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
     Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
     Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_To = 0);
+    ACUC.add_constraint(Flow_Q_To == 0);
 //
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
@@ -210,7 +210,7 @@ int main (int argc, const char * argv[])
     for (int t = 1; t < T; t++) {
         Constraint Min_up1("Min_up1_"+ to_string(t));
         Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1) - Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-        ACUC.add_constraint(Min_up1 = 0);
+        ACUC.add_constraint(Min_up1 == 0);
     }
 
     for (int t = min_up.getvalue(); t < T; t++) {

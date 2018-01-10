@@ -2201,14 +2201,26 @@ namespace gravity{
                     _ftype = nlin_;
                 }
             }
-            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
-                _all_convexity = undet_;
-            }
-            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
-                _all_convexity = undet_;
-            }
             update_sign(*f);
-//            update_convexity();
+            if (_all_convexity==linear_ && f->_all_convexity==convex_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==linear_ && f->_all_convexity==concave_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && f->_all_convexity==convex_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==concave_ && f->_all_convexity==concave_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            else if (_all_convexity==concave_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            update_convexity();
             return *this;
         }
         return *this;
@@ -2277,13 +2289,25 @@ namespace gravity{
                 }
             }
             update_sign(*f);
-            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+            if (_all_convexity==linear_ && f->_all_convexity==concave_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==linear_ && f->_all_convexity==convex_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && f->_all_convexity==concave_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==concave_ && f->_all_convexity==convex_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
                 _all_convexity = undet_;
             }
-            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+            else if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
                 _all_convexity = undet_;
             }
-//            update_convexity();
+            update_convexity();
             return *this;
         }
         return *this;
@@ -3878,12 +3902,19 @@ namespace gravity{
         else {
             res._evaluated = false;
         }
-        res._expr = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+        auto exp = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
         }
         return res;
     };
@@ -3896,12 +3927,27 @@ namespace gravity{
         else {
             res._evaluated = false;
         }
-        res._expr = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
+        auto exp = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            auto exp = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+            res._expr = exp;
+            res.embed(res._expr);
+            //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+            res._queue->push_back(res._expr);
+            if (!res._vars->empty()) {
+                res._ftype = nlin_;
+                if (exp->_son->is_concave()) {
+                    res._all_convexity = concave_;
+                }
+                else {
+                    res._all_convexity = undet_;
+                }
+            }
         }
         return res;
     };
@@ -3976,12 +4022,22 @@ namespace gravity{
         else {
             res._evaluated = false;
         }
-        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
+        
+        
+        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
+        
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
         }
         return res;
     };
@@ -3994,14 +4050,20 @@ namespace gravity{
         else {
             res._evaluated = false;
         }
-        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
+        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
-        }   
-
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
+        }
         return res;
     };
     
@@ -6935,6 +6997,11 @@ namespace gravity{
         return (_all_convexity==convex_ || _all_convexity==linear_);
     }
 
+    bool func_::is_concave() const{
+        return (_all_convexity==concave_ || _all_convexity==linear_);
+    }
+
+    
     bool func_::is_convex(int idx) const{
         return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
     };
@@ -7353,19 +7420,21 @@ namespace gravity{
             _all_convexity = undet_;
             return;
         }
-        if (_qterms->empty()) {
+        if (_qterms->empty() && !_expr) {
             _all_convexity = linear_;
             return;
         }
-        _all_convexity = get_convexity(_qterms->begin()->second);
-        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-            Convexity conv = get_convexity(pair_it->second);
-            if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
-                _all_convexity = undet_;
-                return;
-            }
-            else {
-                _all_convexity = conv;
+        if (!_qterms->empty() && !_expr) {
+            _all_convexity = get_convexity(_qterms->begin()->second);
+            for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+                Convexity conv = get_convexity(pair_it->second);
+                if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+                    _all_convexity = undet_;
+                    return;
+                }
+                else {
+                    _all_convexity = conv;
+                }
             }
         }
     }
