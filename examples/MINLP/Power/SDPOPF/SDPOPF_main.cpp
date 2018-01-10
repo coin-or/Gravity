@@ -322,7 +322,7 @@ int main (int argc, char * argv[]) {
             }
             what = b->nfp();
             node_pairs b_pairs;
-//            param<> R_Wij_star("R_Wij_star"), R_Wij_hat("I_Wij_hat"),
+            param<double> R_star("R_star"), I_star("I_star"), W_star("W_star");
             param<double> R_diff("R_Diff"), I_diff("I_diff"), W_diff("W_diff");
             param<double> R_hat("R_hat"), I_hat("I_hat"), W_hat("W_hat");
 //            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
@@ -330,6 +330,7 @@ int main (int argc, char * argv[]) {
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
             Arc *aij;
+            double sdp_cst = 0;
             for (int i = 0; i < b->_nodes.size(); i++) {
                 for (int j = i; j < b->_nodes.size(); j++) {
                     if (i == j) {
@@ -339,6 +340,10 @@ int main (int argc, char * argv[]) {
 
                         W_diff.set_val(ni->_name,((Bus *) ni)->w - what(namew).eval());
                         W_hat.set_val(ni->_name,what(namew).eval());
+                        W_star.set_val(ni->_name,((Bus *) ni)->w);
+
+//                        sdp_cst += what(namew).eval()*what(namew).eval() - ((Bus *) ni)->w*what(namew).eval();
+//                        sdp_cst += ((Bus *) ni)->w - what(namew).eval();
                     } else {
                         aij = grid->get_arc(b->_nodes[i]->_name, b->_nodes[j]->_name);
                         if(aij->_imaginary && !aij->_active) {
@@ -358,35 +363,40 @@ int main (int argc, char * argv[]) {
                         I_diff.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - what(namewi).eval());
                         R_hat.set_val(aij->_src->_name + "," + aij->_dest->_name,what(namewr).eval());
                         I_hat.set_val(aij->_src->_name + "," + aij->_dest->_name,what(namewi).eval());
+                        R_star.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
+                        I_star.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
+
+                        sdp_cst += what(namewr).eval()*what(namewr).eval() - ((Line *) aij)->wr*what(namewr).eval();
+//                        sdp_cst += what(namewi).eval()*what(namewi).eval() - ((Line *) aij)->wi*what(namewi).eval();
+//                        sdp_cst += ((Line *) aij)->wr - what(namewr).eval();
+//                        sdp_cst += ((Line *) aij)->wi - what(namewi).eval();
                     }
                 }
             }
-            sdpcut.print();
-            SDP.add_constraint(sdpcut <= 0);
+            sdpcut.print_expanded();
+//            SDP.add_constraint(sdpcut <= 0);
 
 
             Constraint lin("lin"+to_string(numcuts));
             cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
 //            lin = (R_diff.in(b_pairs._keys) + R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys));
             lin = product(R_diff.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
-//            lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
-//            lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
-            SDP.add_constraint(lin <= 0);
+            lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
+            lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
+            lin.print();
             lin.print_expanded();
+            SDP.add_constraint(lin <= 0);
 
             numcuts++;
         }
 
-//        if(!bus_pairs_sdp._keys.empty()) {
-//            Constraint SOC_im("SOC_im");
-//            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
-//            SDP.add_constraint(SOC_im.in(bus_pairs_sdp._keys) <= 0);
-//            bus_pairs_sdp._keys.clear();
-//        }
+        if(!bus_pairs_sdp._keys.empty()) {
+            Constraint SOC_im("SOC_im");
+            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
+            SDP.add_constraint(SOC_im.in(bus_pairs_sdp._keys) <= 0);
+            bus_pairs_sdp._keys.clear();
+        }
 
-
-//        param<> R_Wij_star("R_Wij_star"), R_Wij_hat("I_Wij_hat"), R_diff("R_Diff");
-//        param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
 
         for(auto& a: grid->arcs){
             if(a->_imaginary && !a->_active) a->_free = true;
