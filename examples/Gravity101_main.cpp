@@ -394,9 +394,6 @@ int main (int argc, const char * argv[])
     SOC =  power(x, 2) + power(y, 2);
     SOC.in(bus_pairs) <= 0;
     SOC.print();
-    if (SOC.is_convex()) {
-        DebugOn("SOC is convex function" << endl);
-    }
 
     
 //    auto cc = p*p + q*q;
