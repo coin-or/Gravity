@@ -124,7 +124,7 @@ void Minkmodel::add_vars_lifted() {
     for (i = 0; i < _graph->nodes.size(); i++){
         Constraint diag("("+to_string(i)+")");
         diag = X(i,i)-1;
-        _model.add_constraint(diag=0);
+        _model.add_constraint(diag==0);
     }
     
     for (i= 0; i < _graph->nodes.size(); i ++)
@@ -154,7 +154,7 @@ void Minkmodel::add_vars_lifted_tree() {
     for (i = 0; i < _graph->nodes.size(); i++){
         Constraint diag("("+to_string(i)+")");
         diag = X(i,i)-1;
-        _model.add_constraint(diag=0);
+        _model.add_constraint(diag==0);
     }
     
     for (auto a: _chordal_extension->arcs){
@@ -525,7 +525,7 @@ void Minkmodel::node_edge_formulation(){
     for (i =0 ; i< _graph->nodes.size(); i++){
         Constraint Assign("Assignment" + to_string(i));
             for (int c= 0; c< _K; c++) Assign += x(i, c);
-        _model.add_constraint(Assign =1);
+        _model.add_constraint(Assign ==1);
     }
     
     // add consistency constraints

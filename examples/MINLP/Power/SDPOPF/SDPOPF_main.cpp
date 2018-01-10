@@ -216,88 +216,78 @@ int main (int argc, char * argv[]) {
     Wii.initialize_all(1.001);
 
     /**  Objective */
-    func_ obj;
-    for (auto g:grid->gens) {
-        if (g->_active) {
-            obj += grid->c1(g->_name)*Pg(g->_name) + grid->c2(g->_name)*Pg(g->_name)*Pg(g->_name) + grid->c0(g->_name);
-        }
-    }
-    SDP.min(obj);
-
-
+    auto obj = product(grid->c1, Pg) + product(grid->c2, power(Pg,2)) + sum(grid->c0);
+    SDP.min(obj.in(grid->gens));
+    
     /** Constraints */
     /* Second-order cone constraints */
     Constraint SOC("SOC");
-    SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
+    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
     SDP.add_constraint(SOC.in(bus_pairs) <= 0);
-
+    
     /* Flow conservation */
-    for (auto b: grid->nodes) {
-        Bus* bus = (Bus*) b;
-        Constraint KCL_P("KCL_P"+bus->_name);
-        Constraint KCL_Q("KCL_Q"+bus->_name);
-        KCL_P  = sum(Pf_from.in(b->get_out())) + sum(Pf_to.in(b->get_in())) + bus->pl() - sum(Pg.in(bus->_gen));
-        KCL_Q  = sum(Qf_from.in(b->get_out())) + sum(Qf_to.in(b->get_in())) + bus->ql() - sum(Qg.in(bus->_gen));
-
-        /* Shunts */
-        KCL_P +=  bus->gs()*(Wii(bus->_name));
-        KCL_Q -=  bus->bs()*(Wii(bus->_name));
-
-        SDP.add_constraint(KCL_P = 0);
-        SDP.add_constraint(KCL_Q = 0);
-    }
-
+    Constraint KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid->pl - sum(Pg.in_gens()) + grid->gs*Wii;
+    SDP.add_constraint(KCL_P.in(grid->nodes) == 0);
+    
+    Constraint KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid->ql - sum(Qg.in_gens()) - grid->bs*Wii;
+    SDP.add_constraint(KCL_Q.in(grid->nodes) == 0);
+    
     /* AC Power Flow */
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from;
-    Flow_P_From -= grid->g_ff*Wii.from();
-    Flow_P_From -= grid->g_ft*R_Wij.in_pairs();
-    Flow_P_From -= grid->b_ft*Im_Wij.in_pairs();
-    SDP.add_constraint(Flow_P_From.in(grid->arcs) = 0);
-
+    Flow_P_From = Pf_from - (grid->g_ff*Wii.from() + grid->g_ft*R_Wij.in_pairs() + grid->b_ft*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_P_From.in(grid->arcs) == 0);
+    
     Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to;
-    Flow_P_To -= grid->g_tt*Wii.to();
-    Flow_P_To -= grid->g_tf*R_Wij.in_pairs();
-    Flow_P_To += grid->b_tf*Im_Wij.in_pairs();
-    SDP.add_constraint(Flow_P_To.in(grid->arcs) = 0);
-
+    Flow_P_To = Pf_to - (grid->g_tt*Wii.to() + grid->g_tf*R_Wij.in_pairs() - grid->b_tf*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_P_To.in(grid->arcs) == 0);
+    
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from;
-    Flow_Q_From += grid->b_ff*Wii.from();
-    Flow_Q_From += grid->b_ft*R_Wij.in_pairs();
-    Flow_Q_From -= grid->g_ft*Im_Wij.in_pairs();
-    SDP.add_constraint(Flow_Q_From.in(grid->arcs) = 0);
-
+    Flow_Q_From = Qf_from - (grid->g_ft*Im_Wij.in_pairs() - grid->b_ff*Wii.from() - grid->b_ft*R_Wij.in_pairs());
+    SDP.add_constraint(Flow_Q_From.in(grid->arcs) == 0);
+    
     Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to;
-    Flow_Q_To += grid->b_tt*Wii.to();
-    Flow_Q_To += grid->b_tf*R_Wij.in_pairs();
-    Flow_Q_To += grid->g_tf*Im_Wij.in_pairs();
-    SDP.add_constraint(Flow_Q_To.in(grid->arcs) = 0);
-
+    Flow_Q_To = Qf_to + (grid->b_tt*Wii.to() + grid->b_tf*R_Wij.in_pairs() + grid->g_tf*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_Q_To.in(grid->arcs) == 0);
+    
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
-    PAD_UB -= (grid->tan_th_max)*R_Wij;
-    SDP.add_constraint(PAD_UB.in(bus_pairs) <= 0);
-
+    PAD_UB <= grid->tan_th_max*R_Wij;
+    SDP.add_constraint(PAD_UB.in(bus_pairs));
+    
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
-    PAD_LB -= grid->tan_th_min*R_Wij;
-    SDP.add_constraint(PAD_LB.in(bus_pairs) >= 0);
-
+    PAD_LB >= grid->tan_th_min*R_Wij;
+    SDP.add_constraint(PAD_LB.in(bus_pairs));
+    
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-    Thermal_Limit_from -= power(grid->S_max,2);
-    SDP.add_constraint(Thermal_Limit_from.in(grid->arcs) <= 0);
-
+    Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
+    Thermal_Limit_from <= power(grid->S_max,2);
+    SDP.add_constraint(Thermal_Limit_from.in(grid->arcs));
+    
+    
     Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-    Thermal_Limit_to -= power(grid->S_max,2);
-    SDP.add_constraint(Thermal_Limit_to.in(grid->arcs) <= 0);
-
+    Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to <= power(grid->S_max,2);
+    SDP.add_constraint(Thermal_Limit_to.in(grid->arcs));
+    
+    /* Lifted Nonlinear Cuts */
+    Constraint LNC1("LNC1");
+    LNC1 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    
+    Constraint LNC2("LNC2");
+    LNC2 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
+    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     /* Solver selection */
     solver SDPOPF(SDP,ipopt);

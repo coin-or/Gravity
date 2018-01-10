@@ -183,7 +183,7 @@ bool Bag::add_lines(){
         }
         return true;
     }
-
+    return false;
 }
 
 bool Bag::is_PSD(){
@@ -282,7 +282,7 @@ param<double> Bag::nfp(){
     Constraint svec("svec");
     svec = _wstarp.in(_indices) - w.in(_indices) - z.in(_indices);
     cout << "\nadding svec";
-    NPP.add_constraint(svec=0);
+    NPP.add_constraint(svec==0);
 
     string namew, namewr, namewi;
 
@@ -294,38 +294,38 @@ param<double> Bag::nfp(){
 
                 Constraint mstruct1("mstruct"+to_string(i+n)+to_string(i+n));
                 mstruct1 = w(namew) - W(i+n,i+n);
-                NPP.add_constraint(mstruct1=0);
+                NPP.add_constraint(mstruct1==0);
 
                 Constraint mstruct2("mstruct"+to_string(i)+to_string(i));
                 mstruct2 = w(namew) - W(i,i);
-                NPP.add_constraint(mstruct2=0);
+                NPP.add_constraint(mstruct2==0);
 
                 /* zeros */
                 Constraint zero("zero"+to_string(i)+to_string(i+n));
                 zero = W(i,i+n);
-                NPP.add_constraint(zero=0);
+                NPP.add_constraint(zero==0);
                 Constraint zero2("zero"+to_string(i+n)+to_string(i));
                 zero2 = W(i+n,i);
-                NPP.add_constraint(zero2=0);
+                NPP.add_constraint(zero2==0);
             }
             else {
                 namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
 
                 Constraint mstruct("mstructr"+to_string(i)+to_string(j));
                 mstruct = w(namewr) - W(i,j);
-                NPP.add_constraint(mstruct=0);
+                NPP.add_constraint(mstruct==0);
                 Constraint mstruct2("mstructr"+to_string(i+n)+to_string(j+n));
                 mstruct2 = w(namewr) - W(i+n,j+n);
-                NPP.add_constraint(mstruct2=0);
+                NPP.add_constraint(mstruct2==0);
 
                 namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
 
                 Constraint mstructi("mstructi"+to_string(i)+to_string(j+n));
                 mstructi = w(namewi) - W(i,j+n);
-                NPP.add_constraint(mstructi=0);
+                NPP.add_constraint(mstructi==0);
                 Constraint mstructi2("mstructi"+to_string(j)+to_string(i+n));
                 mstructi2 = w(namewi) + W(j,i+n);
-                NPP.add_constraint(mstructi2=0);
+                NPP.add_constraint(mstructi2==0);
             }
         }
     }

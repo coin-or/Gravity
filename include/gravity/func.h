@@ -1469,6 +1469,7 @@ namespace gravity {
         pair<ind,func_*> operator[](ind i);
         
         bool is_convex() const;
+        bool is_concave() const;
         bool is_convex(int idx) const;
         bool is_concave(int idx) const;
         bool is_number() const;
@@ -2656,6 +2657,7 @@ namespace gravity {
     func_ innerproduct(const param<type>& p1, const param<type>& p2);
     
     func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
+    
 }
 
 #endif /* func_h */
