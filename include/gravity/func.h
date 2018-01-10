@@ -299,6 +299,18 @@ namespace gravity {
             _coef = coef;
             _p = new pair<param_*, param_*>(make_pair(p1,p2));
             _sign = sign;
+//            if (coef->_is_transposed){
+//                p1->_is_vector=true;
+//                p2->_is_vector=true;
+//            }
+//            if(p1->_is_vector){
+//                coef->_is_transposed=true;
+//                p2->_is_vector=true;
+//            }
+//            if(p2->_is_vector){
+//                coef->_is_transposed=true;
+//                p1->_is_vector=true;
+//            }
             if (coef->_is_transposed && p1->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
