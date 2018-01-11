@@ -390,7 +390,7 @@ param<double> Bag::nfp(){
         }
     }
 
-    solver s(NPP,mosek_);
+    solver s(NPP,Mosek);
     s.run(1,0);
 
 //    z.print(); cout << "\n";

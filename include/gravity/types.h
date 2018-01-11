@@ -105,7 +105,7 @@ namespace gravity{
         }
     };
     
-    typedef enum { ipopt_, gurobi_, bonmin_, cplex_, sdpa_, mosek_} SolverType;  /* Solver type */
+    typedef enum { ipopt, gurobi, bonmin, cplex, sdpa, Mosek} SolverType;  /* Solver type */
 
     // settings of solvers. used by solvers like sdpa.
     typedef enum {unsolved = -1, penalty=0, fast=1, medium=2, stable=3} SolverSettings;

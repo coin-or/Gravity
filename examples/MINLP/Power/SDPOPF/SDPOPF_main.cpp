@@ -296,7 +296,7 @@ int main (int argc, char * argv[]) {
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     /* Solver selection */
-    solver SDPOPF(SDP,ipopt_);
+    solver SDPOPF(SDP,ipopt);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 0, relax = false);
 //    SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");

@@ -134,7 +134,7 @@ int main (int argc, const char * argv[])
         }
         else if (strcmp(type,"SDP")==0){
             mt = SDP;
-            solver = mosek_;
+            solver = Mosek;
         }
         else if (strcmp(type,"MIP_tree")==0){
             mt = MIP_tree;
@@ -142,7 +142,7 @@ int main (int argc, const char * argv[])
         }
         else if (strcmp(type,"SDP_tree")==0){
             mt = SDP_tree;
-            solver = mosek_;
+            solver = Mosek;
         }
         else if (strcmp(type,"Node_edge")==0){
             mt = Node_edge;
