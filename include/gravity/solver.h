@@ -34,8 +34,10 @@
 namespace gravity {
     class solver {
     public:
-        Model*                         _model;
+        Model*                         _model = nullptr;
+        Program*                       _prog = nullptr;
         SolverType                     _stype;
+        
         /** Constructor */
         //@{
         solver();

@@ -475,6 +475,7 @@ namespace gravity {
 
         size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
 
+        bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                   _is_constraint = false;
         bool                                   _is_hessian = false;
         bool                                   _embedded = false; /**< If the function is embedded in

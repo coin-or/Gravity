@@ -236,5 +236,10 @@ namespace gravity {
     pair<func_*, ObjectiveType> max(const func_& f);
     pair<func_*, ObjectiveType> min(const func_& f);
 
+    class Program{
+    public:
+        virtual void update_model(){};
+        virtual ~Program(){};
+    };
 }
 #endif /* model_hpp */
