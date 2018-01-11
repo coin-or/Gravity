@@ -184,7 +184,7 @@ int main (int argc, char * argv[])
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
     if (use_cplex) {
-        solver SCOPF_CPX(SOCP, cplex_);
+        solver SCOPF_CPX(SOCP, cplex);
         auto solver_time_start = get_wall_time();
         SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
         solver_time_end = get_wall_time();
@@ -193,7 +193,7 @@ int main (int argc, char * argv[])
         total_time = total_time_end - total_time_start;
     }
     else if (use_gurobi) {
-        solver SCOPF_GRB(SOCP, gurobi_);
+        solver SCOPF_GRB(SOCP, gurobi);
         auto solver_time_start = get_wall_time();
         SCOPF_GRB.run(output = 0, relax = false, tol = 1e-6);
         solver_time_end = get_wall_time();
@@ -202,7 +202,7 @@ int main (int argc, char * argv[])
         total_time = total_time_end - total_time_start;
     }
     else {
-        solver SCOPF(SOCP,ipopt_);
+        solver SCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
         SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         solver_time_end = get_wall_time();

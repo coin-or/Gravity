@@ -53,7 +53,7 @@ namespace {
 solver::solver(Model& model, SolverType stype){
     _stype = stype;
     _model = &model;
-    if (_stype==ipopt_) {
+    if (_stype==ipopt) {
 #ifdef USE_IPOPT
         SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
         iapp->RethrowNonIpoptException(true);
@@ -71,7 +71,7 @@ solver::solver(Model& model, SolverType stype){
         ipoptNotAvailable();
 #endif
     }
-    else if(_stype==gurobi_)
+    else if(_stype==gurobi)
     {
 #ifdef USE_GUROBI
     _prog = new GurobiProgram(_model);
@@ -79,7 +79,7 @@ solver::solver(Model& model, SolverType stype){
         gurobiNotAvailable();
 #endif
     }
-    else if(_stype==cplex_)
+    else if(_stype==cplex)
     {
 #ifdef USE_CPLEX
     _prog = new CplexProgram(_model);
@@ -87,7 +87,7 @@ solver::solver(Model& model, SolverType stype){
     cplexNotAvailable();
 #endif
     }
-    else if(_stype == mosek_)
+    else if(_stype == Mosek)
     {
 #ifdef USE_MOSEK
     _prog = new MosekProgram(_model);
@@ -95,7 +95,7 @@ solver::solver(Model& model, SolverType stype){
     mosekNotAvailable();
 #endif
     }
-    else if(_stype==bonmin_) {
+    else if(_stype==bonmin) {
 #ifdef USE_BONMIN
         if(_model->_objt==maximize){
             _model->_obj *= -1;
@@ -113,7 +113,7 @@ solver::~solver(){
 
 int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
 
-    if (_stype==ipopt_) {
+    if (_stype==ipopt) {
 #ifdef USE_IPOPT
             SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
             iapp->RethrowNonIpoptException(true);
@@ -176,7 +176,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         ipoptNotAvailable();
 #endif
     }
-    else if(_stype==gurobi_)
+    else if(_stype==gurobi)
     {
 #ifdef USE_GUROBI
         try{
@@ -195,7 +195,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         gurobiNotAvailable();
 #endif
     }
-    else if(_stype==cplex_)
+    else if(_stype==cplex)
     {
 #ifdef USE_CPLEX
         try{
@@ -212,7 +212,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         cplexNotAvailable();
 #endif
     }
-    else if(_stype == mosek_)
+    else if(_stype == Mosek)
     {
 #ifdef USE_MOSEK
         try{
@@ -229,7 +229,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         mosekNotAvailable();
 #endif
     }
-    else if(_stype==bonmin_) {
+    else if(_stype==bonmin) {
 #ifdef USE_BONMIN
         
         using namespace Bonmin;
