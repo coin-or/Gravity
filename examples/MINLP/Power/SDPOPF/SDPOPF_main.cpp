@@ -328,7 +328,6 @@ int main (int argc, char * argv[]) {
             param<double> R_diff("R_Diff"), I_diff("I_diff"), W_diff("W_diff");
             param<double> R_hat("R_hat"), I_hat("I_hat"), W_hat("W_hat");
 //            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
-            // the cuts for different dimensions don't have the same form...
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
             Arc *aij;
@@ -368,24 +367,26 @@ int main (int argc, char * argv[]) {
                         R_star.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
                         I_star.set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
 
-                        sdp_cst += what(namewr).eval()*what(namewr).eval() - ((Line *) aij)->wr*what(namewr).eval();
+//                        sdp_cst += what(namewr).eval()*what(namewr).eval() - ((Line *) aij)->wr*what(namewr).eval();
 //                        sdp_cst += what(namewi).eval()*what(namewi).eval() - ((Line *) aij)->wi*what(namewi).eval();
 //                        sdp_cst += ((Line *) aij)->wr - what(namewr).eval();
 //                        sdp_cst += ((Line *) aij)->wi - what(namewi).eval();
                     }
                 }
             }
-            sdpcut.print_expanded();
+//            sdpcut.print_expanded();
 //            SDP.add_constraint(sdpcut <= 0);
 
 
             Constraint lin("lin"+to_string(numcuts));
             cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
-//            lin = (R_diff.in(b_pairs._keys) + R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys));
             lin = product(R_diff.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
             lin += product(I_diff.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
             lin += product(W_diff.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
-            lin.print();
+//            lin = product(R_star.in(b_pairs._keys) - R_hat.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
+//            lin += product(I_star.in(b_pairs._keys) - I_hat.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
+//            lin += product(W_star.in(b->_nodes) - W_hat.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
+//            lin.print();
             lin.print_expanded();
             SDP.add_constraint(lin <= 0);
 
@@ -406,6 +407,13 @@ int main (int argc, char * argv[]) {
 
         SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         DebugOn("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
+
+        // update values for w_star
+        for(auto& arc: grid->arcs){
+            ((Line*)arc)->wr = R_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
+            ((Line*)arc)->wi = Im_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
+        }
+        for(auto& node: grid->nodes) ((Bus*)node)->w = Wii(node->_name).eval();
     }
 
 

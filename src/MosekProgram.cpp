@@ -217,7 +217,7 @@ void MosekProgram::create_mosek_constraints() {
     shared_ptr<Constraint> c;
     for(auto& p: _model->_cons) {
         c = p.second;
-        c->print();
+//        c->print();
         if (c->is_nonlinear()) {
             cout <<  "We haven't implemented quadratic expressions interface for mosek" << endl;
             throw invalid_argument("Mosek cannot handle nonlinear constraints that are not convex quadratic.\n");
