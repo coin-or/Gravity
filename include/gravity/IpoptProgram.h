@@ -18,13 +18,15 @@ using   Ipopt::IpoptApplication;
 using namespace Ipopt;
 using namespace gravity;
 
-class IpoptProgram : public TNLP {
+class IpoptProgram : public TNLP, public Program{
 
     
 public:
     Model* _model = nullptr;
     
     IpoptProgram(Model* m);
+    
+    void update_model();
 
     /** Method to return some info about the nlp */
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,

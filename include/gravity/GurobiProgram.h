@@ -8,7 +8,7 @@
 using namespace gravity;
 
 
-class GurobiProgram {
+class GurobiProgram: public Program{
 private:
 
     GRBModel* grb_mod;

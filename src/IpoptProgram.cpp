@@ -5,14 +5,12 @@
 
 using namespace std;
 
+void IpoptProgram::update_model(){
+    _model->reset_funcs();
+    _model->fill_in_maps();
+}
 
 IpoptProgram::IpoptProgram(Model* m):_model(m){
-    if (!m->_built) {
-        m->fill_in_maps();
-    }
-    else {
-        m->reset_funcs();
-    }
 }
 
 

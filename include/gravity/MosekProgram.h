@@ -16,19 +16,19 @@
 #endif
 #include <gravity/model.h>
 
-class MosekProgram {
+class MosekProgram: public Program{
 public:
     Model* _model;
     int _output;
     MosekProgram();
     MosekProgram(Model* m);
-    ~MosekProgram();
+    ~MosekProgram(){};
     //void reset_model();
     
     
     bool solve(bool relax);
     void prepare_model();
-    //void update_model();
+    void update_model();
     //void relax_model();
     
     void fill_in_mosek_vars();

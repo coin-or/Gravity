@@ -255,7 +255,7 @@ int main (int argc, char * argv[])
     ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
     DebugOff(grid.S_max.in(grid.arcs).to_str(true) << endl);
     
-    solver OPF(ACOPF,ipopt);
+    solver OPF(ACOPF,ipopt_);
     double solver_time_start = get_wall_time();
     OPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
     double solver_time_end = get_wall_time();
