@@ -8,6 +8,7 @@
 Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes(nodes) {
     Arc* aij = NULL;
     _wstarp.set_name("wstar");
+    _W_star.set_name("W_star");
     _wmin.set_name("wmin");
     _wmax.set_name("wmax");
     string namewr, namewi, namew, namepair;
@@ -25,13 +26,16 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
                 namepair = _nodes[i]->_name+","+_nodes[j]->_name;
             }
             if(aij->_imaginary) {
-                _all_lines = false;
-                cout << "\nMissing lines in bag, skipping";
-                return;
+                _all_lines = false; //todo: do I need this?
+//                cout << "\nMissing lines in bag, skipping";
+//                return;
             }
 
             namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
             namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+
+            cout << "\n" << namewr << " = " <<  ((Line*)aij)->wr;
+            cout << "\n" << namewi << " = " <<  ((Line*)aij)->wi;
 
             _indices.push_back(new index_(namewr));
             _indices.push_back(new index_(namewi));
@@ -41,17 +45,28 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
             _wmax.set_val(namewr,_grid->wr_max(namepair).eval());
             _wmax.set_val(namewi,_grid->wi_max(namepair).eval());
 
-            _wstarp.set_val(namewr,((Line*)aij)->wr);
-            if(!reversed) _wstarp.set_val(namewi,((Line*)aij)->wi);
-            else _wstarp.set_val(namewi,-((Line*)aij)->wi);
+//            _wstarp.set_val(namewr,((Line*)aij)->wr);
+//            if(!reversed) _wstarp.set_val(namewi,((Line*)aij)->wi);
+//            else _wstarp.set_val(namewi,-((Line*)aij)->wi);
+
+//            _W_star.set_val(to_string(i)+","+to_string(j),((Line*)aij)->wr);
+//            _W_star.set_val(to_string(i+_nodes.size())+","+to_string(j+_nodes.size()),((Line*)aij)->wr);
+//            _W_star.set_val(to_string(i)+","+to_string(j+_nodes.size()),((Line*)aij)->wi);
+//            _W_star.set_val(to_string(j)+","+to_string(i+_nodes.size()),-((Line*)aij)->wi);
         }
     }
+
     for(int i = 0; i < _nodes.size(); i++){
         namew = "w(" + _nodes[i]->_name + ")";
         _indices.push_back(new index_(namew));
         _wmin.set_val(namew,_grid->w_min(_nodes[i]->_name).eval());
         _wmax.set_val(namew,_grid->w_max(_nodes[i]->_name).eval());
-        _wstarp.set_val(namew,((Bus*)_nodes[i])->w);
+//        _wstarp.set_val(namew,((Bus*)_nodes[i])->w);
+        cout << "\n" << namew << " = " <<  ((Bus*)_nodes[i])->w;
+
+//        _W_star.set_val(to_string(i)+","+to_string(i),((Bus*)_nodes[i])->w);
+//        _W_star.set_val(to_string(i+_nodes.size())+","+to_string(i+_nodes.size()),((Bus*)_nodes[i])->w);
+//        _W_star.set_val(to_string(i)+","+to_string(i+_nodes.size()),0.0);
     }
 
 //    cout << "\nBus pairs: ";
@@ -61,6 +76,7 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
 //    _wstarp.print(true); cout << "\n";
 //    _wmin.print(true); cout << "\n";
 //    _wmax.print(true);
+//    _W_star.print(true);
 };
 
 Bag::~Bag(){
@@ -68,6 +84,46 @@ Bag::~Bag(){
         delete idx;
     }
     _indices.clear();
+}
+
+param<double> Bag::fill_wstar(){
+    param<double> W_star;
+    W_star.set_name("W_star");
+    Line* aij;
+    bool reversed;
+    string namewr, namewi, namew;
+
+    for(int i = 0; i < _nodes.size()-1; i++){
+        for(int j = i+1; j < _nodes.size(); j++){
+            aij = (Line*)_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name);
+            if(aij==NULL) {
+                aij = (Line*)_grid->get_directed_arc(_nodes[j]->_name,_nodes[i]->_name);
+//                cout << "\nBag id = " << _id << ", reversed arc " << _nodes[i]->_name << "," << _nodes[j]->_name;
+                reversed = true;
+            }else reversed = false;
+
+            namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+            namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+
+            _wstarp.set_val(namewr,aij->wr);
+            if(!reversed) _wstarp.set_val(namewi,aij->wi);
+            else _wstarp.set_val(namewi,-aij->wi);
+
+            _W_star.set_val(to_string(i)+","+to_string(j),aij->wr);
+            _W_star.set_val(to_string(i+_nodes.size())+","+to_string(j+_nodes.size()),aij->wr);
+            _W_star.set_val(to_string(i)+","+to_string(j+_nodes.size()),aij->wi);
+            _W_star.set_val(to_string(j)+","+to_string(i+_nodes.size()),aij->wi);
+        }
+    }
+    for(int i = 0; i < _nodes.size(); i++){
+        namew = "w(" + _nodes[i]->_name + ")";
+        _wstarp.set_val(namew,((Bus*)_nodes[i])->w);
+
+        _W_star.set_val(to_string(i)+","+to_string(i),((Bus*)_nodes[i])->w);
+        _W_star.set_val(to_string(i+_nodes.size())+","+to_string(i+_nodes.size()),((Bus*)_nodes[i])->w);
+        _W_star.set_val(to_string(i)+","+to_string(i+_nodes.size()),0.0);
+    }
+    return W_star;//todo: use this?
 }
 
 bool Bag::add_lines(){
@@ -108,13 +164,14 @@ bool Bag::add_lines(){
         if(_grid->get_directed_arc(n1->_name,n3->_name)!=nullptr) a13->wi = (wi12 * wr23 + wr12 * wi23) / w2;
         else a13->wi = -(wi12 * wr23 + wr12 * wi23) / w2;
 
+//        wi13 = (wi12 * wr32 - wr12 * wi32) / w2;
 
-        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+        double SDP = wr12*(wr23*a13->wr + wi23*a13->wi) + wi12*(-wi23*a13->wr + wr23*a13->wi);
         SDP *= 2;
-        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (a13->wr*a13->wr + a13->wi*a13->wi)*w2 + (wr23*wr23 + wi23*wi23)*w1;
         SDP += w1*w2*w3;
-//            double R1 = wr13*wr13 + wi13*wi13 - ((wr12*wr12+wi12*wi12)*w3 + (wr32*wr32+wi32*wi32)*w1 - w1*w2*w3)/w2;
-//            cout << "\nR1 = " << R1 << ", SOC = " << wr12*wr12 + wi12*wi12 - w1*w2 << ", SOC2 = " << wr32*wr32 + wi32*wi32 - w2*w3;
+            double R1 = wr13*wr13 + wi13*wi13 - ((wr12*wr12+wi12*wi12)*w3 + (wr23*wr23+wi23*wi23)*w1 - w1*w2*w3)/w2;
+            cout << "\nR1 = " << R1 << ", SOC = " << wr12*wr12 + wi12*wi12 - w1*w2 << ", SOC2 = " << wr23*wr23 + wi23*wi23 - w2*w3;
         cout << "\nNo a13, SDP = " << SDP;
 
 //        if(_net->sdp_alg==1) return false;
@@ -238,6 +295,7 @@ bool Bag::is_PSD(){
 
 param<double> Bag::nfp(){
     param<double> what;
+    fill_wstar();
 
 //    cout << "\nIndices:";
 //    for(auto& i: _indices) cout << "\n" << i->_name;
@@ -281,8 +339,10 @@ param<double> Bag::nfp(){
     /* w*-w = z */
     Constraint svec("svec");
     svec = _wstarp.in(_indices) - w.in(_indices) - z.in(_indices);
-    cout << "\nadding svec";
     NPP.add_constraint(svec==0);
+
+    //todo: flatten(W*-W) = z;    param-sdpvar
+
 
     string namew, namewr, namewi;
 
@@ -356,5 +416,6 @@ param<double> Bag::nfp(){
     }
     what.set_name("w_hat");
     what.print(true);
+//    W(1,1).eval(0);
     return what;
 }

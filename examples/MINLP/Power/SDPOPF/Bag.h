@@ -30,6 +30,7 @@ public:
     gravity::Model _model;
 
     param<double> _wstarp;
+    param<double> _W_star;
 
     Bag() {};
     Bag(int id, PowerNet* grid, vector<Node*> nodes);
@@ -41,6 +42,8 @@ public:
     param<double> nfp();
 
     bool add_lines();
+
+    param<double> fill_wstar();
 };
 
 #endif //GRAVITY_BAG_H
