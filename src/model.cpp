@@ -1462,7 +1462,27 @@ void Model::fill_in_maps() {
 }
 
 
-
+void Model::fill_in_duals(double* lambda, double* z_L, double* z_U){
+    for (auto &cp: _cons) {
+        if(cp.second->_dual.size()==0){
+            continue;
+        }
+        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+            lambda[cp.second->_id + inst] = cp.second->_dual[inst];
+        }
+    }
+    for (auto &vp: _vars) {
+        if(vp.second->_l_dual.size()==0 || vp.second->_u_dual.size()==0 ){
+            continue;
+        }
+        auto nb_inst = vp.second->get_nb_instances();
+        for (unsigned inst = 0; inst < nb_inst; inst++) {
+            z_L[vp.second->_id + vp.second->get_id_inst(inst)] = vp.second->_l_dual[inst];
+            z_U[vp.second->_id + vp.second->get_id_inst(inst)] = vp.second->_u_dual[inst];
+        }
+    }
+    
+}
 
 void Model::fill_in_var_init(double* x) {
     size_t vid;
