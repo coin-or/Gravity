@@ -20,7 +20,9 @@ using namespace gravity;
 
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool relax = false, use_cplex = false;
+    bool relax = false;
+    string solver_str = "ipopt";
+    SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
     string fname = "../data_sets/Power/nesta_case3_lmbd.m";
@@ -29,7 +31,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("h", "help",
                    "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
-
+    opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
 
@@ -43,6 +45,14 @@ int main (int argc, char * argv[]) {
         opt.show_help();
         exit(0);
     }
+    solver_str = opt["s"];
+    if (solver_str.compare("gurobi")==0) {
+        solv_type = gurobi;
+    }
+    else if(solver_str.compare("cplex")==0) {
+        solv_type = cplex;
+    }
+
     double total_time_start = get_wall_time();
     PowerNet *grid = new PowerNet();
     grid->readgrid(fname.c_str());
@@ -63,122 +73,6 @@ int main (int argc, char * argv[]) {
     DebugOff("nb bus_pairs = " << nb_bus_pairs_chord << endl);
 
 
-//    Model NPP("NPP model");
-//
-//    int n = 3;
-//
-//    sdpvar<double> W("W");
-//    NPP.add_var(W ^ (2*n));
-//
-//    double* wstar = new double[n*n]; // w* = (w1, wI12, wI13, wR12, w2, wI23, wR13, wR23, w3)
-//    wstar[0] = 1.1682; wstar[1] = -0.320016; wstar[2] = 0.337146;
-//    wstar[3] = 1.05257; wstar[4] = 1.03605; wstar[5] = 0.30723;
-//    wstar[6] = 1.02769; wstar[7] = 0.965777; wstar[8] = 1.00139;
-//
-//    var<double> z("z"); //difference between w* and w (as vectors)
-//    z.in_q_cone();
-//    NPP.add_var(z ^ (n*n+1));
-//
-//    func_ obj;
-//    obj = z(0);
-//    NPP.set_objective(min(obj));
-//
-//    cout << "\n" << NPP._obj_val << endl;
-//
-////    min t  s.t.
-////    ||z|| <= t
-////    w*-w = z
-////    X is PSD, L <= X <= U
-//
-//    /** Constraints **/
-//
-//    for(int i = 0; i < n; i++){
-//        for(int j = 0; j < n; j++){
-//            if(i==j){
-//                /* w*-w = z */
-//                cout << "\nW(" << i << "," << i << ") goes to " << 3*i+i;
-//                Constraint svec("svec"+to_string(i)+to_string(i));
-//                svec = wstar[n*i+i] - W(i,i) - z(n*i+i+1);
-//                NPP.add_constraint(svec=0);
-//
-//                /* bounds */
-//                Constraint lbound("lbound("+to_string(i)+ "," + to_string(i) +")");
-//                Constraint ubound("ubound("+to_string(i)+ "," + to_string(i) +")");
-//                lbound = W(i,i) - 0.81;
-//                ubound = W(i,i) - 1.21;
-//                NPP.add_constraint(lbound >=0);
-//                NPP.add_constraint(ubound <=0);
-//
-//                /* zeros */
-//                Constraint zero("zero"+to_string(i)+to_string(i+n));
-//                zero = W(i,i+n);
-//                NPP.add_constraint(zero=0);
-//                Constraint zero2("zero"+to_string(i+n)+to_string(i));
-//                zero2 = W(i+n,i);
-//                NPP.add_constraint(zero2=0);
-//
-//                /* matrix structure */
-//                Constraint mstruct("mstruct="+to_string(i+n)+to_string(i+n));
-//                mstruct = W(i+n,i+n) - W(i,i);
-//                NPP.add_constraint(mstruct=0);
-//            }
-//            else if(i>j){
-//                /* w*-w = z */
-//                cout << "\nW(" << i << "," << j << ") goes to " << 3*i+j;
-//                Constraint svec("svec"+to_string(i)+to_string(j));
-//                svec = wstar[n*i+j] - W(i,j) - z(n*i+j+1);
-//                NPP.add_constraint(svec=0);
-//
-//                /* bounds */
-//                Constraint lbound("lbound("+to_string(i)+ "," + to_string(j) +")");
-//                Constraint ubound("ubound("+to_string(i)+ "," + to_string(j) +")");
-//                lbound = W(i,j) - 0.701;
-//                ubound = W(i,j) - 1.21;
-//                NPP.add_constraint(lbound >=0);
-//                NPP.add_constraint(ubound <=0);
-//
-//                /* matrix structure */
-//                Constraint mstruct("mstruct>"+to_string(j)+to_string(i));
-//                mstruct = W(j,i) - W(i,j);
-//                NPP.add_constraint(mstruct=0);
-//                Constraint mstruct2("mstruct>"+to_string(i+n)+to_string(j+n));
-//                mstruct2 = W(i+n,j+n) - W(i,j);
-//                NPP.add_constraint(mstruct2=0);
-//                Constraint mstruct3("mstruct>"+to_string(j+n)+to_string(i+n));
-//                mstruct3 = W(j+n,i+n) - W(i,j);
-//                NPP.add_constraint(mstruct3=0);
-//            }else{
-//                /* w*-w = z */
-//                cout << "\neW(" << i << "," << j+n << ") goes to " << n*i+j;
-//                Constraint svec("svecI"+to_string(i)+to_string(j));
-//                svec = wstar[n*i+j] - W(i,j+n) - z(n*i+j+1);
-//                NPP.add_constraint(svec=0);
-//
-//                /* bounds */
-//                Constraint lbound("lbound("+to_string(i)+ "," + to_string(j+n) +")");
-//                lbound = W(i,j+n) + 0.605;
-//                NPP.add_constraint(lbound >=0);
-//                Constraint ubound("ubound("+to_string(i)+ "," + to_string(j+n) +")");
-//                ubound = W(i,j+n) - 0.605;
-//                NPP.add_constraint(ubound <=0);
-//
-//                /* matrix structure */
-//                Constraint mstruct("mstruct<"+to_string(j)+to_string(i+n));
-//                mstruct = W(j,i+n) + W(i,j+n);
-//                NPP.add_constraint(mstruct=0);
-//                Constraint mstruct2("mstruct<"+to_string(j+n)+to_string(i));
-//                mstruct2 = W(j+n,i) - W(i,j+n);
-//                NPP.add_constraint(mstruct2=0);
-//                Constraint mstruct3("mstruct<"+to_string(i+n)+to_string(j));
-//                mstruct3 = W(i+n,j) + W(i,j+n);
-//                NPP.add_constraint(mstruct3=0);
-//            }
-//        }
-//    }
-//
-//    solver s(NPP,mosek_);
-//    s.run(1,0);
-//    W.print(true);
 
     /** Build model */
     Model SDP("SDP Model");
@@ -191,15 +85,11 @@ int main (int argc, char * argv[]) {
     SDP.add_var(Qg^(nb_gen));
 
     /* power flow variables */
-//    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
-//    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
-//    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
-//    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
-    var<Real> Pf_from("Pf_from");
-    var<Real> Qf_from("Qf_from");
-    var<Real> Pf_to("Pf_to");
-    var<Real> Qf_to("Qf_to");
-
+    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
+    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
+    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
+    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
+    
     SDP.add_var(Pf_from^(nb_lines));
     SDP.add_var(Qf_from^(nb_lines));
     SDP.add_var(Pf_to^(nb_lines));
@@ -296,7 +186,7 @@ int main (int argc, char * argv[]) {
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     /* Solver selection */
-    solver SDPOPF(SDP,ipopt);
+    solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 0, relax = false);
 //    SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
@@ -364,15 +254,11 @@ int main (int argc, char * argv[]) {
                     if (i == j) {
                         namew = "w(" + b->_nodes[i]->_name + ")";
                         ni = b->_nodes[i];
-                        sdpcut += (((Bus *) ni)->w - what(namew)) * (Wii(ni->_name) - what(namew));
-
                         W_diff[numcuts].set_val(ni->_name,((Bus *) ni)->w - what(namew).eval());
                         W_hat[numcuts].set_val(ni->_name,what(namew).eval());
                         W_star[numcuts].set_val(ni->_name,((Bus *) ni)->w);
-
-//                        sdp_cst += what(namew).eval()*what(namew).eval() - ((Bus *) ni)->w*what(namew).eval();
-//                        sdp_cst += ((Bus *) ni)->w - what(namew).eval();
-                    } else {
+                    }
+                    else {
                         aij = grid->get_arc(b->_nodes[i]->_name, b->_nodes[j]->_name);
                         if(aij->_imaginary && !aij->_active) {
                             bus_pairs_sdp._keys.push_back(new index_pair(index_(aij->_src->_name), index_(aij->_dest->_name)));
@@ -382,10 +268,6 @@ int main (int argc, char * argv[]) {
 
                         namewr = "wr(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
                         namewi = "wi(" + b->_nodes[i]->_name + "," + b->_nodes[j]->_name + ")";
-                        sdpcut += (((Line *) aij)->wr - what(namewr)) *
-                                  (R_Wij(aij->_src->_name + "," + aij->_dest->_name) - what(namewr));
-                        sdpcut += (((Line *) aij)->wi - what(namewi)) *
-                                  (Im_Wij(aij->_src->_name + "," + aij->_dest->_name) - what(namewi));
 
                         R_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr - what(namewr).eval());
                         I_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - what(namewi).eval());
@@ -393,22 +275,14 @@ int main (int argc, char * argv[]) {
                         I_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,what(namewi).eval());
                         R_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
                         I_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
-
-//                        sdp_cst += what(namewr).eval()*what(namewr).eval() - ((Line *) aij)->wr*what(namewr).eval();
-//                        sdp_cst += what(namewi).eval()*what(namewi).eval() - ((Line *) aij)->wi*what(namewi).eval();
-//                        sdp_cst += ((Line *) aij)->wr - what(namewr).eval();
-//                        sdp_cst += ((Line *) aij)->wi - what(namewi).eval();
                     }
                 }
             }
-//            sdpcut.print_expanded();
-//            SDP.add_constraint(sdpcut <= 0);
-
 
             Constraint lin("lin"+to_string(numcuts));
             cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
-            lin = product(R_diff[numcuts].in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat[numcuts].in(b_pairs._keys)));
-            lin += product(I_diff[numcuts].in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat[numcuts].in(b_pairs._keys)));
+            lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
+            lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
             lin += product(W_diff[numcuts].in(b->_nodes),(Wii.in(b->_nodes) - W_hat[numcuts].in(b->_nodes)));
 //            lin = product(R_star.in(b_pairs._keys) - R_hat.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
 //            lin += product(I_star.in(b_pairs._keys) - I_hat.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
@@ -432,11 +306,10 @@ int main (int argc, char * argv[]) {
             if(a->_imaginary && !a->_active) a->_free = true;
         }
         
-        SDPOPF.run(output = 0, relax = false);
-//        solver.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         DebugOn("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
 
-        // update values for w_star
+        /* Update values for w_star */
         for(auto& arc: grid->arcs){
             ((Line*)arc)->wr = R_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
             ((Line*)arc)->wi = Im_Wij(arc->_src->_name+","+arc->_dest->_name).eval();

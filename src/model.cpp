@@ -393,19 +393,30 @@ void Model::add_constraint(const Constraint& c){
     if ((_type==lin_m || _type==quad_m) && (c.is_nonlinear() || c.is_polynomial())) {
         _type = nlin_m;
     }
+    if (_is_convex && !c.is_convex()) {
+            _is_convex = false;
+    }
 };
 
 
 
 void Model::del_constraint(const Constraint& c){
-    //    _cons.erase(c->get_idx());
-    assert(false);
+    _cons_name.erase(c.get_name());
+    _cons.erase(c._id);
+    _built = false;
+    /* TODO: make sure other infos in model are updated */
 };
 
 void Model::set_objective(const func_& f, ObjectiveType t) {
     _obj = f;
     _objt = t;
+    if (_is_convex) {
+        if ((t==maximize && f.is_convex()) || (t==minimize && !f.is_convex())) {
+            _is_convex = false;
+        }
+    }
 //    embed(_obj);
+    /* TODO make sure the objective receivs the same treatment as the constraints. */
 }
 
 void Model::min(const func_& f){
@@ -418,6 +429,9 @@ void Model::min(const func_& f){
 
 void Model::max(const func_& f){
     _obj = f;
+    _obj._nb_instances = 1;
+    _obj._dim.resize(1);
+    _obj._dim[0] = 1;
     _objt = maximize;
 }
 

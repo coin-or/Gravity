@@ -48,6 +48,7 @@ namespace gravity {
         bool                            _first_call_gard_obj = true; /* Indicates if this is the first call to fill_in_grad_obj */
         bool                            _first_call_jac = true; /* Indicates if this is the first call to fill_in_jac */
         bool                            _first_call_hess = true; /* Indicates if this is the first call to fill_in_hess */
+        bool                            _is_convex = true; /* Indicates if this model is convex */
         MType                           _type = lin_m; /* Model type, e.g., linar, quadratic, polynomial, NLP.. */
         size_t                          _nb_vars = 0;
         size_t                          _nb_params = 0;
@@ -99,6 +100,14 @@ namespace gravity {
         size_t get_nb_nnz_g() const;
         
         size_t get_nb_nnz_h();
+        
+        bool is_convex() const{
+            return _is_convex;
+        }
+        
+        bool is_nonconvex() const{
+            return !_is_convex;
+        }
         
         param_* get_var(const string& vname) const;
         
