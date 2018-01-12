@@ -113,20 +113,33 @@ solver::~solver(){
 
 int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
 
+    
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
-            SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
-            iapp->RethrowNonIpoptException(true);
-            ApplicationReturnStatus status = iapp->Initialize();
+        double mu_init = 0.001;
+        SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
+        iapp->RethrowNonIpoptException(true);
+        ApplicationReturnStatus status = iapp->Initialize();
+    
+        if (status != Solve_Succeeded) {
+            std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
+            return (int) status;
+        }
+
+        iapp->Options()->SetStringValue("linear_solver", lin_solver);
+        iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
+        iapp->Options()->SetNumericValue("tol", tol);
+        /** Hot start if already solved */
+        if (!_model->_first_run) {
+            DebugOn("Using Hot Start!\n");
+            iapp->Options()->SetNumericValue("mu_init", mu_init);
+            iapp->Options()->SetStringValue("warm_start_init_point", "yes");
+        }
+        _model->_first_run = false;
         
-            if (status != Solve_Succeeded) {
-                std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
-                return (int) status;
-            }
-
-            iapp->Options()->SetStringValue("linear_solver", lin_solver);
-            iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
-
+        
+//mu_init, warm_start_mult_bound_push, warm_start_slack_bound_push, warm_start_bound_push
+        
 //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
@@ -136,17 +149,13 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
 //                        iapp->Options()->SetNumericValue("print_level", 10);
 
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-            iapp->Options()->SetNumericValue("tol", tol);
+        
 //                        iapp->Options()->SetIntegerValue("max_iter", 50);
 
 //                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
 //                        iapp->Options()->SetNumericValue("ma27_pivtol", 1e-6);
 //                        iapp->Options()->SetNumericValue("ma27_la_init_factor", 100);
 //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
-
-
-
-
 //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
 //                        iapp.Options()->SetNumericValue("tol", 1e-6);
 //            iapp->Options()->SetStringValue("derivative_test", "second-order");
