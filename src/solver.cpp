@@ -53,84 +53,69 @@ namespace {
 solver::solver(Model& model, SolverType stype){
     _stype = stype;
     _model = &model;
-}
-
-solver::~solver(){
-//    switch (_stype) {
-//        case cplex:
-//#ifdef USE_CPLEX
-//            delete prog.cplex_prog;
-//#else
-//            cplexNotAvailable();
-//#endif
-//            break;
-//        case ipopt:
-//#ifdef USE_IPOPT
-//            delete prog.ipopt_prog;
-//#else
-//            ipoptNotAvailable();
-//#endif
-//            break;
-//        case gurobi:
-//#ifdef USE_GUROBI
-//            delete prog.grb_prog;
-//#else
-//            gurobiNotAvailable();
-//#endif
-//            break;
-//        case bonmin:
-//#ifdef USE_BONMIN
-//            delete prog.bonmin_prog;
-//#else
-//            bonminNotAvailable();
-//#endif
-//            break;
-//    }
-
-}
-
-//void solver::set_model(Model& m) {
-//    
-////    switch (_stype) {
-////        case cplex:
-////#ifdef USE_CPLEX
-////            prog.cplex_prog->_model = &m;
-////#else
-////            cplexNotAvailable();
-////#endif
-////        break;
-////        case ipopt:
-////#ifdef USE_IPOPT
-////            prog.ipopt_prog->_model = &m;
-////#else
-////            ipoptNotAvailable();
-////#endif
-////            break;
-////        case gurobi:
-////#ifdef USE_GUROBI
-////            prog.grb_prog->_model = &m;
-////#else
-////            gurobiNotAvailable();
-////#endif
-////            break;
-////        case bonmin:
-////#ifdef USE_BONMIN
-////            prog.bonmin_prog->_model = &m;
-////#else
-////            bonminNotAvailable();
-////#endif
-////            break;
-////    }
-//}
-
-
-int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
-    //GurobiProgram* grbprog;
-    // Initialize the IpoptApplication and process the options
-
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
         SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
+        iapp->RethrowNonIpoptException(true);
+        ApplicationReturnStatus status = iapp->Initialize();
+        
+        if (status != Solve_Succeeded) {
+            throw invalid_argument("*** Error during initialization!\n");
+        }
+        
+        if(_model->_objt==maximize){
+            _model->_obj *= -1;
+        }
+        _prog = new IpoptProgram(_model);
+#else
+        ipoptNotAvailable();
+#endif
+    }
+    else if(_stype==gurobi)
+    {
+#ifdef USE_GUROBI
+    _prog = new GurobiProgram(_model);
+#else
+        gurobiNotAvailable();
+#endif
+    }
+    else if(_stype==cplex)
+    {
+#ifdef USE_CPLEX
+    _prog = new CplexProgram(_model);
+#else
+    cplexNotAvailable();
+#endif
+    }
+    else if(_stype == Mosek)
+    {
+#ifdef USE_MOSEK
+    _prog = new MosekProgram(_model);
+#else
+    mosekNotAvailable();
+#endif
+    }
+    else if(_stype==bonmin) {
+#ifdef USE_BONMIN
+        if(_model->_objt==maximize){
+            _model->_obj *= -1;
+        }
+        _prog = new BonminProgram(_model);
+#else
+        bonminNotAvailable();
+#endif
+    }
+}
+
+solver::~solver(){
+    delete _prog;
+}
+
+int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
+
+    if (_stype==ipopt) {
+#ifdef USE_IPOPT
+            SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
             iapp->RethrowNonIpoptException(true);
             ApplicationReturnStatus status = iapp->Initialize();
         
@@ -139,41 +124,39 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
                 return (int) status;
             }
 
-        if(_model->_objt==maximize){
-            _model->_obj *= -1;
-        }
-        SmartPtr<TNLP> tmp = new IpoptProgram(_model);
-//        prog.ipopt_prog;
-                        iapp->Options()->SetStringValue("linear_solver", lin_solver);
-                        iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
-        
+            iapp->Options()->SetStringValue("linear_solver", lin_solver);
+            iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
+
 //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
 //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
 //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
-//                        iapp->Options()->SetStringValue("derivative_test", "second-order");
+//            iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                        iapp->Options()->SetStringValue("derivative_test", "first-order");
 //                        iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
 //                        iapp->Options()->SetNumericValue("print_level", 10);
-        
+
 //                        iapp->Options()->SetStringValue("derivative_test", "second-order");
-                        iapp->Options()->SetNumericValue("tol", tol);
+            iapp->Options()->SetNumericValue("tol", tol);
 //                        iapp->Options()->SetIntegerValue("max_iter", 50);
-        
+
 //                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
 //                        iapp->Options()->SetNumericValue("ma27_pivtol", 1e-6);
 //                        iapp->Options()->SetNumericValue("ma27_la_init_factor", 100);
 //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
-        
-        
-        
-        
+
+
+
+
 //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
 //                        iapp.Options()->SetNumericValue("tol", 1e-6);
-            //            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//            iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                        iapp->Options()->SetNumericValue("bound_relax_factor", 0);
-            //            iapp.Options()->SetIntegerValue("print_level", 5);
-            
+//            iapp.Options()->SetIntegerValue("print_level", 5);
+
 //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
+        _prog->update_model();
+        
+        SmartPtr<TNLP> tmp = new IpoptProgram(_model);
         status = iapp->OptimizeTNLP(tmp);
 //        if(prog.ipopt_prog->_model->_objt==maximize){
 //            prog.ipopt_prog->_model->_obj *= -1;
@@ -198,12 +181,11 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
 #ifdef USE_GUROBI
         try{
 
-            auto grb_prog = new GurobiProgram(_model);
+            auto grb_prog = (GurobiProgram*)(_prog);
             grb_prog->_output = output;
 //            prog.grb_prog->reset_model();
             grb_prog->prepare_model();
             bool ok = grb_prog->solve(relax);
-            delete grb_prog;
             return ok ? 100 : -1;
         }catch(GRBException e) {
             cerr << "\nError code = " << e.getErrorCode() << endl;
@@ -217,11 +199,10 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
     {
 #ifdef USE_CPLEX
         try{
-            auto cplex_prog = new CplexProgram(_model);
+            auto cplex_prog = (CplexProgram*)(_prog);
             cplex_prog->_output = output;
             cplex_prog->prepare_model();
             bool ok = cplex_prog->solve(relax);
-            delete cplex_prog;
             return ok ? 100 : -1;
         }
         catch(IloException e) {
@@ -231,15 +212,14 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         cplexNotAvailable();
 #endif
     }
-    else if(_stype == mosek_)
+    else if(_stype == Mosek)
     {
 #ifdef USE_MOSEK
         try{
-            auto mosek_prog = new MosekProgram(_model);
+            auto mosek_prog = (MosekProgram*)(_prog);
             mosek_prog->_output = output;
             mosek_prog->prepare_model();
             bool ok = mosek_prog->solve(relax);
-            delete mosek_prog;
             return ok ? 100 : -1;
         }
         catch(mosek::fusion::FusionException e) {
@@ -252,18 +232,12 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
     else if(_stype==bonmin) {
 #ifdef USE_BONMIN
         
-        
-        if(_model->_objt==maximize){
-            _model->_obj *= -1;
-        }
-        
-
-        bool ok = true;
         using namespace Bonmin;
         BonminSetup bonmin;
         bonmin.initializeOptionsAndJournalist();
         SmartPtr<TMINLP> tmp = new BonminProgram(_model);
         bonmin.initialize(tmp);
+
 //        bonmin.initialize(prog.bonmin_prog);
         try {
             Bab bb;

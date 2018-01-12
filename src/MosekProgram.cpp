@@ -8,13 +8,13 @@
 #include "MosekProgram.h"
 using namespace mosek;
 using namespace monty;
-MosekProgram::MosekProgram() {
+MosekProgram::MosekProgram() {    
     _mosek_model = new fusion::Model("noname");
     _mosek_model->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
 
 }
 
-MosekProgram::MosekProgram(Model* m) {
+MosekProgram::MosekProgram(Model* m) {    
     _mosek_model = new fusion::Model("noname");
     _mosek_model->setLogHandler([=](const std::string & msg){std::cout << msg << std::flush;});
     _model = m;
@@ -23,6 +23,9 @@ MosekProgram::MosekProgram(Model* m) {
 MosekProgram::~MosekProgram() {
     _mosek_model->dispose();
 }
+
+void MosekProgram::update_model() {};
+    
 
 // remain to do
 bool MosekProgram::solve(bool relax) {
@@ -217,7 +220,7 @@ void MosekProgram::create_mosek_constraints() {
     shared_ptr<Constraint> c;
     for(auto& p: _model->_cons) {
         c = p.second;
-        c->print();
+//        c->print();
         if (c->is_nonlinear()) {
             cout <<  "We haven't implemented quadratic expressions interface for mosek" << endl;
             throw invalid_argument("Mosek cannot handle nonlinear constraints that are not convex quadratic.\n");

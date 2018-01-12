@@ -20,7 +20,7 @@
 #include <gravity/model.h>
 using namespace gravity;
 
-class CplexProgram {
+class CplexProgram: public Program{
 private:
     
     IloModel* _cplex_model;
@@ -33,6 +33,7 @@ public:
     CplexProgram();
     CplexProgram(Model* m);
     ~CplexProgram();
+    void update_model();
     void reset_model();
     
     IloModel& get_cplex_model() const{
@@ -40,8 +41,7 @@ public:
     }
     
     bool solve(bool relax);
-    void prepare_model();
-    void update_model();
+    void prepare_model();    
     void relax_model();
     
     void fill_in_cplex_vars();

@@ -18,7 +18,7 @@
 #include <gravity/model.h>
 using namespace gravity;
 
-class MosekProgram {
+class MosekProgram: public Program{
 public:
     Model* _model;
     int _output;
