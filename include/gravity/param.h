@@ -730,7 +730,10 @@ public:
     }
 
 
-
+    param in(const node_pairs& np){
+        return this->in(np._keys);
+    }
+    
     template<typename Tobj> param in(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;

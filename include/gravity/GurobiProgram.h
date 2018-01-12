@@ -25,6 +25,7 @@ public:
     bool solve(bool relax);
     void prepare_model();
     void update_model();
+    void update_solution();
     void relax_model();
 
     void fill_in_grb_vmap();
