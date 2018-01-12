@@ -105,6 +105,10 @@ int main (int argc, char * argv[]) {
     SDP.add_var(R_Wij^nb_bus_pairs_chord);
     SDP.add_var(Im_Wij^nb_bus_pairs_chord);
 
+    for(auto& bp: bus_pairs_chord) {
+        cout << "Bp: " << bp->_name;
+    }
+
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
 //    Im_Wij.initialize_all(0.0);
@@ -218,30 +222,30 @@ int main (int argc, char * argv[]) {
 
     
     while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
-        R_star.resize(numcuts+1);
-        R_star[numcuts] = param<>("R_star"+to_string(numcuts));
-        I_star.resize(numcuts+1);
-        I_star[numcuts] = param<>("I_star"+to_string(numcuts));
-        W_star.resize(numcuts+1);
-        W_star[numcuts] = param<>("W_star"+to_string(numcuts));
-        R_diff.resize(numcuts+1);
-        R_diff[numcuts] = param<>("R_diff"+to_string(numcuts));
-        I_diff.resize(numcuts+1);
-        I_diff[numcuts] = param<>("I_diff"+to_string(numcuts));
-        W_diff.resize(numcuts+1);
-        W_diff[numcuts] = param<>("W_diff"+to_string(numcuts));
-        R_hat.resize(numcuts+1);
-        R_hat[numcuts] = param<>("R_hat"+to_string(numcuts));
-        I_hat.resize(numcuts+1);
-        I_hat[numcuts] = param<>("I_hat"+to_string(numcuts));
-        W_hat.resize(numcuts+1);
-        W_hat[numcuts] = param<>("W_hat"+to_string(numcuts));
         prev_opt = SDP._obj_val;
         for (auto &b: bags) {
-//            b->add_lines();
             if (b->is_PSD()) {
                 continue;
             }
+            R_star.resize(numcuts+1);
+            R_star[numcuts] = param<>("R_star"+to_string(numcuts));
+            I_star.resize(numcuts+1);
+            I_star[numcuts] = param<>("I_star"+to_string(numcuts));
+            W_star.resize(numcuts+1);
+            W_star[numcuts] = param<>("W_star"+to_string(numcuts));
+            R_diff.resize(numcuts+1);
+            R_diff[numcuts] = param<>("R_diff"+to_string(numcuts));
+            I_diff.resize(numcuts+1);
+            I_diff[numcuts] = param<>("I_diff"+to_string(numcuts));
+            W_diff.resize(numcuts+1);
+            W_diff[numcuts] = param<>("W_diff"+to_string(numcuts));
+            R_hat.resize(numcuts+1);
+            R_hat[numcuts] = param<>("R_hat"+to_string(numcuts));
+            I_hat.resize(numcuts+1);
+            I_hat[numcuts] = param<>("I_hat"+to_string(numcuts));
+            W_hat.resize(numcuts+1);
+            W_hat[numcuts] = param<>("W_hat"+to_string(numcuts));
+
             what = b->nfp();
             node_pairs b_pairs;
 //            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
@@ -280,7 +284,6 @@ int main (int argc, char * argv[]) {
             }
 
             Constraint lin("lin"+to_string(numcuts));
-            cout << "\nbpairs size = " << b_pairs._keys.size() << endl;
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
             lin += product(W_diff[numcuts].in(b->_nodes),(Wii.in(b->_nodes) - W_hat[numcuts].in(b->_nodes)));
@@ -295,7 +298,11 @@ int main (int argc, char * argv[]) {
         }
 
         if(!bus_pairs_sdp._keys.empty()) {
-            Constraint SOC_im("SOC_im");
+            for(auto& bp: bus_pairs_sdp._keys) {
+                cout << "Bp sdp: " << bp->_name;
+            }
+
+            Constraint SOC_im("SOC_im"+to_string(numcuts));
             SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
             SDP.add_constraint(SOC_im.in(bus_pairs_sdp._keys) <= 0);
             bus_pairs_sdp._keys.clear();
