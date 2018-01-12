@@ -6405,8 +6405,10 @@ namespace gravity{
     }
     
     void func_::print_expanded(){
+        
         auto nb_inst = get_nb_instances();
         for (unsigned inst = 0; inst<nb_inst; inst++) {
+            eval(inst);
             print(inst);
         }
         cout << endl;

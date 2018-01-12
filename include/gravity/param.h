@@ -47,6 +47,7 @@ public:
     unique_id                              _unique_id = make_tuple<>(-1,unindexed_,0,0,0); /* */
 
     bool                                   _is_indexed = false;
+    bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
     vector<double>                         _l_dual; /*<<Dual values for lower bounds */
     vector<double>                         _u_dual; /*<<Dual values for upper bounds */
     

@@ -4,15 +4,14 @@ CplexProgram::CplexProgram(Model* m) {
     _cplex_env = new IloEnv();
     _cplex_model = new IloModel(*_cplex_env);
     _model = m;
-    if (!m->_built) {
-        m->fill_in_maps();
-    }
-    else {
-        m->reset_funcs();
-    }
-    m->compute_funcs();
+    m->fill_in_maps();
 }
 
+void CplexProgram::update_model(){
+    fill_in_cplex_vars();
+    create_cplex_constraints();
+    set_cplex_objective();
+}
 
 CplexProgram::~CplexProgram() {
     delete _cplex_model;
@@ -65,7 +64,7 @@ bool CplexProgram::solve(bool relax) {
     catch (...) {
         cerr << "Error" << endl;
     }
-    _cplex_env->end();
+//    _cplex_env->end();
     return 0;
 }
 
@@ -76,6 +75,10 @@ void CplexProgram::fill_in_cplex_vars() {
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second;
+        if (!v->_new) {
+            continue;//Variable already added to the program
+        }
+        v->_new = false;
         vid = v->get_vec_id();
         if( vid == -1) {
             throw invalid_argument("Variable needs to be added to model first: use add_var(v) function:" + v->get_name());
@@ -154,6 +157,10 @@ void CplexProgram::fill_in_cplex_vars() {
 }
 
 void CplexProgram::set_cplex_objective() {
+    if (!_model->_obj._new) {
+        return;//Objective already added to the program
+    }
+    _model->_obj._new = false;
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
     IloNumExpr obj(*_cplex_env);
     for (auto& it_qterm: _model->_obj.get_qterms()) {
@@ -216,6 +223,10 @@ void CplexProgram::create_cplex_constraints() {
     Constraint* c;
     for(auto& p: _model->_cons) {
         c = p.second.get();
+        if (!c->_new) {
+            continue;//Constraint already added to the program
+        }
+        c->_new = false;
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
@@ -277,7 +288,7 @@ void CplexProgram::create_cplex_constraints() {
             }
             inst++;
         }
-    }
+    }    
 }
 
 void CplexProgram::prepare_model() {

@@ -377,6 +377,7 @@ void Model::add_constraint(const Constraint& c){
         _cons_name[c.get_name()] = newc;
         _cons[newc->_id] = newc;
         _built = false;
+//        newc->print_expanded();
     }
     else {
         throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
@@ -718,9 +719,7 @@ void Model::compute_funcs() {
         if (f->is_constant()) {
             f->_evaluated = true;
         }
-    }
-//    for (auto &c_p:_cons) {
-//        auto c = c_p.second;
+    }    
 ////        for (int inst = 0; inst < c->_nb_instances; inst++) {
 ////            c->eval(inst);
 ////        }
@@ -776,6 +775,7 @@ void Model::fill_in_obj(const double* x , double& res, bool new_x){
 //        set_x(x);
         res = _obj.eval();
         _obj_val = res;
+    _obj._new = false;
 //    }
 //    else {
 //        res = _obj_val;
@@ -861,6 +861,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
         for(auto& c_p: _cons)
         {
             c = c_p.second.get();
+            c->_new = false;
             auto nb_ins = c->_nb_instances;
             for (int inst = 0; inst< nb_ins; inst++){
 //                res[c->_id+inst] = c->get_val(inst);
@@ -1381,6 +1382,7 @@ void Model::reset_funcs() {
     for (auto& c:_cons) {
         c.second->reset_val();
     }
+    _obj.reset_val();
 }
 
 /* Compute derivatives and nonzeros in Jacobian and Hessian */
@@ -1392,315 +1394,74 @@ void Model::fill_in_maps() {
     _built = true;
     
 
-    _obj.compute_derivatives();
-    if (!_obj.is_linear()) {
-        for (auto &vi_p: _obj.get_vars()) {
-            vi = vi_p.second.first.get();
-            vi_name = vi_p.first;
-//            vid = vi->get_id();
-            auto df = _obj.get_stored_derivative(vi->_unique_id);
-            for (auto &vj_p: df->get_vars()) {
-                vj = vj_p.second.first.get();
-                vj_name = vj_p.first;
-//                vjd = vj->get_id();
-                if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                    _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
-                }
-                else {
-                    _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
-                }
-//                for (int inst = 0; inst<vi->get_dim(); inst++) {
-//                    vid = vi->get_id();
-//                    vid_inst = vid + vi->get_id_inst(inst);
-//                    vjd = vj->get_id();
-//                    vjd_inst = vjd + vj->get_id_inst(inst);
-//                    _hess.insert(make_pair<>(vid_inst, vjd_inst));
-//                }
-            }
-        }
-    }
-//    _obj.untranspose_derivatives();
-    Constraint* c = NULL;
-//    unsigned cid = 0;
-    for(auto& c_p :_cons)
-    {
-        c = c_p.second.get();
-        c->compute_derivatives();
-//        if (false) {
-//        if (_type==nlin_m) {
-            for (auto &df_p:*c->get_dfdx()) {
-                auto df = df_p.second;
-    //                        if (df->is_nonlinear()) {
-                DebugOff(df->to_str() << endl);
-                df_p.second = embed(df);
-//                embed(df);
-                
-                for (auto &df2_p:*df_p.second->get_dfdx()) {
-                    //            if (dfp.second->is_nonlinear()) {
-                    df2_p.second = embed(df2_p.second);
-//                    embed(df2_p.second);
-                    //            }
-                }
-            }
-//        }
-        c->_val = make_shared<vector<double>>();
-        c->_val->resize(c->_nb_instances);
-        if (!c->is_linear()) {
-//        if (false) {
-            for (auto &vi_p: c->get_vars()) {
+    if (_obj._new) {
+        _obj.compute_derivatives();
+        if (!_obj.is_linear()) {
+            for (auto &vi_p: _obj.get_vars()) {
                 vi = vi_p.second.first.get();
                 vi_name = vi_p.first;
-                auto df = c->get_stored_derivative(vi->_unique_id);
+    //            vid = vi->get_id();
+                auto df = _obj.get_stored_derivative(vi->_unique_id);
                 for (auto &vj_p: df->get_vars()) {
                     vj = vj_p.second.first.get();
                     vj_name = vj_p.first;
-//                    vjd = vj->get_id();
-                    if (vi_name.compare(vj_name) <= 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                        _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
+    //                vjd = vj->get_id();
+                    if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
+                        _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
                     }
                     else {
-                        _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
+                        _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(&_obj,_obj.get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
                     }
+    //                for (int inst = 0; inst<vi->get_dim(); inst++) {
+    //                    vid = vi->get_id();
+    //                    vid_inst = vid + vi->get_id_inst(inst);
+    //                    vjd = vj->get_id();
+    //                    vjd_inst = vjd + vj->get_id_inst(inst);
+    //                    _hess.insert(make_pair<>(vid_inst, vjd_inst));
+    //                }
                 }
             }
         }
-//        c->untranspose_derivatives();
-        DebugOff(c->to_str() << endl);
-//        for (auto &df_p:*c->get_dfdx()) {
-//            auto df = df_p.second;
-////            if (df->is_nonlinear()) {
-//                df_p.second = embed(df);
-//                DebugOff(df->to_str() << endl);
-////            }
-//        }
     }
-//    for (auto &pairs:_nl_funcs) {
-//        cout << pairs->to_str() << endl;
-//    }
-//    _nnz_h = _hess.size();
-//    DebugOff("Size of _hess_link = " << _hess_link.size() << endl);
+    Constraint* c = NULL;
+    for(auto& c_p :_cons)
+    {
+        c = c_p.second.get();
+        if (c->_new) {
+            c->compute_derivatives();
+            for (auto &df_p:*c->get_dfdx()) {
+                auto df = df_p.second;
+                    DebugOff(df->to_str() << endl);
+                    df_p.second = embed(df);
+                    for (auto &df2_p:*df_p.second->get_dfdx()) {
+                        df2_p.second = embed(df2_p.second);
+                    }
+                }
+            c->_val = make_shared<vector<double>>();
+            c->_val->resize(c->_nb_instances);
+            if (!c->is_linear()) {
+                for (auto &vi_p: c->get_vars()) {
+                    vi = vi_p.second.first.get();
+                    vi_name = vi_p.first;
+                    auto df = c->get_stored_derivative(vi->_unique_id);
+                    for (auto &vj_p: df->get_vars()) {
+                        vj = vj_p.second.first.get();
+                        vj_name = vj_p.first;
+                        if (vi_name.compare(vj_name) <= 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
+                            _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
+                        }
+                        else {
+                            _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_unique_id)->get_stored_derivative(vi->_unique_id).get()));
+                        }
+                    }
+                }
+            }
+            DebugOff(c->to_str() << endl);            
+        }
+    }
 }
 
-//void Model::fill_in_maps() {
-//    unsigned vid, vjd, expo, temp, vid_inst, vjd_inst;
-//    unique_id vi_unique, vj_unique, temp_unique;
-//    param_* vi;
-//    param_* vj;
-//    
-//    _obj.compute_derivatives();
-//    if (!_obj.is_linear()) {
-//        for (auto &qt_p: _obj.get_qterms()) {
-//            vi = qt_p.second._p->first;
-//            vid = vi->get_id();
-//            vj = qt_p.second._p->second;
-//            vjd = vj->get_id();
-//            if (vi->_is_vector) {
-//                for (int i = 0; i<vi->get_dim(); i++) {
-//                    vid_inst = vid + vi->get_id_inst(i);
-//                    vi_unique = vi->_unique_id;
-//                    vjd_inst = vjd + vj->get_id_inst(i);
-//                    vj_unique = vj->_unique_id;
-//                    if (vid_inst > vjd_inst) {
-//                        temp = vid_inst;
-//                        temp_unique = vi_unique;
-//                        vid_inst = vjd_inst;
-//                        vi_unique = vj_unique;
-//                        vjd_inst = temp;
-//                        vj_unique = temp_unique;
-//                    }
-//                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates a hessian link in the objective
-//                    _obj.get_hess_link()[vid_inst].insert(vjd_inst);
-//                }
-//            }
-//            else {
-//                vid_inst = vid + vi->get_id_inst();
-//                vi_unique = vi->_unique_id;
-//                vjd_inst = vjd + vj->get_id_inst();
-//                vj_unique = vj->_unique_id;
-//                if (vid_inst > vjd_inst) {
-//                    temp = vid_inst;
-//                    temp_unique = vi_unique;
-//                    vid_inst = vjd_inst;
-//                    vi_unique = vj_unique;
-//                    vjd_inst = temp;
-//                    vj_unique = temp_unique;
-//                }
-//                _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates a hessian link in the objective
-//                _obj.get_hess_link()[vid_inst].insert(vjd_inst);
-//
-//            }
-//        }
-//        
-//        for (auto &pt_p: _obj.get_pterms()) {
-//            for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
-//                vi = v_it->first;
-//                vid = vi->get_id();
-//                vid_inst = vid + vi->get_id_inst();
-//                vi_unique = vi->_unique_id;
-//                expo = v_it->second;
-//                if (expo>1) {
-//                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(-1,0));//"-1" indicates objective
-//                    _obj.get_hess_link()[vid_inst].insert(vid_inst);
-//                }
-//                for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
-//                    vi = v_it->first;
-//                    vid = vi->get_id();
-//                    vid_inst = vid + vi->get_id_inst();
-//                    vi_unique = vi->_unique_id;
-//                    vj = v_jt->first;
-//                    vjd = vj->get_id();
-//                    vjd_inst = vjd + vj->get_id_inst();
-//                    vj_unique = vj->_unique_id;
-//                    if (vid_inst > vjd_inst) {
-//                        temp = vid_inst;
-//                        temp_unique = vi_unique;
-//                        vid_inst = vjd_inst;
-//                        vi_unique = vj_unique;
-//                        vjd_inst = temp;
-//                        vj_unique = temp_unique;
-//                    }
-//                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(-1,0));//"-1" indicates objective
-//                    _obj.get_hess_link()[vid_inst].insert(vjd_inst);
-//                    
-//                }
-//            }
-//        }
-//    }
-//    Constraint* c = NULL;
-//    unsigned cid = 0;
-//    for(auto& c_p :_cons)
-//    {
-//        c = c_p.second;
-//        c->compute_derivatives();
-//        if (c->is_linear()) {
-//            continue;
-//        }
-//        for (int inst = 0; inst<c->_nb_instances; inst++) {
-//            cid = c->_id + inst;
-//            for (auto &qt_p: c->get_qterms()) {
-//                vi = qt_p.second._p->first;
-//                vid = vi->get_id();
-//                vid_inst = vid + vi->get_id_inst(inst);
-//                vi_unique = vi->_unique_id;
-//                vj = qt_p.second._p->second;
-//                vjd = vj->get_id();
-//                vjd_inst = vjd + vj->get_id_inst(inst);
-//                vj_unique = vj->_unique_id;
-//                if (vi->_is_vector) {
-//                    for (int i = 0; i<vi->get_dim(); i++) {
-//                        vid_inst = vid + vi->get_id_inst(i);
-//                        vi_unique = vi->_unique_id;
-//                        vjd_inst = vjd + vj->get_id_inst(i);
-//                        vj_unique = vj->_unique_id;
-//                        if (vid_inst > vjd_inst) {
-//                            temp = vid_inst;
-//                            temp_unique = vi_unique;
-//                            vid_inst = vjd_inst;
-//                            vi_unique = vj_unique;
-//                            vjd_inst = temp;
-//                            vj_unique = temp_unique;
-//                        }
-//                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
-//                        c->get_hess_link()[vid_inst].insert(vjd_inst);                        
-//                    }
-//                }
-//                else {
-//                    if (vid_inst > vjd_inst) {
-//                        temp = vid_inst;
-//                        temp_unique = vi_unique;
-//                        vid_inst = vjd_inst;
-//                        vi_unique = vj_unique;
-//                        vjd_inst = temp;
-//                        vj_unique = temp_unique;
-//                    }
-//                    _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
-//                    c->get_hess_link()[vid_inst].insert(vjd_inst);
-//                }
-//            }
-//            
-//            for (auto &pt_p: c->get_pterms()) {
-//                for (auto v_it = pt_p.second._l->begin(); v_it != pt_p.second._l->end(); v_it++) {
-//                    vi = v_it->first;
-//                    vid = vi->get_id();
-//                    vid_inst = vid + vi->get_id_inst(inst);
-//                    vi_unique = vi->_unique_id;
-//                    expo = v_it->second;
-//                    if (expo>1) {
-//                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vi_unique,vid_inst)].insert(make_pair<>(c->_id,inst));
-//                        c->get_hess_link()[vid_inst].insert(vid_inst);
-//                    }
-//                    for (auto v_jt = next(v_it); v_jt != pt_p.second._l->end(); v_jt++) {
-//                        vi = v_it->first;
-//                        vid = vi->get_id();
-//                        vid_inst = vid + vi->get_id_inst(inst);
-//                        vi_unique = vi->_unique_id;
-//                        vj = v_jt->first;
-//                        vjd = vj->get_id();
-//                        vjd_inst = vjd + vj->get_id_inst(inst);
-//                        vj_unique = vj->_unique_id;
-//                        if (vid_inst==vjd_inst) {
-//                            continue;
-//                        }
-//                        if (vid_inst > vjd_inst) {
-//                            temp = vid_inst;
-//                            temp_unique = vi_unique;
-//                            vid_inst = vjd_inst;
-//                            vi_unique = vj_unique;
-//                            vjd_inst = temp;
-//                            vj_unique = temp_unique;
-//                        }
-//                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
-//                        c->get_hess_link()[vid_inst].insert(vjd_inst);
-//                    }
-//                }
-//            }
-//            if (c->is_nonlinear()) {
-//                for (auto &vi_p: c->get_vars()) {
-//                    vi = vi_p.second.first;
-//                    vid = vi->get_id();
-//                    vid_inst = vid + vi->get_id_inst(inst);
-//                    vi_unique = vi->_unique_id;
-//                    auto df = c->get_stored_derivative(vi_unique);
-//                    for (auto &vj_p: df->get_vars()) {
-//                        vj = vj_p.second.first;
-//                        vjd = vj->get_id();
-//                        vjd_inst = vjd + vj->get_id_inst(inst);
-//                        vj_unique = vj->_unique_id;
-//                        if (vid_inst > vjd_inst) {
-//                            temp = vid_inst;
-//                            temp_unique = vi_unique;
-//                            vid_inst = vjd_inst;
-//                            vi_unique = vj_unique;
-//                            vjd_inst = temp;
-//                            vj_unique = temp_unique;
-//                        }
-//                        _hess_link[make_pair<>(vi_unique,vid_inst)][make_pair<>(vj_unique,vjd_inst)].insert(make_pair<>(c->_id,inst));
-//                        c->get_hess_link()[vid_inst].insert(vjd_inst);
-//                    }
-//                }
-//            }
-//        }
-//        
-//        //MISSING NONLINEAR PART!!!
-//        for (auto &v_p: c->get_vars()) {
-////            if(!v_p.second.first->_is_indexed){
-//                for (int i = 0; i < v_p.second.first->get_dim(); i++) {
-////                    _v_in_cons[v_p.second.first->get_id()+i].insert(c);
-////                }
-////            }
-////            else {
-////                auto ids = v_p.second.first->get_ids();
-////                for (int i = 0; i < ids.size(); i++) {
-//                    _v_in_cons[v_p.second.first->get_id() + v_p.second.first->get_id_inst(i)].insert(c);
-////                }                
-//            }
-//        }
-//    }
-//    _nnz_h = 0;
-//    for (auto &hess_i: _hess_link) {
-//        _nnz_h += hess_i.second.size();
-//    }    
-//}
+
 
 
 void Model::fill_in_var_init(double* x) {
