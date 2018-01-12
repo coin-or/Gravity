@@ -208,6 +208,10 @@ public:
         return res;
     }
     
+    var in(const node_pairs& np){
+        return this->in(np._keys);
+    }
+    
     template<typename Tobj>
     var in(const vector<Tobj>& vec) {
         var<type> res(this->_name);
