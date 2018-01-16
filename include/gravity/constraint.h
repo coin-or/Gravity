@@ -65,6 +65,11 @@ namespace gravity {
         
         /* Modifiers */
         
+        Constraint& in(const node_pairs& np){
+            this->func_::in(np);
+            return *this;
+        };
+        
         template<typename Tobj> Constraint& in(const vector<Tobj*>& vec){
             this->func_::in(vec);
             return *this;

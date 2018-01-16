@@ -116,7 +116,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
     
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
-        double mu_init = 0.001;
+        double mu_init = 0.5;
         SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
         iapp->RethrowNonIpoptException(true);
         ApplicationReturnStatus status = iapp->Initialize();

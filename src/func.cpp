@@ -1752,6 +1752,9 @@ namespace gravity{
             _evaluated = f._evaluated;
         }
         _cst = copy(*f._cst);
+        if (_cst->is_function()) {
+            embed(*(func_*)_cst);
+        }
         _all_range = new pair<Real,Real>(f._all_range->first, f._all_range->second);
         _sign = nullptr;
         _convexity = nullptr;
@@ -1860,6 +1863,10 @@ namespace gravity{
         _embedded = f._embedded;
         _return_type = f._return_type;
         _cst = copy(*f._cst);
+        if (_cst->is_function()) {
+            embed(*(func_*)_cst);
+        }
+
         _all_range = new pair<Real,Real>(f._all_range->first, f._all_range->second);
         _sign = nullptr;
         _convexity = nullptr;
@@ -2860,6 +2867,15 @@ namespace gravity{
             return *this;
         }
         return *this;
+    }
+    
+    void func_::update_nb_ind(){
+        _nb_instances = 0;
+        for (auto &p: *_vars) {
+            if (!p.second.first->_is_vector) {
+                _nb_instances = max(_nb_instances, p.second.first->get_nb_instances());
+            }
+        }
     }
     
     void func_::propagate_nb_ind(size_t nb){
@@ -6070,6 +6086,9 @@ namespace gravity{
 //            if (i>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
+        if (_val->size()<=i){
+            throw invalid_argument("Func get_val out of range");
+        }
             return _val->at(i);
 //        }
     }
@@ -6183,6 +6202,9 @@ namespace gravity{
 //            if (_val->at(i) != force_eval(i)) {
 //                throw invalid_argument("error");
 //            }
+            if (_val->size()<=i){
+                throw invalid_argument("Func eval out of range");
+            }
             return _val->at(i);
         }
         double res = 0;
@@ -6227,6 +6249,9 @@ namespace gravity{
 //            }
             if (is_constant() && i==_val->size()-1) {
                 _evaluated = true;
+            }
+            if (_val->size()<=i){
+                throw invalid_argument("Param eval out of range");
             }
             _val->at(i) = res;
         }
@@ -6291,6 +6316,10 @@ namespace gravity{
             }
 //            str += "\n";
 //        }
+//        str += "["+to_string(_nb_instances)+"]";
+//        if (_dfdx->size()>0) {
+//            str+= "_has_deriv";
+//        }        
         return str;
     }
 

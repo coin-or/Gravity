@@ -25,7 +25,8 @@ int main (int argc, char * argv[]) {
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
-    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
+//    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -79,44 +80,39 @@ int main (int argc, char * argv[]) {
 
     /** Variables */
     /* power generation variables */
-    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
-    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
-    SDP.add_var(Pg^(nb_gen));
-    SDP.add_var(Qg^(nb_gen));
-
-    /* power flow variables */
-    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
-    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
-    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
-    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
+    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
+    SDP.add_var(Pg.in(grid->gens));
+    SDP.add_var(Qg.in(grid->gens));
     
-    SDP.add_var(Pf_from^(nb_lines));
-    SDP.add_var(Qf_from^(nb_lines));
-    SDP.add_var(Pf_to^(nb_lines));
-    SDP.add_var(Qf_to^(nb_lines));
-
+    
+    /* power flow variables */
+    var<Real> Pf_from("Pf_from", grid->S_max);
+    var<Real> Qf_from("Qf_from", grid->S_max);
+    var<Real> Pf_to("Pf_to", grid->S_max);
+    var<Real> Qf_to("Qf_to", grid->S_max);
+    SDP.add_var(Pf_from.in(grid->arcs));
+    SDP.add_var(Qf_from.in(grid->arcs));
+    SDP.add_var(Pf_to.in(grid->arcs));
+    SDP.add_var(Qf_to.in(grid->arcs));
+    
     /* Real part of Wij = ViVj */
-    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs_chord), grid->wr_max.in(bus_pairs_chord));
+    var<Real>  R_Wij("R_Wij", grid->wr_min, grid->wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs_chord), grid->wi_max.in(bus_pairs_chord));
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min, grid->wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
-    SDP.add_var(Wii^nb_buses);
-    SDP.add_var(R_Wij^nb_bus_pairs_chord);
-    SDP.add_var(Im_Wij^nb_bus_pairs_chord);
-
-    for(auto& bp: bus_pairs_chord) {
-        cout << "Bp: " << bp->_name;
-    }
-
+    var<Real>  Wii("Wii", grid->w_min, grid->w_max);
+    SDP.add_var(Wii.in(grid->nodes));
+    SDP.add_var(R_Wij.in(bus_pairs_chord));
+    SDP.add_var(Im_Wij.in(bus_pairs_chord));
+    
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
-//    Im_Wij.initialize_all(0.0);
     Wii.initialize_all(1.001);
 
     /**  Objective */
     auto obj = product(grid->c1, Pg) + product(grid->c2, power(Pg,2)) + sum(grid->c0);
-    obj.print_expanded();
+//    obj.print_expanded();
     SDP.min(obj.in(grid->gens));
     
     /** Constraints */
@@ -124,6 +120,7 @@ int main (int argc, char * argv[]) {
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
     SDP.add_constraint(SOC.in(bus_pairs) <= 0);
+    SDP.get_constraint("SOC")->print_expanded();
     
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -247,7 +244,7 @@ int main (int argc, char * argv[]) {
             W_hat[numcuts] = param<>("W_hat"+to_string(numcuts));
 
             what = b->nfp();
-            node_pairs b_pairs;
+            node_pairs b_pairs("node_pairs");
 //            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
@@ -298,13 +295,17 @@ int main (int argc, char * argv[]) {
         }
 
         if(!bus_pairs_sdp._keys.empty()) {
+            cout << "Adding SOC indices: {";
             for(auto& bp: bus_pairs_sdp._keys) {
-                cout << "Bp sdp: " << bp->_name;
+                cout << bp->_name << ", ";
             }
+            cout << "}"  << endl;
 
-            Constraint SOC_im("SOC_im"+to_string(numcuts));
-            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
-            SDP.add_constraint(SOC_im.in(bus_pairs_sdp._keys) <= 0);
+//            Constraint SOC_im("SOC_im"+to_string(numcuts));
+//            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
+//            SDP.add_constraint(SOC_im.in(bus_pairs_sdp) <= 0);
+            SDP.add_indices("SOC",bus_pairs_sdp);
+            SDP.get_constraint("SOC")->print_expanded();
             bus_pairs_sdp._keys.clear();
         }
 
