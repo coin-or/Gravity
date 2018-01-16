@@ -321,11 +321,11 @@ param<double> Bag::nfp(){
     NPP.add_var(z ^ (n*n+1));
 
     var<double> w("w", _wmin.in(_indices), _wmax.in(_indices));
-    NPP.add_var(w ^ (n*n));
+    NPP.add_var(w.in(_indices));
 
     func_ obj;
     obj = z("obj");
-    NPP.set_objective(min(obj));
+    NPP.min(obj);
 
 //    min t  s.t.
 //    ||z|| <= t    (z(obj) = t)

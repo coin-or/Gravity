@@ -99,7 +99,7 @@ namespace gravity {
         
         size_t get_nb_cons() const;
         
-        size_t get_nb_nnz_g() const;
+        size_t get_nb_nnz_g();
         
         size_t get_nb_nnz_h();
         
@@ -113,7 +113,9 @@ namespace gravity {
         
         param_* get_var(const string& vname) const;
         
-        Constraint* get_constraint(const string& name) const;
+        shared_ptr<Constraint> get_constraint(const string& name) const;
+        
+        void add_indices(const string& constr_name, const node_pairs& indices);
         
         bool has_var(const param_& v) const{
             return (_vars.count(v.get_vec_id())!=0);
@@ -127,44 +129,24 @@ namespace gravity {
         void compute_funcs();
         
         template <typename type>
-        void add_var(var<type>& v){//Add variables by copying variable
-//
-//                auto nb_ind = v.get_nb_instances();
-//                v._lb->_nb_instances = nb_ind;
-//                v._lb->_val->resize(nb_ind);
-//                v._ub->_nb_instances = nb_ind;
-//                v._ub->_val->resize(nb_ind);
-//                if (!v._lb->_ids->empty()) {
-//                    for (auto ind: *v._lb->_ids) {
-//                        v._lb->eval(ind);
-//                        v._ub->eval(ind);
-//                    }
-//                }
-//                else {
-//                    for (unsigned ind = 0; ind< nb_ind; ind++) {
-//                        v._lb->eval(ind);
-//                        v._ub->eval(ind);
-//                    }
-//                }
-//                v._lb->_evaluated = true;
-//                v._ub->_evaluated = true;
-//            }
+        void add_var(var<type>& v){//Add variables by copy
+            
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
-                v._lb->_nb_instances = nb_ind;
-                v._lb->_val->resize(nb_ind);
-                v._ub->_nb_instances = nb_ind;
-                v._ub->_val->resize(nb_ind);
-                v._lb->_val->resize(v._lb->_nb_instances);
-                v._ub->_val->resize(v._ub->_nb_instances);
+                shared_ptr<vector<type>> lb = make_shared<vector<type>>(nb_ind);
+                shared_ptr<vector<type>> ub = make_shared<vector<type>>(nb_ind);
                 unsigned i = 0;
-                for (auto &p: *v.get_indices()) {//TODO just copy ids?
-                    v._lb->_val->at(i) = v._lb->eval(p.second);
-                    v._ub->_val->at(i) = v._ub->eval(p.second);
+                for (auto &p: *v.get_indices()) {//TODO fix this
+                    lb->at(i) = v._lb->eval(p.second);
+                    ub->at(i) = v._ub->eval(p.second);
                     i++;
-                }
-                v._lb->_evaluated = true;
-                v._ub->_evaluated = true;
+                }                
+                v._lb->_val = move(lb);
+                v._ub->_val = move(ub);
+                v._lb->_nb_instances = nb_ind;
+                v._lb->_dim[0] = nb_ind;
+                v._ub->_nb_instances = nb_ind;
+                v._ub->_dim[0] = nb_ind;
             }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
@@ -181,6 +163,49 @@ namespace gravity {
                 _nb_vars += v.get_dim();        
             }
         };
+        
+        
+        template <typename type>
+        void add_var(var<type>&& v){//Add variables by copy
+            if (v._is_indexed) {
+                auto nb_ind = v.get_nb_instances();
+                for (unsigned i = 0; i<nb_ind; i++) {
+                    v._lb->eval(i);
+                    v._ub->eval(i);
+                }
+//                shared_ptr<vector<type>> lb = make_shared<vector<type>>(nb_ind);
+//                shared_ptr<vector<type>> ub = make_shared<vector<type>>(nb_ind);
+//                unsigned i = 0;
+////                for (auto &p: *v.get_rev_indices()) {//TODO fix this
+////                    lb->at(i) = v._lb->eval(v._lb->get_indices()->at(p));
+////                    ub->at(i) = v._ub->eval(v._ub->get_indices()->at(p));
+////                    i++;
+////                }
+//                v._lb->_val = move(lb);
+//                v._ub->_val = move(ub);
+//                v._lb->_evaluated = true;
+//                v._ub->_evaluated = true;
+//                v._lb->_nb_instances = nb_ind;
+//                v._lb->_dim[0] = nb_ind;
+//                v._ub->_nb_instances = nb_ind;
+//                v._ub->_dim[0] = nb_ind;                
+            }
+            if (_vars_name.count(v._name)==0) {
+                v.set_id(_nb_vars);
+                v.set_vec_id(_vars.size());
+                param_* newv;
+                if (v._dim[0]==0) {
+                    newv = (param_*)copy(v^1);
+                }
+                else {
+                    newv = (param_*)copy(v);
+                }
+                _vars_name[v._name] = newv;
+                _vars[v.get_vec_id()] = newv;
+                _nb_vars += v.get_dim();
+            }
+        };
+        
         void del_var(const param_& v);
         
         

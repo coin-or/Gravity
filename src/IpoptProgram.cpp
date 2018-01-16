@@ -59,8 +59,8 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
         vp.second->_u_dual.resize(nb_inst);
         vp.second->_l_dual.resize(nb_inst);
         for (unsigned inst = 0; inst < nb_inst; inst++) {
-            vp.second->_u_dual[inst] = z_U[vp.second->_id + vp.second->get_id_inst(inst)];
-            vp.second->_l_dual[inst] = z_L[vp.second->_id + vp.second->get_id_inst(inst)];
+            vp.second->_u_dual[inst] = z_U[vp.second->get_id() + vp.second->get_id_inst(inst)];
+            vp.second->_l_dual[inst] = z_L[vp.second->get_id() + vp.second->get_id_inst(inst)];
         }
     }
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;

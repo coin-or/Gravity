@@ -78,36 +78,36 @@ int main (int argc, char * argv[])
     Model ACOPF("AC-OPF Model");
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", grid.pg_min.in(grid.gens), grid.pg_max.in(grid.gens));
-    var<Real> Qg ("Qg", grid.qg_min.in(grid.gens), grid.qg_max.in(grid.gens));
-    ACOPF.add_var(Pg^(nb_gen));
-    ACOPF.add_var(Qg^(nb_gen));
+    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
+    var<Real> Qg ("Qg", grid.qg_min, grid.qg_max);
+    ACOPF.add_var(Pg.in(grid.gens));
+    ACOPF.add_var(Qg.in(grid.gens));
 
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", grid.S_max.in(grid.arcs));
-    var<Real> Qf_from("Qf_from", grid.S_max.in(grid.arcs));
-    var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs));
-    var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs));
+    var<Real> Pf_from("Pf_from", grid.S_max);
+    var<Real> Qf_from("Qf_from", grid.S_max);
+    var<Real> Pf_to("Pf_to", grid.S_max);
+    var<Real> Qf_to("Qf_to", grid.S_max);
 
-    ACOPF.add_var(Pf_from^(nb_lines));
-    ACOPF.add_var(Qf_from^(nb_lines));
-    ACOPF.add_var(Pf_to^(nb_lines));
-    ACOPF.add_var(Qf_to^(nb_lines));
+    ACOPF.add_var(Pf_from.in(grid.arcs));
+    ACOPF.add_var(Qf_from.in(grid.arcs));
+    ACOPF.add_var(Pf_to.in(grid.arcs));
+    ACOPF.add_var(Qf_to.in(grid.arcs));
 
     /** Voltage related variables */
     var<Real> theta("theta");
-    var<Real> v("|V|", grid.v_min.in(grid.nodes), grid.v_max.in(grid.nodes));
+    var<Real> v("|V|", grid.v_min, grid.v_max);
     var<Real> vr("vr");
     var<Real> vi("vi");
     
     if (polar) {
-        ACOPF.add_var(v^(nb_buses));
-        ACOPF.add_var(theta^(nb_buses));
+        ACOPF.add_var(v.in(grid.nodes));
+        ACOPF.add_var(theta.in(grid.nodes));
         v.initialize_all(1);
     }
     else {
-        ACOPF.add_var(vr^(nb_buses));
-        ACOPF.add_var(vi^(nb_buses));
+        ACOPF.add_var(vr.in(grid.nodes));
+        ACOPF.add_var(vi.in(grid.nodes));
         vr.initialize_all(1.0);
     }
 

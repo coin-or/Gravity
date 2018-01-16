@@ -99,7 +99,10 @@ namespace gravity{
     class node_pairs{
         
     public:
+        string _name;
         std::vector<gravity::index_pair*> _keys;
+        node_pairs(){};
+        node_pairs(string name):_name(name){};
         ~node_pairs(){
             for (auto p: _keys) { delete p;}
         }
