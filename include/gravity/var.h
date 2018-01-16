@@ -218,15 +218,6 @@ public:
     
     
     
-    var in(const vector<index_*>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
     
     var in_arcs(const vector<Node*>& vec) {
         var<type> res(this->_name);
