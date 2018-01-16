@@ -1681,7 +1681,7 @@ namespace gravity {
                 return to_string(_val->at(_ids->at(index1).at(index2)));
             }
             else {
-                return to_string(_val->at(index));
+                return to_string(_val->at(index2));
             }
         }
         
