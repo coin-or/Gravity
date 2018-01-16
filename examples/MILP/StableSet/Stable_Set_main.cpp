@@ -53,7 +53,7 @@ int main (int argc, const char * argv[])
     c.print();
     model.add_constraint(c.in(graph.arcs));
     /**  Solver **/
-    SolverType stype = cplex;
+    SolverType stype = gurobi;
     solver s(model,stype);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
@@ -131,7 +131,7 @@ int main (int argc, const char * argv[])
     
 
 //   solver s1(SDP,ipopt);
-    solver s1(SDP,cplex);
+    solver s1(SDP,gurobi);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();

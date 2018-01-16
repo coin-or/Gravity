@@ -141,6 +141,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         solver NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
         NLP.run(log_lev=0,relax=false,1e-12,"ma27",mehrotra);
+//        Ising.print_nl_functions();
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
         obj_val[main_spin] = Ising._obj_val;
@@ -175,7 +176,7 @@ int main (int argc, char * argv[])
 {
     int log_lev = 0;
     bool relax = false;
-    string fname = "../data_sets/Ising/samples_bin_sml.csv";
+    string fname = "../data_sets/Ising/samples_bin.csv";
     string path = argv[0];
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
         fname = "../" + fname;

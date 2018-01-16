@@ -1459,11 +1459,11 @@ void Model::fill_in_maps() {
             if (!c->is_linear()) {
                 for (auto &vi_p: c->get_vars()) {
                     vi = vi_p.second.first.get();
-                    vi_name = vi->_name;
+                    vi_name = vi_p.first;
                     auto df = c->get_stored_derivative(vi->_unique_id);
                     for (auto &vj_p: df->get_vars()) {
                         vj = vj_p.second.first.get();
-                        vj_name = vj->_name;
+                        vj_name = vj_p.first;
                         if (vi_name.compare(vj_name) <= 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
                             _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
                         }
@@ -1839,10 +1839,10 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
 void Model::print_nl_functions() const{
     cout << "Number of atomic functions = " << _nl_funcs.size();
     cout << endl;
-    //    for (auto& f: _functions){
-    //        f->print(false);
-    //        cout << endl;
-    //    }
+        for (auto& f: _nl_funcs){
+            f->print(false,false);
+            cout << endl;
+        }
     cout << endl;
 }
 
