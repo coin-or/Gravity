@@ -320,7 +320,7 @@ param<double> Bag::nfp(){
     z.in_q_cone();
     NPP.add_var(z ^ (n*n+1));
 
-    var<double> w("w", _wmin.in(_indices), _wmax.in(_indices));
+    var<double> w("w", _wmin, _wmax);
     NPP.add_var(w.in(_indices));
 
     func_ obj;
@@ -338,8 +338,8 @@ param<double> Bag::nfp(){
 
     /* w*-w = z */
     Constraint svec("svec");
-    svec = _wstarp.in(_indices) - w.in(_indices) - z.in(_indices);
-    NPP.add_constraint(svec==0);
+    svec = _wstarp - w - z;
+    NPP.add_constraint(svec.in(_indices)==0);
 
     //todo: flatten(W*-W) = z;    param-sdpvar
 
