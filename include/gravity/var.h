@@ -203,8 +203,12 @@ public:
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        if(!this->_lb->is_number()){
+            *res._lb = this->_lb->in(vec);
+        }
+        if(!this->_ub->is_number()){
+            *res._ub = this->_ub->in(vec);
+        }
         return res;
     }
     
@@ -212,8 +216,9 @@ public:
         return this->in(np._keys);
     }
     
-    template<typename Tobj>
-    var in(const vector<Tobj>& vec) {
+    
+    
+    var in(const vector<index_*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);

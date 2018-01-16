@@ -593,6 +593,359 @@ namespace gravity {
             
         }
         
+        void add_indices_in(const node_pairs& np) {
+            size_t nb_active = 0;
+            string key;
+            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                v->_name += np._name;
+                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+                if(get<1>(v->_unique_id)==in_){
+                    //
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                    _ids = v->get_ids();
+                }
+                else if(get<1>(v->_unique_id)==from_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_src->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==to_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_dest->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                v->_name += np._name;
+                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+                if(get<1>(v->_unique_id)==in_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==from_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_src->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==to_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_dest->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+            }
+            delete _vars;
+            _vars = new_vars;
+            delete _params;
+            _params = new_params;
+            _nb_instances += nb_active;
+            propagate_nb_ind(_nb_instances);
+            _dfdx->clear();            
+            _new = true;
+        }
+        
+        func_& in(const node_pairs& np) {
+            return this->in(np._keys);
+        }
         
         
         template<typename Tobj>
@@ -1486,6 +1839,8 @@ namespace gravity {
         void embed(func_& f);
         void embed(shared_ptr<expr> e);
         void propagate_nb_ind(size_t);/*<< Propagates number of indices */
+        
+        void update_nb_ind();/*<< Update number of indices */
         
         
         void reset();

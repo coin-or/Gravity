@@ -48,7 +48,15 @@ size_t Model::get_nb_cons() const{
 };
 
 
-size_t Model::get_nb_nnz_g() const{    
+size_t Model::get_nb_nnz_g(){
+    _nnz_g = 0;
+    for (auto &cp:_cons) {
+        auto c = cp.second;
+        auto nb_inst = c->_nb_instances;
+        for (unsigned inst = 0; inst<nb_inst; inst++) {
+            _nnz_g += c->get_nb_vars(inst);
+        }
+    }
     return _nnz_g;
 };
 
@@ -84,13 +92,22 @@ size_t Model::get_nb_nnz_h(){
         }
 //    }
     _nnz_h = idx;
-    return idx;
+    return _nnz_h;
 };
 
 
+void Model::add_indices(const string& constr_name, const node_pairs& indices){
+    auto c = _cons_name.at(constr_name);
+    c->add_indices_in(indices);
+    for (auto &cc : _cons) {
+        if (cc.second->_id > c->_id) {
+            cc.second->_id += indices._keys.size();
+        }
+    }
+}
 
-Constraint* Model::get_constraint(const string& cname) const{
-    return (Constraint*)&_cons_name.at(cname);
+shared_ptr<Constraint> Model::get_constraint(const string& cname) const{
+    return _cons_name.at(cname);
 }
 
 param_* Model::get_var(const string& vname) const{
@@ -372,7 +389,7 @@ void Model::add_constraint(const Constraint& c){
         }
 //            embed();
 //        }
-        newc->_id = _nb_cons;
+        newc->_id = get_nb_cons();
 //        embed(newc);
         _cons_name[c.get_name()] = newc;
         _cons[newc->_id] = newc;
@@ -380,7 +397,7 @@ void Model::add_constraint(const Constraint& c){
 //        newc->print_expanded();
     }
     else {
-        throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
+//        throw invalid_argument("rename constraint as this name has been used by another one: " + c.to_str());
     }
     int nb_inst = c._nb_instances;
     _nb_cons += nb_inst;
@@ -694,7 +711,7 @@ void Model::compute_funcs() {
         }
         if (!f->_is_matrix) {
             DebugOff(f->to_str()<<endl);
-            for (int inst = 0; inst < f->_nb_instances; inst++) {
+            for (int inst = 0; inst < f->_nb_instances; inst++) {//Wii_from is not updated!
                 f->eval(inst);
             }
         }
@@ -1442,11 +1459,11 @@ void Model::fill_in_maps() {
             if (!c->is_linear()) {
                 for (auto &vi_p: c->get_vars()) {
                     vi = vi_p.second.first.get();
-                    vi_name = vi_p.first;
+                    vi_name = vi->_name;
                     auto df = c->get_stored_derivative(vi->_unique_id);
                     for (auto &vj_p: df->get_vars()) {
                         vj = vj_p.second.first.get();
-                        vj_name = vj_p.first;
+                        vj_name = vj->_name;
                         if (vi_name.compare(vj_name) <= 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
                             _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_unique_id)->get_stored_derivative(vj->_unique_id).get()));
                         }
@@ -1477,8 +1494,8 @@ void Model::fill_in_duals(double* lambda, double* z_L, double* z_U){
         }
         auto nb_inst = vp.second->get_nb_instances();
         for (unsigned inst = 0; inst < nb_inst; inst++) {
-            z_L[vp.second->_id + vp.second->get_id_inst(inst)] = vp.second->_l_dual[inst];
-            z_U[vp.second->_id + vp.second->get_id_inst(inst)] = vp.second->_u_dual[inst];
+            z_L[vp.second->get_id() + vp.second->get_id_inst(inst)] = vp.second->_l_dual[inst];
+            z_U[vp.second->get_id() + vp.second->get_id_inst(inst)] = vp.second->_u_dual[inst];
         }
     }
     
@@ -1801,6 +1818,16 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
             return f;
             //        f_p.first->second->_val = make_shared<vector<double>>();
             //        f_p.first->second->_val->resize(f_p.first->second->_nb_instances);
+        }
+//        if (f->_new) {
+//            f_p.first->second = f;
+//            return f;
+//        }
+        if (f->_nb_instances > f_p.first->second->_nb_instances) {
+            *f_p.first->second = *f;
+        }
+        else if (f->_dfdx->size()>0) {
+            *f_p.first->second = *f;
         }
         return f_p.first->second;
     }

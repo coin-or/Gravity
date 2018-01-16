@@ -28,6 +28,7 @@ int main (int argc, char * argv[])
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case200_pserc.m";
     string path = argv[0];
     string solver_str="ipopt";
     
@@ -77,30 +78,31 @@ int main (int argc, char * argv[])
     
     /** Variables */
     /* power generation variables */
-    var<Real> Pg("Pg", grid->pg_min.in(grid->gens), grid->pg_max.in(grid->gens));
-    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens), grid->qg_max.in(grid->gens));
-    SOCP.add_var(Pg^(nb_gen));
-    SOCP.add_var(Qg^(nb_gen));
+    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
+    SOCP.add_var(Pg.in(grid->gens));
+    SOCP.add_var(Qg.in(grid->gens));
+    
     
     /* power flow variables */
-    var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs));
-    var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs));
-    var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs));
-    var<Real> Qf_to("Qf_to", grid->S_max.in(grid->arcs));
-    SOCP.add_var(Pf_from^(nb_lines));
-    SOCP.add_var(Qf_from^(nb_lines));
-    SOCP.add_var(Pf_to^(nb_lines));
-    SOCP.add_var(Qf_to^(nb_lines));
+    var<Real> Pf_from("Pf_from", grid->S_max);
+    var<Real> Qf_from("Qf_from", grid->S_max);
+    var<Real> Pf_to("Pf_to", grid->S_max);
+    var<Real> Qf_to("Qf_to", grid->S_max);
+    SOCP.add_var(Pf_from.in(grid->arcs));
+    SOCP.add_var(Qf_from.in(grid->arcs));
+    SOCP.add_var(Pf_to.in(grid->arcs));
+    SOCP.add_var(Qf_to.in(grid->arcs));
     
     /* Real part of Wij = ViVj */
-    var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs), grid->wr_max.in(bus_pairs));
+    var<Real>  R_Wij("R_Wij", grid->wr_min, grid->wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs), grid->wi_max.in(bus_pairs));
+    var<Real>  Im_Wij("Im_Wij", grid->wi_min, grid->wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<Real>  Wii("Wii", grid->w_min.in(grid->nodes), grid->w_max.in(grid->nodes));
-    SOCP.add_var(Wii^nb_buses);
-    SOCP.add_var(R_Wij^nb_bus_pairs);
-    SOCP.add_var(Im_Wij^nb_bus_pairs);
+    var<Real>  Wii("Wii", grid->w_min, grid->w_max);
+    SOCP.add_var(Wii.in(grid->nodes));
+    SOCP.add_var(R_Wij.in(bus_pairs));
+    SOCP.add_var(Im_Wij.in(bus_pairs));
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
@@ -171,14 +173,14 @@ int main (int argc, char * argv[])
     LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
     LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
     LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
+//    SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
     LNC2 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
     LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
     LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
     LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-    SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
+//    SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     
     /* Solver selection */
