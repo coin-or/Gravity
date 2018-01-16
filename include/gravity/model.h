@@ -133,20 +133,10 @@ namespace gravity {
             
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
-                shared_ptr<vector<type>> lb = make_shared<vector<type>>(nb_ind);
-                shared_ptr<vector<type>> ub = make_shared<vector<type>>(nb_ind);
-                unsigned i = 0;
-                for (auto &p: *v.get_indices()) {//TODO fix this
-                    lb->at(i) = v._lb->eval(p.second);
-                    ub->at(i) = v._ub->eval(p.second);
-                    i++;
-                }                
-                v._lb->_val = move(lb);
-                v._ub->_val = move(ub);
-                v._lb->_nb_instances = nb_ind;
-                v._lb->_dim[0] = nb_ind;
-                v._ub->_nb_instances = nb_ind;
-                v._ub->_dim[0] = nb_ind;
+                for (unsigned i = 0; i<nb_ind; i++) {
+                    v._lb->eval(i);
+                    v._ub->eval(i);
+                }
             }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
