@@ -575,7 +575,15 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             nb++;
         }
     }
-    sort(_bags.begin(), _bags.end(), bag_compare);
+//    sort(_bags.begin(), _bags.end(), bag_compare);
+
+//    for(auto& b: _bags) {
+//        DebugOn("bag = {");
+//        for (int i = 0; i < b.size(); i++) {
+//            cout << b.at(i)->_name << " ";
+//        }
+//        DebugOn("}" << endl);
+//    }
 
     Debug("\n Number of 3D bags = " << nb << endl);
 }

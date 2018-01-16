@@ -217,10 +217,16 @@ int main (int argc, char * argv[]) {
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
-    
-    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
+    int unchanged = 0, iter = 0;
+
+    while(unchanged < 3) {
+        iter++;
+//    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
         prev_opt = SDP._obj_val;
         for (auto &b: bags) {
+            DebugOn("\nBag number " << b->_id);
+            DebugOn("\nNodes: n1 = " << b->_nodes[0]->_name << ", n2 = " << b->_nodes[1]->_name << ", n3 = " << b->_nodes[2]->_name);
+
             if (b->is_PSD()) {
                 continue;
             }
@@ -245,11 +251,9 @@ int main (int argc, char * argv[]) {
 
             what = b->nfp();
             node_pairs b_pairs("node_pairs");
-//            param<> Wii_star("Wii_star"), Wii_hat("Wii_hat"), W_diff("W_Diff");
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
             Arc *aij;
-            double sdp_cst = 0;
             for (int i = 0; i < b->_nodes.size(); i++) {
                 for (int j = i; j < b->_nodes.size(); j++) {
                     if (i == j) {
@@ -288,18 +292,18 @@ int main (int argc, char * argv[]) {
 //            lin += product(I_star.in(b_pairs._keys) - I_hat.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
 //            lin += product(W_star.in(b->_nodes) - W_hat.in(b->_nodes),(Wii.in(b->_nodes) - W_hat.in(b->_nodes)));
 //            lin.print();
-            lin.print_expanded();
+//            lin.print_expanded();
             SDP.add_constraint(lin <= 0);
 
             numcuts++;
         }
 
         if(!bus_pairs_sdp._keys.empty()) {
-            cout << "Adding SOC indices: {";
-            for(auto& bp: bus_pairs_sdp._keys) {
-                cout << bp->_name << ", ";
-            }
-            cout << "}"  << endl;
+//            cout << "Adding SOC indices: {";
+//            for(auto& bp: bus_pairs_sdp._keys) {
+//                cout << bp->_name << ", ";
+//            }
+//            cout << "}"  << endl;
 
 //            Constraint SOC_im("SOC_im"+to_string(numcuts));
 //            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
@@ -315,6 +319,7 @@ int main (int argc, char * argv[]) {
         }
         
         SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        DebugOn("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
         DebugOn("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
 
         /* Update values for w_star */
@@ -323,9 +328,13 @@ int main (int argc, char * argv[]) {
             ((Line*)arc)->wi = Im_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
         }
         for(auto& node: grid->nodes) ((Bus*)node)->w = Wii(node->_name).eval();
+
+        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
+        cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts;
     }
 
 
+    cout << "\nEnd: num of iterations = " << iter << ", number of cuts = " << numcuts;
 
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
