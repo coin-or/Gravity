@@ -16,7 +16,8 @@ GurobiProgram::GurobiProgram(){
 GurobiProgram::GurobiProgram(Model* m):GurobiProgram(){
     grb_mod = new GRBModel(*grb_env);
     _model = m;
-    m->fill_in_maps();    
+    m->fill_in_maps();
+    m->compute_funcs();
 }
 
 GurobiProgram::~GurobiProgram() {
@@ -77,6 +78,9 @@ void GurobiProgram::prepare_model(){
 //    print_constraints();
 }
 void GurobiProgram::update_model(){
+    _model->fill_in_maps();
+    _model->reset_funcs();
+    _model->compute_funcs();
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();

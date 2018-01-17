@@ -23,13 +23,11 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = false, use_gurobi = false;
+    bool relax = false, use_cplex = true, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
-    fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case200_pserc.m";
-    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta/nesta_case1460wp_eir.m";
     
     string path = argv[0];
     string solver_str="ipopt";

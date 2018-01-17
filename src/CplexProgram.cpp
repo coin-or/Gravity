@@ -5,9 +5,13 @@ CplexProgram::CplexProgram(Model* m) {
     _cplex_model = new IloModel(*_cplex_env);
     _model = m;
     m->fill_in_maps();
+    m->compute_funcs();
 }
 
 void CplexProgram::update_model(){
+    _model->fill_in_maps();
+    _model->reset_funcs();
+    _model->compute_funcs();
     fill_in_cplex_vars();
     create_cplex_constraints();
     set_cplex_objective();
