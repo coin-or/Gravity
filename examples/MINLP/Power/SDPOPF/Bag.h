@@ -18,8 +18,7 @@ public:
     int _id;
     PowerNet *_grid;
     std::vector<Node*> _nodes;
-    bool _all_lines = true;
-    bool _to_add = false;
+//    bool _all_lines = true;
 
     vector <gravity::index_*> _indices;
     param<double> _wmin;
