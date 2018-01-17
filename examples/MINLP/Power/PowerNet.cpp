@@ -624,7 +624,7 @@ void PowerNet::update_net(){
                 id_sorted++;
             }
             else{ // Bags with size > 3; todo: leave only this as the general case?
-                DebugOn("\nBag with size > 3");
+                DebugOff("\nBag with size > 3");
 
                 for(int i = 0; i < b.size()-1; i++) {
                     for (int j = i + 1; j < b.size(); j++) {
