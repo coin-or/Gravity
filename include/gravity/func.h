@@ -2143,6 +2143,7 @@ namespace gravity {
 
     string poly_to_str(const constant_* c);
     string poly_to_str(const constant_* c, size_t inst);
+    string poly_to_str(const constant_* c, size_t inst1, size_t inst2);
 
 
     func_ operator+(const constant_& c1, const constant_& c2);
