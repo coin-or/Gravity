@@ -12,24 +12,24 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
     _wmin.set_name("wmin");
     _wmax.set_name("wmax");
     string namewr, namewi, namew, namepair;
-    bool reversed;
+//    bool reversed;
     for(int i = 0; i < _nodes.size()-1; i++){
         for(int j = i+1; j < _nodes.size(); j++){
             aij = _grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name);
             if(aij==NULL) {
                 aij = _grid->get_directed_arc(_nodes[j]->_name,_nodes[i]->_name);
 //                cout << "\nBag id = " << _id << ", reversed arc " << _nodes[i]->_name << "," << _nodes[j]->_name;
-                reversed = true;
+//                reversed = true;
                 namepair = _nodes[j]->_name+","+_nodes[i]->_name;
             }else{
-                reversed = false;
+//                reversed = false;
                 namepair = _nodes[i]->_name+","+_nodes[j]->_name;
             }
-            if(aij->_imaginary) {
-                _all_lines = false; //todo: do I need this?
-//                cout << "\nMissing lines in bag, skipping";
-//                return;
-            }
+//            if(aij->_imaginary) {
+//                _all_lines = false; //todo: do I need this?
+////                cout << "\nMissing lines in bag, skipping";
+////                return;
+//            }
 
             namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
             namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
@@ -123,14 +123,16 @@ param<double> Bag::fill_wstar(){
         _W_star.set_val(to_string(i+_nodes.size())+","+to_string(i+_nodes.size()),((Bus*)_nodes[i])->w);
         _W_star.set_val(to_string(i)+","+to_string(i+_nodes.size()),0.0);
     }
-    return W_star;//todo: use this?
+    return W_star;//todo: use this
 }
 
 bool Bag::add_lines(){
+    // this is only called for 3d bags with 1 missing line
 //    if(_nodes.size() != 3 || _all_lines) return;
     Line *a12, *a13, *a23;
     Bus *n1, *n2, *n3;
     double tol = 0.00001;
+    bool psd = true;
     n1 = (Bus*)_grid->get_node(_nodes[0]->_name);
     n2 = (Bus*)_grid->get_node(_nodes[1]->_name);
     n3 = (Bus*)_grid->get_node(_nodes[2]->_name);
@@ -157,7 +159,7 @@ bool Bag::add_lines(){
     s23 = a23->_src->_name+","+a23->_dest->_name;
 
     if(a13->_free) {
-        DebugOn("\nCalculating values for a13 = " << a13->_name << endl);
+        DebugOff("\nCalculating values for a13 = " << a13->_name << endl);
         a13->_free = false;
 
         a13->wr = (wr12 * wr23 - wi12 * wi23) / w2;
@@ -178,25 +180,24 @@ bool Bag::add_lines(){
 
         if (!(wr13 >= _grid->wr_min(s13).eval()-tol && wr13 <= _grid->wr_max(s13).eval()+tol
               && wi13 >= _grid->wi_min(s13).eval()-tol && wi13 <= _grid->wi_max(s13).eval()+tol)){
-//            cout << "\nBounds are violated";
-            return false;
+            DebugOff("\nBounds are violated");
+            psd = false;
         }
         if(wr13*wr13+wi13*wi13 > w1*w3+tol) {
-//            cout << "\nSOCP is violated";
-            return false;
+            DebugOff("\nSOCP is violated");
+            psd = false;
         }
-        return true;
     }
 
     if(a23->_free) {
         a23->_free = false;
 
-        DebugOn("\nCalculating values for a23 = " << a23->_name << endl);
+        DebugOff("\nCalculating values for a23 = " << a23->_name << endl);
         a23->wr = (wr12 * wr13 + wi12 * wi13) / w1;
         if(_grid->get_directed_arc(n2->_name,n3->_name)!=nullptr) a23->wi = (wr12 * wi13 - wi12 * wr13) / w1;
         else a23->wi = -(wr12 * wi13 - wi12 * wr13) / w1;
 
-//        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);//todo: check these, did I change the sign of wi23 in the prev case?
+//        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
 //        SDP *= 2;
 //        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
 //        SDP += w1*w2*w3;
@@ -209,24 +210,23 @@ bool Bag::add_lines(){
 
         if (!(wr23 >= _grid->wr_min(s23).eval()-tol && wr23 <= _grid->wr_max(s23).eval()+tol && wi23 >= _grid->wi_min(s23).eval()-tol
               && wi23 <= _grid->wi_max(s23).eval()+tol && wr23*wr23+wi23*wi23 <= w2*w3+tol)){
-//            cout << "\nBounds or SOCP is violated";
-            return false;
+            DebugOff("\nBounds or SOCP is violated");
+            psd = false;
         }
-        return true;
     }
 
     if(a12->_free) {
         a12->_free = false;
 
-        DebugOn("\nCalculating values for a12 = " << a12->_name << endl);
+        DebugOff("\nCalculating values for a12 = " << a12->_name << endl);
         a12->wr = (wr23 * wr13 + wi23 * wi13) / w3;
         if(_grid->get_directed_arc(n1->_name,n2->_name)!=nullptr) a12->wi = (-wi23 * wr13 + wr23 * wi13) / w3;
         else a12->wi = -(-wi23 * wr13 + wr23 * wi13) / w3;
 
-        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
-        SDP *= 2;
-        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
-        SDP += w1*w2*w3;
+//        double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+//        SDP *= 2;
+//        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+//        SDP += w1*w2*w3;
 //            double R1 = wr12*wr12 + wi12*wi12 - ((wr13*wr13+wi13*wi13)*w2 + (wr32*wr32+wi32*wi32)*w1 - w1*w2*w3)/w3;
 //            cout << "\nR1 = " << R1;
 //        cout << "\nNo a12, SDP = " << SDP;
@@ -235,33 +235,67 @@ bool Bag::add_lines(){
 
         if (!(wr12 >= _grid->wr_min(s12).eval()-tol && wr12 <= _grid->wr_max(s12).eval()+tol && wi12 >= _grid->wi_min(s12).eval()-tol
               && wi12 <= _grid->wi_max(s12).eval()+tol && wr12*wr12+wi12*wi12 <= w1*w2+tol)){
-            DebugOn("\nBounds or SOCP is violated");
-            return false;
+            DebugOff("\nBounds or SOCP is violated");
+            psd = false;
         }
-        return true;
     }
-    return true;
+    return psd;
 }
 
 bool Bag::is_PSD(){
-    if(_nodes.size() != 3) return true;
+    if(_nodes.size() == 2) return true;
+
     int free_lines = 0;
-    for(int i = 0; i < _nodes.size()-1; i++){
-        for(int j = i+1; j < _nodes.size(); j++){
+    for (int i = 0; i < _nodes.size() - 1; i++) {
+        for (int j = i + 1; j < _nodes.size(); j++) {
             Arc *aij = _grid->get_arc(_nodes[i]->_name, _nodes[j]->_name);
-            if(aij->_free) free_lines++;
+            if (aij->_free) free_lines++;
         }
     }
-    if(free_lines > 1) return true;
-    if(free_lines == 1) return add_lines();
+    if (free_lines > 1) return true;
+    if (free_lines == 1 && _nodes.size() == 3) return add_lines();
 
-    //the bag has all lines
+    if(_nodes.size()>3) {
+        if(free_lines > 0) DebugOn("\nFree lines in a larger bag!");
+        else DebugOff("\nNo free lines in a larger bag :)");
+//        return true;
+    }
 
-    double tol = 0.0005;
+    //the bag has all lines or has > 3 nodes
+
+    double tol = 0.0001;
 //    int n = igraph_vector_size(cl);
     int n = _nodes.size();
     Node* node;
     arma::cx_mat A(n,n);
+
+
+
+    Line *a12, *a13, *a23;
+    Bus *n1, *n2, *n3;
+    n1 = (Bus*)_grid->get_node(_nodes[0]->_name);
+    n2 = (Bus*)_grid->get_node(_nodes[1]->_name);
+    n3 = (Bus*)_grid->get_node(_nodes[2]->_name);
+    a12 = (Line*)_grid->get_arc(n1,n2);
+    a13 = (Line*)_grid->get_arc(n1,n3);
+    a23 = (Line*)_grid->get_arc(n2,n3);
+
+    double wr12, wi12, wr13, wi13, wr23, wi23;
+    double w1 = n1->w; double w2 = n2->w; double w3 = n3->w;
+
+    wr12 = a12->wr; wr13 = a13->wr; wr23 = a23->wr;
+    if(_grid->get_directed_arc(n1->_name,n2->_name)!=nullptr) wi12 = a12->wi;
+    else wi12 = -a12->wi;
+    if(_grid->get_directed_arc(n1->_name,n3->_name)!=nullptr) wi13 = a13->wi;
+    else wi13 = -a13->wi;
+    if(_grid->get_directed_arc(n2->_name,n3->_name)!=nullptr) wi23 = a23->wi;
+    else wi23 = -a23->wi;
+
+    double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+    SDP *= 2;
+    SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+    SDP += w1*w2*w3;
+    DebugOff("\nSDP = " << SDP);
 
     for(int i = 0; i < n; i++){
         for(int j = 0; j <= i; j++) {
@@ -283,18 +317,18 @@ bool Bag::is_PSD(){
 //    A.print();
     arma::cx_mat R;
     arma::vec v = arma::eig_sym(A);
-//    cout << "\n";
+    DebugOff("\n");
     double min_eig = 0, max_eig = -1;
     for(auto eig: v) {
         if(eig < min_eig) min_eig = eig;
         if(eig > max_eig) max_eig = eig;
     }
     if(min_eig/max_eig > -tol) {
-        cout << "\nBag is PSD";
+        DebugOff("\nBag is PSD");
         return true;
     }
     else {
-        cout << "\nBag is not PSD";
+        DebugOff("\nBag is not PSD");
         return false;
     }
 }

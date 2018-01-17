@@ -217,15 +217,17 @@ int main (int argc, char * argv[]) {
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
-    int unchanged = 0, iter = 0;
+    int unchanged = 0, iter = 0, hdim_cuts = 0, cuts_added = 1;
 
-    while(unchanged < 3) {
+//    while(unchanged < 3) {
+    while(cuts_added > 0) {
+        cuts_added = 0;
         iter++;
 //    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
         prev_opt = SDP._obj_val;
         for (auto &b: bags) {
-            DebugOn("\nBag number " << b->_id);
-            DebugOn("\nNodes: n1 = " << b->_nodes[0]->_name << ", n2 = " << b->_nodes[1]->_name << ", n3 = " << b->_nodes[2]->_name);
+            DebugOff("\nBag number " << b->_id);
+            DebugOff("\nNodes: n1 = " << b->_nodes[0]->_name << ", n2 = " << b->_nodes[1]->_name << ", n3 = " << b->_nodes[2]->_name);
 
             if (b->is_PSD()) {
                 continue;
@@ -283,6 +285,7 @@ int main (int argc, char * argv[]) {
                     }
                 }
             }
+            if(b->_nodes.size()>3) hdim_cuts++;
 
             Constraint lin("lin"+to_string(numcuts));
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
@@ -295,7 +298,7 @@ int main (int argc, char * argv[]) {
 //            lin.print_expanded();
             SDP.add_constraint(lin <= 0);
 
-            numcuts++;
+            cuts_added++; numcuts++;
         }
 
         if(!bus_pairs_sdp._keys.empty()) {
@@ -319,8 +322,8 @@ int main (int argc, char * argv[]) {
         }
         
         SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
-        DebugOn("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
-        DebugOn("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
+        DebugOff("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
+        DebugOff("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
 
         /* Update values for w_star */
         for(auto& arc: grid->arcs){
@@ -334,13 +337,14 @@ int main (int argc, char * argv[]) {
     }
 
 
-    cout << "\nEnd: num of iterations = " << iter << ", number of cuts = " << numcuts;
+    cout << "\nEnd: num of iterations = " << iter << ", number of cuts = " << numcuts << ", number of higher dim cuts = " << hdim_cuts;
 
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "\nDATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
+    DebugOn("\nResults: " << grid->_name << " " << to_string(SDP._obj_val) << " " << to_string(total_time));
     return 0;
 }
