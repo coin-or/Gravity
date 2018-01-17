@@ -523,13 +523,18 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
 
         // last element has the minimum fill-in.
-        n = graph_clone->nodes.back();         
+        n = graph_clone->nodes.back();
+        if(!n->_active) {
+            graph_clone->remove_end_node();
+            continue;
+        }
         Debug(n->_name << endl);
         Debug(graph_clone->nodes.size() << endl);
         vector<Node*> bag_copy;
         vector<Node*> bag;
         DebugOn("new bag = { ");
         for (auto nn: n->get_neighbours()) {
+            if(!nn->_active) continue;
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
             DebugOn(nn->_name << ", ");
@@ -547,6 +552,11 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             for (int j = i+1; j<bag_copy.size(); j++) {
                 nn = bag_copy.at(j);
                 if (u->is_connected(nn)) {
+                    if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
+                        Arc* off_arc = get_arc(u,nn);
+                        off_arc->_imaginary = true;
+                        off_arc->_free = true;
+                    }
                     continue;
                 }
                 name = to_string((int) graph_clone->arcs.size()+1);
@@ -556,6 +566,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->_src = u;
                 arc->_dest = nn;
                 arc->_imaginary = true;
+                arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
             }
