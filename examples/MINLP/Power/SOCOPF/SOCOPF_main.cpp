@@ -29,6 +29,8 @@ int main (int argc, char * argv[])
     string mehrotra = "no";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
     fname = "/Users/hh/Dropbox/Work/Dev/pglib-opf/pglib_opf_case200_pserc.m";
+    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta/nesta_case1460wp_eir.m";
+    
     string path = argv[0];
     string solver_str="ipopt";
     
@@ -68,10 +70,10 @@ int main (int argc, char * argv[])
     auto nb_gen = grid->get_nb_active_gens();
     auto nb_lines = grid->get_nb_active_arcs();
     auto nb_buses = grid->get_nb_active_nodes();
-    DebugOff("nb gens = " << nb_gen << endl);
-    DebugOff("nb lines = " << nb_lines << endl);
-    DebugOff("nb buses = " << nb_buses << endl);
-    DebugOff("nb bus_pairs = " << nb_bus_pairs << endl);
+    DebugOn("nb gens = " << nb_gen << endl);
+    DebugOn("nb lines = " << nb_lines << endl);
+    DebugOn("nb buses = " << nb_buses << endl);
+    DebugOn("nb bus_pairs = " << nb_bus_pairs << endl);
     
     /** Build model */
     Model SOCP("SOCP Model");
@@ -173,14 +175,14 @@ int main (int argc, char * argv[])
     LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
     LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
     LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-//    SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
     LNC2 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
     LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
     LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
     LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
-//    SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
+    SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     
     /* Solver selection */

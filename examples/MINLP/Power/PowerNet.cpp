@@ -123,9 +123,9 @@ unsigned PowerNet::get_nb_active_gens() const {
 unsigned PowerNet::get_nb_active_bus_pairs() const {
     unsigned nb=0;
     for (auto bp: _bus_pairs._keys) {
-        if (bp->_active) {
+//        if (bp->_active) {
             nb++;
-        }
+//        }
     }
     return nb;
 }
@@ -369,7 +369,7 @@ int PowerNet::readgrid(const char* fname) {
     }
     getline(file, word);
     double res = 0;
-
+    set<string> bus_pair_names;
     Line* arc = NULL;
     string src,dest,key;
     file >> word;
@@ -505,17 +505,18 @@ int PowerNet::readgrid(const char* fname) {
         }
         arc->connect();
         add_arc(arc);
-
         /* Switching to bus_pairs keys */
         name = bus_s->_name + "," + bus_d->_name;
+        if (arc->_active && bus_pair_names.count(name)==0) {
+            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+            bus_pair_names.insert(name);
+        }
         if (!arc->_parallel) {
             th_min.set_val(name,arc->tbound.min);
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-//            if (arc->_active) {
-                _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
-//            }
+            
         }
         else {
             th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));

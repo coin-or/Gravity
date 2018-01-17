@@ -771,7 +771,7 @@ namespace gravity {
             res._is_transposed = _is_transposed;
             res._rev_indices = this->_rev_indices; res._indices = this->_indices;
             if(vec.empty()){
-                DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "EMPTY_VAR";
                 res._is_indexed = true;
                 return res;
@@ -863,7 +863,7 @@ namespace gravity {
             res._is_matrix = _is_matrix;
             res._is_transposed = _is_transposed;
             if(vec.empty()){
-                DebugOff("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "EMPTY_VAR";
                 res._is_indexed = true;
                 return res;
@@ -917,7 +917,7 @@ namespace gravity {
             res._is_matrix = _is_matrix;
             res._is_transposed = _is_transposed;
             if(vec.empty()){
-                DebugOff("In function param.out_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOn("In function param.out_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "EMPTY_VAR";
                 res._is_indexed = true;
                 return res;
@@ -972,7 +972,7 @@ namespace gravity {
             res._is_matrix = _is_matrix;
             res._is_transposed = _is_transposed;
             if(vec.empty()){
-                DebugOff("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "EMPTY_VAR";
                 res._is_indexed = true;
                 return res;

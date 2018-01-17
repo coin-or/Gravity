@@ -4492,6 +4492,133 @@ namespace gravity{
         return "null";
     }
     
+    string poly_to_str(const constant_* c, size_t inst1, size_t inst2){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+        
+        if (!c) {
+            return "null";
+        }
+        switch (c->get_type()) {
+            case binary_c: {
+                return ((constant<bool>*)(c))->to_str();
+                break;
+            }
+            case short_c: {
+                return ((constant<short>*)(c))->to_str();
+                break;
+            }
+            case integer_c: {
+                return ((constant<int>*)(c))->to_str();
+                break;
+            }
+            case float_c: {
+                return ((constant<float>*)(c))->to_str();
+                break;
+            }
+            case double_c: {
+                return ((constant<double>*)(c))->to_str();
+                break;
+            }
+            case long_c: {
+                return ((constant<long double>*)(c))->to_str();
+                break;
+            }
+            case par_c:{
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((param<bool>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case short_:
+                        return ((param<short>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case integer_:
+                        return ((param<int>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case float_:
+                        return ((param<float>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case double_:
+                        return ((param<double>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case long_:
+                        return ((param<long double>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case uexp_c: {
+                return ((uexpr*)c)->to_str(inst2);
+                break;
+            }
+            case bexp_c: {
+                return ((bexpr*)c)->to_str(inst2);
+                break;
+            }
+            case var_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((var<bool>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case short_:
+                        return ((var<short>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case integer_:
+                        return ((var<int>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case float_:
+                        return ((var<float>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case double_:
+                        return ((var<double>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case long_:
+                        return ((var<long double>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+                
+            case sdpvar_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((sdpvar<bool>*)p_c)->get_name();
+                        break;
+                    case short_:
+                        return ((sdpvar<short>*)p_c)->get_name();
+                        break;
+                    case integer_:
+                        return ((sdpvar<int>*)p_c)->get_name();
+                        break;
+                    case float_:
+                        return ((sdpvar<float>*)p_c)->get_name();
+                        break;
+                    case double_:
+                        return ((sdpvar<double>*)p_c)->get_name();
+                        break;
+                    case long_:
+                        return ((sdpvar<long double>*)p_c)->get_name();
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case func_c: {
+                return ((func_*)c)->to_str(inst2);
+                break;
+            }
+            default:
+                break;
+        }
+        return "null";
+    }
+    
     string poly_to_str(const constant_* c, size_t inst){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
         
         if (!c) {
@@ -5851,13 +5978,7 @@ namespace gravity{
         for (unsigned idx = 0; idx <dim; idx++) {
             if (c_new->is_number()){
                 string v;
-                if (c_new->_is_transposed) {
-                    v = poly_to_str(c_new,idx);
-                }
-                else{
-                    v = poly_to_str(c_new,inst);
-                }
-                
+                v = poly_to_str(c_new);
                 if (_sign) {
                     if (v=="-1") {
                         str += " - ";
@@ -5899,7 +6020,7 @@ namespace gravity{
                 }
                 str += "(";
                 if (c_new->_is_transposed) {
-                    str += poly_to_str(c_new, idx);
+                    str += poly_to_str(c_new, inst, idx);
                 }
                 else{
                     str += poly_to_str(c_new, inst);
@@ -5907,7 +6028,7 @@ namespace gravity{
                 str += ")";
             }
             if (c_new->_is_transposed) {
-                str += poly_to_str(p_new, idx);
+                str += poly_to_str(p_new, inst, idx);
             }
             else{
                 str += poly_to_str(p_new, inst);

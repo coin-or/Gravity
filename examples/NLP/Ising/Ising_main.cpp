@@ -123,15 +123,22 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         
         /** Constraints */
         
-        Constraint Absp("Absp");
-        Absp += z - x;
-        Ising.add_constraint(Absp >= 0);
-        Constraint Absn("Absn");
-        Absn += z + x;
-        Ising.add_constraint(Absn >= 0);
+        if (lambda>0) {
+            Constraint Absp("Absp");
+            Absp += z - x;
+            Ising.add_constraint(Absp >= 0);
+            Constraint Absn("Absn");
+            Absn += z + x;
+            Ising.add_constraint(Absn >= 0);
+        }
     
         Constraint Obj("Obj");
-        Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+        if (lambda > 0) {
+            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+        }
+        else {
+            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x)));
+        }
         Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
         Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
         Ising.add_constraint(Obj>=0);
@@ -177,9 +184,10 @@ int main (int argc, char * argv[])
     int log_lev = 0;
     bool relax = false;
     string fname = "../data_sets/Ising/samples_bin.csv";
+    fname = "/Users/hlh/Dropbox/Work/Dev/Allinsights/Gravity/data_sets/Ising/samples_bin_med.csv";
     string path = argv[0];
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
-        fname = "../" + fname;
+//        fname = "../" + fname;
     }
     unsigned nr_threads = 1;
     
@@ -214,8 +222,7 @@ int main (int argc, char * argv[])
     DebugOn("Regularizor = " << regularizor << endl);
     string mehrotra="yes";
     if (regularizor==0) {
-//        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
-        regularizor = 1e-6;
+        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
     }
     auto total_time_start = get_wall_time();
     read_samples(fname.c_str());
