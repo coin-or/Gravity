@@ -186,6 +186,8 @@ int main (int argc, char * argv[]) {
 //    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
+    
+
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
@@ -201,7 +203,6 @@ int main (int argc, char * argv[]) {
     vector<Bag*> bags;
     int bagid = 0;
     for(auto& b: grid->_bags){
-//        cout << "\nSize = " << b.size();
         bags.push_back(new Bag(bagid,grid,b));
         bagid++;
     }
@@ -209,22 +210,23 @@ int main (int argc, char * argv[]) {
     string namew, namewr, namewi;
     int numcuts = 0;
     node_pairs bus_pairs_sdp;
-    double prev_opt = 0;
-    double fp_tol = 0.0001;
+//    double prev_opt = 0;
+//    double fp_tol = 0.0001;
     cout << "\nBags size = " << bags.size();
 
     vector<param<double>> R_star, I_star, W_star;
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
-    int unchanged = 0, iter = 0, hdim_cuts = 0, cuts_added = 1;
+//    int unchanged = 0;
+    int iter = 0, hdim_cuts = 0, cuts_added = 1;
 
 //    while(unchanged < 3) {
     while(cuts_added > 0) {
         cuts_added = 0;
         iter++;
 //    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
-        prev_opt = SDP._obj_val;
+//        prev_opt = SDP._obj_val;
         for (auto &b: bags) {
             DebugOff("\nBag number " << b->_id);
             DebugOff("\nNodes: n1 = " << b->_nodes[0]->_name << ", n2 = " << b->_nodes[1]->_name << ", n3 = " << b->_nodes[2]->_name);
@@ -332,12 +334,22 @@ int main (int argc, char * argv[]) {
         }
         for(auto& node: grid->nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
-        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
+//        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
         cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts;
     }
-
+    string lin = "lin";
+    int num_act_cuts = 0;
+    for (auto &cp: SDP._cons) {
+        cp.second->_dual.resize(cp.second->_nb_instances);
+        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+            if(cp.second->get_name().find(lin) != std::string::npos) {
+                if(cp.second->is_active(inst)) num_act_cuts++;
+            }
+        }
+    }
 
     cout << "\nEnd: num of iterations = " << iter << ", number of cuts = " << numcuts << ", number of higher dim cuts = " << hdim_cuts;
+    cout << "\nNumber of active cuts = " << num_act_cuts;
 
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
