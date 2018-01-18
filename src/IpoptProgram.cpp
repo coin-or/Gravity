@@ -48,10 +48,18 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
                 _model->_obj *= -1.;
     }
     _model->_obj_val = _model->_obj.eval();
+    string lin = "lin";
+    int numcuts = 0, num_act_cuts = 0;
+    double tol = 0.00001;
     for (auto &cp: _model->_cons) {
         cp.second->_dual.resize(cp.second->_nb_instances);
         for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
             cp.second->_dual[inst] = lambda[cp.second->_id + inst];
+
+            if(cp.second->get_name().find(lin) != std::string::npos) {
+                if(fabs(cp.second->eval(inst)) < tol) num_act_cuts++;
+                numcuts++;
+            }
         }
     }
     for (auto &vp: _model->_vars) {
@@ -63,6 +71,7 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
             vp.second->_l_dual[inst] = z_L[vp.second->get_id() + vp.second->get_id_inst(inst)];
         }
     }
+    DebugOn("\nNumber of cuts = " << numcuts << ", number of active cuts = " << num_act_cuts);
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
 }
 
