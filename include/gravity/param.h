@@ -440,17 +440,17 @@ namespace gravity {
         
         type eval(unsigned i) const {
             if (_is_indexed) {
-                if (_ids->size()>1) {
-                    throw invalid_argument("eval() should be called with double index here\n");
-                }
-                if (_val->size()<=_ids->at(0).at(i)){
-                    throw invalid_argument("Param eval out of range");
-                }
+//                if (_ids->size()>1) {
+//                    throw invalid_argument("eval() should be called with double index here\n");
+//                }
+//                if (_val->size()<=_ids->at(0).at(i)){
+//                    throw invalid_argument("Param eval out of range");
+//                }
                 return _val->at(_ids->at(0).at(i));
             }
-            if (_val->size()<=i){
-                throw invalid_argument("Param eval out of range");
-            }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Param eval out of range");
+//            }
             return _val->at(i);
         }
         
@@ -461,13 +461,13 @@ namespace gravity {
         type eval(unsigned i, unsigned j) const {
             
             if (_is_indexed && _ids->size()>1) {
-                //            if (_ids->at(i).at(j) >= _val->size()) {
-                //                throw invalid_argument("eval(i,j): out of range");
-                //            }
+//                if (_ids->at(i).at(j) >= _val->size()) {
+//                    throw invalid_argument("eval(i,j): out of range");
+//                }
                 return _val->at(_ids->at(i).at(j));
             }
-            
-            
+//
+//            
             if (!_is_matrix) {
                 return eval(j);
             }

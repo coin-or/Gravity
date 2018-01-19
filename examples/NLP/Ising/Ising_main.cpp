@@ -181,9 +181,9 @@ double sum_x(){
 
 int main (int argc, char * argv[])
 {
-    int output = 0;
+    int output = 5;
     bool relax = false;
-    string fname = "../data_sets/Ising/samples_bin_med.csv", log_level="0";
+    string fname = "../data_sets/Ising/samples_bin.csv", log_level="5";
     string path = argv[0];
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
         fname = "../" + fname;
