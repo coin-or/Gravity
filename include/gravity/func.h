@@ -1542,6 +1542,8 @@ namespace gravity {
             propagate_nb_ind(_nb_instances);
             return *this;
         }
+        void eval_matrix();
+        void eval_vector();
         
         func_& in(const vector<Node*>& vec) {
             _nb_vars = 0;

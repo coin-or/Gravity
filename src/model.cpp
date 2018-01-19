@@ -709,29 +709,21 @@ void Model::compute_funcs() {
         if (f->is_constant() && f->_evaluated) {
             continue;
         }
-        if (!f->_is_matrix) {
+        if (!f->is_constant() && (_type==quad_m || _type==lin_m)) {//these are part of the jacobian, no need to precompute them for quadratic programs
+            continue;
+        }
+        if (!f->_is_matrix && !f->_is_vector) {
             DebugOff(f->to_str()<<endl);
-            for (int inst = 0; inst < f->_nb_instances; inst++) {//Wii_from is not updated!
+            for (int inst = 0; inst < f->_nb_instances; inst++) {
                 f->eval(inst);
             }
         }
+        else if(!f->_is_matrix){ //vector
+            f->eval_vector();
+        }
         else {
             DebugOff(f->to_str()<<endl);
-            f->_val->resize((f->_dim[0]*f->_dim[1]));
-            if (!f->_is_hessian) {
-                for (int i = 0; i < f->_dim[0]; i++) {
-                    for (int j = 0; j < f->_dim[1]; j++) {
-                        f->eval(i,j);
-                    }
-                }
-            }
-            else {
-                for (int i = 0; i < f->_dim[0]; i++) {
-                    for (int j = i; j < f->_dim[1]; j++) {
-                        f->eval(i,j);
-                    }
-                }
-            }
+            f->eval_matrix();
         }
         if (f->is_constant()) {
             f->_evaluated = true;
@@ -974,7 +966,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             }
         }
         else {
-//            if (_type==nlin_m) {
+            if (_type==nlin_m) {
                 for (auto &v_p: c->get_vars()){
                     v = v_p.second.first.get();
                     vid = v->_unique_id;
@@ -1025,7 +1017,30 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         }
                     }
                 }
-
+            }
+            else {
+                for (auto &v_p: c->get_vars()){
+                    v = v_p.second.first.get();
+                    vid = v->_unique_id;
+                    dfdx = c->get_stored_derivative(vid);
+                    for (int inst = 0; inst< nb_ins; inst++){
+                        cid = c->_id+inst;
+                        if (v->_is_vector) {
+                            auto dim = v->get_dim(inst);
+                            for (int j = 0; j<dim; j++) {
+                                res[idx] = dfdx->eval(inst,j);
+                                _jac_vals[idx] = res[idx];
+                                idx++;
+                            }
+                        }
+                        else {
+                            res[idx] = dfdx->eval(inst);
+                            _jac_vals[idx] = res[idx];
+                            idx++;
+                        }
+                    }
+                }
+            }
         }
     }
     _first_call_jac = false;
@@ -1446,14 +1461,20 @@ void Model::fill_in_maps() {
         c = c_p.second.get();
         if (c->_new) {
             c->compute_derivatives();
-            for (auto &df_p:*c->get_dfdx()) {
-                auto df = df_p.second;
-                    DebugOff(df->to_str() << endl);
-                    df_p.second = embed(df);
-                    for (auto &df2_p:*df_p.second->get_dfdx()) {
-                        df2_p.second = embed(df2_p.second);
+//            if (_type==nlin_m) {
+                for (auto &df_p:*c->get_dfdx()) {
+                    auto df = df_p.second;
+                        DebugOff(df->to_str() << endl);
+//                        if (df->get_expr()) {
+                            df_p.second = embed(df);
+//                        }
+                        for (auto &df2_p:*df_p.second->get_dfdx()) {
+//                            if (df2_p.second->get_expr()) {
+                                df2_p.second = embed(df2_p.second);
+//                            }
+                        }
                     }
-                }
+//            }
             c->_val = make_shared<vector<double>>();
             c->_val->resize(c->_nb_instances);
             if (!c->is_linear()) {
@@ -1473,7 +1494,7 @@ void Model::fill_in_maps() {
                     }
                 }
             }
-            DebugOff(c->to_str() << endl);            
+            DebugOff(c->to_str() << endl);
         }
     }
 }
