@@ -111,7 +111,7 @@ solver::~solver(){
     delete _prog;
 }
 
-int solver::run(int output, bool relax, double tol, const string& lin_solver, const string& mehrotra){
+int solver::run(int print_level, bool relax, double tol, const string& lin_solver, const string& mehrotra){
 
     
     if (_stype==ipopt) {
@@ -129,9 +129,12 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         iapp->Options()->SetStringValue("linear_solver", lin_solver);
         iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
         iapp->Options()->SetNumericValue("tol", tol);
+        iapp->Options()->SetIntegerValue("print_level", print_level);
+        
         /** Hot start if already solved */
         if (!_model->_first_run) {
-            DebugOn("Using Hot Start!\n");
+//        if (false) {
+            DebugOff("Using Hot Start!\n");
             iapp->Options()->SetNumericValue("mu_init", mu_init);
             iapp->Options()->SetStringValue("warm_start_init_point", "yes");
         }
@@ -191,7 +194,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
         try{
 
             auto grb_prog = (GurobiProgram*)(_prog);
-            grb_prog->_output = output;
+            grb_prog->_output = print_level;
 //            prog.grb_prog->reset_model();
             grb_prog->prepare_model();
             bool ok = grb_prog->solve(relax);
@@ -209,7 +212,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
 #ifdef USE_CPLEX
         try{
             auto cplex_prog = (CplexProgram*)(_prog);
-            cplex_prog->_output = output;
+            cplex_prog->_output = print_level;
             cplex_prog->prepare_model();
             bool ok = cplex_prog->solve(relax);
             return ok ? 100 : -1;
@@ -226,7 +229,7 @@ int solver::run(int output, bool relax, double tol, const string& lin_solver, co
 #ifdef USE_MOSEK
         try{
             auto mosek_prog = (MosekProgram*)(_prog);
-            mosek_prog->_output = output;
+            mosek_prog->_output = print_level;
             mosek_prog->prepare_model();
             bool ok = mosek_prog->solve(relax);
             return ok ? 100 : -1;

@@ -148,7 +148,7 @@ unsigned PowerNet::get_nb_active_nodes() const {
             nb++;
         }
         else {
-            DebugOn("Inactive Node" << n->_name << endl);
+            DebugOff("Inactive Node" << n->_name << endl);
         }
     }
     return nb;
@@ -272,7 +272,7 @@ int PowerNet::readgrid(const char* fname) {
 
         this->Net::add_node(bus);
         if (status>=4) {
-            DebugOn("INACTIVE NODE!\n" << name << endl);
+            DebugOff("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -327,7 +327,7 @@ int PowerNet::readgrid(const char* fname) {
         gens.push_back(g);
         bus->_gen.push_back(g);
         if(status!=1 || !bus->_active) {
-            DebugOn("INACTIVE GENERATOR!\n" << name << endl);
+            DebugOff("INACTIVE GENERATOR!\n" << name << endl);
             g->_active = false;
         }
         index++;
@@ -501,7 +501,7 @@ int PowerNet::readgrid(const char* fname) {
 
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
