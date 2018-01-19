@@ -2977,12 +2977,12 @@ namespace gravity{
                 auto be = dynamic_pointer_cast<bexpr>(e);
                 auto fl = (func_*)(be->_lson.get());
                 auto fr = (func_*)(be->_rson.get());
-                if (_nb_instances<fl->_nb_instances  && !be->is_inner_product()) {
+                if (_nb_instances<fl->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fl->_dim;
                     _nb_instances = fl->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fl->_nb_instances<_nb_instances) {
+                if (fl->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fl->_dim = _dim ;
                     fl->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -2990,12 +2990,12 @@ namespace gravity{
                 embed(*fl);
 
                 
-                if (_nb_instances<fr->_nb_instances) {
+                if (_nb_instances<fr->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fr->_dim;
                     _nb_instances = fr->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fr->_nb_instances<_nb_instances && !be->is_inner_product()) {
+                if (fr->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fr->_dim = _dim ;
                     fr->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -3009,12 +3009,12 @@ namespace gravity{
                             _dim[0] = _nb_instances;
                             if (be->_rson->_is_matrix) {//Matrix product
                                 _dim[1] = _nb_instances;
-                                _nb_instances = _dim[0]*_dim[1];
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else if (be->_rson->_is_transposed){
                                 _dim[1] = be->_lson->_dim[1];
-                                _nb_instances = get_dim();
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else {
@@ -3063,6 +3063,7 @@ namespace gravity{
                         }
 //                        _is_matrix = be->_lson->_is_matrix && be->_rson->_is_matrix;
                     }
+//                    _nb_instances = get_dim();
 //                    _val->resize(_nb_instances);
                 }
                 break;
@@ -6263,7 +6264,7 @@ namespace gravity{
 //    }
 
     double func_::eval(size_t i, size_t j){
-        if (_val->size()!=_nb_instances) {
+        if (_val->size()<_nb_instances) {
             _val->resize(_nb_instances);
         }
         if (!_is_matrix && (!_ids || _ids->size()==1)) {
@@ -6309,7 +6310,9 @@ namespace gravity{
     }
     
     double func_::eval(size_t i){
-        _val->resize(_nb_instances);
+        if (_val->size()<_nb_instances) {
+            _val->resize(_nb_instances);
+        }
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
@@ -6343,7 +6346,7 @@ namespace gravity{
             if (_expr->is_uexpr()) {
                 auto ue = (uexpr*)_expr.get();
 //                if (ue->_son->is_constant()) {
-                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
+//                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
 //                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
 //                }
 

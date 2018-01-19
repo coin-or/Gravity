@@ -27,6 +27,7 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/api/pglib_opf_case118_ieee__api.m";
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -120,7 +121,6 @@ int main (int argc, char * argv[]) {
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
     SDP.add_constraint(SOC.in(bus_pairs) <= 0);
-    SDP.get_constraint("SOC")->print_expanded();
     
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -312,7 +312,7 @@ int main (int argc, char * argv[]) {
 //            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
 //            SDP.add_constraint(SOC_im.in(bus_pairs_sdp) <= 0);
             SDP.add_indices("SOC",bus_pairs_sdp);
-            SDP.get_constraint("SOC")->print_expanded();
+//            SDP.get_constraint("SOC")->print_expanded();
             bus_pairs_sdp._keys.clear();
         }
 
@@ -333,7 +333,7 @@ int main (int argc, char * argv[]) {
         for(auto& node: grid->nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
         if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
-        cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts;
+        cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts << endl;
     }
 
 

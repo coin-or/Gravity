@@ -345,7 +345,7 @@ param<double> Bag::nfp(){
     int n = _nodes.size();
 
     sdpvar<double> W("W");
-    NPP.add_var(W ^ (2*n));
+    NPP.add_var(W^(2*n));
 
 //    var<double> W("W");
 //    W._psd = true;
@@ -354,7 +354,7 @@ param<double> Bag::nfp(){
 
     var<double> z("z");
     z.in_q_cone();
-    NPP.add_var(z ^ (n*n+1));
+    NPP.add_var(z^(n*n+1));
 
     var<double> w("w", _wmin, _wmax);
     NPP.add_var(w.in(_indices));
@@ -363,11 +363,12 @@ param<double> Bag::nfp(){
     obj = z("obj");
     NPP.min(obj);
 
-//    min t  s.t.
+//    min t
+//    s.t.
 //    ||z|| <= t    (z(obj) = t)
 //    w*-w = z
-//    X is PSD,
-//    L <= X <= U
+//    W is PSD,
+//    L <= W <= U
 //    matr structure
 
     /** Constraints **/

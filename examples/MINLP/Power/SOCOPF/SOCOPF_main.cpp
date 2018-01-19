@@ -26,7 +26,7 @@ int main (int argc, char * argv[])
     bool relax = false, use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
-    string mehrotra = "no";
+    string mehrotra = "no", log_level="0";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
@@ -36,6 +36,7 @@ int main (int argc, char * argv[])
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -44,6 +45,8 @@ int main (int argc, char * argv[])
     if(!correct_parsing){
         return EXIT_FAILURE;
     }
+    
+    output = op::str2int(opt["l"]);
     
     fname = opt["f"];
     bool has_help = op::str2bool(opt["h"]);
@@ -197,7 +200,7 @@ int main (int argc, char * argv[])
     else if (use_gurobi) {
         solver SCOPF_GRB(SOCP, gurobi);
         auto solver_time_start = get_wall_time();
-        SCOPF_GRB.run(output = 0, relax = false, tol = 1e-6);
+        SCOPF_GRB.run(output, relax = false, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
@@ -206,7 +209,7 @@ int main (int argc, char * argv[])
     else {
         solver SCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
-        SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        SCOPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

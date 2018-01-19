@@ -92,7 +92,7 @@ namespace gravity {
             return (_type==func_c);
         };
         
-        virtual size_t get_nb_instances() const {            
+        virtual size_t get_nb_instances() const {
             return get_dim(0);
         }
         
