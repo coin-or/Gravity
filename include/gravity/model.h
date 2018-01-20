@@ -258,7 +258,8 @@ namespace gravity {
         void print_constraints() const;
         
     };
-
+    
+//    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
 
     pair<func_*, ObjectiveType> max(const func_& f);
     pair<func_*, ObjectiveType> min(const func_& f);
