@@ -847,6 +847,19 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
 }
 
+void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j){
+    for (unsigned idx = i; idx < j; idx++) {
+        auto c = v[idx];
+        auto nb_ins = c->_nb_instances;
+        for (int inst = 0; inst< nb_ins; inst++){
+            //                res[c->_id+inst] = c->get_val(inst);
+            res[c->_id+inst] = c->eval(inst);
+            //                _cons_vals[index++] = res[c->_id+inst];
+            DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+        }
+    }
+}
+
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
     Constraint* c = nullptr;
 //    unsigned index = 0;
@@ -867,18 +880,33 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //        }
 //    }
 //    else {
+    vector<Constraint*> cons;
         for(auto& c_p: _cons)
         {
             c = c_p.second.get();
             c->_new = false;
-            auto nb_ins = c->_nb_instances;
-            for (int inst = 0; inst< nb_ins; inst++){
-//                res[c->_id+inst] = c->get_val(inst);
-                res[c->_id+inst] = c->eval(inst);
-                //                _cons_vals[index++] = res[c->_id+inst];
-                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-            }
+            cons.push_back(c);
+//            auto nb_ins = c->_nb_instances;
+//            for (int inst = 0; inst< nb_ins; inst++){
+////                res[c->_id+inst] = c->get_val(inst);
+//                res[c->_id+inst] = c->eval(inst);
+//                //                _cons_vals[index++] = res[c->_id+inst];
+//                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+//            }
         }
+    unsigned nr_threads = 4;
+    vector<thread> threads;
+    /* Split cons into nr_threads parts */
+    vector<int> limits = bounds(nr_threads, cons.size());
+    /* Launch all threads in parallel */
+    for (int i = 0; i < nr_threads; ++i) {
+        threads.push_back(thread(compute_constrs, ref(cons), res, limits[i], limits[i+1]));
+    }
+    /* Join the threads with the main thread */
+    for(auto &t : threads){
+        t.join();
+    }
+    
 //    }
 //    }
 //    else {
@@ -892,6 +920,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //        }
 //    }
 }
+
 
 
 void Model::fill_in_jac_nnz(int* iRow , int* jCol){
