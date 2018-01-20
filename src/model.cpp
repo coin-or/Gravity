@@ -933,6 +933,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
+        c->_jac_cstr_idx = idx;
         auto nb_ins = c->_nb_instances;
         for (auto &v_p: c->get_vars()){
             v = v_p.second.first.get();
@@ -960,6 +961,53 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     }
 }
 
+
+void compute_jac(vector<Constraint*>& vec, double* res, unsigned i, unsigned j, bool first_call, vector<double>& jac_vals){
+    size_t cid = 0;
+    unique_id vid;
+    Constraint* c = NULL;
+    param_* v = NULL;
+    shared_ptr<func_> dfdx;
+    auto idx = vec[i]->_jac_cstr_idx;
+    for (unsigned id = i; id < j; id++) {
+        c = vec[id];
+        auto nb_ins = c->_nb_instances;
+        if (c->is_linear() && !first_call) {
+            //        if (false) {
+            DebugOff("Linear constraint, using stored jacobian!\n");
+            for (unsigned i = 0; i<nb_ins; i++) {
+                for (unsigned j = 0; j<c->get_nb_vars(i); j++) {
+                    res[idx] = jac_vals[idx];
+                    idx++;
+                }
+            }
+        }
+        else {
+            for (auto &v_p: c->get_vars()){
+                v = v_p.second.first.get();
+                vid = v->_unique_id;
+                dfdx = c->get_stored_derivative(vid);
+                for (int inst = 0; inst< nb_ins; inst++){
+                    cid = c->_id+inst;
+                    if (v->_is_vector) {
+                        auto dim = v->get_dim(inst);
+                        for (int j = 0; j<dim; j++) {
+                            res[idx] = dfdx->eval(inst,j);
+                            jac_vals[idx] = res[idx];
+                            idx++;
+                        }
+                    }
+                    else {
+                        res[idx] = dfdx->eval(inst);
+                        jac_vals[idx] = res[idx];
+                        idx++;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /* Fill the nonzero values in the jacobian */
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
 //    if (!_first_call_jac && (!new_x || _type==lin_m)) { /* No need to recompute jacobian for linear models */
@@ -980,6 +1028,29 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     Constraint* c = NULL;
     param_* v = NULL;
     shared_ptr<func_> dfdx;
+    vector<Constraint*> cons;
+    if (_type!=nlin_m) {//Quadratic or Linear
+        for(auto& c_p: _cons)
+        {
+            c = c_p.second.get();
+            c->_new = false;
+            cons.push_back(c);
+        }
+        unsigned nr_threads = 4;
+        vector<thread> threads;
+        /* Split cons into nr_threads parts */
+        vector<int> limits = bounds(nr_threads, cons.size());
+        /* Launch all threads in parallel */
+        for (int i = 0; i < nr_threads; ++i) {
+            threads.push_back(thread(compute_jac, ref(cons), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
+        _first_call_jac = false;
+        return;
+    }
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
@@ -995,7 +1066,7 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             }
         }
         else {
-            if (_type==nlin_m) {
+//            if (_type==nlin_m) {
                 for (auto &v_p: c->get_vars()){
                     v = v_p.second.first.get();
                     vid = v->_unique_id;
@@ -1046,30 +1117,30 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         }
                     }
                 }
-            }
-            else {
-                for (auto &v_p: c->get_vars()){
-                    v = v_p.second.first.get();
-                    vid = v->_unique_id;
-                    dfdx = c->get_stored_derivative(vid);
-                    for (int inst = 0; inst< nb_ins; inst++){
-                        cid = c->_id+inst;
-                        if (v->_is_vector) {
-                            auto dim = v->get_dim(inst);
-                            for (int j = 0; j<dim; j++) {
-                                res[idx] = dfdx->eval(inst,j);
-                                _jac_vals[idx] = res[idx];
-                                idx++;
-                            }
-                        }
-                        else {
-                            res[idx] = dfdx->eval(inst);
-                            _jac_vals[idx] = res[idx];
-                            idx++;
-                        }
-                    }
-                }
-            }
+//            }
+//            else {
+//                for (auto &v_p: c->get_vars()){
+//                    v = v_p.second.first.get();
+//                    vid = v->_unique_id;
+//                    dfdx = c->get_stored_derivative(vid);
+//                    for (int inst = 0; inst< nb_ins; inst++){
+//                        cid = c->_id+inst;
+//                        if (v->_is_vector) {
+//                            auto dim = v->get_dim(inst);
+//                            for (int j = 0; j<dim; j++) {
+//                                res[idx] = dfdx->eval(inst,j);
+//                                _jac_vals[idx] = res[idx];
+//                                idx++;
+//                            }
+//                        }
+//                        else {
+//                            res[idx] = dfdx->eval(inst);
+//                            _jac_vals[idx] = res[idx];
+//                            idx++;
+//                        }
+//                    }
+//                }
+//            }
         }
     }
     _first_call_jac = false;

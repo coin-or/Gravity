@@ -58,7 +58,7 @@ namespace gravity {
         size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
         size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
         size_t                          _nnz_g_obj = 0; /* Number of non zeros in the Objective gradient */
-        vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */
+        vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */        
         vector<double>                  _obj_grad_vals; /* Objective gradient values stored in sparse format */
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
         map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
