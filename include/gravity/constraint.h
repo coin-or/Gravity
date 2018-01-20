@@ -19,7 +19,7 @@ namespace gravity {
         string                      _name = "no_name";
         
     public:        
-        
+        unsigned                    _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
         unsigned                    _id = -1;
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
         double                      _rhs = 0;
