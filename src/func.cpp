@@ -4822,65 +4822,7 @@ namespace gravity{
 //    };
     
     double  bexpr::eval(ind i, ind j) const{
-//        if (_lson->is_constant() && !_lson->_evaluated) {
-//            unsigned index = 0;
-//            _lson->_val->resize(_lson->_nb_instances);
-//            if (_lson->_is_matrix) {
-//                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _lson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _lson->_dim[1]*row + col;
-//                        }
-//                        _lson->_val->at(index) = _lson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
-//                    _lson->_val->at(index) = _lson->eval(index);
-//                }
-//            }
-//            _lson->_evaluated = true;
-//        }
-//        if (_rson->is_constant() && !_rson->_evaluated) {
-//            _rson->_val->resize(_rson->_nb_instances);
-//            unsigned index = 0;
-//            if (_rson->_is_matrix) {
-//                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_rson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _rson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _rson->_dim[1]*row + col;
-//                        }
-//                        _rson->_val->at(index) = _rson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
-//                    _rson->_val->at(index) = _rson->eval(index);
-//                }
-//            }
-//            _rson->_evaluated = true;
-//        }
-//        Real lval = 0, rval = 0;
-//        if (_lson->is_number()) {
-//            lval = _lson->_val->at(0);
-//        }
-//        else {
-//            lval = _lson->get_val(i,j);
-//        }
-//        if (_rson->is_number()) {
-//            rval = _rson->_val->at(0);
-//        }
-//        else {
-//            rval = _rson->get_val(i,j);
-//        }
+
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
@@ -4973,6 +4915,7 @@ namespace gravity{
                     default:
                         break;
                 }
+                _evaluated = true;
                 return;
             }
         }
@@ -5057,6 +5000,7 @@ namespace gravity{
                 default:
                     break;
             }
+            _evaluated = true;
             return;
         }
         
@@ -6514,6 +6458,20 @@ namespace gravity{
             _val->at(0) = res;
         }
         else {
+            if (is_constant()) {
+                if (_is_transposed) {
+                    if(_dim[0]*j + i ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                    
+                }
+                else {
+                    if(_dim[1]*i + j ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                }
+                
+            }
             set_val(i,j,res);
         }
         return res;

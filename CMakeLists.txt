@@ -130,6 +130,9 @@ include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
 add_subdirectory(ext_lib/cpp_option_parser)
 set(LIBS ${LIBS} option_parser)
 
+# Include Power dirs
+include_directories(${PROJECT_SOURCE_DIR}/examples/MINLP/Power)
+
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
