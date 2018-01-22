@@ -215,6 +215,7 @@ namespace gravity {
         void set_objective(pair<func_*, ObjectiveType> p);
         void set_objective_type(ObjectiveType);
         void init_indices();// Initialize the indices of all variables involved in the model
+        bool has_violated_constraints(double tol); /*<< Returns true if some constraints are violated by the current solution with tolerance tol */
         void check_feasible(const double* x);
         void reset_funcs();
         void fill_in_maps();/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */

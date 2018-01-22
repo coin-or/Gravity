@@ -21,8 +21,7 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";
-    fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf/sad/pglib_opf_case9241_pegase__sad.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";    
     DebugOn("argv[0] =" << argv[0] << endl);
     string path = argv[0];
     int output = 0;

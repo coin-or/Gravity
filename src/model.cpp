@@ -462,6 +462,58 @@ void Model::set_objective_type(ObjectiveType t) {
     _objt = t;
 }
 
+bool Model::has_violated_constraints(double tol){
+    int cid = 0;
+    unsigned nb_inst = 0;
+    double diff = 0;
+    shared_ptr<Constraint> c = nullptr;
+    for(auto& c_p: _cons)
+    {
+        c = c_p.second;
+        cid = c->_id;
+        switch (c->get_type()) {
+            case eq:
+                nb_inst = c->get_nb_instances();
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff > tol) {
+                        DebugOff("Violated equation: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+            case leq:
+                nb_inst = c->get_nb_instances();
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff > tol) {
+                        DebugOff("Violated inequality: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+            case geq:
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff < -tol) {
+                        DebugOff("Violated inequality: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+                
+            default:
+                break;
+        }
+    }
+    return false;
+}
 
 void Model::check_feasible(const double* x){
 //    int vid = 0;
