@@ -91,6 +91,19 @@ namespace gravity {
             return inst2;
             //        throw invalid_argument("Calling get_id_inst on a non indexed parpam\n");
         };
+
+        pair<size_t,size_t> get_sdp_inst(unsigned inst = 0) const {
+            int idx = _ids->at(0).at(inst);
+            auto it = _indices->begin();
+            for(it =_indices->begin(); it != _indices->end(); ++it) {
+                if(it->second==idx) break;
+            }
+            string key = it->first;
+            cout << "\nkey found: " << it->first.at(0) << "," << it->first.at(2);
+            pair<size_t,size_t> res;
+            res = make_pair(std::stoi(it->first.substr(0,1)),std::stoi(it->first.substr(2,1)));
+            return res;
+        };
         
         // newly added part by guanglei
         pair<size_t,size_t> get_sdpid() const {
@@ -115,7 +128,8 @@ namespace gravity {
 //                if (<#condition#>) {
 //                    <#statements#>
 //                }
-                name += "["+_rev_indices->at(_ids->at(0).at(inst))+"]";
+                int rev_idx = _ids->at(0).at(inst);
+                name += "["+_rev_indices->at(rev_idx)+"]";
             }
             else {
                 name += "["+_rev_indices->at(inst)+"]";
@@ -537,6 +551,10 @@ namespace gravity {
                 _val->at(index) = val;
             }
             else {
+//                _val->resize(max(_val->size(),index+1));
+//                _dim[0] = max(_dim[0],_val->size());
+//                _rev_indices->resize(_val->size());
+//                _rev_indices->at(index) = key;
                 _val->at(pp.first->second) = val;
             }
             update_range(val);
