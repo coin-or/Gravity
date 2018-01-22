@@ -76,7 +76,7 @@ int main (int argc, char * argv[])
     DebugOn("nb buses = " << nb_buses << endl);
     DebugOn("nb bus_pairs = " << nb_bus_pairs << endl);
     
-    /** Build model */
+    /** Declare model */
     Model DCOPF("DCOPF Model");
     
     /** Variables */
@@ -111,14 +111,13 @@ int main (int argc, char * argv[])
     Constraint PAD_UB("PAD_UB");
     PAD_UB = theta.from() - theta.to();
     PAD_UB -= grid.th_max;
+    DCOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
     Constraint PAD_LB("PAD_LB");
     PAD_LB = theta.from() - theta.to();
     PAD_LB -= grid.th_min;
-    DCOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
     DCOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
     
     /* Solver selection */
-    /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
     if (use_cplex) {
         solver DCOPF_CPX(DCOPF, cplex);
         auto solver_time_start = get_wall_time();
