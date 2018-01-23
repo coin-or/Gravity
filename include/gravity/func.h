@@ -1924,8 +1924,16 @@ namespace gravity {
             }
             else {
                 _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
+                _dim.resize(1);
+                _dim[0] = max(_dim[0], term._p->first->get_nb_instances());
             }
 //            _val->resize(_nb_instances);
+        }
+
+        void update_nb_instances(const pterm& term){
+                _nb_instances = max(_nb_instances, term._l->begin()->first->get_nb_instances());
+                _dim[0] = max(_dim[0], term._l->begin()->first->get_nb_instances());
+
         }
         
         int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */

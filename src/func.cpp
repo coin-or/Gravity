@@ -890,7 +890,6 @@ namespace gravity{
             for (auto &pair: *_l) {
                 res *= pow(poly_eval(pair.first, i), pair.second);
             }
-            
             res *= poly_eval(_coef,i);
         }
         if (!_sign) {
@@ -3613,6 +3612,7 @@ namespace gravity{
             }
             pterm p(sign, c_new, newl);
             update_sign(p);
+            update_nb_instances(p);
             _pterms->insert(make_pair<>(name, move(p)));
             return true;
         }
