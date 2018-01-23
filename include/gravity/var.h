@@ -10,6 +10,7 @@
 #define var_h
 
 #include <gravity/param.h>
+#include <gravity/Net.h>
 #include <stdio.h>
 #include <string>
 #include <set>
@@ -37,6 +38,7 @@ public:
     shared_ptr<func_>   _lb; /**< Lower Bound */
     shared_ptr<func_>   _ub; /**< Upper Bound */
     bool _in_q_cone = false;
+    bool _psd = false;
     
     /* Constructors */
     //@{
@@ -336,6 +338,7 @@ public:
     var in(const ordered_pairs& pairs);
     vector<var> in(const std::vector<std::vector<Node*>>& bags, unsigned size);
     vector<var> pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size);
+    vector<var> pairs_in_directed(Net* net, const std::vector<std::vector<Node*>>& bags, unsigned size);
 
     /* Querries */
 

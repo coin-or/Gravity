@@ -709,8 +709,8 @@ void PowerNet::update_net(){
                 sin_max_ = 1;
                 sin_min_ = -1;
             } else{
-                sin_max_ = sin(m_theta_lb);
-                sin_min_ = sin(m_theta_ub);
+                sin_max_ = sin(m_theta_ub);
+                sin_min_ = sin(m_theta_lb);
             }
 
             if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
