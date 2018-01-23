@@ -827,7 +827,7 @@ namespace gravity{
         if ((_coef->_is_transposed || _coef->_is_matrix) && !_p->_is_matrix) {
             auto dim = _p->get_nb_instances(i);
             for (int j = 0; j<dim; j++) {
-                res += poly_eval(_coef,i,j) * poly_eval(_p, i,j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p,i,j);
             }
         }
         else {
@@ -2977,12 +2977,12 @@ namespace gravity{
                 auto be = dynamic_pointer_cast<bexpr>(e);
                 auto fl = (func_*)(be->_lson.get());
                 auto fr = (func_*)(be->_rson.get());
-                if (_nb_instances<fl->_nb_instances  && !be->is_inner_product()) {
+                if (_nb_instances<fl->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fl->_dim;
                     _nb_instances = fl->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fl->_nb_instances<_nb_instances) {
+                if (fl->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fl->_dim = _dim ;
                     fl->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -2990,12 +2990,12 @@ namespace gravity{
                 embed(*fl);
 
                 
-                if (_nb_instances<fr->_nb_instances) {
+                if (_nb_instances<fr->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fr->_dim;
                     _nb_instances = fr->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fr->_nb_instances<_nb_instances && !be->is_inner_product()) {
+                if (fr->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fr->_dim = _dim ;
                     fr->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -3009,12 +3009,12 @@ namespace gravity{
                             _dim[0] = _nb_instances;
                             if (be->_rson->_is_matrix) {//Matrix product
                                 _dim[1] = _nb_instances;
-                                _nb_instances = _dim[0]*_dim[1];
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else if (be->_rson->_is_transposed){
                                 _dim[1] = be->_lson->_dim[1];
-                                _nb_instances = get_dim();
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else {
@@ -3063,6 +3063,7 @@ namespace gravity{
                         }
 //                        _is_matrix = be->_lson->_is_matrix && be->_rson->_is_matrix;
                     }
+//                    _nb_instances = get_dim();
 //                    _val->resize(_nb_instances);
                 }
                 break;
@@ -4821,65 +4822,7 @@ namespace gravity{
 //    };
     
     double  bexpr::eval(ind i, ind j) const{
-//        if (_lson->is_constant() && !_lson->_evaluated) {
-//            unsigned index = 0;
-//            _lson->_val->resize(_lson->_nb_instances);
-//            if (_lson->_is_matrix) {
-//                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _lson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _lson->_dim[1]*row + col;
-//                        }
-//                        _lson->_val->at(index) = _lson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
-//                    _lson->_val->at(index) = _lson->eval(index);
-//                }
-//            }
-//            _lson->_evaluated = true;
-//        }
-//        if (_rson->is_constant() && !_rson->_evaluated) {
-//            _rson->_val->resize(_rson->_nb_instances);
-//            unsigned index = 0;
-//            if (_rson->_is_matrix) {
-//                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_rson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _rson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _rson->_dim[1]*row + col;
-//                        }
-//                        _rson->_val->at(index) = _rson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
-//                    _rson->_val->at(index) = _rson->eval(index);
-//                }
-//            }
-//            _rson->_evaluated = true;
-//        }
-//        Real lval = 0, rval = 0;
-//        if (_lson->is_number()) {
-//            lval = _lson->_val->at(0);
-//        }
-//        else {
-//            lval = _lson->get_val(i,j);
-//        }
-//        if (_rson->is_number()) {
-//            rval = _rson->_val->at(0);
-//        }
-//        else {
-//            rval = _rson->get_val(i,j);
-//        }
+
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
@@ -4917,7 +4860,219 @@ namespace gravity{
         }
         
     }
+    
+    void func_::eval_vector() {
+        try {
+            if (_val->size()<_nb_instances) {
+                _val->resize(_nb_instances);
+            }
+            if (is_constant() && !_expr && _params->size()==1) { // This is a parameter
+                auto p_c = (*_params->begin()).second.first;
+                switch (p_c->get_intype()) {
+                    case binary_:{
+                        auto p = ((param<bool>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                                set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case short_:{
+                        auto p = ((param<short>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case integer_:{
+                        auto p = ((param<int>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case float_:{
+                        auto p = ((param<float>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case double_:{
+                        auto p = ((param<double>*)p_c.get());
+    //                    _val = p->get_vals();
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case long_:{
+                        auto p = ((param<long double>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                _evaluated = true;
+                return;
+            }
+        }
+        catch (const std::out_of_range& e) {
+            cout << "Out of Range before eval.";
+        }
 
+//        else {
+        int inst = 0;
+//        try {
+            for (inst = 0; inst < _nb_instances; inst++) {
+                eval(inst);
+            }
+//        }
+//        catch (const std::out_of_range& e) {
+//            cout << "Out of Range error at inst = " << inst << endl;
+//        }
+        
+//        }
+    }
+
+    void func_::eval_matrix() {
+        _val->resize((_dim[0]*_dim[1]));
+        if (is_constant() && !_expr && _params->size()==1) { // This is a parameter
+            auto p_c = (*_params->begin()).second.first;
+            switch (p_c->get_intype()) {
+                case binary_:{
+                    auto p = ((param<bool>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case short_:{
+                    auto p = ((param<short>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case integer_:{
+                    auto p = ((param<int>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case float_:{
+                    auto p = ((param<float>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case double_:{
+                    auto p = ((param<double>*)p_c.get());
+//                    _val = p->get_vals();
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case long_:{
+                    auto p = ((param<long double>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            _evaluated = true;
+            return;
+        }
+        
+        auto be = (bexpr*)_expr.get();
+        if (be->_otype==product_ && _lterms->empty() && _pterms->empty() && _qterms->empty()) {//Pure product
+                if (be->_lson->_is_matrix && be->_rson->_is_matrix) {
+                //matrix product
+                if (!_is_hessian) {
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            auto res = 0.;
+                            for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                                res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                            }
+                            set_val(i,j, be->_coef*res);
+                        }
+                    }
+                }
+                else {
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = i; j < _dim[1]; j++) {
+                            auto res = 0.;
+                            for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                                res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                            }
+                            set_val(i,j, be->_coef*res);
+                        }
+                    }
+                }
+                return;
+            }
+            if (be->_lson->_is_matrix && !be->_rson->_is_matrix && be->_rson->_is_transposed) {//matrix * transposed vect
+                for (int i = 0; i < _dim[0]; i++) {
+                    for (int j = 0; j < _dim[1]; j++) {
+                        set_val(i,j, be->_coef*be->_lson->get_val(i,j) * be->_rson->get_val(j));
+                    }
+                }
+                return;
+            }
+            if (!be->_lson->_is_matrix && !be->_lson->_is_transposed && be->_rson->_is_matrix ) {//vect * matrix
+                for (int i = 0; i < _dim[0]; i++) {
+                    for (int j = 0; j < _dim[1]; j++) {
+                        set_val(i,j, be->_coef*(be->_lson->get_val(i) * be->_rson->get_val(i,j)));
+                    }
+                }
+                return;
+            }
+        }
+        if (!_is_hessian) {
+            for (int i = 0; i < _dim[0]; i++) {
+                for (int j = 0; j < _dim[1]; j++) {
+                    auto res = 0.;
+                    for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                        res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                    }
+                    eval(i,j);
+                }
+            }
+        }
+        else {
+            for (int i = 0; i < _dim[0]; i++) {
+                for (int j = i; j < _dim[1]; j++) {
+                    auto res = 0.;
+                    for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                        res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                    }
+                    eval(i,j);
+                }
+            }
+        }
+    }
+    
     double  bexpr::eval(ind i) const{
 //        if (_lson->is_constant() && !_lson->_evaluated) {
 //            _lson->_val->resize(_lson->_nb_instances);//TODO what if son is a matrix?
@@ -6263,7 +6418,7 @@ namespace gravity{
 //    }
 
     double func_::eval(size_t i, size_t j){
-        if (_val->size()!=_nb_instances) {
+        if (_val->size()<_nb_instances) {
             _val->resize(_nb_instances);
         }
         if (!_is_matrix && (!_ids || _ids->size()==1)) {
@@ -6303,13 +6458,29 @@ namespace gravity{
             _val->at(0) = res;
         }
         else {
+            if (is_constant()) {
+                if (_is_transposed) {
+                    if(_dim[0]*j + i ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                    
+                }
+                else {
+                    if(_dim[1]*i + j ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                }
+                
+            }
             set_val(i,j,res);
         }
         return res;
     }
     
     double func_::eval(size_t i){
-        _val->resize(_nb_instances);
+        if (_val->size()<_nb_instances) {
+            _val->resize(_nb_instances);
+        }
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
@@ -6323,9 +6494,9 @@ namespace gravity{
 //            if (_val->at(i) != force_eval(i)) {
 //                throw invalid_argument("error");
 //            }
-            if (_val->size()<=i){
-                throw invalid_argument("Func eval out of range");
-            }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Func eval out of range");
+//            }
             return _val->at(i);
         }
         double res = 0;
@@ -6340,24 +6511,24 @@ namespace gravity{
         }
         res += poly_eval(_cst,i);        
         if (_expr) {
-            if (_expr->is_uexpr()) {
-                auto ue = (uexpr*)_expr.get();
-//                if (ue->_son->is_constant()) {
-                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
-//                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
+//            if (_expr->is_uexpr()) {
+//                auto ue = (uexpr*)_expr.get();
+////                if (ue->_son->is_constant()) {
+////                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
+////                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
+////                }
+//
+//            }
+//            else {
+//                auto be = (bexpr*)_expr.get();
+//                if(!be->is_inner_product()) {
+//                    _nb_instances = max(_nb_instances, max(be->_lson->_nb_instances,be->_rson->_nb_instances));
 //                }
-
-            }
-            else {
-                auto be = (bexpr*)_expr.get();
-                if(!be->is_inner_product()) {
-                    _nb_instances = max(_nb_instances, max(be->_lson->_nb_instances,be->_rson->_nb_instances));
-                }
-//                if (be->_lson->is_constant() && be->_rson->is_constant()) {
-//                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
-//                }
-
-            }
+////                if (be->_lson->is_constant() && be->_rson->is_constant()) {
+////                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
+////                }
+//
+//            }
             res += _expr->eval(i);
         }
         if (is_number()) {
@@ -6371,9 +6542,9 @@ namespace gravity{
             if (is_constant() && i==_val->size()-1) {
                 _evaluated = true;
             }
-            if (_val->size()<=i){
-                throw invalid_argument("Param eval out of range");
-            }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Param eval out of range");
+//            }
             _val->at(i) = res;
         }
         return res;

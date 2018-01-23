@@ -21,18 +21,19 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
-    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m", mtype = "ACRECT";    
     DebugOn("argv[0] =" << argv[0] << endl);
     string path = argv[0];
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
-    string mehrotra = "no";
+    string mehrotra = "no", log_level="0";
     
     /** create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname );
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
     opt.add_option("m", "model", "power flow model: ACPOL/ACRECT", mtype );
     
     /** parse the options and verify that all went well. If not, errors and help will be shown */
@@ -44,7 +45,7 @@ int main (int argc, char * argv[])
     
     fname = opt["f"];
     mtype = opt["m"];
-    
+    output = op::str2int(opt["l"]);
     bool has_help = op::str2bool(opt["h"]);
     /** show help */
     if(has_help) {
@@ -97,8 +98,10 @@ int main (int argc, char * argv[])
     /** Voltage related variables */
     var<Real> theta("theta");
     var<Real> v("|V|", grid.v_min, grid.v_max);
-    var<Real> vr("vr");
-    var<Real> vi("vi");
+//    var<Real> vr("vr");
+//    var<Real> vi("vi");
+    var<Real> vr("vr", grid.v_max);
+    var<Real> vi("vi", grid.v_max);
     
     if (polar) {
         ACOPF.add_var(v.in(grid.nodes));
@@ -257,7 +260,7 @@ int main (int argc, char * argv[])
     
     solver OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;

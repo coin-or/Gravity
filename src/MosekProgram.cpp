@@ -29,6 +29,7 @@ void MosekProgram::update_model() {};
 
 // remain to do
 bool MosekProgram::solve(bool relax) {
+    _mosek_model->setSolverParam("log", _output);
     // Set max solution time
     _mosek_model->setSolverParam("mioMaxTime", 360.0);
     // Set max relative gap (to its default value)

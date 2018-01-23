@@ -65,7 +65,7 @@ public:
     std::vector<Arc*> get_in();
     
     
-    virtual vector<gravity::aux*> get_gens(){};
+    virtual vector<gravity::aux*> get_gens(){return vector<gravity::aux*>();};
 
     /* return its neighbours */
     std::set<Node*> get_neighbours();

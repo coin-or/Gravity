@@ -37,6 +37,7 @@ namespace gravity {
         Model*                         _model = nullptr;
         Program*                       _prog = nullptr;
         SolverType                     _stype;
+        double                         _tol = 1e-6; /*<< Solver tolerance. */
         
         /** Constructor */
         //@{

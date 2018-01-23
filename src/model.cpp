@@ -462,6 +462,58 @@ void Model::set_objective_type(ObjectiveType t) {
     _objt = t;
 }
 
+bool Model::has_violated_constraints(double tol){
+    int cid = 0;
+    unsigned nb_inst = 0;
+    double diff = 0;
+    shared_ptr<Constraint> c = nullptr;
+    for(auto& c_p: _cons)
+    {
+        c = c_p.second;
+        cid = c->_id;
+        switch (c->get_type()) {
+            case eq:
+                nb_inst = c->get_nb_instances();
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff > tol) {
+                        DebugOff("Violated equation: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+            case leq:
+                nb_inst = c->get_nb_instances();
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff > tol) {
+                        DebugOff("Violated inequality: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+            case geq:
+                for (unsigned inst=0; inst<nb_inst; inst++) {
+                    diff = fabs(c->eval(inst) - c->_rhs);
+                    if(diff < -tol) {
+                        DebugOff("Violated inequality: ");
+                        DebugOff(c->to_str(inst));
+                        DebugOff(", violation = "<< diff << endl);
+                        return true;
+                    }
+                }
+                break;
+                
+            default:
+                break;
+        }
+    }
+    return false;
+}
 
 void Model::check_feasible(const double* x){
 //    int vid = 0;
@@ -709,29 +761,21 @@ void Model::compute_funcs() {
         if (f->is_constant() && f->_evaluated) {
             continue;
         }
-        if (!f->_is_matrix) {
+        if (!f->is_constant() && (_type==quad_m || _type==lin_m)) {//these are part of the jacobian, no need to precompute them for quadratic programs
+            continue;
+        }
+        if (!f->_is_matrix && !f->_is_vector) {
             DebugOff(f->to_str()<<endl);
-            for (int inst = 0; inst < f->_nb_instances; inst++) {//Wii_from is not updated!
+            for (int inst = 0; inst < f->_nb_instances; inst++) {
                 f->eval(inst);
             }
         }
+        else if(!f->_is_matrix){ //vector
+            f->eval_vector();
+        }
         else {
             DebugOff(f->to_str()<<endl);
-            f->_val->resize((f->_dim[0]*f->_dim[1]));
-            if (!f->_is_hessian) {
-                for (int i = 0; i < f->_dim[0]; i++) {
-                    for (int j = 0; j < f->_dim[1]; j++) {
-                        f->eval(i,j);
-                    }
-                }
-            }
-            else {
-                for (int i = 0; i < f->_dim[0]; i++) {
-                    for (int j = i; j < f->_dim[1]; j++) {
-                        f->eval(i,j);
-                    }
-                }
-            }
+            f->eval_matrix();
         }
         if (f->is_constant()) {
             f->_evaluated = true;
@@ -855,6 +899,19 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
 }
 
+void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j){
+    for (unsigned idx = i; idx < j; idx++) {
+        auto c = v[idx];
+        auto nb_ins = c->_nb_instances;
+        for (int inst = 0; inst< nb_ins; inst++){
+            //                res[c->_id+inst] = c->get_val(inst);
+            res[c->_id+inst] = c->eval(inst);
+            //                _cons_vals[index++] = res[c->_id+inst];
+            DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+        }
+    }
+}
+
 void Model::fill_in_cstr(const double* x , double* res, bool new_x){
     Constraint* c = nullptr;
 //    unsigned index = 0;
@@ -875,18 +932,33 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //        }
 //    }
 //    else {
+    vector<Constraint*> cons;
         for(auto& c_p: _cons)
         {
             c = c_p.second.get();
             c->_new = false;
-            auto nb_ins = c->_nb_instances;
-            for (int inst = 0; inst< nb_ins; inst++){
-//                res[c->_id+inst] = c->get_val(inst);
-                res[c->_id+inst] = c->eval(inst);
-                //                _cons_vals[index++] = res[c->_id+inst];
-                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-            }
+            cons.push_back(c);
+//            auto nb_ins = c->_nb_instances;
+//            for (int inst = 0; inst< nb_ins; inst++){
+////                res[c->_id+inst] = c->get_val(inst);
+//                res[c->_id+inst] = c->eval(inst);
+//                //                _cons_vals[index++] = res[c->_id+inst];
+//                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+//            }
         }
+    unsigned nr_threads = 4;
+    vector<thread> threads;
+    /* Split cons into nr_threads parts */
+    vector<int> limits = bounds(nr_threads, cons.size());
+    /* Launch all threads in parallel */
+    for (int i = 0; i < nr_threads; ++i) {
+        threads.push_back(thread(compute_constrs, ref(cons), res, limits[i], limits[i+1]));
+    }
+    /* Join the threads with the main thread */
+    for(auto &t : threads){
+        t.join();
+    }
+    
 //    }
 //    }
 //    else {
@@ -902,6 +974,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 }
 
 
+
 void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     size_t idx=0;
     size_t cid = 0;
@@ -912,6 +985,7 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
+        c->_jac_cstr_idx = idx;
         auto nb_ins = c->_nb_instances;
         for (auto &v_p: c->get_vars()){
             v = v_p.second.first.get();
@@ -939,6 +1013,53 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
     }
 }
 
+
+void compute_jac(vector<Constraint*>& vec, double* res, unsigned i, unsigned j, bool first_call, vector<double>& jac_vals){
+    size_t cid = 0;
+    unique_id vid;
+    Constraint* c = NULL;
+    param_* v = NULL;
+    shared_ptr<func_> dfdx;
+    auto idx = vec[i]->_jac_cstr_idx;
+    for (unsigned id = i; id < j; id++) {
+        c = vec[id];
+        auto nb_ins = c->_nb_instances;
+        if (c->is_linear() && !first_call) {
+            //        if (false) {
+            DebugOff("Linear constraint, using stored jacobian!\n");
+            for (unsigned i = 0; i<nb_ins; i++) {
+                for (unsigned j = 0; j<c->get_nb_vars(i); j++) {
+                    res[idx] = jac_vals[idx];
+                    idx++;
+                }
+            }
+        }
+        else {
+            for (auto &v_p: c->get_vars()){
+                v = v_p.second.first.get();
+                vid = v->_unique_id;
+                dfdx = c->get_stored_derivative(vid);
+                for (int inst = 0; inst< nb_ins; inst++){
+                    cid = c->_id+inst;
+                    if (v->_is_vector) {
+                        auto dim = v->get_dim(inst);
+                        for (int j = 0; j<dim; j++) {
+                            res[idx] = dfdx->eval(inst,j);
+                            jac_vals[idx] = res[idx];
+                            idx++;
+                        }
+                    }
+                    else {
+                        res[idx] = dfdx->eval(inst);
+                        jac_vals[idx] = res[idx];
+                        idx++;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /* Fill the nonzero values in the jacobian */
 void Model::fill_in_jac(const double* x , double* res, bool new_x){
 //    if (!_first_call_jac && (!new_x || _type==lin_m)) { /* No need to recompute jacobian for linear models */
@@ -959,6 +1080,29 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     Constraint* c = NULL;
     param_* v = NULL;
     shared_ptr<func_> dfdx;
+    vector<Constraint*> cons;
+    if (_type!=nlin_m) {//Quadratic or Linear
+        for(auto& c_p: _cons)
+        {
+            c = c_p.second.get();
+            c->_new = false;
+            cons.push_back(c);
+        }
+        unsigned nr_threads = 4;
+        vector<thread> threads;
+        /* Split cons into nr_threads parts */
+        vector<int> limits = bounds(nr_threads, cons.size());
+        /* Launch all threads in parallel */
+        for (int i = 0; i < nr_threads; ++i) {
+            threads.push_back(thread(compute_jac, ref(cons), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
+        _first_call_jac = false;
+        return;
+    }
     for(auto& c_p :_cons)
     {
         c = c_p.second.get();
@@ -1025,7 +1169,30 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
                         }
                     }
                 }
-
+//            }
+//            else {
+//                for (auto &v_p: c->get_vars()){
+//                    v = v_p.second.first.get();
+//                    vid = v->_unique_id;
+//                    dfdx = c->get_stored_derivative(vid);
+//                    for (int inst = 0; inst< nb_ins; inst++){
+//                        cid = c->_id+inst;
+//                        if (v->_is_vector) {
+//                            auto dim = v->get_dim(inst);
+//                            for (int j = 0; j<dim; j++) {
+//                                res[idx] = dfdx->eval(inst,j);
+//                                _jac_vals[idx] = res[idx];
+//                                idx++;
+//                            }
+//                        }
+//                        else {
+//                            res[idx] = dfdx->eval(inst);
+//                            _jac_vals[idx] = res[idx];
+//                            idx++;
+//                        }
+//                    }
+//                }
+//            }
         }
     }
     _first_call_jac = false;
@@ -1446,14 +1613,20 @@ void Model::fill_in_maps() {
         c = c_p.second.get();
         if (c->_new) {
             c->compute_derivatives();
-            for (auto &df_p:*c->get_dfdx()) {
-                auto df = df_p.second;
-                    DebugOff(df->to_str() << endl);
-                    df_p.second = embed(df);
-                    for (auto &df2_p:*df_p.second->get_dfdx()) {
-                        df2_p.second = embed(df2_p.second);
+//            if (_type==nlin_m) {
+                for (auto &df_p:*c->get_dfdx()) {
+                    auto df = df_p.second;
+                        DebugOff(df->to_str() << endl);
+//                        if (df->get_expr()) {
+                            df_p.second = embed(df);
+//                        }
+                        for (auto &df2_p:*df_p.second->get_dfdx()) {
+//                            if (df2_p.second->get_expr()) {
+                                df2_p.second = embed(df2_p.second);
+//                            }
+                        }
                     }
-                }
+//            }
             c->_val = make_shared<vector<double>>();
             c->_val->resize(c->_nb_instances);
             if (!c->is_linear()) {
@@ -1473,7 +1646,7 @@ void Model::fill_in_maps() {
                     }
                 }
             }
-            DebugOff(c->to_str() << endl);            
+            DebugOff(c->to_str() << endl);
         }
     }
 }
