@@ -65,6 +65,7 @@ namespace gravity {
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        vector<shared_ptr<Constraint>>              _cons_vec;
         map<unsigned, shared_ptr<Constraint>>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<string, shared_ptr<Constraint>>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<unique_id, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears */

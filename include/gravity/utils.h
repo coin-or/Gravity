@@ -35,15 +35,15 @@ double get_cpu_time();
 //the last chunck will be slightly larger
 std::vector<int> bounds(int parts, int mem);
 
-template<typename Tobj>
-std::vector<Tobj*> get_ptr_vec(const std::vector<Tobj>& vec){
-    auto new_vec = std::vector<Tobj*>();
-    auto n = vec.size();
-    new_vec.resize(n);
-    for(unsigned i = 0; i<n; i++ ){
-        new_vec[i] = (Tobj*)&vec[i];
-    }
-    return new_vec;
-}
+//template<typename Tobj>
+//std::vector<Tobj*> get_ptr_vec(const std::vector<Tobj>& vec){
+//    auto new_vec = std::vector<Tobj*>();
+//    auto n = vec.size();
+//    new_vec.resize(n);
+//    for(unsigned i = 0; i<n; i++ ){
+//        new_vec[i] = (Tobj*)&vec[i];
+//    }
+//    return new_vec;
+//}
 
 #endif

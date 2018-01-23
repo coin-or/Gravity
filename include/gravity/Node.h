@@ -21,14 +21,14 @@ class Arc;
 class Node{
     
 public:
-    std::string _name;
+    std::string _name="noname";
     std::string _type_name="Node";
-    int _id;
+    int _id=-1;
     bool _active = true;
     std::vector<Arc*> branches;
     
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
-    int fill_in;
+    int fill_in = 0;
 
     // constructions
     Node();

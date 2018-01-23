@@ -597,6 +597,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
 //    }
 
     Debug("\n Number of 3D bags = " << nb << endl);
+    delete graph_clone;
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
@@ -687,6 +688,7 @@ Net* Net::get_chordal_extension() {
     sort(_bags.begin(), _bags.end(), bag_compare);
     printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
 
+    delete graph_clone;
     return chordal_extension;
 }
 
