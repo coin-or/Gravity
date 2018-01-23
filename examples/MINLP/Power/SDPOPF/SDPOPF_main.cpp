@@ -194,15 +194,15 @@ int main (int argc, char * argv[]) {
     
     /* Phase Angle Bounds constraints */
 
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij;
-    PAD_UB <= grid->tan_th_max*R_Wij;
-    SDP.add_constraint(PAD_UB.in(bus_pairs));
-
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij;
-    PAD_LB >= grid->tan_th_min*R_Wij;
-    SDP.add_constraint(PAD_LB.in(bus_pairs));
+//    Constraint PAD_UB("PAD_UB");
+//    PAD_UB = Im_Wij;
+//    PAD_UB <= grid.tan_th_max*R_Wij;
+//    SDP.add_constraint(PAD_UB.in(bus_pairs));
+//
+//    Constraint PAD_LB("PAD_LB");
+//    PAD_LB =  Im_Wij;
+//    PAD_LB >= grid.tan_th_min*R_Wij;
+//    SDP.add_constraint(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -231,11 +231,11 @@ int main (int argc, char * argv[]) {
 //    LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
-    vector<Bag*> bags;
+    vector<Bag> bags;
     int n3;
     int bagid = 0;
-    for(auto& b: grid->_bags){
-        bags.push_back(new Bag(bagid,grid,b));
+    for(auto& b: grid._bags){
+        bags.push_back(Bag(bagid,grid,b));
         if(b.size()==3) n3++;
         bagid++;
     }
@@ -247,10 +247,10 @@ int main (int argc, char * argv[]) {
 
     DebugOn("\nNum of 3d bags = " << n3);
 
-//    auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid->_bags, 3);
-//    auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid->_bags, 3);
-//    auto Wii_ = Wii.in(grid->_bags, 3);
-//    auto I_sgn = signs(grid,grid->_bags);
+//    auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid._bags, 3);
+//    auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid._bags, 3);
+//    auto Wii_ = Wii.in(grid._bags, 3);
+//    auto I_sgn = signs(grid,grid._bags);
 //    DebugOn("\n" << I_sgn[0].to_str(true) << ", " << I_sgn[0].get_nb_instances() << endl);
 //    DebugOn("\n" << I_sgn[1].to_str(true) << ", " << I_sgn[1].get_nb_instances() << endl);
 //    DebugOn("\n" << I_sgn[2].to_str(true) << ", " << I_sgn[2].get_nb_instances() << endl);
@@ -297,14 +297,6 @@ int main (int argc, char * argv[]) {
     }
     for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
-
-    vector<Bag> bags;
-    int bagid = 0;
-    for(auto& b: grid._bags){
-//        cout << "\nSize = " << b.size();
-        bags.push_back(Bag(bagid,grid,b));
-        bagid++;
-    }
 
     param<double> what;
     string namew, namewr, namewi;
