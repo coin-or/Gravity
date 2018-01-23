@@ -5,7 +5,7 @@
 #include <gravity/param.h>
 #include "Bag.h"
 
-Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes(nodes) {
+Bag::Bag(int id, const PowerNet& grid, vector<Node*> nodes):_id(id),_grid((PowerNet*)&grid),_nodes(nodes) {
     Arc* aij = NULL;
     _wstarp.set_name("wstar");
     _W_star.set_name("W_star");
@@ -37,8 +37,8 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
 //            cout << "\n" << namewr << " = " <<  ((Line*)aij)->wr;
 //            cout << "\n" << namewi << " = " <<  ((Line*)aij)->wi;
 
-            _indices.push_back(new index_(namewr));
-            _indices.push_back(new index_(namewi));
+            _indices.push_back(index_(namewr));
+            _indices.push_back(index_(namewi));
 
             _wmin.set_val(namewr,_grid->wr_min(namepair).eval());
             _wmin.set_val(namewi,_grid->wi_min(namepair).eval());
@@ -58,7 +58,7 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
 
     for(int i = 0; i < _nodes.size(); i++){
         namew = "w(" + _nodes[i]->_name + ")";
-        _indices.push_back(new index_(namew));
+        _indices.push_back(index_(namew));
         _wmin.set_val(namew,_grid->w_min(_nodes[i]->_name).eval());
         _wmax.set_val(namew,_grid->w_max(_nodes[i]->_name).eval());
 //        _wstarp.set_val(namew,((Bus*)_nodes[i])->w);
@@ -80,9 +80,6 @@ Bag::Bag(int id, PowerNet* grid, vector<Node*> nodes):_id(id),_grid(grid),_nodes
 };
 
 Bag::~Bag(){
-    for(gravity::index_* idx: _indices) {
-        delete idx;
-    }
     _indices.clear();
 }
 

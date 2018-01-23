@@ -949,6 +949,9 @@ namespace gravity {
             return this->in(np._keys);
         }
         
+        func_& in(const vector<index_>& vec) {
+            return in(get_ptr_vec(vec));
+        }
         func_& in(const vector<index_*>& vec) {
             _nb_vars = 0;
             _nb_instances = 1;

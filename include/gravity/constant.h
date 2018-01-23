@@ -13,6 +13,7 @@
 #include <memory>
 #include <typeinfo>
 #include <gravity/types.h>
+#include <gravity/utils.h>
 
 
 using namespace std;
