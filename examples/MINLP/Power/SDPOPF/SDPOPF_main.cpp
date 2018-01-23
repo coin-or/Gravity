@@ -18,6 +18,50 @@
 using namespace std;
 using namespace gravity;
 
+vector<param<>> signs(Net* net, const std::vector<std::vector<Node*>>& bags) {
+    vector<param<>> res;
+    string key;
+    res.resize(3);
+    for (int i = 0; i<3; i++) {
+        res[i].set_name("Im_Wij_signs_"+to_string(i));
+    }
+    set<vector<unsigned>> ids;
+    for (auto &bag: net->_bags) {
+        if (bag.size() != 3) {
+            continue;
+        }
+        vector<unsigned> ids_bag;
+        for (int i = 0; i<3; i++) {
+            ids_bag.push_back(bag[i]->_id);
+        }
+        if(ids.count(ids_bag)==0) {
+            ids.insert(ids_bag);
+        } else {
+            continue;
+        }
+        for (int i = 0; i< 2; i++) {
+            if(net->has_directed_arc(bag[i], bag[i+1])) {
+                key = bag[i]->_name + "," + bag[i+1]->_name;
+                res[i].set_val(key,1.0);
+            }
+            else {
+                key = bag[i+1]->_name + "," + bag[i]->_name;
+                res[i].set_val(key,-1.0);
+            }
+        }
+        /* Loop back pair */
+        if(net->has_directed_arc(bag[0], bag[2])) {
+            key = bag[0]->_name + "," + bag[2]->_name;
+            res[2].set_val(key,1.0);
+        }
+        else{
+            key = bag[2]->_name + "," + bag[0]->_name;
+            res[2].set_val(key,-1.0);
+        }
+    }
+    return res;
+}
+
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false;
@@ -149,15 +193,16 @@ int main (int argc, char * argv[]) {
     SDP.add_constraint(Flow_Q_To.in(grid.arcs) == 0);
     
     /* Phase Angle Bounds constraints */
-//    Constraint PAD_UB("PAD_UB");
-//    PAD_UB = Im_Wij;
-//    PAD_UB <= grid.tan_th_max*R_Wij;
-//    SDP.add_constraint(PAD_UB.in(bus_pairs));
-//    
-//    Constraint PAD_LB("PAD_LB");
-//    PAD_LB =  Im_Wij;
-//    PAD_LB >= grid.tan_th_min*R_Wij;
-//    SDP.add_constraint(PAD_LB.in(bus_pairs));
+
+    Constraint PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij;
+    PAD_UB <= grid->tan_th_max*R_Wij;
+    SDP.add_constraint(PAD_UB.in(bus_pairs));
+
+    Constraint PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij;
+    PAD_LB >= grid->tan_th_min*R_Wij;
+    SDP.add_constraint(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -186,6 +231,60 @@ int main (int argc, char * argv[]) {
 //    LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
+    vector<Bag*> bags;
+    int n3;
+    int bagid = 0;
+    for(auto& b: grid->_bags){
+        bags.push_back(new Bag(bagid,grid,b));
+        if(b.size()==3) n3++;
+        bagid++;
+    }
+
+    //        double SDP = wr12*(wr23*a13->wr + wi23*a13->wi) + wi12*(-wi23*a13->wr + wr23*a13->wi);
+//        SDP *= 2;
+//        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (a13->wr*a13->wr + a13->wi*a13->wi)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+//        SDP += w1*w2*w3;
+
+    DebugOn("\nNum of 3d bags = " << n3);
+
+//    auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid->_bags, 3);
+//    auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid->_bags, 3);
+//    auto Wii_ = Wii.in(grid->_bags, 3);
+//    auto I_sgn = signs(grid,grid->_bags);
+//    DebugOn("\n" << I_sgn[0].to_str(true) << ", " << I_sgn[0].get_nb_instances() << endl);
+//    DebugOn("\n" << I_sgn[1].to_str(true) << ", " << I_sgn[1].get_nb_instances() << endl);
+//    DebugOn("\n" << I_sgn[2].to_str(true) << ", " << I_sgn[2].get_nb_instances() << endl);
+//    DebugOn("\n" << R_Wij_[0].to_str(true) << ", " << R_Wij_[0].get_nb_instances() << endl);
+//    DebugOn("\n" << R_Wij_[1].to_str(true) << ", " << R_Wij_[1].get_nb_instances() << endl);
+//    DebugOn("\n" << R_Wij_[2].to_str(true) << ", " << R_Wij_[2].get_nb_instances() << endl);
+//    DebugOn("\n" << Im_Wij_[0].to_str(true) << ", " << Im_Wij_[0].get_nb_instances()  << endl);
+//    DebugOn("\n" << Im_Wij_[1].to_str(true) << ", " << Im_Wij_[1].get_nb_instances()  << endl);
+//    DebugOn("\n" << Im_Wij_[2].to_str(true) << ", " << Im_Wij_[2].get_nb_instances()  << endl);
+//    DebugOn("\n" << Wii_[1].to_str(true) << ", " << Wii_[1].get_nb_instances()  << endl);
+//    Constraint SDP3("SDP_3D");
+
+//    SDP3 = 2*R_Wij_[0]*(R_Wij_[1]*R_Wij_[2] + I_sgn[1]*I_sgn[2]*Im_Wij_[1]*Im_Wij_[2]);
+//    SDP3 += 2*I_sgn[0]*Im_Wij_[0]*(R_Wij_[1]*I_sgn[2]*Im_Wij_[2] - I_sgn[1]*Im_Wij_[1]*R_Wij_[2]);
+//    SDP3 = R_Wij_[1]*R_Wij_[2];
+//    DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
+//    SDP3 = 2*R_Wij_[0]*(R_Wij_[1]*R_Wij_[2] + Im_Wij_[1]*Im_Wij_[2]);
+//    SDP3 += 2*Im_Wij_[0]*(R_Wij_[1]*Im_Wij_[2] - Im_Wij_[1]*R_Wij_[2]);
+//    SDP3 -= (power(R_Wij_[0],2) + power(Im_Wij_[0],2))*Wii_[2];
+//    SDP3 -= (power(R_Wij_[1],2) + power(Im_Wij_[1],2))*Wii_[0];
+//    SDP3 -= (power(R_Wij_[2],2) + power(Im_Wij_[2],2))*Wii_[1];
+//    SDP3 += Wii_[0]*Wii_[1]*Wii_[2];
+//    SDP.add_constraint(SDP3 >= 0);
+//    SDP3.print_expanded();
+//
+//    exit(0);
+
+//    SDP3 = -2*Xij_[0]*Xij_[1]*Xij_[2];
+//    SDP3 -= Xii_[0]*Xii_[1]*Xii_[2];
+//    SDP3 += power(Xij_[0],2)*Xii_[2];
+//    SDP3 += power(Xij_[2],2)*Xii_[1];
+//    SDP3 += power(Xij_[1],2)*Xii_[0];
+
+
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
@@ -198,6 +297,7 @@ int main (int argc, char * argv[]) {
     }
     for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
+
     vector<Bag> bags;
     int bagid = 0;
     for(auto& b: grid._bags){
@@ -205,26 +305,28 @@ int main (int argc, char * argv[]) {
         bags.push_back(Bag(bagid,grid,b));
         bagid++;
     }
+
     param<double> what;
     string namew, namewr, namewi;
     int numcuts = 0;
     node_pairs bus_pairs_sdp;
-    double prev_opt = 0;
-    double fp_tol = 0.0001;
-    cout << "\nBags size = " << bags.size();
+//    double prev_opt = 0;
+//    double fp_tol = 0.0001;
+    DebugOff("\nNumber of bags = " << bags.size());
 
     vector<param<double>> R_star, I_star, W_star;
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
-    int unchanged = 0, iter = 0, hdim_cuts = 0, cuts_added = 1;
+//    int unchanged = 0;
+    int iter = 0, hdim_cuts = 0, cuts_added = 1;
 
 //    while(unchanged < 3) {
     while(cuts_added > 0) {
         cuts_added = 0;
         iter++;
 //    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
-        prev_opt = SDP._obj_val;
+//        prev_opt = SDP._obj_val;
         for (auto &b: bags) {
             DebugOff("\nBag number " << b._id);
             DebugOff("\nNodes: n1 = " << b._nodes[0]->_name << ", n2 = " << b._nodes[1]->_name << ", n3 = " << b._nodes[2]->_name);
@@ -332,12 +434,22 @@ int main (int argc, char * argv[]) {
         }
         for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
-        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
+
         cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts << endl;
+//        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
+    }
+    string lin = "lin";
+    int num_act_cuts = 0;
+    for (auto &cp: SDP._cons) {
+        if(cp.second->get_name().find(lin) != std::string::npos) {
+            for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+                if(cp.second->is_active(inst)) num_act_cuts++;
+            }
+        }
     }
 
-
     cout << "\nEnd: num of iterations = " << iter << ", number of cuts = " << numcuts << ", number of higher dim cuts = " << hdim_cuts;
+    cout << "\nNumber of active cuts = " << num_act_cuts;
 
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
