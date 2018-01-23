@@ -677,7 +677,7 @@ void PowerNet::update_net(){
 
 
     for(auto& k: _bus_pairs._keys){
-        _bus_pairs_chord._keys.push_back(k);
+        _bus_pairs_chord._keys.push_back(new index_pair(*k));
     }
 
     for(auto& a: arcs){
