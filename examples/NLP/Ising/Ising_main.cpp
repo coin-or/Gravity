@@ -147,7 +147,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         /** Solver */
         solver NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
-        NLP.run(log_lev=0,relax=false,1e-12,"ma27",mehrotra);
+        NLP.run(log_lev,relax=false,1e-12,"ma27",mehrotra);
 //        Ising.print_nl_functions();
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
@@ -181,13 +181,12 @@ double sum_x(){
 
 int main (int argc, char * argv[])
 {
-    int log_lev = 0;
+    int output = 5;
     bool relax = false;
-    string fname = "../data_sets/Ising/samples_bin.csv";
-    fname = "/Users/hlh/Dropbox/Work/Dev/Allinsights/Gravity/data_sets/Ising/samples_bin_med.csv";
+    string fname = "../data_sets/Ising/samples_bin_sml.csv", log_level="5";
     string path = argv[0];
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
-//        fname = "../" + fname;
+        fname = "../" + fname;
     }
     unsigned nr_threads = 1;
     
@@ -197,6 +196,7 @@ int main (int argc, char * argv[])
     opt.add_option("f", "file", "Input file name", fname );
     opt.add_option("t", "threads", "Number of threads to use", "1");
     opt.add_option("r", "regularizer", "Value of regularizer", "0.0");
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -208,7 +208,7 @@ int main (int argc, char * argv[])
     fname = opt["f"];
     nr_threads = op::str2int(opt["t"]);
     regularizor = op::str2double(opt["r"]);
-    
+    output = op::str2int(opt["l"]);
     bool has_help = op::str2bool(opt["h"]);
     // show help
     if(has_help) {
@@ -233,7 +233,7 @@ int main (int argc, char * argv[])
     vector<int> limits = bounds(nr_threads, nb_spins);
     /* Launch all threads in parallel */
     for (int i = 0; i < nr_threads; ++i) {
-        threads.push_back(thread(solve_spin, limits[i], limits[i+1], log_lev, relax, mehrotra));
+        threads.push_back(thread(solve_spin, limits[i], limits[i+1], output, relax, mehrotra));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){

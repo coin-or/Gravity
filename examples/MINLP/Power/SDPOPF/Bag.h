@@ -16,11 +16,11 @@
 class Bag{
 public:
     int _id;
-    PowerNet *_grid;
+    PowerNet* _grid;
     std::vector<Node*> _nodes;
 //    bool _all_lines = true;
 
-    vector <gravity::index_*> _indices;
+    vector <gravity::index_> _indices;
     param<double> _wmin;
     param<double> _wmax;
 
@@ -32,7 +32,7 @@ public:
     param<double> _W_star;
 
     Bag() {};
-    Bag(int id, PowerNet* grid, vector<Node*> nodes);
+    Bag(int id, const PowerNet& grid, vector<Node*> nodes);
     ~Bag();
 
     bool is_PSD();

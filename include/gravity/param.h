@@ -454,17 +454,17 @@ namespace gravity {
         
         type eval(unsigned i) const {
             if (_is_indexed) {
-                if (_ids->size()>1) {
-                    throw invalid_argument("eval() should be called with double index here\n");
-                }
-                if (_val->size()<=_ids->at(0).at(i)){
-                    throw invalid_argument("Param eval out of range");
-                }
+//                if (_ids->size()>1) {
+//                    throw invalid_argument("eval() should be called with double index here\n");
+//                }
+//                if (_val->size()<=_ids->at(0).at(i)){
+//                    throw invalid_argument("Param eval out of range");
+//                }
                 return _val->at(_ids->at(0).at(i));
             }
-            if (_val->size()<=i){
-                throw invalid_argument("Param eval out of range");
-            }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Param eval out of range");
+//            }
             return _val->at(i);
         }
         
@@ -475,13 +475,13 @@ namespace gravity {
         type eval(unsigned i, unsigned j) const {
             
             if (_is_indexed && _ids->size()>1) {
-                //            if (_ids->at(i).at(j) >= _val->size()) {
-                //                throw invalid_argument("eval(i,j): out of range");
-                //            }
+//                if (_ids->at(i).at(j) >= _val->size()) {
+//                    throw invalid_argument("eval(i,j): out of range");
+//                }
                 return _val->at(_ids->at(i).at(j));
             }
-            
-            
+//
+//            
             if (!_is_matrix) {
                 return eval(j);
             }
@@ -776,6 +776,18 @@ namespace gravity {
             p._name += np._name;
             return p;
         }
+                
+        template<typename Tobj> param in(const vector<Tobj>& vec) {
+            return in(get_ptr_vec(vec));
+        }
+        
+        template<typename Tobj> param from(const vector<Tobj>& vec) {
+            return from(get_ptr_vec(vec));
+        }
+        
+        template<typename Tobj> param to(const vector<Tobj>& vec) {
+            return to(get_ptr_vec(vec));
+        }
         
         template<typename Tobj> param in(const vector<Tobj*>& vec) {
             param res(this->_name);
@@ -822,50 +834,7 @@ namespace gravity {
             return res;
         }
         
-        template<typename Tobj> param in(const vector<Tobj>& vec) {
-            param res(this->_name);
-            res._id = this->_id;
-            res._vec_id = this->_vec_id;
-            res._intype = this->_intype;
-            res._range = this->_range;
-            res._val = this->_val;
-            res._is_vector = this->_is_vector;
-            res._is_matrix = this->_is_matrix;
-            res._is_transposed = _is_transposed;
-            res._rev_indices = this->_rev_indices; res._indices = this->_indices;
-            if(vec.empty()){
-                DebugOff("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "EMPTY_VAR";
-                res._is_indexed = true;
-                return res;
-            }
-            DebugOff(_name << " = ");
-            string key;
-            for(auto it = vec.begin(); it!= vec.end(); it++) {
-                if(!(*it)._active) {
-                    continue;
-                }
-                key = (*it)._name;
-                auto index = _indices->size();
-                auto pp = param_::_indices->insert(make_pair<>(key, index));
-                if(pp.second) { //new index inserted
-                    _val->resize(max(_val->size(),index+1));
-                    _dim[0] = max(_dim[0],_val->size());
-                    _rev_indices->resize(_val->size());
-                    _rev_indices->at(index) = key;
-                    res._ids->at(0).push_back(index);
-                }
-                else {
-                    res._ids->at(0).push_back(pp.first->second);
-                }
-            }
-            DebugOff(endl);
-            res._dim[0]=res._ids->at(0).size();
-            res._name += ".in_" + vec.front()._type_name;
-            res._unique_id = make_tuple<>(res.get_id(),in_, typeid(Tobj).hash_code(), 0,0);
-            res._is_indexed = true;
-            return res;
-        }
+    
         
         
         
@@ -1220,53 +1189,7 @@ namespace gravity {
             return res;
         }
         
-        template<typename Tobj> param from(const vector<Tobj>& vec) {
-            param res(this->_name);
-            res._id = this->_id;
-            res._vec_id = this->_vec_id;
-            res._intype = this->_intype;
-            res._range = this->_range;
-            res._val = this->_val;
-            res._is_vector = this->_is_vector;
-            res._is_matrix = this->_is_matrix;
-            res._is_transposed = _is_transposed;
-            res._rev_indices = this->_rev_indices; res._indices = this->_indices;
-            if(vec.empty()){
-                DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "EMPTY_VAR";
-                return res;
-            }
-            DebugOff(_name << " = ");
-            string key;
-            for(auto it = vec.begin(); it!= vec.end(); it++) {
-                if(!(*it)._active) {
-                    continue;
-                }
-                key = (*it)._src->_name;
-                DebugOff(key<< ", ");
-                auto index = _indices->size();
-                auto pp = param_::_indices->insert(make_pair<>(key, index));
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
-                if(pp.second) { //new index inserted
-                    _rev_indices->resize(_val->size());
-                    _rev_indices->at(index) = key;
-                    res._ids->at(0).push_back(index);
-                }
-                else {
-                    res._ids->at(0).push_back(pp.first->second);
-                }
-            }
-            res._dim[0]=res._ids->at(0).size();
-            DebugOff(endl);
-            if (get<1>(_unique_id)!=from_) {
-                res._name += ".from";
-            }
-            res._name += "_"+ vec.front()._type_name;
-            res._unique_id = make_tuple<>(res.get_id(),from_,typeid(Tobj).hash_code(), 0,0);
-            res._is_indexed = true;
-            return res;
-        }
+        
         
         template<typename Tobj> param to(const vector<Tobj*>& vec) {
             param res(this->_name);
@@ -1315,53 +1238,6 @@ namespace gravity {
             return res;
         }
         
-        
-        template<typename Tobj> param to(const vector<Tobj>& vec) {
-            param res(this->_name);
-            res._id = this->_id;
-            res._vec_id = this->_vec_id;
-            res._intype = this->_intype;
-            res._range = this->_range;
-            res._val = this->_val;
-            res._is_vector = this->_is_vector;
-            res._is_matrix = this->_is_matrix;
-            res._is_transposed = _is_transposed;
-            res._rev_indices = this->_rev_indices; res._indices = this->_indices;
-            if(vec.empty()){
-                DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "EMPTY_VAR";
-                return res;
-            }
-            DebugOff(_name << " = ");
-            string key;
-            for(auto it = vec.begin(); it!= vec.end(); it++) {
-                if(!(*it)._active) {
-                    continue;
-                }
-                key = (*it)._dest->_name;
-                DebugOff(key<< ", ");
-                auto index = _indices->size();
-                auto pp = param_::_indices->insert(make_pair<>(key, index));
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
-                if(pp.second) { //new index inserted
-                    _rev_indices->resize(_val->size());
-                    _rev_indices->at(index) = key;
-                    res._ids->at(0).push_back(index);
-                }
-                else {
-                    res._ids->at(0).push_back(pp.first->second);
-                }
-            }
-            res._dim[0]=res._ids->at(0).size();
-            if (get<1>(_unique_id)!=to_) {
-                res._name += ".to";
-            }
-            res._name += "_"+ vec.front()._type_name;
-            res._unique_id = make_tuple<>(res.get_id(),to_,typeid(Tobj).hash_code(), 0,0);
-            res._is_indexed = true;
-            return res;
-        }
         
         param to() {
             auto res(*this);

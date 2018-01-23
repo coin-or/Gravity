@@ -23,10 +23,10 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = true, use_gurobi = false;
+    bool relax = false, use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
-    string mehrotra = "no";
+    string mehrotra = "no", log_level="0";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
@@ -36,6 +36,7 @@ int main (int argc, char * argv[])
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -44,6 +45,8 @@ int main (int argc, char * argv[])
     if(!correct_parsing){
         return EXIT_FAILURE;
     }
+    
+    output = op::str2int(opt["l"]);
     
     fname = opt["f"];
     bool has_help = op::str2bool(opt["h"]);
@@ -169,17 +172,17 @@ int main (int argc, char * argv[])
 
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
-    LNC1 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-    LNC1 -= grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC1 -= grid->v_max.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC1 -= grid->v_max.from()*grid->v_max.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC1 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
+    LNC1 -= grid->v_max.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC1 -= grid->v_max.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC1 -= grid->v_max.from()*grid->v_max.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
-    LNC2 = (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(sin(0.5*(grid->th_max+grid->th_min))*Im_Wij + cos(0.5*(grid->th_max+grid->th_min))*R_Wij);
-    LNC2 -= grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.to()+grid->v_max.to())*Wii.from();
-    LNC2 -= grid->v_min.from()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()+grid->v_max.from())*Wii.to();
-    LNC2 += grid->v_min.from()*grid->v_min.to()*cos(0.5*(grid->th_max-grid->th_min))*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
+    LNC2 += (grid->v_min.from()+grid->v_max.from())*(grid->v_min.to()+grid->v_max.to())*(grid->sphi*Im_Wij + grid->cphi*R_Wij);
+    LNC2 -= grid->v_min.to()*grid->cos_d*(grid->v_min.to()+grid->v_max.to())*Wii.from();
+    LNC2 -= grid->v_min.from()*grid->cos_d*(grid->v_min.from()+grid->v_max.from())*Wii.to();
+    LNC2 += grid->v_min.from()*grid->v_min.to()*grid->cos_d*(grid->v_min.from()*grid->v_min.to() - grid->v_max.from()*grid->v_max.to());
     SOCP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     
@@ -197,7 +200,7 @@ int main (int argc, char * argv[])
     else if (use_gurobi) {
         solver SCOPF_GRB(SOCP, gurobi);
         auto solver_time_start = get_wall_time();
-        SCOPF_GRB.run(output = 0, relax = false, tol = 1e-6);
+        SCOPF_GRB.run(output, relax = false, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
@@ -206,7 +209,7 @@ int main (int argc, char * argv[])
     else {
         solver SCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
-        SCOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        SCOPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

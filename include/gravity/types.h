@@ -101,10 +101,16 @@ namespace gravity{
     public:
         string _name;
         std::vector<gravity::index_pair*> _keys;
-        node_pairs(){};
-        node_pairs(string name):_name(name){};
+        node_pairs(){
+            _keys.resize(0);
+        };
+        node_pairs(string name):_name(name){_keys.resize(0);};
         ~node_pairs(){
+            clear();
+        }
+        void clear() {
             for (auto p: _keys) { delete p;}
+            _keys.clear();
         }
     };
     

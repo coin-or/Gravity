@@ -475,6 +475,8 @@ namespace gravity {
 
         size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
 
+        bool                                   _all_active = true;
+        vector<bool>                           _active;
         bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                   _is_constraint = false;
         bool                                   _is_hessian = false;
@@ -947,6 +949,9 @@ namespace gravity {
             return this->in(np._keys);
         }
         
+        func_& in(const vector<index_>& vec) {
+            return in(get_ptr_vec(vec));
+        }
         func_& in(const vector<index_*>& vec) {
             _nb_vars = 0;
             _nb_instances = 1;
@@ -1542,6 +1547,8 @@ namespace gravity {
             propagate_nb_ind(_nb_instances);
             return *this;
         }
+        void eval_matrix();
+        void eval_vector();
         
         func_& in(const vector<Node*>& vec) {
             _nb_vars = 0;
