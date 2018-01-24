@@ -530,27 +530,27 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         }
         Debug(n->_name << endl);
         Debug(graph_clone->nodes.size() << endl);
-        vector<Node*> bag_copy;
+        vector<shared_ptr<Node>> bag_copy;
         vector<Node*> bag;
         DebugOn("new bag = { ");
         for (auto nn: n->get_neighbours()) {
             if(!nn->_active) continue;
-            bag_copy.push_back(nn);
+            bag_copy.push_back(shared_ptr<Node>(nn));
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
             DebugOn(nn->_name << ", ");
         }
         DebugOn(n->_name << "}\n");
         graph_clone->remove_end_node();
-        bag_copy.push_back(n);
+        bag_copy.push_back(shared_ptr<Node>(n));
         bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag_copy.begin(), bag_copy.end(), [](const shared_ptr<Node> a, const shared_ptr<Node> b) -> bool{return a->_id < b->_id;});
         sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
 
         // update clone_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size(); i++) {
-            u = bag_copy.at(i);
+            u = bag_copy.at(i).get();
             for (int j = i+1; j<bag_copy.size(); j++) {
-                nn = bag_copy.at(j);
+                nn = bag_copy.at(j).get();
                 if (u->is_connected(nn)) {
                     if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
                         Arc* off_arc = get_arc(u,nn);
@@ -588,16 +588,10 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     }
 //    sort(_bags.begin(), _bags.end(), bag_compare);
 
-//    for(auto& b: _bags) {
-//        DebugOn("bag = {");
-//        for (int i = 0; i < b.size(); i++) {
-//            cout << b.at(i)->_name << " ";
-//        }
-//        DebugOn("}" << endl);
-//    }
 
     Debug("\n Number of 3D bags = " << nb << endl);
     delete graph_clone;
+    
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
@@ -633,28 +627,28 @@ Net* Net::get_chordal_extension() {
         n = graph_clone->nodes.back();         
         Debug(n->_name << endl);
         Debug(_clone->nodes.size() << endl);
-        vector<Node*> bag_copy;
+        vector<shared_ptr<Node>> bag_copy;
         vector<Node*> bag;
         Debug("new bag_copy = { ");
 
         for (auto nn: n->get_neighbours()) {
-            bag_copy.push_back(nn);
+            bag_copy.push_back(shared_ptr<Node>(nn));
             bag.push_back(get_node(nn->_name));
             Debug(nn->_name << ", ");
         }
 
         graph_clone->remove_end_node();
-        bag_copy.push_back(n);
+        bag_copy.push_back(shared_ptr<Node>(n));
         bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag_copy.begin(), bag_copy.end(),[](const shared_ptr<Node> a, const shared_ptr<Node> b) -> bool{return a->_id < b->_id;});
         sort(bag.begin(), bag.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
 
         // update graph_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size() - 1; i++) {
-            u = bag_copy.at(i);
+            u = bag_copy.at(i).get();
             u_chordal = chordal_extension->get_node(u->_name);
             for (int j = i+1; j<bag_copy.size(); j++) {
-                nn = bag_copy.at(j);
+                nn = bag_copy.at(j).get();
                 nn_chordal=chordal_extension->get_node(nn->_name);
                 if (u->is_connected(nn)) {
                     continue;

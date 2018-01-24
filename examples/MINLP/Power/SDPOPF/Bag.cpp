@@ -14,7 +14,7 @@ Bag::Bag(int id, const PowerNet& grid, vector<Node*> nodes):_id(id),_grid((Power
     string namewr, namewi, namew, namepair;
 //    bool reversed;
     for(int i = 0; i < _nodes.size()-1; i++){
-        for(int j = i+1; j < _nodes.size()-1; j++){
+        for(int j = i+1; j < _nodes.size(); j++){
             aij = _grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name);
             if(aij==NULL) {
                 aij = _grid->get_directed_arc(_nodes[j]->_name,_nodes[i]->_name);
@@ -91,7 +91,7 @@ param<double> Bag::fill_wstar(){
     string namewr, namewi, namew;
 
     for(int i = 0; i < _nodes.size()-1; i++){
-        for(int j = i+1; j < _nodes.size()-1; j++){
+        for(int j = i+1; j < _nodes.size(); j++){
             aij = (Line*)_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name);
             if(aij==NULL) {
                 aij = (Line*)_grid->get_directed_arc(_nodes[j]->_name,_nodes[i]->_name);
@@ -244,7 +244,7 @@ bool Bag::is_PSD(){
 
     int free_lines = 0;
     for (int i = 0; i < _nodes.size() - 1; i++) {
-        for (int j = i + 1; j < _nodes.size()-1; j++) {
+        for (int j = i + 1; j < _nodes.size(); j++) {
             Arc *aij = _grid->get_arc(_nodes[i]->_name, _nodes[j]->_name);
             if (aij->_free) free_lines++;
         }
