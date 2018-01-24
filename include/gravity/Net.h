@@ -49,7 +49,7 @@ public:
     
     // bags are sorted in an ascending order of ids.
     std::vector<std::vector<Node*>> _bags; // each node is from this nodes. 
-    std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node (not by reference).
+    std::vector<std::vector<std::shared_ptr<Node>>> _bags_copy; // each node is a copy of the original node (not by reference).
 
     /** Clone the graph exactly **/ 
     Net* clone();

@@ -955,27 +955,27 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
 //            }
         }
-    compute_constrs(_cons_vec, res, 0, _cons_vec.size());
-//    unsigned nr_threads = 4;
-//    vector<thread> threads;
-//    /* Split cons into nr_threads parts */
-//    vector<int> limits = bounds(nr_threads, _cons_vec.size());
-//    DebugOff("limits size = " << limits.size() << endl);
-//    for (int i = 0; i < limits.size(); ++i) {
-//        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-//    }    
-//    /* Launch all threads in parallel */
-//    for (int i = 0; i < nr_threads; ++i) {
-//        DebugOff("i = " << i << endl);
-//        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-//        DebugOff("limits[" << i+1 << "] = " << limits[i+1] << endl);
-//        threads.push_back(thread(compute_constrs, ref(_cons_vec), res, limits[i], limits[i+1]));
-////        threads.push_back(thread(dummy));
-//    }
+//    compute_constrs(_cons_vec, res, 0, _cons_vec.size());
+    unsigned nr_threads = 4;
+    vector<thread> threads;
+    /* Split cons into nr_threads parts */
+    vector<int> limits = bounds(nr_threads, _cons_vec.size());
+    DebugOff("limits size = " << limits.size() << endl);
+    for (int i = 0; i < limits.size(); ++i) {
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+    }    
+    /* Launch all threads in parallel */
+    for (int i = 0; i < nr_threads; ++i) {
+        DebugOff("i = " << i << endl);
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+        DebugOff("limits[" << i+1 << "] = " << limits[i+1] << endl);
+        threads.push_back(thread(compute_constrs, ref(_cons_vec), res, limits[i], limits[i+1]));
+//        threads.push_back(thread(dummy));
+    }
     /* Join the threads with the main thread */
-//    for(auto &t : threads){
-//        t.join();
-//    }
+    for(auto &t : threads){
+        t.join();
+    }
     
 //    }
 //    }
