@@ -956,7 +956,7 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //            }
         }
 //    compute_constrs(_cons_vec, res, 0, _cons_vec.size());
-    unsigned nr_threads = 4;
+    unsigned nr_threads = 5;
     vector<thread> threads;
     /* Split cons into nr_threads parts */
     vector<int> limits = bounds(nr_threads, _cons_vec.size());
@@ -1107,20 +1107,20 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
             _cons_vec.push_back(c_p.second);
         }
         
-        compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
-//        unsigned nr_threads = 4;
-//        vector<thread> threads;
-//        /* Split cons into nr_threads parts */
-//        vector<int> limits = bounds(nr_threads, _cons_vec.size());
-//        
-//        /* Launch all threads in parallel */
-//        for (int i = 0; i < nr_threads; ++i) {
-//            threads.push_back(thread(compute_jac, ref(_cons_vec), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
-//        }
-//        /* Join the threads with the main thread */
-//        for(auto &t : threads){
-//            t.join();
-//        }
+//        compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
+        unsigned nr_threads = 5;
+        vector<thread> threads;
+        /* Split cons into nr_threads parts */
+        vector<int> limits = bounds(nr_threads, _cons_vec.size());
+        
+        /* Launch all threads in parallel */
+        for (int i = 0; i < nr_threads; ++i) {
+            threads.push_back(thread(compute_jac, ref(_cons_vec), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
         _first_call_jac = false;
         return;
     }
@@ -1638,9 +1638,12 @@ void Model::fill_in_maps() {
                 for (auto &df_p:*c->get_dfdx()) {
                     auto df = df_p.second;
                         DebugOff(df->to_str() << endl);
-//                        if (df->get_expr()) {
+                        if (df->get_expr()) {
                             df_p.second = embed(df);
-//                        }
+                        }
+                        else {
+                            embed(df);
+                        }
                         for (auto &df2_p:*df_p.second->get_dfdx()) {
 //                            if (df2_p.second->get_expr()) {
                                 df2_p.second = embed(df2_p.second);

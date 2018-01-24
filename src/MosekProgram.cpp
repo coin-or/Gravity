@@ -36,7 +36,7 @@ bool MosekProgram::solve(bool relax) {
     _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
     // Set max absolute gap (to its default value)
     _mosek_model->setSolverParam("mioTolAbsGap", 0.0);
-    _mosek_model->setSolverParam("numThreads",1);
+//    _mosek_model->setSolverParam("numThreads",1);
     if(!_output) _mosek_model->setSolverParam("log", 0);
     if(relax) {
         for (auto &vv: _mosek_vars)
