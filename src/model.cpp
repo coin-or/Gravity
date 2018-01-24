@@ -98,12 +98,16 @@ size_t Model::get_nb_nnz_h(){
 
 void Model::add_indices(const string& constr_name, const node_pairs& indices){
     auto c = _cons_name.at(constr_name);
+    map<unsigned, shared_ptr<Constraint>>  new_cons;
     c->add_indices_in(indices);
     for (auto &cc : _cons) {
         if (cc.second->_id > c->_id) {
             cc.second->_id += indices._keys.size();
         }
+        new_cons[cc.second->_id] = cc.second;
     }
+    _cons = new_cons;
+    _nb_cons = get_nb_cons();
 }
 
 shared_ptr<Constraint> Model::get_constraint(const string& cname) const{
@@ -473,7 +477,7 @@ bool Model::has_violated_constraints(double tol){
         cid = c->_id;
         switch (c->get_type()) {
             case eq:
-                nb_inst = c->get_nb_instances();
+                nb_inst = c->_nb_instances;
                 for (unsigned inst=0; inst<nb_inst; inst++) {
                     diff = fabs(c->eval(inst) - c->_rhs);
                     if(diff > tol) {
@@ -485,7 +489,7 @@ bool Model::has_violated_constraints(double tol){
                 }
                 break;
             case leq:
-                nb_inst = c->get_nb_instances();
+                nb_inst = c->_nb_instances;
                 for (unsigned inst=0; inst<nb_inst; inst++) {
                     diff = fabs(c->eval(inst) - c->_rhs);
                     if(diff > tol) {
@@ -899,13 +903,18 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
     }
 }
 
-void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j){
+void dummy (){
+    
+    
+}
+void compute_constrs(vector<shared_ptr<Constraint>>& v, double* res, int i, int j){
+//    DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
     for (unsigned idx = i; idx < j; idx++) {
         auto c = v[idx];
         auto nb_ins = c->_nb_instances;
         for (int inst = 0; inst< nb_ins; inst++){
-            //                res[c->_id+inst] = c->get_val(inst);
             res[c->_id+inst] = c->eval(inst);
+            DebugOff("Accessing res at position " << c->_id+inst << endl);
             //                _cons_vals[index++] = res[c->_id+inst];
             DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
         }
@@ -932,12 +941,12 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //        }
 //    }
 //    else {
-    vector<Constraint*> cons;
+//    vector<Constraint*> cons;
+        _cons_vec.clear();
         for(auto& c_p: _cons)
         {
-            c = c_p.second.get();
-            c->_new = false;
-            cons.push_back(c);
+            c_p.second->_new = false;
+            _cons_vec.push_back(c_p.second);
 //            auto nb_ins = c->_nb_instances;
 //            for (int inst = 0; inst< nb_ins; inst++){
 ////                res[c->_id+inst] = c->get_val(inst);
@@ -946,13 +955,22 @@ void Model::fill_in_cstr(const double* x , double* res, bool new_x){
 //                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
 //            }
         }
-    unsigned nr_threads = 4;
+//    compute_constrs(_cons_vec, res, 0, _cons_vec.size());
+    unsigned nr_threads = 5;
     vector<thread> threads;
     /* Split cons into nr_threads parts */
-    vector<int> limits = bounds(nr_threads, cons.size());
+    vector<int> limits = bounds(nr_threads, _cons_vec.size());
+    DebugOff("limits size = " << limits.size() << endl);
+    for (int i = 0; i < limits.size(); ++i) {
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+    }    
     /* Launch all threads in parallel */
     for (int i = 0; i < nr_threads; ++i) {
-        threads.push_back(thread(compute_constrs, ref(cons), res, limits[i], limits[i+1]));
+        DebugOff("i = " << i << endl);
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+        DebugOff("limits[" << i+1 << "] = " << limits[i+1] << endl);
+        threads.push_back(thread(compute_constrs, ref(_cons_vec), res, limits[i], limits[i+1]));
+//        threads.push_back(thread(dummy));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){
@@ -1014,10 +1032,10 @@ void Model::fill_in_jac_nnz(int* iRow , int* jCol){
 }
 
 
-void compute_jac(vector<Constraint*>& vec, double* res, unsigned i, unsigned j, bool first_call, vector<double>& jac_vals){
+void compute_jac(vector<shared_ptr<Constraint>>& vec, double* res, int i, int j, bool first_call, vector<double>& jac_vals){
     size_t cid = 0;
     unique_id vid;
-    Constraint* c = NULL;
+    shared_ptr<Constraint> c = NULL;
     param_* v = NULL;
     shared_ptr<func_> dfdx;
     auto idx = vec[i]->_jac_cstr_idx;
@@ -1080,21 +1098,24 @@ void Model::fill_in_jac(const double* x , double* res, bool new_x){
     Constraint* c = NULL;
     param_* v = NULL;
     shared_ptr<func_> dfdx;
-    vector<Constraint*> cons;
+//    vector<Constraint*> cons;
     if (_type!=nlin_m) {//Quadratic or Linear
+        _cons_vec.clear();
         for(auto& c_p: _cons)
         {
-            c = c_p.second.get();
-            c->_new = false;
-            cons.push_back(c);
+            c_p.second->_new = false;
+            _cons_vec.push_back(c_p.second);
         }
-        unsigned nr_threads = 4;
+        
+//        compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
+        unsigned nr_threads = 5;
         vector<thread> threads;
         /* Split cons into nr_threads parts */
-        vector<int> limits = bounds(nr_threads, cons.size());
+        vector<int> limits = bounds(nr_threads, _cons_vec.size());
+        
         /* Launch all threads in parallel */
         for (int i = 0; i < nr_threads; ++i) {
-            threads.push_back(thread(compute_jac, ref(cons), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
+            threads.push_back(thread(compute_jac, ref(_cons_vec), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
         }
         /* Join the threads with the main thread */
         for(auto &t : threads){
@@ -1617,9 +1638,12 @@ void Model::fill_in_maps() {
                 for (auto &df_p:*c->get_dfdx()) {
                     auto df = df_p.second;
                         DebugOff(df->to_str() << endl);
-//                        if (df->get_expr()) {
+                        if (df->get_expr()) {
                             df_p.second = embed(df);
-//                        }
+                        }
+                        else {
+                            embed(df);
+                        }
                         for (auto &df2_p:*df_p.second->get_dfdx()) {
 //                            if (df2_p.second->get_expr()) {
                                 df2_p.second = embed(df2_p.second);
@@ -1655,20 +1679,27 @@ void Model::fill_in_maps() {
 void Model::fill_in_duals(double* lambda, double* z_L, double* z_U){
     for (auto &cp: _cons) {
         if(cp.second->_dual.size()==0){
-            continue;
+            cp.second->_dual.resize(cp.second->_nb_instances);
         }
         for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+            lambda[cp.second->_id + inst] = 0;
+            
+        }
+        for (unsigned inst = 0; inst < cp.second->_dual.size(); inst++) {
             lambda[cp.second->_id + inst] = cp.second->_dual[inst];
         }
     }
     for (auto &vp: _vars) {
         if(vp.second->_l_dual.size()==0 || vp.second->_u_dual.size()==0 ){
-            continue;
+            vp.second->_l_dual.resize(vp.second->get_nb_instances());
+            vp.second->_u_dual.resize(vp.second->get_nb_instances());
         }
         auto nb_inst = vp.second->get_nb_instances();
         for (unsigned inst = 0; inst < nb_inst; inst++) {
             z_L[vp.second->get_id() + vp.second->get_id_inst(inst)] = vp.second->_l_dual[inst];
             z_U[vp.second->get_id() + vp.second->get_id_inst(inst)] = vp.second->_u_dual[inst];
+//            z_L[vp.second->get_id() + vp.second->get_id_inst(inst)] = 0;
+//            z_U[vp.second->get_id() + vp.second->get_id_inst(inst)] = 0;
         }
     }
     
