@@ -82,6 +82,7 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case5_pjm__api.m";
 
     // create a OptionParser with options
     op::OptionParser opt;

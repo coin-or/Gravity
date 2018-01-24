@@ -1638,7 +1638,7 @@ void Model::fill_in_maps() {
                 for (auto &df_p:*c->get_dfdx()) {
                     auto df = df_p.second;
                         DebugOff(df->to_str() << endl);
-                        if (df->get_expr()) {
+                        if (df->get_expr() || _type==nlin_m) {
                             df_p.second = embed(df);
                         }
                         else {
