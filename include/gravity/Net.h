@@ -13,6 +13,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <memory>
 #include <assert.h>
 #include <gravity/types.h>
 #include <gravity/Node.h>
