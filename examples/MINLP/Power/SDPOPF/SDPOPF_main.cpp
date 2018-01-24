@@ -18,15 +18,16 @@
 using namespace std;
 using namespace gravity;
 
-vector<param<>> signs(Net* net, const std::vector<std::vector<Node*>>& bags) {
+vector<param<>> signs(Net& net, const std::vector<std::vector<Node*>>& bags) {
     vector<param<>> res;
     string key;
+    size_t idx;
     res.resize(3);
     for (int i = 0; i<3; i++) {
-        res[i].set_name("Im_Wij_signs_"+to_string(i));
+        res[i].set_name("I_sign_"+to_string(i));
     }
     set<vector<unsigned>> ids;
-    for (auto &bag: net->_bags) {
+    for (auto &bag: net._bags) {
         if (bag.size() != 3) {
             continue;
         }
@@ -40,24 +41,34 @@ vector<param<>> signs(Net* net, const std::vector<std::vector<Node*>>& bags) {
             continue;
         }
         for (int i = 0; i< 2; i++) {
-            if(net->has_directed_arc(bag[i], bag[i+1])) {
+            if(net.has_directed_arc(bag[i], bag[i+1])) {
                 key = bag[i]->_name + "," + bag[i+1]->_name;
-                res[i].set_val(key,1.0);
+                idx = res[i].set_val(key,1.0);
+                res[i]._ids->at(0).push_back(idx);
             }
             else {
                 key = bag[i+1]->_name + "," + bag[i]->_name;
-                res[i].set_val(key,-1.0);
+                DebugOff("\nreversed arc " << key);
+                idx = res[i].set_val(key,-1.0);
+                res[i]._ids->at(0).push_back(idx);
             }
         }
         /* Loop back pair */
-        if(net->has_directed_arc(bag[0], bag[2])) {
+        if(net.has_directed_arc(bag[0], bag[2])) {
             key = bag[0]->_name + "," + bag[2]->_name;
-            res[2].set_val(key,1.0);
+            idx = res[2].set_val(key,1.0);
+            res[2]._ids->at(0).push_back(idx);
         }
         else{
             key = bag[2]->_name + "," + bag[0]->_name;
-            res[2].set_val(key,-1.0);
+            DebugOff("\nreversed arc " << key);
+            idx = res[2].set_val(key,-1.0);
+            res[2]._ids->at(0).push_back(idx);
         }
+    }
+    for (int i = 0; i<3; i++) {
+        res[i]._dim[0]=res[i]._ids->at(0).size();
+        res[i]._is_indexed = true;
     }
     return res;
 }
@@ -71,7 +82,7 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
     string fname = "../data_sets/Power/nesta_case5_pjm.m";
-//    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case30_fsr__api.m";
+
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -163,6 +174,40 @@ int main (int argc, char * argv[]) {
     SDP.min(obj.in(grid.gens));
     
     /** Constraints */
+
+    if(grid.add_3d_nlin) {
+        auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid._bags, 3);
+        auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid._bags, 3);
+        auto Wii_ = Wii.in(grid._bags, 3);
+        auto I_sgn = signs(grid, grid._bags);
+        DebugOff("\n" << I_sgn[0].to_str(true) << ", " << I_sgn[0].get_nb_instances() << endl);
+        DebugOff("\n" << I_sgn[1].to_str(true) << ", " << I_sgn[1].get_nb_instances() << endl);
+        DebugOff("\n" << I_sgn[2].to_str(true) << ", " << I_sgn[2].get_nb_instances() << endl);
+        DebugOff("\n" << R_Wij_[0].to_str(true) << ", " << R_Wij_[0].get_nb_instances() << endl);
+//    DebugOn("\n" << R_Wij_[1].to_str(true) << ", " << R_Wij_[1].get_nb_instances() << endl);
+//    DebugOn("\n" << R_Wij_[2].to_str(true) << ", " << R_Wij_[2].get_nb_instances() << endl);
+//    DebugOn("\n" << Im_Wij_[0].to_str(true) << ", " << Im_Wij_[0].get_nb_instances()  << endl);
+//    DebugOn("\n" << Im_Wij_[1].to_str(true) << ", " << Im_Wij_[1].get_nb_instances()  << endl);
+//    DebugOn("\n" << Im_Wij_[2].to_str(true) << ", " << Im_Wij_[2].get_nb_instances()  << endl);
+//    DebugOn("\n" << Wii_[0].to_str(true) << ", " << Wii_[0].get_nb_instances()  << endl);
+        Constraint SDP3("SDP_3D");
+
+//        SDP = 2*wr12*(wr23*wr13 + wi23*wi13) + 2*wi12*(-wi23*wr13 + wr23*wi13);
+//        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+//        SDP += w1*w2*w3;
+
+        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_[1] * Im_Wij_[2]);
+        SDP3 += 2 * I_sgn[0] * Im_Wij_[0] * (R_Wij_[1] * I_sgn[2] * Im_Wij_[2] - I_sgn[1] * Im_Wij_[1] * R_Wij_[2]);
+        SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        DebugOff("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
+        SDP.add_constraint(SDP3 >= 0);
+//        SDP3.print_expanded();
+    }
+
+
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
@@ -242,49 +287,7 @@ int main (int argc, char * argv[]) {
         bagid++;
     }
 
-    //        double SDP = wr12*(wr23*a13->wr + wi23*a13->wi) + wi12*(-wi23*a13->wr + wr23*a13->wi);
-//        SDP *= 2;
-//        SDP -= (wr12*wr12 + wi12*wi12)*w3 + (a13->wr*a13->wr + a13->wi*a13->wi)*w2 + (wr23*wr23 + wi23*wi23)*w1;
-//        SDP += w1*w2*w3;
-
-//    DebugOn("\nNum of 3d bags = " << n3);
-
-//    auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid._bags, 3);
-//    auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid._bags, 3);
-//    auto Wii_ = Wii.in(grid._bags, 3);
-//    auto I_sgn = signs(grid,grid._bags);
-//    DebugOn("\n" << I_sgn[0].to_str(true) << ", " << I_sgn[0].get_nb_instances() << endl);
-//    DebugOn("\n" << I_sgn[1].to_str(true) << ", " << I_sgn[1].get_nb_instances() << endl);
-//    DebugOn("\n" << I_sgn[2].to_str(true) << ", " << I_sgn[2].get_nb_instances() << endl);
-//    DebugOn("\n" << R_Wij_[0].to_str(true) << ", " << R_Wij_[0].get_nb_instances() << endl);
-//    DebugOn("\n" << R_Wij_[1].to_str(true) << ", " << R_Wij_[1].get_nb_instances() << endl);
-//    DebugOn("\n" << R_Wij_[2].to_str(true) << ", " << R_Wij_[2].get_nb_instances() << endl);
-//    DebugOn("\n" << Im_Wij_[0].to_str(true) << ", " << Im_Wij_[0].get_nb_instances()  << endl);
-//    DebugOn("\n" << Im_Wij_[1].to_str(true) << ", " << Im_Wij_[1].get_nb_instances()  << endl);
-//    DebugOn("\n" << Im_Wij_[2].to_str(true) << ", " << Im_Wij_[2].get_nb_instances()  << endl);
-//    DebugOn("\n" << Wii_[1].to_str(true) << ", " << Wii_[1].get_nb_instances()  << endl);
-//    Constraint SDP3("SDP_3D");
-
-//    SDP3 = 2*R_Wij_[0]*(R_Wij_[1]*R_Wij_[2] + I_sgn[1]*I_sgn[2]*Im_Wij_[1]*Im_Wij_[2]);
-//    SDP3 += 2*I_sgn[0]*Im_Wij_[0]*(R_Wij_[1]*I_sgn[2]*Im_Wij_[2] - I_sgn[1]*Im_Wij_[1]*R_Wij_[2]);
-//    SDP3 = R_Wij_[1]*R_Wij_[2];
-//    DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-//    SDP3 = 2*R_Wij_[0]*(R_Wij_[1]*R_Wij_[2] + Im_Wij_[1]*Im_Wij_[2]);
-//    SDP3 += 2*Im_Wij_[0]*(R_Wij_[1]*Im_Wij_[2] - Im_Wij_[1]*R_Wij_[2]);
-//    SDP3 -= (power(R_Wij_[0],2) + power(Im_Wij_[0],2))*Wii_[2];
-//    SDP3 -= (power(R_Wij_[1],2) + power(Im_Wij_[1],2))*Wii_[0];
-//    SDP3 -= (power(R_Wij_[2],2) + power(Im_Wij_[2],2))*Wii_[1];
-//    SDP3 += Wii_[0]*Wii_[1]*Wii_[2];
-//    SDP.add_constraint(SDP3 >= 0);
-//    SDP3.print_expanded();
-//
-//    exit(0);
-
-//    SDP3 = -2*Xij_[0]*Xij_[1]*Xij_[2];
-//    SDP3 -= Xii_[0]*Xii_[1]*Xii_[2];
-//    SDP3 += power(Xij_[0],2)*Xii_[2];
-//    SDP3 += power(Xij_[2],2)*Xii_[1];
-//    SDP3 += power(Xij_[1],2)*Xii_[0];
+    DebugOn("\nNum of 3d bags = " << n3);
 
 
     /* Solver selection */
@@ -296,6 +299,7 @@ int main (int argc, char * argv[]) {
     for(auto& arc: grid.arcs){
         ((Line*)arc)->wr = R_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
         ((Line*)arc)->wi = Im_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
+        if(grid.add_3d_nlin && !arc->_free) arc->_active = true;
     }
     for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 

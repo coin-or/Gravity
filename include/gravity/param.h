@@ -540,7 +540,7 @@ namespace gravity {
             update_range(val);
         }
         
-        void set_val(string key, type val) {
+        size_t set_val(string key, type val) {
             auto index = param_::_indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
@@ -549,15 +549,14 @@ namespace gravity {
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 _val->at(index) = val;
+                update_range(val);
+                return index;
             }
             else {
-//                _val->resize(max(_val->size(),index+1));
-//                _dim[0] = max(_dim[0],_val->size());
-//                _rev_indices->resize(_val->size());
-//                _rev_indices->at(index) = key;
                 _val->at(pp.first->second) = val;
+                update_range(val);
+                return pp.first->second;
             }
-            update_range(val);
         }
         
         void set_val(size_t i, type val) {
@@ -1738,9 +1737,16 @@ namespace gravity {
             string str = get_name();
             if (vals) {
                 str += " = [ ";
-                for(auto &indsp: *_indices) {
-                    str += "("+indsp.first + "=" + to_string(_val->at(indsp.second)) + ")";
-                    str += " ";
+                if(_is_indexed) {
+                    for (auto &id: _ids->at(0)) {
+                        str += "(" + _rev_indices->at(id) + "=" + to_string(_val->at(id)) + ")";
+                        str += " ";
+                    }
+                }else {
+                    for(auto &indsp: *_indices) {
+                        str += "("+indsp.first + "=" + to_string(_val->at(indsp.second)) + ")";
+                        str += " ";
+                    }
                 }
                 str += "];\n";
             }

@@ -648,6 +648,7 @@ void PowerNet::update_net(){
 //                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
 
                                 fixed++;
+                                sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
                                 bags_sorted.push_back(bag);
                                 id_sorted++;
                                 DebugOff("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
@@ -724,6 +725,22 @@ void PowerNet::update_net(){
             wr_min.set_val(name,wr_min_);
             wi_max.set_val(name,wi_max_);
             wi_min.set_val(name,wi_min_);
+        }
+    }
+    DebugOff("\nBags sorted: " << endl);
+    for(auto& b: _bags) {
+        DebugOff("bag = {");
+        for (int i = 0; i < b.size(); i++) {
+            DebugOff(b.at(i)->_name << " ");
+        }
+        DebugOff("}" << endl);
+        if(add_3d_nlin && b.size()==3){
+            for(int i = 0; i < 2; i++) {
+                for(int j = i+1; j < 3; j++) {
+                    Arc* aij = get_arc(b[i],b[j]);
+                    aij->_free = false;
+                }
+            }
         }
     }
 }
