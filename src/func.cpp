@@ -6290,6 +6290,7 @@ namespace gravity{
                 else {
                     res -= *coef*(*lt.second._p->second);
                 }
+                delete coef;
             }
             if (*lt.second._p->second == v) {
                 auto coef = copy(*lt.second._coef);
@@ -6302,6 +6303,7 @@ namespace gravity{
                 else {
                     res -= *coef*(*lt.second._p->first);
                 }
+                delete coef;
             }
             if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
                 res._is_vector = true;

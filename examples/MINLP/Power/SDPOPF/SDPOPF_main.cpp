@@ -81,8 +81,8 @@ int main (int argc, char * argv[]) {
     double tol = 1e-6;
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
-    string fname = "../nesta-0.7.0/opf/api/nesta_case14_ieee__api.m";
-    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case30_fsr__api.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -120,7 +120,7 @@ int main (int argc, char * argv[]) {
     // Grid Parameters
     auto bus_pairs = grid.get_bus_pairs();
     auto bus_pairs_chord = grid.get_bus_pairs_chord();
-    auto nb_bus_pairs_chord = bus_pairs_chord.size();
+//    auto nb_bus_pairs_chord = bus_pairs_chord.size();
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -161,6 +161,8 @@ int main (int argc, char * argv[]) {
     SDP.add_var(Wii.in(grid.nodes));
     SDP.add_var(R_Wij.in(bus_pairs_chord));
     SDP.add_var(Im_Wij.in(bus_pairs_chord));
+//    SDP.add_var(R_Wij.in(bus_pairs));
+//    SDP.add_var(Im_Wij.in(bus_pairs));
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
@@ -277,7 +279,7 @@ int main (int argc, char * argv[]) {
 //    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     vector<Bag> bags;
-    int n3;
+    int n3 = 0;
     int bagid = 0;
     for(auto& b: grid._bags){
         bags.push_back(Bag(bagid,grid,b));
@@ -286,6 +288,7 @@ int main (int argc, char * argv[]) {
     }
 
     DebugOn("\nNum of 3d bags = " << n3);
+
 
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
@@ -452,6 +455,6 @@ int main (int argc, char * argv[]) {
     auto total_time = total_time_end - total_time_start;
     string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
-    DebugOn("\nResults: " << grid._name << " " << to_string(SDP._obj_val) << " " << to_string(total_time));
+    DebugOn("\nResults: " << grid._name << " " << to_string(SDP._obj_val) << " " << to_string(total_time)<<endl);
     return 0;
 }
