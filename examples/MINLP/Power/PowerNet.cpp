@@ -591,11 +591,11 @@ void PowerNet::update_net(){
 
     while (fixed != 0) {
         fixed = 0;
-        DebugOn("\nNew iteration");
+        DebugOff("\nNew iteration");
         for(auto b_it = _bags.begin(); b_it != _bags.end();) {
             std::vector<Node*> b = *b_it;
             if(b.size() == 3) {
-                cout << "\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name;
+                DebugOff("\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name);
                 a12 = get_arc(b[0], b[1]);
                 a13 = get_arc(b[0], b[2]);
                 a32 = get_arc(b[2], b[1]);
@@ -606,17 +606,17 @@ void PowerNet::update_net(){
                 }
                 if (a12->_free) {
                     a12->_free = false;
-                    DebugOn("\nFixing arc a12 (" << a12->_src->_name << ", " << a12->_dest->_name << "), adding bag #" << id_sorted);
+                    DebugOff("\nFixing arc a12 (" << a12->_src->_name << ", " << a12->_dest->_name << "), adding bag #" << id_sorted);
                     fixed++;
                 }
                 if (a13->_free) {
                     a13->_free = false;
-                    DebugOn("\nFixing arc a13 (" << a13->_src->_name << ", " << a13->_dest->_name << "), adding bag #" << id_sorted);
+                    DebugOff("\nFixing arc a13 (" << a13->_src->_name << ", " << a13->_dest->_name << "), adding bag #" << id_sorted);
                     fixed++;
                 }
                 if (a32->_free) {
                     a32->_free = false;
-                    DebugOn("\nFixing arc a32 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
+                    DebugOff("\nFixing arc a32 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
                     fixed++;
                 }
                 bags_sorted.push_back(b);
@@ -651,7 +651,7 @@ void PowerNet::update_net(){
                                 sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
                                 bags_sorted.push_back(bag);
                                 id_sorted++;
-                                DebugOn("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
+                                DebugOff("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
                                 break;
                             }
                         }

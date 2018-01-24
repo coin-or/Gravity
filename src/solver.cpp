@@ -134,7 +134,7 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             
             /** Hot start if already solved */
             if (!_model->_first_run) {
-    //        if (false) {
+//            if (false) {
                 DebugOff("Using Hot Start!\n");
                 iapp->Options()->SetNumericValue("mu_init", mu_init);
                 iapp->Options()->SetStringValue("warm_start_init_point", "yes");
