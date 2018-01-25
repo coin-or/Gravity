@@ -22,7 +22,8 @@ using namespace gravity;
 void nearest_point(int i, int j, vector<param<>>& w_hat, const vector<Bag>& bags){
     for (unsigned index = i; index <j; index++) {
         auto b = bags[index];
-        if (b.is_PSD()) {
+//        if (b.is_PSD()) {
+        if (b._is_psd) {
             w_hat[index] = param<>("psd");
             DebugOff("Bag " << to_string(index) << " is PSD"<<endl);
         }
@@ -95,8 +96,8 @@ int main (int argc, char * argv[]) {
     double tol = 1e-6;
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
-    string fname = "../data_sets/Power/nesta_case5_pjm.m";
-    
+    string fname = "../nesta-0.7.0/opf/api/nesta_case24_ieee_rts__api.m";
+//    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case30_fsr__api.m";
 
     // create a OptionParser with options
     op::OptionParser opt;
@@ -174,6 +175,7 @@ int main (int argc, char * argv[]) {
     /* Magnitude of Wii = Vi^2 */
     var<Real>  Wii("Wii", grid.w_min, grid.w_max);
     SDP.add_var(Wii.in(grid.nodes));
+
     SDP.add_var(R_Wij.in(bus_pairs_chord));
     SDP.add_var(Im_Wij.in(bus_pairs_chord));
 //    SDP.add_var(R_Wij.in(bus_pairs));
@@ -334,9 +336,8 @@ int main (int argc, char * argv[]) {
 //    int unchanged = 0;
     int iter = 0, hdim_cuts = 0, cuts_added = 1;
 
-    
 //    while(unchanged < 3) {
-    unsigned nr_threads = 1, nb_bags = bags.size();
+    unsigned nr_threads = 4, nb_bags = bags.size();
     while(cuts_added > 0) {
         cuts_added = 0;
         vector<param<>> w_hat_vec;
@@ -344,8 +345,13 @@ int main (int argc, char * argv[]) {
         iter++;
 //    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
 //        prev_opt = SDP._obj_val;
-        
-        
+
+        /* Update _is_psd */
+        for(auto& b: bags){
+            b.update_PSD();
+        }
+        }
+
         vector<thread> threads;
         /* Split subproblems into nr_threads parts */
         vector<int> limits = bounds(nr_threads, nb_bags);
@@ -383,8 +389,8 @@ int main (int argc, char * argv[]) {
             I_hat[numcuts] = param<>("I_hat"+to_string(numcuts));
             W_hat.resize(numcuts+1);
             W_hat[numcuts] = param<>("W_hat"+to_string(numcuts));
-            
-            
+
+//            what = b.nfp();
             node_pairs b_pairs("node_pairs");
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
@@ -419,7 +425,7 @@ int main (int argc, char * argv[]) {
                 }
             }
             if(b._nodes.size()>3) hdim_cuts++;
-            
+
             Constraint lin("lin"+to_string(numcuts));
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
