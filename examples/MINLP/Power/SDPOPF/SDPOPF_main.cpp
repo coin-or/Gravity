@@ -350,7 +350,6 @@ int main (int argc, char * argv[]) {
         for(auto& b: bags){
             b.update_PSD();
         }
-        }
 
         vector<thread> threads;
         /* Split subproblems into nr_threads parts */
