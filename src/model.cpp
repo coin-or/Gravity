@@ -501,6 +501,7 @@ bool Model::has_violated_constraints(double tol){
                 }
                 break;
             case geq:
+                nb_inst = c->_nb_instances;
                 for (unsigned inst=0; inst<nb_inst; inst++) {
                     diff = fabs(c->eval(inst) - c->_rhs);
                     if(diff < -tol) {
