@@ -55,7 +55,8 @@ int Constraint::get_type() const{
 };
 
 bool Constraint::is_active(unsigned inst) const{
-    return fabs(_dual[inst]) >  EPS;
+    return fabs(get_val(inst) - _rhs) < EPS;
+//    return fabs(_dual[inst]) >  EPS;
 }
 
 /* Operators */
