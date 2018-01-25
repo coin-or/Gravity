@@ -501,6 +501,7 @@ bool Model::has_violated_constraints(double tol){
                 }
                 break;
             case geq:
+                nb_inst = c->_nb_instances;
                 for (unsigned inst=0; inst<nb_inst; inst++) {
                     diff = fabs(c->eval(inst) - c->_rhs);
                     if(diff < -tol) {
@@ -1638,7 +1639,7 @@ void Model::fill_in_maps() {
                 for (auto &df_p:*c->get_dfdx()) {
                     auto df = df_p.second;
                         DebugOff(df->to_str() << endl);
-                        if (df->get_expr()) {
+                        if (df->get_expr() || _type==nlin_m) {
                             df_p.second = embed(df);
                         }
                         else {
