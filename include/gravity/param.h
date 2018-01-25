@@ -1275,7 +1275,7 @@ namespace gravity {
             if (get<1>(_unique_id)!=from_) {
                 res._name += ".from";
             }
-            res._name += "_"+ vec.front()->_type_name;
+            res._name += "_"+ vec.front()._type_name;
             res._unique_id = make_tuple<>(res.get_id(),from_,typeid(Tobj).hash_code(), 0,0);
             res._is_indexed = true;
             return res;
@@ -1373,7 +1373,7 @@ namespace gravity {
             if (get<1>(_unique_id)!=to_) {
                 res._name += ".to";
             }
-            res._name += "_"+ vec.front()->_type_name;
+            res._name += "_"+ vec.front()._type_name;
             res._unique_id = make_tuple<>(res.get_id(),to_,typeid(Tobj).hash_code(), 0,0);
             res._is_indexed = true;
             return res;
