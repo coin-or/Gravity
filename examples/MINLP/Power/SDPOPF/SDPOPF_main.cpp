@@ -22,14 +22,7 @@ using namespace gravity;
 void nearest_point(int i, int j, vector<param<>>& w_hat, const vector<Bag>& bags){
     for (unsigned index = i; index <j; index++) {
         auto b = bags[index];
-//        if (b.is_PSD()) {
-        if (b._is_psd) {
-            w_hat[index] = param<>("psd");
-            DebugOff("Bag " << to_string(index) << " is PSD"<<endl);
-        }
-        else {
-            w_hat[index] = b.nfp();
-        }
+        w_hat[index] = b.nfp();
     }
 }
 
@@ -95,7 +88,8 @@ int main (int argc, char * argv[]) {
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
-    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
+//    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
+    string fname = "../data_sets/Power/nesta_case5_pjm.m";
 //    string fname = "../nesta-0.7.0/opf/api/nesta_case24_ieee_rts__api.m";
 //    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case30_fsr__api.m";
 
@@ -146,6 +140,8 @@ int main (int argc, char * argv[]) {
     DebugOff("nb bus_pairs = " << nb_bus_pairs_chord << endl);
 
 
+    double upper_bound = grid.solve_acopf();
+    
 
     /** Build model */
     Model SDP("SDP Model");
@@ -337,39 +333,43 @@ int main (int argc, char * argv[]) {
     int iter = 0, hdim_cuts = 0, cuts_added = 1;
 
 //    while(unchanged < 3) {
-    unsigned nr_threads = 10, nb_bags = bags.size();
-    while(cuts_added > 0) {
+    unsigned nr_threads = 10;
+    double gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
+    while(cuts_added > 0 && gap > 1) {
+        DebugOn("Current Gap = " << to_string(gap) << "%."<<endl);
         cuts_added = 0;
         vector<param<>> w_hat_vec;
-        w_hat_vec.resize(nb_bags);
+        
         iter++;
 //    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
 //        prev_opt = SDP._obj_val;
 
         /* Update _is_psd */
+        vector<Bag> violated_bags;
         for(auto& b: bags){
             b.update_PSD();
+            if (!b._is_psd) {
+                violated_bags.push_back(b);
+            }
         }
-
+        auto nb_bags = violated_bags.size();
+        w_hat_vec.resize(nb_bags);
         vector<thread> threads;
         /* Split subproblems into nr_threads parts */
         vector<int> limits = bounds(nr_threads, nb_bags);
         /* Launch all threads in parallel */
         for (int i = 0; i < nr_threads; ++i) {
-            threads.push_back(thread(nearest_point, limits[i], limits[i+1], ref(w_hat_vec), ref(bags)));
+            threads.push_back(thread(nearest_point, limits[i], limits[i+1], ref(w_hat_vec), ref(violated_bags)));
         }
         /* Join the threads with the main thread */
         for(auto &t : threads){
             t.join();
         }
         for (unsigned index = 0; index < nb_bags; index++) {
-            auto b = bags[index];
+            auto b = violated_bags[index];
             DebugOff("\nBag number " << b._id);
             DebugOff("\nNodes: n1 = " << b._nodes[0]->_name << ", n2 = " << b._nodes[1]->_name << ", n3 = " << b._nodes[2]->_name);
             auto w_hat(move(w_hat_vec[index]));
-            if (w_hat._name.compare("psd")==0) {
-                continue;
-            }
             R_star.resize(numcuts+1);
             R_star[numcuts] = param<>("R_star"+to_string(numcuts));
             I_star.resize(numcuts+1);
@@ -389,7 +389,6 @@ int main (int argc, char * argv[]) {
             W_hat.resize(numcuts+1);
             W_hat[numcuts] = param<>("W_hat"+to_string(numcuts));
 
-//            what = b.nfp();
             node_pairs b_pairs("node_pairs");
             Constraint sdpcut("sdpcut_" + to_string(numcuts));
             Node *ni;
@@ -429,10 +428,6 @@ int main (int argc, char * argv[]) {
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
             lin += product(W_diff[numcuts].in(b._nodes),(Wii.in(b._nodes) - W_hat[numcuts].in(b._nodes)));
-            //            lin = product(R_star.in(b_pairs._keys) - R_hat.in(b_pairs._keys),(R_Wij.in(b_pairs._keys) - R_hat.in(b_pairs._keys)));
-            //            lin += product(I_star.in(b_pairs._keys) - I_hat.in(b_pairs._keys),(Im_Wij.in(b_pairs._keys) - I_hat.in(b_pairs._keys)));
-            //            lin += product(W_star.in(b._nodes) - W_hat.in(b._nodes),(Wii.in(b._nodes) - W_hat.in(b._nodes)));
-            //            lin.print();
             //            lin.print_expanded();
             SDP.add_constraint(lin <= 0);
             
@@ -440,17 +435,7 @@ int main (int argc, char * argv[]) {
         }
         
         if(!bus_pairs_sdp._keys.empty()) {
-//            cout << "Adding SOC indices: {";
-//            for(auto& bp: bus_pairs_sdp._keys) {
-//                cout << bp->_name << ", ";
-//            }
-//            cout << "}"  << endl;
-
-//            Constraint SOC_im("SOC_im"+to_string(numcuts));
-//            SOC_im = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from() * Wii.to();
-//            SDP.add_constraint(SOC_im.in(bus_pairs_sdp) <= 0);
             SDP.add_indices("SOC",bus_pairs_sdp);
-//            SDP.get_constraint("SOC")->print_expanded();
             bus_pairs_sdp.clear();
         }
 
@@ -460,6 +445,7 @@ int main (int argc, char * argv[]) {
         }
         
         SDPOPF.run(output = 5, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
         DebugOff("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
         DebugOff("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
 
@@ -494,6 +480,9 @@ int main (int argc, char * argv[]) {
     auto total_time = total_time_end - total_time_start;
     string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(SDP._obj_val) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP._obj_val) << " " << to_string(total_time)<<endl);
     return 0;
 }
