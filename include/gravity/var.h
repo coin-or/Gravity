@@ -22,7 +22,62 @@
 using namespace std;
 
 namespace gravity {
+    
+    
 class func_;
+    class space{
+    public:
+        SpaceType       _type;
+        vector<size_t>  _dim;
+    };
+
+    class R: public space{
+    public:
+        R(){};
+        template<typename... Args>
+        R(size_t t1, Args&&... args) {
+            _type = R_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+
+        R operator^(size_t n){return R(n);};
+        
+    };
+    
+    class R_plus: public space{
+    public:
+        R_plus(){};
+        template<typename... Args>
+        R_plus(size_t t1, Args&&... args) {
+            _type = R_p_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        R_plus operator^(size_t n){return R_plus(n);};
+        
+    };
+    
+    class C: public space{
+    public:
+        /* TODO */
+    };
+    
 /** Backbone class for parameter */
 class var_ {
 public:
@@ -356,6 +411,7 @@ public:
     Sign get_sign(int idx = 0) const;
 
     /* Modifiers */
+    void    set_size(vector<size_t>);
     void    set_size(size_t s, type val = 0);
 
     void    add_bounds(type lb, type ub);
@@ -383,10 +439,16 @@ public:
     
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
-    var& operator^(size_t d) {
-        set_size(d);
+    
+    var& in(const space& s){
+        set_size(s._dim);
         return *this;
     }
+    
+//    var& operator^(size_t d) {
+//        set_size(d);
+//        return *this;
+//    }
 
     var tr() const {
         auto v = var(*this);

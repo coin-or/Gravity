@@ -355,7 +355,8 @@ param<double> Bag::nfp(){
 
     var<double> z("z");
     z.in_q_cone();
-    NPP.add_var(z^(n*n+1));
+    auto Rn = R(n*n+1);
+    NPP.add_var(z.in(Rn));
 
     var<double> w("w", _wmin, _wmax);
     NPP.add_var(w.in(_indices));
