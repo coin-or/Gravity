@@ -116,8 +116,9 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         Model Ising("Ising Model");
         /** Variables */
         var<Real> x("x"), z("z", pos_), obj("obj");
-        Ising.add_var(x^nb_spins);
-        Ising.add_var(z^nb_spins);
+        auto Rn = R(nb_spins);
+        Ising.add_var(x.in(Rn));
+        Ising.add_var(z.in(Rn));
         Ising.add_var(obj);
         Ising.min(obj);
         

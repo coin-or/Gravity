@@ -508,6 +508,29 @@ namespace gravity {
         
         
         /* Modifiers */
+        void    set_size(vector<size_t> dims){
+            if (dims.size()==1) {
+                set_size(dims[0]);
+            }
+            else if (dims.size()==2){
+                set_size(dims[0],dims[1]);
+            }
+            else {
+                _dim = dims;
+                //TODO allocate val
+            }
+        }
+        
+        void   set_size(size_t s1, size_t s2, type val = 0) {
+            _is_matrix = true;
+            _dim.resize(2);
+            _dim[0] = s1;
+            _dim[1] = s2;
+            auto index = _dim[1]*s1-1+s2-1;
+            _val->resize(index+1);
+            _val->at(index) = val;
+        };
+        
         void   set_size(size_t s, type val = 0) {
             _val->resize(s, val);
             _dim[0] = s;
@@ -641,10 +664,10 @@ namespace gravity {
             //return (get_name()==p.get_name() && _type==p._type && _intype==p._intype && _dim==p._dim && _indices==p._indices && _val==p._val);
         }
         
-        param& operator^(size_t d) {
-            set_size(d);
-            return *this;
-        }
+//        param& operator^(size_t d) {
+//            set_size(d);
+//            return *this;
+//        }
         
         void initialize_all(type v) {
             for (int i = 0; i<_val->size(); i++) {
