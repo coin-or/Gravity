@@ -39,9 +39,10 @@ int main (int argc, const char * argv[])
     /**  IP model for the stable set problem. **/
     
     /**  Variables **/
+    /* Declaring the n-dimensional Real space */
+    auto Rn = R(n);
     var<bool> x("x");
-//    var<> x("x", 0,1);
-    model.add_var(x^n);
+    model.add_var(x.in(Rn));
     
     /**  Objective **/
     model.max(sum(x));
@@ -70,8 +71,8 @@ int main (int argc, const char * argv[])
     /* Variable declaration */
     var<double> Xii("Xii", 0, 1);
     var<double> Xij("Xij", 0, 1);
-    SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
-    SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
+    SDP.add_var(Xii.in(R(n))); /*< Diagonal entries of the matrix */
+    SDP.add_var(Xij.in(R(n*(n-1)/2))); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
     /* Constraints declaration */
     ordered_pairs indices(1, n);

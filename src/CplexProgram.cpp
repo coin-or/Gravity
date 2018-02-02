@@ -55,10 +55,13 @@ bool CplexProgram::solve(bool relax) {
         _model->_obj_val = cplex.getObjValue();
 
         for (auto i = 0; i < _cplex_vars.size(); i++) {
-            IloNumArray vals(*_cplex_env);
-            cplex.getValues(vals,_cplex_vars[i]);
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-                poly_set_val(j, vals[j], _model->_vars[i]);
+                if(cplex.isExtracted(_cplex_vars[i][j])){
+                    poly_set_val(j, cplex.getValue(_cplex_vars[i][j]), _model->_vars[i]);
+                }
+                else {
+                    poly_set_val(j, 0, _model->_vars[i]);
+                }
             }
         }
     }

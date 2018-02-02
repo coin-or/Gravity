@@ -144,7 +144,7 @@ namespace gravity {
                 v.set_vec_id(_vars.size());
                 param_* newv;
                 if (v._dim[0]==0) {
-                    newv = (param_*)copy(v^1);
+                    newv = (param_*)copy(v.in(R(1)));
                 }
                 else {
                     newv = (param_*)copy(v);
@@ -186,7 +186,7 @@ namespace gravity {
                 v.set_vec_id(_vars.size());
                 param_* newv;
                 if (v._dim[0]==0) {
-                    newv = (param_*)copy(v^1);
+                    newv = (param_*)copy(v.in(R(1)));
                 }
                 else {
                     newv = (param_*)copy(v);
