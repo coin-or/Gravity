@@ -16,6 +16,7 @@
 class Bag{
 public:
     int _id;
+    bool _is_psd;
     PowerNet* _grid;
     std::vector<Node*> _nodes;
 //    bool _all_lines = true;
@@ -43,6 +44,8 @@ public:
     bool add_lines();
 
     param<double> fill_wstar();
+
+    void update_PSD();
 };
 
 #endif //GRAVITY_BAG_H

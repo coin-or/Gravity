@@ -73,7 +73,8 @@ void Minkmodel::build() {
 void Minkmodel::reset() {};
 void Minkmodel::add_vars_origin() {
     var<bool> zij("zij");
-    _model.add_var(zij^(_graph->nodes.size()*(_graph->nodes.size()-1)/2));
+    auto Rn = R(_graph->nodes.size()*(_graph->nodes.size()-1)/2);
+    _model.add_var(zij.in(Rn));
 
     func_ obj_MIP;
     int i=0, j=0;
@@ -90,7 +91,8 @@ void Minkmodel::add_vars_origin() {
 
 void Minkmodel::add_vars_origin_tree() {
     var<bool> zij("zij");
-    _model.add_var(zij^((_chordal_extension)->arcs.size()));
+    auto Rn = R(((_chordal_extension)->arcs.size()));
+    _model.add_var(zij.in(Rn));
 
     func_ obj_MIP;
     int i=0, j=0;
@@ -503,10 +505,12 @@ void Minkmodel::add_bicycle() {}
 //}
 void Minkmodel::node_edge_formulation(){
      var<bool> x("x");
-     _model.add_var(x^((int)(_K*_graph->nodes.size())));
+    auto Rk = R(_K*_graph->nodes.size());
+     _model.add_var(x.in(Rk));
      var<bool> y("y");
     // the number of arcs in the chordal extension
-    _model.add_var(y^(_graph->arcs.size()));
+    auto Rm = R(_graph->arcs.size());
+    _model.add_var(y.in(Rm));
     
     func_ obj_node_edge;
     int i=0, j=0;

@@ -171,7 +171,7 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             
             SmartPtr<TNLP> tmp = new IpoptProgram(_model);
             status = iapp->OptimizeTNLP(tmp);
-            violated_constraints = _model->has_violated_constraints(tol);
+//            violated_constraints = _model->has_violated_constraints(tol);
                 if (status == Solve_Succeeded) {
                     // Retrieve some statistics about the solve
                     

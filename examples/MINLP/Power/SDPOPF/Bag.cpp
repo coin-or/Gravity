@@ -330,6 +330,10 @@ bool Bag::is_PSD(){
     }
 }
 
+void Bag::update_PSD(){
+    _is_psd = is_PSD();
+}
+
 param<double> Bag::nfp(){
     param<double> what;
     fill_wstar();
@@ -340,18 +344,19 @@ param<double> Bag::nfp(){
 
     Model NPP("NPP model");
     int n = _nodes.size();
+    DebugOff("\nn = " << n);
 
     sdpvar<double> W("W");
     NPP.add_var(W^(2*n));
 
 //    var<double> W("W");
 //    W._psd = true;
-//    W._is_matrix = true;
-//    NPP.add_var(W ^ (n*(2*n-1)));
+//    NPP.add_var(W ^ (n*(2*n+1)));
 
     var<double> z("z");
     z.in_q_cone();
-    NPP.add_var(z^(n*n+1));
+    auto Rn = R(n*n+1);
+    NPP.add_var(z.in(Rn));
 
     var<double> w("w", _wmin, _wmax);
     NPP.add_var(w.in(_indices));

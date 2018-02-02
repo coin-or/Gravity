@@ -139,6 +139,11 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 };
 
 /* Modifiers */
+    
+template<typename type> void   var<type>::set_size(vector<size_t> dims) {
+    param<type>::set_size(dims);
+};
+
 template<typename type> void   var<type>::set_size(size_t s, type val) {
     param<type>::set_size(s,val);
 };
