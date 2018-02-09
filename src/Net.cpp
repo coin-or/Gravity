@@ -279,7 +279,21 @@ Arc* Net::get_arc(std::string src, std::string dest) {
     return nullptr;
 }
 
+Arc* Net::get_directed_arc(std::string src, std::string dest) {
+    std::string key;
+    key.clear();
+    key.append(src);
+    key.append(",");
+    key.append(dest);
+    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    if (it != arcID.end()) {
+        for (auto a: *it->second) {
+            return a;
+        }
+    }
 
+    return nullptr;
+}
 bool Net::add_arc(Arc* a) {
     bool parallel = false;
     set<Arc*>* s = NULL;
@@ -594,18 +608,23 @@ void Net::get_tree_decomp_bags(bool print_bags) {
 
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();
+
+        if(!n->_active) {
+            graph_clone->remove_end_node();
+            continue;
+        }
         Debug(n->_name << endl);
-        Debug(_clone->nodes.size() << endl);
+        Debug(graph_clone->nodes.size() << endl);
         vector<Node*> bag_copy;
         vector<Node*> bag;
-        Debug("new bag = { ");
-        vector<Node*> N = n->get_neighbours();
-        for (auto iter = N.begin(); iter != N.end(); ++iter) {
-            nn = *iter;
+        DebugOn("new bag = { ");
+        for (auto nn: n->get_neighbours()) {
+            if(!nn->_active) continue;
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
-            Debug(nn->_name << ", ");
+            DebugOn(nn->_name << ", ");
         }
+        DebugOn(n->_name << "}\n");
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
@@ -618,6 +637,11 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             for (int j = i+1; j<bag_copy.size(); j++) {
                 nn = bag_copy.at(j);
                 if (u->is_connected(nn)) {
+                    if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
+                        Arc* off_arc = get_arc(u,nn);
+                        off_arc->_imaginary = true;
+                        off_arc->_free = true;
+                    }
                     continue;
                 }
                 name = to_string((int) graph_clone->arcs.size()+1);
@@ -626,6 +650,8 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 arc->_id = arcs.size();
                 arc->_src = u;
                 arc->_dest = nn;
+                arc->_imaginary = true;
+                arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
                 nb_added += 1;
@@ -639,14 +665,17 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             }
             DebugOn("}" << endl);
         }
-        _bags_copy.push_back(bag_copy);
+//        _bags_copy.push_back(bag_copy);
         _bags.push_back(bag); // bag original
 
         if (bag_copy.size()==3) {
             nb++;
         }
+        delete n;
     }
-    sort(_bags.begin(), _bags.end(), bag_compare);
+//    sort(_bags.begin(), _bags.end(), bag_compare);
+
+
     Debug("\n Number of 3D bags = " << nb << endl);
     printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
 
@@ -721,6 +750,7 @@ vector<Node*> Net::get_PEO(bool print_bags) {
     }
     sort(_bags.begin(), _bags.end(), bag_compare);
     printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
+    delete graph_clone;
     return PEO;
 }
 
@@ -728,6 +758,11 @@ vector<Node*> Net::get_PEO(bool print_bags) {
 /** Return the vector of arcs ignoring parallel lines **/
 std::vector<gravity::index_pair*> Net::get_bus_pairs() {
     return _bus_pairs._keys;
+}
+
+/** Return the vector of arcs of the chordal completion ignoring parallel lines **/
+std::vector<gravity::index_pair*> Net::get_bus_pairs_chord(){
+    return _bus_pairs_chord._keys;
 }
 
 Net* Net::get_chordal_extension() {
@@ -804,11 +839,13 @@ Net* Net::get_chordal_extension() {
         if (bag_copy.size()==3) {
             nb++;
         }
+        delete n;
     }
     // sort the bags by its size (descending order)
     sort(_bags.begin(), _bags.end(), bag_compare);
     printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
 
+    delete graph_clone;
     return chordal_extension;
 }
 

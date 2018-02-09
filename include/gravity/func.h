@@ -299,6 +299,18 @@ namespace gravity {
             _coef = coef;
             _p = new pair<param_*, param_*>(make_pair(p1,p2));
             _sign = sign;
+//            if (coef->_is_transposed){
+//                p1->_is_vector=true;
+//                p2->_is_vector=true;
+//            }
+//            if(p1->_is_vector){
+//                coef->_is_transposed=true;
+//                p2->_is_vector=true;
+//            }
+//            if(p2->_is_vector){
+//                coef->_is_transposed=true;
+//                p1->_is_vector=true;
+//            }
             if (coef->_is_transposed && p1->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
@@ -463,13 +475,16 @@ namespace gravity {
 
         size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
 
+        bool                                   _all_active = true;
+        vector<bool>                           _active;
+        bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                   _is_constraint = false;
         bool                                   _is_hessian = false;
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<Real>>             _val;
-        shared_ptr<vector<unsigned>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         func_();
         
@@ -580,12 +595,594 @@ namespace gravity {
             
         }
         
+        void add_indices_in(const node_pairs& np) {
+            size_t nb_active = 0;
+            string key;
+            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                v->_name += np._name;
+                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+                if(get<1>(v->_unique_id)==in_){
+                    //
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                    _ids = v->get_ids();
+                }
+                else if(get<1>(v->_unique_id)==from_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_src->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==to_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_dest->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                v->_name += np._name;
+                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+                if(get<1>(v->_unique_id)==in_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==from_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_src->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+                else if(get<1>(v->_unique_id)==to_){
+                    nb_active = 0;
+                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
+                        if(!(*it)->_active) {
+                            continue;
+                        }
+                        nb_active++;
+                        key = (*it)->_dest->_name;
+                        auto index = v->get_indices()->size();
+                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
+                        if(pp.second) { //new index inserted
+                            switch (v->get_intype()) {
+                                case binary_:{
+                                    auto vv = ((var<bool>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case short_:{
+                                    auto vv = ((var<short>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
+                                }
+                                case integer_:{
+                                    auto vv = ((var<int>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
+                                }
+                                case float_:{
+                                    auto vv = ((var<float>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case double_:{
+                                    auto vv = ((var<double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                case long_:{
+                                    auto vv = ((var<long double>*)v.get());
+                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
+                                    break;
+                                }
+                                default:
+                                    break;
+                            }
+                            v->_dim[0] = max(v->_dim[0],index+1);
+                            v->get_rev_indices()->resize(v->_dim[0]);
+                            v->get_rev_indices()->at(index) = key;
+                            v->get_ids()->at(0).push_back(index);
+                        }
+                        else {
+                            v->get_ids()->at(0).push_back(pp.first->second);
+                        }
+                    }
+                }
+            }
+            delete _vars;
+            _vars = new_vars;
+            delete _params;
+            _params = new_params;
+            _dim[0] += nb_active;
+            _nb_instances += nb_active;
+            propagate_nb_ind(_nb_instances);
+            _dfdx->clear();            
+            _new = true;
+        }
         
+        func_& in(const node_pairs& np) {
+            return this->in(np._keys);
+        }
+        
+        func_& in(const vector<index_>& vec) {
+            _nb_vars = 0;
+            _nb_instances = 1;
+            string key;
+            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((var<bool>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((var<short>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((var<int>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((var<float>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((var<double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((var<long double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_vars++;
+                }
+                else {
+                    _nb_vars += v->get_dim();
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((param<bool>*)v.get());
+                        *vv = vv->in(vec);
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((param<short>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((param<int>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((param<float>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((param<double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((param<long double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                }
+            }
+            delete _vars;
+            _vars = new_vars;
+            delete _params;
+            _params = new_params;
+            propagate_nb_ind(_nb_instances);
+            return *this;
+        }
+        func_& in(const vector<index_*>& vec) {
+            _nb_vars = 0;
+            _nb_instances = 1;
+            string key;
+            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((var<bool>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((var<short>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((var<int>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((var<float>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((var<double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((var<long double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_vars++;
+                }
+                else {
+                    _nb_vars += v->get_dim();
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((param<bool>*)v.get());
+                        *vv = vv->in(vec);
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((param<short>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((param<int>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((param<float>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((param<double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((param<long double>*)v.get());
+                        *vv = vv->in(vec);
+                        _ids = vv->get_ids();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                }
+            }
+            delete _vars;
+            _vars = new_vars;
+            delete _params;
+            _params = new_params;
+            propagate_nb_ind(_nb_instances);
+            return *this;
+        }
         
         template<typename Tobj>
         func_& in(const vector<Tobj*>& vec) {
             _nb_vars = 0;
-            _nb_instances = 0;
+            _nb_instances = 1;
             string key;
             auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
             auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
@@ -820,7 +1417,7 @@ namespace gravity {
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            propagate_nb_ind(_nb_instances);
+            propagate_nb_ind(_nb_instances);            
             return *this;
         }
         
@@ -865,9 +1462,6 @@ namespace gravity {
                         else if(get<1>(v->_unique_id)==to_){
                             *vv = vv->to(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
                         break;
                     }
                     case integer_:{
@@ -1065,6 +1659,8 @@ namespace gravity {
             propagate_nb_ind(_nb_instances);
             return *this;
         }
+        void eval_matrix();
+        void eval_vector();
         
         func_& in(const vector<Node*>& vec) {
             _nb_vars = 0;
@@ -1083,11 +1679,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1097,25 +1696,31 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
+                        }
                         break;
                     }
                     case integer_:{
                         auto vv = ((var<int>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
-                            _ids = vv->get_ids();                    }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                            _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1123,12 +1728,16 @@ namespace gravity {
                         auto vv = ((var<float>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
-                            _ids = vv->get_ids();                    }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                            _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1138,11 +1747,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1152,11 +1764,14 @@ namespace gravity {
                             *vv = vv->in(vec);
                             _ids = vv->get_ids();
                         }
-                        else if(get<1>(v->_unique_id)==in_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==out_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1165,7 +1780,7 @@ namespace gravity {
                 }
                 (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
                 if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
                     _nb_vars++;
                 }
                 else {
@@ -1182,11 +1797,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1195,13 +1813,15 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
+                        }
                         break;
                     }
                     case integer_:{
@@ -1209,11 +1829,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1222,11 +1845,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1234,11 +1860,14 @@ namespace gravity {
                         auto vv = ((param<double>*)v.get());
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);                    }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1247,11 +1876,14 @@ namespace gravity {
                         if(get<1>(v->_unique_id)==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            //                        *vv = vv->from(vec);
+                        else if(get<1>(v->_unique_id)==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            //                        *vv = vv->to(vec);
+                        else if(get<1>(v->_unique_id)==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(get<1>(v->_unique_id)==in_gens_){
+                            *vv = vv->in_gens(vec);
                         }
                         break;
                     }
@@ -1260,16 +1892,14 @@ namespace gravity {
                 }
                 (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
                 if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
                 }
             }
             delete _vars;
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            if (_expr) {
-                embed(_expr);
-            }
+            propagate_nb_ind(_nb_instances);
             return *this;
         }
         
@@ -1282,6 +1912,26 @@ namespace gravity {
 //        void insert(expr& e);
         void update_to_str(bool input = false);
         size_t get_nb_vars() const;
+        
+        size_t get_nb_vars(unsigned inst) const{
+            unsigned n = 0;
+            for (auto &vp:*_vars) {
+                if(vp.second.first->_is_indexed && vp.second.first->_ids->size()>1){
+                    n += vp.second.first->get_dim(inst);
+                }
+                else if(vp.second.first->_is_vector){
+                    n += vp.second.first->get_dim();
+                }
+                else {
+                    n += 1;
+                }
+            }
+            return n;
+        };
+        
+        size_t get_nb_instances() const {
+            return max((size_t)1,constant_::get_nb_instances());
+        }
         
         constant_* get_cst();
         
@@ -1341,7 +1991,7 @@ namespace gravity {
                 _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
             }
             else {
-                _nb_instances = max(_nb_instances, term._p->get_nb_instances());
+                _nb_instances = max(_nb_instances, term._p->get_nb_instances(0));
             }
 //            _val->resize(_nb_instances);
         }
@@ -1386,8 +2036,16 @@ namespace gravity {
             }
             else {
                 _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
+                _dim.resize(1);
+                _dim[0] = max(_dim[0], term._p->first->get_nb_instances());
             }
 //            _val->resize(_nb_instances);
+        }
+
+        void update_nb_instances(const pterm& term){
+                _nb_instances = max(_nb_instances, term._l->begin()->first->get_nb_instances());
+                _dim[0] = max(_dim[0], term._l->begin()->first->get_nb_instances());
+
         }
         
         int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
@@ -1406,6 +2064,7 @@ namespace gravity {
         pair<ind,func_*> operator[](ind i);
         
         bool is_convex() const;
+        bool is_concave() const;
         bool is_convex(int idx) const;
         bool is_concave(int idx) const;
         bool is_number() const;
@@ -1421,6 +2080,8 @@ namespace gravity {
         void embed(func_& f);
         void embed(shared_ptr<expr> e);
         void propagate_nb_ind(size_t);/*<< Propagates number of indices */
+        
+        void update_nb_ind();/*<< Update number of indices */
         
         
         void reset();
@@ -1445,11 +2106,18 @@ namespace gravity {
             auto f = func_(*this);
             f._is_vector = true;
 //            auto vars_cpy = *f._vars;
-//            for (auto &vp:*f._vars) {
+            for (auto &vp:*f._vars) {
 //                vars_cpy.erase(vp.first);
-//                vp.second.first->_is_vector = true;
+                vp.second.first->_is_vector = true;
 //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
 //                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+            }
+            
+//            for (auto &vp:*f._params) {
+                //                vars_cpy.erase(vp.first);
+//                vp.second.first->_is_vector = true;
+//                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+                //                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
 //            }
 //            *f._vars = move(vars_cpy);
 //            if (f._expr) {
@@ -1602,6 +2270,7 @@ namespace gravity {
 
     string poly_to_str(const constant_* c);
     string poly_to_str(const constant_* c, size_t inst);
+    string poly_to_str(const constant_* c, size_t inst1, size_t inst2);
 
 
     func_ operator+(const constant_& c1, const constant_& c2);
@@ -2579,11 +3248,14 @@ namespace gravity {
     
     template<typename type>
     func_ product(const param<type>& p1, const func_& f);
+    
+    func_ product(const func_& f1, const func_& f2);
 
     template<typename type>
     func_ innerproduct(const param<type>& p1, const param<type>& p2);
     
     func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
+    
 }
 
 #endif /* func_h */

@@ -39,9 +39,10 @@ int main (int argc, const char * argv[])
     /**  IP model for the stable set problem. **/
     
     /**  Variables **/
+    /* Declaring the n-dimensional Real space */
+    auto Rn = R(n);
     var<bool> x("x");
-//    var<> x("x", 0,1);
-    model.add_var(x^n);
+    model.add_var(x.in(Rn));
     
     /**  Objective **/
     model.max(sum(x));
@@ -53,7 +54,7 @@ int main (int argc, const char * argv[])
     c.print();
     model.add_constraint(c.in(graph.arcs));
     /**  Solver **/
-    SolverType stype = cplex;
+    SolverType stype = gurobi;
     solver s(model,stype);
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
@@ -70,8 +71,8 @@ int main (int argc, const char * argv[])
     /* Variable declaration */
     var<double> Xii("Xii", 0, 1);
     var<double> Xij("Xij", 0, 1);
-    SDP.add_var(Xii^n); /*< Diagonal entries of the matrix */
-    SDP.add_var(Xij^(n*(n-1)/2)); /*< Lower left triangular part of the matrix excluding the diagonal*/
+    SDP.add_var(Xii.in(R(n))); /*< Diagonal entries of the matrix */
+    SDP.add_var(Xij.in(R(n*(n-1)/2))); /*< Lower left triangular part of the matrix excluding the diagonal*/
     
     /* Constraints declaration */
     ordered_pairs indices(1, n);
@@ -80,11 +81,11 @@ int main (int argc, const char * argv[])
     SDP.add_constraint(SOCP.in(indices._keys) <= 0);
     Constraint diag("diag");
     diag = sum(Xii);
-    SDP.add_constraint(diag = 1); // diagonal sum is 1
+    SDP.add_constraint(diag == 1); // diagonal sum is 1
     
     Constraint zeros("zeros");
     zeros = Xij.in(graph.arcs);
-    SDP.add_constraint(zeros = 0); // zero elements
+    SDP.add_constraint(zeros == 0); // zero elements
     
     auto Xij_ = Xij.pairs_in(graph._bags, 3);
     auto Xii_ = Xii.in(graph._bags, 3);
@@ -131,7 +132,7 @@ int main (int argc, const char * argv[])
     
 
 //   solver s1(SDP,ipopt);
-    solver s1(SDP,cplex);
+    solver s1(SDP,gurobi);
 
     wall0 = get_wall_time();
     cpu0  = get_cpu_time();
@@ -163,7 +164,7 @@ int main (int argc, const char * argv[])
         j = (a->_dest)->_id;
         Constraint zeros("zeros("+to_string(i)+","+to_string(j)+")");
         zeros = Xij(i,j);
-        OA.add_constraint(zeros=0);
+        OA.add_constraint(zeros==0);
     }
     OA.max(2*sum(Xij) + sum(Xii));
     solver s2(OA,cplex);

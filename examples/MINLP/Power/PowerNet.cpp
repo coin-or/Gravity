@@ -22,6 +22,7 @@
 #include <math.h>
 #include <queue>
 #include <time.h>
+#include <gravity/solver.h>
 //#define USEDEBUG
 #ifdef USEDEBUG
 #define Debug(x) cout << x
@@ -94,11 +95,11 @@ PowerNet::~PowerNet() {
         gens.clear();
     }
     for (Node* n:nodes) {
-        delete (Bus*)n;
+        delete n;
     }
     nodes.clear();
     for (Arc* a:arcs) {
-        delete (Line*)a;
+        delete a;
     }
     arcs.clear();
 }
@@ -123,9 +124,9 @@ unsigned PowerNet::get_nb_active_gens() const {
 unsigned PowerNet::get_nb_active_bus_pairs() const {
     unsigned nb=0;
     for (auto bp: _bus_pairs._keys) {
-        if (bp->_active) {
+//        if (bp->_active) {
             nb++;
-        }
+//        }
     }
     return nb;
 }
@@ -148,7 +149,7 @@ unsigned PowerNet::get_nb_active_nodes() const {
             nb++;
         }
         else {
-            DebugOn("Inactive Node" << n->_name << endl);
+            DebugOff("Inactive Node" << n->_name << endl);
         }
     }
     return nb;
@@ -200,7 +201,11 @@ int PowerNet::readgrid(const char* fname) {
     cout << "Loading file " << fname << endl;
     ifstream file(fname, std::ifstream::in);
     if(!file.is_open()) {
-        throw invalid_argument("Could not open file\n");
+        auto new_fname = "../" + string(fname);
+        file.open(new_fname);
+        if(!file.is_open()) {
+            throw invalid_argument("Could not open file\n");
+        }
     }
     string word;
     while (word.compare("function")) {
@@ -268,7 +273,7 @@ int PowerNet::readgrid(const char* fname) {
 
         this->Net::add_node(bus);
         if (status>=4) {
-            DebugOn("INACTIVE NODE!\n" << name << endl);
+            DebugOff("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -365,7 +370,7 @@ int PowerNet::readgrid(const char* fname) {
     }
     getline(file, word);
     double res = 0;
-
+    set<string> bus_pair_names;
     Line* arc = NULL;
     string src,dest,key;
     file >> word;
@@ -497,21 +502,22 @@ int PowerNet::readgrid(const char* fname) {
 
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
-
         /* Switching to bus_pairs keys */
         name = bus_s->_name + "," + bus_d->_name;
+        if (arc->_active && bus_pair_names.count(name)==0) {
+            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+            bus_pair_names.insert(name);
+        }
         if (!arc->_parallel) {
             th_min.set_val(name,arc->tbound.min);
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-//            if (arc->_active) {
-                _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
-//            }
+            
         }
         else {
             th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
@@ -550,4 +556,390 @@ int PowerNet::readgrid(const char* fname) {
     file.close();
     return 0;
 }
+
+/* Create imaginary lines, fill bus_pairs_chord, set lower and upper bounds */
+void PowerNet::update_net(){
+    string name;
+    double cos_max_, cos_min_, sin_max_, sin_min_;
+    double wr_max_, wr_min_, wi_max_, wi_min_, w_max_, w_min_;
+    Node *src, *dest, *n;
+    Arc *new_arc;
+    int fixed = 1, id_sorted = 0; //id of the current bag in bags_sorted
+    Arc *a12, *a13, *a32;
+    std::vector<std::vector<Node*>> bags_sorted;
+
+    // bags are cliques in the chordal completion graph
+    for(auto& b: _bags){
+        for(int i = 0; i < b.size()-1; i++) {
+            for(int j = i+1; j < b.size(); j++) {
+                Arc* a = get_arc(b[i]->_name,b[j]->_name);
+                if (a==nullptr) {
+                    src = get_node(b[i]->_name);
+                    dest = get_node(b[j]->_name);
+                    new_arc = new Line(to_string((int) arcs.size() + 1));
+                    new_arc->_id = arcs.size();
+                    new_arc->_src = src;
+                    new_arc->_dest = dest;
+                    new_arc->_active = false;
+                    new_arc->_imaginary = true;
+                    new_arc->_free = true;
+                    new_arc->connect();
+                    add_undirected_arc(new_arc);
+                }
+            }
+        }
+    }
+
+    while (fixed != 0) {
+        fixed = 0;
+        DebugOff("\nNew iteration");
+        for(auto b_it = _bags.begin(); b_it != _bags.end();) {
+            std::vector<Node*> b = *b_it;
+            if(b.size() == 3) {
+                DebugOff("\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name);
+                a12 = get_arc(b[0], b[1]);
+                a13 = get_arc(b[0], b[2]);
+                a32 = get_arc(b[2], b[1]);
+                if ((a12->_free && a13->_free) || (a12->_free && a32->_free) || (a13->_free && a32->_free) ||
+                    (!a12->_free && !a13->_free && !a32->_free)) { // at least two missing lines or all lines real
+                    ++b_it;
+                    continue;
+                }
+                if (a12->_free) {
+                    a12->_free = false;
+                    DebugOff("\nFixing arc a12 (" << a12->_src->_name << ", " << a12->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                if (a13->_free) {
+                    a13->_free = false;
+                    DebugOff("\nFixing arc a13 (" << a13->_src->_name << ", " << a13->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                if (a32->_free) {
+                    a32->_free = false;
+                    DebugOff("\nFixing arc a32 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
+                    fixed++;
+                }
+                bags_sorted.push_back(b);
+                _bags.erase(b_it);
+                id_sorted++;
+            }
+            else{ // Bags with size > 3; todo: leave only this as the general case?
+                DebugOff("\nBag with size > 3");
+
+                for(int i = 0; i < b.size()-1; i++) {
+                    for (int j = i + 1; j < b.size(); j++) {
+                        Arc* a = get_arc(b[i]->_name, b[j]->_name);
+                        if (!a->_free) continue;
+                        n = a->_src;
+                        //by now, all arcs in bags should be created
+                        for (auto n1: b) {
+                            if(n==n1) continue;
+                            Arc* a2 = get_arc(n->_name, n1->_name);
+                            if (a2->_free) continue;
+                            Arc *a1 = get_arc(a->_dest, n1);
+                            if (!a1->_free) {
+                                a->_free = false;
+
+                                vector<Node *> bag;
+                                bag.push_back(get_node(n->_name));
+                                bag.push_back(get_node(a->_dest->_name));
+                                bag.push_back(get_node(n1->_name));
+//                                sort(bag.begin(), bag.end(),
+//                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
+
+                                fixed++;
+                                sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+                                bags_sorted.push_back(bag);
+                                id_sorted++;
+                                DebugOff("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
+                                break;
+                            }
+                        }
+                    } // j
+                } // i
+                ++b_it;
+
+            } // size > 3
+        } // bags loop
+    } // while
+
+    //add all remaining bags to bags_sorted
+    for(auto b_it = _bags.begin(); b_it != _bags.end();) {
+        std::vector<Node*> b = *b_it;
+            if(b.size() > 2) bags_sorted.push_back(b);
+            _bags.erase(b_it);
+//            id_sorted++;
+    }
+    _bags = bags_sorted;
+
+    for(auto& a: arcs) {
+        if(a->_imaginary) a->_free = true;
+    }
+
+
+    for(auto& k: _bus_pairs._keys){
+        _bus_pairs_chord._keys.push_back(new index_pair(*k));
+    }
+
+    for(auto& a: arcs){
+        if(a->_imaginary){
+            Bus* bus_s = (Bus*)(a->_src);
+            Bus* bus_d = (Bus*)(a->_dest);
+
+            name = bus_s->_name + "," + bus_d->_name;
+            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+
+            if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+                cos_max_ = 1;
+                cos_min_ = -1;
+            } else if (m_theta_lb < 0 && m_theta_ub > 0){
+                cos_max_ = 1;
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            } else{
+                cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            }
+            w_max_ = bus_s->vbound.max*bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min*bus_d->vbound.min;
+
+            wr_max_ = cos_max_*w_max_;
+            if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
+            else wr_min_ = cos_min_*w_min_;
+
+            if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
+                sin_max_ = 1;
+                sin_min_ = -1;
+            } else{
+                sin_max_ = sin(m_theta_ub);
+                sin_min_ = sin(m_theta_lb);
+            }
+
+            if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
+            else wi_max_ = sin_max_*w_min_;
+            if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
+            else wi_min_ = sin_min_*w_max_;
+
+//            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
+
+            wr_max.set_val(name,wr_max_);
+            wr_min.set_val(name,wr_min_);
+            wi_max.set_val(name,wi_max_);
+            wi_min.set_val(name,wi_min_);
+        }
+    }
+    DebugOff("\nBags sorted: " << endl);
+    for(auto& b: _bags) {
+        DebugOff("bag = {");
+        for (int i = 0; i < b.size(); i++) {
+            DebugOff(b.at(i)->_name << " ");
+        }
+        DebugOff("}" << endl);
+        if(add_3d_nlin && b.size()==3){
+            for(int i = 0; i < 2; i++) {
+                for(int j = i+1; j < 3; j++) {
+                    Arc* aij = get_arc(b[i],b[j]);
+                    aij->_free = false;
+                }
+            }
+        }
+    }
+}
+
+double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
+    
+    bool polar = (pmt==ACPOL);
+    if (polar) {
+        DebugOn("Using polar model\n");
+    }
+    else {
+        DebugOn("Using rectangular model\n");
+    }
+    Model ACOPF("AC-OPF Model");
+    /** Variables */
+    /* Power generation variables */
+    var<Real> Pg("Pg", pg_min, pg_max);
+    var<Real> Qg ("Qg", qg_min, qg_max);
+    ACOPF.add_var(Pg.in(gens));
+    ACOPF.add_var(Qg.in(gens));
+    
+    /* Power flow variables */
+    var<Real> Pf_from("Pf_from", S_max);
+    var<Real> Qf_from("Qf_from", S_max);
+    var<Real> Pf_to("Pf_to", S_max);
+    var<Real> Qf_to("Qf_to", S_max);
+    
+    ACOPF.add_var(Pf_from.in(arcs));
+    ACOPF.add_var(Qf_from.in(arcs));
+    ACOPF.add_var(Pf_to.in(arcs));
+    ACOPF.add_var(Qf_to.in(arcs));
+    
+    /** Voltage related variables */
+    var<Real> theta("theta");
+    var<Real> v("|V|", v_min, v_max);
+    //    var<Real> vr("vr");
+    //    var<Real> vi("vi");
+    var<Real> vr("vr", v_max);
+    var<Real> vi("vi", v_max);
+    
+    if (polar) {
+        ACOPF.add_var(v.in(nodes));
+        ACOPF.add_var(theta.in(nodes));
+        v.initialize_all(1);
+    }
+    else {
+        ACOPF.add_var(vr.in(nodes));
+        ACOPF.add_var(vi.in(nodes));
+        vr.initialize_all(1.0);
+    }
+    
+    /** Construct the objective function */
+    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
+    ACOPF.min(obj.in(gens));
+    
+    /** Define constraints */
+    
+    /* REF BUS */
+    Constraint Ref_Bus("Ref_Bus");
+    if (polar) {
+        Ref_Bus = theta(get_ref_bus());
+    }
+    else {
+        Ref_Bus = vi(get_ref_bus());
+    }
+    ACOPF.add_constraint(Ref_Bus == 0);
+    
+    /** KCL Flow conservation */
+    Constraint KCL_P("KCL_P");
+    Constraint KCL_Q("KCL_Q");
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
+    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
+    /* Shunts */
+    if (polar) {
+        KCL_P +=  gs*power(v,2);
+        KCL_Q -=  bs*power(v,2);
+    }
+    else {
+        KCL_P +=  gs*(power(vr,2)+power(vi,2));
+        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
+    }
+    ACOPF.add_constraint(KCL_P.in(nodes) == 0);
+    ACOPF.add_constraint(KCL_Q.in(nodes) == 0);
+    
+    /** AC Power Flows */
+    /** TODO write the constraints in Complex form */
+    Constraint Flow_P_From("Flow_P_From");
+    Flow_P_From += Pf_from;
+    if (polar) {
+        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
+        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
+        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
+    }
+    else {
+        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
+        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+    }
+    ACOPF.add_constraint(Flow_P_From.in(arcs)==0);
+    
+    Constraint Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf_to;
+    if (polar) {
+        Flow_P_To -= g*power(v.to(), 2);
+        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
+        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
+    }
+    else {
+        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
+        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+    }
+    ACOPF.add_constraint(Flow_P_To.in(arcs)==0);
+    
+    Constraint Flow_Q_From("Flow_Q_From");
+    Flow_Q_From += Qf_from;
+    if (polar) {
+        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
+        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
+        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
+    }
+    else {
+        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
+        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+    }
+    ACOPF.add_constraint(Flow_Q_From.in(arcs)==0);
+    Constraint Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf_to;
+    if (polar) {
+        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
+        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
+        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
+    }
+    else {
+        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
+        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+    }
+    ACOPF.add_constraint(Flow_Q_To.in(arcs)==0);
+    
+    /** AC voltage limit constraints. */
+    if (!polar) {
+        Constraint Vol_limit_UB("Vol_limit_UB");
+        Vol_limit_UB = power(vr, 2) + power(vi, 2);
+        Vol_limit_UB -= power(v_max, 2);
+        ACOPF.add_constraint(Vol_limit_UB.in(nodes) <= 0);
+        
+        Constraint Vol_limit_LB("Vol_limit_LB");
+        Vol_limit_LB = power(vr, 2) + power(vi, 2);
+        Vol_limit_LB -= power(v_min,2);
+        ACOPF.add_constraint(Vol_limit_LB.in(nodes) >= 0);
+        DebugOff(v_min.to_str(true) << endl);
+        DebugOff(v_max.to_str(true) << endl);
+    }
+    
+    
+    /* Phase Angle Bounds constraints */
+    Constraint PAD_UB("PAD_UB");
+    Constraint PAD_LB("PAD_LB");
+    auto bus_pairs = get_bus_pairs();
+    if (polar) {
+        PAD_UB = theta.from() - theta.to();
+        PAD_UB -= th_max;
+        PAD_LB = theta.from() - theta.to();
+        PAD_LB -= th_min;
+        DebugOff(th_min.to_str(true) << endl);
+        DebugOff(th_max.to_str(true) << endl);
+    }
+    else {
+        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
+        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
+        
+        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
+        DebugOff(th_min.to_str(true) << endl);
+        DebugOff(th_max.to_str(true) << endl);
+    }
+    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
+    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
+    
+    
+    /*  Thermal Limit Constraints */
+    Constraint Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
+    Thermal_Limit_from -= power(S_max, 2);
+    ACOPF.add_constraint(Thermal_Limit_from.in(arcs) <= 0);
+    
+    Constraint Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to -= power(S_max,2);
+    ACOPF.add_constraint(Thermal_Limit_to.in(arcs) <= 0);
+    DebugOff(S_max.in(arcs).to_str(true) << endl);
+    bool relax;
+    solver OPF(ACOPF,ipopt);
+    OPF.run(output, relax = false, tol = 1e-6, "ma27");
+    return ACOPF._obj_val;
+}
+
 

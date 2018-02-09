@@ -10,6 +10,7 @@
 #define var_h
 
 #include <gravity/param.h>
+#include <gravity/Net.h>
 #include <stdio.h>
 #include <string>
 #include <set>
@@ -21,7 +22,62 @@
 using namespace std;
 
 namespace gravity {
+    
+    
 class func_;
+    class space{
+    public:
+        SpaceType       _type;
+        vector<size_t>  _dim;
+    };
+
+    class R: public space{
+    public:
+        R(){};
+        template<typename... Args>
+        R(size_t t1, Args&&... args) {
+            _type = R_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+
+        R operator^(size_t n){return R(n);};
+        
+    };
+    
+    class R_plus: public space{
+    public:
+        R_plus(){};
+        template<typename... Args>
+        R_plus(size_t t1, Args&&... args) {
+            _type = R_p_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        R_plus operator^(size_t n){return R_plus(n);};
+        
+    };
+    
+    class C: public space{
+    public:
+        /* TODO */
+    };
+    
 /** Backbone class for parameter */
 class var_ {
 public:
@@ -36,6 +92,8 @@ class var: public param<type>, public var_ {
 public:
     shared_ptr<func_>   _lb; /**< Lower Bound */
     shared_ptr<func_>   _ub; /**< Upper Bound */
+    bool _in_q_cone = false;
+    bool _psd = false;
     
     /* Constructors */
     //@{
@@ -92,6 +150,33 @@ public:
     var from(){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::from());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var out_arcs(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_arcs(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_gens(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens());
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -175,8 +260,12 @@ public:
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        if(!this->_lb->is_number()){
+            *res._lb = this->_lb->in(vec);
+        }
+        if(!this->_ub->is_number()){
+            *res._ub = this->_ub->in(vec);
+        }
         return res;
     }
     
@@ -184,6 +273,45 @@ public:
     var in(const vector<Tobj>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
+        res.param<type>::set_type(var_c);
+        if(!this->_lb->is_number()){
+            *res._lb = this->_lb->in(vec);
+        }
+        if(!this->_ub->is_number()){
+            *res._ub = this->_ub->in(vec);
+        }
+        return res;
+    }
+    
+    var in(const node_pairs& np){
+        return this->in(np._keys);
+    }
+    
+    
+    
+    
+    var in_arcs(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var out_arcs(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
+    var in_gens(const vector<Node*>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens(vec));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -265,6 +393,7 @@ public:
     var in(const ordered_pairs& pairs);
     vector<var> in(const std::vector<std::vector<Node*>>& bags, unsigned size);
     vector<var> pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size);
+    vector<var> pairs_in_directed(Net& net, const std::vector<std::vector<Node*>>& bags, unsigned size);
 
     /* Querries */
 
@@ -282,6 +411,7 @@ public:
     Sign get_sign(int idx = 0) const;
 
     /* Modifiers */
+    void    set_size(vector<size_t>);
     void    set_size(size_t s, type val = 0);
 
     void    add_bounds(type lb, type ub);
@@ -290,6 +420,8 @@ public:
 
     void    set_lb(int i, type v);
     void    set_ub(int i, type v);
+
+    void in_q_cone(); /**< States that the variable is contained in a quadratic cone, for mosek */
 
     //void    set_lb(string name, type v); // change lb and ub via names.
     //void    set_ub(string name, type v);
@@ -304,13 +436,19 @@ public:
         param<type>::_dim[0]++;
         return *this;
     }
-
+    
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
-    var& operator^(size_t d) {
-        set_size(d);
+    
+    var& in(const space& s){
+        set_size(s._dim);
         return *this;
     }
+    
+//    var& operator^(size_t d) {
+//        set_size(d);
+//        return *this;
+//    }
 
     var tr() const {
         auto v = var(*this);
@@ -388,6 +526,8 @@ public:
             auto temp = make_pair<>(t1, (*(++indices.begin())));
             res._sdpindices->insert(make_pair<>(key,temp));
             param_::_sdpindices->insert(make_pair<>(key,temp));
+//            res._dim[0] = 1;
+//            res._symdim = 1;
         }
         else {
             auto temp = param_::_sdpindices->at(key);
@@ -425,7 +565,7 @@ public:
         return v;
     }
     /* Output */
-    void print() const;
+    void print(bool vals = false) const;
 };
 }
 #endif /* sdpvar_h */

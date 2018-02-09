@@ -5,14 +5,12 @@
 
 using namespace std;
 
+void IpoptProgram::update_model(){
+    _model->reset_funcs();
+    _model->fill_in_maps();
+}
 
 IpoptProgram::IpoptProgram(Model* m):_model(m){
-    if (!m->_built) {
-        m->fill_in_maps();
-    }
-    else {
-        m->reset_funcs();
-    }
 }
 
 
@@ -61,8 +59,8 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
         vp.second->_u_dual.resize(nb_inst);
         vp.second->_l_dual.resize(nb_inst);
         for (unsigned inst = 0; inst < nb_inst; inst++) {
-            vp.second->_u_dual[inst] = z_L[vp.second->_id + vp.second->get_id_inst(inst)];
-            vp.second->_l_dual[inst] = z_U[vp.second->_id + vp.second->get_id_inst(inst)];
+            vp.second->_u_dual[inst] = z_U[vp.second->get_id() + vp.second->get_id_inst(inst)];
+            vp.second->_l_dual[inst] = z_L[vp.second->get_id() + vp.second->get_id_inst(inst)];
         }
     }
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
@@ -94,8 +92,12 @@ bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
     assert(n==_model->get_nb_vars());
     assert(m==_model->get_nb_cons());
     
-//    if (init_x) {
+    if (init_x) {
         _model->fill_in_var_init(x);
+    }
+    if (init_lambda && init_z) {
+        _model->fill_in_duals(lambda,z_L,z_U);
+    }
 //    DebugOn("initial point = \n");
 //    DebugOn("x = [ ");
 //    for (int i = 0; i<n; i++) {

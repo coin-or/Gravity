@@ -7,6 +7,7 @@
 //
 #include <gravity/var.h>
 #include <gravity/func.h>
+#include <gravity/Net.h>
 #define DebugOn(x) cout << x
 #define DebugOff(x)
 
@@ -38,6 +39,8 @@ template<typename type> var<type>::var(const var<type>& v):param<type>(v) {
     param<type>::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
+    _in_q_cone = v._in_q_cone;
+    _psd = v._psd;
 };
 
 template<typename type> var<type>::var(var<type>&& v):param<type>(v) {
@@ -60,19 +63,24 @@ template<typename type> var<type>::var(const string& name, type lb, type ub):var
 template<typename type> var<type>::var(const string& name, const param<type>& lb, const param<type>& ub):var(name) {
     _lb = make_shared<func_>(lb);
     _ub = make_shared<func_>(ub);
-    _lb->_val->resize(_lb->_nb_instances);
-    _ub->_val->resize(_ub->_nb_instances);
+    auto nb_inst = _lb->_nb_instances;
+    _lb->_val->resize(nb_inst);
+    _ub->_val->resize(nb_inst);
+//    this->_val->resize(nb_inst);
+    this->_dim[0] = nb_inst;
+    assert(nb_inst == _ub->_nb_instances);
     param<type>::_range->first = lb._range->first;
     param<type>::_range->second = ub._range->second;
-     unsigned i = 0;
-    for (auto &p: *lb.get_indices()) {
-        param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
-        _lb->_val->at(i) = lb.eval(p.first);
-        _ub->_val->at(i) = ub.eval(p.first);
-        i++;
-    }
-    _lb->_evaluated = true;
-    _ub->_evaluated = true;
+//    unsigned i = 0;    
+//    for (auto &p: *lb.get_indices()) {
+//    this->_indices = lb.get_indices();
+//    this->_rev_indices = lb.get_rev_indices();
+//    for(unsigned i = 0;i<nb_inst; i++){
+//        _lb->_val->at(i) = lb._val->at(i);
+//        _ub->_val->at(i) = ub._val->at(i);
+//    }
+//    _lb->_evaluated = true;
+//    _ub->_evaluated = true;
 }
     
 //template<typename type> var<type>::var(const string& name, func_&& lb, func_&& ub):var(name) {
@@ -85,19 +93,23 @@ template<typename type> var<type>::var(const string& name, const param<type>& lb
 template<typename type> var<type>::var(const string& name, const param<type>& sb):var(name) {
     _lb = make_shared<func_>(-1*sb);
     _ub = make_shared<func_>(sb);
-    _lb->_val->resize(_lb->_nb_instances);
-    _ub->_val->resize(_ub->_nb_instances);
+    auto nb_inst = _lb->_nb_instances;
+    this->_dim[0] = nb_inst;
+    _lb->_val->resize(nb_inst);
+    _ub->_val->resize(nb_inst);
     param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
     param<type>::_range->second = sb._range->second;
-    unsigned i = 0;
-    for (auto &p: *sb.get_indices()) {
-        param_::_indices->insert(make_pair<>(p.first, param_::_indices->size()));
-        _lb->_val->at(i) = -1*sb.eval(p.first);
-        _ub->_val->at(i) = sb.eval(p.first);
-        i++;
-    }
-    _lb->_evaluated = true;
-    _ub->_evaluated = true;
+//    unsigned i = 0;
+//    for(unsigned i = 0;i<nb_inst; i++){
+//        //        auto index = param_::_indices->size();
+//        //        param_::_indices->insert(make_pair<>(p.first, index));
+//        //        param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+//        //        param_::_rev_indices->at(index) = p.first;
+//        _lb->_val->at(i) = -1*sb._val->at(i);
+//        _ub->_val->at(i) = sb._val->at(i);
+//    }
+//    _lb->_evaluated = true;
+//    _ub->_evaluated = true;
 };
     
 //    template<typename type> var<type>::var(const string& name, func_&& sb):var(name) {
@@ -127,39 +139,44 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 };
 
 /* Modifiers */
+    
+template<typename type> void   var<type>::set_size(vector<size_t> dims) {
+    param<type>::set_size(dims);
+};
+
 template<typename type> void   var<type>::set_size(size_t s, type val) {
     param<type>::set_size(s,val);
 };
 
-    template<typename type>
-    type    var<type>::get_lb(size_t i) const {
-        if (_lb->is_number()) {
-            return _lb->_val->at(0);
-        }
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        return _lb->get_val(i);
-    };
-    
-    template<typename type>
-    type    var<type>::get_ub(size_t i) const {
-        if (_ub->is_number()) {
-            return _ub->_val->at(0);
-        }
-        unsigned index = 0;
-        if (param<type>::get_ids()->empty()) {
-            index = i;
-        }
-        else {
-            index = param<type>::get_ids()->at(i);
-        }
-        return _ub->get_val(index);
-    };
+template<typename type>
+type    var<type>::get_lb(size_t i) const {
+    if (_lb->is_number()) {
+        return _lb->_val->at(0);
+    }
+//    unsigned index = 0;
+//    if (param<type>::get_ids()->at(0).empty()) {
+//        index = i;
+//    }
+//    else {
+//        index = param<type>::get_ids()->at(0).at(i);
+//    }
+    return _lb->get_val(i);
+};
+
+template<typename type>
+type    var<type>::get_ub(size_t i) const {
+    if (_ub->is_number()) {
+        return _ub->_val->at(0);
+    }
+//    unsigned index = 0;
+//    if (param<type>::get_ids()->at(0).empty()) {
+//        index = i;
+//    }
+//    else {
+//        index = param<type>::get_ids()->at(0).at(i);
+//    }
+    return _ub->get_val(i);
+};
     
     template<typename type>
     bool var<type>::is_bounded_above(int i) const {
@@ -241,6 +258,10 @@ template<typename type> void   var<type>::set_ub(int i, type val) {
         param<type>::_range->second = val;
     }
 }
+
+template<typename type> void   var<type>::in_q_cone() {
+        _in_q_cone = true;
+    };
 
 //    template<typename type> void  var<type>::set_lb(string name, type val){
 //        auto it = param_::_indices->find(name);
@@ -363,9 +384,89 @@ template<typename type> bool sdpvar<type>::operator!=(const sdpvar& v) const {
 }
 
 /* output */
-template<typename type> void sdpvar<type>::print() const {
-    param<type>::print(false);
+template<typename type> void sdpvar<type>::print(bool vals) const {
+    param<type>::print(vals);
 };
+
+template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, const std::vector<std::vector<Node*>>& bags, unsigned size){
+    vector<var> res;
+    string key;
+    res.resize(size);
+    for (int i = 0; i<size; i++) {
+        res[i]._id = this->_id;
+        res[i]._vec_id = this->_vec_id;
+        res[i]._is_vector = this->_is_vector;
+        res[i]._intype = this->_intype;
+        res[i]._range = this->_range;
+        res[i]._val = this->_val;
+        res[i]._lb = this->_lb;
+        res[i]._ub = this->_ub;
+        res[i]._name = this->_name+to_string(i);
+        res[i]._unique_id = make_tuple<>(res[i].get_id(),in_,typeid(type).hash_code(), 0, i);
+        res[i]._is_indexed = true;
+        res[i]._rev_indices = this->_rev_indices;
+        res[i]._indices = this->_indices;
+    }
+    set<vector<unsigned>> ids;
+    for (auto &bag: bags) {
+        if (bag.size() != size) {
+            continue;
+        }
+        vector<unsigned> ids_bag;
+        for (int i = 0; i<size; i++) {
+            ids_bag.push_back(bag[i]->_id);
+        }
+        if(ids.count(ids_bag)==0) {
+            ids.insert(ids_bag);
+        }
+        else {
+            continue;
+        }
+        for (int i = 0; i< size-1; i++) {
+            if(net.get_directed_arc(bag[i]->_name, bag[i+1]->_name)!=nullptr) {
+                key = bag[i]->_name + "," + bag[i+1]->_name;
+            }
+            else {
+                key = bag[i+1]->_name + "," + bag[i]->_name;
+            }
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
+            if(pp.second) { //new index inserted
+                this->_val->resize(max(this->_val->size(),index+1));
+                this->_dim[0] = max(this->_dim[0],this->_val->size());
+                param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+                param_::_rev_indices->at(index) = key;
+                res[i]._ids->at(0).push_back(index);
+            }
+            else {
+                res[i]._ids->at(0).push_back(pp.first->second);
+            }
+        }
+        /* Loop back pair */
+        if(net.get_directed_arc(bag[0]->_name, bag[size-1]->_name)!=nullptr) {
+            key = bag[0]->_name + "," + bag[size-1]->_name;
+        }
+        else{
+            key = bag[size-1]->_name + "," + bag[0]->_name;
+        }
+        auto index = param_::_indices->size();
+        auto pp = param_::_indices->insert(make_pair<>(key,index));
+        if(pp.second) { //new index inserted
+            this->_val->resize(max(this->_val->size(),index+1));
+            this->_dim[0] = max(this->_dim[0],this->_val->size());
+            param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+            param_::_rev_indices->at(index) = key;
+            res[size-1]._ids->at(0).push_back(index);
+        }
+        else {
+            res[size-1]._ids->at(0).push_back(pp.first->second);
+        }
+    }
+    for (int i = 0; i<size; i++) {
+        res[i]._dim[0]=res[i]._ids->at(0).size();
+    }
+    return res;
+}
 
 
 template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size) {
@@ -381,12 +482,12 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         res[i]._lb = this->_lb;
         res[i]._ub = this->_ub;
         res[i]._name += "_in_bags_"+to_string(i);
-        res[i]._unique_id = make_tuple<>(res[i]._id,in_,typeid(type).hash_code(), 0, i);
+        res[i]._unique_id = make_tuple<>(res[i].get_id(),in_,typeid(type).hash_code(), 0, i);
         res[i]._is_indexed = true;
     }
     set<vector<unsigned>> ids;
     for (auto &bag: bags) {
-        if (bag.size() < size) {
+        if (bag.size() != size) {
             continue;
         }
         vector<unsigned> ids_bag;
@@ -402,35 +503,41 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
         for (int i = 0; i< size-1; i++) {
             key = bag[i]->_name + "," + bag[i+1]->_name;
 //            assert(bag[i+2]->ID > bag[i]->ID);
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
-                if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+                param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+                param_::_rev_indices->at(index) = key;
+                if(res[i]._indices->insert(make_pair<>(key,index)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                res[i]._ids->at(0).push_back(index);
             }
             else {
                 if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                     res[i]._dim[0]++;
                 }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
         /* Loop back pair */
         key = bag[0]->_name + "," + bag[size-1]->_name;
 //        assert(bag[size-1]->ID > bag[0]->ID);
-        auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+        auto index = param_::_indices->size();
+        auto pp = param_::_indices->insert(make_pair<>(key,index));
         if(pp.second) { //new index inserted
-            if(res[size-1]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
+            param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+            param_::_rev_indices->at(index) = key;
+            if(res[size-1]._indices->insert(make_pair<>(key,index)).second) {
                 res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->push_back(param_::_indices->size()-1);
+            res[size-1]._ids->at(0).push_back(index);
         }
         else {
             if(res[size-1]._indices->insert(make_pair<>(key,pp.first->second)).second) {
                 res[size-1]._dim[0]++;
             }
-            res[size-1]._ids->push_back(pp.first->second);
+            res[size-1]._ids->at(0).push_back(pp.first->second);
         }
     }
     return res;
@@ -439,22 +546,25 @@ template<typename type>vector<var<type>> var<type>::pairs_in(const std::vector<s
 template<typename type>vector<var<type>> var<type>::in(const std::vector<std::vector<Node*>>& bags, unsigned size) {
     vector<var> res;
     string key;
-    res.resize(size, (this->_name));
+    res.resize(size);
     for (int i = 0; i<size; i++) {
         res[i]._id = this->_id;
         res[i]._vec_id = this->_vec_id;
         res[i]._intype = this->_intype;
+        res[i]._is_vector = this->_is_vector;
         res[i]._range = this->_range;
         res[i]._val = this->_val;
         res[i]._lb = this->_lb;
         res[i]._ub = this->_ub;
-        res[i]._name += "_in_bags_"+to_string(i);
-        res[i]._unique_id = make_tuple<>(res[i]._id,in_,typeid(type).hash_code(), 0, i);
+        res[i]._name = this->_name+to_string(i);//+"_in_bags_"+to_string(i);
+        res[i]._unique_id = make_tuple<>(res[i].get_id(),in_,typeid(type).hash_code(), 0, i);
         res[i]._is_indexed = true;
+        res[i]._rev_indices = this->_rev_indices;
+        res[i]._indices = this->_indices;
     }
     set<vector<unsigned>> ids;
     for (auto &bag: bags) {
-        if (bag.size() < size) {
+        if (bag.size() != size) {
             continue;
         }
         vector<unsigned> ids_bag;
@@ -470,24 +580,28 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
 
         for (int i = 0; i<size; i++) {
             key = bag[i]->_name;
-            auto pp = param_::_indices->insert(make_pair<>(key,param_::_indices->size()));
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
-                if(res[i]._indices->insert(make_pair<>(key,param_::_indices->size()-1)).second) {
-                    res[i]._dim[0]++;
-                }
-                res[i]._ids->push_back(param_::_indices->size()-1);
+                this->_val->resize(max(this->_val->size(),index+1));
+                this->_dim[0] = max(this->_dim[0],this->_val->size());
+                param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
+                param_::_rev_indices->at(index) = key;
+                res[i]._ids->at(0).push_back(index);
             }
             else {
-                if(res[i]._indices->insert(make_pair<>(key,pp.first->second)).second) {
-                    res[i]._dim[0]++;
-                }
-                res[i]._ids->push_back(pp.first->second);
+                res[i]._ids->at(0).push_back(pp.first->second);
             }
         }
+    }
+    for (int i = 0; i<size; i++) {
+        res[i]._dim[0]=res[i]._ids->at(0).size();
     }
     return res;
 }
 
+
+    
 template class var<bool>;
 template class var<short>;
 template class var<int>;

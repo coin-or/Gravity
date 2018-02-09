@@ -116,30 +116,40 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         Model Ising("Ising Model");
         /** Variables */
         var<Real> x("x"), z("z", pos_), obj("obj");
-        Ising.add_var(x^nb_spins);
-        Ising.add_var(z^nb_spins);
+        auto Rn = R(nb_spins);
+        Ising.add_var(x.in(Rn));
+        Ising.add_var(z.in(Rn));
         Ising.add_var(obj);
         Ising.min(obj);
         
         /** Constraints */
         
-        Constraint Absp("Absp");
-        Absp += z - x;
-        Ising.add_constraint(Absp >= 0);
-        Constraint Absn("Absn");
-        Absn += z + x;
-        Ising.add_constraint(Absn >= 0);
+        if (lambda>0) {
+            Constraint Absp("Absp");
+            Absp += z - x;
+            Ising.add_constraint(Absp >= 0);
+            Constraint Absn("Absn");
+            Absn += z + x;
+            Ising.add_constraint(Absn >= 0);
+        }
     
         Constraint Obj("Obj");
-        Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+        if (lambda > 0) {
+            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+        }
+        else {
+            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x)));
+        }
         Obj.set_first_derivative(x, (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
         Obj.set_second_derivative(x,x,(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
         Ising.add_constraint(Obj>=0);
+        Obj.print();
         
         /** Solver */
         solver NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
-        NLP.run(log_lev=0,relax=false,1e-12,"ma27",mehrotra);
+        NLP.run(log_lev,relax=false,1e-12,"ma27",mehrotra);
+//        Ising.print_nl_functions();
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
         obj_val[main_spin] = Ising._obj_val;
@@ -172,9 +182,13 @@ double sum_x(){
 
 int main (int argc, char * argv[])
 {
-    int log_lev = 0;
+    int output = 5;
     bool relax = false;
-    string fname = "../data_sets/Ising/samples_bin_sml.csv";
+    string fname = "../data_sets/Ising/samples_bin_sml.csv", log_level="5";
+    string path = argv[0];
+    if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
+        fname = "../" + fname;
+    }
     unsigned nr_threads = 1;
     
     // create a OptionParser with options
@@ -183,6 +197,7 @@ int main (int argc, char * argv[])
     opt.add_option("f", "file", "Input file name", fname );
     opt.add_option("t", "threads", "Number of threads to use", "1");
     opt.add_option("r", "regularizer", "Value of regularizer", "0.0");
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -194,7 +209,7 @@ int main (int argc, char * argv[])
     fname = opt["f"];
     nr_threads = op::str2int(opt["t"]);
     regularizor = op::str2double(opt["r"]);
-    
+    output = op::str2int(opt["l"]);
     bool has_help = op::str2bool(opt["h"]);
     // show help
     if(has_help) {
@@ -208,8 +223,7 @@ int main (int argc, char * argv[])
     DebugOn("Regularizor = " << regularizor << endl);
     string mehrotra="yes";
     if (regularizor==0) {
-//        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
-        regularizor = 1e-6;
+        mehrotra="no";//IPOPT seems to be failing when mehrotra is on and the reg is zero..
     }
     auto total_time_start = get_wall_time();
     read_samples(fname.c_str());
@@ -220,7 +234,7 @@ int main (int argc, char * argv[])
     vector<int> limits = bounds(nr_threads, nb_spins);
     /* Launch all threads in parallel */
     for (int i = 0; i < nr_threads; ++i) {
-        threads.push_back(thread(solve_spin, limits[i], limits[i+1], log_lev, relax, mehrotra));
+        threads.push_back(thread(solve_spin, limits[i], limits[i+1], output, relax, mehrotra));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){

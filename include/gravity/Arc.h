@@ -25,6 +25,8 @@ public:
     double _weight;
     bool _active = true;
     bool _parallel = false;
+    bool _imaginary = false;
+    int _free = false;
     std::vector<Node*> _intersection; // intersection of node _src and node _dest
     std::vector<gravity::index_pair*> _intersection_clique; // useful for clique tree 
 
@@ -40,7 +42,7 @@ public:
     
     Arc();
     Arc(std::string name);
-    ~Arc();
+    virtual ~Arc();
     Arc(Node* s, Node* d);
     Arc(Node* s, Node* d, double weight);
     Arc* clone();

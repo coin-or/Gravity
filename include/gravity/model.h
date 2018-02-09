@@ -45,9 +45,12 @@ namespace gravity {
         
     public:
         bool                            _built = false; /* Indicates if this model has been already built */
+        bool                            _first_run = true; /* Indicates if this model has been already */
+                                                            
         bool                            _first_call_gard_obj = true; /* Indicates if this is the first call to fill_in_grad_obj */
         bool                            _first_call_jac = true; /* Indicates if this is the first call to fill_in_jac */
         bool                            _first_call_hess = true; /* Indicates if this is the first call to fill_in_hess */
+        bool                            _is_convex = true; /* Indicates if this model is convex */
         MType                           _type = lin_m; /* Model type, e.g., linar, quadratic, polynomial, NLP.. */
         size_t                          _nb_vars = 0;
         size_t                          _nb_params = 0;
@@ -55,13 +58,14 @@ namespace gravity {
         size_t                          _nnz_g = 0; /* Number of non zeros in the Jacobian */
         size_t                          _nnz_h = 0; /* Number of non zeros in the Hessian */
         size_t                          _nnz_g_obj = 0; /* Number of non zeros in the Objective gradient */
-        vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */
+        vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */        
         vector<double>                  _obj_grad_vals; /* Objective gradient values stored in sparse format */
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
         map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        vector<shared_ptr<Constraint>>              _cons_vec;
         map<unsigned, shared_ptr<Constraint>>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<string, shared_ptr<Constraint>>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<unique_id, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears */
@@ -96,13 +100,23 @@ namespace gravity {
         
         size_t get_nb_cons() const;
         
-        size_t get_nb_nnz_g() const;
+        size_t get_nb_nnz_g();
         
         size_t get_nb_nnz_h();
         
+        bool is_convex() const{
+            return _is_convex;
+        }
+        
+        bool is_nonconvex() const{
+            return !_is_convex;
+        }
+        
         param_* get_var(const string& vname) const;
         
-        Constraint* get_constraint(const string& name) const;
+        shared_ptr<Constraint> get_constraint(const string& name) const;
+        
+        void add_indices(const string& constr_name, const node_pairs& indices);
         
         bool has_var(const param_& v) const{
             return (_vars.count(v.get_vec_id())!=0);
@@ -116,51 +130,21 @@ namespace gravity {
         void compute_funcs();
         
         template <typename type>
-        void add_var(var<type>& v){//Add variables by copying variable
-//
-//                auto nb_ind = v.get_nb_instances();
-//                v._lb->_nb_instances = nb_ind;
-//                v._lb->_val->resize(nb_ind);
-//                v._ub->_nb_instances = nb_ind;
-//                v._ub->_val->resize(nb_ind);
-//                if (!v._lb->_ids->empty()) {
-//                    for (auto ind: *v._lb->_ids) {
-//                        v._lb->eval(ind);
-//                        v._ub->eval(ind);
-//                    }
-//                }
-//                else {
-//                    for (unsigned ind = 0; ind< nb_ind; ind++) {
-//                        v._lb->eval(ind);
-//                        v._ub->eval(ind);
-//                    }
-//                }
-//                v._lb->_evaluated = true;
-//                v._ub->_evaluated = true;
-//            }
+        void add_var(var<type>& v){//Add variables by copy
+            
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
-                v._lb->_nb_instances = nb_ind;
-                v._lb->_val->resize(nb_ind);
-                v._ub->_nb_instances = nb_ind;
-                v._ub->_val->resize(nb_ind);
-                v._lb->_val->resize(v._lb->_nb_instances);
-                v._ub->_val->resize(v._ub->_nb_instances);
-                unsigned i = 0;
-                for (auto &p: *v.get_indices()) {//TODO just copy ids?
-                    v._lb->_val->at(i) = v._lb->eval(p.second);
-                    v._ub->_val->at(i) = v._ub->eval(p.second);
-                    i++;
+                for (unsigned i = 0; i<nb_ind; i++) {
+                    v._lb->eval(i);
+                    v._ub->eval(i);
                 }
-                v._lb->_evaluated = true;
-                v._ub->_evaluated = true;
             }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 param_* newv;
                 if (v._dim[0]==0) {
-                    newv = (param_*)copy(v^1);
+                    newv = (param_*)copy(v.in(R(1)));
                 }
                 else {
                     newv = (param_*)copy(v);
@@ -170,6 +154,49 @@ namespace gravity {
                 _nb_vars += v.get_dim();        
             }
         };
+        
+        
+        template <typename type>
+        void add_var(var<type>&& v){//Add variables by copy
+            if (v._is_indexed) {
+                auto nb_ind = v.get_nb_instances();
+                for (unsigned i = 0; i<nb_ind; i++) {
+                    v._lb->eval(i);
+                    v._ub->eval(i);
+                }
+//                shared_ptr<vector<type>> lb = make_shared<vector<type>>(nb_ind);
+//                shared_ptr<vector<type>> ub = make_shared<vector<type>>(nb_ind);
+//                unsigned i = 0;
+////                for (auto &p: *v.get_rev_indices()) {//TODO fix this
+////                    lb->at(i) = v._lb->eval(v._lb->get_indices()->at(p));
+////                    ub->at(i) = v._ub->eval(v._ub->get_indices()->at(p));
+////                    i++;
+////                }
+//                v._lb->_val = move(lb);
+//                v._ub->_val = move(ub);
+//                v._lb->_evaluated = true;
+//                v._ub->_evaluated = true;
+//                v._lb->_nb_instances = nb_ind;
+//                v._lb->_dim[0] = nb_ind;
+//                v._ub->_nb_instances = nb_ind;
+//                v._ub->_dim[0] = nb_ind;                
+            }
+            if (_vars_name.count(v._name)==0) {
+                v.set_id(_nb_vars);
+                v.set_vec_id(_vars.size());
+                param_* newv;
+                if (v._dim[0]==0) {
+                    newv = (param_*)copy(v.in(R(1)));
+                }
+                else {
+                    newv = (param_*)copy(v);
+                }
+                _vars_name[v._name] = newv;
+                _vars[v.get_vec_id()] = newv;
+                _nb_vars += v.get_dim();
+            }
+        };
+        
         void del_var(const param_& v);
         
         
@@ -189,11 +216,13 @@ namespace gravity {
         void set_objective(pair<func_*, ObjectiveType> p);
         void set_objective_type(ObjectiveType);
         void init_indices();// Initialize the indices of all variables involved in the model
+        bool has_violated_constraints(double tol); /*<< Returns true if some constraints are violated by the current solution with tolerance tol */
         void check_feasible(const double* x);
         void reset_funcs();
         void fill_in_maps();/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */
         void fill_in_var_bounds(double* x_l ,double* x_u);
         void fill_in_var_init(double* x);
+        void fill_in_duals(double* lambda,double* z_l, double* z_u);
         void fill_in_cstr_bounds(double* g_l ,double* g_u);
         void fill_in_obj(const double* x , double& res, bool new_x);
         void fill_in_grad_obj(const double* x , double* res, bool new_x);
@@ -231,10 +260,16 @@ namespace gravity {
         void print_constraints() const;
         
     };
-
+    
+//    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
 
     pair<func_*, ObjectiveType> max(const func_& f);
     pair<func_*, ObjectiveType> min(const func_& f);
 
+    class Program{
+    public:
+        virtual void update_model(){};
+        virtual ~Program(){};
+    };
 }
 #endif /* model_hpp */

@@ -325,7 +325,10 @@ namespace gravity{
                     if (f->is_number()) {
                         return f->_val->at(0);
                     }
-                    return f->get_val(i, j);
+                    if (f->_is_matrix) {
+                        return f->get_val(i, j);
+                    }
+                    return f->get_val(j);
                 }
                 return ((func_*)c)->eval(i,j);
                 break;
@@ -822,9 +825,9 @@ namespace gravity{
     Real lterm::eval(size_t i) const{
         Real res = 0;
         if ((_coef->_is_transposed || _coef->_is_matrix) && !_p->_is_matrix) {
-            auto dim = _p->get_nb_instances();
+            auto dim = _p->get_nb_instances(i);
             for (int j = 0; j<dim; j++) {
-                res += poly_eval(_coef,i,j) * poly_eval(_p, j);
+                res += poly_eval(_coef,i,j) * poly_eval(_p,i,j);
             }
         }
         else {
@@ -837,7 +840,7 @@ namespace gravity{
     }
     
     Real lterm::eval(size_t i, size_t j) const{
-        Real res = poly_eval(_coef,i,j) * poly_eval(_p, i,j);
+        Real res = poly_eval(_coef,i,j) * poly_eval(_p,i,j);
         if (!_sign) {
             res *= -1;
         }
@@ -847,42 +850,16 @@ namespace gravity{
 
     Real qterm::eval(size_t i) const{
         Real res = 0;
-        if ((_p->first->_is_vector || _p->first->_is_matrix) && !_p->second->_is_transposed) {
-            Real res = 0;
-            unsigned dim = _p->first->get_nb_instances();
-            if (_p->first->_is_matrix) {
-                dim = _p->first->_dim[1];
-            }
-            for (int j = 0; j < dim; j++) {
-                res +=poly_eval(_coef,i)*(poly_eval(_p->first,i,j) * poly_eval(_p->second,i,j));
+        if ((_coef->_is_transposed || _coef->_is_matrix) && !_p->first->_is_matrix) {
+            auto dim = _p->first->get_nb_instances(i);
+            for (int j = 0; j<dim; j++) {
+                res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
             }
         }
-        else if ((_p->first->_is_vector || _p->first->_is_matrix) && _p->second->_is_transposed) {
-            Real res = 0;
-            if (_p->first->_is_matrix && _p->second->_is_matrix ) {
-                for (int i1 = 0; i1 < _p->first->get_dim(0); i1++) {
-                    for (int j = 0; j < _p->first->get_dim(1); j++) {
-                        res +=poly_eval(_coef,i)*(poly_eval(_p->first, i1,j) * poly_eval(_p->second, i1,j));
-                    }
-                }
-            }
-            else if (_p->first->_is_matrix && !_p->second->_is_matrix ) {//matrix * transposed vect
-                for (int j = 0; j < _p->first->get_dim(1); j++) {
-                    res +=poly_eval(_coef,i)*(poly_eval(_p->first, i,j) * poly_eval(_p->second, j));
-                }
-            }
-            else if (!_p->first->_is_matrix && _p->second->_is_matrix ) {//transposed vect * matrix
-                for (int j = 0; j < _p->second->get_dim(1); j++) {
-                    res +=poly_eval(_coef,i)*(poly_eval(_p->first, j) * poly_eval(_p->second, i, j));
-                }
-            }
-            else {// (!_lson->_is_matrix && !_rson->_is_matrix )
-                if (!_p->first->_is_transposed) {
-                    throw invalid_argument("vector * transposed vector => dimension issue\n");
-                }
-                for (int j = 0; j < _p->second->get_dim(0); j++) {
-                    res +=poly_eval(_coef,i)*poly_eval(_p->first, j) * poly_eval(_p->second, j);
-                }
+        else if(_p->first->_is_transposed){
+            auto dim = _p->first->get_nb_instances(i);
+            for (int j = 0; j<dim; j++) {
+                res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
             }
         }
         else {
@@ -913,7 +890,6 @@ namespace gravity{
             for (auto &pair: *_l) {
                 res *= pow(poly_eval(pair.first, i), pair.second);
             }
-            
             res *= poly_eval(_coef,i);
         }
         if (!_sign) {
@@ -946,9 +922,15 @@ namespace gravity{
         _coef = coef;
         _p = p;
         _sign = sign;
-//        if (coef->_is_transposed && p->_is_transposed) {
-//            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+//        if (coef->_is_transposed){
+//            _p->_is_vector = true;
 //        }
+//        if (_p->_is_vector) {
+//            _coef->_is_transposed = true;
+//        }
+        if (coef->_is_transposed && p->_is_transposed) {
+            throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+        }
         if (coef->is_function()) {
             assert(((func_*)coef)->is_constant());
         }
@@ -1192,7 +1174,7 @@ namespace gravity{
                     _is_matrix = p_c2->_is_matrix;
                     _dim = p_c2->_dim;
                     if (p_c2->_ids) {
-                        _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                        _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                     }
                     break;
                 }
@@ -1464,7 +1446,7 @@ namespace gravity{
                 _dim = c._dim;
                 _nb_instances = c.get_nb_instances();
                 if (p_c2->_ids) {
-                    _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                    _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                 }
 //                _val->resize(_nb_instances);
 //                for (unsigned inst = 0; inst < _val->size(); inst++) {
@@ -1489,7 +1471,7 @@ namespace gravity{
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
                 if (p_c2->_ids) {
-                    _ids = make_shared<vector<unsigned>>(*p_c2->_ids);
+                    _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                 }
                 break;
             }
@@ -1769,6 +1751,9 @@ namespace gravity{
             _evaluated = f._evaluated;
         }
         _cst = copy(*f._cst);
+        if (_cst->is_function()) {
+            embed(*(func_*)_cst);
+        }
         _all_range = new pair<Real,Real>(f._all_range->first, f._all_range->second);
         _sign = nullptr;
         _convexity = nullptr;
@@ -1877,6 +1862,10 @@ namespace gravity{
         _embedded = f._embedded;
         _return_type = f._return_type;
         _cst = copy(*f._cst);
+        if (_cst->is_function()) {
+            embed(*(func_*)_cst);
+        }
+
         _all_range = new pair<Real,Real>(f._all_range->first, f._all_range->second);
         _sign = nullptr;
         _convexity = nullptr;
@@ -1930,7 +1919,7 @@ namespace gravity{
         _nb_instances = f._nb_instances;
         _nb_vars = f._nb_vars;
         if (f._ids) {
-            _ids = make_shared<vector<unsigned>>(*f._ids);
+            _ids = make_shared<vector<vector<unsigned>>>(*f._ids);
         }
         
         if (is_constant()) {
@@ -2167,11 +2156,14 @@ namespace gravity{
             update_sign(*_cst);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             this->insert(true, constant<double>(1), *(param_*)&c);
         }
         if (c.is_function()) {
             func_* f = (func_*)&c;
+            if (is_constant() && !f->is_constant()) {//check _expr
+                return *this = (*f + *this);
+            }
             if (!is_constant() && f->is_constant()) {//check _expr
                 _cst = add(_cst, c);
                 if (_cst->is_function()) {
@@ -2215,14 +2207,26 @@ namespace gravity{
                     _ftype = nlin_;
                 }
             }
-            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
-                _all_convexity = undet_;
-            }
-            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
-                _all_convexity = undet_;
-            }
             update_sign(*f);
-//            update_convexity();
+            if (_all_convexity==linear_ && f->_all_convexity==convex_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==linear_ && f->_all_convexity==concave_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && f->_all_convexity==convex_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==concave_ && f->_all_convexity==concave_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            else if (_all_convexity==concave_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+                _all_convexity = undet_;
+            }
+            update_convexity();
             return *this;
         }
         return *this;
@@ -2241,7 +2245,7 @@ namespace gravity{
             update_sign(*_cst);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             this->insert(false, constant<double>(1), *(param_*)&c);
         }
         if (c.is_function()) {
@@ -2252,6 +2256,9 @@ namespace gravity{
                     embed(*(func_*)_cst);
                 }
                 return *this;
+            }
+            if (is_constant() && !f->is_constant()) {//check _expr
+                return *this = (-1*(*f) + *this);
             }
             _cst = substract(_cst, *f->_cst);
             if (_cst->is_function()) {
@@ -2288,13 +2295,25 @@ namespace gravity{
                 }
             }
             update_sign(*f);
-            if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
+            if (_all_convexity==linear_ && f->_all_convexity==concave_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==linear_ && f->_all_convexity==convex_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && f->_all_convexity==concave_) {
+                _all_convexity = convex_;
+            }
+            else if (_all_convexity==concave_ && f->_all_convexity==convex_) {
+                _all_convexity = concave_;
+            }
+            else if (_all_convexity==convex_ && (f->_all_convexity==concave_ || f->_all_convexity==undet_)) {
                 _all_convexity = undet_;
             }
-            if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
+            else if (_all_convexity==concave_ && (f->_all_convexity==convex_ || f->_all_convexity==undet_)) {
                 _all_convexity = undet_;
             }
-//            update_convexity();
+            update_convexity();
             return *this;
         }
         return *this;
@@ -2402,33 +2421,56 @@ namespace gravity{
             return *this;
         }
         /* Case where the current function is constant and the other operand is not. */
-        if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+        if (is_constant() && (c.is_sdpvar() || c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);
             if (!f._cst->is_zero()) {
-                f._cst = multiply(f._cst, *this);
                 if (f._cst->is_function()) {
-                    f.embed(*(func_*)f._cst);
+                    auto fc = (func_*)f._cst;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    f._cst = multiply(f._cst, *this);
                 }
             }
             for (auto &pair:*f._lterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
+                }
+                if (pair.second._coef->_is_transposed) {
+                    pair.second._p->_is_vector = true;
                 }
                 f.update_nb_instances(pair.second);
                 
             }
             for (auto &pair:*f._qterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
+                }
+                if (pair.second._coef->_is_transposed) {
+                    pair.second._p->first->_is_vector = true;
+                    pair.second._p->second->_is_vector = true;
                 }
                 update_nb_instances(pair.second);
             }
             for (auto &pair:*f._pterms) {
-                pair.second._coef = multiply(pair.second._coef, *this);
                 if (pair.second._coef->is_function()) {
-                    f.embed(*(func_*)pair.second._coef);
+                    auto fc = (func_*)pair.second._coef;
+                    *fc = (*this)* (*fc);
+                    f.embed(*fc);
+                }
+                else {
+                    pair.second._coef = multiply(pair.second._coef, *this);
                 }
                 //                update_nb_instances(pair.second); // TODO
             }
@@ -2455,7 +2497,7 @@ namespace gravity{
             f._evaluated = false;
             return *this = move(f);
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             if (c._is_matrix || _is_matrix) {
                 *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c))));
             }
@@ -2466,7 +2508,7 @@ namespace gravity{
             _evaluated = false;
             return *this;
         }
-        if (is_nonlinear() || (c.is_function() && ((func_*)&c)->is_nonlinear())) {
+        if (_expr || (c.is_function() && ((func_*)&c)->_expr)) {
             auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(func_(c)));
             *this = func_(be);
             _evaluated = false;
@@ -2806,13 +2848,13 @@ namespace gravity{
             return *this;
         }
     //    /* Case where the current function is constant and the other operand is not (we go to previous case) */
-        if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
+        if (is_constant() && (c.is_sdpvar() || c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
             func_ f(c);
             f /= *this;
             *this = move(f);
             return *this;
         }
-        if (c.is_param() || c.is_var()) {
+        if (c.is_param() || c.is_var() || c.is_sdpvar()) {
             func_ f(c);
             *this /= f;
             return *this;
@@ -2826,32 +2868,69 @@ namespace gravity{
         return *this;
     }
     
+    void func_::update_nb_ind(){
+        _nb_instances = 0;
+        for (auto &p: *_vars) {
+            if (!p.second.first->_is_vector) {
+                _nb_instances = max(_nb_instances, p.second.first->get_nb_instances());
+            }
+        }
+    }
+    
     void func_::propagate_nb_ind(size_t nb){
-        _nb_instances = nb;
-//        _evaluated = false;
-        if (!_is_matrix) {
-            _dim[0] = _nb_instances;
+        if (!_is_transposed && !_is_vector) {
+            _nb_instances = nb;
+            if (!_is_matrix) {
+                _dim[0] = _nb_instances;
+            }
         }
         for (auto &pair:*_lterms) {
             auto coef = pair.second._coef;
+//            if(coef->is_function() && !coef->_is_transposed){
             if(coef->is_function()){
-                ((func_*)coef)->propagate_nb_ind(nb);
+                if(coef->_is_transposed){
+                    ((func_*)(coef))->_nb_instances = _ids->at(0).size();//TODO: FIX THIS!! encapsulated functions do not have the same _ids
+                    ((func_*)(coef))->_dim[0] = _ids->at(0).size();
+                }
+//                else {
+                    ((func_*)coef)->propagate_nb_ind(nb);
+//                }
             }
         }
         for (auto &pair:*_qterms) {
             auto coef = pair.second._coef;
+//            if(coef->is_function() && !coef->_is_transposed){
             if(coef->is_function()){
-                ((func_*)coef)->propagate_nb_ind(nb);
+                if(coef->_is_transposed){
+                    ((func_*)(coef))->_nb_instances = _ids->at(0).size();
+                    ((func_*)(coef))->_dim[0] = _ids->at(0).size();
+                }
+//                else {
+                    ((func_*)coef)->propagate_nb_ind(nb);
+//                }
             }
         }
         for (auto &pair:*_pterms) {
             auto coef = pair.second._coef;
             if(coef->is_function()){
-                ((func_*)coef)->propagate_nb_ind(nb);
+                if(coef->_is_transposed){
+                    ((func_*)(coef))->_nb_instances = _ids->at(0).size();
+                    ((func_*)(coef))->_dim[0] = _ids->at(0).size();
+                }
+//                else {
+                    ((func_*)coef)->propagate_nb_ind(nb);
+//                }
             }
         }
-        if (_cst->is_function()) {
-            ((func_*)_cst)->propagate_nb_ind(nb);
+//        if (_cst->is_function() && !_cst->_is_transposed) {
+        if(_cst->is_function()){
+            if(_cst->_is_transposed){
+                ((func_*)(_cst))->_nb_instances = _ids->at(0).size();
+                ((func_*)(_cst))->_dim[0] = _ids->at(0).size();
+            }
+//            else {
+                ((func_*)_cst)->propagate_nb_ind(nb);
+//            }
         }
         if (_expr) {
             _expr->propagate_nb_ind(nb);
@@ -2897,12 +2976,12 @@ namespace gravity{
                 auto be = dynamic_pointer_cast<bexpr>(e);
                 auto fl = (func_*)(be->_lson.get());
                 auto fr = (func_*)(be->_rson.get());
-                if (_nb_instances<fl->_nb_instances  && !be->is_inner_product()) {
+                if (_nb_instances<fl->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fl->_dim;
                     _nb_instances = fl->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fl->_nb_instances<_nb_instances) {
+                if (fl->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fl->_dim = _dim ;
                     fl->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -2910,12 +2989,12 @@ namespace gravity{
                 embed(*fl);
 
                 
-                if (_nb_instances<fr->_nb_instances) {
+                if (_nb_instances<fr->_nb_instances  && !fl->_is_vector && !fr->_is_vector) {
                     _dim = fr->_dim;
                     _nb_instances = fr->_nb_instances;
                     //                    _val->resize(_nb_instances);
                 }
-                if (fr->_nb_instances<_nb_instances && !be->is_inner_product()) {
+                if (fr->_nb_instances<_nb_instances && !fl->_is_vector && !fr->_is_vector) {
                     fr->_dim = _dim ;
                     fr->_nb_instances = _nb_instances;
                     //                    _val->resize(_nb_instances);
@@ -2929,12 +3008,12 @@ namespace gravity{
                             _dim[0] = _nb_instances;
                             if (be->_rson->_is_matrix) {//Matrix product
                                 _dim[1] = _nb_instances;
-                                _nb_instances = _dim[0]*_dim[1];
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else if (be->_rson->_is_transposed){
                                 _dim[1] = be->_lson->_dim[1];
-                                _nb_instances = get_dim();
+                                _nb_instances = _dim[0];
                                 _is_matrix = true;
                             }
                             else {
@@ -2983,6 +3062,7 @@ namespace gravity{
                         }
 //                        _is_matrix = be->_lson->_is_matrix && be->_rson->_is_matrix;
                     }
+//                    _nb_instances = get_dim();
 //                    _val->resize(_nb_instances);
                 }
                 break;
@@ -3314,7 +3394,7 @@ namespace gravity{
             if (c_new->is_function()) {
                 embed(*(func_*)c_new);
             }
-            if (p.is_var()) {
+            if (p.is_var() || p.is_sdpvar()) {
                 p_new = get_var(pname);
                 if (!p_new) {
                     p_new = shared_ptr<param_>((param_*)copy(p));
@@ -3532,6 +3612,7 @@ namespace gravity{
             }
             pterm p(sign, c_new, newl);
             update_sign(p);
+            update_nb_instances(p);
             _pterms->insert(make_pair<>(name, move(p)));
             return true;
         }
@@ -3758,6 +3839,12 @@ namespace gravity{
 
     func_ cos(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::cos(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3770,6 +3857,12 @@ namespace gravity{
 
     func_ cos(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::cos(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(cos_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3783,6 +3876,12 @@ namespace gravity{
 
     func_ sin(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sin(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(c))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3795,6 +3894,12 @@ namespace gravity{
 
     func_ sin(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::sin(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._expr = make_shared<uexpr>(uexpr(sin_, make_shared<func_>(func_(move(c)))));
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
@@ -3808,24 +3913,58 @@ namespace gravity{
 
     func_ sqrt(const constant_& c){
         func_ res;
-        res._expr = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+        if (c.is_number()) {
+            res._val->resize(1, std::sqrt(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
+        auto exp = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
         }
         return res;
     };
 
     func_ sqrt(constant_&& c){
         func_ res;
-        res._expr = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
+        if (c.is_number()) {
+            res._val->resize(1, std::sqrt(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
+        auto exp = make_shared<uexpr>(uexpr(sqrt_, make_shared<func_>(func_(move(c)))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            auto exp = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
+            res._expr = exp;
+            res.embed(res._expr);
+            //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
+            res._queue->push_back(res._expr);
+            if (!res._vars->empty()) {
+                res._ftype = nlin_;
+                if (exp->_son->is_concave()) {
+                    res._all_convexity = concave_;
+                }
+                else {
+                    res._all_convexity = undet_;
+                }
+            }
         }
         return res;
     };
@@ -3833,6 +3972,12 @@ namespace gravity{
 
     func_ expo(const constant_& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::exp(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._is_vector = c._is_vector;
         res._is_matrix = c._is_matrix;
         res._is_transposed = c._is_transposed;
@@ -3857,6 +4002,12 @@ namespace gravity{
 
     func_ expo(constant_&& c){
         func_ res;
+        if (c.is_number()) {
+            res._val->resize(1, std::exp(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
         res._is_vector = c._is_vector;
         res._is_matrix = c._is_matrix;
         res._is_transposed = c._is_transposed;
@@ -3882,26 +4033,54 @@ namespace gravity{
 
     func_ log(const constant_& c){
         func_ res;
-        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
+        if (c.is_number()) {
+            res._val->resize(1, std::log(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
+        
+        
+        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(c))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
+        
         if (!res._vars->empty()) {
             res._ftype = nlin_;
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
         }
         return res;
     };
 
     func_ log(constant_&& c){
         func_ res;
-        res._expr = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
+        if (c.is_number()) {
+            res._val->resize(1, std::log(poly_eval(&c)));
+        }
+        else {
+            res._evaluated = false;
+        }
+        auto exp = make_shared<uexpr>(uexpr(log_, make_shared<func_>(func_(move(c)))));
+        res._expr = exp;
         res.embed(res._expr);
 //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
-        }   
-
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
+            }
+        }
         return res;
     };
     
@@ -4064,6 +4243,8 @@ namespace gravity{
         _rson = rson;
         _type = bexp_c;
         _to_str = to_str();
+        _dim = lson->_dim;
+        _dim[0] = max(_dim[0], rson->_dim[0]);
     };
 
     bexpr::bexpr(const bexpr& exp){ /**< Copy constructor from binary expression tree */
@@ -4312,6 +4493,133 @@ namespace gravity{
         return "null";
     }
     
+    string poly_to_str(const constant_* c, size_t inst1, size_t inst2){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
+        
+        if (!c) {
+            return "null";
+        }
+        switch (c->get_type()) {
+            case binary_c: {
+                return ((constant<bool>*)(c))->to_str();
+                break;
+            }
+            case short_c: {
+                return ((constant<short>*)(c))->to_str();
+                break;
+            }
+            case integer_c: {
+                return ((constant<int>*)(c))->to_str();
+                break;
+            }
+            case float_c: {
+                return ((constant<float>*)(c))->to_str();
+                break;
+            }
+            case double_c: {
+                return ((constant<double>*)(c))->to_str();
+                break;
+            }
+            case long_c: {
+                return ((constant<long double>*)(c))->to_str();
+                break;
+            }
+            case par_c:{
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((param<bool>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case short_:
+                        return ((param<short>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case integer_:
+                        return ((param<int>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case float_:
+                        return ((param<float>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case double_:
+                        return ((param<double>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    case long_:
+                        return ((param<long double>*)p_c)->to_str(inst1,inst2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case uexp_c: {
+                return ((uexpr*)c)->to_str(inst2);
+                break;
+            }
+            case bexp_c: {
+                return ((bexpr*)c)->to_str(inst2);
+                break;
+            }
+            case var_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((var<bool>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case short_:
+                        return ((var<short>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case integer_:
+                        return ((var<int>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case float_:
+                        return ((var<float>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case double_:
+                        return ((var<double>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    case long_:
+                        return ((var<long double>*)p_c)->get_name(inst1,inst2);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+                
+            case sdpvar_c: {
+                auto p_c = (param_*)(c);
+                switch (p_c->get_intype()) {
+                    case binary_:
+                        return ((sdpvar<bool>*)p_c)->get_name();
+                        break;
+                    case short_:
+                        return ((sdpvar<short>*)p_c)->get_name();
+                        break;
+                    case integer_:
+                        return ((sdpvar<int>*)p_c)->get_name();
+                        break;
+                    case float_:
+                        return ((sdpvar<float>*)p_c)->get_name();
+                        break;
+                    case double_:
+                        return ((sdpvar<double>*)p_c)->get_name();
+                        break;
+                    case long_:
+                        return ((sdpvar<long double>*)p_c)->get_name();
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            case func_c: {
+                return ((func_*)c)->to_str(inst2);
+                break;
+            }
+            default:
+                break;
+        }
+        return "null";
+    }
+    
     string poly_to_str(const constant_* c, size_t inst){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
         
         if (!c) {
@@ -4514,65 +4822,7 @@ namespace gravity{
 //    };
     
     double  bexpr::eval(ind i, ind j) const{
-//        if (_lson->is_constant() && !_lson->_evaluated) {
-//            unsigned index = 0;
-//            _lson->_val->resize(_lson->_nb_instances);
-//            if (_lson->_is_matrix) {
-//                for (unsigned row = 0; row<_lson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _lson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _lson->_dim[1]*row + col;
-//                        }
-//                        _lson->_val->at(index) = _lson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_lson->_nb_instances; row++) {
-//                    _lson->_val->at(index) = _lson->eval(index);
-//                }
-//            }
-//            _lson->_evaluated = true;
-//        }
-//        if (_rson->is_constant() && !_rson->_evaluated) {
-//            _rson->_val->resize(_rson->_nb_instances);
-//            unsigned index = 0;
-//            if (_rson->_is_matrix) {
-//                for (unsigned row = 0; row<_rson->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_rson->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _rson->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _rson->_dim[1]*row + col;
-//                        }
-//                        _rson->_val->at(index) = _rson->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (unsigned row = 0; row<_rson->_nb_instances; row++) {
-//                    _rson->_val->at(index) = _rson->eval(index);
-//                }
-//            }
-//            _rson->_evaluated = true;
-//        }
-//        Real lval = 0, rval = 0;
-//        if (_lson->is_number()) {
-//            lval = _lson->_val->at(0);
-//        }
-//        else {
-//            lval = _lson->get_val(i,j);
-//        }
-//        if (_rson->is_number()) {
-//            rval = _rson->_val->at(0);
-//        }
-//        else {
-//            rval = _rson->get_val(i,j);
-//        }
+
         switch (_otype) {
             case plus_:
                 return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
@@ -4610,7 +4860,219 @@ namespace gravity{
         }
         
     }
+    
+    void func_::eval_vector() {
+        try {
+            if (_val->size()<_nb_instances) {
+                _val->resize(_nb_instances);
+            }
+            if (is_constant() && !_expr && _params->size()==1) { // This is a parameter
+                auto p_c = (*_params->begin()).second.first;
+                switch (p_c->get_intype()) {
+                    case binary_:{
+                        auto p = ((param<bool>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                                set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case short_:{
+                        auto p = ((param<short>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case integer_:{
+                        auto p = ((param<int>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case float_:{
+                        auto p = ((param<float>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case double_:{
+                        auto p = ((param<double>*)p_c.get());
+    //                    _val = p->get_vals();
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    case long_:{
+                        auto p = ((param<long double>*)p_c.get());
+                        for (int i = 0; i < _nb_instances; i++) {
+                            set_val(i,p->eval(i));
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                _evaluated = true;
+                return;
+            }
+        }
+        catch (const std::out_of_range& e) {
+            cout << "Out of Range before eval.";
+        }
 
+//        else {
+        int inst = 0;
+//        try {
+            for (inst = 0; inst < _nb_instances; inst++) {
+                eval(inst);
+            }
+//        }
+//        catch (const std::out_of_range& e) {
+//            cout << "Out of Range error at inst = " << inst << endl;
+//        }
+        
+//        }
+    }
+
+    void func_::eval_matrix() {
+        _val->resize((_dim[0]*_dim[1]));
+        if (is_constant() && !_expr && _params->size()==1) { // This is a parameter
+            auto p_c = (*_params->begin()).second.first;
+            switch (p_c->get_intype()) {
+                case binary_:{
+                    auto p = ((param<bool>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case short_:{
+                    auto p = ((param<short>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case integer_:{
+                    auto p = ((param<int>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case float_:{
+                    auto p = ((param<float>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case double_:{
+                    auto p = ((param<double>*)p_c.get());
+//                    _val = p->get_vals();
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                case long_:{
+                    auto p = ((param<long double>*)p_c.get());
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            set_val(i,j,p->eval(i, j));
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            _evaluated = true;
+            return;
+        }
+        
+        auto be = (bexpr*)_expr.get();
+        if (be->_otype==product_ && _lterms->empty() && _pterms->empty() && _qterms->empty()) {//Pure product
+                if (be->_lson->_is_matrix && be->_rson->_is_matrix) {
+                //matrix product
+                if (!_is_hessian) {
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = 0; j < _dim[1]; j++) {
+                            auto res = 0.;
+                            for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                                res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                            }
+                            set_val(i,j, be->_coef*res);
+                        }
+                    }
+                }
+                else {
+                    for (int i = 0; i < _dim[0]; i++) {
+                        for (int j = i; j < _dim[1]; j++) {
+                            auto res = 0.;
+                            for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                                res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                            }
+                            set_val(i,j, be->_coef*res);
+                        }
+                    }
+                }
+                return;
+            }
+            if (be->_lson->_is_matrix && !be->_rson->_is_matrix && be->_rson->_is_transposed) {//matrix * transposed vect
+                for (int i = 0; i < _dim[0]; i++) {
+                    for (int j = 0; j < _dim[1]; j++) {
+                        set_val(i,j, be->_coef*be->_lson->get_val(i,j) * be->_rson->get_val(j));
+                    }
+                }
+                return;
+            }
+            if (!be->_lson->_is_matrix && !be->_lson->_is_transposed && be->_rson->_is_matrix ) {//vect * matrix
+                for (int i = 0; i < _dim[0]; i++) {
+                    for (int j = 0; j < _dim[1]; j++) {
+                        set_val(i,j, be->_coef*(be->_lson->get_val(i) * be->_rson->get_val(i,j)));
+                    }
+                }
+                return;
+            }
+        }
+        if (!_is_hessian) {
+            for (int i = 0; i < _dim[0]; i++) {
+                for (int j = 0; j < _dim[1]; j++) {
+                    auto res = 0.;
+                    for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                        res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                    }
+                    eval(i,j);
+                }
+            }
+        }
+        else {
+            for (int i = 0; i < _dim[0]; i++) {
+                for (int j = i; j < _dim[1]; j++) {
+                    auto res = 0.;
+                    for (unsigned col = 0; col<be->_lson->_dim[1]; col++) {
+                        res += be->_lson->get_val(i,col) * be->_rson->get_val(col,j);
+                    }
+                    eval(i,j);
+                }
+            }
+        }
+    }
+    
     double  bexpr::eval(ind i) const{
 //        if (_lson->is_constant() && !_lson->_evaluated) {
 //            _lson->_val->resize(_lson->_nb_instances);//TODO what if son is a matrix?
@@ -4730,7 +5192,7 @@ namespace gravity{
                 return res;
             }
             else {
-                return func_(c2) *= c1;
+                return func_(c1) *= c2;
             }
         }
         else {
@@ -4742,12 +5204,12 @@ namespace gravity{
 ////                delete new_c2;
 //                return func_(c1) *= c2;
 //            }
-            if (c2.is_var()) {
-                return func_(c2) *= c1;
-            }
-            else {
+//            if (c2.is_var()) {
+//                return func_(c2) *= c1;
+//            }
+//            else {
                 return func_(c1) *= c2;
-            }
+//            }
         }
     }
 
@@ -5516,58 +5978,87 @@ namespace gravity{
         constant_* c_new = _coef;
         param_* p_new1 = (param_*)_p->first;
         param_* p_new2 = (param_*)_p->second;
-        if (c_new->is_number()){
-            string v = poly_to_str(c_new);
-            if (_sign) {
-                if (v=="-1") {
-                    str += " - ";
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new1->get_nb_instances(inst);
+        }
+        for (unsigned idx = 0; idx <dim; idx++) {
+            if (c_new->is_number()){
+                string v;
+                if (c_new->_is_transposed) {
+                    v = poly_to_str(c_new,idx);
                 }
-                else if (ind>0) {
-                    str += " + ";
-                    if(v!="1") {
+                else{
+                    v = poly_to_str(c_new,inst);
+                }
+                
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else if (idx>0 || ind>0) {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                    else if(v!="1") {
                         str += v;
                     }
                 }
-                else if(v!="1") {
-                    str += v;
-                }
-            }
-            if(!_sign) {
-                if (v == "-1" && ind>0) {
-                    str += " + ";
-                }
-                else if (v.front()=='-'){
-                    if (ind > 0) {
+                if(!_sign) {
+                    if (v == "-1" && (idx>0 || ind>0)) {
                         str += " + ";
                     }
-                    str += v.substr(1);
+                    else if (v.front()=='-'){
+                        if (ind > 0) {
+                            str += " + ";
+                        }
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
                 }
-                else if (v=="1"){
+            }
+            else{
+                if (!_sign) {
                     str += " - ";
                 }
-                else if(v!="-1"){
-                    str += " - " + v;
+                if((ind > 0 || idx >0) && _sign) {
+                    str += " + ";
+                }
+                str += "(";
+                if (c_new->_is_transposed) {
+                    str += poly_to_str(c_new, idx);
+                }
+                else{
+                    str += poly_to_str(c_new, inst);
+                }
+                str += ")";
+            }
+            if (c_new->_is_transposed) {
+                str += poly_to_str(p_new1, idx);
+            }
+            else{
+                str += poly_to_str(p_new1, inst);
+            }
+        
+            if (p_new1==p_new2) {
+                str += "^2";
+            }
+            else {
+                str += "*";
+                if (c_new->_is_transposed) {
+                    str += poly_to_str(p_new2, idx);
+                }
+                else{
+                    str += poly_to_str(p_new2, inst);
                 }
             }
-        }
-        else{
-            if (!_sign) {
-                str += " - ";
-            }
-            if(ind > 0 && _sign) {
-                str += " + ";
-            }
-            str += "(";
-            str += poly_to_str(c_new, inst);
-            str += ")";
-        }
-        str += poly_to_str(p_new1, inst);
-        if (p_new1==p_new2) {
-            str += "^2";
-        }
-        else {
-            str += "*";
-            str += poly_to_str(p_new2, inst);
         }
         return str;
     }
@@ -5635,52 +6126,69 @@ namespace gravity{
         string str;
         constant_* c_new = _coef;
         param_* p_new = (param_*)_p;
-        if (c_new->is_number()){
-            string v = poly_to_str(c_new);
-            if (_sign) {
-                if (v=="-1") {
-                    str += " - ";
-                }
-                else if (ind>0) {
-                    str += " + ";
-                    if(v!="1") {
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new->get_nb_instances(inst);
+        }
+        for (unsigned idx = 0; idx <dim; idx++) {
+            if (c_new->is_number()){
+                string v;
+                v = poly_to_str(c_new);
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else if (idx>0 || ind>0) {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                    else if(v!="1") {
                         str += v;
                     }
                 }
-                else if(v!="1") {
-                    str += v;
-                }
-            }
-            if(!_sign) {
-                if (v == "-1" && ind>0) {
-                    str += " + ";
-                }
-                else if (v.front()=='-'){
-                    if (ind > 0) {
+                if(!_sign) {
+                    if (v == "-1" && (idx>0 || ind>0)) {
                         str += " + ";
                     }
-                    str += v.substr(1);
+                    else if (v.front()=='-'){
+                        if (ind > 0 || idx >0) {
+                            str += " + ";
+                        }
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
                 }
-                else if (v=="1"){
+            }
+            else{
+                if (!_sign) {
                     str += " - ";
                 }
-                else if(v!="-1"){
-                    str += " - " + v;
+                if((ind > 0 || idx >0) && _sign) {
+                    str += " + ";
                 }
+                str += "(";
+                if (c_new->_is_transposed) {
+                    str += poly_to_str(c_new, inst, idx);
+                }
+                else{
+                    str += poly_to_str(c_new, inst);
+                }
+                str += ")";
+            }
+            if (c_new->_is_transposed) {
+                str += poly_to_str(p_new, inst, idx);
+            }
+            else{
+                str += poly_to_str(p_new, inst);
             }
         }
-        else{
-            if (!_sign) {
-                str += " - ";
-            }
-            if(ind > 0 && _sign) {
-                str += " + ";
-            }
-            str += "(";
-            str += poly_to_str(c_new, inst);
-            str += ")";
-        }
-        str += poly_to_str(p_new, inst);
         return str;
     }
 
@@ -5772,20 +6280,35 @@ namespace gravity{
         }
         for (auto &lt: *_qterms) {
             if (*lt.second._p->first == v) {
+                auto coef = copy(*lt.second._coef);
+                if (coef->_is_vector || coef->_is_matrix) {
+                    coef->transpose();
+                }
                 if(lt.second._sign) {
-                    res += *lt.second._coef*(*lt.second._p->second);
+                    res += *coef*(*lt.second._p->second);
                 }
                 else {
-                    res -= *lt.second._coef*(*lt.second._p->second);
+                    res -= *coef*(*lt.second._p->second);
                 }
+                delete coef;
             }
             if (*lt.second._p->second == v) {
+                auto coef = copy(*lt.second._coef);
+                if (coef->_is_vector || coef->_is_matrix) {
+                    coef->transpose();
+                }
                 if(lt.second._sign) {
-                    res += *lt.second._coef*(*lt.second._p->first);
+                    res += *coef*(*lt.second._p->first);
                 }
                 else {
-                    res -= *lt.second._coef*(*lt.second._p->first);
+                    res -= *coef*(*lt.second._p->first);
                 }
+                delete coef;
+            }
+            if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
+                res._is_vector = true;
+                res._nb_instances = lt.second._coef->get_nb_instances();
+                res._dim = lt.second._coef->_dim;
             }
         }
         for (auto &lt: *_pterms) {
@@ -5841,6 +6364,9 @@ namespace gravity{
 //            if (i>=_val->size()) {
 //                throw invalid_argument("error");
 //            }
+        if (_val->size()<=i){
+            throw invalid_argument("Func get_val out of range");
+        }
             return _val->at(i);
 //        }
     }
@@ -5894,16 +6420,17 @@ namespace gravity{
 //    }
 
     double func_::eval(size_t i, size_t j){
-        if (_val->size()!=_nb_instances) {
+        if (_val->size()<_nb_instances) {
             _val->resize(_nb_instances);
         }
-        if (!_is_matrix) {
+        if (!_is_matrix && (!_ids || _ids->size()==1)) {
+//            if (!_is_matrix) {
 //            if (_is_transposed) {
 //                return eval(i);
 //            }
-            
             return eval(j);
         }
+        
         if (is_constant() && _evaluated) {
             if (is_number()) {
                 return _val->at(0);
@@ -5933,13 +6460,29 @@ namespace gravity{
             _val->at(0) = res;
         }
         else {
+            if (is_constant()) {
+                if (_is_transposed) {
+                    if(_dim[0]*j + i ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                    
+                }
+                else {
+                    if(_dim[1]*i + j ==_val->size()-1){
+                        _evaluated = true;
+                    }
+                }
+                
+            }
             set_val(i,j,res);
         }
         return res;
     }
     
     double func_::eval(size_t i){
-        _val->resize(_nb_instances);
+        if (_val->size()<_nb_instances) {
+            _val->resize(_nb_instances);
+        }
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
@@ -5952,6 +6495,9 @@ namespace gravity{
 //            }
 //            if (_val->at(i) != force_eval(i)) {
 //                throw invalid_argument("error");
+//            }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Func eval out of range");
 //            }
             return _val->at(i);
         }
@@ -5967,24 +6513,24 @@ namespace gravity{
         }
         res += poly_eval(_cst,i);        
         if (_expr) {
-            if (_expr->is_uexpr()) {
-                auto ue = (uexpr*)_expr.get();
-//                if (ue->_son->is_constant()) {
-                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
-//                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
+//            if (_expr->is_uexpr()) {
+//                auto ue = (uexpr*)_expr.get();
+////                if (ue->_son->is_constant()) {
+////                _nb_instances = max(_nb_instances, ue->_son->_nb_instances);
+////                    _val->resize(max(_val->size(),ue->_son->_nb_instances));//TODO is this necessary?
+////                }
+//
+//            }
+//            else {
+//                auto be = (bexpr*)_expr.get();
+//                if(!be->is_inner_product()) {
+//                    _nb_instances = max(_nb_instances, max(be->_lson->_nb_instances,be->_rson->_nb_instances));
 //                }
-
-            }
-            else {
-                auto be = (bexpr*)_expr.get();
-                if(!be->is_inner_product()) {
-                    _nb_instances = max(_nb_instances, max(be->_lson->_nb_instances,be->_rson->_nb_instances));
-                }
-//                if (be->_lson->is_constant() && be->_rson->is_constant()) {
-//                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
-//                }
-
-            }
+////                if (be->_lson->is_constant() && be->_rson->is_constant()) {
+////                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
+////                }
+//
+//            }
             res += _expr->eval(i);
         }
         if (is_number()) {
@@ -5998,6 +6544,9 @@ namespace gravity{
             if (is_constant() && i==_val->size()-1) {
                 _evaluated = true;
             }
+//            if (_val->size()<=i){
+//                throw invalid_argument("Param eval out of range");
+//            }
             _val->at(i) = res;
         }
         return res;
@@ -6061,6 +6610,10 @@ namespace gravity{
             }
 //            str += "\n";
 //        }
+//        str += "["+to_string(_nb_instances)+"]";
+//        if (_dfdx->size()>0) {
+//            str+= "_has_deriv";
+//        }        
         return str;
     }
 
@@ -6077,10 +6630,10 @@ namespace gravity{
             if (!_embedded && !is_constant()) {
                 str += "f(";
                 for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-                    //                if (!pair_it->second.first->_is_vector) {
-                    //                        str += pair_it->second.first->get_name();
-                    str += pair_it->second.first->get_name()+"[";
-                    str += to_string(pair_it->second.first->get_id_inst())+"]";
+//                    if (!pair_it->second.first->_is_vector) {
+                    str += pair_it->second.first->get_name();
+//                    str += pair_it->second.first->get_name()+"[";
+//                    str += to_string(pair_it->second.first->get_id_inst())+"]";
                     if (next(pair_it) != _vars->end()) {
                         str += ",";
                     }
@@ -6091,6 +6644,7 @@ namespace gravity{
             }
         }
         str += to_str();
+        _to_str = str;
         cout << this->_to_str;
         if (endline)
             cout << endl;
@@ -6099,8 +6653,11 @@ namespace gravity{
     string func_::to_str(size_t index) const{
         string str;
         if (is_constant()) {
-            if (_ids && !_ids->empty()) {
-                str += to_string(_val->at(_ids->at(index)));
+            if (is_number()) {
+                str += poly_to_str(_cst);
+            }
+            else if (_ids && _ids->at(0).size()>1) {
+                str += to_string(_val->at(_ids->at(0).at(index)));
             }
             else {
                 str += to_string(_val->at(index));
@@ -6171,10 +6728,13 @@ namespace gravity{
     }
     
     void func_::print_expanded(){
+        
         auto nb_inst = get_nb_instances();
         for (unsigned inst = 0; inst<nb_inst; inst++) {
+            eval(inst);
             print(inst);
         }
+        cout << endl;
     }
 
     /* UNARY EXPRESSIONS */
@@ -6592,17 +7152,17 @@ namespace gravity{
     }
     
     size_t func_::get_nb_vars() const{
-        return _nb_vars;
-//        size_t n = 0;
-//        for (auto &p: *_vars) {
-//            if (p.second.first->_is_vector) {
-//                n += p.second.first->get_dim();
-//            }
-//            else {
-//                n += 1;
-//            }
-//        }
-//        return n;
+//        return _nb_vars;
+        size_t n = 0;
+        for (auto &p: *_vars) {
+            if (p.second.first->_is_vector) {
+                n += p.second.first->get_dim();
+            }
+            else {
+                n += 1;
+            }
+        }
+        return n;
     }
 
 
@@ -6634,360 +7194,6 @@ namespace gravity{
             return get<1>(*pair_it).first;
         }
     }
-    
-//    template<typename Tobj>
-//    func_& func_::in(const vector<Tobj*>& vec) {
-//        _nb_vars = 0;
-//        _nb_instances = 0;
-//        string key;
-//        auto iter = _vars->begin();
-//        auto pair = (*iter++);
-//        auto vf = pair.second.first;
-//        while(iter != _vars->end() && get<1>(vf->_unique_id)!=unindexed_){//Find unindexed variable in constraint, they will both have the same indexing.
-//            auto pair = (*iter++);
-//            vf = pair.second.first;
-//        }
-//        if(iter==_vars->end()){
-//            throw invalid_argument("Both constraints and variables are indexed, check your indexing!");
-//        }
-//        if (!vf->_is_vector) {// i.e., it is not transposed
-//            _nb_instances = max(_nb_instances, vf->_nb_instances);
-//            _nb_vars++;
-//        }
-//        else {
-//            _nb_vars += vf->get_dim();
-//        }
-//        switch (vf->get_intype()) {
-//            case binary_:{
-//                auto vv = ((var<bool>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case short_:{
-//                auto vv = ((var<short>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case integer_:{
-//                auto vv = ((var<int>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case float_:{
-//                auto vv = ((var<float>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case double_:{
-//                auto vv = ((var<double>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            case long_:{
-//                auto vv = ((var<long double>*)vf.get());
-//                *vv = vv->in(vec);
-//                _ids = vv->get_ids();
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        iter = _vars->begin();
-//        while (iter!=_vars->end()) {
-//            auto pair = (*iter++);
-//            auto v = pair.second.first;
-//            if(v==vf){
-//                continue;
-//            }
-//            switch (v->get_intype()) {
-//                case binary_:{
-//                    auto vv = ((var<bool>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case short_:{
-//                    auto vv = ((var<short>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//
-//                    break;
-//                }
-//                case integer_:{
-//                    auto vv = ((var<int>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case float_:{
-//                    auto vv = ((var<float>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case double_:{
-//                    auto vv = ((var<double>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                case long_:{
-//                    auto vv = ((var<long double>*)v.get());
-//                    if(get<1>(v->_unique_id)==unindexed_){
-//                        vv->_ids = _ids;
-//                        if(vec.empty()){
-//                            vv->_name += ".in_empty";
-//                        }
-//                        else {
-//                            vv->_name += ".in_" + vec.front()->_type_name;
-//                        }
-//                        vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                        vv->_is_indexed = true;
-//                    }
-//                    else if(get<1>(v->_unique_id)==from_){
-//                        *vv = vv->from(vec);
-//                    }
-//                    else if(get<1>(v->_unique_id)==to_){
-//                        *vv = vv->to(vec);
-//                    }
-//                    break;
-//                }
-//                default:
-//                    break;
-//                }
-//                v->_dim = v->_nb_instances;// WRONG?
-//                if (!v->_is_vector) {// i.e., it is not transposed
-//                    _nb_instances = max(_nb_instances, v->_nb_instances);
-//                    _nb_vars++;
-//                }
-//                else {
-//                    _nb_vars += v->get_dim();
-//                }
-//            }
-//            iter = _params->begin();
-//            while (iter!=_params->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((param<bool>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((param<short>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((param<int>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((var<float>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((param<double>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((param<long double>*)v.get());
-//                        if(get<1>(v->_unique_id)==unindexed_){
-//                            vv->_ids = _ids;
-//                            if(vec.empty()){
-//                                vv->_name += ".in_empty";
-//                            }
-//                            else {
-//                                vv->_name += ".in_" + vec.front()->_type_name;
-//                            }
-//                            vv->_unique_id = make_tuple<>(vv->_id,in_, typeid(Tobj).hash_code(), v->get_id_inst(0),vv->get_id_inst(vv->get_dim()));
-//                            vv->_is_indexed = true;
-//                        }
-//                        else if(get<1>(v->_unique_id)==from_){
-//                            *vv = vv->from(vec);
-//                        }
-//                        else if(get<1>(v->_unique_id)==to_){
-//                            *vv = vv->to(vec);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                v->_dim = v->_nb_instances;
-//            }
-//        return *this;
-//    }
-
-//    template func_& func_::in<Arc>(const vector<Arc*>& vec);
-//    template func_& func_::in<Gen>(const vector<Gen*>& vec);
-//    template func_& func_::in<index_pair>(const vector<index_pair*>& vec);
     
     void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         if (_vars->count(v->get_name())!=0) {
@@ -7116,6 +7322,11 @@ namespace gravity{
         return (_all_convexity==convex_ || _all_convexity==linear_);
     }
 
+    bool func_::is_concave() const{
+        return (_all_convexity==concave_ || _all_convexity==linear_);
+    }
+
+    
     bool func_::is_convex(int idx) const{
         return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
     };
@@ -7415,13 +7626,33 @@ namespace gravity{
     template<typename type>
     func_ sum(const param<type>& p){
         func_ res;
-        if (p.get_dim()==0 || p.is_zero()) {
+        if (p.get_dim()==0) {
             return res;
         }
         if (p.is_param()) {
             return constant<double>(1).tr()*p.vec();
         }
         return constant<double>(1).tr()*(*(var<type>*)&p).vec();
+    }
+    
+    func_ product(const func_& f1, const func_& f2){
+        func_ res;
+        //        if (p1.get_dim()==0 || p1.is_zero() || f.constant_::is_zero()) {//TODO fix is_zero functions
+        if (f1.get_dim()==0) {
+            return res;
+        }
+        if (f1._is_matrix) {// No need to transpose matrix
+            if (f1.get_dim(1)!=f2.get_dim(0)) {
+                throw invalid_argument("In Function: func_ product(const func_& f1, const func_& f2), f1 and f2 have imcompatible rows/columns, check dimensions.\n");
+            }
+            res = f1*f2;
+        }
+        else {
+            res =  f1.tr()*f2.vec();
+        }
+        res._nb_instances = 1;
+        res._dim[0] = 1;
+        return res;
     }
     
     template<typename type>
@@ -7442,7 +7673,9 @@ namespace gravity{
         }
         else {
             res = (*(var<type>*)&p1).vec()*f.vec();
-        }        
+        }
+        res._nb_instances = 1;
+        res._dim[0] = 1;
         return res;
     }
     
@@ -7512,19 +7745,21 @@ namespace gravity{
             _all_convexity = undet_;
             return;
         }
-        if (_qterms->empty()) {
+        if (_qterms->empty() && !_expr) {
             _all_convexity = linear_;
             return;
         }
-        _all_convexity = get_convexity(_qterms->begin()->second);
-        for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-            Convexity conv = get_convexity(pair_it->second);
-            if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
-                _all_convexity = undet_;
-                return;
-            }
-            else {
-                _all_convexity = conv;
+        if (!_qterms->empty() && !_expr) {
+            _all_convexity = get_convexity(_qterms->begin()->second);
+            for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+                Convexity conv = get_convexity(pair_it->second);
+                if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+                    _all_convexity = undet_;
+                    return;
+                }
+                else {
+                    _all_convexity = conv;
+                }
             }
         }
     }

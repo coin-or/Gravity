@@ -4,8 +4,18 @@ CplexProgram::CplexProgram(Model* m) {
     _cplex_env = new IloEnv();
     _cplex_model = new IloModel(*_cplex_env);
     _model = m;
+    m->fill_in_maps();
+    m->compute_funcs();
 }
 
+void CplexProgram::update_model(){
+    _model->fill_in_maps();
+    _model->reset_funcs();
+    _model->compute_funcs();
+    fill_in_cplex_vars();
+    create_cplex_constraints();
+    set_cplex_objective();
+}
 
 CplexProgram::~CplexProgram() {
     delete _cplex_model;
@@ -45,10 +55,13 @@ bool CplexProgram::solve(bool relax) {
         _model->_obj_val = cplex.getObjValue();
 
         for (auto i = 0; i < _cplex_vars.size(); i++) {
-            IloNumArray vals(*_cplex_env);
-            cplex.getValues(vals,_cplex_vars[i]);
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
-                poly_set_val(j, vals[j], _model->_vars[i]);
+                if(cplex.isExtracted(_cplex_vars[i][j])){
+                    poly_set_val(j, cplex.getValue(_cplex_vars[i][j]), _model->_vars[i]);
+                }
+                else {
+                    poly_set_val(j, 0, _model->_vars[i]);
+                }
             }
         }
     }
@@ -58,7 +71,7 @@ bool CplexProgram::solve(bool relax) {
     catch (...) {
         cerr << "Error" << endl;
     }
-    _cplex_env->end();
+//    _cplex_env->end();
     return 0;
 }
 
@@ -69,6 +82,10 @@ void CplexProgram::fill_in_cplex_vars() {
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second;
+        if (!v->_new) {
+            continue;//Variable already added to the program
+        }
+        v->_new = false;
         vid = v->get_vec_id();
         if( vid == -1) {
             throw invalid_argument("Variable needs to be added to model first: use add_var(v) function:" + v->get_name());
@@ -147,6 +164,10 @@ void CplexProgram::fill_in_cplex_vars() {
 }
 
 void CplexProgram::set_cplex_objective() {
+    if (!_model->_obj._new) {
+        return;//Objective already added to the program
+    }
+    _model->_obj._new = false;
     size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
     IloNumExpr obj(*_cplex_env);
     for (auto& it_qterm: _model->_obj.get_qterms()) {
@@ -209,6 +230,10 @@ void CplexProgram::create_cplex_constraints() {
     Constraint* c;
     for(auto& p: _model->_cons) {
         c = p.second.get();
+        if (!c->_new) {
+            continue;//Constraint already added to the program
+        }
+        c->_new = false;
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
@@ -221,9 +246,9 @@ void CplexProgram::create_cplex_constraints() {
                 idx1 = it_qterm.second._p->first->get_vec_id();
                 idx2 = it_qterm.second._p->second->get_vec_id();
                 if (it_qterm.second._coef->_is_transposed) {
-                    auto dim = it_qterm.second._p->first->get_dim();
+                    auto dim = it_qterm.second._p->first->get_dim(i);
                     for (int j = 0; j<dim; j++) {
-                        qterm += poly_eval(it_qterm.second._coef,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
+                        qterm += poly_eval(it_qterm.second._coef,i,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(i,j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(i,j)];
                     }
                 }
                 else {                    
@@ -242,9 +267,9 @@ void CplexProgram::create_cplex_constraints() {
                 IloNumExpr lterm(*_cplex_env);
                 idx = it_lterm.second._p->get_vec_id();
                 if (it_lterm.second._coef->_is_transposed) {
-                    auto dim = it_lterm.second._p->get_dim();
+                    auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j<dim; j++) {
-                        lterm += poly_eval(it_lterm.second._coef,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(j)];
+                        lterm += poly_eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
                     }                    
                 }
                 else {
@@ -270,7 +295,7 @@ void CplexProgram::create_cplex_constraints() {
             }
             inst++;
         }
-    }
+    }    
 }
 
 void CplexProgram::prepare_model() {

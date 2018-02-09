@@ -4,12 +4,11 @@
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
 #endif
-#include <Gravity/model.h>
 #include <gravity/model.h>
 using namespace gravity;
 
 
-class GurobiProgram {
+class GurobiProgram: public Program{
 private:
 
     GRBModel* grb_mod;
@@ -26,6 +25,7 @@ public:
     bool solve(bool relax);
     void prepare_model();
     void update_model();
+    void update_solution();
     void relax_model();
 
     void fill_in_grb_vmap();

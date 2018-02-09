@@ -26,6 +26,7 @@ typedef enum { ACPOL, ACRECT, QC, QC_SDP, OTS, DF, SOCP, SDP, DC, QC_OTS_L, QC_O
 class PowerNet: public Net {
 
 public:
+    bool add_3d_nlin = true;
     string ref_bus;
     double bMVA; /**< Base MVA */
     double bV; /**< Base Voltage */
@@ -59,6 +60,10 @@ public:
     unsigned get_nb_active_bus_pairs() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
-    void time_expand(unsigned T); /* < Time expansion of the grid parameters */    
+    void time_expand(unsigned T); /* < Time expansion of the grid parameters */
+    void update_net();
+    
+    /** Power Models */
+    double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
 };
 #endif

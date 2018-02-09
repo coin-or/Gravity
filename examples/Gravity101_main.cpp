@@ -394,9 +394,6 @@ int main (int argc, const char * argv[])
     SOC =  power(x, 2) + power(y, 2);
     SOC.in(bus_pairs) <= 0;
     SOC.print();
-    if (SOC.is_convex()) {
-        DebugOn("SOC is convex function" << endl);
-    }
 
     
 //    auto cc = p*p + q*q;
@@ -420,7 +417,7 @@ int main (int argc, const char * argv[])
     
     /* Declare model */
     Model SOCP("Second-Order Cone Model");
-    SOCP.add_var(x^10); /* Will add a vector of size 10 representing variables named x */
+    SOCP.add_var(x.in(R(10))); /* Will add a vector of size 10 representing variables named x */
     SOCP.add_constraint(SOC.in(bus_pairs) <= 0); /* Will add second-order constraints indexed by bus_pairs (see previous Code Block) */
     SOCP.min(x+2*y); /* Declaring the objective function */
     return 0;

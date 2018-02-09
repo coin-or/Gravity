@@ -13,6 +13,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <memory>
 #include <assert.h>
 #include <gravity/types.h>
 #include <gravity/Node.h>
@@ -31,7 +32,10 @@ public:
     std::vector<Arc*> arcs;
     
     /** Set of bus pairs */
-    gravity::node_pairs _bus_pairs; 
+    gravity::node_pairs _bus_pairs;
+
+    /** Set of bus pairs in the chordal completion */
+    gravity::node_pairs _bus_pairs_chord;
     
     /** Mapping the directed arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     std::map<std::string, std::set<Arc*>*> arcID;
@@ -137,6 +141,10 @@ public:
     Net* get_clique_tree_prim(); // return a tree rooted at the first node of the graph.
     
     /** Linear algebra based methods based on Armadillo*/
-    void chol_decompose(bool print=false); 
+    void chol_decompose(bool print=false);
+
+    Arc *get_directed_arc(std::string src, std::string dest);
+
+    std::vector<gravity::index_pair *> get_bus_pairs_chord();
 };
 #endif
