@@ -682,8 +682,6 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     //printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
 }
 
-}
-
 // use greedy fill-in algorithm.
 vector<Node*> Net::get_PEO(bool print_bags) {
     vector<Node*> PEO;
@@ -754,7 +752,6 @@ vector<Node*> Net::get_PEO(bool print_bags) {
     sort(_bags.begin(), _bags.end(), bag_compare);
     printf("With greedy fill-in algirithm, the chordal graph added  %i edges \n", nb_added);
     return PEO;
->>>>>>> build a new decompose branch
 }
 
 
