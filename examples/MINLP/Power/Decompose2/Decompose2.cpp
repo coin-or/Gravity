@@ -189,6 +189,7 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
     for (int c = 0; c < nbparts; c++) {
         var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min, grid.w_max);
         bag_Xii.set_size(P.bag_bus_union[c].size());
+        CLT.add_var(bag_Xii);
         bag_Xii.initialize_all(1.001);
         Xii.push_back(bag_Xii);
 
@@ -223,13 +224,14 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
         }
     }
     CLT.set_objective(min(obj));
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_bus_pairs_union_directed[c].size() > 0) {
-            Constraint SOC("SOC_" + to_string(c));
-            SOC =  power(R_Xij[c], 2)+ power(Im_Xij[c], 2) - Xii[c].from()*Xii[c].to() ;
-            CLT.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c]) <= 0);
-        }
-    }
+//    int c=0;
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_bus_pairs_union_directed[c].size() > 0) {
+//            Constraint SOC("SOC_" + to_string(c));
+//            SOC =  power(R_Xij[c], 2)+ power(Im_Xij[c], 2) - Xii[c].from()*Xii[c].to() ;
+//            CLT.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c]) <= 0);
+//        }
+//    }
 //     //KCL
 //    for (int c = 0; c < nbparts; c++) {
 //        for (const auto& bus: P.bag_bus[c]) {
@@ -659,7 +661,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-    reform_inout(grid, 1);
+    reform_inout(grid, 2);
     //inout(grid, 2, 40);
     return 0;
 }
