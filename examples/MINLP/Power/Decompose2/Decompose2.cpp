@@ -187,22 +187,21 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
     vector<var<Real>> Pg;
     vector<var<Real>> Qg;
     for (int c = 0; c < nbparts; c++) {
-        var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min.in(P.bag_bus_union[c]), grid.w_max.in(P.bag_bus_union[c]));
+        var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min, grid.w_max);
         bag_Xii.set_size(P.bag_bus_union[c].size());
-        CLT.add_var(bag_Xii);
         bag_Xii.initialize_all(1.001);
         Xii.push_back(bag_Xii);
 
-        var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min.in(P.bag_bus_pairs_union[c]), grid.wr_max.in(P.bag_bus_pairs_union[c]));
-        var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min.in(P.bag_bus_pairs_union[c]), grid.wi_max.in(P.bag_bus_pairs_union[c]));
+        var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min, grid.wr_max);
+        var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min, grid.wi_max);
         CLT.add_var(bag_R_Xij.in(P.bag_bus_pairs_union[c]));
         CLT.add_var(bag_Im_Xij.in(P.bag_bus_pairs_union[c]));
         bag_R_Xij.initialize_all(1.0);
         R_Xij.push_back(bag_R_Xij);
         Im_Xij.push_back(bag_Im_Xij);
         if (P.bag_gens[c].size() > 0) {
-            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(P.bag_gens[c]), grid.pg_max.in(P.bag_gens[c]));
-            var<Real>  bag_Qg("Qg_" + to_string(c), grid.qg_min.in(P.bag_gens[c]), grid.qg_max.in(P.bag_gens[c]));
+            var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min, grid.pg_max);
+            var<Real>  bag_Qg("Qg_" + to_string(c), grid.qg_min, grid.qg_max);
             CLT.add_var(bag_Pg.in(P.bag_gens[c]));
             CLT.add_var(bag_Qg.in(P.bag_gens[c]));
             Pg.push_back(bag_Pg);
@@ -231,47 +230,47 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
             CLT.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c]) <= 0);
         }
     }
-    /* KCL */
-    for (int c = 0; c < nbparts; c++) {
-        for (const auto& bus: P.bag_bus[c]) {
-            Constraint KCL_P("KCL_P"+bus->_name);
-            Constraint KCL_Q("KCL_Q"+bus->_name);
-            for (const auto& a: bus->get_out()) {
-                KCL_P += grid.g_ff(a->_name)*Xii[c](a->_src->_name)
-                         +grid.g_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
-                         +grid.b_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
-
-                KCL_Q += -1*grid.b_ff(a->_name)*Xii[c](a->_src->_name)
-                         - grid.b_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
-                         +grid.g_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
-            }
-            for (auto a: bus->get_in()) {
-                KCL_P  += grid.g_tt(a->_name)*Xii[c](a->_dest->_name)
-                          +grid.g_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
-                          -grid.b_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
-
-                KCL_Q  -= grid.b_tt(a->_name)*Xii[c](a->_dest->_name)
-                          + grid.b_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
-                          + grid.g_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
-            }
-            if(bus->_has_gen) {
-                KCL_P += bus->pl()- sum(Pg[c].in(bus->_gen));
-                KCL_Q += bus->ql()- sum(Qg[c].in(bus->_gen));
-            }
-            else {
-                KCL_P += bus->pl();
-                KCL_Q += bus->ql();
-            }
-            /* Shunts */
-            KCL_P += bus->gs()*(Xii[c](bus->_name));
-            KCL_Q -= bus->bs()*(Xii[c](bus->_name));
-            CLT.add_constraint(KCL_P == 0);
-            CLT.add_constraint(KCL_Q == 0);
-        }
-    }
-//    //Phase Angle Difference Constraints
+//     //KCL
 //    for (int c = 0; c < nbparts; c++) {
-//        vector<index_pair*> pairs = bag_bus_pairs_union_directed[c];
+//        for (const auto& bus: P.bag_bus[c]) {
+//            Constraint KCL_P("KCL_P"+bus->_name);
+//            Constraint KCL_Q("KCL_Q"+bus->_name);
+//            for (const auto& a: bus->get_out()) {
+//                KCL_P += grid.g_ff(a->_name)*Xii[c](a->_src->_name)
+//                         +grid.g_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+//                         +grid.b_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+//
+//                KCL_Q += -1*grid.b_ff(a->_name)*Xii[c](a->_src->_name)
+//                         - grid.b_ft(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+//                         +grid.g_ft(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+//            }
+//            for (auto a: bus->get_in()) {
+//                KCL_P  += grid.g_tt(a->_name)*Xii[c](a->_dest->_name)
+//                          +grid.g_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+//                          -grid.b_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+//
+//                KCL_Q  -= grid.b_tt(a->_name)*Xii[c](a->_dest->_name)
+//                          + grid.b_tf(a->_name)*R_Xij[c](a->_src->_name+","+a->_dest->_name)
+//                          + grid.g_tf(a->_name)*Im_Xij[c](a->_src->_name+","+a->_dest->_name);
+//            }
+//            if(bus->_has_gen) {
+//                KCL_P += bus->pl()- sum(Pg[c].in(bus->_gen));
+//                KCL_Q += bus->ql()- sum(Qg[c].in(bus->_gen));
+//            }
+//            else {
+//                KCL_P += bus->pl();
+//                KCL_Q += bus->ql();
+//            }
+//            /* Shunts */
+//            KCL_P += bus->gs()*(Xii[c](bus->_name));
+//            KCL_Q -= bus->bs()*(Xii[c](bus->_name));
+//            CLT.add_constraint(KCL_P == 0);
+//            CLT.add_constraint(KCL_Q == 0);
+//        }
+//    }
+    //Phase Angle Difference Constraints
+//    for (int c = 0; c < nbparts; c++) {
+//        vector<index_pair*> pairs = P.bag_bus_pairs_union_directed[c];
 //        Constraint PAD_UB("PAD_UB_"+to_string(c));
 //        PAD_UB = Im_Xij[c]- grid.tan_th_max*R_Xij[c];
 //        CLT.add_constraint(PAD_UB.in(pairs) <= 0);
@@ -282,59 +281,53 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
 //    }
 //    //THERMAL LIMIT CONSTRAINTS.
 //    for (int c= 0; c < nbparts; c++) {
-//        vector<Line*> temp;
-//        vector<Line*> temp1;
-//        temp.insert(temp.end(), bag_arcs_disjoint[c].begin(),bag_arcs_disjoint[c].end());
-//        temp.insert(temp.end(), bag_arcs_out[c].begin(),bag_arcs_out[c].end());
-//        temp1.insert(temp1.end(), bag_arcs_disjoint[c].begin(),bag_arcs_disjoint[c].end());
-//        temp1.insert(temp1.end(), bag_arcs_in[c].begin(),bag_arcs_in[c].end());
-//        if (temp.size() > 0) {
+//        if (P.bag_arcs_union_out[c].size() > 0) {
 //            /* Thermal Limit Constraints */
 //            Constraint Thermal_Limit_from("Thermal_Limit_from"+to_string(c));
 //            Constraint Aux1("Aux1_"+to_string(c));
 //            Constraint Aux2("Aux2_"+to_string(c));
 //            var<Real> t1("t1_"+to_string(c));
 //            var<Real> t2("t2_"+to_string(c));
-//            CLT.add_var(t1^(temp.size()));
-//            CLT.add_var(t2^(temp.size()));
+//            CLT.add_var(t1.in(P.bag_arcs_union_out[c]));
+//            CLT.add_var(t2.in(P.bag_arcs_union_out[c]));
 //            Aux1 += t1 - grid.g_ff*Xii[c].from()- grid.g_ft*R_Xij[c].in_pairs() -grid.b_ft*Im_Xij[c].in_pairs();
 //            Aux2 += t2 - grid.b_ff*Xii[c].from() - grid.b_ft*R_Xij[c].in_pairs() + grid.g_ft*Im_Xij[c].in_pairs();
-//            CLT.add_constraint(Aux1.in(temp) = 0);
-//            CLT.add_constraint(Aux2.in(temp) = 0);
+//            CLT.add_constraint(Aux1.in(P.bag_arcs_union_out[c]) == 0);
+//            CLT.add_constraint(Aux2.in(P.bag_arcs_union_out[c]) == 0);
 //
 //            Thermal_Limit_from += power(t1, 2)+ power(t2,2) - power(grid.S_max, 2);
-//            CLT.add_constraint(Thermal_Limit_from.in(temp) <= 0);
+//            CLT.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c]) <= 0);
 //        }
-//        if (temp1.size() > 0) {
+//        if (P.bag_arcs_union_in[c].size() > 0) {
 //            Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
 //            Constraint Aux3("Aux3_"+to_string(c));
 //            Constraint Aux4("Aux4_"+to_string(c));
 //            var<Real> t3("t3_"+to_string(c));
 //            var<Real> t4("t4_"+to_string(c));
-//            CLT.add_var(t3^(temp1.size()));
-//            CLT.add_var(t4^(temp1.size()));
+//            CLT.add_var(t3.in(P.bag_arcs_union_in[c]));
+//            CLT.add_var(t4.in(P.bag_arcs_union_in[c]));
 //            Aux3 += t3 - grid.g_tt*Xii[c].to() - grid.g_tf*R_Xij[c].in_pairs() - grid.b_tf*Im_Xij[c].in_pairs();
 //            Aux4 += t4 - grid.b_tt*Xii[c].to() - grid.b_tf*R_Xij[c].in_pairs() - grid.g_tf*Im_Xij[c].in_pairs();
-//            CLT.add_constraint(Aux3.in(temp1) = 0);
-//            CLT.add_constraint(Aux4.in(temp1) = 0);
+//            CLT.add_constraint(Aux3.in(P.bag_arcs_union_in[c]) == 0);
+//            CLT.add_constraint(Aux4.in(P.bag_arcs_union_in[c]) == 0);
 //            Thermal_Limit_to += power(t3, 2) + power(t4, 2)  - power(grid.S_max, 2);
-//            CLT.add_constraint(Thermal_Limit_to.in(temp1) <= 0);
+//            CLT.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_in[c]) <= 0);
 //        }
 //    }
-    //Linking Constraints.
-    for (const auto& a: P.G_part.arcs) {
-        Constraint Link_R("link_R_"+a->_name);
-        Link_R = R_Xij[a->_src->_id].in_pairs() - R_Xij[a->_dest->_id].in_pairs();
-        CLT.add_constraint(Link_R.in(a->_intersection_clique) == 0);
-
-        Constraint Link_Im("link_Im_"+a->_name);
-        Link_Im = Im_Xij[a->_src->_id].in_pairs() - Im_Xij[a->_dest->_id].in_pairs();
-        CLT.add_constraint(Link_Im.in(a->_intersection_clique)== 0);
-
-        Constraint Link_Xii("link_Xii_" + a->_name);
-        Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
-        CLT.add_constraint(Link_Xii.in((a->_intersection_clique))== 0);
-    }
+//    //Linking Constraints.
+//    for (const auto& a: P.G_part.arcs) {
+//        Constraint Link_R("link_R_"+a->_name);
+//        Link_R = R_Xij[a->_src->_id].in_pairs() - R_Xij[a->_dest->_id].in_pairs();
+//        CLT.add_constraint(Link_R.in(a->_intersection_clique) == 0);
+//
+//        Constraint Link_Im("link_Im_"+a->_name);
+//        Link_Im = Im_Xij[a->_src->_id].in_pairs() - Im_Xij[a->_dest->_id].in_pairs();
+//        CLT.add_constraint(Link_Im.in(a->_intersection_clique)== 0);
+//
+//        Constraint Link_Xii("link_Xii_" + a->_name);
+//        Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
+//        CLT.add_constraint(Link_Xii.in((a->_intersection_clique))== 0);
+//    }
     /* solve it! */
     solver solve_CLT(CLT, cplex);
     solve_CLT.run();
@@ -666,7 +659,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-    reform_inout(grid, 2);
+    reform_inout(grid, 1);
     //inout(grid, 2, 40);
     return 0;
 }
