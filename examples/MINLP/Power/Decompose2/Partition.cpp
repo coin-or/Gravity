@@ -19,12 +19,12 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
     }
 
     if (nbparts > grid.nodes.size()) {
-        cerr << "Error: partition size > \# buses" << endl;
+        cerr << "Error: partition size > # buses" << endl;
     }
-    unsigned nb_eigvals= nbparts;
+   // unsigned nb_eigvals= nbparts;
     // Wx = lambda Dx --->  D^0.5 W D^-0.5 x = lambda x
     // parameters
-    double offset = 1e-5;
+    //double offset = 1e-5;
 
     // degrees and regularisation
     arma::sp_vec d = arma::sum(arma::abs(adjacency_matrix), 1); // node degree.
@@ -116,8 +116,8 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
     Discrete.print();
     // store the partition results in a vector.
     for (auto i =0 ; i < nbparts; ++i) {
-        std::vector<Bus*> temp;
-        std::vector<Bus*> temp1;
+        std::vector<Node*> temp;
+        std::vector<Node*> temp1;
         std::vector<Line*> temparcs;
         std::vector<Line*> temparcs1;
         bag_bus.push_back(temp);
@@ -192,10 +192,11 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
     DebugOn("total intersection: " << total_weights <<  endl);
     for (int c = 0; c < nbparts; c++) {
         vector<Gen*> bag_G;
-        vector<Bus*> VB = bag_bus.at(c);
+        vector<Node*> VB = bag_bus.at(c);
         for (int i = 0; i < VB.size(); i++) {
-            if (VB.at(i)->_has_gen) {
-                bag_G.insert(bag_G.end(), VB[i]->_gen.begin(), VB[i]->_gen.end());
+            Bus* temp = (Bus*) VB.at(i);
+            if (temp->_has_gen) {
+                bag_G.insert(bag_G.end(), temp->_gen.begin(), temp->_gen.end());
             }
         }
         bag_gens.push_back(bag_G);
@@ -240,7 +241,7 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
         vector<gravity::index_pair*> test;
         vector<gravity::index_pair*> pairs;
 
-        vector<Bus*> B;
+        vector<Node*> B;
         vector<Line*> temp;
         B.insert(B.end(), bag_bus[c].begin(), bag_bus[c].end());
         B.insert(B.end(), bag_bus_out[c].begin(), bag_bus_out[c].end());

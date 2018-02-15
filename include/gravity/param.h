@@ -902,9 +902,6 @@ namespace gravity {
         }
         
     
-        
-        
-        
         param in_arcs(const vector<Node*>& vec) {
             param res(this->_name);
             res._id = this->_id;
