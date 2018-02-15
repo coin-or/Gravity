@@ -1704,7 +1704,6 @@ namespace gravity {
             auto dim = param_::get_dim();
             set_size(dim*T);
             /* update the indices of the old parameter*/
-            string key;
             auto map_temp = *param::_indices;
             auto val_temp = *param::_val;
             //        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
@@ -1714,10 +1713,11 @@ namespace gravity {
             //CLEAR OLD ENTRIES
             _indices->clear();
             _ids->at(0).clear();
+           // _ids->clear();
             //STORE NEW ENTRIES
             for(unsigned t = 0; t < T; t ++ ) {
                 for (auto &entry: map_temp) {
-                    key = entry.first;
+                    string key = entry.first;
                     key += ",";
                     key += to_string(t);
                     //_val->at(param_::_indices->size()) = _val->at(entry.second);
@@ -1766,6 +1766,7 @@ namespace gravity {
                     for(auto &indsp: *_indices) {
                         str += "("+indsp.first + "=" + to_string(_val->at(indsp.second)) + ")";
                         str += " ";
+                        cout << "index: " << indsp.first << endl;
                     }
                 }
                 str += "];\n";

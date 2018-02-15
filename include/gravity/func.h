@@ -1902,6 +1902,266 @@ namespace gravity {
             propagate_nb_ind(_nb_instances);
             return *this;
         }
+
+        template<typename Tobj>
+        func_& in(const vector<Tobj*>& vec, const unsigned& T) {
+            _nb_vars = 0;
+            _nb_instances = 0;
+            string key;
+            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((var<bool>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((var<short>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((var<int>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((var<float>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((var<double>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((var<long double>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                            _ids = vv->get_ids();
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                    _nb_vars++;
+                }
+                else {
+                    _nb_vars += v->get_dim();
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                switch (v->get_intype()) {
+                    case binary_:{
+                        auto vv = ((param<bool>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case short_:{
+                        auto vv = ((param<short>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case integer_:{
+                        auto vv = ((param<int>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case float_:{
+                        auto vv = ((param<float>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case double_:{
+                        auto vv = ((param<double>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);                    }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    case long_:{
+                        auto vv = ((param<long double>*)v.get());
+                        if(get<1>(v->_unique_id)==unindexed_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_time_){
+                            *vv = vv->in(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==from_time_){
+                            *vv = vv->from(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==to_time_){
+                            *vv = vv->to(vec, T);
+                        }
+                        else if(get<1>(v->_unique_id)==in_pairs_time_){
+                            *vv = vv->in_pairs(vec, T);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_instances = max(_nb_instances, v->get_nb_instances());
+                }
+            }
+            delete _vars;
+            _vars = new_vars;
+            delete _params;
+            _params = new_params;
+            propagate_nb_ind(_nb_instances);
+            return *this;
+        }
         
         void insert(const lterm& term);
         
