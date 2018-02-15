@@ -131,7 +131,7 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
-Node* Net::get_node(string name) {
+Node* Net::get_node(string name) const {
     return nodeID.find(name)->second;
 }
 
@@ -330,7 +330,7 @@ bool Net::add_arc(Arc* a) {
 
 // undirected
 void Net::add_undirected_arc(Arc* a) {
-    bool parallel = false;
+   // bool parallel = false;
     set<Arc*>* s = NULL;
     string src, dest, key, key_inv;
     src = a->_src->_name;
@@ -1032,7 +1032,7 @@ Net* Net::get_clique_tree_prim() {
             boost::undirectedS,
             boost::no_property,
             boost::property < boost::edge_weight_t, int >> Graph;
-    typedef boost::graph_traits <Graph>::edge_descriptor Edge;
+   // typedef boost::graph_traits <Graph>::edge_descriptor Edge;
     //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
 
     // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
@@ -1073,7 +1073,7 @@ Net* Net::get_clique_tree_prim() {
 #else
     Graph g(edges.begin(), edges.end(), weights.begin(), nb_cliques);
 #endif
-    boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
+    //boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
     //prim: O(ElogV).
     std::vector <boost::graph_traits<Graph>::vertex_descriptor> p(num_vertices(g));
     boost::prim_minimum_spanning_tree(g, &p[0]);
