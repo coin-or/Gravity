@@ -299,9 +299,26 @@ public:
         return res;
     }
     
+    var in_arcs(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     var out_arcs(const vector<Node*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::out_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    var out_arcs(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs(vec, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -312,6 +329,15 @@ public:
     var in_gens(const vector<Node*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_gens(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_gens(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens(vec, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
