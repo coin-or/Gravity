@@ -43,6 +43,7 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
                                    )
 {
     _model->set_x(x);
+    _model->compute_funcs();
     //    _model->check_feasible(x);
     if(_model->_objt==maximize){
                 _model->_obj *= -1.;
@@ -50,8 +51,11 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
     _model->_obj_val = _model->_obj.eval();
     for (auto &cp: _model->_cons) {
         cp.second->_dual.resize(cp.second->_nb_instances);
+        auto idx = 0;
         for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
-            cp.second->_dual[inst] = lambda[cp.second->_id + inst];
+            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+                cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
+            }
         }
     }
     for (auto &vp: _model->_vars) {

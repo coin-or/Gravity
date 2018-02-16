@@ -19,6 +19,7 @@ Constraint::Constraint(string name, ConstraintType ctype){
     _ctype = ctype;
     _rhs = 0;
     _is_constraint = true;
+    _all_lazy = make_shared<bool>(false);
 };
 
 Constraint::Constraint(const Constraint& c):func_(c){
@@ -27,6 +28,7 @@ Constraint::Constraint(const Constraint& c):func_(c){
     _rhs = c._rhs;
     _id = c._id;
     _is_constraint = true;
+    _all_lazy = make_shared<bool>(false);
 }
 
 //@}
@@ -39,6 +41,19 @@ Constraint::~Constraint(){};
 
 
 /* Accessors */
+
+size_t Constraint::get_nb_instances() const{
+    size_t nb = 0;
+    if (!*_all_lazy) {
+        return _nb_instances;
+    }
+    for (unsigned i = 0; i<_nb_instances; i++) {
+        if (!_lazy[i]) {
+            nb++;
+        }
+    }
+    return nb;
+}
 
 double Constraint::get_rhs() const{
     return _rhs;
@@ -178,6 +193,10 @@ bool Constraint::is_convex() const{
 
 bool Constraint::is_concave() const{
     return ((_all_convexity==convex_ &&_ctype==geq) || (_all_convexity==concave_ &&_ctype==leq));
+}
+
+bool Constraint::is_ineq() const{
+    return (_ctype==leq || _ctype==geq);
 }
 
 void Constraint::print(){
