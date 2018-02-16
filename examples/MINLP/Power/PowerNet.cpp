@@ -554,6 +554,9 @@ int PowerNet::readgrid(const char* fname) {
     DebugOff(tr.to_str(true) << endl);
 
     file.close();
+    if (nodes.size()>2000) {
+        add_3d_nlin = false;
+    }
     return 0;
 }
 
