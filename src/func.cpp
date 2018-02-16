@@ -2059,10 +2059,10 @@ namespace gravity{
         if (is_number() && all_zeros(poly_to_str(this))){
             return true;
         }
-//        if (is_param() || is_var()) {
-//            auto p_c = (param_*)this;
-//            return p_c->get_all_sign()==zero_;
-//        }
+        if (is_param() || is_var()) {
+            auto p_c = (param_*)this;
+            return p_c->get_all_sign()==zero_;
+        }
 //        if (is_uexpr() || is_bexpr()) {
 //            auto e_p = (expr*)this;
 //            return e_p->get_all_sign()==zero_;
@@ -7372,14 +7372,14 @@ namespace gravity{
         if(is_number() && !_is_vector && !_is_transposed && poly_eval(this)==0){
             return true;
         }
-//        if (_ftype==const_ && _cst->is_zero()){
-//            for (auto& it:*_params) {
-//                if (!it.second.first->is_zero()) {
-//                    return false;
-//                }
-//            }
-//            return true;
-//        }
+        if (_ftype==const_ && _cst->is_zero()){
+            for (auto& it:*_params) {
+                if (!it.second.first->is_zero()) {
+                    return false;
+                }
+            }
+            return true;
+        }
         return false;
     }
 
