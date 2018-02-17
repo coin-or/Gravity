@@ -242,20 +242,20 @@ int main (int argc, char * argv[])
         DebugOff(grid.th_min.to_str(true) << endl);
         DebugOff(grid.th_max.to_str(true) << endl);
     }
-    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
-    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
+//    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
+//    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
 
 
     /*  Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from -= power(grid.S_max, 2);
-    ACOPF.add_constraint(Thermal_Limit_from.in(grid.arcs) <= 0);
+//    ACOPF.add_constraint(Thermal_Limit_from.in(grid.arcs) <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid.S_max,2);
-    ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
+//    ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
     DebugOff(grid.S_max.in(grid.arcs).to_str(true) << endl);
     
     solver OPF(ACOPF,ipopt);

@@ -78,11 +78,11 @@ int main (int argc, const char * argv[])
     SolverType stype = cplex;
     double wall0 = get_wall_time();
     double cpu0  = get_cpu_time();
-    cout << "Running the NONCONVEX model\n";
+    
     //s.run();
     double wall1 = get_wall_time();
     double cpu1  = get_cpu_time();
-    cout << "Done running the NONCONVEX model\n";
+    
     cout << "Wall clock computing time =  " << wall1 - wall0 << "\n";
     cout << "CPU computing time =  " << cpu1 - cpu0 << "\n";
     return 0;

@@ -189,6 +189,7 @@ int main (int argc, char * argv[]) {
     /** Constraints */
 
     if(grid.add_3d_nlin) {
+        DebugOn("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_directed(grid, grid._bags, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, grid._bags, 3);
         auto Wii_ = Wii.in(grid._bags, 3);
@@ -216,7 +217,7 @@ int main (int argc, char * argv[]) {
         SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         DebugOff("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-        SDP.add_constraint(SDP3 >= 0);
+        SDP.add(SDP3 >= 0);
 //        SDP3.print_expanded();
     }
 
@@ -257,24 +258,24 @@ int main (int argc, char * argv[]) {
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SDP.add_constraint(PAD_UB.in(bus_pairs));
+    SDP.add_lazy(PAD_UB.in(bus_pairs));
 
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SDP.add_constraint(PAD_LB.in(bus_pairs));
+    SDP.add_lazy(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from <= power(grid.S_max,2);
-    SDP.add_constraint(Thermal_Limit_from.in(grid.arcs));
+    SDP.add_lazy(Thermal_Limit_from.in(grid.arcs));
     
     
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to <= power(grid.S_max,2);
-    SDP.add_constraint(Thermal_Limit_to.in(grid.arcs));
+    SDP.add_lazy(Thermal_Limit_to.in(grid.arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
@@ -282,14 +283,14 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
     LNC2 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
     LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
 
     vector<Bag> bags;
     int n3 = 0;
