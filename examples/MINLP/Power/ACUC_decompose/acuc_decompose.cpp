@@ -303,6 +303,7 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
     Subr.add_var(Xii.in(P.bag_bus[c], T));
     Subr.add_var(R_Xij.in(P.bag_bus_pairs_union[c], T));
     Subr.add_var(Im_Xij.in(P.bag_bus_pairs_union[c], T));
+    
     //power flow
     var<Real> Pf_from("Pf_from", grid.S_max);
     var<Real> Qf_from("Qf_from", grid.S_max);
@@ -486,19 +487,22 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
         gen_initial +=  On_off( g->_name + ",0");
         Subr.add_constraint(gen_initial == 1);
     }
-
+    
     /* solve it! */
     solver solve_Subr(Subr, cplex);
     solve_Subr.run();
     // COLLECT THE LINKED VARIABLES
-    //cout << "values: " << Xii_log.getvalue() << endl;
-//    auto val = (*(var<Real>*) Subr.get_var("Xii_"+ to_string(c)));
-//    for (auto b: P.bag_bus[c]) {
-//        for (int t = 0; t < T; t++) {
-//            string name = b->_name + ","+ to_string(t);
-//            Xii_log(name)  = val(name).getvalue();
-//        }
-//    }
+    auto val = Xii.in(P.bag_bus[c],T);
+    val.print(true);
+    for (auto b: P.bag_bus[c]) {
+        for (int t = 0; t < T; t++) {
+            string name = b->_name + ","+ to_string(t);
+            cout << val.getvalue() << endl;
+            //Xii_log(name)  = val(name).getvalue();
+        }
+    }
+    
+    
 //    for (auto b: P.bag_bus_out[c]) {
 //        for (int t = 0; t < T; t++) {
 //            string name = b->_name + ","+ to_string(t);
@@ -577,8 +581,8 @@ int main (int argc, const char * argv[])
     vector<var<bool>>  Shut_down;
     for (int c = 0; c < nbparts; c++) {
         var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min, grid.w_max);
-        Xii.push_back(bag_Xii);
         bag_Xii.initialize_all(1.001);
+        Xii.push_back(bag_Xii);
 
         var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min, grid.wr_max);
         var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min, grid.wi_max);
