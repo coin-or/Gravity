@@ -24,6 +24,13 @@ namespace gravity {
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
         double                      _rhs = 0;
         vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
+        bool                        _all_active = true;
+        vector<bool>                _active;
+        shared_ptr<bool>            _all_lazy;
+        vector<bool>                _lazy;
+        bool                        _all_satisfied = true;
+        vector<bool>                _violated;
+
         
         /** Constructor */
         //@{
@@ -53,17 +60,24 @@ namespace gravity {
         Constraint& operator =(const func_& rhs);
         
         /* Accessors */
+        size_t get_nb_instances() const;
         string get_name() const;
         int get_type() const;
         double get_rhs() const;
         bool is_active(unsigned inst = 0) const;
         bool is_convex() const;
         bool is_concave() const;
+        bool is_ineq() const;
         
         size_t get_id_inst(size_t ind) const;
         
         
         /* Modifiers */
+        
+        void make_lazy() {
+            *_all_lazy = true;
+            _lazy.resize(_nb_instances,true);
+        }
         
         Constraint& in(const node_pairs& np){
             this->func_::in(np);

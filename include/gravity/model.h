@@ -44,6 +44,7 @@ namespace gravity {
         void add_param(param_* v);      //Add variables without reallocating memory
         
     public:
+        bool                            _has_lazy = false; /*<< Has lazy constraints. */
         bool                            _built = false; /* Indicates if this model has been already built */
         bool                            _first_run = true; /* Indicates if this model has been already */
                                                             
@@ -99,6 +100,8 @@ namespace gravity {
         size_t get_nb_vars() const;
         
         size_t get_nb_cons() const;
+        
+        size_t get_nb_ineq() const;
         
         size_t get_nb_nnz_g();
         
@@ -204,8 +207,9 @@ namespace gravity {
         void del_param(const param_& v);
         
         
-        
-        void add_constraint(const Constraint& c);
+        void add_lazy(const Constraint& c);
+        void add(const Constraint& c);
+        shared_ptr<Constraint> add_constraint(const Constraint& c);
         
         shared_ptr<func_> embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
@@ -216,6 +220,7 @@ namespace gravity {
         void set_objective(pair<func_*, ObjectiveType> p);
         void set_objective_type(ObjectiveType);
         void init_indices();// Initialize the indices of all variables involved in the model
+        void reindex(); /*<< Reindexes the constraints after violated ones have been detected and aded to the formulation */
         bool has_violated_constraints(double tol); /*<< Returns true if some constraints are violated by the current solution with tolerance tol */
         void check_feasible(const double* x);
         void reset_funcs();
