@@ -83,13 +83,13 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
                 string name = g->_name+",0";
                 obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
             }
-//            for (int t = 1; t < T; t++) {
-//                if (g->_active) {
-//                    string name = g->_name + ","+ to_string(t);
-//                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
-//                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
-//                }
-//            }
+            for (int t = 1; t < T; t++) {
+                if (g->_active) {
+                    string name = g->_name + ","+ to_string(t);
+                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
+                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
+                }
+            }
         }
     }
     ACUC.set_objective(min(obj));
@@ -104,12 +104,9 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P"+ to_string(c));
         Constraint KCL_Q("KCL_Q"+ to_string(c));
-        // grid.pl leads to an error.
         KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs())+ grid.pl -sum(Pg[c].in_gens())+ grid.gs*Xii[c];
-        grid.pl.print(true);
         ACUC.add_constraint(KCL_P.in(P.bag_bus[c], T) == 0);
         KCL_Q  = sum(Qf_from[c].out_arcs()) + sum(Qf_to[c].in_arcs())+ grid.ql -sum(Qg[c].in_gens())-grid.bs*Xii[c];
-        grid.ql.print(true);
         ACUC.add_constraint(KCL_Q.in(P.bag_bus[c], T) == 0);
         
         Constraint Flow_P_From("Flow_P_From_" + to_string(c));
@@ -128,30 +125,28 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
         Flow_Q_To = Qf_to[c] + (grid.b_tt*Xii[c].to() + grid.b_tf*R_Xij[c].in_pairs() + grid.g_tf*Im_Xij[c].in_pairs());
         ACUC.add_constraint(Flow_Q_To.in(P.bag_arcs_union_in[c], T) == 0);
 
-//        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
-//        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
-//        Thermal_Limit_from <= power(grid.S_max,2);
-//        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
-//
-//        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
-//        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
-//        Thermal_Limit_to <= power(grid.S_max,2);
-//        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_out[c], T));
+        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
+        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
+        Thermal_Limit_from <= power(grid.S_max,2);
+        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
+
+        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
+        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
+        Thermal_Limit_to <= power(grid.S_max,2);
+        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_in[c], T));
     }
     ///* Phase Angle Bounds constraints */
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_bus_pairs_union_directed[c].size() > 0){
-            Constraint PAD_UB("PAD_UB_"+to_string(c));
-            PAD_UB = Im_Xij[c]- grid.tan_th_max*R_Xij[c];
-            grid.tan_th_max.in(P.bag_bus_pairs_union_directed[c], T).print(true);
-            ACUC.add_constraint(PAD_UB.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
+    //for (int c = 0; c < nbparts; c++) {
+    //    if (P.bag_bus_pairs_union_directed[c].size() > 0){
+    //        Constraint PAD_UB("PAD_UB_"+to_string(c));
+    //        PAD_UB = Im_Xij[c]- grid.tan_th_max*R_Xij[c];
+    //        ACUC.add_constraint(PAD_UB.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
 
-            Constraint PAD_LB("PAD_LB_"+to_string(c));
-            PAD_LB = Im_Xij[c]- grid.tan_th_min*R_Xij[c];
-            grid.tan_th_min.in(P.bag_bus_pairs_union_directed[c], T).print(true);
-            ACUC.add_constraint(PAD_LB.in(P.bag_bus_pairs_union_directed[c], T) >= 0);
-        }
-    }
+    //        Constraint PAD_LB("PAD_LB_"+to_string(c));
+    //        PAD_LB = Im_Xij[c]- grid.tan_th_min*R_Xij[c];
+    //        ACUC.add_constraint(PAD_LB.in(P.bag_bus_pairs_union_directed[c], T) >= 0);
+    //    }
+    //}
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
 //    for (int c = 0; c < nbparts; c++) {
@@ -254,13 +249,14 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     // linking constraints
     for (const auto& a: P.G_part.arcs) {
         Constraint Link_R("link_R_"+a->_name);
-        Link_R = R_Xij[a->_src->_id] - R_Xij[a->_dest->_id];
-        ACUC.add_constraint(Link_R.in(a->_intersection_clique, T) ==0);
-
+        Link_R = R_Xij[a->_src->_id].in_pairs(a->_intersection_clique, T) - R_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, T);
+        ACUC.add_constraint(Link_R ==0);
+        Link_R.print(true);
+       // bugs
         Constraint Link_Im("link_Im_"+a->_name);
-        Link_Im = Im_Xij[a->_src->_id] - Im_Xij[a->_dest->_id];
-        ACUC.add_constraint(Link_Im.in(a->_intersection_clique, T)==0);
-
+        Link_Im = Im_Xij[a->_src->_id].in_pairs(a->_intersection_clique, T)-Im_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, T);
+        ACUC.add_constraint(Link_Im==0);
+        
         Constraint Link_Xii("link_Xii_" + a->_name);
         Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
         ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, T)== 0);
@@ -275,7 +271,6 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
-    
     // return dual vars.
 //    for (const auto& a: P.G_part.arcs) {
 //        auto cons = *ACUC.get_constraint("link_R_"+a->_name);
@@ -283,7 +278,6 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
 //            cout << "dual vars: " << cons._dual[i] << endl;
 //        }
 //    }
-
     return ACUC._obj_val;
 }
 /** INITIALISE SUBPROBLEM MODEL */
