@@ -1693,7 +1693,7 @@ public:
             }
         }
         res._dim[0]=res._ids->at(0).size();
-        res._name += ".in_time_" +  nm->_name + "_time_" + to_string(T); // _name and _unique_id should be really unique.
+        res._name += ".in_time_" +  nm->_name + "," + to_string(T); // _name and _unique_id should be really unique.
         hash<string> str_hash;
         res._unique_id = make_tuple<>(res.get_id(), in_time_,str_hash(nm->_name), 0,0);
         res._is_indexed = true;

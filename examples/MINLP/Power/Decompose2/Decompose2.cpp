@@ -169,28 +169,30 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
         bag_R_Xij.initialize_all(1.0);
         R_Xij.push_back(bag_R_Xij);
         Im_Xij.push_back(bag_Im_Xij);
-        var<Real> bag_Pf_from("Pf_from", grid.S_max);
-        var<Real> bag_Qf_from("Qf_from", grid.S_max);
-        var<Real> bag_Pf_to("Pf_to", grid.S_max);
-        var<Real> bag_Qf_to("Qf_to", grid.S_max);
+        
+        var<Real> bag_Pf_from("Pf_from"+to_string(c), grid.S_max);
+        var<Real> bag_Qf_from("Qf_from"+to_string(c), grid.S_max);
+        var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max);
+        var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max);
         Pf_from.push_back(bag_Pf_from);
         Qf_from.push_back(bag_Qf_from);
         Pf_to.push_back(bag_Pf_to);
         Qf_to.push_back(bag_Qf_to);
-        CLT.add_var(bag_Pf_from.in(P.bag_arcs_union[c]));
-        CLT.add_var(bag_Qf_from.in(P.bag_arcs_union[c]));
-        CLT.add_var(bag_Pf_to.in(P.bag_arcs_union[c]));
-        CLT.add_var(bag_Qf_to.in(P.bag_arcs_union[c]));
+        CLT.add_var(bag_Pf_from.in(P.bag_arcs_union_out[c]));
+        CLT.add_var(bag_Qf_from.in(P.bag_arcs_union_out[c]));
+        CLT.add_var(bag_Pf_to.in(P.bag_arcs_union_in[c]));
+        CLT.add_var(bag_Qf_to.in(P.bag_arcs_union_in[c]));
         if (P.bag_gens[c].size() > 0) {
             var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min, grid.pg_max);
             var<Real>  bag_Qg("Qg_" + to_string(c), grid.qg_min, grid.qg_max);
-            CLT.add_var(bag_Pg.in(P.bag_gens[c]));
-            CLT.add_var(bag_Qg.in(P.bag_gens[c]));
             Pg.push_back(bag_Pg);
             Qg.push_back(bag_Qg);
+            CLT.add_var(Pg[c].in(P.bag_gens[c]));
+            CLT.add_var(Qg[c].in(P.bag_gens[c]));
         }
         else {
             var<Real> empty("empty");
+            var<bool> empty2("empty");
             empty.set_size(0);
             Pg.push_back(empty);
             Qg.push_back(empty);
@@ -198,9 +200,11 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
     }
     func_ obj;
     for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            auto objc = product(grid.c1, Pg[c]) + product(grid.c2, power(Pg[c],2)) + sum(grid.c0);
-            obj += objc.in(P.bag_gens[c]);
+        for (auto g: P.bag_gens[c]) {
+            if (g->_active) {
+                string name = g->_name;
+                obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name);
+            }
         }
     }
     CLT.set_objective(min(obj));
@@ -211,7 +215,7 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
             CLT.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c]) <= 0);
         }
     }
-    //KCL
+//    //KCL
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P" + to_string(c));
         KCL_P  = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs()) + grid.pl - sum(Pg[c].in_gens()) + grid.gs*Xii[c];
@@ -222,32 +226,31 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
         /* AC Power Flow */
         Constraint Flow_P_From("Flow_P_From" + to_string(c));
         Flow_P_From = Pf_from[c] - (grid.g_ff*Xii[c].from() + grid.g_ft*R_Xij[c].in_pairs() + grid.b_ft*Im_Xij[c].in_pairs());
-        CLT.add_constraint(Flow_P_From.in(P.bag_arcs_union[c]) == 0);
+        CLT.add_constraint(Flow_P_From.in(P.bag_arcs_union_out[c]) == 0);
 
         Constraint Flow_P_To("Flow_P_To" + to_string(c));
         Flow_P_To = Pf_to[c] - (grid.g_tt*Xii[c].to() + grid.g_tf*R_Xij[c].in_pairs() - grid.b_tf*Im_Xij[c].in_pairs());
-        CLT.add_constraint(Flow_P_To.in(P.bag_arcs_union[c]) == 0);
+        CLT.add_constraint(Flow_P_To.in(P.bag_arcs_union_in[c]) == 0);
 
         Constraint Flow_Q_From("Flow_Q_From" + to_string(c));
         Flow_Q_From = Qf_from[c] - (grid.g_ft*Im_Xij[c].in_pairs() - grid.b_ff*Xii[c].from() - grid.b_ft*R_Xij[c].in_pairs());
-        CLT.add_constraint(Flow_Q_From.in(P.bag_arcs_union[c]) == 0);
+        CLT.add_constraint(Flow_Q_From.in(P.bag_arcs_union_out[c]) == 0);
 
         Constraint Flow_Q_To("Flow_Q_To" + to_string(c));
         Flow_Q_To = Qf_to[c] + (grid.b_tt*Xii[c].to() + grid.b_tf*R_Xij[c].in_pairs() + grid.g_tf*Im_Xij[c].in_pairs());
-        CLT.add_constraint(Flow_Q_To.in(P.bag_arcs_union[c]) == 0);
+        CLT.add_constraint(Flow_Q_To.in(P.bag_arcs_union_in[c]) == 0);
 
         Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
         Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
         Thermal_Limit_from <= power(grid.S_max,2);
-        CLT.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union[c]));
-
+        CLT.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c]));
 
         Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
         Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
         Thermal_Limit_to <= power(grid.S_max,2);
-        CLT.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union[c]));
+        CLT.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_in[c]));
     }
-    //Phase Angle Difference Constraints
+//    //Phase Angle Difference Constraints
     for (int c = 0; c < nbparts; c++) {
         vector<index_pair*> pairs = P.bag_bus_pairs_union_directed[c];
         Constraint PAD_UB("PAD_UB_"+to_string(c));
@@ -258,7 +261,7 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
         PAD_LB = Im_Xij[c]- grid.tan_th_min*R_Xij[c];
         CLT.add_constraint(PAD_LB.in(pairs) >= 0);
     }
-    //Linking Constraints.
+//    //Linking Constraints.
     for (const auto& a: P.G_part.arcs) {
         Constraint Link_R("link_R_"+a->_name);
         Link_R = R_Xij[a->_src->_id].in_pairs() - R_Xij[a->_dest->_id].in_pairs();
@@ -291,8 +294,10 @@ int inout(PowerNet& grid, unsigned nbparts, unsigned iter_limit) {
         bag_Xii.initialize_all(1.001);
         Xii.push_back(bag_Xii);
         var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min, grid.wr_max);
+
         var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min, grid.wi_max);
         bag_R_Xij.initialize_all(1.0);
+
         R_Xij.push_back(bag_R_Xij);
         Im_Xij.push_back(bag_Im_Xij);
         if (P.bag_gens[c].size() > 0) {
@@ -600,7 +605,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-   reform_inout(grid, 1);
+   reform_inout(grid, 2);
     //inout(grid, 2, 40);
     return 0;
 }
