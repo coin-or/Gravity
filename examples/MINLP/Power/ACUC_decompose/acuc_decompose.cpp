@@ -41,25 +41,25 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
         ACUC.add_var(Start_up[c].in(P.bag_gens[c], T));
         ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
         ACUC.add_var(On_off[c].in(P.bag_gens[c], T));
-        ACUC.add_var(Xii[c].in(P.bag_bus[c], T));
+        ACUC.add_var(Xii[c].in(P.bag_bus_union[c], T));
         ACUC.add_var(R_Xij[c].in(P.bag_bus_pairs_union[c], T));
         ACUC.add_var(Im_Xij[c].in(P.bag_bus_pairs_union[c], T));
     }
-    //power flow
+    //power flow vars are treated as auxilary vars.
     vector<var<Real>> Pf_from;
     vector<var<Real>> Qf_from;
     vector<var<Real>> Pf_to;
     vector<var<Real>> Qf_to;
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_arcs_union[c].size() > 0) {
-            var<Real> bag_Pf_from("Pf_from", grid.S_max);
-            var<Real> bag_Qf_from("Qf_from", grid.S_max);
-            var<Real> bag_Pf_to("Pf_to", grid.S_max);
-            var<Real> bag_Qf_to("Qf_to", grid.S_max);
-            ACUC.add_var(bag_Pf_from.in(P.bag_arcs_union[c], T));
-            ACUC.add_var(bag_Qf_from.in(P.bag_arcs_union[c], T));
-            ACUC.add_var(bag_Pf_to.in(P.bag_arcs_union[c], T));
-            ACUC.add_var(bag_Qf_to.in(P.bag_arcs_union[c], T));
+            var<Real> bag_Pf_from("Pf_from" +to_string(c), grid.S_max);
+            var<Real> bag_Qf_from("Qf_from"+to_string(c), grid.S_max);
+            var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max);
+            var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max);
+            ACUC.add_var(bag_Pf_from.in(P.bag_arcs_union_out[c], T));
+            ACUC.add_var(bag_Qf_from.in(P.bag_arcs_union_out[c], T));
+            ACUC.add_var(bag_Pf_to.in(P.bag_arcs_union_in[c], T));
+            ACUC.add_var(bag_Qf_to.in(P.bag_arcs_union_in[c], T));
             Pf_from.push_back(bag_Pf_from);
             Pf_to.push_back(bag_Pf_to);
             Qf_from.push_back(bag_Qf_from);
@@ -80,177 +80,185 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     for (int c = 0; c < nbparts; c++) {
         for (auto g: P.bag_gens[c]) {
             if (g->_active) {
-                string name = g->_name + ",0";
+                string name = g->_name+",0";
                 obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
             }
-            for (int t = 1; t < T; t++) {
-                if (g->_active) {
-                    string name = g->_name + ","+ to_string(t);
-                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
-                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
-                }
-            }
+//            for (int t = 1; t < T; t++) {
+//                if (g->_active) {
+//                    string name = g->_name + ","+ to_string(t);
+//                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
+//                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
+//                }
+//            }
         }
     }
     ACUC.set_objective(min(obj));
     for (int c = 0; c < nbparts; c++) {
         Constraint SOC("SOC_" + to_string(c));
-        SOC =  power(R_Xij[c], 2)+ power(Im_Xij[c], 2) - Xii[c].from()*Xii[c].to() ;
-        ACUC.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
+        if (P.bag_bus_pairs_union_directed[c].size() > 0){
+            SOC =  power(R_Xij[c], 2)+ power(Im_Xij[c], 2) - Xii[c].from()*Xii[c].to() ;
+            ACUC.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
+        }
     }
     //KCL
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P"+ to_string(c));
         Constraint KCL_Q("KCL_Q"+ to_string(c));
-        KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs())+grid.pl-sum(Pg[c].in_gens()) + grid.gs*Xii[c];
+        // grid.pl leads to an error.
+        KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs())+ grid.pl -sum(Pg[c].in_gens())+ grid.gs*Xii[c];
+        grid.pl.print(true);
         ACUC.add_constraint(KCL_P.in(P.bag_bus[c], T) == 0);
-        KCL_Q  = sum(Qf_from[c].out_arcs()) + sum(Qf_to[c].in_arcs()) + grid.ql - sum(Qg[c].in_gens()) - grid.bs*Xii[c];
+        KCL_Q  = sum(Qf_from[c].out_arcs()) + sum(Qf_to[c].in_arcs())+ grid.ql -sum(Qg[c].in_gens())-grid.bs*Xii[c];
+        grid.ql.print(true);
         ACUC.add_constraint(KCL_Q.in(P.bag_bus[c], T) == 0);
-
+        
         Constraint Flow_P_From("Flow_P_From_" + to_string(c));
-        Flow_P_From = Pf_from[c] -(grid.g_ff*Xii[c].from() + grid.g_ft*R_Xij[c].in_pairs() + grid.b_ft*Im_Xij[c].in_pairs());
+        Flow_P_From = Pf_from[c]- (grid.g_ff*Xii[c].from()+ grid.g_ft*R_Xij[c].in_pairs() + grid.b_ft*Im_Xij[c].in_pairs());
         ACUC.add_constraint(Flow_P_From.in(P.bag_arcs_union_out[c], T) == 0);
 
         Constraint Flow_P_To("Flow_P_To" + to_string(c));
         Flow_P_To = Pf_to[c] - (grid.g_tt*Xii[c].to() + grid.g_tf*R_Xij[c].in_pairs() - grid.b_tf*Im_Xij[c].in_pairs());
-        ACUC.add_constraint(Flow_P_To.in(P.bag_arcs_union[c], T) == 0);
+        ACUC.add_constraint(Flow_P_To.in(P.bag_arcs_union_in[c], T) == 0);
 
         Constraint Flow_Q_From("Flow_Q_From" + to_string(c));
         Flow_Q_From = Qf_from[c] - (grid.g_ft*Im_Xij[c].in_pairs() - grid.b_ff*Xii[c].from() - grid.b_ft*R_Xij[c].in_pairs());
-        ACUC.add_constraint(Flow_Q_From.in(P.bag_arcs_union[c], T) == 0);
+        ACUC.add_constraint(Flow_Q_From.in(P.bag_arcs_union_out[c], T) == 0);
 
         Constraint Flow_Q_To("Flow_Q_To" + to_string(c));
         Flow_Q_To = Qf_to[c] + (grid.b_tt*Xii[c].to() + grid.b_tf*R_Xij[c].in_pairs() + grid.g_tf*Im_Xij[c].in_pairs());
-        ACUC.add_constraint(Flow_Q_To.in(P.bag_arcs_union[c], T) == 0);
+        ACUC.add_constraint(Flow_Q_To.in(P.bag_arcs_union_in[c], T) == 0);
 
-        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
-        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
-        Thermal_Limit_from <= power(grid.S_max,2);
-        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union[c], T));
-
-        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
-        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
-        Thermal_Limit_to <= power(grid.S_max,2);
-        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union[c], T));
+//        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
+//        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
+//        Thermal_Limit_from <= power(grid.S_max,2);
+//        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
+//
+//        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
+//        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
+//        Thermal_Limit_to <= power(grid.S_max,2);
+//        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_out[c], T));
     }
     ///* Phase Angle Bounds constraints */
     for (int c = 0; c < nbparts; c++) {
-        vector<index_pair*> pairs = P.bag_bus_pairs_union_directed[c];
-        Constraint PAD_UB("PAD_UB_"+to_string(c));
-        PAD_UB = Im_Xij[c]- grid.tan_th_max*R_Xij[c];
-        ACUC.add_constraint(PAD_UB.in(P.bag_bus_pairs_union[c], T) <= 0);
+        if (P.bag_bus_pairs_union_directed[c].size() > 0){
+            Constraint PAD_UB("PAD_UB_"+to_string(c));
+            PAD_UB = Im_Xij[c]- grid.tan_th_max*R_Xij[c];
+            grid.tan_th_max.in(P.bag_bus_pairs_union_directed[c], T).print(true);
+            ACUC.add_constraint(PAD_UB.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
 
-        Constraint PAD_LB("PAD_LB_"+to_string(c));
-        PAD_LB = Im_Xij[c]- grid.tan_th_min*R_Xij[c];
-        ACUC.add_constraint(PAD_LB.in(P.bag_bus_pairs_union[c], T) >= 0);
+            Constraint PAD_LB("PAD_LB_"+to_string(c));
+            PAD_LB = Im_Xij[c]- grid.tan_th_min*R_Xij[c];
+            grid.tan_th_min.in(P.bag_bus_pairs_union_directed[c], T).print(true);
+            ACUC.add_constraint(PAD_LB.in(P.bag_bus_pairs_union_directed[c], T) >= 0);
+        }
     }
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            for (int t = 1; t < T; t++) {
-                Constraint MC1("MC1_"+ to_string(c)+ ","+to_string(t));
-                Constraint MC2("MC2_"+ to_string(c)+ ","+to_string(t));
-                MC1 = On_off[c].in_at(P.bag_gens[c], t)- On_off[c].in_at(P.bag_gens[c], t-1)-  Start_up[c].in_at(P.bag_gens[c], t);
-                MC2 = On_off[c].in_at(P.bag_gens[c], t-1) - On_off[c].in_at(P.bag_gens[c], t) - Shut_down[c].in_at(P.bag_gens[c], t);
-                ACUC.add_constraint(MC1 <= 0);
-                ACUC.add_constraint(MC2 <= 0);
-            }
-        }
-    }
-    // Min-up constraints  4a
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            for (int t = 1; t < T; t++) {
-                Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
-                Min_up1 = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1) - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
-                ACUC.add_constraint(Min_up1 == 0);
-            }
-        }
-    }
-    // 4b
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            for (int t = min_up.getvalue(); t < T; t++) {
-                Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
-                for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-                    Min_Up   += Start_up[c].in_at(P.bag_gens[c], l);
-                }
-                Min_Up -= On_off[c].in_at(P.bag_gens[c], t);
-                ACUC.add_constraint(Min_Up <= 0);
-            }
-        }
-    }
-    // 4c
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            for (int t = min_down.getvalue(); t < T; t++) {
-                Constraint Min_Down("Min_Down_constraint_" + to_string(c) + "_"+ to_string(t));
-                for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-                    Min_Down   += Shut_down[c].in_at(P.bag_gens[c], l);
-                }
-                Min_Down -= 1 - On_off[c].in_at(P.bag_gens[c], t);
-                ACUC.add_constraint(Min_Down <= 0);
-            }
-        }
-    }
-
-    ////Ramp Rate
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            Constraint Production_P_LB("Production_P_LB_"+ to_string(c));
-            Constraint Production_P_UB("Production_P_UB_"+ to_string(c));
-            Constraint Production_Q_LB("Production_Q_LB_"+ to_string(c));
-            Constraint Production_Q_UB("Production_Q_UB_"+ to_string(c));
-            // 5A
-            Production_P_UB = Pg[c].in(P.bag_gens[c], T) - grid.pg_max.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
-            Production_P_LB = Pg[c].in(P.bag_gens[c], T) - grid.pg_min.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
-            ACUC.add_constraint(Production_P_UB <=0);
-            ACUC.add_constraint(Production_P_LB >= 0);
-
-            Production_Q_UB = Qg[c].in(P.bag_gens[c], T) - grid.qg_max.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
-            Production_Q_LB = Qg[c].in(P.bag_gens[c], T) - grid.qg_min.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
-            ACUC.add_constraint(Production_Q_UB <= 0);
-            ACUC.add_constraint(Production_Q_LB >= 0);
-        }
-    }
-    // 5C
-    for (int c = 0; c < nbparts; c++) {
-        if (P.bag_gens[c].size() > 0) {
-            for (int t = 1; t < T; t++) {
-                Constraint Ramp_up("Ramp_up_constraint_" +  to_string(c) + "_" + to_string(t));
-                Constraint Ramp_down("Ramp_down_constraint_" + to_string(c) + "_" +to_string(t));
-                Ramp_up =  Pg[c].in_at(P.bag_gens[c], t);
-                Ramp_up -= Pg[c].in_at(P.bag_gens[c], t-1);
-                Ramp_up -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t-1);
-                Ramp_up -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t));
-
-                Ramp_down =  Pg[c].in_at(P.bag_gens[c], t-1);
-                Ramp_down -= Pg[c].in_at(P.bag_gens[c], t);
-                Ramp_down -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t);
-                Ramp_down -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
-
-                ACUC.add_constraint(Ramp_up <= 0);
-                ACUC.add_constraint(Ramp_down <= 0);
-            }
-        }
-    }
-    // set the initial state of generators.
-    for (int c = 0; c < nbparts; c++) {
-        for(auto g: P.bag_gens[c]) {
-            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
-            gen_initial +=  On_off[c]( g->_name + ",0");
-            ACUC.add_constraint(gen_initial == 1);
-        }
-    }
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            for (int t = 1; t < T; t++) {
+//                Constraint MC1("MC1_"+ to_string(c)+ ","+to_string(t));
+//                Constraint MC2("MC2_"+ to_string(c)+ ","+to_string(t));
+//                MC1 = On_off[c].in_at(P.bag_gens[c], t)- On_off[c].in_at(P.bag_gens[c], t-1)-  Start_up[c].in_at(P.bag_gens[c], t);
+//                MC2 = On_off[c].in_at(P.bag_gens[c], t-1) - On_off[c].in_at(P.bag_gens[c], t) - Shut_down[c].in_at(P.bag_gens[c], t);
+//                ACUC.add_constraint(MC1 <= 0);
+//                ACUC.add_constraint(MC2 <= 0);
+//            }
+//        }
+//    }
+//    // Min-up constraints  4a
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            for (int t = 1; t < T; t++) {
+//                Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
+//                Min_up1 = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1) - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
+//                ACUC.add_constraint(Min_up1 == 0);
+//            }
+//        }
+//    }
+//    // 4b
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            for (int t = min_up.getvalue(); t < T; t++) {
+//                Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
+//                for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+//                    Min_Up   += Start_up[c].in_at(P.bag_gens[c], l);
+//                }
+//                Min_Up -= On_off[c].in_at(P.bag_gens[c], t);
+//                ACUC.add_constraint(Min_Up <= 0);
+//            }
+//        }
+//    }
+//    // 4c
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            for (int t = min_down.getvalue(); t < T; t++) {
+//                Constraint Min_Down("Min_Down_constraint_" + to_string(c) + "_"+ to_string(t));
+//                for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+//                    Min_Down   += Shut_down[c].in_at(P.bag_gens[c], l);
+//                }
+//                Min_Down -= 1 - On_off[c].in_at(P.bag_gens[c], t);
+//                ACUC.add_constraint(Min_Down <= 0);
+//            }
+//        }
+//    }
+//
+//   ////Ramp Rate
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            Constraint Production_P_LB("Production_P_LB_"+ to_string(c));
+//            Constraint Production_P_UB("Production_P_UB_"+ to_string(c));
+//            Constraint Production_Q_LB("Production_Q_LB_"+ to_string(c));
+//            Constraint Production_Q_UB("Production_Q_UB_"+ to_string(c));
+//            // 5A
+//            Production_P_UB = Pg[c].in(P.bag_gens[c], T) - grid.pg_max.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
+//            Production_P_LB = Pg[c].in(P.bag_gens[c], T) - grid.pg_min.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
+//            ACUC.add_constraint(Production_P_UB <=0);
+//            ACUC.add_constraint(Production_P_LB >= 0);
+//
+//            Production_Q_UB = Qg[c].in(P.bag_gens[c], T) - grid.qg_max.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
+//            Production_Q_LB = Qg[c].in(P.bag_gens[c], T) - grid.qg_min.in(P.bag_gens[c], T)*On_off[c].in(P.bag_gens[c],T);
+//            ACUC.add_constraint(Production_Q_UB <= 0);
+//            ACUC.add_constraint(Production_Q_LB >= 0);
+//        }
+//    }
+////    // 5C
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() > 0) {
+//            for (int t = 1; t < T; t++) {
+//                Constraint Ramp_up("Ramp_up_constraint_" +  to_string(c) + "_" + to_string(t));
+//                Constraint Ramp_down("Ramp_down_constraint_" + to_string(c) + "_" +to_string(t));
+//                Ramp_up =  Pg[c].in_at(P.bag_gens[c], t);
+//                Ramp_up -= Pg[c].in_at(P.bag_gens[c], t-1);
+//                Ramp_up -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t-1);
+//                Ramp_up -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t));
+//
+//                Ramp_down =  Pg[c].in_at(P.bag_gens[c], t-1);
+//                Ramp_down -= Pg[c].in_at(P.bag_gens[c], t);
+//                Ramp_down -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t);
+//                Ramp_down -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
+//
+//                ACUC.add_constraint(Ramp_up <= 0);
+//                ACUC.add_constraint(Ramp_down <= 0);
+//            }
+//        }
+//    }
+////    // set the initial state of generators.
+//    for (int c = 0; c < nbparts; c++) {
+//        for(auto g: P.bag_gens[c]) {
+//            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
+//            gen_initial +=  On_off[c]( g->_name + ",0");
+//            ACUC.add_constraint(gen_initial == 1);
+//        }
+//    }
     // linking constraints
     for (const auto& a: P.G_part.arcs) {
         Constraint Link_R("link_R_"+a->_name);
-        Link_R = R_Xij[a->_src->_id].in_pairs() - R_Xij[a->_dest->_id].in_pairs();
+        Link_R = R_Xij[a->_src->_id] - R_Xij[a->_dest->_id];
         ACUC.add_constraint(Link_R.in(a->_intersection_clique, T) ==0);
 
         Constraint Link_Im("link_Im_"+a->_name);
-        Link_Im = Im_Xij[a->_src->_id].in_pairs() - Im_Xij[a->_dest->_id].in_pairs();
+        Link_Im = Im_Xij[a->_src->_id] - Im_Xij[a->_dest->_id];
         ACUC.add_constraint(Link_Im.in(a->_intersection_clique, T)==0);
 
         Constraint Link_Xii("link_Xii_" + a->_name);
@@ -265,23 +273,17 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     bool relax =true;
     int output = 1;
     double tol = 1e-6;
-    cpx_acuc.run();
-    //SCOPF_CPX.run(output, relax, tol);
-//    auto sol = (*(var<bool>*) ACUC.get_var("Start_up"));
-//    auto sol2 = (*(var<bool>*) ACUC.get_var("On_off"));
-//    sol.print(true);
-//    for (auto g:grid.gens) {
-//        for (int t= 1; t < T; t++) {
-//            string name= g->_name + "," + to_string(t);
-//            cout <<"Start_up" <<name << " = " << sol(name).getvalue() << endl;
-//            cout << "On_off"<<name << " = " << sol2(name).getvalue() << endl;
+    cpx_acuc.run(output, relax, tol);
+    cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
+    
+    // return dual vars.
+//    for (const auto& a: P.G_part.arcs) {
+//        auto cons = *ACUC.get_constraint("link_R_"+a->_name);
+//        for (auto i = 0; i <cons._dual.size(); i++){
+//            cout << "dual vars: " << cons._dual[i] << endl;
 //        }
 //    }
-//    auto solver_time_end = get_wall_time();
-//    auto cpu_time_end = get_cpu_time();
-//    auto solve_time = solver_time_end - solver_time_start;
-//    auto total_time = cpu_time_end - cpu_time_start;
-    cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
+
     return ACUC._obj_val;
 }
 /** INITIALISE SUBPROBLEM MODEL */
@@ -487,37 +489,16 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
         gen_initial +=  On_off( g->_name + ",0");
         Subr.add_constraint(gen_initial == 1);
     }
-    
     /* solve it! */
     solver solve_Subr(Subr, cplex);
     solve_Subr.run();
     // COLLECT THE LINKED VARIABLES
-    auto val = Xii.in(P.bag_bus[c],T);
-    val.print(true);
-    for (auto b: P.bag_bus[c]) {
-        for (int t = 0; t < T; t++) {
-            string name = b->_name + ","+ to_string(t);
-            cout << val.getvalue() << endl;
-            //Xii_log(name)  = val(name).getvalue();
-        }
-    }
-    
-    
-//    for (auto b: P.bag_bus_out[c]) {
-//        for (int t = 0; t < T; t++) {
-//            string name = b->_name + ","+ to_string(t);
-//            Xii_log(name)  = val(name).getvalue();
-//        }
-//    }
-//    auto R_val = (*(var<Real>*) Subr.get_var("R_Xij_"+to_string(c))).in(P.bag_bus_pairs_neighbour[c]);
-//    auto Im_val = (*(var<Real>*) Subr.get_var("Im_Xij_"+to_string(c))).in(P.bag_bus_pairs_neighbour[c]);
-//    for(auto b: P.bag_bus_pairs_neighbour[c]) {
-//        for (int t = 0; t < T; t++) {
-//            string name = b->_name + ","+ to_string(t);
-//            R_Xij_log(name) = R_val(name).getvalue();
-//            Im_Xij_log(name) = Im_val(name).getvalue();
-//        }
-//    }
+    std::string name = Xii.in(P.bag_bus[c],T).get_name();
+    Xii_log= (*(var<Real>*) Subr.get_var(name));
+    name = R_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+    R_Xij_log = (*(var<Real>*) Subr.get_var(name));
+    name = Im_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+    Im_Xij_log = (*(var<Real>*) Subr.get_var(name));
     return Subr._obj_val;
 }
 
@@ -544,7 +525,7 @@ int main (int argc, const char * argv[])
     }
     PowerNet grid;
     grid.readgrid(fname);
-    int nbparts = 1;
+    int nbparts = 2;
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
     Partition P;
@@ -597,9 +578,9 @@ int main (int argc, const char * argv[])
             var<bool>  bag_Down("Shut_down_" + to_string(c));
             Pg.push_back(bag_Pg);
             Qg.push_back(bag_Qg);
-            On_off.push_back(bag_Onoff.in(P.bag_gens[c], T));
-            Start_up.push_back(bag_Up.in(P.bag_gens[c], T));
-            Shut_down.push_back(bag_Down.in(P.bag_gens[c], T));
+            On_off.push_back(bag_Onoff);
+            Start_up.push_back(bag_Up);
+            Shut_down.push_back(bag_Down);
         }
         else {
             var<Real> empty("empty");
@@ -616,9 +597,6 @@ int main (int argc, const char * argv[])
     param<Real> R_lambda("R_lambda");
     param<Real> Im_lambda("Im_lambda");
     param<Real> lambda("lambda");
-    R_lambda.in(P.inter_pairs, T);
-    Im_lambda.in(P.inter_pairs, T);
-    lambda.in(P.inter_pairs, T);
 
     R_lambda.initialize_all(0);
     Im_lambda.initialize_all(0);
@@ -636,27 +614,25 @@ int main (int argc, const char * argv[])
     vector<param<Real>> Im_Xij_log;
     for (int c =0; c < nbparts; c++) {
         param<Real> Xii_C_log("Xii_C_log_" + to_string(c));
-        Xii_C_log.set_size(T*P.bag_bus_union[c].size());
         Xii_log.push_back(Xii_C_log);
 
         param<Real> Im_Xij_C_log("Im_Xij_C_log" + to_string(c));
         param<Real> R_Xij_C_log("R_Xij_C_log" +  to_string(c));
-        R_Xij_log.push_back(R_Xij_C_log.in(P.bag_bus_pairs_neighbour[c], T));
-        Im_Xij_log.push_back(Im_Xij_C_log.in(P.bag_bus_pairs_neighbour[c], T));
+        R_Xij_log.push_back(R_Xij_C_log);
+        Im_Xij_log.push_back(Im_Xij_C_log);
     }
 /////////////////////////////////// INITIALIZATION ///////////////////////////////////////////
     auto wall0 = get_wall_time();
     auto cpu0  = get_cpu_time();
     double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Qg,
                                   Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
-    double dual = 0.0;
-    double value_dual[nbparts];
-    for (int c = 0; c < nbparts; c++) {
-        value_dual[c] = subproblem(grid, T, P, c, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Qg[c],
-                                   Start_up[c], Shut_down[c], On_off[c], Xii[c], R_Xij[c], Im_Xij[c],
-                                   R_lambda, Im_lambda, lambda, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
-        dual += value_dual[c];
-    }
-    //cout << "Initialization_value:   " << dual <<endl;
+//    double dual = 0.0;
+//    double value_dual[nbparts];
+//    for (int c = 0; c < nbparts; c++) {
+//        value_dual[c] = subproblem(grid, T, P, c, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Qg[c],
+//                                   Start_up[c], Shut_down[c], On_off[c], Xii[c], R_Xij[c], Im_Xij[c],
+//                                   R_lambda, Im_lambda, lambda, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
+//        dual += value_dual[c];
+//    }
     return 0;
 }
