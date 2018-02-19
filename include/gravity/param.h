@@ -99,7 +99,7 @@ namespace gravity {
                 if(it->second==idx) break;
             }
             string key = it->first;
-            cout << "\nkey found: " << it->first.at(0) << "," << it->first.at(2);
+            DebugOff("\nkey found: " << it->first.at(0) << "," << it->first.at(2));
             pair<size_t,size_t> res;
             res = make_pair(std::stoi(it->first.substr(0,1)),std::stoi(it->first.substr(2,1)));
             return res;
