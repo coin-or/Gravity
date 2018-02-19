@@ -124,8 +124,7 @@ int main (int argc, const char * argv[])
     Constraint KCL_P("KCL_P");
     Constraint KCL_Q("KCL_Q");
     grid->pl.print(true);
-    cout << "dim: " << grid->pl.get_dim() << endl;
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs())- sum(Pg.in_gens()) + grid->gs*Wii; // + grid->pl;
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs())- sum(Pg.in_gens()) + grid->gs*Wii + grid->pl;
     ACUC.add_constraint(KCL_P.in(grid->nodes, T) == 0);
 
 //    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid->ql - sum(Qg.in_gens()) - grid->bs*Wii;
