@@ -130,32 +130,20 @@ int main (int argc, const char * argv[])
     
     //////AC Power Flow.
     Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from.in(grid->arcs, T);
-    Flow_P_From -= grid->g_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_P_From -= grid->g_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_P_From -= grid->b_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_From == 0);
-    
+    Flow_P_From = Pf_from - (grid->g_ff*Wii.from() + grid->g_ft*R_Wij.in_pairs() + grid->b_ft*Im_Wij.in_pairs());
+    ACUC.add_constraint(Flow_P_From.in(grid->arcs, T) == 0);
+
     Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to.in(grid->arcs, T);
-    Flow_P_To -= grid->g_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_P_To -= grid->g_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_P_To += grid->b_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_P_To == 0);
+    Flow_P_To = Pf_to - (grid->g_tt*Wii.to() + grid->g_tf*R_Wij.in_pairs() - grid->b_tf*Im_Wij.in_pairs());
+    ACUC.add_constraint(Flow_P_To.in(grid->arcs, T) == 0);
 
     Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from.in(grid->arcs, T);
-    Flow_Q_From += grid->b_ff.in(grid->arcs, T)*Wii.from(grid->arcs, T);
-    Flow_Q_From += grid->b_ft.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_Q_From += grid->g_ft.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_From == 0);
+    Flow_Q_From = Qf_from - (grid->g_ft*Im_Wij.in_pairs() - grid->b_ff*Wii.from() - grid->b_ft*R_Wij.in_pairs());
+    ACUC.add_constraint(Flow_Q_From.in(grid->arcs, T) == 0);
 
     Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to.in(grid->arcs, T);
-    Flow_Q_To += grid->b_tt.in(grid->arcs, T)*Wii.to(grid->arcs, T);
-    Flow_Q_To += grid->b_tf.in(grid->arcs, T)*R_Wij.in_pairs(grid->arcs, T);
-    Flow_Q_To -= grid->g_tf.in(grid->arcs, T)*Im_Wij.in_pairs(grid->arcs, T);
-    ACUC.add_constraint(Flow_Q_To == 0);
+    Flow_Q_To = Qf_to + (grid->b_tt*Wii.to() + grid->b_tf*R_Wij.in_pairs() + grid->g_tf*Im_Wij.in_pairs());
+    ACUC.add_constraint(Flow_Q_To.in(grid->arcs, T) == 0);
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs, T);
