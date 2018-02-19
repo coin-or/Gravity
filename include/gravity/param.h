@@ -729,8 +729,8 @@ public:
             index = indices.front();
         }
         auto pp = param_::_indices->insert(make_pair<>(key,index));
-        _val->resize(max(_val->size(),index+1));
         if(pp.second) { //new index inserted
+           _val->resize(max(_val->size(),index+1));
             _rev_indices->resize(_val->size());
             _rev_indices->at(index) = key;
             res._ids->at(0).push_back(index);
@@ -777,9 +777,9 @@ public:
         }
         auto index = param_::_indices->size();
         auto pp = param_::_indices->insert(make_pair<>(key,index));
-        _val->resize(max(_val->size(),index+1));
-        _dim[0] = max(_dim[0],_val->size());
         if(pp.second) { //new index inserted
+            _val->resize(max(_val->size(),index+1));
+            _dim[0] = max(_dim[0],_val->size());
             _rev_indices->resize(_val->size());
             _rev_indices->at(index) = key;
             res._ids->at(0).push_back(param_::_indices->size()-1);
@@ -1275,9 +1275,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1321,9 +1321,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(), index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(), index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1370,9 +1370,9 @@ public:
                 key += to_string(t);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(), index+1));
+                    _dim[0] = max(_dim[0],_val->size());
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
 
@@ -1418,9 +1418,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(), index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(), index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1467,9 +1467,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(), index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(), index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1519,9 +1519,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1568,9 +1568,9 @@ public:
             DebugOff(key<< ", ");
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1644,7 +1644,6 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
-        res._indices = this->_indices;
         for (unsigned i = 0; i<get_nb_instances(); i++) {
             if (i!=index) {
                 res._ids->at(0).push_back(i);
@@ -1670,7 +1669,6 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
-        res._indices = this->_indices;
         string key;
         if (nm->_active) {
             for (unsigned t = 0; t < T; t++) {
@@ -1680,9 +1678,9 @@ public:
                 Debug("key: " << key << endl);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(), index+1));
+                    _dim[0] = max(_dim[0],_val->size());
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
                     res._ids->at(0).push_back(index);
@@ -1730,9 +1728,9 @@ public:
             key += to_string(t);
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-            _val->resize(max(_val->size(), index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(), index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -1761,7 +1759,6 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
-        res._indices = this->_indices;
         if(nodes.empty()) {
             DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
@@ -1775,16 +1772,15 @@ public:
                 }
                 key = (*it)->_name;
                 //if (t > 0) {
-                key += ",";
-                key += to_string(t);
+                key += "," + to_string(t);
                 //}
                 Debug("_val: " << _val->size() << endl);
                 Debug("_indices: " << param_::_indices->size() << endl);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(), index+1));
+                    _dim[0] = max(_dim[0],_val->size());
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
                     res._ids->at(0).push_back(index);
@@ -1830,9 +1826,9 @@ public:
                 key += to_string(t);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key,index));
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(), index+1));
+                    _dim[0] = max(_dim[0],_val->size());
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
                     res._ids->at(0).push_back(index);
@@ -1878,15 +1874,14 @@ public:
                 key += to_string(t);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key,index));
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 if(pp.second) { //new index inserted
+                    _val->resize(max(_val->size(),index+1));
+                    _dim[0] = max(_dim[0],_val->size());
                     _rev_indices->resize(_val->size());
                     _rev_indices->at(index) = key;
                     res._ids->at(0).push_back(index);
                 }
                 else {
-                    // already exists
                     res._ids->at(0).push_back(pp.first->second);
                 }
             }
@@ -1903,13 +1898,10 @@ public:
         assert(T >= 1);
         auto dim = param_::get_dim();
         set_size(dim*T);
+        param_::_rev_indices->resize(dim*T);//necessary
         /* update the indices of the old parameter*/
         auto map_temp = *param::_indices;
         auto val_temp = *param::_val;
-        //        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
-        //            key = it->first;
-        //            map_temp.insert(make_pair(key, it->second));
-        //        }
         //CLEAR OLD ENTRIES
         _indices->clear();
         _ids->at(0).clear();
@@ -1919,9 +1911,10 @@ public:
             for (auto &entry: map_temp) {
                 string key = entry.first;
                 key += "," + to_string(t);
-                //_val->at(param_::_indices->size()) = _val->at(entry.second);
-                _val->at(param_::_indices->size()) = val_temp.at(entry.second);
-                param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                auto index  = param_::_indices->size();
+                _val->at(index) = val_temp.at(entry.second);
+                param_::_indices->insert(make_pair<>(key, index));
+                _rev_indices->at(index) = key;
             }
         }
         _name += ".time_expanded";

@@ -64,9 +64,7 @@ int main (int argc, char * argv[])
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname.c_str());
-    DebugOn("dim: " << grid.gs.get_dim() << endl);
-    grid.pl.print(true);
-    DebugOn("dim: " << grid.pl.get_dim() << endl);
+
     /* Grid Parameters */
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
