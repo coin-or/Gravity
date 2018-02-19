@@ -1644,7 +1644,6 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
-        res._indices = this->_indices;
         for (unsigned i = 0; i<get_nb_instances(); i++) {
             if (i!=index) {
                 res._ids->at(0).push_back(i);
@@ -1669,7 +1668,6 @@ public:
         res._is_matrix = this->_is_matrix;
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
-        res._indices = this->_indices;
         res._indices = this->_indices;
         string key;
         if (nm->_active) {
@@ -1713,7 +1711,6 @@ public:
         res._is_matrix = this->_is_matrix;
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
-        res._indices = this->_indices;
         res._indices = this->_indices;
         if(nodes.empty()) {
             DebugOff("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1761,7 +1758,6 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
-        res._indices = this->_indices;
         if(nodes.empty()) {
             DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
@@ -1791,6 +1787,7 @@ public:
                 }
                 else {
                     res._ids->at(0).push_back(pp.first->second);
+                    cout << "pos: " << pp.first->second << endl;
                 }
             }
         }
@@ -1911,7 +1908,7 @@ public:
         _ids->at(0).clear();
         // _ids->clear();
         //STORE NEW ENTRIES
-        _rev_indices->resize(dim*T); // necessary.
+        _rev_indices->resize(dim*T); // need to keep this..
         for(unsigned t = 0; t < T; t ++ ) {
             for (auto &entry: map_temp) {
                 string key = entry.first;
@@ -1920,15 +1917,12 @@ public:
                 //_val->resize(index+1);
                 _val->at(index) = val_temp.at(entry.second);
                 param_::_indices->insert(make_pair<>(key, index));
-                cout << "size: " << _val->size() << endl;
-                cout << "size: " << _indices->size() << endl;
                 _rev_indices->at(index) = key;
             }
         }
         _name += ".time_expanded";
-        _unique_id = make_tuple<>(get_id(),in_time_,typeid(type).hash_code(),0,dim*T);
-        //DebugOn(param_::_name << " size: " << param_::get_dim() << endl);
-       // _unique_id = make_tuple<>(get_id(),unindexed_,typeid(type).hash_code(),0,dim*T);
+       // _unique_id = make_tuple<>(get_id(),in_time_,typeid(type).hash_code(),0,dim*T);
+        _unique_id = make_tuple<>(get_id(),unindexed_,typeid(type).hash_code(),0,dim*T);
     }
 
     /** Output */
