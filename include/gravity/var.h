@@ -52,11 +52,11 @@ class func_;
         
     };
     
-    class R_plus: public space{
+    class R_p: public space{
     public:
-        R_plus(){};
+        R_p(){};
         template<typename... Args>
-        R_plus(size_t t1, Args&&... args) {
+        R_p(size_t t1, Args&&... args) {
             _type = R_p_;
             list<size_t> dims = {forward<size_t>(args)...};
             dims.push_front(t1);
@@ -69,7 +69,7 @@ class func_;
             }
         }
         
-        R_plus operator^(size_t n){return R_plus(n);};
+        R_p operator^(size_t n){return R_p(n);};
         
     };
     
