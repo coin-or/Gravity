@@ -382,7 +382,7 @@ param<double> Bag::nfp(){
     int n = _nodes.size();
     DebugOff("\nn = " << n);
 
-    _wstarp.print(true);
+//    _wstarp.print(true);
 
 #ifndef FLAT
     sdpvar<double> W("W");
@@ -429,7 +429,7 @@ param<double> Bag::nfp(){
     auto idxs = triang_indices(2*n);
     svec = _W_star - W - z;
     NPP.add_constraint(svec.in(idxs)==0);
-    svec.print_expanded();
+//    svec.print_expanded();
 
 //    vector<index_> zero_idxs;
 //    for(int i = 0; i < n; i++) {
@@ -443,12 +443,12 @@ param<double> Bag::nfp(){
     Constraint W_lb("W_lb");
     W_lb = _Wmin - W;
     NPP.add_constraint(W_lb.in(idxs) <= 0);
-    W_lb.print_expanded();
+//    W_lb.print_expanded();
 
     Constraint W_ub("W_ub");
     W_ub = _Wmax - W;
     NPP.add_constraint(W_ub.in(idxs) >= 0);
-    W_ub.print_expanded();
+//    W_ub.print_expanded();
 
 #endif
 
@@ -544,7 +544,7 @@ param<double> Bag::nfp(){
     }
 #endif
     what.set_name("w_hat");
-    what.print(true);
-    exit(0);
+//    what.print(true);
+//    exit(0);
     return what;
 }
