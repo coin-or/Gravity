@@ -837,18 +837,12 @@ public:
             if(!(*it)._active) {
                 continue;
             }
-<<<<<<< HEAD
             key = (*it)._name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-||||||| merged common ancestors
-            auto pp = param_::_indices->insert(make_pair<>(key,index));
-            _val->resize(max(_val->size(),index+1));
-=======
-            auto pp = param_::_indices->insert(make_pair<>(key,index));
->>>>>>> 30f5afc880f13601107c30484fc6204d36cab53b
             if(pp.second) { //new index inserted
                 _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -889,25 +883,9 @@ public:
             if(!(*it)->_active) {
                 continue;
             }
-<<<<<<< HEAD
             key = (*it)->_name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
-||||||| merged common ancestors
-            if (indices.size()==2) {
-                _is_matrix = true;
-            }
-            auto index = param_::_indices->size();
-            auto pp = param_::_indices->insert(make_pair<>(key,index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
-=======
-            if (indices.size()==2) {
-                _is_matrix = true;
-            }
-            auto index = param_::_indices->size();
-            auto pp = param_::_indices->insert(make_pair<>(key,index));
->>>>>>> 30f5afc880f13601107c30484fc6204d36cab53b
             if(pp.second) { //new index inserted
                 _val->resize(max(_val->size(),index+1));
                 _dim[0] = max(_dim[0],_val->size());
@@ -1666,6 +1644,7 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
+        res._indices = this->_indices;
         for (unsigned i = 0; i<get_nb_instances(); i++) {
             if (i!=index) {
                 res._ids->at(0).push_back(i);
@@ -1690,6 +1669,7 @@ public:
         res._is_matrix = this->_is_matrix;
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
+        res._indices = this->_indices;
         res._indices = this->_indices;
         string key;
         if (nm->_active) {
@@ -1733,6 +1713,7 @@ public:
         res._is_matrix = this->_is_matrix;
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
+        res._indices = this->_indices;
         res._indices = this->_indices;
         if(nodes.empty()) {
             DebugOff("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
@@ -1780,6 +1761,7 @@ public:
         res._is_transposed = _is_transposed;
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
+        res._indices = this->_indices;
         if(nodes.empty()) {
             DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
@@ -1796,8 +1778,8 @@ public:
                 key += ",";
                 key += to_string(t);
                 //}
-               // DebugOn("_val: " << _val->size() << endl);
-               // DebugOn("_indices: " << param_::_indices->size() << endl);
+                Debug("_val: " << _val->size() << endl);
+                Debug("_indices: " << param_::_indices->size() << endl);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
                 _val->resize(max(_val->size(), index+1));
@@ -1809,7 +1791,6 @@ public:
                 }
                 else {
                     res._ids->at(0).push_back(pp.first->second);
-                    cout << "pos: " << pp.first->second << endl;
                 }
             }
         }
@@ -1925,21 +1906,22 @@ public:
         /* update the indices of the old parameter*/
         auto map_temp = *param::_indices;
         auto val_temp = *param::_val;
+        //        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
+        //            key = it->first;
+        //            map_temp.insert(make_pair(key, it->second));
+        //        }
         //CLEAR OLD ENTRIES
         _indices->clear();
         _ids->at(0).clear();
         // _ids->clear();
         //STORE NEW ENTRIES
-        _rev_indices->resize(dim*T); // need to keep this..
         for(unsigned t = 0; t < T; t ++ ) {
             for (auto &entry: map_temp) {
                 string key = entry.first;
                 key += "," + to_string(t);
-                auto index = param::_indices->size();
-                //_val->resize(index+1);
-                _val->at(index) = val_temp.at(entry.second);
-                param_::_indices->insert(make_pair<>(key, index));
-                _rev_indices->at(index) = key;
+                //_val->at(param_::_indices->size()) = _val->at(entry.second);
+                _val->at(param_::_indices->size()) = val_temp.at(entry.second);
+                param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
             }
         }
         _name += ".time_expanded";
@@ -1977,9 +1959,6 @@ public:
             str += " = [ ";
             if(_is_indexed) {
                 for (auto &id: _ids->at(0)) {
-                    //DebugOn("size " << param_::get_dim() <<endl);
-                    //DebugOn("val " << _val->at(id)<<endl);
-                    //DebugOn("rev_indices " << _rev_indices->at(id)<<endl);
                     str += "(" + _rev_indices->at(id) + "=" + to_string(_val->at(id)) + ")";
                     str += " ";
                 }
