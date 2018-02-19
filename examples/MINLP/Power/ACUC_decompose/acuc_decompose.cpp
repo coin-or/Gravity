@@ -38,14 +38,22 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
     for (int c = 0; c < nbparts; c++) {
         ACUC.add_var(Pg[c].in(P.bag_gens[c], T));
         ACUC.add_var(Qg[c].in(P.bag_gens[c], T));
+        Pg[c].in(P.bag_gens[c], T).print(true);
+        Qg[c].in(P.bag_gens[c], T).print(true);
+        
         ACUC.add_var(Start_up[c].in(P.bag_gens[c], T));
         ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
         ACUC.add_var(On_off[c].in(P.bag_gens[c], T));
+        
         ACUC.add_var(Xii[c].in(P.bag_bus_union[c], T));
         ACUC.add_var(R_Xij[c].in(P.bag_bus_pairs_union[c], T));
         ACUC.add_var(Im_Xij[c].in(P.bag_bus_pairs_union[c], T));
+        
+        Xii[c].in(P.bag_bus_union[c],T).print(true);
+        R_Xij[c].in(P.bag_bus_pairs_union[c], T).print(true);
+        Im_Xij[c].in(P.bag_bus_pairs_union[c], T).print(true);
     }
-    //power flow vars are treated as auxilary vars.
+    //power flow vars are treated as auxiliary vars.
     vector<var<Real>> Pf_from;
     vector<var<Real>> Qf_from;
     vector<var<Real>> Pf_to;
@@ -57,7 +65,10 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
             var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max);
             var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max);
             ACUC.add_var(bag_Pf_from.in(P.bag_arcs_union_out[c], T));
+            bag_Pf_from.in(P.bag_arcs_union_out[c], T).print(true);
             ACUC.add_var(bag_Qf_from.in(P.bag_arcs_union_out[c], T));
+            bag_Qf_from.in(P.bag_arcs_union_out[c], T).print(true);
+
             ACUC.add_var(bag_Pf_to.in(P.bag_arcs_union_in[c], T));
             ACUC.add_var(bag_Qf_to.in(P.bag_arcs_union_in[c], T));
             Pf_from.push_back(bag_Pf_from);
@@ -74,7 +85,6 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
             Qf_to.push_back(empty);
         }
     }
-
     /* Construct the objective function*/
     func_ obj;
     for (int c = 0; c < nbparts; c++) {
@@ -83,13 +93,13 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
                 string name = g->_name+",0";
                 obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
             }
-            for (int t = 1; t < T; t++) {
-                if (g->_active) {
-                    string name = g->_name + ","+ to_string(t);
-                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
-                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
-                }
-            }
+//            for (int t = 1; t < T; t++) {
+//                if (g->_active) {
+//                    string name = g->_name + ","+ to_string(t);
+//                    obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) + grid.c0(name)*On_off[c](name);
+//                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
+//                }
+//            }
         }
     }
     ACUC.set_objective(min(obj));
@@ -251,14 +261,19 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
         Constraint Link_R("link_R_"+a->_name);
         Link_R = R_Xij[a->_src->_id].in_pairs(a->_intersection_clique, T) - R_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, T);
         ACUC.add_constraint(Link_R ==0);
-        Link_R.print(true);
-       // bugs
-        Constraint Link_Im("link_Im_"+a->_name);
-        Link_Im = Im_Xij[a->_src->_id].in_pairs(a->_intersection_clique, T)-Im_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, T);
-        ACUC.add_constraint(Link_Im==0);
+        //Link_Im = Im_Xij[a->_src->_id].in_pairs()-Im_Xij[a->_dest->_id].in_pairs();
+        //Link_Im.print(true);
+        for (const auto& pair: a->_intersection_clique){
+            Constraint Link_Im("link_Im_"+a->_name + "," + pair->_name);
+            Link_Im = Im_Xij[a->_src->_id](pair->_name+","+to_string(0)) -Im_Xij[a->_dest->_id](pair->_name+","+to_string(0));
+            Link_Im.print(true);
+            ACUC.add_constraint(Link_Im ==0);
+        }
         
         Constraint Link_Xii("link_Xii_" + a->_name);
+        cout << Link_Xii.get_name() <<endl;
         Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
+        cout << Link_Xii.get_name() <<endl;
         ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, T)== 0);
     }
     /* Solver selection */
