@@ -45,11 +45,11 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
         ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
         ACUC.add_var(On_off[c].in(P.bag_gens[c], T));
         
-        ACUC.add_var(Xii[c].in(P.bag_bus_union[c], T));
+        ACUC.add_var(Xii[c].in(P.bag_bus_union_out[c], T));
         ACUC.add_var(R_Xij[c].in(P.bag_bus_pairs_union[c], T));
         ACUC.add_var(Im_Xij[c].in(P.bag_bus_pairs_union[c], T));
         
-        Xii[c].in(P.bag_bus_union[c],T).print(true);
+        Xii[c].in(P.bag_bus_union_out[c],T).print(true);
         R_Xij[c].in(P.bag_bus_pairs_union[c], T).print(true);
         Im_Xij[c].in(P.bag_bus_pairs_union[c], T).print(true);
     }
@@ -64,17 +64,14 @@ double getdual_relax(PowerNet& grid, const unsigned& T, const Partition& P, unsi
             var<Real> bag_Qf_from("Qf_from"+to_string(c), grid.S_max);
             var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max);
             var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max);
-            ACUC.add_var(bag_Pf_from.in(P.bag_arcs_union_out[c], T));
-            bag_Pf_from.in(P.bag_arcs_union_out[c], T).print(true);
-            ACUC.add_var(bag_Qf_from.in(P.bag_arcs_union_out[c], T));
-            bag_Qf_from.in(P.bag_arcs_union_out[c], T).print(true);
-
-            ACUC.add_var(bag_Pf_to.in(P.bag_arcs_union_in[c], T));
-            ACUC.add_var(bag_Qf_to.in(P.bag_arcs_union_in[c], T));
             Pf_from.push_back(bag_Pf_from);
             Pf_to.push_back(bag_Pf_to);
             Qf_from.push_back(bag_Qf_from);
             Qf_to.push_back(bag_Qf_to);
+            ACUC.add_var(Pf_from[c].in(P.bag_arcs_union_out[c], T));
+            ACUC.add_var(Qf_from[c].in(P.bag_arcs_union_out[c], T));
+            ACUC.add_var(Pf_to[c].in(P.bag_arcs_union_in[c], T));
+            ACUC.add_var(Qf_to[c].in(P.bag_arcs_union_in[c], T));
         }
         else {
             var<Real> empty("empty");

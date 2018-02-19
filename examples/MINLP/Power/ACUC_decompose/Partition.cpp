@@ -254,7 +254,7 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
         bag_bus_pairs_union.push_back(test);
         bag_bus_pairs_union_directed.push_back(pairs);
         bag_arcs_union.push_back(temp);
-        bag_bus_union.push_back(B);
+        bag_bus_union_out.push_back(B);
     }
     for (auto i =0 ; i < nbparts; ++i) {
         vector<Line*> temp;
@@ -263,8 +263,8 @@ void Partition::get_ncut(const PowerNet& grid, const unsigned& nbparts) {
         temp.insert(temp.end(), bag_arcs_out[i].begin(), bag_arcs_out[i].end());
         temp1.insert(temp1.end(), bag_arcs_disjoint[i].begin(), bag_arcs_disjoint[i].end());
         temp1.insert(temp1.end(), bag_arcs_in[i].begin(), bag_arcs_in[i].end());
-	bag_arcs_union_out.push_back(temp);
-	bag_arcs_union_in.push_back(temp1);
+        bag_arcs_union_out.push_back(temp);
+        bag_arcs_union_in.push_back(temp1);
     }
 };
 
