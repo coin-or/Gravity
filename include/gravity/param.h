@@ -1778,8 +1778,8 @@ public:
                 key += ",";
                 key += to_string(t);
                 //}
-                Debug("_val: " << _val->size() << endl);
-                Debug("_indices: " << param_::_indices->size() << endl);
+               // DebugOn("_val: " << _val->size() << endl);
+               // DebugOn("_indices: " << param_::_indices->size() << endl);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
                 _val->resize(max(_val->size(), index+1));
@@ -1906,27 +1906,29 @@ public:
         /* update the indices of the old parameter*/
         auto map_temp = *param::_indices;
         auto val_temp = *param::_val;
-        //        for (map<std::string, unsigned>::iterator it= param::_indices->begin(); it != param::_indices->end(); it++){
-        //            key = it->first;
-        //            map_temp.insert(make_pair(key, it->second));
-        //        }
         //CLEAR OLD ENTRIES
         _indices->clear();
         _ids->at(0).clear();
         // _ids->clear();
         //STORE NEW ENTRIES
+        _rev_indices->resize(dim*T); // necessary.
         for(unsigned t = 0; t < T; t ++ ) {
             for (auto &entry: map_temp) {
                 string key = entry.first;
                 key += "," + to_string(t);
-                //_val->at(param_::_indices->size()) = _val->at(entry.second);
-                _val->at(param_::_indices->size()) = val_temp.at(entry.second);
-                param_::_indices->insert(make_pair<>(key, param_::_indices->size()));
+                auto index = param::_indices->size();
+                //_val->resize(index+1);
+                _val->at(index) = val_temp.at(entry.second);
+                param_::_indices->insert(make_pair<>(key, index));
+                cout << "size: " << _val->size() << endl;
+                cout << "size: " << _indices->size() << endl;
+                _rev_indices->at(index) = key;
             }
         }
         _name += ".time_expanded";
-       // _unique_id = make_tuple<>(get_id(),in_time_,typeid(type).hash_code(),0,dim*T);
-        _unique_id = make_tuple<>(get_id(),unindexed_,typeid(type).hash_code(),0,dim*T);
+        _unique_id = make_tuple<>(get_id(),in_time_,typeid(type).hash_code(),0,dim*T);
+        //DebugOn(param_::_name << " size: " << param_::get_dim() << endl);
+       // _unique_id = make_tuple<>(get_id(),unindexed_,typeid(type).hash_code(),0,dim*T);
     }
 
     /** Output */
@@ -1959,6 +1961,9 @@ public:
             str += " = [ ";
             if(_is_indexed) {
                 for (auto &id: _ids->at(0)) {
+                    //DebugOn("size " << param_::get_dim() <<endl);
+                    //DebugOn("val " << _val->at(id)<<endl);
+                    //DebugOn("rev_indices " << _rev_indices->at(id)<<endl);
                     str += "(" + _rev_indices->at(id) + "=" + to_string(_val->at(id)) + ")";
                     str += " ";
                 }

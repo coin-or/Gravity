@@ -22,7 +22,7 @@ class Partition{
 public: 
     Net G_part;
     vector<vector<Node*>> bag_bus;
-    std::vector<std::vector<Node*>> bag_bus_union;
+    std::vector<std::vector<Node*>> bag_bus_union_out;
     vector<vector<Node*>> bag_bus_out;
     vector<vector<Gen*>> bag_gens;
     vector<vector<Line*>> bag_arcs_disjoint;
