@@ -77,9 +77,21 @@ bool MosekProgram::solve(bool relax) {
                 poly_set_val(j, val , _model->_vars[i]);
             }
         }
+        else if(!_model->_vars[i]->_is_matrix){
+            for (auto j = 0; j < _model->_vars[i]->get_nb_instances(); j++) {
+                poly_set_val(j, (*sol)[j], _model->_vars[i]);
+            }
+        }
         else {
-            for (auto j = 0; j < _model->_vars[i]->get_nb_instances(); j++)
-                poly_set_val(j,(*sol)[j] , _model->_vars[i]);
+            int n = _model->_vars[i]->_dim[0];
+            for(auto j1 = 0; j1 < n; j1++) {
+                for(auto j2 = j1; j2 < n; j2++) {
+                    string key = to_string(j1)+","+to_string(j2);
+                    ((param<double>*)_model->_vars[i])->set_val(key, (*sol)[j1*n+j2]);
+                }
+            }
+
+
         }
     }
     return 0;
@@ -109,7 +121,8 @@ void MosekProgram::fill_in_mosek_vars() {
                 if(!real_var->_in_q_cone && !real_var->_psd) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_nb_instances(), fusion::Domain::inRange(lb,ub)));
                 else if(real_var->_in_q_cone) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inQCone(real_var->get_nb_instances())));
                 else {
-                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone((1 + sqrt(1+8*real_var->get_nb_instances()))/2)));
+//                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone((1 + sqrt(1+8*real_var->get_nb_instances()))/2)));
+                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone(real_var->_dim[0])));
                 }
             }
             else {
@@ -154,7 +167,8 @@ void MosekProgram::fill_in_mosek_vars() {
                 if(!real_var->_in_q_cone && !real_var->_psd) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), real_var->get_nb_instances(), fusion::Domain::inRange(lb,ub)));
                 else if(real_var->_in_q_cone) _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inQCone(real_var->get_nb_instances())));
                 else {
-                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone((1 + sqrt(1+8*real_var->get_nb_instances()))/2.)));
+//                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone((1 + sqrt(1+8*real_var->get_nb_instances()))/2.)));
+                    _mosek_vars.push_back(_mosek_model->variable(real_var->get_name(), fusion::Domain::inPSDCone(real_var->_dim[0])));
                 }
             }
             else {
@@ -294,7 +308,7 @@ void MosekProgram::create_mosek_constraints() {
                             } else {
                                 c_idx_inst = inst;
                             }
-                            cout << "\nindex: " << pair.first << ", " << pair.second;
+                            DebugOff("\nindex: " << pair.first << ", " << pair.second);
                             auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst),
                                                            _mosek_vars[idx]->index(pair.first,pair.second));
 
@@ -357,7 +371,7 @@ void MosekProgram::create_mosek_constraints() {
                         else {
                             c_idx_inst = inst;
                         }
-                        auto lterm = fusion::Expr::constTerm(poly_eval(it1.second._coef, c_idx_inst) * poly_eval(it1.second._p, idx_inst));
+                        auto lterm = fusion::Expr::constTerm(poly_eval(it1.second._coef, c_idx_inst) * poly_eval(it1.second._p, i)); // was idx_inst
                         if (!it1.second._sign) {
                             lterm = fusion::Expr::mul(-1, lterm);
                         }
@@ -365,13 +379,17 @@ void MosekProgram::create_mosek_constraints() {
                     }
                 }
             }
+            DebugOff("\nconstr in Mosek: " << expr->toString());
             if(c->get_type()==geq) {
+                DebugOff("\n >= " << c->get_rhs());
                 _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::greaterThan(c->get_rhs()));
             }
             else if(c->get_type()==leq) {
+                DebugOff("\n <= " << c->get_rhs());
                 _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::lessThan(c->get_rhs()));
             }
             else if(c->get_type()==eq) {
+                DebugOff("\n = " << c->get_rhs());
                 _mosek_model->constraint(c->get_name()+to_string(i), expr, fusion::Domain::equalsTo(c->get_rhs()));
             }
             inst++;

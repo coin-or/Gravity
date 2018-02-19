@@ -25,6 +25,9 @@ public:
     param<double> _wmin;
     param<double> _wmax;
 
+    param<double> _Wmin;
+    param<double> _Wmax;
+
 //    gravity::node_pairs _bus_pairs;
 
     gravity::Model _model;
