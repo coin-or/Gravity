@@ -837,12 +837,18 @@ public:
             if(!(*it)._active) {
                 continue;
             }
+<<<<<<< HEAD
             key = (*it)._name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
+||||||| merged common ancestors
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
+            _val->resize(max(_val->size(),index+1));
+=======
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
+>>>>>>> 30f5afc880f13601107c30484fc6204d36cab53b
             if(pp.second) { //new index inserted
                 _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -883,9 +889,25 @@ public:
             if(!(*it)->_active) {
                 continue;
             }
+<<<<<<< HEAD
             key = (*it)->_name;
             auto index = _indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key, index));
+||||||| merged common ancestors
+            if (indices.size()==2) {
+                _is_matrix = true;
+            }
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
+            _val->resize(max(_val->size(),index+1));
+            _dim[0] = max(_dim[0],_val->size());
+=======
+            if (indices.size()==2) {
+                _is_matrix = true;
+            }
+            auto index = param_::_indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key,index));
+>>>>>>> 30f5afc880f13601107c30484fc6204d36cab53b
             if(pp.second) { //new index inserted
                 _val->resize(max(_val->size(),index+1));
                 _dim[0] = max(_dim[0],_val->size());

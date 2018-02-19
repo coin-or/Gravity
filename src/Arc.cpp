@@ -27,7 +27,14 @@ Arc::Arc(string name):_src(NULL), _dest(NULL) {
 Arc::Arc(Node* s, Node* d) {
     _src = s;
     _dest = d;
+<<<<<<< HEAD
     _weight = 1; // why 1?
+||||||| merged common ancestors
+    _weight = 1;
+=======
+    _weight = 1;
+    _name = s->_name + "," + d->_name;
+>>>>>>> 30f5afc880f13601107c30484fc6204d36cab53b
 //   in_cycle = false;
     //  parallel = false;
     //  connect();
