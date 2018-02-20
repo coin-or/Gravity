@@ -268,11 +268,9 @@ void CplexProgram::create_cplex_constraints() {
                 if (it_lterm.second._coef->_is_transposed) {
                     auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j < dim; j++) {
-                        DebugOn("polyeval: " << i << ","  << j << " "<< poly_eval(it_lterm.second._coef,i,j) <<endl);
-                        DebugOn("inst " << i << "name: " << it_lterm.second._p->get_name() << endl);
-                        DebugOn("_ids size " << it_lterm.second._p->_ids->size() << endl);
-
-                        DebugOn("cplex_var: " <<it_lterm.second._p->get_id_inst(i,j) << endl);
+                        Debug("polyeval: " << i << ","  << j << " "<< poly_eval(it_lterm.second._coef,i,j) <<endl);
+                        Debug("_ids size " << it_lterm.second._p->_ids->size() << endl);
+                        Debug("cplex_var: " <<it_lterm.second._p->get_id_inst(i,j) << endl);
                         lterm += poly_eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
                     }                    
                 }
