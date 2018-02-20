@@ -1366,8 +1366,7 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name + "," + (*it)->_dest->_name;
-                key += ",";
-                key += to_string(t);
+                key += ","+to_string(t);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key, index));
                 if(pp.second) { //new index inserted
@@ -1386,7 +1385,7 @@ public:
         DebugOff(endl);
         res._dim[0]=res._ids->at(0).size();
         res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
-        res._unique_id = make_tuple<>(res.get_id(), in_time_, typeid(Tobj).hash_code(),0,0);
+        res._unique_id = make_tuple<>(res.get_id(), in_time_, typeid(Tobj).hash_code(), 0,0);
         res._is_indexed = true;
         return res;
     }
@@ -1488,9 +1487,6 @@ public:
         res._is_indexed = true;
         return res;
     }
-
-
-
 
     template<typename Tobj> param to(const vector<Tobj*>& vec) {
         param res(this->_name);
@@ -1771,9 +1767,7 @@ public:
                     continue;
                 }
                 key = (*it)->_name;
-                //if (t > 0) {
                 key += "," + to_string(t);
-                //}
                 Debug("_val: " << _val->size() << endl);
                 Debug("_indices: " << param_::_indices->size() << endl);
                 auto index = _indices->size();
@@ -1822,8 +1816,7 @@ public:
                     continue;
                 }
                 key = (*it)->_src->_name;
-                key += ",";
-                key += to_string(t);
+                key += "," + to_string(t);
                 auto index = _indices->size();
                 auto pp = param_::_indices->insert(make_pair<>(key,index));
                 if(pp.second) { //new index inserted
