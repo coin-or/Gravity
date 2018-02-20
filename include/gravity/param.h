@@ -1095,6 +1095,7 @@ public:
         DebugOff(_name << " = ");
         string key;
         unsigned inst = 0;
+        for (int t = 0; t < T; t++) {
         for(auto it = vec.begin(); it!= vec.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1103,7 +1104,6 @@ public:
                 res._ids->push_back(vector<unsigned>());
                 res._dim.push_back(0);
             }
-            for (int t = 0; t < T; t++) {
                 for (auto &a:(*it)->get_out()) {
                     if (!a->_active) {
                         continue;
@@ -1123,9 +1123,9 @@ public:
                         res._ids->at(inst).push_back(pp.first->second);
                     }
                 }
-            }
             res._dim[inst]=res._ids->at(inst).size();
             ++inst;
+        }
         }
         res._unique_id = make_tuple<>(res.get_id(),out_arcs_time_, typeid(Node).hash_code(), 0,0);
         res._is_indexed = true;
