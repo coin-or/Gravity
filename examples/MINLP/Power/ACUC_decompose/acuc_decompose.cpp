@@ -24,7 +24,7 @@ struct net_param {
     param<Real> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt;
     param<Real> S_max;
 };
-double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nbparts,
+double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const unsigned nbparts,
                      const param<Real>& rate_ramp, const param<Real>& rate_switch,
                      const param<Real>& min_up, const param<Real>& min_down,
                      const param<Real>& cost_up, const param<Real>& cost_down,
@@ -38,14 +38,14 @@ double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nb
     for (int c = 0; c < nbparts; c++) {
         ACUC.add_var(Pg[c].in(P.bag_gens[c], T));
         ACUC.add_var(Qg[c].in(P.bag_gens[c], T));
-        
         //ACUC.add_var(Start_up[c].in(P.bag_gens[c], T));
         //ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
         //ACUC.add_var(On_off[c].in(P.bag_gens[c], T));
-        
         ACUC.add_var(Xii[c].in(P.bag_bus_union_out[c], T));
         ACUC.add_var(R_Xij[c].in(P.bag_bus_pairs_union[c], T));
+        cout << "R_Xij dim: " << R_Xij[c].in(P.bag_bus_pairs_union[c], T).get_dim() << endl;
         ACUC.add_var(Im_Xij[c].in(P.bag_bus_pairs_union[c], T));
+        cout << "Im_Xij dim: " << Im_Xij[c].in(P.bag_bus_pairs_union[c], T).get_dim() << endl;
     }
     //power flow vars are treated as auxiliary vars.
     vector<var<Real>> Pf_from;
@@ -54,10 +54,10 @@ double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nb
     vector<var<Real>> Qf_to;
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_arcs_union[c].size() > 0) {
-            var<Real> bag_Pf_from("Pf_from" +to_string(c), grid.S_max);
-            var<Real> bag_Qf_from("Qf_from"+to_string(c), grid.S_max);
-            var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max);
-            var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max);
+            var<Real> bag_Pf_from("Pf_from" +to_string(c), grid.S_max.in(P.bag_arcs_union_out[c], T));
+            var<Real> bag_Qf_from("Qf_from"+to_string(c), grid.S_max.in(P.bag_arcs_union_out[c], T));
+            var<Real> bag_Pf_to("Pf_to"+to_string(c), grid.S_max.in(P.bag_arcs_union_out[c], T));
+            var<Real> bag_Qf_to("Qf_to"+to_string(c), grid.S_max.in(P.bag_arcs_union_out[c], T));
             Pf_from.push_back(bag_Pf_from);
             Pf_to.push_back(bag_Pf_to);
             Qf_from.push_back(bag_Qf_from);
@@ -102,21 +102,27 @@ double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nb
         }
     }
     //KCL
-    for (int c = 0; c < nbparts; c++) {
+ for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P"+ to_string(c));
         Constraint KCL_Q("KCL_Q"+ to_string(c));
         KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs())+ grid.pl -sum(Pg[c].in_gens())+ grid.gs*Xii[c];
         ACUC.add_constraint(KCL_P.in(P.bag_bus[c], T) == 0);
+        KCL_P.in(P.bag_bus[c], T).print();
+        cout << "# constraints: " << KCL_P.in(P.bag_bus[c], T).get_nb_instances()<< endl;
         KCL_Q  = sum(Qf_from[c].out_arcs()) + sum(Qf_to[c].in_arcs())+ grid.ql -sum(Qg[c].in_gens())-grid.bs*Xii[c];
         ACUC.add_constraint(KCL_Q.in(P.bag_bus[c], T) == 0);
+        cout << "# constraints: " << KCL_Q.in(P.bag_bus[c], T).get_nb_instances()<< endl;
+
         
         Constraint Flow_P_From("Flow_P_From_" + to_string(c));
         Flow_P_From = Pf_from[c]- (grid.g_ff*Xii[c].from()+ grid.g_ft*R_Xij[c].in_pairs() + grid.b_ft*Im_Xij[c].in_pairs());
         ACUC.add_constraint(Flow_P_From.in(P.bag_arcs_union_out[c], T) == 0);
+        cout << "# constraints: " << Flow_P_From.in(P.bag_arcs_union_out[c], T).get_nb_instances()<< endl;
 
         Constraint Flow_P_To("Flow_P_To" + to_string(c));
         Flow_P_To = Pf_to[c] - (grid.g_tt*Xii[c].to() + grid.g_tf*R_Xij[c].in_pairs() - grid.b_tf*Im_Xij[c].in_pairs());
         ACUC.add_constraint(Flow_P_To.in(P.bag_arcs_union_in[c], T) == 0);
+        cout << "# constraints: " << Flow_P_To.in(P.bag_arcs_union_in[c], T).get_nb_instances()<< endl;
 
         Constraint Flow_Q_From("Flow_Q_From" + to_string(c));
         Flow_Q_From = Qf_from[c] - (grid.g_ft*Im_Xij[c].in_pairs() - grid.b_ff*Xii[c].from() - grid.b_ft*R_Xij[c].in_pairs());
@@ -126,17 +132,17 @@ double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nb
         Flow_Q_To = Qf_to[c] + (grid.b_tt*Xii[c].to() + grid.b_tf*R_Xij[c].in_pairs() + grid.g_tf*Im_Xij[c].in_pairs());
         ACUC.add_constraint(Flow_Q_To.in(P.bag_arcs_union_in[c], T) == 0);
 
-//        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
-//        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
-//        Thermal_Limit_from <= power(grid.S_max,2);
-//        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
-//
-//        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
-//        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
-//        Thermal_Limit_to <= power(grid.S_max,2);
-//        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_in[c], T));
+////        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(c));
+////        Thermal_Limit_from = power(Pf_from[c], 2) + power(Qf_from[c], 2);
+////        Thermal_Limit_from <= power(grid.S_max,2);
+////        ACUC.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
+////
+////        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(c));
+////        Thermal_Limit_to = power(Pf_to[c], 2) + power(Qf_to[c], 2);
+////        Thermal_Limit_to <= power(grid.S_max,2);
+////        ACUC.add_constraint(Thermal_Limit_to.in(P.bag_arcs_union_in[c], T));
     }
-    ///* Phase Angle Bounds constraints */
+//    ///* Phase Angle Bounds constraints */
     //for (int c = 0; c < nbparts; c++) {
     //    if (P.bag_bus_pairs_union_directed[c].size() > 0){
     //        Constraint PAD_UB("PAD_UB_"+to_string(c));
@@ -247,30 +253,53 @@ double getdual_relax(PowerNet& grid, unsigned T, const Partition& P, unsigned nb
 //            ACUC.add_constraint(gen_initial == 1);
 //        }
 //    }
-    // linking constraints
+    // Linking constraints
     for (const auto& a: P.G_part.arcs) {
-       // Constraint Link_R("link_R_"+a->_name);
-       // Link_R = R_Xij[a->_src->_id].in_pairs(a->_intersection_clique, 1) - R_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, 1);
-        //ACUC.add_constraint(Link_R ==0);
-        //Link_Im = Im_Xij[a->_src->_id].in_pairs()-Im_Xij[a->_dest->_id].in_pairs();
-        //Link_Im.print(true);
-        for (const auto& pair: a->_intersection_clique){
-            cout << "pair_name: " << pair->_name << endl;
-            Constraint Link_Im("link_Im_"+a->_name + "," + pair->_name);
-            Constraint Link_R("link_R_"+a->_name + "," + pair->_name);
-            Link_Im = Im_Xij[a->_src->_id](pair->_name+","+to_string(0)) -Im_Xij[a->_dest->_id](pair->_name+","+to_string(0));
-            Link_R = R_Xij[a->_src->_id](pair->_name+","+to_string(0)) -R_Xij[a->_dest->_id](pair->_name+","+to_string(0));
-            Link_Im.print(true);
-            ACUC.add_constraint(Link_Im ==0);
-            ACUC.add_constraint(Link_R ==0);
-        }
-        
-        Constraint Link_Xii("link_Xii_" + a->_name);
-        Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
-        ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, 1)== 0);
+//        Constraint Link_R("link_R_"+a->_name);
+//        Link_R = R_Xij[a->_src->_id].in_pairs() - R_Xij[a->_dest->_id].in_pairs();
+//        ACUC.add_constraint(Link_R.in(a->_intersection_clique, T) ==0);
+
+//        Constraint Link_Im("link_Im_"+a->_name);
+//        Link_Im = Im_Xij[a->_src->_id].in_pairs() - Im_Xij[a->_dest->_id].in_pairs();
+//        ACUC.add_constraint(Link_Im.in(a->_intersection_clique, T)==0);
+          for (const auto& pair: a->_intersection_clique){
+              Constraint Link_Im("link_Im_"+a->_name + "," + pair->_name);
+              Constraint Link_R("link_R_"+a->_name + "," + pair->_name);
+              Link_Im = Im_Xij[a->_src->_id](pair->_name+","+to_string(0)) -Im_Xij[a->_dest->_id](pair->_name+","+to_string(0));
+              Link_R = R_Xij[a->_src->_id](pair->_name+","+to_string(0)) -R_Xij[a->_dest->_id](pair->_name+","+to_string(0));
+              ACUC.add_constraint(Link_Im ==0);
+              ACUC.add_constraint(Link_R ==0);
+              Constraint Link_Xii("link_Xii_" + a->_name + "," + pair->_name);
+              Link_Xii = Xii[a->_src->_id](pair->_dest->_name+","+to_string(0)) - Xii[a->_dest->_id](pair->_dest->_name+","+to_string(0));
+              ACUC.add_constraint(Link_Xii==0);
+          }
+//        Constraint Link_Xii("link_Xii_" + a->_name);
+//        Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
+//        ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, T)==0);
     }
+    //for (const auto& a: P.G_part.arcs) {
+    //   // Constraint Link_R("link_R_"+a->_name);
+    //   // Link_R = R_Xij[a->_src->_id].in_pairs(a->_intersection_clique, 1) - R_Xij[a->_dest->_id].in_pairs(a->_intersection_clique, 1);
+    //    //ACUC.add_constraint(Link_R ==0);
+    //    //Link_Im = Im_Xij[a->_src->_id].in_pairs()-Im_Xij[a->_dest->_id].in_pairs();
+    //    //Link_Im.print(true);
+    //    for (const auto& pair: a->_intersection_clique){
+    //        cout << "pair_name: " << pair->_name << endl;
+    //        Constraint Link_Im("link_Im_"+a->_name + "," + pair->_name);
+    //        Constraint Link_R("link_R_"+a->_name + "," + pair->_name);
+    //        Link_Im = Im_Xij[a->_src->_id](pair->_name+","+to_string(0)) -Im_Xij[a->_dest->_id](pair->_name+","+to_string(0));
+    //        Link_R = R_Xij[a->_src->_id](pair->_name+","+to_string(0)) -R_Xij[a->_dest->_id](pair->_name+","+to_string(0));
+    //        Link_Im.print(true);
+    //        ACUC.add_constraint(Link_Im ==0);
+    //        ACUC.add_constraint(Link_R ==0);
+    //    }
+    //    
+    //    Constraint Link_Xii("link_Xii_" + a->_name);
+    //    Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
+    //    ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, 1)== 0);
+    //}
     /* Solver selection */
-    solver cpx_acuc(ACUC, cplex);
+    solver cpx_acuc(ACUC, ipopt);
     auto solver_time_start = get_wall_time();
     auto cpu_time_start = get_wall_time();
 
@@ -495,12 +524,12 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
     solver solve_Subr(Subr, cplex);
     solve_Subr.run();
     // COLLECT THE LINKED VARIABLES
-    std::string name = Xii.in(P.bag_bus[c],T).get_name();
-    Xii_log= (*(var<Real>*) Subr.get_var(name));
-    name = R_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
-    R_Xij_log = (*(var<Real>*) Subr.get_var(name));
-    name = Im_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
-    Im_Xij_log = (*(var<Real>*) Subr.get_var(name));
+    //std::string name = Xii.in(P.bag_bus[c],T).get_name();
+    //Xii_log= (*(var<Real>*) Subr.get_var(name));
+    //name = R_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+    //R_Xij_log = (*(var<Real>*) Subr.get_var(name));
+    //name = Im_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+    //Im_Xij_log = (*(var<Real>*) Subr.get_var(name));
     return Subr._obj_val;
 }
 
@@ -548,10 +577,9 @@ int main (int argc, const char * argv[])
     min_down = 2;
     cost_up = 50;
     cost_down = 30;
-
     grid.time_expand(T);
-    rate_ramp.time_expand(T);
-    rate_switch.time_expand(T);
+    //rate_ramp.time_expand(T);
+    //rate_switch.time_expand(T);
     /** Variables */
     vector<var<Real>> R_Xij;
     vector<var<Real>> Im_Xij;
@@ -564,11 +592,17 @@ int main (int argc, const char * argv[])
     vector<var<bool>>  Shut_down;
     for (int c = 0; c < nbparts; c++) {
         var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min, grid.w_max);
+        //var<Real>  bag_Xii("Xii_"+ to_string(c), grid.w_min.in(P.bag_bus_union_out[c], T), grid.w_max.in(P.bag_bus_union_out[c], T));
+        //bag_Xii.set_size(T*P.bag_bus_union_out[c].size());
         bag_Xii.initialize_all(1.001);
         Xii.push_back(bag_Xii);
 
         var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min, grid.wr_max);
         var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min, grid.wi_max);
+        //var<Real>  bag_R_Xij("R_Xij_"+ to_string(c), grid.wr_min.in(P.bag_bus_pairs_union[c], T), grid.wr_max.in(P.bag_bus_pairs_union[c], T));
+        //var<Real>  bag_Im_Xij("Im_Xij_"+ to_string(c), grid.wi_min.in(P.bag_bus_pairs_union[c], T), grid.wi_max.in(P.bag_bus_pairs_union[c], T));
+        //bag_R_Xij.set_size(T*P.bag_bus_pairs_union[c].size());
+        //bag_Im_Xij.set_size(T*P.bag_bus_pairs_union[c].size());
         R_Xij.push_back(bag_R_Xij);
         bag_R_Xij.initialize_all(1.0);
         Im_Xij.push_back(bag_Im_Xij);
@@ -578,6 +612,8 @@ int main (int argc, const char * argv[])
             var<bool>  bag_Onoff("On_off_" + to_string(c));
             var<bool>  bag_Up("Start_up_" + to_string(c));
             var<bool>  bag_Down("Shut_down_" + to_string(c));
+            //bag_Pg.set_size(T*P.bag_gens[c].size());
+            //bag_Qg.set_size(T*P.bag_gens[c].size());
             Pg.push_back(bag_Pg);
             Qg.push_back(bag_Qg);
             On_off.push_back(bag_Onoff);
@@ -599,7 +635,6 @@ int main (int argc, const char * argv[])
     param<Real> R_lambda("R_lambda");
     param<Real> Im_lambda("Im_lambda");
     param<Real> lambda("lambda");
-
     R_lambda.initialize_all(0);
     Im_lambda.initialize_all(0);
     lambda.initialize_all(0);

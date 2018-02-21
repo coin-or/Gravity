@@ -215,7 +215,7 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
             CLT.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c]) <= 0);
         }
     }
-//    //KCL
+    //KCL
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P" + to_string(c));
         KCL_P  = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs()) + grid.pl - sum(Pg[c].in_gens()) + grid.gs*Xii[c];
@@ -277,6 +277,7 @@ void reform_inout (PowerNet& grid, unsigned nbparts) {
     }
     /* solve it! */
     solver solve_CLT(CLT, cplex);
+    //solver solve_CLT(CLT, ipopt);
     solve_CLT.run();
 }
 
@@ -592,20 +593,20 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-   reform_inout(grid, 2);
+   reform_inout(grid, 1);
     //inout(grid, 2, 40);
     return 0;
 }
