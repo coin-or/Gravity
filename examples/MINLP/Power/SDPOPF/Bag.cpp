@@ -353,24 +353,29 @@ bool Bag::is_PSD(){
     }
     else {
         double pos_tol = -0.00001;
-        DebugOn("\nBag is not PSD");
+        DebugOn("\nBag is not PSD\n");
 //        for(int i = 0; i < n; i++) {
 //            if(v[i] < pos_tol) v[i] = 0;
 //        }
-        arma::cx_mat D(n,n);
-        for(int i = 0; i < n; i++) {
-            for(int j = 0; j < n; j++) {
-                if(i==j) D[i,j] = v[i];
-                else D[i,j] = 0;
-            }
-        }
+        A.print();
+        arma::mat D(n,n);
+        D.zeros();
+        D.diag() = v;
+//        for(int i = 0; i < n; i++) {
+//            for(int j = 0; j < n; j++) {
+//                if(i==j) D[i,j] = v[i];
+//                else D[i,j] = 0;
+//            }
+//        }
         arma::cx_mat W_hat = P*D*P.t(); //todo: the values of W_hat don't make sense...
-        for(int i = 0; i < n; i++) {
-            for(int j = i; j < n; j++) {
-                cout << "\nW_hat(" << i << "," << j << ") = " << W_hat[i,j].real() << " + i" << W_hat[i,j].imag();
-            }
-            cout << "\n";
-        }
+        cout << endl;
+        W_hat.print();
+//        for(int i = 0; i < n; i++) {
+//            for(int j = i; j < n; j++) {
+//                cout << "\nW_hat(" << i << "," << j << ") = " << W_hat[i,j].real() << " + i" << W_hat[i,j].imag();
+//            }
+//            cout << "\n";
+//        }
         exit(0);
         return false;
     }
