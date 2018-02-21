@@ -606,7 +606,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     cout << "////////////////////////////////////////" << endl;
-   reform_inout(grid, 1);
+   reform_inout(grid, 2);
     //inout(grid, 2, 40);
     return 0;
 }

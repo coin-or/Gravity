@@ -29,7 +29,8 @@ int main (int argc, const char * argv[])
         // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-         fname = "../../data_sets/Power/nesta_case5_pjm.m";
+         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
     //string fname = "../../data_sets/Power/anu.m";
     }
