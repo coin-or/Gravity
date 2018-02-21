@@ -728,8 +728,8 @@ namespace gravity {
                 index = indices.front();
             }
             auto pp = param_::_indices->insert(make_pair<>(key,index));
-            _val->resize(max(_val->size(),index+1));
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(index);
@@ -775,9 +775,9 @@ namespace gravity {
             }
             auto index = param_::_indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key,index));
-            _val->resize(max(_val->size(),index+1));
-            _dim[0] = max(_dim[0],_val->size());
             if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
                 _rev_indices->resize(_val->size());
                 _rev_indices->at(index) = key;
                 res._ids->at(0).push_back(param_::_indices->size()-1);
