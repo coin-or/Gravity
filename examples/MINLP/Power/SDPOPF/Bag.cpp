@@ -338,8 +338,9 @@ bool Bag::is_PSD(){
         }
     }
 //    A.print();
-    arma::cx_mat R;
-    arma::vec v = arma::eig_sym(A);
+    arma::cx_mat P;
+    arma::vec v;// = arma::eig_sym(A);
+    arma::eig_sym(v,P,A);
     DebugOff("\n");
     double min_eig = 0, max_eig = -1;
     for(auto eig: v) {
@@ -351,7 +352,26 @@ bool Bag::is_PSD(){
         return true;
     }
     else {
-        DebugOff("\nBag is not PSD");
+        double pos_tol = -0.00001;
+        DebugOn("\nBag is not PSD");
+//        for(int i = 0; i < n; i++) {
+//            if(v[i] < pos_tol) v[i] = 0;
+//        }
+        arma::cx_mat D(n,n);
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++) {
+                if(i==j) D[i,j] = v[i];
+                else D[i,j] = 0;
+            }
+        }
+        arma::cx_mat W_hat = P*D*P.t(); //todo: the values of W_hat don't make sense...
+        for(int i = 0; i < n; i++) {
+            for(int j = i; j < n; j++) {
+                cout << "\nW_hat(" << i << "," << j << ") = " << W_hat[i,j].real() << " + i" << W_hat[i,j].imag();
+            }
+            cout << "\n";
+        }
+        exit(0);
         return false;
     }
 }
