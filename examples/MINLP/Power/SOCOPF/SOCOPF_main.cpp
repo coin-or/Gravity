@@ -124,7 +124,7 @@ int main (int argc, char * argv[])
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
     KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens()) + grid.gs*Wii;
-    SOCP.add_constraint(KCL_P.in(grid.nodes) == 0);
+    SOCP.add_constraint(KCL_P.in(grid.nodes) == 0);    
     
     Constraint KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens()) - grid.bs*Wii;

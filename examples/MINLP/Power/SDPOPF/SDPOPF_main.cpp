@@ -186,7 +186,7 @@ int main_new (int argc, char * argv[]) {
     auto I_sgn = signs(grid, grid._bags);
     Constraint Wii_LL("Wii_LL");
     Wii_LL = Wii_[0];
-    SDP.add(Wii_LL = 0);
+    SDP.add(Wii_LL == 0);
     
     
     /* Second-order cone constraints */
