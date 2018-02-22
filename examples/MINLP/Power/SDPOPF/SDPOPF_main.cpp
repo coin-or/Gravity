@@ -22,8 +22,8 @@ using namespace gravity;
 void nearest_point(int i, int j, vector<param<>>& w_hat, const vector<Bag>& bags){
     for (unsigned index = i; index <j; index++) {
         auto b = bags[index];
-//        w_hat[index] = b.nfp();
-        w_hat[index] = b.nfp1();
+        w_hat[index] = b.nfp();
+//        w_hat[index] = b.nfp1();
     }
 }
 
@@ -294,7 +294,7 @@ int main_new (int argc, char * argv[]) {
     //    double fp_tol = 0.0001;
     DebugOff("\nNumber of bags = " << bags.size());
     
-    vector<param<double>> R_star, I_star, W_star;
+//    vector<param<double>> R_star, I_star, W_star;
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
     
@@ -339,12 +339,12 @@ int main_new (int argc, char * argv[]) {
             DebugOff("\nBag number " << b._id);
             DebugOff("\nNodes: n1 = " << b._nodes[0]->_name << ", n2 = " << b._nodes[1]->_name << ", n3 = " << b._nodes[2]->_name);
             auto w_hat(move(w_hat_vec[index]));
-            R_star.resize(numcuts+1);
-            R_star[numcuts] = param<>("R_star"+to_string(numcuts));
-            I_star.resize(numcuts+1);
-            I_star[numcuts] = param<>("I_star"+to_string(numcuts));
-            W_star.resize(numcuts+1);
-            W_star[numcuts] = param<>("W_star"+to_string(numcuts));
+//            R_star.resize(numcuts+1);
+//            R_star[numcuts] = param<>("R_star"+to_string(numcuts));
+//            I_star.resize(numcuts+1);
+//            I_star[numcuts] = param<>("I_star"+to_string(numcuts));
+//            W_star.resize(numcuts+1);
+//            W_star[numcuts] = param<>("W_star"+to_string(numcuts));
             R_diff.resize(numcuts+1);
             R_diff[numcuts] = param<>("R_diff"+to_string(numcuts));
             I_diff.resize(numcuts+1);
@@ -369,7 +369,7 @@ int main_new (int argc, char * argv[]) {
                         ni = b._nodes[i];
                         W_diff[numcuts].set_val(ni->_name,((Bus *) ni)->w - w_hat(namew).eval());
                         W_hat[numcuts].set_val(ni->_name,w_hat(namew).eval());
-                        W_star[numcuts].set_val(ni->_name,((Bus *) ni)->w);
+//                        W_star[numcuts].set_val(ni->_name,((Bus *) ni)->w);
                     }
                     else {
                         aij = grid.get_arc(b._nodes[i]->_name, b._nodes[j]->_name);
@@ -386,13 +386,15 @@ int main_new (int argc, char * argv[]) {
                         I_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - w_hat(namewi).eval());
                         R_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,w_hat(namewr).eval());
                         I_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,w_hat(namewi).eval());
-                        R_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
-                        I_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
+//                        R_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
+//                        I_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
                     }
                 }
             }
             if(b._nodes.size()>3) hdim_cuts++;
-            
+            DebugOn("W_hat = \n");
+            W_hat[numcuts].print(true);
+            cout << "\n";
             Constraint lin("lin"+to_string(numcuts));
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
@@ -698,7 +700,7 @@ int main (int argc, char * argv[]) {
     node_pairs bus_pairs_sdp;
     DebugOff("\nNumber of bags = " << bags.size());
 
-    vector<param<double>> R_star, I_star, W_star;
+//    vector<param<double>> R_star, I_star, W_star;
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
@@ -743,12 +745,12 @@ int main (int argc, char * argv[]) {
             DebugOff("\nBag number " << b._id);
             DebugOff("\nNodes: n1 = " << b._nodes[0]->_name << ", n2 = " << b._nodes[1]->_name << ", n3 = " << b._nodes[2]->_name);
             auto w_hat(move(w_hat_vec[index]));
-            R_star.resize(numcuts+1);
-            R_star[numcuts] = param<>("R_star"+to_string(numcuts));
-            I_star.resize(numcuts+1);
-            I_star[numcuts] = param<>("I_star"+to_string(numcuts));
-            W_star.resize(numcuts+1);
-            W_star[numcuts] = param<>("W_star"+to_string(numcuts));
+//            R_star.resize(numcuts+1);
+//            R_star[numcuts] = param<>("R_star"+to_string(numcuts));
+//            I_star.resize(numcuts+1);
+//            I_star[numcuts] = param<>("I_star"+to_string(numcuts));
+//            W_star.resize(numcuts+1);
+//            W_star[numcuts] = param<>("W_star"+to_string(numcuts));
             R_diff.resize(numcuts+1);
             R_diff[numcuts] = param<>("R_diff"+to_string(numcuts));
             I_diff.resize(numcuts+1);
@@ -773,7 +775,7 @@ int main (int argc, char * argv[]) {
                         ni = b._nodes[i];
                         W_diff[numcuts].set_val(ni->_name,((Bus *) ni)->w - w_hat(namew).eval());
                         W_hat[numcuts].set_val(ni->_name,w_hat(namew).eval());
-                        W_star[numcuts].set_val(ni->_name,((Bus *) ni)->w);
+//                        W_star[numcuts].set_val(ni->_name,((Bus *) ni)->w);
                     }
                     else {
                         aij = grid.get_arc(b._nodes[i]->_name, b._nodes[j]->_name);
@@ -790,18 +792,22 @@ int main (int argc, char * argv[]) {
                         I_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - w_hat(namewi).eval());
                         R_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,w_hat(namewr).eval());
                         I_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,w_hat(namewi).eval());
-                        R_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
-                        I_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
+//                        R_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr);
+//                        I_star[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi);
                     }
                 }
             }
             if(b._nodes.size()>3) hdim_cuts++;
 
+//            cout << "W_HAT=   \n";
+//            W_hat[numcuts].print(true);
+//            cout << "WI_HAT= \n";
+//            I_hat[numcuts].print(true);
             Constraint lin("lin"+to_string(numcuts));
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
             lin += product(W_diff[numcuts].in(b._nodes),(Wii.in(b._nodes) - W_hat[numcuts].in(b._nodes)));
-            lin.print_expanded();
+//            lin.print_expanded();
             SDP.add_constraint(lin <= 0);
 
             cuts_added++; numcuts++;
