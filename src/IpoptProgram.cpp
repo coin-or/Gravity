@@ -88,7 +88,6 @@ bool IpoptProgram::get_bounds_info(Index n, Number* x_l, Number* x_u,
     
     return true;
 }
-
 bool IpoptProgram::get_starting_point(Index n, bool init_x, Number* x,
                                     bool init_z, Number* z_L, Number* z_U,
                                     Index m, bool init_lambda,
