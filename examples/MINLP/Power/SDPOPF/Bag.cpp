@@ -363,9 +363,9 @@ bool Bag::is_PSD(){
         double pos_tol = -0.00001;
         DebugOff("\nBag is not PSD\n");
         for(int i = 0; i < n; i++) {
-            if(v[i] < pos_tol) {
+            if(v[i] < 0) {
                 v[i] = 0;
-                P.col(i).zeros();
+//                P.col(i).zeros();
             }
         }
         arma::mat D(n,n);
@@ -602,22 +602,25 @@ param<double> Bag::nfp1(){
             if(i==j) {
                 A(i,j) = arma::cx_double(((Bus*)_grid->get_node(_nodes[i]->_name))->w,0);
             }else{
-                double AijI;
+                double AijI = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
                 if(_grid->has_directed_arc(_nodes[j],_nodes[i])) {
-                    AijI = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
+                    A(i,j) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,AijI);
+                    A(j,i) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,-AijI);
                 }
                 else {
-                    AijI = -((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
+                    A(i,j) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,-AijI);
+                    A(j,i) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,AijI);
                 }
-                A(i,j) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,AijI);
-                A(j,i) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,-AijI);
+                
             }
         }
     }
     arma::cx_mat Eigval; arma::cx_mat W_hat;
     arma::vec eigvec;
+    DebugOn("x_star = ");
+    A.print();
     arma::eig_sym(eigvec,Eigval,A);
-    DebugOff("\n");
+    DebugOn("\n");
     double min_eig = 0, max_eig = -1;
     for(auto eig: eigvec) {
         if(eig < min_eig) min_eig = eig;
@@ -638,8 +641,10 @@ param<double> Bag::nfp1(){
         arma::mat Eigvec(n,n);
         Eigvec.zeros();
         Eigvec.diag() = eigvec;
-        cout << "\nEigval:" << endl; Eigval.print(); cout << "\nD:" << endl; Eigvec.print();
+        cout << "\nEigvec:" << endl; Eigval.print(); cout << "\nD:" << endl; Eigvec.print();
         W_hat = Eigval*Eigvec*Eigval.t();
+        DebugOn("x_hat = ");
+        W_hat.print();
     }
 
     string namew, namewr, namewi;
@@ -648,16 +653,16 @@ param<double> Bag::nfp1(){
         for(int j = i; j < n; j++){
             if(i==j){
                 namew = "w(" + _nodes[i]->_name + ")";
-                what.set_val(namew,W_hat[i,i].real());
+                what.set_val(namew,W_hat(i,i).real());
             }
             else {
                 namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
                 namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
-                what.set_val(namewr, W_hat[i,j].real());
+                what.set_val(namewr, W_hat(i,j).real());
                 if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
-                    what.set_val(namewi, W_hat[i,j].imag());
+                    what.set_val(namewi, -1*W_hat(i,j).imag());
                 else
-                    what.set_val(namewi, -W_hat[i,j].imag());
+                    what.set_val(namewi, W_hat(i,j).imag());
             }
         }
     }
