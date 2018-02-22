@@ -22,7 +22,8 @@ using namespace gravity;
 void nearest_point(int i, int j, vector<param<>>& w_hat, const vector<Bag>& bags){
     for (unsigned index = i; index <j; index++) {
         auto b = bags[index];
-        w_hat[index] = b.nfp();
+//        w_hat[index] = b.nfp();
+        w_hat[index] = b.nfp1();
     }
 }
 
@@ -692,33 +693,29 @@ int main (int argc, char * argv[]) {
     }
     for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
-
-//    param<double> w_hat;
     string namew, namewr, namewi;
     int numcuts = 0;
     node_pairs bus_pairs_sdp;
-//    double prev_opt = 0;
-//    double fp_tol = 0.0001;
     DebugOff("\nNumber of bags = " << bags.size());
 
     vector<param<double>> R_star, I_star, W_star;
     vector<param<double>> R_diff, I_diff, W_diff;
     vector<param<double>> R_hat, I_hat, W_hat;
 
-//    int unchanged = 0;
     int iter = 0, hdim_cuts = 0, cuts_added = 1;
 
-//    while(unchanged < 3) {
-    unsigned nr_threads = 10;
+    unsigned nr_threads = 1;
     double gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
     while(cuts_added > 0 && gap > 1) {
         DebugOn("Current Gap = " << to_string(gap) << "%."<<endl);
         cuts_added = 0;
         vector<param<>> w_hat_vec;
-        
+
         iter++;
-//    while((SDP._obj_val - prev_opt)/SDP._obj_val > fp_tol) {
-//        prev_opt = SDP._obj_val;
+
+//        for(auto& b: bags) {
+//            if(b._nodes.size()==3) b.add_lines();
+//        }
 
         /* Update _is_psd */
         vector<Bag> violated_bags;
@@ -785,10 +782,10 @@ int main (int argc, char * argv[]) {
                             aij->_active = true;
                         }
                         b_pairs._keys.push_back(new index_pair(index_(aij->_src->_name), index_(aij->_dest->_name)));
-                        
+
                         namewr = "wr(" + b._nodes[i]->_name + "," + b._nodes[j]->_name + ")";
                         namewi = "wi(" + b._nodes[i]->_name + "," + b._nodes[j]->_name + ")";
-                        
+
                         R_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wr - w_hat(namewr).eval());
                         I_diff[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,((Line *) aij)->wi - w_hat(namewi).eval());
                         R_hat[numcuts].set_val(aij->_src->_name + "," + aij->_dest->_name,w_hat(namewr).eval());
@@ -804,12 +801,12 @@ int main (int argc, char * argv[]) {
             lin = product(R_diff[numcuts].in(b_pairs),(R_Wij.in(b_pairs) - R_hat[numcuts].in(b_pairs)));
             lin += product(I_diff[numcuts].in(b_pairs),(Im_Wij.in(b_pairs) - I_hat[numcuts].in(b_pairs)));
             lin += product(W_diff[numcuts].in(b._nodes),(Wii.in(b._nodes) - W_hat[numcuts].in(b._nodes)));
-            //            lin.print_expanded();
+            lin.print_expanded();
             SDP.add_constraint(lin <= 0);
-            
+
             cuts_added++; numcuts++;
         }
-        
+
         if(!bus_pairs_sdp._keys.empty()) {
             SDP.add_indices("SOC",bus_pairs_sdp);
             bus_pairs_sdp.clear();
@@ -819,7 +816,7 @@ int main (int argc, char * argv[]) {
         for(auto& a: grid.arcs){
             if(a->_imaginary && !a->_active) a->_free = true;
         }
-        
+
         SDPOPF.run(output = 5, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
         gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
         DebugOff("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
