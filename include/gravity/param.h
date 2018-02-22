@@ -1786,7 +1786,8 @@ public:
         }
         res._dim[0]=res._ids->at(0).size();
         res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T);
-        res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(Tobj).hash_code(), 0,0);
+        res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(Tobj).hash_code(),res._ids->at(0).at(0),res._ids->at(0).at(res._ids->at(0).size()-1));
+        //res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(Tobj).hash_code(),0, 0);
         res._is_indexed = true;
         return res;
     }
