@@ -43,6 +43,7 @@ public:
 
     /* find nearest feasible point */
     param<double> nfp();
+    param<double> nfp1(); // uses eigenvalues, disregards bounds
 
     bool add_lines();
 
