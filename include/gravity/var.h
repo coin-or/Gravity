@@ -47,9 +47,7 @@ class func_;
                 _dim[index++] = *it++;
             }
         }
-
         R operator^(size_t n){return R(n);};
-        
     };
     
     class R_p: public space{
