@@ -26,7 +26,7 @@ typedef enum { ACPOL, ACRECT, QC, QC_SDP, OTS, DF, SOCP, SDP, DC, QC_OTS_L, QC_O
 class PowerNet: public Net {
 
 public:
-    bool add_3d_nlin = false;
+    bool add_3d_nlin = true;
     string ref_bus;
     double bMVA; /**< Base MVA */
     double bV; /**< Base Voltage */

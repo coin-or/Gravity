@@ -564,12 +564,13 @@ param<double> Bag::nfp(){
         }
     }
 #endif
-    what.set_name("w_hat");
-    what.print(true);
+//    what.set_name("w_hat");
+//    what.print(true);
     return what;
 }
 
 param<double> Bag::nfp1(){
+//    fill_wstar();
     param<double> what;
     int n = _nodes.size();
     DebugOff("\nn = " << n);
@@ -588,13 +589,13 @@ param<double> Bag::nfp1(){
     }
 
     if (free_lines > 1) {
-        DebugOff("Returning empty w_hat.");
+        DebugOn("Returning empty w_hat.");
         return what;
     }
 
     //the bag has all lines or has > 3 nodes
 
-    double tol = 0.0001;
+    double tol = 1e-6;
     arma::cx_mat A(n,n);
 
     for(int i = 0; i < n; i++){
@@ -602,48 +603,60 @@ param<double> Bag::nfp1(){
             if(i==j) {
                 A(i,j) = arma::cx_double(((Bus*)_grid->get_node(_nodes[i]->_name))->w,0);
             }else{
-                double AijI = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
-                if(_grid->has_directed_arc(_nodes[j],_nodes[i])) {
-                    A(i,j) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,AijI);
-                    A(j,i) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,-AijI);
+                
+                if(_grid->has_directed_arc(_nodes[i],_nodes[j])) {
+                    double AijI = ((Line*)_grid->get_arc(_nodes[i], _nodes[j]))->wi;
+                    double AijR = ((Line*)_grid->get_arc(_nodes[i], _nodes[j]))->wr;
+                    A(i,j) = arma::cx_double(AijR,AijI);
+                    A(j,i) = arma::cx_double(AijR,-AijI);
                 }
                 else {
-                    A(i,j) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,-AijI);
-                    A(j,i) = arma::cx_double(((Line*)_grid->get_arc(_nodes[j],_nodes[i]))->wr,AijI);
+                    double AijI = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
+                    double AijR = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wr;
+                    A(i,j) = arma::cx_double(AijR,-AijI);
+                    A(j,i) = arma::cx_double(AijR,AijI);
                 }
                 
             }
         }
     }
-    arma::cx_mat Eigval; arma::cx_mat W_hat;
-    arma::vec eigvec;
+    arma::cx_mat Eigvec; arma::cx_mat W_hat;
+    arma::vec eigval;
     DebugOn("x_star = ");
     A.print();
-    arma::eig_sym(eigvec,Eigval,A);
+    arma::cx_mat B = (A+A.t())/2;
+    bool success = arma::eig_sym(eigval,Eigvec,B);
+    if (!success) {
+        throw invalid_argument("Matrix could not be decomposed");
+    }
     DebugOn("\n");
+//    DebugOn("w_star = ");
+//    _wstarp.print(true);
+    
     double min_eig = 0, max_eig = -1;
-    for(auto eig: eigvec) {
+    for(auto eig: eigval) {
         if(eig < min_eig) min_eig = eig;
         if(eig > max_eig) max_eig = eig;
     }
 
     if(min_eig/max_eig > -tol) {
-        DebugOn("\nBag is PSD");
+        DebugOff("\nBag is PSD");
         return what;
     } else {
-        DebugOn("\nBag is not PSD\n");
+        DebugOff("\nBag is not PSD\n");
         for(int i = 0; i < n; i++) {
-            if(eigvec[i] < 0) {
-                eigvec[i] = 0;
-//                Eigval.col(i).zeros();
+            if(eigval(i) < 0) {
+                eigval.at(i) = 0;
+//                Eigvec.col(i).zeros();
+//                Eigvec.row(i).zeros();
             }
         }
-        arma::mat Eigvec(n,n);
-        Eigvec.zeros();
-        Eigvec.diag() = eigvec;
-        cout << "\nEigvec:" << endl; Eigval.print(); cout << "\nD:" << endl; Eigvec.print();
-        W_hat = Eigval*Eigvec*Eigval.t();
-        DebugOn("x_hat = ");
+        
+        arma::mat D(n,n);
+        D.zeros();
+        D.diag() = eigval;
+        W_hat = Eigvec*D*Eigvec.t();
+        DebugOn("x_hat = \n");
         W_hat.print();
     }
 
@@ -659,10 +672,10 @@ param<double> Bag::nfp1(){
                 namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
                 namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
                 what.set_val(namewr, W_hat(i,j).real());
-                if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
-                    what.set_val(namewi, -1*W_hat(i,j).imag());
-                else
+                if(_grid->has_directed_arc(_nodes[i],_nodes[j]))
                     what.set_val(namewi, W_hat(i,j).imag());
+                else
+                    what.set_val(namewi, -1*W_hat(i,j).imag());
             }
         }
     }
