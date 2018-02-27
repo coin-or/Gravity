@@ -260,8 +260,8 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, T)==0);
     }
     /* Solver selection */
-    //solver cpx_acuc(ACUC, cplex);
-    solver cpx_acuc(ACUC, ipopt);
+    solver cpx_acuc(ACUC, cplex);
+    //solver cpx_acuc(ACUC, ipopt);
 
     bool relax =true;
     int output = 1;
@@ -269,12 +269,12 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
     // return dual vars.
-    for (const auto& a: P.G_part.arcs) {
-        auto cons = ACUC.get_constraint("link_R_"+a->_name);
-        for (unsigned i = 0; i <cons->get_nb_instances(); i++){
-            cout << "dual vars: " << cons->_dual[i] << endl;
-        }
-    }
+//    for (const auto& a: P.G_part.arcs) {
+//        auto cons = ACUC.get_constraint("link_R_"+a->_name);
+//        for (unsigned i = 0; i <cons->get_nb_instances(); i++){
+//            cout << "dual vars: " << cons->_dual[i] << endl;
+//        }
+//    }
     return ACUC._obj_val;
 }
 /** INITIALISE SUBPROBLEM MODEL */

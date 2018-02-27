@@ -1,5 +1,4 @@
 #include <gravity/CplexProgram.h>
-
 CplexProgram::CplexProgram(Model* m) {
     _cplex_env = new IloEnv();
     _cplex_model = new IloModel(*_cplex_env);
@@ -21,7 +20,6 @@ CplexProgram::~CplexProgram() {
     delete _cplex_model;
     delete _cplex_env;
 }
-
 
 bool CplexProgram::solve(bool relax) {
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
@@ -63,6 +61,24 @@ bool CplexProgram::solve(bool relax) {
                     poly_set_val(j, 0, _model->_vars[i]);
                 }
             }
+        }
+        // populate the dual vars.
+        unsigned idx = 0; 
+        for (auto &cp: _model->_cons) {
+            cp.second->_dual.resize(cp.second->_nb_instances);
+            assert(_cplex_constraints[idx].getSize == cp.second->_nb_instances);
+            //IloNumArray duals(*_cplex_env, _cplex_constraints[idx].getSize());
+            for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+                if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+                    if (cplex.isExtracted(_cplex_constraints[idx][inst])){
+                        cp.second->_dual[inst] = cplex.getDual(_cplex_constraints[idx][inst]);
+                    }
+                    else{
+                        cp.second->_dual[inst] = 0;
+                    }
+                }
+            }
+            idx++;
         }
     }
     catch (IloException& ex) {
@@ -238,6 +254,7 @@ void CplexProgram::create_cplex_constraints() {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
         nb_inst = c->_nb_instances;
+        IloRangeArray _cplex_temp(*_cplex_env, nb_inst);
         inst = 0;
         for (int i = 0; i< nb_inst; i++) {
             IloNumExpr cc(*_cplex_env);
@@ -287,17 +304,23 @@ void CplexProgram::create_cplex_constraints() {
             cc += poly_eval(c->get_cst(), inst);
 
             if(c->get_type()==geq) {
-                _cplex_model->add(cc >= c->get_rhs());
+                //_cplex_model->add(cc >= c->get_rhs());
+                _cplex_temp[i] = (cc >= c->get_rhs());
             }
             else if(c->get_type()==leq) {
-                _cplex_model->add(cc <= c->get_rhs());
+                //_cplex_model->add(cc <= c->get_rhs());
+                _cplex_temp[i] = cc <= c->get_rhs();
             }
             else if(c->get_type()==eq) {
-                _cplex_model->add(cc == c->get_rhs());
+                //_cplex_model->add(cc == c->get_rhs());
+                _cplex_temp[i]= (cc == c->get_rhs());
             }
             inst++;
         }
+        _cplex_model->add(_cplex_temp);
+        _cplex_constraints.push_back(_cplex_temp);
     }    
+    _cplex_constraints.resize(_model->_cons.size());
 }
 
 void CplexProgram::prepare_model() {
