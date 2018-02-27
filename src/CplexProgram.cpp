@@ -67,7 +67,6 @@ bool CplexProgram::solve(bool relax) {
         for (auto &cp: _model->_cons) {
             cp.second->_dual.resize(cp.second->_nb_instances);
             assert(_cplex_constraints[idx].getSize == cp.second->_nb_instances);
-            //IloNumArray duals(*_cplex_env, _cplex_constraints[idx].getSize());
             for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
                 if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                     if (cplex.isExtracted(_cplex_constraints[idx][inst])){
