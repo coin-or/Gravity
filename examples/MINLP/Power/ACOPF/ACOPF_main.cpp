@@ -97,7 +97,7 @@ int main (int argc, char * argv[])
     ACOPF.add_var(Qf_to.in(grid.arcs));
 
     vector<double> rev, imv;
-    ifstream file("/home/kbestuzheva/gravity/nesta_case30_fsr__api.log", std::ifstream::in);
+    ifstream file("../nesta_case30_fsr__api.log", std::ifstream::in);
     if(!file.is_open()) throw invalid_argument("Could not open file\n");
     string word;
     for(int i = 0; i < 30; i++){
