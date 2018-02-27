@@ -27,6 +27,7 @@ private:
     IloEnv* _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
+    vector<IloRangeArray>  _cplex_constraints;
 public:
     Model* _model;
     int _output;
