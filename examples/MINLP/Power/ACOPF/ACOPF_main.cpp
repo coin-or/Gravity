@@ -46,6 +46,7 @@ int main (int argc, char * argv[])
     fname = opt["f"];
     mtype = opt["m"];
     output = op::str2int(opt["l"]);
+    output = 5;
     bool has_help = op::str2bool(opt["h"]);
     /** show help */
     if(has_help) {
@@ -95,8 +96,31 @@ int main (int argc, char * argv[])
     ACOPF.add_var(Pf_to.in(grid.arcs));
     ACOPF.add_var(Qf_to.in(grid.arcs));
 
+    vector<double> rev, imv;
+    ifstream file("/home/kbestuzheva/gravity/nesta_case30_fsr__api.log", std::ifstream::in);
+    if(!file.is_open()) throw invalid_argument("Could not open file\n");
+    string word;
+    for(int i = 0; i < 30; i++){
+        file >> word;
+        rev.push_back(atof(word.c_str()));
+        cout << "\nrev[" << i << "] = " << atof(word.c_str());
+    }
+    for(int i = 0; i < 30; i++){
+        file >> word;
+        imv.push_back(atof(word.c_str()));
+        cout << "\nimv[" << i << "] = " << atof(word.c_str());
+    }
+
+    param<Real> t_min, t_max;
+    for(int i = 0; i < 30; i++){
+        grid.v_min.set_val(grid.nodes[i]->_name, sqrt(rev[i]*rev[i] + imv[i]*imv[i]));
+        grid.v_max.set_val(grid.nodes[i]->_name, sqrt(rev[i]*rev[i] + imv[i]*imv[i]));
+        t_min.set_val(grid.nodes[i]->_name, atan(imv[i]/rev[i]));
+        t_max.set_val(grid.nodes[i]->_name, atan(imv[i]/rev[i]));
+    }
+
     /** Voltage related variables */
-    var<Real> theta("theta");
+    var<Real> theta("theta", t_min, t_max);
     var<Real> v("|V|", grid.v_min, grid.v_max);
 //    var<Real> vr("vr");
 //    var<Real> vi("vi");
@@ -242,25 +266,25 @@ int main (int argc, char * argv[])
         DebugOff(grid.th_min.to_str(true) << endl);
         DebugOff(grid.th_max.to_str(true) << endl);
     }
-//    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
-//    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
+    ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
+    ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
 
 
     /*  Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from -= power(grid.S_max, 2);
-//    ACOPF.add_constraint(Thermal_Limit_from.in(grid.arcs) <= 0);
+    ACOPF.add_constraint(Thermal_Limit_from.in(grid.arcs) <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid.S_max,2);
-//    ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
+    ACOPF.add_constraint(Thermal_Limit_to.in(grid.arcs) <= 0);
     DebugOff(grid.S_max.in(grid.arcs).to_str(true) << endl);
     
     solver OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-4, "ma27", mehrotra = "no");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
