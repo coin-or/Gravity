@@ -27,7 +27,13 @@ private:
     IloEnv* _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
-    vector<IloRangeArray>  _cplex_constraints;
+    vector<IloRangeArray>  _cplex_constraints; /** useful for retrieving dual mulipliers */
+   /*  CPLEX does not give us the dual multipliers for quadratic        *
+    *   constraints directly. This is because they may not be properly  *
+    *   defined at the cone top and deciding whether we are at the cone *
+    *   top or not involves (problem specific) tolerance issues. CPLEX  *
+    *   instead gives us all the values we need in order to compute the *
+    *   dual multipliers if we are not at the cone top.                 */
 public:
     Model* _model;
     int _output;
