@@ -15,6 +15,7 @@
 #define __PowerTools____CplexProgram
 
 #ifdef USE_CPLEX
+#define ZEROTOL 1e-6  //used for extract the dual multipliers of SOCP/QCP constraints (refer to cplex tutorial iloqcpdual.cpp)
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
@@ -54,6 +55,10 @@ public:
     void fill_in_cplex_vars();
     void create_cplex_constraints();
     void set_cplex_objective();
+    // associate a cplex_var to an index. 
+    std::pair<unsigned, unsigned>* get_cplex_var_index(IloExtractable const& t) {
+        return static_cast<std::pair<unsigned, unsigned>*>(t.getObject());
+    }
     
     void print_constraints();
 };
