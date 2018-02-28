@@ -217,7 +217,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             ACUC.add_constraint(Production_Q_LB >= 0);
         }
     }
-     // 5C
+    // 5C
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
             for (int t = 1; t < T; t++) {
@@ -270,23 +270,22 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
     // return dual vars.
     for (const auto& a: P.G_part.arcs) {
-        auto cons = ACUC.get_constraint("link_R_"+a->_name);
-        for (unsigned i = 0; i <cons->get_nb_instances(); i++){
-            cout << "dual vars: " << cons->_dual[i] << endl;
-        }
-    }
-    for (const auto& a: P.G_part.arcs) {
-        auto cons = ACUC.get_constraint("link_Im_"+a->_name);
-        for (unsigned i = 0; i <cons->get_nb_instances(); i++){
-            cout << "dual vars: " << cons->_dual[i] << endl;
-        }
-    }
-    for (const auto& a: P.G_part.arcs) {
+        auto consR = ACUC.get_constraint("link_R_"+a->_name);
+        auto consIm = ACUC.get_constraint("link_Im_"+a->_name);
         auto cons = ACUC.get_constraint("link_Xii_"+a->_name);
-        for (unsigned i = 0; i <cons->get_nb_instances(); i++){
-            cout << "dual vars: " << cons->_dual[i] << endl;
+        //for (unsigned i = 0; i <cons->get_nb_instances(); i++){
+        int i = 0;
+        for (unsigned t = 0; t < T; t++) {
+            for (auto& line: a->_intersection_clique) {
+                string name =line->_name+","+to_string(t);
+                R_lambda(name) = consR->_dual[i];
+                Im_lambda(name) = consIm->_dual[i];
+                lambda(name) = cons->_dual[i];
+                i++;
+            }
         }
     }
+
     return ACUC._obj_val;
 }
 /** INITIALISE SUBPROBLEM MODEL */
@@ -296,8 +295,7 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
                   const param<Real>& cost_up, const param<Real>& cost_down,
                   var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
                   var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
-                  param<Real>& R_lambda_sep, param<Real>& Im_lambda_sep,param<Real>& lambda_sep,
-                  param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
+                  param<Real>& R_lambda, param<Real>& Im_lambda,param<Real>& lambda, param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
 {
     Model Subr("Subr");
     Subr.add_var(Pg.in(P.bag_gens[c], T));
@@ -306,7 +304,9 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
     Subr.add_var(Start_up.in(P.bag_gens[c], T));
     Subr.add_var(Shut_down.in(P.bag_gens[c], T));
     Subr.add_var(Xii.in(P.bag_bus[c], T));
+    Xii.initialize_all(1.001);
     Subr.add_var(R_Xij.in(P.bag_bus_pairs_union[c], T));
+    R_Xij.initialize_all(1.0);
     Subr.add_var(Im_Xij.in(P.bag_bus_pairs_union[c], T));
 
     //power flow
@@ -341,9 +341,9 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
             for (auto pair: a->_intersection_clique) {
                 string name = pair->_name + ","+ to_string(t);
                 string dest = pair->_dest->_name + ","+ to_string(t);
-                obj += R_lambda_sep(name)*R_Xij(name);
-                obj += Im_lambda_sep(name)*Im_Xij(name);
-                obj += lambda_sep(name)*Xii(dest);
+                obj += R_lambda(name)*R_Xij(name);
+                obj += Im_lambda(name)*Im_Xij(name);
+                obj += lambda(name)*Xii(dest);
             }
         }
     }
@@ -352,9 +352,9 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
             for (auto pair: a->_intersection_clique) {
                 string name = pair->_name + ","+ to_string(t);
                 string dest = pair->_dest->_name + ","+ to_string(t);
-                obj -= R_lambda_sep(name)*R_Xij(name);
-                obj -= Im_lambda_sep(name)*Im_Xij(name);
-                obj -= lambda_sep(name)*Xii(dest);
+                obj -= R_lambda(name)*R_Xij(name);
+                obj -= Im_lambda(name)*Im_Xij(name);
+                obj -= lambda(name)*Xii(dest);
             }
         }
     }
@@ -584,6 +584,21 @@ int main (int argc, const char * argv[])
         Start_up.push_back(bag_Up);
         Shut_down.push_back(bag_Down);
     }
+    vector<param<Real>> Xii_log;
+    vector<param<Real>> R_Xij_log;
+    vector<param<Real>> Im_Xij_log;
+    for (int c =0; c < nbparts; c++) {
+        param<Real> Xii_C_log("Xii_C_log_" + to_string(c));
+        Xii_C_log.set_size(T*P.bag_bus_union_out[c].size());
+        Xii_log.push_back(Xii_C_log);
+
+        param<Real> Im_Xij_C_log("Im_Xij_C_log" + to_string(c));
+        param<Real> R_Xij_C_log("R_Xij_C_log" +  to_string(c));
+        R_Xij_C_log.set_size(T*P.bag_bus_pairs_union[c].size());
+        Im_Xij_C_log.set_size(T*P.bag_bus_pairs_union[c].size());
+        R_Xij_log.push_back(R_Xij_C_log);
+        Im_Xij_log.push_back(Im_Xij_C_log);
+    }
 /////////////////// DEFINE LAGRANGE MULTIPLIERS  ////////////////////////////////
     param<Real> R_lambda("R_lambda");
     param<Real> Im_lambda("Im_lambda");
@@ -597,5 +612,13 @@ int main (int argc, const char * argv[])
     lambda.initialize_all(0);
     double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Qg,
                                   Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
+
+    // improve the lower bound using MISCOP.	
+    std::vector<double> Subs; 
+    Subs.resize(nbparts);
+    for(int c = 0; c < nbparts; c++) {
+	Subs[c]= getdual_relax(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Qg[c],
+	                      Start_up[c],Shut_down[c], On_off[c], Xii, R_Xij[c],Im_Xij[c], R_lambda, Im_lambda, lambda);
+    }
     return 0;
 }
