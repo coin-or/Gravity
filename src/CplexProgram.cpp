@@ -65,7 +65,7 @@ bool CplexProgram::solve(bool relax) {
             }
         }
         // populate the dual multipliers
-        size_t idx = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
+        size_t idx = 0; // idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
         for (auto &cp: _model->_cons) {
             cp.second->_dual.resize(cp.second->_nb_instances);
             assert(_cplex_constraints[idx].getSize() == cp.second->_nb_instances);
