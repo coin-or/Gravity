@@ -375,13 +375,16 @@ int PowerNet::readgrid(const char* fname) {
     string src,dest,key;
     file >> word;
     index = 0;
+    bool reversed = false;
     while(word.compare("];")) {
         src = word;
         file >> dest;
         key = dest+","+src;//Taking care of reversed direction arcs
+        reversed = false;
         if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
             DebugOn("Adding arc linking " +src+" and "+dest);
             DebugOn(" with reversed direction, reversing source and destination.\n");
+            reversed = true;
             key = src;
             src = dest;
             dest = key;
@@ -437,6 +440,13 @@ int PowerNet::readgrid(const char* fname) {
              arc->tbound.min = -60*pi/180;
             arc->tbound.max = 60*pi/180;
             
+        }
+        if (reversed) {
+            arc->tr /= 1;
+            arc->as *= -1;
+            auto temp = arc->tbound.max;
+            arc->tbound.max = -1*arc->tbound.min;
+            arc->tbound.min = -1*temp;
         }
 //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
