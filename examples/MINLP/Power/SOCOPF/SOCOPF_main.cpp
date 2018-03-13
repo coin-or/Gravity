@@ -171,19 +171,19 @@ int main (int argc, char * argv[])
     SOCP.add(Thermal_Limit_to.in(grid.arcs));
 
     /* Lifted Nonlinear Cuts */
-//    Constraint LNC1("LNC1");
-//    LNC1 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
-//    LNC1 -= grid.v_max.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
-//    LNC1 -= grid.v_max.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
-//    LNC1 -= grid.v_max.from()*grid.v_max.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-////    SOCP.add(LNC1.in(bus_pairs) >= 0);
-//    
-//    Constraint LNC2("LNC2");
-//    LNC2 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
-//    LNC2 -= grid.v_min.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
-//    LNC2 -= grid.v_min.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
-//    LNC2 += grid.v_min.from()*grid.v_min.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-////    SOCP.add(LNC2.in(bus_pairs) >= 0);
+    Constraint LNC1("LNC1");
+    LNC1 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC1 -= grid.v_max.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
+    LNC1 -= grid.v_max.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
+    LNC1 -= grid.v_max.from()*grid.v_max.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
+    SOCP.add(LNC1.in(bus_pairs) >= 0);
+    
+    Constraint LNC2("LNC2");
+    LNC2 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC2 -= grid.v_min.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
+    LNC2 -= grid.v_min.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
+    LNC2 += grid.v_min.from()*grid.v_min.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
+    SOCP.add(LNC2.in(bus_pairs) >= 0);
 
     
     /* Solver selection */
