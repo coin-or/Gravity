@@ -264,7 +264,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     /* Solver selection */
     solver cpx_acuc(ACUC, cplex);
     //solver cpx_acuc(ACUC, ipopt);
-
     bool relax =true;
     int output = 1;
     double tol = 1e-6;
