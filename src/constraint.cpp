@@ -29,6 +29,7 @@ Constraint::Constraint(const Constraint& c):func_(c){
     _id = c._id;
     _is_constraint = true;
     _all_lazy = make_shared<bool>(false);
+    _rev_indices = c._rev_indices;
 }
 
 //@}
@@ -82,6 +83,7 @@ Constraint& Constraint::operator=(const Constraint& c){
     _id = c._id;
     _name = c._name;
     _dual = c._dual;
+    _rev_indices = c._rev_indices;
     this->func_::operator=(c);
     return *this;
 }
@@ -92,6 +94,7 @@ Constraint& Constraint::operator=(Constraint&& c){
     _id = c._id;
     _name = c._name;
     _dual = c._dual;
+    _rev_indices = move(c._rev_indices);
     this->func_::operator=(move(c));
     return *this;
 }

@@ -34,8 +34,6 @@ protected:
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
     shared_ptr<vector<string>>              _rev_indices = nullptr; /*<< A vector storing all the indices this parameter has */
 
-
-
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
     shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
 
@@ -159,9 +157,6 @@ public:
     NType get_intype() const {
         return _intype;
     }
-
-
-
 
 
     shared_ptr<map<string,unsigned>> get_indices() const {
@@ -743,7 +738,6 @@ public:
         res._name += "["+key+"]";
         res._unique_id = make_tuple<>(res.get_id(),unindexed_,typeid(type).hash_code(), indices.front(), indices.back());
         res._is_indexed = true;
-        //_is_indexed = true; // Guanglei added this line.
         return res;
     }
 
@@ -790,7 +784,8 @@ public:
         }
         res._dim[0]=1;
         res._name += "["+key+"]";
-        res._unique_id = make_tuple<>(res.get_id(),unindexed_,typeid(type).hash_code(), res._ids->at(0).at(0), res._ids->at(0).at(res._ids->at(0).size()-1));
+        res._unique_id = make_tuple<>(res.get_id(),unindexed_,typeid(type).hash_code(), res._ids->at(0).at(0),
+                                      res._ids->at(0).at(res._ids->at(0).size()-1));
         res._is_indexed = true;
         return res;
     }
@@ -860,6 +855,51 @@ public:
         return res;
     }
 
+    
+    param in(const vector<string>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
+        res._rev_indices = this->_rev_indices;
+        res._indices = this->_indices;
+        if(vec.empty()) {
+            DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
+        DebugOff(_name << " = ");
+        string key;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            key = *it;
+            auto index = _indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key, index));
+            if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
+                _rev_indices->resize(_val->size());
+                _rev_indices->at(index) = key;
+                res._ids->at(0).push_back(index);
+            }
+            else {
+                res._ids->at(0).push_back(pp.first->second);
+            }
+        }
+        DebugOff(endl);
+        res._dim[0]=res._ids->at(0).size();
+        res._name += ".in_strings";
+        res._unique_id = make_tuple<>(res.get_id(),in_, typeid(string).hash_code(), 0,0);
+        res._is_indexed = true;
+        return res;
+    }
+    
+    
     template<typename Tobj> param in(const vector<Tobj*>& vec) {
         param res(this->_name);
         res._id = this->_id;
@@ -1020,6 +1060,26 @@ public:
         return res;
     }
 
+    param in_arcs_at(const vector<Node*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            for (auto &a:(*it)->get_in()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name + ","+to_string(t);
+                keys.push_back(key);
+            }
+        }
+        res = in(keys); 
+        return res;
+    }
+
     param out_arcs(const vector<Node*>& vec) {
         param res(this->_name);
         res._id = this->_id;
@@ -1133,6 +1193,26 @@ public:
         return res;
     }
 
+    param out_arcs_at(const vector<Node*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            for (auto &a:(*it)->get_out()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name + ","+to_string(t);
+                keys.push_back(key);
+            }
+        }
+        res = in(keys);
+        return res;
+    }
+
 
 
     param in_gens(const vector<Node*>& vec) {
@@ -1190,6 +1270,25 @@ public:
         return res;
     }
 
+    param in_gens_at(const vector<Node*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            for (auto &g:(*it)->get_gens()) {
+                if (!g->_active) {
+                    continue;
+                }
+                key = g->_name + ","+ to_string(t);
+                keys.push_back(key);
+            }
+        }
+        res = in(keys);
+        return res;
+    }
 
     param in_gens(const vector<Node*>& vec, unsigned T) {
         param res(this->_name);
@@ -1292,6 +1391,21 @@ public:
         res._name += ".in_pairs_" + vec.front()->_type_name;
         res._unique_id = make_tuple<>(res.get_id(),in_pairs_,typeid(Tobj).hash_code(), 0,0);
         res._is_indexed = true;
+        return res;
+    }
+
+    template<typename Tobj> param in_pairs_at(const vector<Tobj*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_src->_name + "," + (*it)->_dest->_name + "," + to_string(t);
+            keys.push_back(key);
+        }
+        res = in(keys);
         return res;
     }
 
@@ -1440,6 +1554,23 @@ public:
         return res;
     }
 
+    
+    template<typename Tobj> param from_at(const vector<Tobj*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_src->_name + "," + to_string(t);
+            keys.push_back(key);
+        }
+        res = in(keys);
+        return res;
+    }
+
+    
     template<typename Tobj> param from(const vector<Tobj>& vec) {
         param res(this->_name);
         res._id = this->_id;
@@ -1486,6 +1617,21 @@ public:
         res._name += "_"+ vec.front()._type_name;
         res._unique_id = make_tuple<>(res.get_id(),from_,typeid(Tobj).hash_code(), 0,0);
         res._is_indexed = true;
+        return res;
+    }
+
+    template<typename Tobj> param to_at(const vector<Tobj*>& vec, const unsigned t) {
+        param res(this->_name);
+        string key;
+        vector<string> keys;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)->_active) {
+                continue;
+            }
+            key = (*it)->_dest->_name +"," + to_string(t);
+            keys.push_back(key);
+        }
+        res = in(keys);
         return res;
     }
 
@@ -1585,7 +1731,6 @@ public:
         res._is_indexed = true;
         return res;
     }
-
 
     param to() {
         auto res(*this);
@@ -1699,46 +1844,16 @@ public:
     template<typename Tobj>
     param in_at(const vector<Tobj*>& nodes, unsigned t) {
         param res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._range = this->_range;
-        res._val = this->_val;
-        res._is_vector = this->_is_vector;
-        res._is_matrix = this->_is_matrix;
-        res._is_transposed = _is_transposed;
-        res._rev_indices = this->_rev_indices;
-        res._indices = this->_indices;
-        if(nodes.empty()) {
-            DebugOff("In function in_at(const vector<Tobj*>& nodes, unsigned t), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-            res._name += "EMPTY_VAR";
-            return res;
-        }
+        std::vector<string> keys;
         string key;
         for(auto it = nodes.begin(); it!= nodes.end(); it++) {
             if(!(*it)->_active) {
                 continue;
             }
-            key = (*it)->_name;
-            key += ",";
-            key += to_string(t);
-            auto index = _indices->size();
-            auto pp = param_::_indices->insert(make_pair<>(key, index));
-            if(pp.second) { //new index inserted
-                _val->resize(max(_val->size(), index+1));
-                _dim[0] = max(_dim[0],_val->size());
-                _rev_indices->resize(_val->size());
-                _rev_indices->at(index) = key;
-                res._ids->at(0).push_back(index);
-            }
-            else {
-                res._ids->at(0).push_back(pp.first->second);
-            }
+            key = (*it)->_name + "," + to_string(t);
+            keys.push_back(key);
         }
-        res._dim[0]=res._ids->at(0).size();
-        res._name += ".in_" + string(typeid(Tobj).name()) + "_at_" + to_string(t);
-        res._unique_id = make_tuple<>(res.get_id(), in_at_, typeid(Tobj).hash_code(), 0,0);
-        res._is_indexed = true;
+        res = in(keys);
         return res;
     }
 

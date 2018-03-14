@@ -17,6 +17,7 @@ namespace gravity {
         
     protected:
         string                      _name = "no_name";
+        shared_ptr<vector<string>>  _rev_indices = nullptr; /*<< A vector storing all the indices this parameter has */
         
     public:        
         unsigned                    _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
@@ -94,8 +95,25 @@ namespace gravity {
             return *this;
         };
 
-        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec, const unsigned& T){
+        template<typename Tobj> Constraint& in_at(const vector<Tobj>& vec, const unsigned t){
+//            std::vector<string> keys;
+//            string key;
+//            for(auto it = vec.begin(); it!= vec.end(); it++) {
+//                key = (*it)->_name;
+//                key += "," + to_string(t);
+//                keys.push_back(key);
+//            }
+            this->func_::in_at(vec, t);
+            return *this;
+        };
+
+        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec, const unsigned T){
             this->func_::in(vec, T);
+            return *this;
+        };
+        
+        template<typename Tobj> Constraint& in_at(const vector<Tobj*>& vec, const unsigned T){
+            this->func_::in_at(vec, T);
             return *this;
         };
         
