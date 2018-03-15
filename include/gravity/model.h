@@ -158,6 +158,11 @@ namespace gravity {
             }
         };
         
+        template <typename type>
+        void add(var<type>& v){//Add variables by copy
+            add_var(v);
+        }
+        
         
         template <typename type>
         void add_var(var<type>&& v){//Add variables by copy
@@ -199,6 +204,11 @@ namespace gravity {
                 _nb_vars += v.get_dim();
             }
         };
+        
+        template <typename type>
+        void add(var<type>&& v){
+            add_var(move(v));
+        }
         
         void del_var(const param_& v);
         

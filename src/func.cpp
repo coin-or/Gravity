@@ -7156,6 +7156,9 @@ namespace gravity{
         size_t n = 0;
         for (auto &p: *_vars) {
             if (p.second.first->_is_vector) {
+                if (p.second.first->_dim.size()>1) {
+                    throw invalid_argument("get_nb_vars() should be called with an index, i.e. get_nb_vars(int)");
+                }
                 n += p.second.first->get_dim();
             }
             else {
