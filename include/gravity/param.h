@@ -884,7 +884,9 @@ public:
         DebugOff(endl);
         res._dim[0]=res._ids->at(0).size();
         res._name += ".in_strings";
-        res._unique_id = make_tuple<>(res.get_id(),in_, typeid(string).hash_code(), 0,0);
+        res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(string).hash_code(),
+                                      res._ids->at(0).at(0),res._ids->at(0).at(res._ids->at(0).size()-1));
+        //res._unique_id = make_tuple<>(res.get_id(),in_, typeid(string).hash_code(), 0,0);
         res._is_indexed = true;
         return res;
     }
@@ -1062,7 +1064,7 @@ public:
                 if (!a->_active) {
                     continue;
                 }
-                key = a->_name + ","+to_string(t);
+                key = a->_name +","+to_string(t);
                 keys.push_back(key);
             }
         }
@@ -1199,7 +1201,7 @@ public:
                 keys.push_back(key);
             }
         }
-        res = in(keys);
+        res = this->in(keys);
         return res;
     }
 
@@ -1843,7 +1845,7 @@ public:
             key = (*it)->_name + "," + to_string(t);
             keys.push_back(key);
         }
-        res = in(keys);
+        res = this->in(keys);
         return res;
     }
 

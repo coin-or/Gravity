@@ -274,23 +274,22 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         auto consR = ACUC.get_constraint("link_R_"+a->_name);
         auto consIm = ACUC.get_constraint("link_Im_"+a->_name);
         auto cons = ACUC.get_constraint("link_Xii_"+a->_name);
-        int i = 0;
+        //int i = 0;
         for (unsigned t = 0; t < T; t++) {
             for (auto& line: a->_intersection_clique) {
                 string name =line->_name+","+to_string(t);
                 auto cR = (*consR)(name);
-                R_lambda(name) = -consR->_dual[i];
                 auto cIm = (*consIm)(name);
-                Im_lambda(name) = -consIm->_dual[i];
                 auto  c= (*cons)(name);
-                lambda(name) = -cons->_dual[i];
-                cout << "dual of  R_lambda_" << name << " " << consR->_dual[i] << endl;
-                cout << "dual of  R_lambda_" << name << " " << cR._dual.at(0) << endl;
-                cout << "dual of  Im_lambda_" << name << " " << consIm->_dual[i] << endl;
-                cout << "dual of  Im_lambda_" << name << " " << cIm._dual.at(0) << endl;
-                cout << "dual of  lambda_" << name << " " << cons->_dual[i] << endl;
-                cout << "dual of  lambda_" << name << " " << c._dual.at(0) << endl;
-                i++;
+                R_lambda(name) = -cR._dual.at(0);
+                Im_lambda(name)= -cIm._dual.at(0);
+                lambda(name) = -c._dual.at(0);
+                R_lambda(name).print(true);
+                Im_lambda(name).print(true);
+                lambda(name).print(true);
+                //cout << "dual of  R_lambda_" << name << " " << consR->_dual[i] << endl;
+                //cout << "dual of  Im_lambda_" << name << " " << consIm->_dual[i] << endl;
+                //cout << "dual of  lambda_" << name << " " << cons->_dual[i] << endl;
             }
         }
     }
