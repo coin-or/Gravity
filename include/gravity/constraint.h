@@ -110,7 +110,6 @@ public:
 
     template<typename Tobj> Constraint& in(const vector<Tobj*>& vec, const unsigned T) {
         this->func_::in(vec, T);
-        unsigned index = 0;
         string key;
         for (unsigned t = 0; t < T; t++) {
             for (auto it = vec.begin(); it != vec.end(); it++) {
