@@ -198,13 +198,11 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     /* Solver selection */
     solver cpx_acuc(ACUC, cplex);
     //solver cpx_acuc(ACUC, ipopt);
-
     bool relax =true;
     int output = 1;
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
-
     return ACUC._obj_val;
 }
 

@@ -124,9 +124,6 @@ public:
             return name;
         }
         if (_is_indexed) {
-//                if (<#condition#>) {
-//                    <#statements#>
-//                }
             int rev_idx = _ids->at(0).at(inst);
             name += "["+_rev_indices->at(rev_idx)+"]";
         }
@@ -143,9 +140,6 @@ public:
             return name;
         }
         if (_is_indexed) {
-            //                if (<#condition#>) {
-            //                    <#statements#>
-            //                }
             name += "["+_rev_indices->at(_ids->at(inst1).at(inst2))+"]";
         }
         else {
@@ -167,7 +161,6 @@ public:
         return _rev_indices;
     }
 
-
     /**  (guanglei) added sdpvar */
     shared_ptr<map<string, pair<unsigned, unsigned>>> get_sdpindices() const {
         return _sdpindices;
@@ -182,8 +175,6 @@ public:
     }
 
     /** Querries */
-
-
     bool is_binary() const {
         return (_intype==binary_);
     };
@@ -236,7 +227,6 @@ public:
 template<typename type = double>
 class param: public param_ {
 protected:
-
 
 public:
     shared_ptr<vector<type>>                _val;
