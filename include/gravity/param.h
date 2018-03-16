@@ -1073,8 +1073,9 @@ public:
                 keys.push_back(key);
             }
         }
-        res = in(keys); 
-        res._unique_id = make_tuple<>(res.get_id(),in_arcs_at_, typeid(Node).hash_code(), 0,0);
+        res = in(keys);
+        res._name += "_in_arcs_at_" + to_string(t);
+        res._unique_id = make_tuple<>(res.get_id(),in_arcs_at_, typeid(Node).hash_code(), t,0);
         return res;
     }
 
@@ -1214,6 +1215,7 @@ public:
             }
         }
         res = this->in(keys);
+        res._name += "_out_arcs_at_" +to_string(t) ;
         res._unique_id = make_tuple<>(res.get_id(),out_arcs_at_, typeid(Node).hash_code(), 0,0);
         return res;
     }
@@ -1298,6 +1300,7 @@ public:
             }
         }
         res = in(keys);
+        res._name += "in_gens_at_" + to_string(t);
         res._unique_id = make_tuple<>(res.get_id(),in_gens_at_,typeid(Node).hash_code(),0, 0);
         return res;
     }
@@ -1587,7 +1590,7 @@ public:
         }
         res = in(keys);
         res._name += "from_at_"+ vec.front()->_type_name;
-        res._unique_id = make_tuple<>(res.get_id(),from_at_,typeid(Tobj).hash_code(),0, 0);
+        res._unique_id = make_tuple<>(res.get_id(),from_at_,typeid(Tobj).hash_code(),t, 0);
         return res;
     }
 
@@ -1882,8 +1885,8 @@ public:
             keys.push_back(key);
         }
         res = this->in(keys);
-        res._name += ".in_at_" + nodes.front()->_type_name;
-        res._unique_id = make_tuple<>(res.get_id(),in_at_,typeid(Tobj).hash_code(),0, 0);
+        res._name += ".in_at_" + to_string(t) + nodes.front()->_type_name;
+        res._unique_id = make_tuple<>(res.get_id(),in_at_,typeid(Tobj).hash_code(), t, 0);
         return res;
     }
 
@@ -2113,7 +2116,8 @@ public:
 
     type getvalue() const {
         if (_is_indexed) {
-            return (_val->at(_indices->begin()->second));
+            //return (_val->at(_indices->begin()->second));
+            return (_val->at(_ids->at(0).at(0)));
         }
         else {
             return _val->at(0);
