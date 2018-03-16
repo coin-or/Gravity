@@ -1027,9 +1027,6 @@ namespace gravity{
         _sign = p._sign;
         return *this;
     }
-
-
-
     func_::func_(){
         _to_str = "noname";
         set_type(func_c);

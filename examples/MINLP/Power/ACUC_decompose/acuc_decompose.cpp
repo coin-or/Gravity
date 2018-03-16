@@ -290,9 +290,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
                 R_lambda(name).print(true);
                 Im_lambda(name).print(true);
                 lambda(name).print(true);
-                //cout << "dual of  R_lambda_" << name << " " << consR->_dual[i] << endl;
-                //cout << "dual of  Im_lambda_" << name << " " << consIm->_dual[i] << endl;
-                //cout << "dual of  lambda_" << name << " " << cons->_dual[i] << endl;
             }
         }
     }
