@@ -883,9 +883,8 @@ public:
         }
         DebugOff(endl);
         res._dim[0]=res._ids->at(0).size();
-        res._name += ".in_strings";
-        res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(string).hash_code(),
-                                      res._ids->at(0).at(0),res._ids->at(0).at(res._ids->at(0).size()-1));
+        //res._name += ".in_strings";
+        //res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(string).hash_code(),res._ids->at(0).at(0),res._ids->at(0).at(res._ids->at(0).size()-1));
         //res._unique_id = make_tuple<>(res.get_id(),in_, typeid(string).hash_code(), 0,0);
         res._is_indexed = true;
         return res;
@@ -1056,6 +1055,12 @@ public:
         param res(this->_name);
         string key;
         vector<string> keys;
+        if(vec.empty()) {
+            DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
         for(auto it = vec.begin(); it!= vec.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1069,6 +1074,7 @@ public:
             }
         }
         res = in(keys); 
+        res._unique_id = make_tuple<>(res.get_id(),in_arcs_at_, typeid(Node).hash_code(), 0,0);
         return res;
     }
 
@@ -1189,6 +1195,12 @@ public:
         param res(this->_name);
         string key;
         vector<string> keys;
+        if(vec.empty()) {
+            DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
         for(auto it = vec.begin(); it!= vec.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1202,6 +1214,7 @@ public:
             }
         }
         res = this->in(keys);
+        res._unique_id = make_tuple<>(res.get_id(),out_arcs_at_, typeid(Node).hash_code(), 0,0);
         return res;
     }
 
@@ -1266,6 +1279,12 @@ public:
         param res(this->_name);
         string key;
         vector<string> keys;
+        if(vec.empty()) {
+            DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
         for(auto it = vec.begin(); it!= vec.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1279,6 +1298,7 @@ public:
             }
         }
         res = in(keys);
+        res._unique_id = make_tuple<>(res.get_id(),in_gens_at_,typeid(Node).hash_code(),0, 0);
         return res;
     }
 
@@ -1390,6 +1410,11 @@ public:
         param res(this->_name);
         string key;
         vector<string> keys;
+        if(vec.empty()) {
+            DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         for(auto it = vec.begin(); it!= vec.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1398,6 +1423,8 @@ public:
             keys.push_back(key);
         }
         res = in(keys);
+        res._name += ".in_pairs_at_" + vec.front()->_type_name;
+        res._unique_id = make_tuple<>(res.get_id(),in_pairs_at_, typeid(Tobj).hash_code(), 0,0);
         return res;
     }
 
@@ -1559,6 +1586,8 @@ public:
             keys.push_back(key);
         }
         res = in(keys);
+        res._name += "from_at_"+ vec.front()->_type_name;
+        res._unique_id = make_tuple<>(res.get_id(),from_at_,typeid(Tobj).hash_code(),0, 0);
         return res;
     }
 
@@ -1624,6 +1653,8 @@ public:
             keys.push_back(key);
         }
         res = in(keys);
+        res._name += "to_at_"+ vec.front()->_type_name;
+        res._unique_id = make_tuple<>(res.get_id(),to_at_,typeid(Tobj).hash_code(),0, 0);
         return res;
     }
 
@@ -1838,6 +1869,11 @@ public:
         param res(this->_name);
         std::vector<string> keys;
         string key;
+        if(nodes.empty()) {
+            DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            return res;
+        }
         for(auto it = nodes.begin(); it!= nodes.end(); it++) {
             if(!(*it)->_active) {
                 continue;
@@ -1846,6 +1882,8 @@ public:
             keys.push_back(key);
         }
         res = this->in(keys);
+        res._name += ".in_at_" + nodes.front()->_type_name;
+        res._unique_id = make_tuple<>(res.get_id(),in_at_,typeid(Tobj).hash_code(),0, 0);
         return res;
     }
 
