@@ -126,7 +126,7 @@ int main (int argc, char * argv[])
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
     KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens()) + grid.gs*Wii;
-    SOCP.add_constraint(KCL_P.in(grid.nodes) == 0);
+    SOCP.add_constraint(KCL_P.in(grid.nodes) == 0);    
     
     Constraint KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens()) - grid.bs*Wii;
@@ -153,26 +153,24 @@ int main (int argc, char * argv[])
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add_lazy(PAD_UB.in(bus_pairs));
+    SOCP.add(PAD_UB.in(bus_pairs));
     
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add_lazy(PAD_LB.in(bus_pairs));
+    SOCP.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from <= power(grid.S_max,2);
-    SOCP.add_lazy(Thermal_Limit_from.in(grid.arcs));
-//    SOCP.add(Thermal_Limit_from.in(grid.arcs));
+    SOCP.add(Thermal_Limit_from.in(grid.arcs));
     
     
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to <= power(grid.S_max,2);
-    SOCP.add_lazy(Thermal_Limit_to.in(grid.arcs));
-//    SOCP.add(Thermal_Limit_to.in(grid.arcs));
+    SOCP.add(Thermal_Limit_to.in(grid.arcs));
 
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
@@ -180,14 +178,14 @@ int main (int argc, char * argv[])
     LNC1 -= grid.v_max.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SOCP.add_lazy(LNC1.in(bus_pairs) >= 0);
+    SOCP.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
     LNC2 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SOCP.add_lazy(LNC2.in(bus_pairs) >= 0);
+    SOCP.add(LNC2.in(bus_pairs) >= 0);
 
     
     /* Solver selection */

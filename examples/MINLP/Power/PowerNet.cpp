@@ -375,13 +375,17 @@ int PowerNet::readgrid(const char* fname) {
     string src,dest,key;
     file >> word;
     index = 0;
+    bool reversed = false;
     while(word.compare("];")) {
         src = word;
         file >> dest;
         key = dest+","+src;//Taking care of reversed direction arcs
-        if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
+        reversed = false;
+        if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
+//            if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
             DebugOn("Adding arc linking " +src+" and "+dest);
             DebugOn(" with reversed direction, reversing source and destination.\n");
+            reversed = true;
             key = src;
             src = dest;
             dest = key;
@@ -421,8 +425,7 @@ int PowerNet::readgrid(const char* fname) {
         file >> ws >> word;
 
 
-        arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
-        arc->dd = arc->tr*sin(arc->as);
+        
         arc->status = atoi(word.c_str());
         file >> ws >> word;
 
@@ -434,10 +437,21 @@ int PowerNet::readgrid(const char* fname) {
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
             DebugOn("Angle bounds are equal to zero. Setting them to -+60");
-             arc->tbound.min = -60*pi/180;
-            arc->tbound.max = 60*pi/180;
+             arc->tbound.min = -60*pi/180.;
+            arc->tbound.max = 60*pi/180.;
             
         }
+        if (reversed) {
+            arc->g /= pow(arc->tr,2);
+            arc->b /= pow(arc->tr,2);
+            arc->tr = 1./arc->tr;
+            arc->as *= -1.;
+            auto temp = arc->tbound.max;
+            arc->tbound.max = -1.*arc->tbound.min;
+            arc->tbound.min = -1.*temp;
+        }
+        arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
+        arc->dd = arc->tr*sin(arc->as);
 //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
 
