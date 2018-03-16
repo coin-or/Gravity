@@ -343,6 +343,7 @@ void CplexProgram::create_cplex_constraints() {
                 if (it_lterm.second._coef->_is_transposed) {
                     auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j < dim; j++) {
+                        Debug("var name: " << it_lterm.second._p->_name<<endl);
                         Debug("polyeval: " << i << ","  << j << " "<< poly_eval(it_lterm.second._coef,i,j) <<endl);
                         Debug("_ids size " << it_lterm.second._p->_ids->size() << endl);
                         Debug("cplex_var: " <<it_lterm.second._p->get_id_inst(i,j) << endl);
@@ -361,6 +362,7 @@ void CplexProgram::create_cplex_constraints() {
                 cc += lterm;
                 lterm.end();
             }
+            DebugOn("cst is param inst: " << inst << " val: " << poly_eval(c->get_cst(), inst)<< endl);
             cc += poly_eval(c->get_cst(), inst);
 
             if(c->get_type()==geq) {
