@@ -29,8 +29,8 @@ int main (int argc, const char * argv[])
         // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
-         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+         fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
     //string fname = "../../data_sets/Power/anu.m";
     }
@@ -42,7 +42,7 @@ int main (int argc, const char * argv[])
     const auto bus_pairs = grid->get_bus_pairs();
 
     // Schedule
-    unsigned T = 2;
+    unsigned T = 1;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
