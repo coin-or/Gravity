@@ -374,6 +374,7 @@ public:
     var in_gens_at(const vector<Node*>& vec, unsigned t) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_gens_at(vec, t));
+        //res.print(true);
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -383,6 +384,7 @@ public:
     var in_gens(const vector<Node*>& vec, unsigned T) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_gens(vec, T));
+        //res.print(true);
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;

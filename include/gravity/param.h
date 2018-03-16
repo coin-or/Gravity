@@ -206,14 +206,14 @@ public:
     }
     size_t get_nb_instances() const {
         if (_is_indexed) {
-            if (_ids->size()>1) {
+            if (_ids->size() >1) {
                 throw invalid_argument("get_nb_instances should be called with index here\n");
             }
             return _ids->at(0).size();
         }
         return get_dim();
     }
-
+    /** _ids: multidimensional*/
     size_t get_nb_instances(unsigned inst) const {
         if (_is_indexed) {
             return _ids->at(inst).size();
@@ -1381,12 +1381,14 @@ public:
             res._dim[inst]=res._ids->at(inst).size();
             ++inst;
         }
+        //res.print(true);
+        res._name += "_in_gens_at_" + to_string(t);
         res._unique_id = make_tuple<>(res.get_id(),in_gens_at_, typeid(Node).hash_code(), 0,0);
         res._is_indexed = true;
         return res;
     }
 
-    param in_gens(const vector<Node*>& vec, unsigned T) {
+    param in_gens(const vector<Node*>& vec, const unsigned T) {
         param res(this->_name);
         res._id = this->_id;
         res._vec_id = this->_vec_id;
@@ -1420,8 +1422,7 @@ public:
                     if (!g->_active) {
                         continue;
                     }
-                    key = g->_name;
-                    key += ","+to_string(t);
+                    key = g->_name +","+to_string(t);
                     auto index = _indices->size();
                     auto pp = param_::_indices->insert(make_pair<>(key, index));
                     if(pp.second) { //new index inserted
@@ -1439,6 +1440,7 @@ public:
                 ++inst;
             }
         }
+        //res.print(true);
         res._unique_id = make_tuple<>(res.get_id(),in_gens_time_, typeid(Node).hash_code(), 0,0);
         res._is_indexed = true;
         return res;

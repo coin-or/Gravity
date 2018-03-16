@@ -352,8 +352,8 @@ void CplexProgram::create_cplex_constraints() {
                 }
                 else {
                     idx_inst = it_lterm.second._p->get_id_inst(inst);
-                    DebugOn("var_name: " <<it_lterm.second._p->_name  << endl);
-                    DebugOn("idx, idx_inst " << idx << ", " << idx_inst  << endl);
+                    Debug("var_name: " <<it_lterm.second._p->_name  << endl);
+                    Debug("idx, idx_inst " << idx << ", " << idx_inst  << endl);
                     lterm += poly_eval(it_lterm.second._coef, inst)*_cplex_vars[idx][idx_inst];
                 }
                 if (!it_lterm.second._sign) {
@@ -362,7 +362,7 @@ void CplexProgram::create_cplex_constraints() {
                 cc += lterm;
                 lterm.end();
             }
-            DebugOn("cst is param inst: " << inst << " val: " << poly_eval(c->get_cst(), inst)<< endl);
+            Debug("cst is param inst: " << inst << " val: " << poly_eval(c->get_cst(), inst)<< endl);
             cc += poly_eval(c->get_cst(), inst);
 
             if(c->get_type()==geq) {
