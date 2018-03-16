@@ -351,6 +351,8 @@ void CplexProgram::create_cplex_constraints() {
                 }
                 else {
                     idx_inst = it_lterm.second._p->get_id_inst(inst);
+                    DebugOn("var_name: " <<it_lterm.second._p->_name  << endl);
+                    DebugOn("idx, idx_inst " << idx << ", " << idx_inst  << endl);
                     lterm += poly_eval(it_lterm.second._coef, inst)*_cplex_vars[idx][idx_inst];
                 }
                 if (!it_lterm.second._sign) {

@@ -37,9 +37,9 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     Model ACUC("ACUC Model");
     ACUC.add_var(Pg.in(grid.gens,T));
     ACUC.add_var(Qg.in(grid.gens,T));
-    ACUC.add_var(On_off.in(grid.gens, T));
-    ACUC.add_var(Start_up.in(grid.gens, T));
-    ACUC.add_var(Shut_down.in(grid.gens, T));
+    //ACUC.add_var(On_off.in(grid.gens, T));
+    //ACUC.add_var(Start_up.in(grid.gens, T));
+    //ACUC.add_var(Shut_down.in(grid.gens, T));
     ACUC.add_var(Xii.in(grid.nodes, T));
     ACUC.add_var(R_Xij.in(bus_pairs, T));
     ACUC.add_var(Im_Xij.in(bus_pairs, T));
@@ -74,66 +74,88 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     ACUC.set_objective(min(obj));
     for (int t= 0; t < T; t++) {
         Constraint SOC("SOC_" + to_string(t));
-        SOC =  power(R_Xij, 2) + power(Im_Xij, 2) - Xii.from()*Xii.to() ;
-        ACUC.add_constraint(SOC.in_at(bus_pairs, t) <= 0);
+        //SOC =  power(R_Xij, 2) + power(Im_Xij, 2) - Xii.from()*Xii.to() ;
+        //ACUC.add_constraint(SOC.in_at(bus_pairs, t) <= 0);
+        SOC =  power(R_Xij.in_at(bus_pairs, t), 2) + power(Im_Xij.in_at(bus_pairs, t), 2) - Xii.from_at(bus_pairs, t)*Xii.to_at(bus_pairs, t) ;
+        //ACUC.add_constraint(SOC <= 0);
     }
     //KCL
     for (int t= 0; t < T; t++) {
-        Constraint KCL_P("KCL_P_"+ to_string(t));
-        Constraint KCL_Q("KCL_Q_"+ to_string(t));
+        //Constraint KCL_P("KCL_P_"+ to_string(t));
+        //Constraint KCL_Q("KCL_Q_"+ to_string(t));
+        //KCL_P = sum(Pf_from.out_arcs_at(grid.nodes, t)) + sum(Pf_to.in_arcs_at(grid.nodes, t)) + grid.pl.in_at(grid.nodes, t)
+        //-sum(Pg.in_gens_at(grid.nodes, t))+ grid.gs.in_at(grid.nodes, t)*Xii.in_at(grid.nodes, t);
+        //KCL_P = sum(Pf_from.out_arcs_at(grid.nodes, t)) + sum(Pf_to.in_arcs_at(grid.nodes, t)) + grid.pl.in_at(grid.nodes, t)
+        //-sum(Pg.in_gens_at(grid.nodes, t)) + grid.gs.in_at(grid.nodes, t)*Xii.in_at(grid.nodes, t);
+        //Pg.in_gens_at(grid.nodes, t).print(true);
+        //KCL_P =  grid.pl.in_at(grid.nodes, t)- sum(Pg.in_gens_at(grid.nodes, t));
+        //KCL_P =  grid.pl - sum(Pg.in_gens());
+        //ACUC.add_constraint(KCL_P== 0);
+        for (auto b: grid.nodes){
+            Constraint KCL_P("KCL_P_"+ to_string(t) + b->_name);
+            grid.pl(b->_name + "," + to_string(t)).print(true);
+            auto bus = (Bus*) b;
+            KCL_P += grid.pl(b->_name+","+to_string(t)).getvalue();
+            if (bus->_has_gen){
+                for (auto g: bus->_gen){
+                    if (g->_active){
+                        Pg(g->_name+","+to_string(t)).print(true);
+                        KCL_P -= Pg(g->_name+","+ to_string(t));
+                    }
+                }
+                ACUC.add_constraint(KCL_P == 0);
+            }
+        }
+//        KCL_Q  = sum(Qf_from.out_arcs_at(grid.nodes, t)) + sum(Qf_to.in_arcs_at(grid.nodes, t))+ grid.ql.in_at(grid.nodes, t)
+//            -sum(Qg.in_gens_at(grid.nodes, t))-grid.bs.in_at(grid.nodes, t)*Xii.in_at(grid.nodes, t);
+//        ACUC.add_constraint(KCL_Q == 0);
+//
+//        Constraint Flow_P_From("Flow_P_From" + to_string(t));
+//        Flow_P_From = Pf_from- (grid.g_ff.in_at(grid.arcs, t)*Xii.from_at(grid.arcs, t)
+//                                + grid.g_ft.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
+//                                + grid.b_ft.in_at(grid.arcs, t)*Im_Xij.in_pairs_at(grid.arcs,t));
+//        ACUC.add_constraint(Flow_P_From == 0);
+//
+//
+//        Constraint Flow_P_To("Flow_P_To" + to_string(t));
+//        Flow_P_To = Pf_to.in_at(grid.arcs, t) - (grid.g_tt.in_at(grid.arcs, t)*Xii.to_at(grid.arcs, t)
+//                                                 + grid.g_tf.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
+//                                                 - grid.b_tf.in_at(grid.arcs, t)*Im_Xij.in_pairs_at(grid.arcs, t));
+//        ACUC.add_constraint(Flow_P_To == 0);
+
+//        Constraint Flow_Q_From("Flow_Q_From" + to_string(t));
+//        Flow_Q_From = Qf_from.in_at(grid.arcs, t) - (grid.g_ft.in_at(grid.arcs,t)*Im_Xij.in_pairs_at(grid.arcs, t)
+//                                                     - grid.b_ff.in_at(grid.arcs, t)*Xii.from_at(grid.arcs, t)
+//                                                     - grid.b_ft.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t));
+//        ACUC.add_constraint(Flow_Q_From == 0);
+//
+//        Constraint Flow_Q_To("Flow_Q_To" + to_string(t));
+//        Flow_Q_To = Qf_to.in_at(grid.arcs, t) + (grid.b_tt.in_at(grid.arcs, t)*Xii.to_at(grid.arcs, t)
+//                                                 + grid.b_tf.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
+//                                                 + grid.g_tf*Im_Xij.in_pairs_at(grid.arcs, t));
+//        ACUC.add_constraint(Flow_Q_To == 0);
         //KCL_P = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl -sum(Pg.in_gens()) + grid.gs*Xii;
-        KCL_P = sum(Pf_from.out_arcs_at(grid.nodes, t)) + sum(Pf_to.in_arcs_at(grid.nodes, t)) + grid.pl.in_at(grid.nodes, t)
-        -sum(Pg.in_gens_at(grid.nodes, t))+ grid.gs.in_at(grid.nodes, t)*Xii.in_at(grid.nodes, t);
         //ACUC.add_constraint(KCL_P.in_at(grid.nodes, t) == 0);
-        ACUC.add_constraint(KCL_P== 0);
         //KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs())+ grid.ql -sum(Qg.in_gens())-grid.bs*Xii;
         //ACUC.add_constraint(KCL_Q.in_at(grid.nodes, t) == 0);
-        KCL_Q  = sum(Qf_from.out_arcs_at(grid.nodes, t)) + sum(Qf_to.in_arcs_at(grid.nodes, t))+ grid.ql.in_at(grid.nodes, t)
-            -sum(Qg.in_gens_at(grid.nodes, t))-grid.bs.in_at(grid.nodes, t)*Xii.in_at(grid.nodes, t);
-        //ACUC.add_constraint(KCL_Q.in_at(grid.nodes, t) == 0);
-        ACUC.add_constraint(KCL_Q == 0);
-
-        Constraint Flow_P_From("Flow_P_From" + to_string(t));
-        Flow_P_From = Pf_from- (grid.g_ff.in_at(grid.arcs, t)*Xii.from_at(grid.arcs, t)
-                                + grid.g_ft.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
-                                + grid.b_ft.in_at(grid.arcs, t)*Im_Xij.in_pairs_at(grid.arcs,t));
-        ACUC.add_constraint(Flow_P_From == 0);
-//        Flow_P_From = Pf_from- (grid.g_ff*Xii.from()+ grid.g_ft*R_Xij.in_pairs() + grid.b_ft*Im_Xij.in_pairs());
-//        ACUC.add_constraint(Flow_P_From.in_at(grid.arcs, t) == 0);
-
-        Constraint Flow_P_To("Flow_P_To" + to_string(t));
-        Flow_P_To = Pf_to.in_at(grid.arcs, t) - (grid.g_tt.in_at(grid.arcs, t)*Xii.to_at(grid.arcs, t)
-                                                 + grid.g_tf.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
-                                                 - grid.b_tf.in_at(grid.arcs, t)*Im_Xij.in_pairs_at(grid.arcs, t));
-        ACUC.add_constraint(Flow_P_To == 0);
+        //        Flow_P_From = Pf_from- (grid.g_ff*Xii.from()+ grid.g_ft*R_Xij.in_pairs() + grid.b_ft*Im_Xij.in_pairs());
+        //        ACUC.add_constraint(Flow_P_From.in_at(grid.arcs, t) == 0);
         //Flow_P_To = Pf_to - (grid.g_tt*Xii.to() + grid.g_tf*R_Xij.in_pairs() - grid.b_tf*Im_Xij.in_pairs());
         //ACUC.add_constraint(Flow_P_To.in_at(grid.arcs, t) == 0);
-
-        Constraint Flow_Q_From("Flow_Q_From" + to_string(t));
-        Flow_Q_From = Qf_from.in_at(grid.arcs, t) - (grid.g_ft.in_at(grid.arcs,t)*Im_Xij.in_pairs_at(grid.arcs, t)
-                                                     - grid.b_ff.in_at(grid.arcs, t)*Xii.from_at(grid.arcs, t)
-                                                     - grid.b_ft.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t));
-        ACUC.add_constraint(Flow_Q_From == 0);
         //Flow_Q_From = Qf_from - (grid.g_ft*Im_Xij.in_pairs() - grid.b_ff*Xii.from() - grid.b_ft*R_Xij.in_pairs());
         //ACUC.add_constraint(Flow_Q_From.in_at(grid.arcs, t) == 0);
-
-        Constraint Flow_Q_To("Flow_Q_To" + to_string(t));
-        Flow_Q_To = Qf_to.in_at(grid.arcs, t) + (grid.b_tt.in_at(grid.arcs, t)*Xii.to_at(grid.arcs, t)
-                                                 + grid.b_tf.in_at(grid.arcs, t)*R_Xij.in_pairs_at(grid.arcs, t)
-                                                 + grid.g_tf*Im_Xij.in_pairs_at(grid.arcs, t));
-        ACUC.add_constraint(Flow_Q_To == 0);
         //Flow_Q_To = Qf_to + (grid.b_tt*Xii.to() + grid.b_tf*R_Xij.in_pairs() + grid.g_tf*Im_Xij.in_pairs());
         //ACUC.add_constraint(Flow_Q_To.in_at(grid.arcs, t) == 0);
 
-        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(t));
-        Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
-        Thermal_Limit_from <= power(grid.S_max,2);
-        ACUC.add_constraint(Thermal_Limit_from.in_at(grid.arcs, t));
-
-        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(t));
-        Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
-        Thermal_Limit_to <= power(grid.S_max, 2);
-        ACUC.add_constraint(Thermal_Limit_to.in_at(grid.arcs, t));
+//        Constraint Thermal_Limit_from("Thermal_Limit_from" + to_string(t));
+//        Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
+//        Thermal_Limit_from <= power(grid.S_max,2);
+//        ACUC.add_constraint(Thermal_Limit_from.in_at(grid.arcs, t));
+//
+//        Constraint Thermal_Limit_to("Thermal_Limit_to" + to_string(t));
+//        Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
+//        Thermal_Limit_to <= power(grid.S_max, 2);
+//        ACUC.add_constraint(Thermal_Limit_to.in_at(grid.arcs, t));
     }
     ///* Phase Angle Bounds constraints */
 //    for (int t= 0; t < T; t++) {
@@ -277,8 +299,8 @@ int main (int argc, const char * argv[])
     rate_switch.time_expand(T);
     /** Variables */
     // POWER GENERATION
-    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
-    var<Real> Qg ("Qg", grid.qg_min, grid.qg_max);
+    var<Real> Pg("Pg", grid.pg_min.in(grid.gens, T), grid.pg_max.in(grid.gens, T));
+    var<Real> Qg ("Qg", grid.qg_min.in(grid.gens, T), grid.qg_max.in(grid.gens, T));
 
     //Lifted variables.
     var<Real>  R_Xij("R_Wij", grid.wr_min, grid.wr_max); // real part of Wij

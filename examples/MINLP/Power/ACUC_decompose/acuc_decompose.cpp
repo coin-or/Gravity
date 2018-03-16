@@ -107,7 +107,10 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P"+ to_string(c));
         Constraint KCL_Q("KCL_Q"+ to_string(c));
-        KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs())+ grid.pl -sum(Pg[c].in_gens())+ grid.gs*Xii[c];
+        //KCL_P = sum(Pf_from[c].out_arcs(P.bag_bus[c], T)) + sum(Pf_to[c].in_arcs(P.bag_bus[c], T))
+        //-sum(Pg[c].in_gens(P.bag_bus[c], T))+ grid.gs.in(P.bag_bus[c], T)*Xii[c].in(P.bag_bus[c], T) + grid.pl.in(P.bag_bus[c],T);
+        //ACUC.add_constraint(KCL_P== 0);
+        KCL_P = sum(Pf_from[c].out_arcs()) + sum(Pf_to[c].in_arcs()) -sum(Pg[c].in_gens())+ grid.gs*Xii[c] + grid.pl;
         ACUC.add_constraint(KCL_P.in(P.bag_bus[c], T) == 0);
         KCL_Q  = sum(Qf_from[c].out_arcs()) + sum(Qf_to[c].in_arcs())+ grid.ql -sum(Qg[c].in_gens())-grid.bs*Xii[c];
         ACUC.add_constraint(KCL_Q.in(P.bag_bus[c], T) == 0);

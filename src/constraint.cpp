@@ -46,7 +46,7 @@ Constraint::Constraint(const Constraint& c):func_(c) {
     _all_lazy = make_shared<bool>(false);
     _indices = c._indices;
     _rev_indices = c._rev_indices;
-    _ids->resize(1);
+   // _ids->resize(1);
 }
 //@}
 /* Destructor */
