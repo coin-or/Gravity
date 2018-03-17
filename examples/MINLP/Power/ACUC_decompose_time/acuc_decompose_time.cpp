@@ -131,13 +131,13 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         Constraint MC1("MC1_" + to_string(t));
         Constraint MC2("MC2_" + to_string(t));
         On_off.in_gens_at(grid.nodes, t).print(true);
-        On_off.in_gens(grid.nodes, t).print(true);
-        On_off.in_gens(grid.nodes, t).print(true);
-        On_off.in_gens_at(grid.nodes, t).print(true);
-        MC1 = On_off.in_gens_at(grid.nodes, t); //- On_off.in_gens_at(grid.nodes, t-1)-  Start_up.in_gens_at(grid.nodes, t);
-        MC2 = On_off.in_gens_at(grid.nodes, t-1) - On_off.in_gens_at(grid.nodes, t) - Shut_down.in_gens_at(grid.nodes, t);
-        ACUC.add_constraint(MC1 <= 0);
-        ACUC.add_constraint(MC2 <= 0);
+//        On_off.in_gens(grid.nodes, t).print(true);
+//        On_off.in_gens(grid.nodes, t).print(true);
+//        On_off.in_gens_at(grid.nodes, t).print(true);
+//        MC1 = On_off.in_gens_at(grid.nodes, t); //- On_off.in_gens_at(grid.nodes, t-1)-  Start_up.in_gens_at(grid.nodes, t);
+//        MC2 = On_off.in_gens_at(grid.nodes, t-1) - On_off.in_gens_at(grid.nodes, t) - Shut_down.in_gens_at(grid.nodes, t);
+//        ACUC.add_constraint(MC1 <= 0);
+//        ACUC.add_constraint(MC2 <= 0);
     }
 ////    // Min-up constraints  4a
 //    for (int t = 1; t < T; t++) {
