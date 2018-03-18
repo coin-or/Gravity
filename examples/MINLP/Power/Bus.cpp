@@ -20,7 +20,6 @@ Bus::~Bus(){
         delete cond;
     }
 }
-
 //void Bus::init_complex(bool polar){
 //    if (polar) {
 //        _V_ = Complex("V", &vr, &vi, &theta, &v);
