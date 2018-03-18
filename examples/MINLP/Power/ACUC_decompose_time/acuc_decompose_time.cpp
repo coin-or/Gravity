@@ -129,6 +129,8 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     for (int t = 1; t < T; t++) {
         Constraint MC1("MC1_" + to_string(t));
         Constraint MC2("MC2_" + to_string(t));
+        MC1 = On_off.in_at(grid.gens, t) -  On_off.in_at(grid.gens, t-1) -Start_up.in_at(grid.gens, t);
+        MC2 = On_off.in_at(grid.gens, t-1) -  On_off.in_at(grid.gens, t) -Shut_down.in_at(grid.gens, t);
         ACUC.add_constraint(MC1 <= 0);
         ACUC.add_constraint(MC2 <= 0);
     }
