@@ -287,9 +287,9 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
                 R_lambda(name) = -cR._dual.at(0);
                 Im_lambda(name)= -cIm._dual.at(0);
                 lambda(name) = -c._dual.at(0);
-                R_lambda(name).print(true);
-                Im_lambda(name).print(true);
-                lambda(name).print(true);
+//                R_lambda(name).print(true);
+//                Im_lambda(name).print(true);
+//                lambda(name).print(true);
             }
         }
     }
@@ -616,7 +616,6 @@ int main (int argc, const char * argv[])
     lambda.initialize_all(0);
     double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Qg,
                                   Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
-
     //Improve the lower bound using MISCOP.
     std::vector<double> Subs; 
     Subs.resize(nbparts);

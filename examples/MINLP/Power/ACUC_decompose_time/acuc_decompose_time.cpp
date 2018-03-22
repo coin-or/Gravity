@@ -30,7 +30,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
                      const param<Real>& cost_up, const param<Real>& cost_down,
                      var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
                      var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
-                     param<Real>& lambda_up, param<Real>& lambda_down, 
+                     param<Real>& lambda_up, param<Real>& lambda_down,
                      param<Real>& zeta_up, param<Real>& zeta_down)
 {
     // Grid Parameters
@@ -84,7 +84,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         Constraint KCL_Q("KCL_Q_"+ to_string(t));
         KCL_P =  sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) +grid.pl- sum(Pg.in_gens())+ grid.gs*Xii;
         ACUC.add_constraint(KCL_P.in_at(grid.nodes,t) == 0);
-        
+
         KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs())+ grid.ql -sum(Qg.in_gens())-grid.bs*Xii;
         ACUC.add_constraint(KCL_Q.in_at(grid.nodes, t) == 0);
 
@@ -134,7 +134,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         ACUC.add_constraint(MC1 <= 0);
         ACUC.add_constraint(MC2 <= 0);
     }
-////    // Min-up constraints  4a
+    // Min-up constraints  4a
     for (int t = 1; t < T; t++) {
         Constraint Min_up1("Min_up1_"+to_string(t));
         Min_up1 = On_off.in_at(grid.gens, t) - On_off.in_at(grid.gens, t-1) - Start_up.in_at(grid.gens, t) + Shut_down.in_at(grid.gens, t);
@@ -158,7 +158,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         Min_Down -= 1 - On_off.in_at(grid.gens, t);
         ACUC.add_constraint(Min_Down <= 0);
     }
-//    ////Ramp Rate
+    // Ramp Rate
     for (int t = 0; t < T; t++) {
         Constraint Production_P_LB("Production_P_LB_"+ to_string(t));
         Constraint Production_P_UB("Production_P_UB_"+ to_string(t));
@@ -210,7 +210,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t));
         auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t));
         int i = 0;
-        for (auto& g: grid.gens){
+        for (auto& g: grid.gens) {
             string name = g->_name + "," + to_string(t);
             lambda_up(name) = -MC1->_dual.at(i);
             lambda_down(name) = -MC2->_dual.at(i);
@@ -223,8 +223,57 @@ double getdual_relax(PowerNet& grid, const unsigned T,
             ++i;
         }
     }
-    
     return ACUC._obj_val;
+}
+
+double subproblem(PowerNet& grid,  unsigned t, const param<Real>& rate_ramp,const param<Real>& rate_switch,
+                  const param<Real>& min_up, const param<Real>& min_down,
+                  const param<Real>& cost_up, const param<Real>& cost_down,
+                  var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
+                  var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
+                  param<Real>& lambda_up, param<Real>& lambda_down, param<Real>& zeta_up, param<Real>& zeta_down,
+                  param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
+{
+    //Grid Parameters
+    const auto bus_pairs = grid.get_bus_pairs();
+    Model Sub("Sub");
+    Sub.add_var(Pg.in_at(grid.gens,t));
+    Sub.add_var(Qg.in_at(grid.gens,t));
+    Sub.add_var(On_off.in_at(grid.gens, t));
+    Sub.add_var(Start_up.in_at(grid.gens, t));
+    Sub.add_var(Shut_down.in_at(grid.gens, t));
+    Sub.add_var(Xii.in_at(grid.nodes, t));
+    Sub.add_var(R_Xij.in_at(bus_pairs, t));
+    Sub.add_var(Im_Xij.in_at(bus_pairs, t));
+
+    //power flow
+    var<Real> Pf_from("Pf_from", grid.S_max.in_at(grid.arcs, t));
+    var<Real> Qf_from("Qf_from", grid.S_max.in_at(grid.arcs, t));
+    var<Real> Pf_to("Pf_to", grid.S_max.in_at(grid.arcs, t));
+    var<Real> Qf_to("Qf_to", grid.S_max.in_at(grid.arcs, t));
+    Sub.add_var(Pf_from.in(grid.arcs, t));
+    Sub.add_var(Qf_from.in(grid.arcs, t));
+    Sub.add_var(Pf_to.in(grid.arcs, t));
+    Sub.add_var(Qf_to.in(grid.arcs, t));
+    /* Construct the objective function*/
+    func_ obj;
+    for (auto g:grid.gens) {
+        if (g->_active) {
+            if (t == 0) {
+                string name = g->_name + ",0";
+                obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) +grid.c0(name)*On_off(name);
+            }
+            else {
+                if (g->_active) {
+                    string name = g->_name + ","+ to_string(t);
+                    obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
+                    obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
+                }
+            }
+        }
+    }
+    Sub.set_objective(min(obj));
+    return Sub._obj_val;
 }
 
 int main (int argc, const char * argv[])
@@ -304,8 +353,17 @@ int main (int argc, const char * argv[])
     zeta_up.initialize_all(0);
     zeta_down.initialize_all(0);
     double lb_cts = getdual_relax(grid, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Qg,
-                                  Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, lambda_up, lambda_down, zeta_up, 
+                                  Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, lambda_up, lambda_down, zeta_up,
                                   zeta_down);
+    //Improve the lower bound using MISCOP.
+    std::vector<double> Subs;
+    Subs.resize(T);
+    double LB = 0;
+    for(int t = 0; t < T; t++) {
+        //Subs[c]= subproblem(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Qg[c],
+        //                    Start_up[c], Shut_down[c], On_off[c], Xii[c], R_Xij[c],Im_Xij[c], R_lambda, Im_lambda, lambda, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
+        LB += Subs[t];
+    }
     cout << "The initial Lower bound of the ACUC problem is: " << lb_cts  << endl;
     return 0;
 }
