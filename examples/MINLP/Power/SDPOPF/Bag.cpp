@@ -394,17 +394,13 @@ vector<index_> triang_indices(int n) {
 param<double> Bag::nfp(){
     param<double> what;
     fill_wstar();
-
 //    cout << "\nIndices:";
 //    for(auto& i: _indices) cout << "\n" << i->_name;
 //    cout << "\n---------\n";
-
     Model NPP("NPP model");
     int n = _nodes.size();
     DebugOff("\nn = " << n);
-
 //    _wstarp.print(true);
-
 #ifndef FLAT
     sdpvar<double> W("W");
     NPP.add_var(W^(2*n));
@@ -429,7 +425,6 @@ param<double> Bag::nfp(){
     func_ obj;
     obj = z("obj");
     NPP.min(obj);
-
 //    min t
 //    s.t.
 //    ||z|| <= t    (z(obj) = t)

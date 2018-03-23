@@ -277,6 +277,7 @@ void CplexProgram::set_cplex_objective() {
         }
         else {
             idx_inst = it_lterm.second._p->get_id_inst();
+            Debug("(idx, idx_inst) = " << idx << ", "<< idx_inst << endl;);
             lterm += poly_eval(it_lterm.second._coef)*_cplex_vars[idx][idx_inst];
         }
         if (!it_lterm.second._sign) {

@@ -155,102 +155,102 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     }
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            for (int t = 1; t < T; t++) {
-//                Constraint MC1("MC1_"+ to_string(c)+ ","+to_string(t));
-//                Constraint MC2("MC2_"+ to_string(c)+ ","+to_string(t));
-//                MC1 = On_off[c].in_at(P.bag_gens[c], t)- On_off[c].in_at(P.bag_gens[c], t-1)-  Start_up[c].in_at(P.bag_gens[c], t);
-//                MC2 = On_off[c].in_at(P.bag_gens[c], t-1) - On_off[c].in_at(P.bag_gens[c], t) - Shut_down[c].in_at(P.bag_gens[c], t);
-//                ACUC.add_constraint(MC1 <= 0);
-//                ACUC.add_constraint(MC2 <= 0);
-//            }
-//        }
-//    }
-//    // Min-up constraints  4a
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            for (int t = 1; t < T; t++) {
-//                Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
-//                Min_up1 = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1) - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
-//                ACUC.add_constraint(Min_up1 == 0);
-//            }
-//        }
-//    }
-//    // 4b
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            for (int t = min_up.getvalue(); t < T; t++) {
-//                Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
-//                for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-//                    Min_Up   += Start_up[c].in_at(P.bag_gens[c], l);
-//                }
-//                Min_Up -= On_off[c].in_at(P.bag_gens[c], t);
-//                ACUC.add_constraint(Min_Up <= 0);
-//            }
-//        }
-//    }
-//    // 4c
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            for (int t = min_down.getvalue(); t < T; t++) {
-//                Constraint Min_Down("Min_Down_constraint_" + to_string(c) + "_"+ to_string(t));
-//                for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-//                    Min_Down   += Shut_down[c].in_at(P.bag_gens[c], l);
-//                }
-//                Min_Down -= 1 - On_off[c].in_at(P.bag_gens[c], t);
-//                ACUC.add_constraint(Min_Down <= 0);
-//            }
-//        }
-//    }
-//    ////Ramp Rate
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            Constraint Production_P_LB("Production_P_LB_"+ to_string(c));
-//            Constraint Production_P_UB("Production_P_UB_"+ to_string(c));
-//            Constraint Production_Q_LB("Production_Q_LB_"+ to_string(c));
-//            Constraint Production_Q_UB("Production_Q_UB_"+ to_string(c));
-//            // 5A
-//            Production_P_UB = Pg[c] - grid.pg_max*On_off[c];
-//            Production_P_LB = Pg[c] - grid.pg_min*On_off[c];
-//            ACUC.add_constraint(Production_P_UB.in(P.bag_gens[c], T) <=0);
-//            ACUC.add_constraint(Production_P_LB.in(P.bag_gens[c], T) >= 0);
-//
-//            Production_Q_UB = Qg[c] - grid.qg_max*On_off[c];
-//            Production_Q_LB = Qg[c] - grid.qg_min*On_off[c];
-//            ACUC.add_constraint(Production_Q_UB.in(P.bag_gens[c], T) <= 0);
-//            ACUC.add_constraint(Production_Q_LB.in(P.bag_gens[c], T) >= 0);
-//        }
-//    }
-//    // 5C
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() > 0) {
-//            for (int t = 1; t < T; t++) {
-//                Constraint Ramp_up("Ramp_up_constraint_" +  to_string(c) + "_" + to_string(t));
-//                Constraint Ramp_down("Ramp_down_constraint_" + to_string(c) + "_" +to_string(t));
-//                Ramp_up =  Pg[c].in_at(P.bag_gens[c], t);
-//                Ramp_up -= Pg[c].in_at(P.bag_gens[c], t-1);
-//                Ramp_up -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t-1);
-//                Ramp_up -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t));
-//
-//                Ramp_down =  Pg[c].in_at(P.bag_gens[c], t-1);
-//                Ramp_down -= Pg[c].in_at(P.bag_gens[c], t);
-//                Ramp_down -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t);
-//                Ramp_down -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
-//
-//                ACUC.add_constraint(Ramp_up <= 0);
-//                ACUC.add_constraint(Ramp_down <= 0);
-//            }
-//        }
-//    }
-//    // set the initial state of generators.
-//    for (int c = 0; c < nbparts; c++) {
-//        for(auto g: P.bag_gens[c]) {
-//            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
-//            gen_initial +=  On_off[c]( g->_name + ",0");
-//            ACUC.add_constraint(gen_initial == 1);
-//        }
-//    }
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            for (int t = 1; t < T; t++) {
+                Constraint MC1("MC1_"+ to_string(c)+ ","+to_string(t));
+                Constraint MC2("MC2_"+ to_string(c)+ ","+to_string(t));
+                MC1 = On_off[c].in_at(P.bag_gens[c], t)- On_off[c].in_at(P.bag_gens[c], t-1)-  Start_up[c].in_at(P.bag_gens[c], t);
+                MC2 = On_off[c].in_at(P.bag_gens[c], t-1) - On_off[c].in_at(P.bag_gens[c], t) - Shut_down[c].in_at(P.bag_gens[c], t);
+                ACUC.add_constraint(MC1 <= 0);
+                ACUC.add_constraint(MC2 <= 0);
+            }
+        }
+    }
+    // Min-up constraints  4a
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            for (int t = 1; t < T; t++) {
+                Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
+                Min_up1 = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1) - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
+                ACUC.add_constraint(Min_up1 == 0);
+            }
+        }
+    }
+    // 4b
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            for (int t = min_up.getvalue(); t < T; t++) {
+                Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
+                for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+                    Min_Up   += Start_up[c].in_at(P.bag_gens[c], l);
+                }
+                Min_Up -= On_off[c].in_at(P.bag_gens[c], t);
+                ACUC.add_constraint(Min_Up <= 0);
+            }
+        }
+    }
+    // 4c
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            for (int t = min_down.getvalue(); t < T; t++) {
+                Constraint Min_Down("Min_Down_constraint_" + to_string(c) + "_"+ to_string(t));
+                for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+                    Min_Down   += Shut_down[c].in_at(P.bag_gens[c], l);
+                }
+                Min_Down -= 1 - On_off[c].in_at(P.bag_gens[c], t);
+                ACUC.add_constraint(Min_Down <= 0);
+            }
+        }
+    }
+    ////Ramp Rate
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            Constraint Production_P_LB("Production_P_LB_"+ to_string(c));
+            Constraint Production_P_UB("Production_P_UB_"+ to_string(c));
+            Constraint Production_Q_LB("Production_Q_LB_"+ to_string(c));
+            Constraint Production_Q_UB("Production_Q_UB_"+ to_string(c));
+            // 5A
+            Production_P_UB = Pg[c] - grid.pg_max*On_off[c];
+            Production_P_LB = Pg[c] - grid.pg_min*On_off[c];
+            ACUC.add_constraint(Production_P_UB.in(P.bag_gens[c], T) <=0);
+            ACUC.add_constraint(Production_P_LB.in(P.bag_gens[c], T) >= 0);
+
+            Production_Q_UB = Qg[c] - grid.qg_max*On_off[c];
+            Production_Q_LB = Qg[c] - grid.qg_min*On_off[c];
+            ACUC.add_constraint(Production_Q_UB.in(P.bag_gens[c], T) <= 0);
+            ACUC.add_constraint(Production_Q_LB.in(P.bag_gens[c], T) >= 0);
+        }
+    }
+    // 5C
+    for (int c = 0; c < nbparts; c++) {
+        if (P.bag_gens[c].size() > 0) {
+            for (int t = 1; t < T; t++) {
+                Constraint Ramp_up("Ramp_up_constraint_" +  to_string(c) + "_" + to_string(t));
+                Constraint Ramp_down("Ramp_down_constraint_" + to_string(c) + "_" +to_string(t));
+                Ramp_up =  Pg[c].in_at(P.bag_gens[c], t);
+                Ramp_up -= Pg[c].in_at(P.bag_gens[c], t-1);
+                Ramp_up -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t-1);
+                Ramp_up -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t));
+
+                Ramp_down =  Pg[c].in_at(P.bag_gens[c], t-1);
+                Ramp_down -= Pg[c].in_at(P.bag_gens[c], t);
+                Ramp_down -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t);
+                Ramp_down -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
+
+                ACUC.add_constraint(Ramp_up <= 0);
+                ACUC.add_constraint(Ramp_down <= 0);
+            }
+        }
+    }
+    // set the initial state of generators.
+    for (int c = 0; c < nbparts; c++) {
+        for(auto g: P.bag_gens[c]) {
+            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
+            gen_initial +=  On_off[c]( g->_name + ",0");
+            ACUC.add_constraint(gen_initial == 1);
+        }
+    }
     // Linking constraints
     for (const auto& a: P.G_part.arcs) {
         Constraint Link_R("link_R_"+a->_name);
@@ -277,7 +277,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         auto consR = ACUC.get_constraint("link_R_"+a->_name);
         auto consIm = ACUC.get_constraint("link_Im_"+a->_name);
         auto cons = ACUC.get_constraint("link_Xii_"+a->_name);
-        //int i = 0;
         for (unsigned t = 0; t < T; t++) {
             for (auto& line: a->_intersection_clique) {
                 string name =line->_name+","+to_string(t);
@@ -332,14 +331,12 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
     for (auto g:P.bag_gens[c]) {
         if (g->_active) {
             string name = g->_name + ",0";
-           // obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
-            obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name)+ grid.c0(name);
+           obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
 
             for (int t = 1; t < T; t++) {
                 string name2 = g->_name + ","+ to_string(t);
-                //obj += grid.c1(name)*Pg(name) + grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
-                obj += grid.c1(name)*Pg(name) + grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name);
-                //obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
+                obj += grid.c1(name)*Pg(name) + grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
+                obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
             }
         }
     }
@@ -410,92 +407,92 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
     Subr.add_constraint(PAD_LB.in(P.bag_bus_pairs_union_directed[c], T) >= 0);
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-//    if (P.bag_gens[c].size() > 0) {
-//        for (int t = 1; t < T; t++) {
-//            Constraint MC1("MC1_"+to_string(t));
-//            Constraint MC2("MC2_"+to_string(t));
-//            MC1 = On_off.in_at(P.bag_gens[c], t)- On_off.in_at(P.bag_gens[c], t-1)-  Start_up.in_at(P.bag_gens[c], t);
-//            MC2 = On_off.in_at(P.bag_gens[c], t-1) - On_off.in_at(P.bag_gens[c], t) - Shut_down.in_at(P.bag_gens[c], t);
-//            Subr.add_constraint(MC1 <= 0);
-//            Subr.add_constraint(MC2 <= 0);
-//        }
-//    }
-//    // Min-up constraints  4a
-//    if (P.bag_gens[c].size() > 0) {
-//        for (int t = 1; t < T; t++) {
-//            Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
-//            Min_up1 = On_off.in_at(P.bag_gens[c], t) - On_off.in_at(P.bag_gens[c], t-1) - Start_up.in_at(P.bag_gens[c], t) + Shut_down.in_at(P.bag_gens[c], t);
-//            Subr.add_constraint(Min_up1 == 0);
-//        }
-//    }
-//    // 4b
-//    if (P.bag_gens[c].size() > 0) {
-//        for (int t = min_up.getvalue(); t < T; t++) {
-//            Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
-//            for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-//                Min_Up   += Start_up.in_at(P.bag_gens[c], l);
-//            }
-//            Min_Up -= On_off.in_at(P.bag_gens[c], t);
-//            Subr.add_constraint(Min_Up <= 0);
-//        }
-//    }
-//    // 4c
-//    if (P.bag_gens[c].size() > 0) {
-//        for (int t = min_down.getvalue(); t < T; t++) {
-//            Constraint Min_Down("Min_Down_constraint_"+ to_string(t));
-//            for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-//                Min_Down   += Shut_down.in_at(P.bag_gens[c], l);
-//            }
-//            Min_Down -= 1 - On_off.in_at(P.bag_gens[c], t);
-//            Subr.add_constraint(Min_Down <= 0);
-//        }
-//    }
-//
-//    ////Ramp Rate
-////    if (P.bag_gens[c].size() > 0) {
-////        Constraint Production_P_LB("Production_P_LB");
-////        Constraint Production_P_UB("Production_P_UB");
-////        Constraint Production_Q_LB("Production_Q_LB");
-////        Constraint Production_Q_UB("Production_Q_UB");
-////        // 5A
-////        Production_P_UB = Pg - grid.pg_max*On_off;
-////        Production_P_LB = Pg - grid.pg_min*On_off;
-////        Subr.add_constraint(Production_P_UB.in(P.bag_gens[c], T) <=0);
-////        Subr.add_constraint(Production_P_LB.in(P.bag_gens[c], T) >= 0);
-//
-////        Production_Q_UB = Qg - grid.qg_max*On_off;
-////        Production_Q_LB = Qg - grid.qg_min*On_off;
-////        Subr.add_constraint(Production_Q_UB.in(P.bag_gens[c], T) <= 0);
-////        Subr.add_constraint(Production_Q_LB.in(P.bag_gens[c], T) >= 0);
-// //   }
-//    // 5C
-//    if (P.bag_gens[c].size() > 0) {
-//        for (int t = 1; t < T; t++) {
-//            Constraint Ramp_up("Ramp_up_constraint_" + to_string(t));
-//            Constraint Ramp_down("Ramp_down_constraint_" +to_string(t));
-//            Ramp_up =  Pg.in_at(P.bag_gens[c], t);
-//            Ramp_up -= Pg.in_at(P.bag_gens[c], t-1);
-//            Ramp_up -= rate_ramp*On_off.in_at(P.bag_gens[c], t-1);
-//            Ramp_up -= rate_switch*(1 - On_off.in_at(P.bag_gens[c], t));
-//
-//            Ramp_down =  Pg.in_at(P.bag_gens[c], t-1);
-//            Ramp_down -= Pg.in_at(P.bag_gens[c], t);
-//            Ramp_down -= rate_ramp*On_off.in_at(P.bag_gens[c], t);
-//            Ramp_down -= rate_switch*(1 - On_off.in_at(P.bag_gens[c], t-1));
-//
-//            Subr.add_constraint(Ramp_up <= 0);
-//            Subr.add_constraint(Ramp_down <= 0);
-//        }
-//    }
+    if (P.bag_gens[c].size() > 0) {
+        for (int t = 1; t < T; t++) {
+            Constraint MC1("MC1_"+to_string(t));
+            Constraint MC2("MC2_"+to_string(t));
+            MC1 = On_off.in_at(P.bag_gens[c], t)- On_off.in_at(P.bag_gens[c], t-1)-  Start_up.in_at(P.bag_gens[c], t);
+            MC2 = On_off.in_at(P.bag_gens[c], t-1) - On_off.in_at(P.bag_gens[c], t) - Shut_down.in_at(P.bag_gens[c], t);
+            Subr.add_constraint(MC1 <= 0);
+            Subr.add_constraint(MC2 <= 0);
+        }
+    }
+    // Min-up constraints  4a
+    if (P.bag_gens[c].size() > 0) {
+        for (int t = 1; t < T; t++) {
+            Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
+            Min_up1 = On_off.in_at(P.bag_gens[c], t) - On_off.in_at(P.bag_gens[c], t-1) - Start_up.in_at(P.bag_gens[c], t) + Shut_down.in_at(P.bag_gens[c], t);
+            Subr.add_constraint(Min_up1 == 0);
+        }
+    }
+    // 4b
+    if (P.bag_gens[c].size() > 0) {
+        for (int t = min_up.getvalue(); t < T; t++) {
+            Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
+            for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+                Min_Up   += Start_up.in_at(P.bag_gens[c], l);
+            }
+            Min_Up -= On_off.in_at(P.bag_gens[c], t);
+            Subr.add_constraint(Min_Up <= 0);
+        }
+    }
+    // 4c
+    if (P.bag_gens[c].size() > 0) {
+        for (int t = min_down.getvalue(); t < T; t++) {
+            Constraint Min_Down("Min_Down_constraint_"+ to_string(t));
+            for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+                Min_Down   += Shut_down.in_at(P.bag_gens[c], l);
+            }
+            Min_Down -= 1 - On_off.in_at(P.bag_gens[c], t);
+            Subr.add_constraint(Min_Down <= 0);
+        }
+    }
+
+    ////Ramp Rate
+    if (P.bag_gens[c].size() > 0) {
+        Constraint Production_P_LB("Production_P_LB");
+        Constraint Production_P_UB("Production_P_UB");
+        Constraint Production_Q_LB("Production_Q_LB");
+        Constraint Production_Q_UB("Production_Q_UB");
+        // 5A
+        Production_P_UB = Pg - grid.pg_max*On_off;
+        Production_P_LB = Pg - grid.pg_min*On_off;
+        Subr.add_constraint(Production_P_UB.in(P.bag_gens[c], T) <=0);
+        Subr.add_constraint(Production_P_LB.in(P.bag_gens[c], T) >= 0);
+
+        Production_Q_UB = Qg - grid.qg_max*On_off;
+        Production_Q_LB = Qg - grid.qg_min*On_off;
+        Subr.add_constraint(Production_Q_UB.in(P.bag_gens[c], T) <= 0);
+        Subr.add_constraint(Production_Q_LB.in(P.bag_gens[c], T) >= 0);
+    }
+    // 5C
+    if (P.bag_gens[c].size() > 0) {
+        for (int t = 1; t < T; t++) {
+            Constraint Ramp_up("Ramp_up_constraint_" + to_string(t));
+            Constraint Ramp_down("Ramp_down_constraint_" +to_string(t));
+            Ramp_up =  Pg.in_at(P.bag_gens[c], t);
+            Ramp_up -= Pg.in_at(P.bag_gens[c], t-1);
+            Ramp_up -= rate_ramp*On_off.in_at(P.bag_gens[c], t-1);
+            Ramp_up -= rate_switch*(1 - On_off.in_at(P.bag_gens[c], t));
+
+            Ramp_down =  Pg.in_at(P.bag_gens[c], t-1);
+            Ramp_down -= Pg.in_at(P.bag_gens[c], t);
+            Ramp_down -= rate_ramp*On_off.in_at(P.bag_gens[c], t);
+            Ramp_down -= rate_switch*(1 - On_off.in_at(P.bag_gens[c], t-1));
+
+            Subr.add_constraint(Ramp_up <= 0);
+            Subr.add_constraint(Ramp_down <= 0);
+        }
+    }
     //// set the initial state of generators.
-    //for(auto g: P.bag_gens[c]) {
-    //    Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
-    //    gen_initial +=  On_off( g->_name + ",0");
-    //    Subr.add_constraint(gen_initial == 1);
-    //}
+    for(auto g: P.bag_gens[c]) {
+        Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
+        gen_initial +=  On_off( g->_name + ",0");
+        Subr.add_constraint(gen_initial == 1);
+    }
     /* solve it! */
     solver solve_Subr(Subr, cplex);
-    bool relax = true;
+    bool relax = false;
     int output = 1;
     double tol = 1e-6;
     solve_Subr.run(output, relax, tol);
