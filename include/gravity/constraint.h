@@ -175,7 +175,7 @@ public:
             _rev_indices->resize(_val->size());
             _rev_indices->at(index) = key;
             res._ids->at(0).push_back(_indices->size()-1);
-            res._dual.resize(1);
+            res._dual.resize(res._dual.size()+1);
         }
         else {
             res._ids->at(0).push_back(pp.first->second);

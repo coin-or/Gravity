@@ -104,9 +104,11 @@ bool CplexProgram::solve(bool relax) {
                                         fabs (cplex.getValue(it.getVar1())) > ZEROTOL )
                                     conetop = false;
                             }
-                            if ( conetop )
+                            if ( conetop ){
+                                continue; // 
                                 throw IloCplex::Exception(CPXERR_BAD_ARGUMENT,
                                                           "Cannot compute dual multiplier at cone top!");
+                            }
                             bool ok = false;
                             IloNum maxabs = -1.0;
                             for (IloInt i = 0; i < vars.getSize(); ++i) {

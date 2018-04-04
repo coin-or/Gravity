@@ -23,12 +23,13 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = false, use_gurobi = false;
+    bool relax = false, use_cplex = true, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
     //string fname = "../data_sets/Power/nesta_case5_pjm.m";
-    string fname = "../data_sets/Power/nesta_case14_ieee.m";
+    //string fname = "../data_sets/Power/nesta_case14_ieee.m";
+    string fname = "../data_sets/Power/nesta_case300_ieee.m";
 
     
     string path = argv[0];
@@ -186,7 +187,6 @@ int main (int argc, char * argv[])
     LNC2 -= grid.v_min.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
     SOCP.add(LNC2.in(bus_pairs) >= 0);
-
     
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
