@@ -212,21 +212,21 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         int i = 0;
         for (auto& g: grid.gens) {
             string name = g->_name + "," + to_string(t);
-            lambda_up(name) = -MC1->_dual.at(i);
-            lambda_down(name) = -MC2->_dual.at(i);
-            zeta_up(name) = -Ramp_up->_dual.at(i);
-            zeta_down(name) = -Ramp_down->_dual.at(i);
-            Debug("dual of  lambda_up " << name << " " << MC1->_dual[i] << endl);
-            Debug("dual of  lambda_down " << name << " " << MC2->_dual[i] << endl);
-            Debug("dual of  zeta_up " << name << " " << Ramp_up->_dual[i] << endl);
-            Debug("dual of  zeta_down " << name << " " << Ramp_down->_dual[i] << endl);
+            lambda_up(name) = abs(MC1->_dual.at(i));
+            lambda_down(name) = abs(MC2->_dual.at(i));
+            zeta_up(name) = abs(Ramp_up->_dual.at(i));
+            zeta_down(name) = abs(Ramp_down->_dual.at(i));
+            DebugOn("dual of  lambda_up " << name << " " << abs(MC1->_dual[i]) << endl);
+            DebugOn("dual of  lambda_down " << name << " " << abs(MC2->_dual[i]) << endl);
+            DebugOn("dual of  zeta_up " << name << " " << abs(Ramp_up->_dual[i]) << endl);
+            DebugOn("dual of  zeta_down " << name << " " << abs(Ramp_down->_dual[i]) << endl);
             ++i;
         }
     }
     return ACUC._obj_val;
 }
 
-double subproblem(PowerNet& grid,  unsigned t, param<Real>& rate_ramp, param<Real>& rate_switch,
+double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ramp, param<Real>& rate_switch,
                   const param<Real>& min_up, const param<Real>& min_down,
                   const param<Real>& cost_up, const param<Real>& cost_down,
                   var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
@@ -266,17 +266,29 @@ double subproblem(PowerNet& grid,  unsigned t, param<Real>& rate_ramp, param<Rea
                 obj +=(grid.c0(name) + lambda_down(name1) - lambda_down(name1) + zeta_down(name1)*rate_ramp(name1)
                       - zeta_up(name1)*rate_switch(name1))*On_off(name);
             }
-            else {
+            else if (t == T-1){
+                string name = g->_name + ","+ to_string(t);
+                obj += (grid.c1(name) + zeta_up(name)- zeta_down(name))*Pg(name)
+                + grid.c2(name)*Pg(name)*Pg(name);
+                
+                obj += (grid.c0(name)+lambda_up(name) -lambda_down(name)
+                        - zeta_down(name)*rate_ramp(name) + zeta_down(name)*rate_switch(name))*On_off(name);
+                
+                obj += (cost_up.getvalue()-lambda_up(name))*Start_up(name);
+                obj += (cost_down.getvalue()-lambda_down(name))*Shut_down(name);
+            }
+            else{
                 string name = g->_name + ","+ to_string(t);
                 string name1 = g->_name + ","+ to_string(t+1);
                 obj += (grid.c1(name) + zeta_up(name)+zeta_down(name1)- zeta_down(name)-zeta_up(name1))*Pg(name)
                 + grid.c2(name)*Pg(name)*Pg(name);
                 
                 obj += (grid.c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)
-                    - zeta_down(name)*rate_ramp(name1) - zeta_up(name1)*rate_ramp(name1)
+                    - zeta_down(name)*rate_ramp(name) - zeta_up(name1)*rate_ramp(name1)
                     + zeta_up(name1)*rate_switch(name1)+ zeta_down(name)*rate_switch(name))*On_off(name);
                 
-                obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
+                obj += (cost_up.getvalue()-lambda_up(name))*Start_up(name);
+                obj += (cost_down.getvalue()-lambda_down(name))*Shut_down(name);
             }
         }
     }
@@ -368,11 +380,11 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
@@ -462,10 +474,23 @@ int main (int argc, const char * argv[])
     Subs.resize(T);
     double LB = 0;
     for(int t = 0; t < T; t++) {
-        Subs[t]= subproblem(grid, t, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Qg[t],
+        Subs[t]= subproblem(grid, t, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Qg[t],
                             Start_up[t], Shut_down[t], On_off[t], Xii[t], R_Xij[t], Im_Xij[t], lambda_up, lambda_down, zeta_up, zeta_down);
         LB += Subs[t];
     }
-    cout << "The initial Lower bound of the ACUC problem is: " << lb_cts  << endl;
+    for (int t = 1; t < T; t++){
+        for (auto& g: grid.gens) {
+            string name = g->_name + "," + to_string(t);
+            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
+        }
+    }
+    for (int t = 0; t < T-1; t++){
+        for (auto& g: grid.gens) {
+            string name = g->_name + "," + to_string(t);
+            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
+        }
+    }
+    cout << "The initial Lower bound of the ACUC problem is: " << LB << endl;
+    // now we need to solve it faster
     return 0;
 }
