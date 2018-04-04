@@ -57,6 +57,7 @@ int main (int argc, const char * argv[])
     min_down = 2;
     cost_up = 50;
     cost_down = 30;
+    
     grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
@@ -66,8 +67,8 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // POWER GENERATION
-    var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
-    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T));
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg.in(grid->gens,T));
     ACUC.add_var(Qg.in(grid->gens,T));
 
@@ -125,14 +126,10 @@ int main (int argc, const char * argv[])
     Constraint KCL_Q("KCL_Q");
     //KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid->pl -sum(Pg.in_gens()) + grid->gs*Wii;
     //ACUC.add_constraint(KCL_P.in(grid->nodes, T) == 0);
-    Pf_from.out_arcs(grid->nodes, T).print(true);
-    //Pf_to.in_arcs(grid->nodes, T).print(true);
-    grid->pl.in(grid->nodes, T).print(true);
-    Pg.in_gens(grid->nodes, T).print(true);
-    grid->gs.in(grid->nodes, T).print(true);
-    Wii.in(grid->nodes, T).print(true);
     KCL_P  = sum(Pf_from.out_arcs(grid->nodes, T)) + sum(Pf_to.in_arcs(grid->nodes, T)) + grid->pl.in(grid->nodes, T)
         -sum(Pg.in_gens(grid->nodes, T)) + grid->gs.in(grid->nodes, T)*Wii.in(grid->nodes, T);
+    
+   // KCL_P  = grid->pl.in(grid->nodes, T) -sum(Pg.in_gens(grid->nodes, T))+ grid->gs.in(grid->nodes, T)*Wii.in(grid->nodes, T);
     ACUC.add_constraint(KCL_P == 0);
 
     //KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid->ql - sum(Qg.in_gens()) - grid->bs*Wii;

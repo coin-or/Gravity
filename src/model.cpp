@@ -249,17 +249,17 @@ shared_ptr<Constraint> Model::add_constraint(const Constraint& c){
             switch (newc->_ctype) {
                 case leq:
                     if (newc->eval()>c.get_rhs()) {
-                        throw invalid_argument("Adding violated constant constraint!\n");
+                        throw invalid_argument("Adding violated constant constraint"  + c.get_name() +"!\n");
                     }
                     break;
                 case geq:
                     if (newc->eval()<c.get_rhs()) {
-                        throw invalid_argument("Adding violated constant constraint!\n");
+                        throw invalid_argument("Adding violated constant constraint" + c.get_name() + "!\n");
                     }
                     break;
                 case eq:
                     if (newc->eval()!=c.get_rhs()) {
-                        throw invalid_argument("Adding violated constant constraint!\n");
+                        throw invalid_argument("Adding violated constant constraint"  + c.get_name() +"!\n");
                     }
                     break;
                 default:
