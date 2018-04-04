@@ -338,7 +338,7 @@ template<typename type> void var<type>::print(bool bounds) const {
     if(_lb != nullptr && _ub != nullptr) {
         if (param_::_is_indexed) {
             if (_lb->_val->size() >1){
-                idx = param_::get_id_inst();
+                idx = param_::get_id_inst(); // may return empty in_gens 
                 cout << " [ " << (*_lb->_val)[idx] << ", " << (*_ub->_val)[idx] << "]";
             }
             else

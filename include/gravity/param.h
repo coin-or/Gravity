@@ -73,7 +73,7 @@ public:
     size_t get_id_inst(unsigned inst = 0) const {
         if (_is_indexed) {
             if(_ids->at(0).size() <= inst) {
-                throw invalid_argument("get_id_inst out of range");
+                throw invalid_argument("get_id_inst out of range: _ids->at(0) might be empty!");
             }
             return _ids->at(0).at(inst);
         }
