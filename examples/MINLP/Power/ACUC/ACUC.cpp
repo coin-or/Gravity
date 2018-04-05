@@ -67,8 +67,10 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // POWER GENERATION
-    var<Real> Pg("Pg", grid->pg_min, grid->pg_max.in(grid->gens, T));
-    var<Real> Qg ("Qg", grid->qg_min, grid->qg_max.in(grid->gens, T));
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T)); // strange 72-73 lead to wrong  sol.
+    var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
+    //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    //var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg.in(grid->gens, T));
     ACUC.add_var(Qg.in(grid->gens, T));
 
@@ -167,75 +169,75 @@ int main (int argc, const char * argv[])
 
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-//    for (int t = 1; t < T; t++) {
-//        for (auto g: grid->gens){
-//            Constraint MC1("MC1_"+ to_string(t)+ g->_name );
-//            Constraint MC2("MC2_"+ to_string(t)+ g->_name);
-//            MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
-//            MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
-//            string name = g->_name + "," + to_string(t);
-//            MC1 = On_off(name)- On_off(name)-  Start_up(name);
-//            MC2 = On_off(name) - On_off(name) - Shut_down(name);
-//            ACUC.add_constraint(MC1 <= 0);
-//            ACUC.add_constraint(MC2 <= 0);
-//        }
-//    }
+    for (int t = 1; t < T; t++) {
+        for (auto g: grid->gens){
+            Constraint MC1("MC1_"+ to_string(t)+ g->_name );
+            Constraint MC2("MC2_"+ to_string(t)+ g->_name);
+            MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
+            MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
+            string name = g->_name + "," + to_string(t);
+            MC1 = On_off(name)- On_off(name)-  Start_up(name);
+            MC2 = On_off(name) - On_off(name) - Shut_down(name);
+            ACUC.add_constraint(MC1 <= 0);
+            ACUC.add_constraint(MC2 <= 0);
+        }
+    }
     // Min-up constraints  4a
-//    for (int t = 1; t < T; t++) {
-//        Constraint Min_up1("Min_up1_"+ to_string(t));
-//        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1)-Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-//        ACUC.add_constraint(Min_up1 == 0);
-//    }
-//    // 4b
-//    for (int t = min_up.getvalue(); t < T; t++) {
-//        Constraint Min_Up("Min_Up_constraint" + to_string(t));
-//        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-//            Min_Up   += Start_up.in_at(grid->gens, l);
-//        }
-//        Min_Up -= On_off.in_at(grid->gens, t);
-//        ACUC.add_constraint(Min_Up <= 0);
-//    }
-//    // 4c
-//    for (int t = min_down.getvalue(); t < T; t++) {
-//        Constraint Min_Down("Min_Down_constraint" + to_string(t));
-//        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-//            Min_Down   += Shut_down.in_at(grid->gens, l);
-//        }
-//        Min_Down -= 1 - On_off.in_at(grid->gens, t);
-//        ACUC.add_constraint(Min_Down <= 0);
-//    }
-//    //Ramp Rate
-//    Constraint Production_P_LB("Production_P_LB");
-//    Constraint Production_P_UB("Production_P_UB");
-//    Constraint Production_Q_LB("Production_Q_LB");
-//    Constraint Production_Q_UB("Production_Q_UB");
-//    // 5A
-//    Production_P_UB = Pg- grid->pg_max*On_off;
-//    Production_P_LB = Pg- grid->pg_min*On_off;
-//    ACUC.add_constraint(Production_P_UB.in(grid->gens, T) <= 0);
-//    ACUC.add_constraint(Production_P_LB.in(grid->gens, T) >= 0);
-//    // 5B
-//    Production_Q_UB = Qg - grid->qg_max*On_off;
-//    Production_Q_LB = Qg - grid->qg_min*On_off;
-//    ACUC.add_constraint(Production_Q_UB.in(grid->gens, T) <= 0);
-//    ACUC.add_constraint(Production_Q_LB.in(grid->gens, T) >= 0);
-//    // 5C
-//    for (int t = 1; t < T; t++) {
-//        Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
-//        Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
-//        Ramp_up =  Pg.in_at(grid->gens, t);
-//        Ramp_up -= Pg.in_at(grid->gens, t-1);
-//        Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
-//        Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
-//
-//        Ramp_down =  Pg.in_at(grid->gens, t-1);
-//        Ramp_down -= Pg.in_at(grid->gens, t);
-//        Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
-//        Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
-//
-//        ACUC.add_constraint(Ramp_up <= 0);
-//        ACUC.add_constraint(Ramp_down <= 0);
-//    }
+    for (int t = 1; t < T; t++) {
+        Constraint Min_up1("Min_up1_"+ to_string(t));
+        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1)-Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_up1 == 0);
+    }
+    // 4b
+    for (int t = min_up.getvalue(); t < T; t++) {
+        Constraint Min_Up("Min_Up_constraint" + to_string(t));
+        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+            Min_Up   += Start_up.in_at(grid->gens, l);
+        }
+        Min_Up -= On_off.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_Up <= 0);
+    }
+    // 4c
+    for (int t = min_down.getvalue(); t < T; t++) {
+        Constraint Min_Down("Min_Down_constraint" + to_string(t));
+        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+            Min_Down   += Shut_down.in_at(grid->gens, l);
+        }
+        Min_Down -= 1 - On_off.in_at(grid->gens, t);
+        ACUC.add_constraint(Min_Down <= 0);
+    }
+    //Ramp Rate
+    Constraint Production_P_LB("Production_P_LB");
+    Constraint Production_P_UB("Production_P_UB");
+    Constraint Production_Q_LB("Production_Q_LB");
+    Constraint Production_Q_UB("Production_Q_UB");
+    // 5A
+    Production_P_UB = Pg- grid->pg_max*On_off;
+    Production_P_LB = Pg- grid->pg_min*On_off;
+    ACUC.add_constraint(Production_P_UB.in(grid->gens, T) <= 0);
+    ACUC.add_constraint(Production_P_LB.in(grid->gens, T) >= 0);
+    // 5B
+    Production_Q_UB = Qg - grid->qg_max*On_off;
+    Production_Q_LB = Qg - grid->qg_min*On_off;
+    ACUC.add_constraint(Production_Q_UB.in(grid->gens, T) <= 0);
+    ACUC.add_constraint(Production_Q_LB.in(grid->gens, T) >= 0);
+    // 5C
+    for (int t = 1; t < T; t++) {
+        Constraint Ramp_up("Ramp_up_constraint" + to_string(t));
+        Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
+        Ramp_up =  Pg.in_at(grid->gens, t);
+        Ramp_up -= Pg.in_at(grid->gens, t-1);
+        Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
+        Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
+
+        Ramp_down =  Pg.in_at(grid->gens, t-1);
+        Ramp_down -= Pg.in_at(grid->gens, t);
+        Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
+        Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
+
+        ACUC.add_constraint(Ramp_up <= 0);
+        ACUC.add_constraint(Ramp_down <= 0);
+    }
     //set the initial state of generators.
     Constraint gen_initial("gen_initialisation");
     gen_initial += On_off.in_at(grid->gens, 0)- 1;
