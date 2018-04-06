@@ -1997,8 +1997,8 @@ public:
                 if(!(*it)->_active) {
                     continue;
                 }
-                key = (*it)->_name;
-                key += "," + to_string(t);
+                key = (*it)->_name + "," + to_string(t);
+                Debug("key: " << key << endl);
                 Debug("_val: " << _val->size() << endl);
                 Debug("_indices: " << param_::_indices->size() << endl);
                 auto index = _indices->size();
@@ -2137,7 +2137,8 @@ public:
                 string key = entry.first;
                 key += "," + to_string(t);
                 auto index  = param_::_indices->size();
-                _val->at(index) = val_temp.at(entry.second);
+                _val->at(index) = val_temp.at(entry.second);// index and entry.second can be inconsistent.
+                Debug("key" << key << ": " << index << "," << _val->at(index) << endl);
                 param_::_indices->insert(make_pair<>(key, index));
                 _rev_indices->at(index) = key;
             }

@@ -42,7 +42,7 @@ int main (int argc, const char * argv[])
     const auto bus_pairs = grid->get_bus_pairs();
 
     // Schedule
-    unsigned T = 1;
+    unsigned T = 2;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -67,9 +67,10 @@ int main (int argc, const char * argv[])
 
     /** Variables */
     // POWER GENERATION
-    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T)); // strange 72-73 lead to wrong  sol.
+    var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T)); //This changes the lb and rb indices.
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
-    //var<Real> Pg("Pg", grid->pg_min, grid->pg_max);
+    //grid->pg_max.print(true);
+    //grid->pg_max.in(grid->gens, T).print(true);
     //var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg.in(grid->gens, T));
     ACUC.add_var(Qg.in(grid->gens, T));
@@ -106,7 +107,7 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             string name = g->_name + ",0";
-            obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name) +grid->c0(name); //*On_off(name);
+            obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name) +grid->c0(name)*On_off(name);
         }
         for (int t = 1; t < T; t++){
             if (g->_active) {
@@ -245,7 +246,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = true;
+    bool relax = false;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);
