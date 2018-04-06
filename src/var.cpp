@@ -345,10 +345,16 @@ template<typename type> void var<type>::print(bool bounds) const {
                 cout << " [ " << (*_lb->_val)[0] << ", " << (*_ub->_val)[0] << "]";
         }
         else {
+            auto temp = (*_lb->_val);
             for(int i = 0 ; i < param_::get_dim(); i++) {
                 cout << "(" << i << ") = ";
                 cout << " [ " << (*_lb->_val)[i] << ", " << (*_ub->_val)[i] << "]\n";
             }
+            //for(int i = 0 ; i < param_::get_dim(); i++) {
+//            for(auto& entry: (*param_::_indices)) {
+//                cout << "(" << entry.first << ") = ";
+//                cout << " [ " << (*_lb->_val)[entry.second] << ", " << (*_ub->_val)[entry.second] << "]\n";
+//            }
         }
         cout << ";\n";
     }

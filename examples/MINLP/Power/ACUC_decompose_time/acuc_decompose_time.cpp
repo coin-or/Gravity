@@ -48,10 +48,14 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         R_Xij[t].initialize_all(1.0);
     }
     //power flow vars are treated as auxiliary vars.
-    var<Real> Pf_from("Pf_from", grid.S_max);
-    var<Real> Qf_from("Qf_from", grid.S_max);
-    var<Real> Pf_to("Pf_to", grid.S_max);
-    var<Real> Qf_to("Qf_to", grid.S_max);
+    var<Real> Pf_from("Pf_from", grid.S_max.in(grid.arcs, T));
+    var<Real> Qf_from("Qf_from", grid.S_max.in(grid.arcs, T));
+    var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs, T));
+    var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs, T));
+    //var<Real> Pf_from("Pf_from", grid.S_max);
+    //var<Real> Qf_from("Qf_from", grid.S_max);
+    //var<Real> Pf_to("Pf_to", grid.S_max);
+    //var<Real> Qf_to("Qf_to", grid.S_max);
     ACUC.add_var(Pf_from.in(grid.arcs, T));
     ACUC.add_var(Qf_from.in(grid.arcs, T));
     ACUC.add_var(Pf_to.in(grid.arcs, T));
@@ -127,97 +131,97 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     }
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-//    for (int t = 1; t < T; t++) {
-//        Constraint MC1("MC1_" + to_string(t));
-//        Constraint MC2("MC2_" + to_string(t));
-//        MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
-//        MC2 = On_off[t-1].in_at(grid.gens, t-1) -  On_off[t].in_at(grid.gens, t) -Shut_down[t].in_at(grid.gens, t);
-//        ACUC.add_constraint(MC1 <= 0);
-//        ACUC.add_constraint(MC2 <= 0);
-//    }
-    //for (int t = 1; t < T; t++) {
-    //    for (auto& g: grid.gens) {
-    //        Constraint MC1("MC1_" + to_string(t)+ ","+ g->_name);
-    //        Constraint MC2("MC2_" + to_string(t)+ ","+ g->_name);
-    //        string name = g->_name +"," + to_string(t);
-    //        string name1 = g->_name +"," + to_string(t-1);
-    //        //MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
-    //        MC1 = On_off[t](name) -  On_off[t-1](name1) -Start_up[t](name);
-    //        MC2 = On_off[t-1](name1) -  On_off[t](name) -Shut_down[t](name);
-    //        ACUC.add_constraint(MC1 <= 0);
-    //        ACUC.add_constraint(MC2 <= 0);
-    //    }
-    //}
+    for (int t = 1; t < T; t++) {
+        Constraint MC1("MC1_" + to_string(t));
+        Constraint MC2("MC2_" + to_string(t));
+        MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
+        MC2 = On_off[t-1].in_at(grid.gens, t-1) -  On_off[t].in_at(grid.gens, t) -Shut_down[t].in_at(grid.gens, t);
+        ACUC.add_constraint(MC1 <= 0);
+        ACUC.add_constraint(MC2 <= 0);
+    }
+    for (int t = 1; t < T; t++) {
+        for (auto& g: grid.gens) {
+            Constraint MC1("MC1_" + to_string(t)+ ","+ g->_name);
+            Constraint MC2("MC2_" + to_string(t)+ ","+ g->_name);
+            string name = g->_name +"," + to_string(t);
+            string name1 = g->_name +"," + to_string(t-1);
+            //MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
+            MC1 = On_off[t](name) -  On_off[t-1](name1) -Start_up[t](name);
+            MC2 = On_off[t-1](name1) -  On_off[t](name) -Shut_down[t](name);
+            ACUC.add_constraint(MC1 <= 0);
+            ACUC.add_constraint(MC2 <= 0);
+        }
+    }
     // Min-up constraints  4a
-//    for (int t = 1; t < T; t++) {
-//        Constraint Min_up1("Min_up1_"+to_string(t));
-//        Min_up1 = On_off[t].in_at(grid.gens, t) - On_off[t-1].in_at(grid.gens, t-1) - Start_up[t].in_at(grid.gens, t) + Shut_down[t].in_at(grid.gens, t);
-//        ACUC.add_constraint(Min_up1 == 0);
-//    }
-//    // 4b
-//    for (int t = min_up.getvalue(); t < T; t++) {
-//        Constraint Min_Up("Min_Up_constraint_"+ to_string(t));
-//        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-//            Min_Up   += Start_up[t].in_at(grid.gens, l);
-//        }
-//        Min_Up -= On_off[t].in_at(grid.gens, t);
-//        ACUC.add_constraint(Min_Up <= 0);
-//    }
-//    // 4c
-//    for (int t = min_down.getvalue(); t < T; t++) {
-//        Constraint Min_Down("Min_Down_constraint_" + to_string(t));
-//        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-//            Min_Down   += Shut_down[t].in_at(grid.gens, l);
-//        }
-//        Min_Down -= 1 - On_off[t].in_at(grid.gens, t);
-//        ACUC.add_constraint(Min_Down <= 0);
-//    }
-//    // Ramp Rate
-//    for (int t = 0; t < T; t++) {
-//        Constraint Production_P_LB("Production_P_LB_"+ to_string(t));
-//        Constraint Production_P_UB("Production_P_UB_"+ to_string(t));
-//        Constraint Production_Q_LB("Production_Q_LB_"+ to_string(t));
-//        Constraint Production_Q_UB("Production_Q_UB_"+ to_string(t));
-//        // 5A
-//        Production_P_UB = Pg[t]- grid.pg_max*On_off[t];
-//        Production_P_LB = Pg[t]- grid.pg_min*On_off[t];
-//        ACUC.add_constraint(Production_P_UB.in_at(grid.gens, t)<=0);
-//        ACUC.add_constraint(Production_P_LB.in_at(grid.gens, t)>= 0);
-//
-//        Production_Q_UB = Qg[t] - grid.qg_max*On_off[t];
-//        Production_Q_LB = Qg[t] - grid.qg_min*On_off[t];
-//        ACUC.add_constraint(Production_Q_UB.in_at(grid.gens, t) <= 0);
-//        ACUC.add_constraint(Production_Q_LB.in_at(grid.gens, t) >= 0);
-//    }
+    for (int t = 1; t < T; t++) {
+        Constraint Min_up1("Min_up1_"+to_string(t));
+        Min_up1 = On_off[t].in_at(grid.gens, t) - On_off[t-1].in_at(grid.gens, t-1) - Start_up[t].in_at(grid.gens, t) + Shut_down[t].in_at(grid.gens, t);
+        ACUC.add_constraint(Min_up1 == 0);
+    }
+   // 4b
+    for (int t = min_up.getvalue(); t < T; t++) {
+        Constraint Min_Up("Min_Up_constraint_"+ to_string(t));
+        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+            Min_Up   += Start_up[t].in_at(grid.gens, l);
+        }
+        Min_Up -= On_off[t].in_at(grid.gens, t);
+        ACUC.add_constraint(Min_Up <= 0);
+    }
+    // 4c
+    for (int t = min_down.getvalue(); t < T; t++) {
+        Constraint Min_Down("Min_Down_constraint_" + to_string(t));
+        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+            Min_Down   += Shut_down[t].in_at(grid.gens, l);
+        }
+        Min_Down -= 1 - On_off[t].in_at(grid.gens, t);
+        ACUC.add_constraint(Min_Down <= 0);
+    }
+    // Ramp Rate
+    for (int t = 0; t < T; t++) {
+        Constraint Production_P_LB("Production_P_LB_"+ to_string(t));
+        Constraint Production_P_UB("Production_P_UB_"+ to_string(t));
+        Constraint Production_Q_LB("Production_Q_LB_"+ to_string(t));
+        Constraint Production_Q_UB("Production_Q_UB_"+ to_string(t));
+        // 5A
+        Production_P_UB = Pg[t]- grid.pg_max*On_off[t];
+        Production_P_LB = Pg[t]- grid.pg_min*On_off[t];
+        ACUC.add_constraint(Production_P_UB.in_at(grid.gens, t)<=0);
+        ACUC.add_constraint(Production_P_LB.in_at(grid.gens, t)>= 0);
+
+        Production_Q_UB = Qg[t] - grid.qg_max*On_off[t];
+        Production_Q_LB = Qg[t] - grid.qg_min*On_off[t];
+        ACUC.add_constraint(Production_Q_UB.in_at(grid.gens, t) <= 0);
+        ACUC.add_constraint(Production_Q_LB.in_at(grid.gens, t) >= 0);
+    }
     // 5C
-//    for (int t = 1; t < T; t++) {
-//        Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t));
-//        Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t));
-//        Ramp_up =  Pg[t].in_at(grid.gens, t);
-//        Ramp_up -= Pg[t-1].in_at(grid.gens, t-1);
-//        Ramp_up -= rate_ramp*On_off[t-1].in_at(grid.gens, t-1);
-//        Ramp_up -= rate_switch*(1 - On_off[t].in_at(grid.gens, t));
-//
-//        Ramp_down =  Pg[t-1].in_at(grid.gens, t-1);
-//        Ramp_down -= Pg[t].in_at(grid.gens, t);
-//        Ramp_down -= rate_ramp*On_off[t].in_at(grid.gens, t);
-//        Ramp_down -= rate_switch*(1 - On_off[t-1].in_at(grid.gens, t-1));
-//
-//        ACUC.add_constraint(Ramp_up <= 0);
-//        ACUC.add_constraint(Ramp_down <= 0);
-//    }
-    //for (int t = 1; t < T; t++) {
-    //    for (auto& g: grid.gens) {
-    //        Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
-    //        Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t) + "," + g->_name);
-    //        string name = g->_name +"," + to_string(t);
-    //        string name1 = g->_name +"," + to_string(t-1);
-    //        Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t-1](name1) - rate_switch.getvalue()*(1 - On_off[t](name));
-    //        Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t-1](name1));
-    //        ACUC.add_constraint(Ramp_up <= 0);
-    //        ACUC.add_constraint(Ramp_down <= 0);
-    //    }
-    //}
+    for (int t = 1; t < T; t++) {
+        Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t));
+        Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t));
+        Ramp_up =  Pg[t].in_at(grid.gens, t);
+        Ramp_up -= Pg[t-1].in_at(grid.gens, t-1);
+        Ramp_up -= rate_ramp*On_off[t-1].in_at(grid.gens, t-1);
+        Ramp_up -= rate_switch*(1 - On_off[t].in_at(grid.gens, t));
+
+        Ramp_down =  Pg[t-1].in_at(grid.gens, t-1);
+        Ramp_down -= Pg[t].in_at(grid.gens, t);
+        Ramp_down -= rate_ramp*On_off[t].in_at(grid.gens, t);
+        Ramp_down -= rate_switch*(1 - On_off[t-1].in_at(grid.gens, t-1));
+
+        ACUC.add_constraint(Ramp_up <= 0);
+        ACUC.add_constraint(Ramp_down <= 0);
+    }
+    for (int t = 1; t < T; t++) {
+        for (auto& g: grid.gens) {
+            Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
+            Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t) + "," + g->_name);
+            string name = g->_name +"," + to_string(t);
+            string name1 = g->_name +"," + to_string(t-1);
+            Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t-1](name1) - rate_switch.getvalue()*(1 - On_off[t](name));
+            Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t-1](name1));
+            ACUC.add_constraint(Ramp_up <= 0);
+            ACUC.add_constraint(Ramp_down <= 0);
+        }
+    }
     // set the initial state of generators.
 //    Constraint gen_initial("initial_state");
 //    gen_initial +=  On_off[0].in_at(grid.gens, 0) -1;
@@ -229,27 +233,27 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     solver cpx_acuc(ACUC, cplex);
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
-    //for (int t = 1; t < T; t++) {
-    //    //auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t));
-    //    //auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t));
-    //    int i = 0;
-    //    for (auto& g: grid.gens) {
-    //        auto MC1 = ACUC.get_constraint("MC1_" + to_string(t)+","+ g->_name);
-    //        auto MC2 = ACUC.get_constraint("MC2_" + to_string(t)+","+ g->_name);
-    //        auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
-    //        auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t)+"," + g->_name);
-    //        string name = g->_name + "," + to_string(t);
-    //        lambda_up(name) = abs(MC1->_dual.at(0));
-    //        lambda_down(name) = abs(MC2->_dual.at(0));
-    //        zeta_up(name) = abs(Ramp_up->_dual.at(0));
-    //        zeta_down(name) = abs(Ramp_down->_dual.at(0));
-    //        DebugOn("dual of  lambda_up " << name << " " << abs(MC1->_dual[0]) << endl);
-    //        DebugOn("dual of  lambda_down " << name << " " << abs(MC2->_dual[0]) << endl);
-    //        DebugOn("dual of  zeta_up " << name << " " << abs(Ramp_up->_dual[0]) << endl);
-    //        DebugOn("dual of  zeta_down " << name << " " << abs(Ramp_down->_dual[0]) << endl);
-    //        ++i;
-    //    }
-    //}
+    for (int t = 1; t < T; t++) {
+        //auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t));
+        //auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t));
+        int i = 0;
+        for (auto& g: grid.gens) {
+            auto MC1 = ACUC.get_constraint("MC1_" + to_string(t)+","+ g->_name);
+            auto MC2 = ACUC.get_constraint("MC2_" + to_string(t)+","+ g->_name);
+            auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
+            auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t)+"," + g->_name);
+            string name = g->_name + "," + to_string(t);
+            lambda_up(name) = abs(MC1->_dual.at(0));
+            lambda_down(name) = abs(MC2->_dual.at(0));
+            zeta_up(name) = abs(Ramp_up->_dual.at(0));
+            zeta_down(name) = abs(Ramp_down->_dual.at(0));
+            DebugOn("dual of  lambda_up " << name << " " << abs(MC1->_dual[0]) << endl);
+            DebugOn("dual of  lambda_down " << name << " " << abs(MC2->_dual[0]) << endl);
+            DebugOn("dual of  zeta_up " << name << " " << abs(Ramp_up->_dual[0]) << endl);
+            DebugOn("dual of  zeta_down " << name << " " << abs(Ramp_down->_dual[0]) << endl);
+            ++i;
+        }
+    }
     return ACUC._obj_val;
 }
 
@@ -264,8 +268,6 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
     const auto bus_pairs = grid.get_bus_pairs();
     Model Sub("Sub"+to_string(t));
     Sub.add_var(Pg.in_at(grid.gens,t));
-    Pg.in_at(grid.gens, t).print(true);
-    cout << "dim: " << Pg.in_at(grid.gens, t).get_dim() << endl;;
     Sub.add_var(Qg.in_at(grid.gens,t));
     Sub.add_var(On_off.in_at(grid.gens, t));
     Sub.add_var(Start_up.in_at(grid.gens, t));
@@ -273,6 +275,8 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
     Sub.add_var(Xii.in_at(grid.nodes, t));
     Sub.add_var(R_Xij.in_at(bus_pairs, t));
     Sub.add_var(Im_Xij.in_at(bus_pairs, t));
+    Xii.initialize_all(1.001);
+    R_Xij.initialize_all(1.0);
     //power flow
     var<Real> Pf_from("Pf_from", grid.S_max.in_at(grid.arcs, t));
     var<Real> Qf_from("Qf_from", grid.S_max.in_at(grid.arcs, t));
@@ -382,8 +386,8 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
 
     if (t  == 0) {
         Constraint gen_initial("initial_state");
-        gen_initial +=  On_off.in_at(grid.gens, 0);
-        Sub.add_constraint(gen_initial == 1);
+        gen_initial +=  On_off.in_at(grid.gens, 0) -1;
+        Sub.add_constraint(gen_initial == 0);
     }
     /* Solver selection */
     solver cpx_acuc(Sub, cplex);
@@ -442,13 +446,11 @@ int main (int argc, const char * argv[])
     rate_switch.time_expand(T);
     ///** Variables */
     //// POWER GENERATION
-    ////var<Real> Pg("Pg", grid.pg_min.in(grid.gens, T), grid.pg_max.in(grid.gens, T));
-    ////var<Real> Qg ("Qg", grid.qg_min.in(grid.gens, T), grid.qg_max.in(grid.gens, T));
     vector<var<Real>> Pg;
     vector<var<Real>> Qg;
     for (int t = 0; t < T; t++) {
-        var<Real> pgt("Pg" + to_string(t), grid.pg_min, grid.pg_max);
-        var<Real> qgt("Qg" + to_string(t), grid.qg_min, grid.qg_max);
+        var<Real> pgt("Pg" + to_string(t), grid.pg_min.in_at(grid.gens, t), grid.pg_max.in_at(grid.gens, t));
+        var<Real> qgt("Qg" + to_string(t), grid.qg_min.in_at(grid.gens, t), grid.qg_max.in_at(grid.gens, t));
         Pg.push_back(pgt);
         Qg.push_back(qgt);
     }
@@ -458,9 +460,9 @@ int main (int argc, const char * argv[])
     vector<var<Real>> Im_Xij;
     vector<var<Real>> Xii;
     for (int t = 0; t < T; t++) {
-        var<Real>  R_Xijt("R_Wij" + to_string(t), grid.wr_min, grid.wr_max); // real part of Wij
-        var<Real>  Im_Xijt("Im_Wij" + to_string(t), grid.wi_min, grid.wi_max);
-        var<Real>  Xiit("Wii" + to_string(t), grid.w_min, grid.w_max);
+        var<Real>  R_Xijt("R_Wij" + to_string(t), grid.wr_min.in_at(bus_pairs, t), grid.wr_max.in_at(bus_pairs, t)); // real part of Wij
+        var<Real>  Im_Xijt("Im_Wij" + to_string(t), grid.wi_min.in_at(bus_pairs, t), grid.wi_max.in_at(bus_pairs, t));
+        var<Real>  Xiit("Wii" + to_string(t), grid.w_min.in_at(grid.nodes,t), grid.w_max.in_at(grid.nodes,t));
         R_Xijt.initialize_all(1.0);
         Xiit.initialize_all(1.001);
         R_Xij.push_back(R_Xijt);
@@ -497,27 +499,27 @@ int main (int argc, const char * argv[])
                                   Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, lambda_up, lambda_down, zeta_up,
                                   zeta_down);
     //Improve the lower bound using MISCOP.
-//    std::vector<double> Subs;
-//    Subs.resize(T);
-//    double LB = 0;
-//    for(int t = 0; t < T; t++) {
-//        Subs[t]= subproblem(grid, t, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Qg[t],
-//                            Start_up[t], Shut_down[t], On_off[t], Xii[t], R_Xij[t], Im_Xij[t], lambda_up, lambda_down, zeta_up, zeta_down);
-//        LB += Subs[t];
-//    }
-//    for (int t = 1; t < T; t++) {
-//        for (auto& g: grid.gens) {
-//            string name = g->_name + "," + to_string(t);
-//            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
-//        }
-//    }
-//    for (int t = 0; t < T-1; t++) {
-//        for (auto& g: grid.gens) {
-//            string name = g->_name + "," + to_string(t);
-//            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
-//        }
-//    }
-//    cout << "The initial Lower bound of the ACUC problem is: " << LB << endl;
+    std::vector<double> Subs;
+    Subs.resize(T);
+    double LB = 0;
+    for(int t = 0; t < T; t++) {
+        Subs[t]= subproblem(grid, t, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Qg[t],
+                            Start_up[t], Shut_down[t], On_off[t], Xii[t], R_Xij[t], Im_Xij[t], lambda_up, lambda_down, zeta_up, zeta_down);
+        LB += Subs[t];
+    }
+    for (int t = 1; t < T; t++) {
+        for (auto& g: grid.gens) {
+            string name = g->_name + "," + to_string(t);
+            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
+        }
+    }
+    for (int t = 0; t < T-1; t++) {
+        for (auto& g: grid.gens) {
+            string name = g->_name + "," + to_string(t);
+            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
+        }
+    }
+    cout << "The initial Lower bound of the ACUC problem is: " << LB << endl;
     // now we need to solve it faster
     return 0;
 }

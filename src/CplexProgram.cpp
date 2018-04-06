@@ -189,6 +189,7 @@ void CplexProgram::fill_in_cplex_vars() {
             for (int i = 0; i < real_var->get_dim(); i++) {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
+                Debug(real_var->get_name() << "[ " << i << "]" << lb[i] << ", " << ub[i] << endl);
             }
             _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             break;
