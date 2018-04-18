@@ -34,7 +34,7 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //string fname = "../../data_sets/Power/anu.m";
     }
     // ACUC
@@ -49,7 +49,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 2;
+    unsigned T = 5;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
