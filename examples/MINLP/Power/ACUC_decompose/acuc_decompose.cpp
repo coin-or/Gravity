@@ -1,8 +1,7 @@
 //  Decompose.cpp
 //
 //  Gravity
-//
-//  Created by Guanglei Wang on 6/9/17.
+// //  Created by Guanglei Wang on 6/9/17.
 //
 //
 #include "Partition.hpp"
@@ -83,7 +82,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             if (g->_active) {
                 string name = g->_name+",0";
                 obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
-                //obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name);
             }
             for (int t = 1; t < T; t++) {
                 if (g->_active) {
@@ -239,7 +237,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             }
         }
     }
-    // set the initial state of generators.
+  // set the initial state of generators.
     for (int c = 0; c < nbparts; c++) {
         for(auto g: P.bag_gens[c]) {
             Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
@@ -256,6 +254,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         Constraint Link_Im("link_Im_"+a->_name);
         Link_Im = Im_Xij[a->_src->_id].in_pairs() - Im_Xij[a->_dest->_id].in_pairs();
         ACUC.add_constraint(Link_Im.in(a->_intersection_clique, T)==0);
+
         Constraint Link_Xii("link_Xii_" + a->_name);
         Link_Xii = Xii[a->_src->_id].to() - Xii[a->_dest->_id].to();
         ACUC.add_constraint(Link_Xii.in(a->_intersection_clique, T)==0);
@@ -272,7 +271,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         auto consR = ACUC.get_constraint("link_R_"+a->_name);
         auto consIm = ACUC.get_constraint("link_Im_"+a->_name);
         auto cons = ACUC.get_constraint("link_Xii_"+a->_name);
-        int l =0;
         for (unsigned t = 0; t < T; t++) {
             for (auto& line: a->_intersection_clique) {
                 string name =line->_name+","+to_string(t);
@@ -282,13 +280,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
                 R_lambda(name) = -cR._dual.at(0);
                 Im_lambda(name)= -cIm._dual.at(0);
                 lambda(name) = -c._dual.at(0);
-//                R_lambda(name) = -consR->_dual.at(l);
-//                Im_lambda(name)= -consIm->_dual.at(l);
-//                lambda(name) = -cons->_dual.at(l);
-                R_lambda(name).print(true);
-                Im_lambda(name).print(true);
-                lambda(name).print(true);
-                l+=1;
             }
         }
     }
@@ -296,7 +287,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
 }
 
 /** INITIALISE SUBPROBLEM MODEL */
-double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
+double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigned c,
                   const param<Real>& rate_ramp,const param<Real>& rate_switch,
                   const param<Real>& min_up, const param<Real>& min_down,
                   const param<Real>& cost_up, const param<Real>& cost_down,
@@ -334,8 +325,8 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
            obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
             for (int t = 1; t < T; t++) {
                 string name2 = g->_name + ","+ to_string(t);
-                obj += grid.c1(name)*Pg(name) + grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
-                obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
+                obj += grid.c1(name2)*Pg(name2) + grid.c2(name2)*Pg(name2)*Pg(name2) + grid.c0(name2)*On_off(name2);
+                obj += cost_up*Start_up(name2)+ cost_down*Shut_down(name2);
             }
         }
     }
@@ -345,12 +336,13 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
             for (auto& pair: a->_intersection_clique) {
                 string name = pair->_name + ","+ to_string(t);
                 string dest = pair->_dest->_name + ","+ to_string(t);
-                obj += R_lambda(name).getvalue()*R_Xij(name) +  Im_lambda(name).getvalue()*Im_Xij(name) + lambda(name)*Xii(dest);
+                obj += R_lambda(name)*R_Xij(name) +  Im_lambda(name)*Im_Xij(name) + lambda(name)*Xii(dest);
             }
         }
     }
+
     for (const auto& a: bag->get_in()) {
-        for (int t = 0; t < T; t++) {
+        for (unsigned t = 0; t < T; t++) {
             for (auto pair: a->_intersection_clique) {
                 string name = pair->_name + ","+ to_string(t);
                 string dest = pair->_dest->_name + ","+ to_string(t);
@@ -389,7 +381,7 @@ double subproblem(PowerNet& grid,  unsigned T, const Partition& P, unsigned c,
 
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
-    Thermal_Limit_from <= power(grid.S_max,2);
+    Thermal_Limit_from <= power(grid.S_max, 2);
     Subr.add_constraint(Thermal_Limit_from.in(P.bag_arcs_union_out[c], T));
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
@@ -515,26 +507,33 @@ int main (int argc, const char * argv[])
         l = atof(argv[2]);
     }
     else {
-        fname = "../../data_sets/Power/nesta_case5_pjm.m";
+        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
+        fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
-    int nbparts = 2;
+    int nbparts = 20;
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
+    auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
+    auto nb_gen = grid.get_nb_active_gens();
+    auto nb_lines = grid.get_nb_active_arcs();
+    auto nb_buses = grid.get_nb_active_nodes();
+    // Time
+    double solver_time_end, total_time_end, solve_time, total_time;
+    double total_time_start = get_cpu_time();
     Partition P;
     P.get_ncut(grid, nbparts);
     // Schedule Parameters
-    unsigned T = 1;
+    unsigned T = 2;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -624,5 +623,10 @@ int main (int argc, const char * argv[])
         LB += Subs[c];
     }
     cout << "The initial Lower bound of the ACUC problem is: " << LB  << endl;
+    total_time_end = get_cpu_time();
+    total_time = total_time_end - total_time_start;
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
+    +", " + to_string(LB) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
+    cout << out << endl;
     return 0;
 }

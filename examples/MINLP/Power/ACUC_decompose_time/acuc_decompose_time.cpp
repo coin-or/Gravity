@@ -52,10 +52,6 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     var<Real> Qf_from("Qf_from", grid.S_max.in(grid.arcs, T));
     var<Real> Pf_to("Pf_to", grid.S_max.in(grid.arcs, T));
     var<Real> Qf_to("Qf_to", grid.S_max.in(grid.arcs, T));
-    //var<Real> Pf_from("Pf_from", grid.S_max);
-    //var<Real> Qf_from("Qf_from", grid.S_max);
-    //var<Real> Pf_to("Pf_to", grid.S_max);
-    //var<Real> Qf_to("Qf_to", grid.S_max);
     ACUC.add_var(Pf_from.in(grid.arcs, T));
     ACUC.add_var(Qf_from.in(grid.arcs, T));
     ACUC.add_var(Pf_to.in(grid.arcs, T));
@@ -131,14 +127,14 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     }
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-    for (int t = 1; t < T; t++) {
-        Constraint MC1("MC1_" + to_string(t));
-        Constraint MC2("MC2_" + to_string(t));
-        MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
-        MC2 = On_off[t-1].in_at(grid.gens, t-1) -  On_off[t].in_at(grid.gens, t) -Shut_down[t].in_at(grid.gens, t);
-        ACUC.add_constraint(MC1 <= 0);
-        ACUC.add_constraint(MC2 <= 0);
-    }
+//    for (int t = 1; t < T; t++) {
+//        Constraint MC1("MC1_" + to_string(t));
+//        Constraint MC2("MC2_" + to_string(t));
+//        MC1 = On_off[t].in_at(grid.gens, t) -  On_off[t-1].in_at(grid.gens, t-1) -Start_up[t].in_at(grid.gens, t);
+//        MC2 = On_off[t-1].in_at(grid.gens, t-1) -  On_off[t].in_at(grid.gens, t) -Shut_down[t].in_at(grid.gens, t);
+//        ACUC.add_constraint(MC1 <= 0);
+//        ACUC.add_constraint(MC2 <= 0);
+//    }
     for (int t = 1; t < T; t++) {
         for (auto& g: grid.gens) {
             Constraint MC1("MC1_" + to_string(t)+ ","+ g->_name);
@@ -413,9 +409,9 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
@@ -424,6 +420,13 @@ int main (int argc, const char * argv[])
     
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
+    auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
+    auto nb_gen = grid.get_nb_active_gens();
+    auto nb_lines = grid.get_nb_active_arcs();
+    auto nb_buses = grid.get_nb_active_nodes();
+    // Time
+    double solver_time_end, total_time_end, solve_time, total_time;
+    double total_time_start = get_cpu_time();
     // Schedule Parameters
     unsigned T = 2;
     param<Real> rate_ramp("rate_ramp");
@@ -521,5 +524,10 @@ int main (int argc, const char * argv[])
     }
     cout << "The initial Lower bound of the ACUC problem is: " << LB << endl;
     // now we need to solve it faster
+    total_time_end = get_cpu_time();
+    total_time = total_time_end - total_time_start;
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
+    +", " + to_string(LB) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
+    cout << out << endl;
     return 0;
 }

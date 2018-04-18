@@ -906,6 +906,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             res._is_indexed = true;
             return res;
         }
@@ -1175,6 +1176,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.out_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             res._is_indexed = true;
             return res;
         }
@@ -1291,6 +1293,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             res._is_indexed = true;
             return res;
         }
@@ -1346,6 +1349,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             res._is_indexed = true;
             return res;
         }
@@ -1403,6 +1407,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_arcs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             res._is_indexed = true;
             return res;
         }
@@ -1461,6 +1466,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1499,6 +1505,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         for(auto it = vec.begin(); it!= vec.end(); it++) {
@@ -1529,6 +1536,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1576,6 +1584,7 @@ public:
         if(vec.empty()) {
             DebugOn("In function param.in_pairs(const vector<Tobj*>& vec, unsigned T), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1625,6 +1634,7 @@ public:
         if(vec.empty()) {
             DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1691,8 +1701,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOff("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.from(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1757,8 +1768,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1806,8 +1818,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOff("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.to(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         DebugOff(_name << " = ");
@@ -1958,6 +1971,7 @@ public:
         if(nodes.empty()) {
             DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         for(auto it = nodes.begin(); it!= nodes.end(); it++) {
@@ -1987,8 +2001,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(nodes.empty()) {
-            DebugOff("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.in(const vector<Tobj*>& nodes, unsigned T), nodes is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         string key;
@@ -2037,8 +2052,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(arcs.empty()) {
-            DebugOff("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.from(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         string key;
@@ -2084,8 +2100,9 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(arcs.empty()) {
-            DebugOff("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            DebugOn("In function param.to(const vector<Tobj*>& arcs, unsigned T), arcs is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
             return res;
         }
         string key;
