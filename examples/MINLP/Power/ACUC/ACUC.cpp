@@ -21,6 +21,8 @@ using namespace gravity;
 int main (int argc, const char * argv[])
 {
     const char* fname;
+    double solver_time_end, total_time_end, solve_time, total_time;
+    double total_time_start = get_cpu_time();
     if (argc >= 2) {
         fname = argv[1];
     }
@@ -29,9 +31,10 @@ int main (int argc, const char * argv[])
         // fname = "/Users/hh/Dropbox/Work/Dev/nesta-0.7.0/opf/nesta_case2383wp_mp.m";
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
+        //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //string fname = "../../data_sets/Power/anu.m";
     }
     // ACUC
@@ -40,6 +43,10 @@ int main (int argc, const char * argv[])
 
     // Grid Parameters
     const auto bus_pairs = grid->get_bus_pairs();
+    auto nb_bus_pairs = grid->get_nb_active_bus_pairs();
+    auto nb_gen = grid->get_nb_active_gens();
+    auto nb_lines = grid->get_nb_active_arcs();
+    auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
     unsigned T = 2;
@@ -113,7 +120,7 @@ int main (int argc, const char * argv[])
             if (g->_active) {
                 string name = g->_name + ","+ to_string(t);
                 obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name) + grid->c0(name)*On_off(name);
-                obj += cost_up.getvalue()*Start_up(name)+ cost_down.getvalue()*Shut_down(name);
+                obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
             }
         }
     }
@@ -251,6 +258,12 @@ int main (int argc, const char * argv[])
     double tol = 1e-6;
     OPF.run(output, relax, tol);
     //OPF.run();
-
+    total_time_end = get_cpu_time();
+    total_time = total_time_end - total_time_start;
+    string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
+    +", " + to_string(ACUC._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
+    
+    cout << out << endl;
+    
     return 0;
 }

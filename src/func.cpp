@@ -6362,7 +6362,13 @@ namespace gravity{
 //                throw invalid_argument("error");
 //            }
         if (_val->size()<=i){
-            throw invalid_argument("Func get_val out of range");
+            if (i ==0) {
+                DebugOn("empty variable! default bound 0!");
+                return 0;
+            }
+            else{
+                throw invalid_argument("Func get_val out of range");
+            }
         }
             return _val->at(i);
 //        }

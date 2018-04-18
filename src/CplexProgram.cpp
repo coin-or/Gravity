@@ -186,6 +186,7 @@ void CplexProgram::fill_in_cplex_vars() {
             auto real_var = (var<double>*)v;
             auto lb = IloNumArray(*_cplex_env, real_var->get_dim());
             auto ub = IloNumArray(*_cplex_env, real_var->get_dim());
+            // aovid empty vars. 
             for (int i = 0; i < real_var->get_dim(); i++) {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
