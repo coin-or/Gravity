@@ -149,29 +149,29 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         }
     }
     // Min-up constraints  4a
-    for (int t = 1; t < T; t++) {
-        Constraint Min_up1("Min_up1_"+to_string(t));
-        Min_up1 = On_off[t].in_at(grid.gens, t) - On_off[t-1].in_at(grid.gens, t-1) - Start_up[t].in_at(grid.gens, t) + Shut_down[t].in_at(grid.gens, t);
-        ACUC.add_constraint(Min_up1 == 0);
-    }
-   // 4b
-    for (int t = min_up.getvalue(); t < T; t++) {
-        Constraint Min_Up("Min_Up_constraint_"+ to_string(t));
-        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
-            Min_Up   += Start_up[t].in_at(grid.gens, l);
-        }
-        Min_Up -= On_off[t].in_at(grid.gens, t);
-        ACUC.add_constraint(Min_Up <= 0);
-    }
-    // 4c
-    for (int t = min_down.getvalue(); t < T; t++) {
-        Constraint Min_Down("Min_Down_constraint_" + to_string(t));
-        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
-            Min_Down   += Shut_down[t].in_at(grid.gens, l);
-        }
-        Min_Down -= 1 - On_off[t].in_at(grid.gens, t);
-        ACUC.add_constraint(Min_Down <= 0);
-    }
+//    for (int t = 1; t < T; t++) {
+//        Constraint Min_up1("Min_up1_"+to_string(t));
+//        Min_up1 = On_off[t].in_at(grid.gens, t) - On_off[t-1].in_at(grid.gens, t-1) - Start_up[t].in_at(grid.gens, t) + Shut_down[t].in_at(grid.gens, t);
+//        ACUC.add_constraint(Min_up1 == 0);
+//    }
+//   // 4b
+//    for (int t = min_up.getvalue(); t < T; t++) {
+//        Constraint Min_Up("Min_Up_constraint_"+ to_string(t));
+//        for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
+//            Min_Up   += Start_up[t].in_at(grid.gens, l);
+//        }
+//        Min_Up -= On_off[t].in_at(grid.gens, t);
+//        ACUC.add_constraint(Min_Up <= 0);
+//    }
+//    // 4c
+//    for (int t = min_down.getvalue(); t < T; t++) {
+//        Constraint Min_Down("Min_Down_constraint_" + to_string(t));
+//        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+//            Min_Down   += Shut_down[t].in_at(grid.gens, l);
+//        }
+//        Min_Down -= 1 - On_off[t].in_at(grid.gens, t);
+//        ACUC.add_constraint(Min_Down <= 0);
+//    }
     // Ramp Rate
     for (int t = 0; t < T; t++) {
         Constraint Production_P_LB("Production_P_LB_"+ to_string(t));
@@ -190,22 +190,22 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         ACUC.add_constraint(Production_Q_LB.in_at(grid.gens, t) >= 0);
     }
     // 5C
-    for (int t = 1; t < T; t++) {
-        Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t));
-        Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t));
-        Ramp_up =  Pg[t].in_at(grid.gens, t);
-        Ramp_up -= Pg[t-1].in_at(grid.gens, t-1);
-        Ramp_up -= rate_ramp*On_off[t-1].in_at(grid.gens, t-1);
-        Ramp_up -= rate_switch*(1 - On_off[t].in_at(grid.gens, t));
-
-        Ramp_down =  Pg[t-1].in_at(grid.gens, t-1);
-        Ramp_down -= Pg[t].in_at(grid.gens, t);
-        Ramp_down -= rate_ramp*On_off[t].in_at(grid.gens, t);
-        Ramp_down -= rate_switch*(1 - On_off[t-1].in_at(grid.gens, t-1));
-
-        ACUC.add_constraint(Ramp_up <= 0);
-        ACUC.add_constraint(Ramp_down <= 0);
-    }
+//    for (int t = 1; t < T; t++) {
+//        Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t));
+//        Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t));
+//        Ramp_up =  Pg[t].in_at(grid.gens, t);
+//        Ramp_up -= Pg[t-1].in_at(grid.gens, t-1);
+//        Ramp_up -= rate_ramp*On_off[t-1].in_at(grid.gens, t-1);
+//        Ramp_up -= rate_switch*(1 - On_off[t].in_at(grid.gens, t));
+//
+//        Ramp_down =  Pg[t-1].in_at(grid.gens, t-1);
+//        Ramp_down -= Pg[t].in_at(grid.gens, t);
+//        Ramp_down -= rate_ramp*On_off[t].in_at(grid.gens, t);
+//        Ramp_down -= rate_switch*(1 - On_off[t-1].in_at(grid.gens, t-1));
+//
+//        ACUC.add_constraint(Ramp_up <= 0);
+//        ACUC.add_constraint(Ramp_down <= 0);
+//    }
     for (int t = 1; t < T; t++) {
         for (auto& g: grid.gens) {
             Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
@@ -219,9 +219,9 @@ double getdual_relax(PowerNet& grid, const unsigned T,
         }
     }
     // set the initial state of generators.
-//    Constraint gen_initial("initial_state");
-//    gen_initial +=  On_off[0].in_at(grid.gens, 0) -1;
-//    ACUC.add_constraint(gen_initial == 0);
+    Constraint gen_initial("initial_state");
+    gen_initial +=  On_off[0].in_at(grid.gens, 0) -1;
+    ACUC.add_constraint(gen_initial == 0);
     /* Solver selection */
     bool relax = true;
     int output = 1;
@@ -230,24 +230,20 @@ double getdual_relax(PowerNet& grid, const unsigned T,
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
     for (int t = 1; t < T; t++) {
-        //auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t));
-        //auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t));
-        int i = 0;
         for (auto& g: grid.gens) {
             auto MC1 = ACUC.get_constraint("MC1_" + to_string(t)+","+ g->_name);
             auto MC2 = ACUC.get_constraint("MC2_" + to_string(t)+","+ g->_name);
             auto Ramp_up = ACUC.get_constraint("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
             auto Ramp_down = ACUC.get_constraint("Ramp_down_constraint_"  + to_string(t)+"," + g->_name);
-            string name = g->_name + "," + to_string(t);
+            string name = g->_name + "_" + to_string(t);
             lambda_up(name) = abs(MC1->_dual.at(0));
             lambda_down(name) = abs(MC2->_dual.at(0));
             zeta_up(name) = abs(Ramp_up->_dual.at(0));
             zeta_down(name) = abs(Ramp_down->_dual.at(0));
-            DebugOn("dual of  lambda_up " << name << " " << abs(MC1->_dual[0]) << endl);
-            DebugOn("dual of  lambda_down " << name << " " << abs(MC2->_dual[0]) << endl);
-            DebugOn("dual of  zeta_up " << name << " " << abs(Ramp_up->_dual[0]) << endl);
-            DebugOn("dual of  zeta_down " << name << " " << abs(Ramp_down->_dual[0]) << endl);
-            ++i;
+            DebugOff("dual of  lambda_up_" << name << " " << abs(MC1->_dual[0]) << endl);
+            DebugOff("dual of  lambda_down_" << name << " " << abs(MC2->_dual[0]) << endl);
+            DebugOff("dual of  zeta_up_" << name << " " << abs(Ramp_up->_dual[0]) << endl);
+            DebugOff("dual of  zeta_down_" << name << " " << abs(Ramp_down->_dual[0]) << endl);
         }
     }
     return ACUC._obj_val;
@@ -290,8 +286,8 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
                 string name = g->_name + ",0";
                 string name1 = g->_name + ",1";
                 obj += (grid.c1(name) + zeta_down(name1) - zeta_up(name1))*Pg(name) + grid.c2(name)*Pg(name)*Pg(name);
-                obj +=(grid.c0(name) + lambda_down(name1) - lambda_down(name1) + zeta_down(name1)*rate_ramp(name1)
-                       - zeta_up(name1)*rate_switch(name1))*On_off(name);
+                obj +=(grid.c0(name) + lambda_down(name1) - lambda_down(name1) + zeta_up(name1)*rate_switch(name1)
+                       - zeta_up(name1)*rate_ramp(name1))*On_off(name);
             }
             else if (t == T-1) {
                 string name = g->_name + ","+ to_string(t);
@@ -301,8 +297,8 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
                 obj += (grid.c0(name)+lambda_up(name) -lambda_down(name)
                         - zeta_down(name)*rate_ramp(name) + zeta_down(name)*rate_switch(name))*On_off(name);
 
-                obj += (cost_up.getvalue()-lambda_up(name))*Start_up(name);
-                obj += (cost_down.getvalue()-lambda_down(name))*Shut_down(name);
+                obj += (cost_up-lambda_up(name))*Start_up(name);
+                obj += (cost_down-lambda_down(name))*Shut_down(name);
             }
             else {
                 string name = g->_name + ","+ to_string(t);
@@ -394,6 +390,10 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
     return Sub._obj_val;
 }
 
+
+// Note that time based decomposition needs more constraints relaxed..
+// for the ANU project, we neglect min-up and min-down constraints in the original ACUC formulation
+// while choose to relax ramp up/down constraints and intertemporal constraints (in total 4 constraints).
 int main (int argc, const char * argv[])
 {
     // Decompose
@@ -404,14 +404,14 @@ int main (int argc, const char * argv[])
         l = atof(argv[2]);
     }
     else {
-        //fname = "../../data_sets/Power/nesta_case5_pjm.m";
+       // fname = "../../data_sets/Power/nesta_case5_pjm.m";
        // fname = "../../data_sets/Power/nesta_case30_ieee.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
@@ -428,7 +428,7 @@ int main (int argc, const char * argv[])
     double solver_time_end, total_time_end, solve_time, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    unsigned T = 2;
+    unsigned T = 5;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -445,8 +445,8 @@ int main (int argc, const char * argv[])
     cost_up = 50;
     cost_down = 30;
     grid.time_expand(T);
-    rate_ramp.time_expand(T);
-    rate_switch.time_expand(T);
+    rate_ramp.time_expand(T); // alpha
+    rate_switch.time_expand(T); // beta
     ///** Variables */
     //// POWER GENERATION
     vector<var<Real>> Pg;
@@ -477,9 +477,9 @@ int main (int argc, const char * argv[])
     vector<var<bool>> Start_up;
     vector<var<bool>> Shut_down;
     for (int t = 0; t < T; t++) {
-        var<bool>  On_offt("On_off" + to_string(t));
-        var<bool>  Start_upt("Start_up" + to_string(t));
-        var<bool>  Shut_downt("Shut_down" + to_string(t));
+        var<bool>  On_offt("On_off_" + to_string(t));
+        var<bool>  Start_upt("Start_up_" + to_string(t));
+        var<bool>  Shut_downt("Shut_down_" + to_string(t));
         On_off.push_back(On_offt);
         Start_up.push_back(Start_upt);
         Shut_down.push_back(Shut_downt);
@@ -513,13 +513,14 @@ int main (int argc, const char * argv[])
     for (int t = 1; t < T; t++) {
         for (auto& g: grid.gens) {
             string name = g->_name + "," + to_string(t);
-            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
+            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue(); //
         }
     }
-    for (int t = 0; t < T-1; t++) {
+    for (int t = 1; t < T; t++) {
         for (auto& g: grid.gens) {
             string name = g->_name + "," + to_string(t);
-            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
+            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue(); // rate_switch: beta
+            // ramp-up: alpha
         }
     }
     cout << "The initial Lower bound of the ACUC problem is: " << LB << endl;
