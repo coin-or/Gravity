@@ -75,12 +75,11 @@ int main (int argc, const char * argv[])
     /** Variables */
     // POWER GENERATION
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T)); //This changes the lb and rb indices.
+    var<Real> Pg2("Pg2", non_neg_); // new var introduced for the perspective formulation.
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
-    //grid->pg_max.print(true);
-    //grid->pg_max.in(grid->gens, T).print(true);
-    //var<Real> Qg ("Qg", grid->qg_min, grid->qg_max);
     ACUC.add_var(Pg.in(grid->gens, T));
     ACUC.add_var(Qg.in(grid->gens, T));
+    ACUC.add_var(Pg2.in(grid->gens, T));
 
      //power flow
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
@@ -114,12 +113,12 @@ int main (int argc, const char * argv[])
     for (auto g:grid->gens) {
         if (g->_active) {
             string name = g->_name + ",0";
-            obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name) +grid->c0(name)*On_off(name);
+            obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) +grid->c0(name)*On_off(name);
         }
         for (int t = 1; t < T; t++){
             if (g->_active) {
                 string name = g->_name + ","+ to_string(t);
-                obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name) + grid->c0(name)*On_off(name);
+                obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
                 obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
             }
         }
@@ -127,6 +126,12 @@ int main (int argc, const char * argv[])
     ACUC.set_objective(min(obj));
     
     /** Define constraints */
+    
+    /* perspective formulation of Pg^2 */
+    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
+    Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
+    ACUC.add(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
+    
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
