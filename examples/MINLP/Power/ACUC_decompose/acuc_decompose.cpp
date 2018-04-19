@@ -27,7 +27,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
                      const param<Real>& rate_ramp, const param<Real>& rate_switch,
                      const param<Real>& min_up, const param<Real>& min_down,
                      const param<Real>& cost_up, const param<Real>& cost_down,
-                     vector<var<Real>>& Pg, vector<var<Real>>& Qg,
+                     vector<var<Real>>& Pg,vector<var<Real>>& Pg2, vector<var<Real>>& Qg,
                      vector<var<bool>>& Start_up, vector<var<bool>>& Shut_down, vector<var<bool>>& On_off,
                      vector<var<Real>>& Xii, vector<var<Real>>& R_Xij, vector<var<Real>>& Im_Xij,
                      param<Real>& R_lambda, param<Real>& Im_lambda, param<Real>& lambda)
@@ -36,6 +36,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     Model ACUC("ACUC Model");
     for (int c = 0; c < nbparts; c++) {
         ACUC.add_var(Pg[c].in(P.bag_gens[c], T));
+        ACUC.add_var(Pg2[c].in(P.bag_gens[c], T));
         ACUC.add_var(Qg[c].in(P.bag_gens[c], T));
         ACUC.add_var(Start_up[c].in(P.bag_gens[c], T));
         ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
@@ -82,17 +83,27 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             if (g->_active) {
                 string name = g->_name+",0";
                 obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
+                //obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg2[c](name) +grid.c0(name)*On_off[c](name);
             }
             for (int t = 1; t < T; t++) {
                 if (g->_active) {
                     string name = g->_name + ","+ to_string(t);
                     obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
+                    //obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg2[c](name) +grid.c0(name)*On_off[c](name);
                     obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
                 }
             }
         }
     }
     ACUC.set_objective(min(obj));
+    /* perspective formulation of Pg^2 */
+//    for (int c = 0; c < nbparts; c++) {
+//        if (P.bag_gens[c].size() >0){
+//            Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_" + to_string(c));
+//            Perspective_OnOff_Pg2 = power(Pg[c], 2) - Pg2[c]*On_off[c];
+//            ACUC.add(Perspective_OnOff_Pg2.in(P.bag_gens[c], T) <= 0);
+//        }
+//    }
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_bus_pairs_union_directed[c].size() > 0) {
             Constraint SOC("SOC_" + to_string(c));
@@ -291,12 +302,13 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
                   const param<Real>& rate_ramp,const param<Real>& rate_switch,
                   const param<Real>& min_up, const param<Real>& min_down,
                   const param<Real>& cost_up, const param<Real>& cost_down,
-                  var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
+                  var<Real>& Pg, var<Real>& Pg2, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
                   var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
                   param<Real>& R_lambda, param<Real>& Im_lambda,param<Real>& lambda, param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
 {
     Model Subr("Subr");
     Subr.add_var(Pg.in(P.bag_gens[c], T));
+    Subr.add_var(Pg2.in(P.bag_gens[c], T));
     Subr.add_var(Qg.in(P.bag_gens[c], T));
     Subr.add_var(On_off.in(P.bag_gens[c], T));
     Subr.add_var(Start_up.in(P.bag_gens[c], T));
@@ -322,10 +334,12 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     for (auto g:P.bag_gens[c]) {
         if (g->_active) {
             string name = g->_name + ",0";
-           obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
+           //obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
+            obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg2(name) +grid.c0(name)*On_off(name);
             for (int t = 1; t < T; t++) {
                 string name2 = g->_name + ","+ to_string(t);
-                obj += grid.c1(name2)*Pg(name2) + grid.c2(name2)*Pg(name2)*Pg(name2) + grid.c0(name2)*On_off(name2);
+                //obj += grid.c1(name2)*Pg(name2) + grid.c2(name2)*Pg(name2)*Pg(name2) + grid.c0(name2)*On_off(name2);
+                obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg2(name) +grid.c0(name)*On_off(name);
                 obj += cost_up*Start_up(name2)+ cost_down*Shut_down(name2);
             }
         }
@@ -351,6 +365,13 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
         }
     }
     Subr.min(obj);
+    /* perspective formulation of Pg^2 */
+    if (P.bag_gens[c].size() >0){
+        Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_");
+        Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
+        Subr.add(Perspective_OnOff_Pg2.in(P.bag_gens[c], T) <= 0);
+    }
+
     if (P.bag_bus_pairs_union_directed[c].size() > 0) {
         Constraint SOC("SOC_" + to_string(c));
         SOC =  power(R_Xij, 2)+ power(Im_Xij, 2)-Xii.from()*Xii.to() ;
@@ -512,8 +533,8 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        fname = "../../data_sets/Power/nesta_case1354_pegase.m";
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
@@ -533,7 +554,7 @@ int main (int argc, const char * argv[])
     Partition P;
     P.get_ncut(grid, nbparts);
     // Schedule Parameters
-    unsigned T = 2;
+    unsigned T = 5;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -557,6 +578,7 @@ int main (int argc, const char * argv[])
     vector<var<Real>> Im_Xij;
     vector<var<Real>> Xii;
     vector<var<Real>> Pg;
+    vector<var<Real>> Pg2;
     vector<var<Real>> Qg;
     // Commitment variables
     vector<var<bool>>  On_off;
@@ -574,7 +596,9 @@ int main (int argc, const char * argv[])
         //var<Real>  bag_Qg("Qg_" + to_string(c), grid.qg_min.in(P.bag_gens[c], T), grid.qg_max.in(P.bag_gens[c], T));
         var<Real>  bag_Pg("Pg_" + to_string(c), grid.pg_min.in(P.bag_gens[c], T), grid.pg_max.in(P.bag_gens[c],T));
         var<Real>  bag_Qg("Qg_" + to_string(c), grid.qg_min.in(P.bag_gens[c], T), grid.qg_max.in(P.bag_gens[c], T));
+        var<Real> bag_Pg2("Pg2_" + to_string(c), non_neg_); // new var introduced for the perspective formulation.
         Pg.push_back(bag_Pg);
+        Pg2.push_back(bag_Pg2.in(P.bag_gens[c], T));
         Qg.push_back(bag_Qg);
 
         var<bool>  bag_Onoff("On_off_" + to_string(c));
@@ -611,14 +635,14 @@ int main (int argc, const char * argv[])
     R_lambda.initialize_all(0);
     Im_lambda.initialize_all(0);
     lambda.initialize_all(0);
-    double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Qg,
+    double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Pg2, Qg,
                                   Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
     //Improve the lower bound using MISCOP.
     std::vector<double> Subs; 
     Subs.resize(nbparts);
     double LB = 0;
     for(int c = 0; c < nbparts; c++) {
-        Subs[c]= subproblem(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Qg[c],
+        Subs[c]= subproblem(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Pg2[c], Qg[c],
         Start_up[c], Shut_down[c], On_off[c], Xii[c], R_Xij[c],Im_Xij[c], R_lambda, Im_lambda, lambda, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
         LB += Subs[c];
     }
