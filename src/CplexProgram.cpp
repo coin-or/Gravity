@@ -64,74 +64,76 @@ bool CplexProgram::solve(bool relax) {
                 }
             }
         }
-        // populate the dual multipliers
+        // populate the dual multipliers if it is a continuous problem.
         size_t idx = 0; // idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0;
-        for (auto &cp: _model->_cons) {
-            cp.second->_dual.resize(cp.second->_nb_instances);
-            assert(_cplex_constraints[idx].getSize() == cp.second->_nb_instances);
-            if (cp.second->is_linear()) {
-                for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
-                    if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
-                        if (cplex.isExtracted(_cplex_constraints[idx][inst])) {
-                            cp.second->_dual[inst] = cplex.getDual(_cplex_constraints[idx][inst]);
+        if (relax) {
+            for (auto &cp: _model->_cons) {
+                cp.second->_dual.resize(cp.second->_nb_instances);
+                assert(_cplex_constraints[idx].getSize() == cp.second->_nb_instances);
+                if (cp.second->is_linear()) {
+                    for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+                        if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+                            if (cplex.isExtracted(_cplex_constraints[idx][inst])) {
+                                cp.second->_dual[inst] = cplex.getDual(_cplex_constraints[idx][inst]);
+                            }
+                            else {
+                                cp.second->_dual[inst] = 0;
+                            }
+                        }
+                    }
+                }
+                else if(cp.second->is_quadratic()) {
+                    // if it exists; then it equals to dualslack/gradient_x*
+                    // when _x* lies at the cone top, gradient_x* does not exist
+                    for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+                        auto& qs = _cplex_constraints[idx][inst];
+                        if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+                            if (cplex.isExtracted(qs)) {
+                                IloNumArray dslack_vals(*_cplex_env);
+                                IloNumVarArray vars(*_cplex_env);
+                                cplex.getQCDSlack(qs, dslack_vals, vars);
+                                std::map<pair<unsigned, unsigned>*, double> grad;
+                                bool conetop = true;
+                                for (IloExpr::QuadIterator it = qs.getQuadIterator();
+                                        it.ok(); ++it)
+                                {
+                                    const auto& index_x1 = get_cplex_var_index(it.getVar1());
+                                    const auto& index_x2 = get_cplex_var_index(it.getVar2());
+                                    grad[index_x1] += cplex.getValue(it.getVar2()) * it.getCoef();
+                                    grad[index_x2] += cplex.getValue(it.getVar1())* it.getCoef();
+                                    if ( fabs (cplex.getValue(it.getVar2())) > ZEROTOL ||
+                                            fabs (cplex.getValue(it.getVar1())) > ZEROTOL )
+                                        conetop = false;
+                                }
+                                if ( conetop ) {
+                                    continue; //
+                                    throw IloCplex::Exception(CPXERR_BAD_ARGUMENT,
+                                                              "Cannot compute dual multiplier at cone top!");
+                                }
+                                bool ok = false;
+                                IloNum maxabs = -1.0;
+                                for (IloInt i = 0; i < vars.getSize(); ++i) {
+                                    const auto& index_x = get_cplex_var_index(vars[i]);
+                                    if ( fabs (grad[index_x]) > ZEROTOL ) {
+                                        if ( fabs (grad[index_x]) > maxabs ) {
+                                            cp.second->_dual[inst]= dslack_vals[i] / grad[index_x];
+                                            maxabs = fabs (grad[index_x]);
+                                        }
+                                        ok = true;
+                                    }
+                                }
+                            }
                         }
                         else {
                             cp.second->_dual[inst] = 0;
                         }
                     }
                 }
-            }
-            else if(cp.second->is_quadratic()) {
-                // if it exists; then it equals to dualslack/gradient_x*
-                // when _x* lies at the cone top, gradient_x* does not exist
-                for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
-                    auto& qs = _cplex_constraints[idx][inst];
-                    if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
-                        if (cplex.isExtracted(qs)) {
-                            IloNumArray dslack_vals(*_cplex_env);
-                            IloNumVarArray vars(*_cplex_env);
-                            cplex.getQCDSlack(qs, dslack_vals, vars);
-                            std::map<pair<unsigned, unsigned>*, double> grad;
-                            bool conetop = true;
-                            for (IloExpr::QuadIterator it = qs.getQuadIterator();
-                                    it.ok(); ++it)
-                            {
-                                const auto& index_x1 = get_cplex_var_index(it.getVar1());
-                                const auto& index_x2 = get_cplex_var_index(it.getVar2());
-                                grad[index_x1] += cplex.getValue(it.getVar2()) * it.getCoef();
-                                grad[index_x2] += cplex.getValue(it.getVar1())* it.getCoef();
-                                if ( fabs (cplex.getValue(it.getVar2())) > ZEROTOL ||
-                                        fabs (cplex.getValue(it.getVar1())) > ZEROTOL )
-                                    conetop = false;
-                            }
-                            if ( conetop ){
-                                continue; // 
-                                throw IloCplex::Exception(CPXERR_BAD_ARGUMENT,
-                                                          "Cannot compute dual multiplier at cone top!");
-                            }
-                            bool ok = false;
-                            IloNum maxabs = -1.0;
-                            for (IloInt i = 0; i < vars.getSize(); ++i) {
-                                const auto& index_x = get_cplex_var_index(vars[i]);
-                                if ( fabs (grad[index_x]) > ZEROTOL ) {
-                                    if ( fabs (grad[index_x]) > maxabs ) {
-                                        cp.second->_dual[inst]= dslack_vals[i] / grad[index_x];
-                                        maxabs = fabs (grad[index_x]);
-                                    }
-                                    ok = true;
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        cp.second->_dual[inst] = 0;
-                    }
+                else {
+                    throw invalid_argument("cplex only return dual vars for linear, convex qudratic and SOCP andconstraints");
                 }
+                idx++;
             }
-            else {
-                throw invalid_argument("cplex only return dual vars for linear, convex qudratic and SOCP andconstraints");
-            }
-            idx++;
         }
     }
     catch (IloException& ex) {
@@ -186,7 +188,7 @@ void CplexProgram::fill_in_cplex_vars() {
             auto real_var = (var<double>*)v;
             auto lb = IloNumArray(*_cplex_env, real_var->get_dim());
             auto ub = IloNumArray(*_cplex_env, real_var->get_dim());
-            // aovid empty vars. 
+            // aovid empty vars.
             for (int i = 0; i < real_var->get_dim(); i++) {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
@@ -233,8 +235,8 @@ void CplexProgram::fill_in_cplex_vars() {
         }
     }
     // associate cplex vars with the index where the gravity var stores.
-    for (unsigned i = 0; i < _cplex_vars.size(); i++){
-        for (unsigned j = 0; j < _cplex_vars.at(i).getSize(); j++){
+    for (unsigned i = 0; i < _cplex_vars.size(); i++) {
+        for (unsigned j = 0; j < _cplex_vars.at(i).getSize(); j++) {
             std::pair<unsigned,unsigned>* indices = new std::pair<unsigned, unsigned>(i,j);
             _cplex_vars[i][j].setObject(indices);
         }

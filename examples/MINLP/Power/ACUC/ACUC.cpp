@@ -35,6 +35,7 @@ int main (int argc, const char * argv[])
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //string fname = "../../data_sets/Power/anu.m";
     }
     // ACUC
@@ -49,7 +50,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 5;
+    unsigned T = 1;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -75,7 +76,8 @@ int main (int argc, const char * argv[])
     /** Variables */
     // POWER GENERATION
     var<Real> Pg("Pg", grid->pg_min.in(grid->gens, T), grid->pg_max.in(grid->gens, T)); //This changes the lb and rb indices.
-    var<Real> Pg2("Pg2", non_neg_); // new var introduced for the perspective formulation.
+    //var<Real> Pg2("Pg2", non_neg_); // new var introduced for the perspective formulation.
+    var<Real> Pg2("Pg2", 0, 1000); // new var introduced for the perspective formulation.
     var<Real> Qg ("Qg", grid->qg_min.in(grid->gens, T), grid->qg_max.in(grid->gens, T));
     ACUC.add_var(Pg.in(grid->gens, T));
     ACUC.add_var(Qg.in(grid->gens, T));
@@ -115,7 +117,8 @@ int main (int argc, const char * argv[])
             for (int t = 0; t < T; t++) {
                 if (g->_active) {
                     string name = g->_name + ","+ to_string(t);
-                    obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
+                    //obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
+                    obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name)  + grid->c0(name)*On_off(name);
                     obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
                 }
             }
@@ -125,15 +128,16 @@ int main (int argc, const char * argv[])
 
     /** Define constraints */
 
-    /* perspective formulation of Pg^2 */
-    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
-    Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
-    ACUC.add(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
-
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
     ACUC.add_constraint(SOC.in(bus_pairs, T) <= 0);
+    
+    /* perspective formulation of Pg^2 */
+//    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
+//    Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
+//    ACUC.add(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
+    
     //KCL
     Constraint KCL_P("KCL_P");
     Constraint KCL_Q("KCL_Q");
@@ -257,7 +261,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = false;
+    bool relax = true;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);
