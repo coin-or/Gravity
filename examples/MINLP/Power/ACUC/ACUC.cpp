@@ -124,6 +124,8 @@ int main (int argc, const char * argv[])
             }
         }
     }
+    //obj +=grid->c1*Pg+ grid->c2*Pg2 + grid->c0*On_off;
+    //obj +=cost_up.getvalue()*Start_up+ cost_down.getvalue()*Shut_down;
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
@@ -135,8 +137,20 @@ int main (int argc, const char * argv[])
     
     /* perspective formulation of Pg^2 */
 //    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
-//    Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
-//    ACUC.add(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
+//    Perspective_OnOff_Pg2 += power(Pg, 2) - Pg2*On_off;
+//    ACUC.add_constraint(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
+//    for (auto g:grid->gens) {
+//        if (g->_active) {
+//            for (int t = 0; t < T; t++) {
+//                if (g->_active) {
+//                    string name = g->_name + ","+ to_string(t);
+//                    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_" + name);
+//                    Perspective_OnOff_Pg2 = Pg(name)*Pg(name) - 100*Pg(name);
+//                    ACUC.add_constraint(Perspective_OnOff_Pg2 <= 0);
+//                }
+//            }
+//        }
+//    }
     
     //KCL
     Constraint KCL_P("KCL_P");
