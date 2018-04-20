@@ -1,4 +1,4 @@
-//
+ //
 //  ACUC.cpp
 //  Gravity
 //
@@ -64,7 +64,7 @@ int main (int argc, const char * argv[])
     min_down = 2;
     cost_up = 50;
     cost_down = 30;
-    
+
     grid->time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
@@ -81,7 +81,7 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Qg.in(grid->gens, T));
     ACUC.add_var(Pg2.in(grid->gens, T));
 
-     //power flow
+    //power flow
     var<Real> Pf_from("Pf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Qf_from("Qf_from", grid->S_max.in(grid->arcs, T));
     var<Real> Pf_to("Pf_to", grid->S_max.in(grid->arcs, T));
@@ -91,7 +91,7 @@ int main (int argc, const char * argv[])
     ACUC.add_var(Pf_to.in(grid->arcs,  T));
     ACUC.add_var(Qf_to.in(grid->arcs,  T));
 
-     //Lifted variables.
+    //Lifted variables.
     var<Real>  R_Wij("R_Wij", grid->wr_min.in(bus_pairs, T), grid->wr_max.in(bus_pairs, T)); // real part of Wij
     var<Real>  Im_Wij("Im_Wij", grid->wi_min.in(bus_pairs, T), grid->wi_max.in(bus_pairs, T)); // imaginary part of Wij.
     var<Real>  Wii("Wii", grid->w_min.in(grid->nodes, T), grid->w_max.in(grid->nodes, T));
@@ -104,7 +104,7 @@ int main (int argc, const char * argv[])
     var<bool>  On_off("On_off");
     var<bool>  Start_up("Start_up");
     var<bool>  Shut_down("Shut_down");
-    ACUC.add_var(On_off.in(grid->gens, T));
+    ACUC.add_var(On_off.in(grid->gens, -1, T));// -1
     ACUC.add_var(Start_up.in(grid->gens, T));
     ACUC.add_var(Shut_down.in(grid->gens, T));
 
@@ -112,26 +112,24 @@ int main (int argc, const char * argv[])
     func_ obj;
     for (auto g:grid->gens) {
         if (g->_active) {
-            string name = g->_name + ",0";
-            obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) +grid->c0(name)*On_off(name);
-        }
-        for (int t = 1; t < T; t++){
-            if (g->_active) {
-                string name = g->_name + ","+ to_string(t);
-                obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
-                obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
+            for (int t = 0; t < T; t++) {
+                if (g->_active) {
+                    string name = g->_name + ","+ to_string(t);
+                    obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
+                    obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
+                }
             }
         }
     }
     ACUC.set_objective(min(obj));
-    
+
     /** Define constraints */
-    
+
     /* perspective formulation of Pg^2 */
     Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
     Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
     ACUC.add(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
-    
+
     /* SOCP constraints */
     Constraint SOC("SOC");
     SOC =  power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to() ;
@@ -149,11 +147,11 @@ int main (int argc, const char * argv[])
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (grid->g_ff*Wii.from() + grid->g_ft*R_Wij.in_pairs() + grid->b_ft*Im_Wij.in_pairs());
     ACUC.add_constraint(Flow_P_From.in(grid->arcs, T) == 0);
-    
+
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (grid->g_tt*Wii.to() + grid->g_tf*R_Wij.in_pairs() - grid->b_tf*Im_Wij.in_pairs());
     ACUC.add_constraint(Flow_P_To.in(grid->arcs, T) == 0);
-    
+
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (grid->g_ft*Im_Wij.in_pairs() - grid->b_ff*Wii.from() - grid->b_ft*R_Wij.in_pairs());
     ACUC.add_constraint(Flow_Q_From.in(grid->arcs, T) == 0);
@@ -161,7 +159,7 @@ int main (int argc, const char * argv[])
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + (grid->b_tt*Wii.to() + grid->b_tf*R_Wij.in_pairs() + grid->g_tf*Im_Wij.in_pairs());
     ACUC.add_constraint(Flow_Q_To.in(grid->arcs, T) == 0);
-     //Phase Angle Bounds constraints
+    //Phase Angle Bounds constraints
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij - grid->tan_th_max*R_Wij;
     ACUC.add_constraint(PAD_UB.in(bus_pairs, T) <= 0);
@@ -182,8 +180,8 @@ int main (int argc, const char * argv[])
 
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
-    for (int t = 1; t < T; t++) {
-        for (auto g: grid->gens){
+    for (int t = 0; t < T; t++) {
+        for (auto g: grid->gens) {
             Constraint MC1("MC1_"+ to_string(t)+ g->_name );
             Constraint MC2("MC2_"+ to_string(t)+ g->_name);
             MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
@@ -195,11 +193,12 @@ int main (int argc, const char * argv[])
             ACUC.add_constraint(MC2 <= 0);
         }
     }
-    // Min-up constraints  4a
-    for (int t = 1; t < T; t++) {
-        Constraint Min_up1("Min_up1_"+ to_string(t));
-        Min_up1 = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1)-Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
-        ACUC.add_constraint(Min_up1 == 0);
+   // OnOffStartupShutdown_
+    for (int t = 0; t < T; t++) {
+        Constraint OnOffStartupShutdown("OnOffStartupShutdown_"+ to_string(t));
+        OnOffStartupShutdown = On_off.in_at(grid->gens, t) - On_off.in_at(grid->gens, t-1)
+                               -Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
+        ACUC.add_constraint(OnOffStartupShutdown == 0);
     }
     // 4b
     for (int t = min_up.getvalue(); t < T; t++) {
@@ -253,7 +252,7 @@ int main (int argc, const char * argv[])
     }
     //set the initial state of generators.
     Constraint gen_initial("gen_initialisation");
-    gen_initial += On_off.in_at(grid->gens, 0)- 1;
+    gen_initial += On_off.in_at(grid->gens, -1);
     ACUC.add_constraint(gen_initial == 0);
 
     /* Resolve it! */
@@ -266,9 +265,9 @@ int main (int argc, const char * argv[])
     total_time_end = get_cpu_time();
     total_time = total_time_end - total_time_start;
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
-    +", " + to_string(ACUC._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
-    
+                 +", " + to_string(ACUC._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
+
     cout << out << endl;
-    
+
     return 0;
 }
