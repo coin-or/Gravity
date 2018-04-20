@@ -252,7 +252,7 @@ double getdual_relax(PowerNet& grid, const unsigned T,
 double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ramp, param<Real>& rate_switch,
                   const param<Real>& min_up, const param<Real>& min_down,
                   const param<Real>& cost_up, const param<Real>& cost_down,
-                  var<Real>& Pg, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
+                  var<Real>& Pg, var<Real>& Pg2, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
                   var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
                   param<Real>& lambda_up, param<Real>& lambda_down, param<Real>& zeta_up, param<Real>& zeta_down)
 {
@@ -260,6 +260,7 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
     const auto bus_pairs = grid.get_bus_pairs();
     Model Sub("Sub"+to_string(t));
     Sub.add_var(Pg.in_at(grid.gens,t));
+    Sub.add_var(Pg2.in_at(grid.gens,t));
     Sub.add_var(Qg.in_at(grid.gens,t));
     Sub.add_var(On_off.in_at(grid.gens, t));
     Sub.add_var(Start_up.in_at(grid.gens, t));
@@ -285,14 +286,18 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
             if (t == 0) {
                 string name = g->_name + ",0";
                 string name1 = g->_name + ",1";
-                obj += (grid.c1(name) + zeta_down(name1) - zeta_up(name1))*Pg(name) + grid.c2(name)*Pg(name)*Pg(name);
+                //obj += (grid.c1(name) + zeta_down(name1) - zeta_up(name1))*Pg(name) + grid.c2(name)*Pg(name)*Pg(name);
+                obj += (grid.c1(name) + zeta_down(name1) - zeta_up(name1))*Pg(name) + grid.c2(name)*Pg2(name);
                 obj +=(grid.c0(name) + lambda_down(name1) - lambda_down(name1) + zeta_up(name1)*rate_switch(name1)
                        - zeta_up(name1)*rate_ramp(name1))*On_off(name);
             }
             else if (t == T-1) {
                 string name = g->_name + ","+ to_string(t);
+//                obj += (grid.c1(name) + zeta_up(name)- zeta_down(name))*Pg(name)
+//                       + grid.c2(name)*Pg(name)*Pg(name);
+//
                 obj += (grid.c1(name) + zeta_up(name)- zeta_down(name))*Pg(name)
-                       + grid.c2(name)*Pg(name)*Pg(name);
+                       + grid.c2(name)*Pg2(name);
 
                 obj += (grid.c0(name)+lambda_up(name) -lambda_down(name)
                         - zeta_down(name)*rate_ramp(name) + zeta_down(name)*rate_switch(name))*On_off(name);
@@ -303,8 +308,11 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
             else {
                 string name = g->_name + ","+ to_string(t);
                 string name1 = g->_name + ","+ to_string(t+1);
+                //obj += (grid.c1(name) + zeta_up(name)+zeta_down(name1)- zeta_down(name)-zeta_up(name1))*Pg(name)
+                //       + grid.c2(name)*Pg(name)*Pg(name);
+                //
                 obj += (grid.c1(name) + zeta_up(name)+zeta_down(name1)- zeta_down(name)-zeta_up(name1))*Pg(name)
-                       + grid.c2(name)*Pg(name)*Pg(name);
+                       + grid.c2(name)*Pg2(name);
 
                 obj += (grid.c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)
                         - zeta_down(name)*rate_ramp(name) - zeta_up(name1)*rate_ramp(name1)
@@ -316,6 +324,12 @@ double subproblem(PowerNet& grid,  unsigned t, unsigned T, param<Real>& rate_ram
         }
     }
     Sub.set_objective(min(obj));
+
+    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_");
+    Perspective_OnOff_Pg2 = power(Pg, 2) - Pg2*On_off;
+    Sub.add(Perspective_OnOff_Pg2.in_at(grid.gens, t) <= 0);
+
+
     Constraint SOC("SOC_" + to_string(t));
     SOC =  power(R_Xij, 2) + power(Im_Xij, 2) - Xii.from()*Xii.to() ;
     Sub.add_constraint(SOC.in_at(bus_pairs, t) <= 0);
@@ -428,14 +442,13 @@ int main (int argc, const char * argv[])
     double solver_time_end, total_time_end, solve_time, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    unsigned T = 5;
+    unsigned T = 24;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
     param<Real> min_down("min_down");
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
-
     for (auto g: grid.gens) {
         rate_ramp(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.25*grid.pg_max(g->_name).getvalue());
         rate_switch(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.25*grid.pg_max(g->_name).getvalue());
@@ -450,11 +463,14 @@ int main (int argc, const char * argv[])
     ///** Variables */
     //// POWER GENERATION
     vector<var<Real>> Pg;
+    vector<var<Real>> Pg2; // new var introduced for the perspective formulation.
     vector<var<Real>> Qg;
     for (int t = 0; t < T; t++) {
         var<Real> pgt("Pg" + to_string(t), grid.pg_min.in_at(grid.gens, t), grid.pg_max.in_at(grid.gens, t));
         var<Real> qgt("Qg" + to_string(t), grid.qg_min.in_at(grid.gens, t), grid.qg_max.in_at(grid.gens, t));
+        var<Real> pg2t("Pg2_" + to_string(t), non_neg_); // new var introduced for the perspective formulation.
         Pg.push_back(pgt);
+        Pg2.push_back(pg2t);
         Qg.push_back(qgt);
     }
 
@@ -506,7 +522,7 @@ int main (int argc, const char * argv[])
     Subs.resize(T);
     double LB = 0;
     for(int t = 0; t < T; t++) {
-        Subs[t]= subproblem(grid, t, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Qg[t],
+        Subs[t]= subproblem(grid, t, T, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[t], Pg2[t], Qg[t],
                             Start_up[t], Shut_down[t], On_off[t], Xii[t], R_Xij[t], Im_Xij[t], lambda_up, lambda_down, zeta_up, zeta_down);
         LB += Subs[t];
     }

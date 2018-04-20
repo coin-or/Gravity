@@ -1964,7 +1964,7 @@ public:
 
 
     template<typename Tobj>
-    param in_at(const vector<Tobj*>& nodes, unsigned t) {
+    param in_at(const vector<Tobj*>& nodes, int t) {
         param res(this->_name);
         std::vector<string> keys;
         string key;
@@ -2037,6 +2037,35 @@ public:
         res._is_indexed = true;
         return res;
     }
+    
+    template<typename Tobj>
+    param in(const vector<Tobj*>& nodes, int T0, int T1) {
+        param res(this->_name);
+        std::vector<string> keys;
+        string key;
+        if(nodes.empty()) {
+            DebugOn("In function param.in_pairs(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            //res._dim.resize(0);
+            return res;
+        }
+        for (int t=T0; t < T1; t++){
+            for(auto it = nodes.begin(); it!= nodes.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                key = (*it)->_name + "," + to_string(t);
+                keys.push_back(key);
+            }
+        }
+        res = this->in(keys);
+        res._name += ".in_" + string(typeid(Tobj).name()) + "_time_" + to_string(T0) + "_to_"+ to_string(T1);
+        res._unique_id = make_tuple<>(res.get_id(),in_time_,typeid(Tobj).hash_code(),
+                                      res._ids->at(0).at(0),res._ids->at(0).at(res._ids->at(0).size()-1));
+
+        return res;
+    }
+
 
     template<typename Tobj>
     param from(const vector<Tobj*>& arcs, unsigned T) {
