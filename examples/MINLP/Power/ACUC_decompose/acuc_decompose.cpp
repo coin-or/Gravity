@@ -40,7 +40,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
         ACUC.add_var(Qg[c].in(P.bag_gens[c], T));
         ACUC.add_var(Start_up[c].in(P.bag_gens[c], T));
         ACUC.add_var(Shut_down[c].in(P.bag_gens[c], T));
-        ACUC.add_var(On_off[c].in(P.bag_gens[c], T));
+        ACUC.add_var(On_off[c].in(P.bag_gens[c], -1,  T));
         ACUC.add_var(Xii[c].in(P.bag_bus_union_out[c], T));
         Xii[c].initialize_all(1.001);
         ACUC.add_var(R_Xij[c].in(P.bag_bus_pairs_union[c], T));
@@ -80,30 +80,17 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     func_ obj;
     for (int c = 0; c < nbparts; c++) {
         for (auto g: P.bag_gens[c]) {
-            if (g->_active) {
-                string name = g->_name+",0";
-                obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
-                //obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg2[c](name) +grid.c0(name)*On_off[c](name);
-            }
-            for (int t = 1; t < T; t++) {
+            for (int t = 0; t < T; t++) {
                 if (g->_active) {
                     string name = g->_name + ","+ to_string(t);
                     obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg[c](name)*Pg[c](name) +grid.c0(name)*On_off[c](name);
                     //obj += grid.c1(name)*Pg[c](name)+ grid.c2(name)*Pg2[c](name) +grid.c0(name)*On_off[c](name);
-                    obj += cost_up.getvalue()*Start_up[c](name)+ cost_down.getvalue()*Shut_down[c](name);
+                    obj += cost_up*Start_up[c](name)+ cost_down*Shut_down[c](name);
                 }
             }
         }
     }
     ACUC.set_objective(min(obj));
-    /* perspective formulation of Pg^2 */
-//    for (int c = 0; c < nbparts; c++) {
-//        if (P.bag_gens[c].size() >0){
-//            Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_" + to_string(c));
-//            Perspective_OnOff_Pg2 = power(Pg[c], 2) - Pg2[c]*On_off[c];
-//            ACUC.add(Perspective_OnOff_Pg2.in(P.bag_gens[c], T) <= 0);
-//        }
-//    }
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_bus_pairs_union_directed[c].size() > 0) {
             Constraint SOC("SOC_" + to_string(c));
@@ -111,6 +98,14 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             ACUC.add_constraint(SOC.in(P.bag_bus_pairs_union_directed[c], T) <= 0);
         }
     }
+    /* perspective formulation of Pg^2 */
+    //for (int c = 0; c < nbparts; c++) {
+    //    if (P.bag_gens[c].size() >0){
+    //        Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2_" + to_string(c));
+    //        Perspective_OnOff_Pg2 = power(Pg[c], 2) - Pg2[c]*On_off[c];
+    //        ACUC.add(Perspective_OnOff_Pg2.in(P.bag_gens[c], T) <= 0);
+    //    }
+    //}
     //KCL
     for (int c = 0; c < nbparts; c++) {
         Constraint KCL_P("KCL_P"+ to_string(c));
@@ -162,7 +157,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     // Inter-temporal constraints 3a, 3d
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
-            for (int t = 1; t < T; t++) {
+            for (int t = 0; t < T; t++) {
                 Constraint MC1("MC1_"+ to_string(c)+ ","+to_string(t));
                 Constraint MC2("MC2_"+ to_string(c)+ ","+to_string(t));
                 MC1 = On_off[c].in_at(P.bag_gens[c], t)- On_off[c].in_at(P.bag_gens[c], t-1)-  Start_up[c].in_at(P.bag_gens[c], t);
@@ -175,10 +170,11 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     // Min-up constraints  4a
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
-            for (int t = 1; t < T; t++) {
-                Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
-                Min_up1 = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1) - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
-                ACUC.add_constraint(Min_up1 == 0);
+            for (int t = 0; t < T; t++) {
+                Constraint OnOffStartupShutdown("OnOffStartupShutdown_"+ to_string(t));
+                OnOffStartupShutdown = On_off[c].in_at(P.bag_gens[c], t) - On_off[c].in_at(P.bag_gens[c], t-1)
+                                        - Start_up[c].in_at(P.bag_gens[c], t) + Shut_down[c].in_at(P.bag_gens[c], t);
+                ACUC.add_constraint(OnOffStartupShutdown == 0);
             }
         }
     }
@@ -251,9 +247,9 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
   // set the initial state of generators.
     for (int c = 0; c < nbparts; c++) {
         for(auto g: P.bag_gens[c]) {
-            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
-            gen_initial +=  On_off[c]( g->_name + ",0");
-            ACUC.add_constraint(gen_initial == 1);
+            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",-1");
+            gen_initial +=  On_off[c]( g->_name + ",-1");
+            ACUC.add_constraint(gen_initial == 0);
         }
     }
     // Linking constraints
@@ -310,7 +306,7 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     Subr.add_var(Pg.in(P.bag_gens[c], T));
     Subr.add_var(Pg2.in(P.bag_gens[c], T));
     Subr.add_var(Qg.in(P.bag_gens[c], T));
-    Subr.add_var(On_off.in(P.bag_gens[c], T));
+    Subr.add_var(On_off.in(P.bag_gens[c], -1, T));
     Subr.add_var(Start_up.in(P.bag_gens[c], T));
     Subr.add_var(Shut_down.in(P.bag_gens[c], T));
     Subr.add_var(Xii.in(P.bag_bus_union_out[c], T));
@@ -333,14 +329,10 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     func_ obj;
     for (auto g:P.bag_gens[c]) {
         if (g->_active) {
-            string name = g->_name + ",0";
-           //obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg(name)*Pg(name) + grid.c0(name)*On_off(name);
-            obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg2(name) +grid.c0(name)*On_off(name);
-            for (int t = 1; t < T; t++) {
-                string name2 = g->_name + ","+ to_string(t);
-                //obj += grid.c1(name2)*Pg(name2) + grid.c2(name2)*Pg(name2)*Pg(name2) + grid.c0(name2)*On_off(name2);
+            for (int t = 0; t < T; t++) {
+                string name = g->_name + ","+ to_string(t);
                 obj += grid.c1(name)*Pg(name)+ grid.c2(name)*Pg2(name) +grid.c0(name)*On_off(name);
-                obj += cost_up*Start_up(name2)+ cost_down*Shut_down(name2);
+                obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
             }
         }
     }
@@ -420,7 +412,7 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
      //COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
     if (P.bag_gens[c].size() > 0) {
-        for (int t = 1; t < T; t++) {
+        for (int t = 0; t < T; t++) {
             Constraint MC1("MC1_"+to_string(t));
             Constraint MC2("MC2_"+to_string(t));
             MC1 = On_off.in_at(P.bag_gens[c], t)- On_off.in_at(P.bag_gens[c], t-1)-  Start_up.in_at(P.bag_gens[c], t);
@@ -429,12 +421,12 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
             Subr.add_constraint(MC2 <= 0);
         }
     }
-    // Min-up constraints  4a
     if (P.bag_gens[c].size() > 0) {
-        for (int t = 1; t < T; t++) {
-            Constraint Min_up1("Min_up1_"+ to_string(c) + "_"+to_string(t));
-            Min_up1 = On_off.in_at(P.bag_gens[c], t) - On_off.in_at(P.bag_gens[c], t-1) - Start_up.in_at(P.bag_gens[c], t) + Shut_down.in_at(P.bag_gens[c], t);
-            Subr.add_constraint(Min_up1 == 0);
+        for (int t = 0; t < T; t++) {
+            Constraint OnOffStartupShutdown("OnOffStartupShutdown_"+ to_string(t));
+            OnOffStartupShutdown = On_off.in_at(P.bag_gens[c], t) - On_off.in_at(P.bag_gens[c], t-1)
+                                    - Start_up.in_at(P.bag_gens[c], t) + Shut_down.in_at(P.bag_gens[c], t);
+            Subr.add_constraint(OnOffStartupShutdown == 0);
         }
     }
     // 4b
@@ -498,9 +490,9 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     }
     //// set the initial state of generators.
     for(auto g: P.bag_gens[c]) {
-        Constraint gen_initial("gen_" + g->_name + to_string(c) + ",0");
-        gen_initial +=  On_off( g->_name + ",0");
-        Subr.add_constraint(gen_initial == 1);
+        Constraint gen_initial("gen_" + g->_name + to_string(c) + ",-1");
+        gen_initial +=  On_off( g->_name + ",-1");
+        Subr.add_constraint(gen_initial == 0);
     }
     /* solve it! */
     solver solve_Subr(Subr, cplex);
@@ -536,12 +528,13 @@ int main (int argc, const char * argv[])
         fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
-    int nbparts = 20;
+    int nbparts = 3;
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
