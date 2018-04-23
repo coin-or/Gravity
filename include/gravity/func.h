@@ -2144,7 +2144,7 @@ namespace gravity {
             return *this;
         }
 
-        func_& in(const vector<Node*>& vec, unsigned T) {
+        func_& in(const vector<Node*>& vec, const unsigned T) {
             _nb_vars = 0;
             _nb_instances = 0;
             string key;

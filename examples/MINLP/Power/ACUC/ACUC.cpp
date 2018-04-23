@@ -33,8 +33,8 @@ int main (int argc, const char * argv[])
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //string fname = "../../data_sets/Power/anu.m";
     }
@@ -50,7 +50,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 1;
+    unsigned T = 24;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -58,8 +58,8 @@ int main (int argc, const char * argv[])
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
     for (auto g: grid->gens) {
-        rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
-        rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.25*grid->pg_max(g->_name).getvalue());
+        rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.75*grid->pg_max(g->_name).getvalue());
+        rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.75*grid->pg_max(g->_name).getvalue());
     }
     min_up = 2;
     min_down = 2;
@@ -70,6 +70,14 @@ int main (int argc, const char * argv[])
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
 
+    // set initial state or read the initial state
+    param<Real> Pg_initial("Pg_initial");
+    param<bool> On_off_initial("On_off_initial");
+    for (auto g: grid->gens){
+        Pg_initial(g->_name) = 0;
+        On_off_initial(g->_name) = 0;
+    }
+    
     /** build model */
     Model ACUC("ACUC Model");
 
@@ -199,17 +207,12 @@ int main (int argc, const char * argv[])
     // COMMITMENT CONSTRAINTS
     // Inter-temporal constraints 3a, 3d
     for (int t = 0; t < T; t++) {
-        for (auto g: grid->gens) {
-            Constraint MC1("MC1_"+ to_string(t)+ g->_name );
-            Constraint MC2("MC2_"+ to_string(t)+ g->_name);
+            Constraint MC1("Inter_temporal_MC1");
+            Constraint MC2("Inter_temporal_MC2");
             MC1 = On_off.in_at(grid->gens, t)- On_off.in_at(grid->gens, t-1)-  Start_up.in_at(grid->gens, t);
             MC2 = On_off.in_at(grid->gens, t-1) - On_off.in_at(grid->gens, t) - Shut_down.in_at(grid->gens, t);
-            string name = g->_name + "," + to_string(t);
-            MC1 = On_off(name)- On_off(name)-  Start_up(name);
-            MC2 = On_off(name) - On_off(name) - Shut_down(name);
             ACUC.add_constraint(MC1 <= 0);
             ACUC.add_constraint(MC2 <= 0);
-        }
     }
    // OnOffStartupShutdown_
     for (int t = 0; t < T; t++) {
@@ -218,8 +221,8 @@ int main (int argc, const char * argv[])
                                -Start_up.in_at(grid->gens, t) + Shut_down.in_at(grid->gens, t);
         ACUC.add_constraint(OnOffStartupShutdown == 0);
     }
-    // 4b
-    for (int t = min_up.getvalue(); t < T; t++) {
+    // 7b
+    for (int t = min_up.getvalue()-1; t < T; t++) {
         Constraint Min_Up("Min_Up_constraint" + to_string(t));
         for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
             Min_Up   += Start_up.in_at(grid->gens, l);
@@ -227,8 +230,8 @@ int main (int argc, const char * argv[])
         Min_Up -= On_off.in_at(grid->gens, t);
         ACUC.add_constraint(Min_Up <= 0);
     }
-    // 4c
-    for (int t = min_down.getvalue(); t < T; t++) {
+    // 7c
+    for (int t = min_down.getvalue()-1; t < T; t++) {
         Constraint Min_Down("Min_Down_constraint" + to_string(t));
         for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
             Min_Down   += Shut_down.in_at(grid->gens, l);
@@ -236,7 +239,7 @@ int main (int argc, const char * argv[])
         Min_Down -= 1 - On_off.in_at(grid->gens, t);
         ACUC.add_constraint(Min_Down <= 0);
     }
-    //Ramp Rate
+    //production constraints
     Constraint Production_P_LB("Production_P_LB");
     Constraint Production_P_UB("Production_P_UB");
     Constraint Production_Q_LB("Production_Q_LB");
@@ -257,21 +260,34 @@ int main (int argc, const char * argv[])
         Constraint Ramp_down("Ramp_down_constraint" + to_string(t));
         Ramp_up =  Pg.in_at(grid->gens, t);
         Ramp_up -= Pg.in_at(grid->gens, t-1);
-        Ramp_up -= rate_ramp*On_off.in_at(grid->gens, t-1);
-        Ramp_up -= rate_switch*(1 - On_off.in_at(grid->gens, t));
+        Ramp_up -= rate_ramp.in_at(grid->gens, t)*On_off.in_at(grid->gens, t-1);
+        Ramp_up -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t));
 
         Ramp_down =  Pg.in_at(grid->gens, t-1);
         Ramp_down -= Pg.in_at(grid->gens, t);
-        Ramp_down -= rate_ramp*On_off.in_at(grid->gens, t);
-        Ramp_down -= rate_switch*(1 - On_off.in_at(grid->gens, t-1));
+        Ramp_down -= rate_ramp.in_at(grid->gens, t)*On_off.in_at(grid->gens, t);
+        Ramp_down -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t-1));
 
         ACUC.add_constraint(Ramp_up <= 0);
         ACUC.add_constraint(Ramp_down <= 0);
     }
+    Constraint Ramp_up("Ramp_up_constraint0");
+    Ramp_up =  Pg.in_at(grid->gens, 0) - Pg_initial.in(grid->gens) - rate_ramp.in_at(grid->gens, 0)*On_off_initial.in(grid->gens);
+    Ramp_up -= rate_switch.in_at(grid->gens, 0)*(1 - On_off_initial.in(grid->gens));
+    ACUC.add_constraint(Ramp_up <= 0);
+    
+    Constraint Ramp_down("Ramp_down_constraint0");
+    Ramp_down = -1*Pg.in_at(grid->gens, 0) + Pg_initial.in(grid->gens);
+    Ramp_down -= rate_ramp.in_at(grid->gens, 0)*On_off.in_at(grid->gens, 0);
+    Ramp_down -= rate_switch.in_at(grid->gens, 0)*(1 - On_off.in_at(grid->gens, 0));
+    ACUC.add_constraint(Ramp_down <= 0);
+
+
+    
     //set the initial state of generators.
     Constraint gen_initial("gen_initialisation");
-    gen_initial += On_off.in_at(grid->gens, -1);
-    ACUC.add_constraint(gen_initial == 0);
+    gen_initial += On_off.in_at(grid->gens, -1)- On_off_initial.in(grid->gens);
+    ACUC.add_constraint(gen_initial  == 0);
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);

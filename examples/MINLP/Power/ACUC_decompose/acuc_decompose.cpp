@@ -24,9 +24,10 @@ struct net_param {
     param<Real> S_max;
 };
 double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const unsigned nbparts,
-                     const param<Real>& rate_ramp, const param<Real>& rate_switch,
-                     const param<Real>& min_up, const param<Real>& min_down,
-                     const param<Real>& cost_up, const param<Real>& cost_down,
+                      param<Real>& rate_ramp,  param<Real>& rate_switch,
+                      param<Real>& min_up,  param<Real>& min_down,
+                      param<Real>& cost_up,  param<Real>& cost_down,
+                     param<bool>& On_off_initial, param<Real>& Pg_initial,
                      vector<var<Real>>& Pg,vector<var<Real>>& Pg2, vector<var<Real>>& Qg,
                      vector<var<bool>>& Start_up, vector<var<bool>>& Shut_down, vector<var<bool>>& On_off,
                      vector<var<Real>>& Xii, vector<var<Real>>& R_Xij, vector<var<Real>>& Im_Xij,
@@ -167,7 +168,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             }
         }
     }
-    // Min-up constraints  4a
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
             for (int t = 0; t < T; t++) {
@@ -181,7 +181,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     // 4b
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
-            for (int t = min_up.getvalue(); t < T; t++) {
+            for (int t = min_up.getvalue()-1; t < T; t++) {
                 Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
                 for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
                     Min_Up   += Start_up[c].in_at(P.bag_gens[c], l);
@@ -194,7 +194,7 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
     // 4c
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
-            for (int t = min_down.getvalue(); t < T; t++) {
+            for (int t = min_down.getvalue()-1; t < T; t++) {
                 Constraint Min_Down("Min_Down_constraint_" + to_string(c) + "_"+ to_string(t));
                 for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
                     Min_Down   += Shut_down[c].in_at(P.bag_gens[c], l);
@@ -204,7 +204,6 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
             }
         }
     }
-    ////Ramp Rate
     for (int c = 0; c < nbparts; c++) {
         if (P.bag_gens[c].size() > 0) {
             Constraint Production_P_LB("Production_P_LB_"+ to_string(c));
@@ -231,24 +230,35 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
                 Constraint Ramp_down("Ramp_down_constraint_" + to_string(c) + "_" +to_string(t));
                 Ramp_up =  Pg[c].in_at(P.bag_gens[c], t);
                 Ramp_up -= Pg[c].in_at(P.bag_gens[c], t-1);
-                Ramp_up -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t-1);
-                Ramp_up -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t));
+                Ramp_up -= rate_ramp.in_at(P.bag_gens[c], t)*On_off[c].in_at(P.bag_gens[c], t-1);
+                Ramp_up -= rate_switch.in_at(P.bag_gens[c], t)*(1 - On_off[c].in_at(P.bag_gens[c], t));
 
                 Ramp_down =  Pg[c].in_at(P.bag_gens[c], t-1);
                 Ramp_down -= Pg[c].in_at(P.bag_gens[c], t);
-                Ramp_down -= rate_ramp*On_off[c].in_at(P.bag_gens[c], t);
-                Ramp_down -= rate_switch*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
+                Ramp_down -= rate_ramp.in_at(P.bag_gens[c], t)*On_off[c].in_at(P.bag_gens[c], t);
+                Ramp_down -= rate_switch.in_at(P.bag_gens[c], t)*(1 - On_off[c].in_at(P.bag_gens[c], t-1));
 
                 ACUC.add_constraint(Ramp_up <= 0);
                 ACUC.add_constraint(Ramp_down <= 0);
             }
+            Constraint Ramp_up("Ramp_up_constraint0" + to_string(c));
+            Ramp_up =  Pg[c].in_at(P.bag_gens[c], 0) - Pg_initial.in(P.bag_gens[c])
+                    - rate_ramp.in_at(P.bag_gens[c], 0)*On_off_initial.in(P.bag_gens[c]);
+            Ramp_up -= rate_switch.in_at(P.bag_gens[c], 0)*(1 - On_off_initial.in(P.bag_gens[c]));
+            ACUC.add_constraint(Ramp_up <= 0);
+            
+            Constraint Ramp_down("Ramp_down_constraint0");
+            Ramp_down =   -1*Pg[c].in_at(P.bag_gens[c],0) + Pg_initial.in(P.bag_gens[c]);
+            Ramp_down -= rate_ramp.in_at(P.bag_gens[c], 0)*On_off[c].in_at(P.bag_gens[c], 0);
+            Ramp_down -= rate_switch.in_at(P.bag_gens[c], 0)*(1 - On_off[c].in_at(P.bag_gens[c], 0));
+            ACUC.add_constraint(Ramp_down <= 0);
         }
     }
   // set the initial state of generators.
     for (int c = 0; c < nbparts; c++) {
-        for(auto g: P.bag_gens[c]) {
-            Constraint gen_initial("gen_" + g->_name + to_string(c) + ",-1");
-            gen_initial +=  On_off[c]( g->_name + ",-1");
+        if (P.bag_gens[c].size() >0) {
+            Constraint gen_initial("gen_initial_"+to_string(c));
+            gen_initial +=  On_off[c].in_at(P.bag_gens[c], -1) - On_off_initial.in(P.bag_gens[c]);
             ACUC.add_constraint(gen_initial == 0);
         }
     }
@@ -295,9 +305,10 @@ double getdual_relax(PowerNet& grid, const unsigned T, const Partition& P, const
 
 /** INITIALISE SUBPROBLEM MODEL */
 double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigned c,
-                  const param<Real>& rate_ramp,const param<Real>& rate_switch,
-                  const param<Real>& min_up, const param<Real>& min_down,
-                  const param<Real>& cost_up, const param<Real>& cost_down,
+                  param<Real>& rate_ramp, param<Real>& rate_switch,
+                  param<Real>& min_up,  param<Real>& min_down,
+                  param<Real>& cost_up, param<Real>& cost_down,
+                   param<bool>& On_off_initial, param<Real>& Pg_initial,
                   var<Real>& Pg, var<Real>& Pg2, var<Real>& Qg, var<bool>& Start_up, var<bool>& Shut_down, var<bool>& On_off,
                   var<Real>& Xii, var<Real>& R_Xij, var<Real>& Im_Xij,
                   param<Real>& R_lambda, param<Real>& Im_lambda,param<Real>& lambda, param<Real>& Xii_log, param<Real>& R_Xij_log, param<Real>& Im_Xij_log)
@@ -413,8 +424,8 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     // Inter-temporal constraints 3a, 3d
     if (P.bag_gens[c].size() > 0) {
         for (int t = 0; t < T; t++) {
-            Constraint MC1("MC1_"+to_string(t));
-            Constraint MC2("MC2_"+to_string(t));
+            Constraint MC1("Inter_temporal_MC1_"+to_string(t));
+            Constraint MC2("Inter_temporal_MC2_"+to_string(t));
             MC1 = On_off.in_at(P.bag_gens[c], t)- On_off.in_at(P.bag_gens[c], t-1)-  Start_up.in_at(P.bag_gens[c], t);
             MC2 = On_off.in_at(P.bag_gens[c], t-1) - On_off.in_at(P.bag_gens[c], t) - Shut_down.in_at(P.bag_gens[c], t);
             Subr.add_constraint(MC1 <= 0);
@@ -429,9 +440,9 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
             Subr.add_constraint(OnOffStartupShutdown == 0);
         }
     }
-    // 4b
+    
     if (P.bag_gens[c].size() > 0) {
-        for (int t = min_up.getvalue(); t < T; t++) {
+        for (int t = min_up.getvalue()-1; t < T; t++) {
             Constraint Min_Up("Min_Up_constraint" + to_string(c) + "_"+ to_string(t));
             for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
                 Min_Up   += Start_up.in_at(P.bag_gens[c], l);
@@ -442,7 +453,7 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     }
     // 4c
     if (P.bag_gens[c].size() > 0) {
-        for (int t = min_down.getvalue(); t < T; t++) {
+        for (int t = min_down.getvalue()-1; t < T; t++) {
             Constraint Min_Down("Min_Down_constraint_"+ to_string(t));
             for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
                 Min_Down   += Shut_down.in_at(P.bag_gens[c], l);
@@ -487,11 +498,22 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
             Subr.add_constraint(Ramp_up <= 0);
             Subr.add_constraint(Ramp_down <= 0);
         }
+        
+        Constraint Ramp_up("Ramp_up_constraint0" + to_string(c));
+        Ramp_up =  Pg.in_at(P.bag_gens[c], 0) - Pg_initial.in(P.bag_gens[c]) - rate_ramp.in_at(P.bag_gens[c], 0)*On_off_initial.in(P.bag_gens[c]);
+        Ramp_up -= rate_switch.in_at(P.bag_gens[c], 0)*(1 - On_off_initial.in(P.bag_gens[c]));
+        Subr.add_constraint(Ramp_up <= 0);
+        
+        Constraint Ramp_down("Ramp_down_constraint0");
+        Ramp_down =   -1*Pg.in_at(P.bag_gens[c],0) + Pg_initial.in(P.bag_gens[c]);
+        Ramp_down -= rate_ramp.in_at(P.bag_gens[c], 0)*On_off.in_at(P.bag_gens[c], 0);
+        Ramp_down -= rate_switch.in_at(P.bag_gens[c], 0)*(1 - On_off.in_at(P.bag_gens[c], 0));
+        Subr.add_constraint(Ramp_down <= 0);
     }
     //// set the initial state of generators.
-    for(auto g: P.bag_gens[c]) {
-        Constraint gen_initial("gen_" + g->_name + to_string(c) + ",-1");
-        gen_initial +=  On_off( g->_name + ",-1");
+    if (P.bag_gens[c].size() >0) {
+        Constraint gen_initial("gen_initial_"+to_string(c));
+        gen_initial +=  On_off.in_at(P.bag_gens[c], -1) - On_off_initial.in(P.bag_gens[c]);
         Subr.add_constraint(gen_initial == 0);
     }
     /* solve it! */
@@ -525,9 +547,9 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
@@ -547,7 +569,7 @@ int main (int argc, const char * argv[])
     Partition P;
     P.get_ncut(grid, nbparts);
     // Schedule Parameters
-    unsigned T = 5;
+    unsigned T = 24;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -555,8 +577,8 @@ int main (int argc, const char * argv[])
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
     for (auto g: grid.gens) {
-        rate_ramp(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.25*grid.pg_max(g->_name).getvalue());
-        rate_switch(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.25*grid.pg_max(g->_name).getvalue());
+        rate_ramp(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.75*grid.pg_max(g->_name).getvalue());
+        rate_switch(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.75*grid.pg_max(g->_name).getvalue());
     }
     min_up = 2;
     min_down = 2;
@@ -565,6 +587,13 @@ int main (int argc, const char * argv[])
     grid.time_expand(T);
     rate_ramp.time_expand(T);
     rate_switch.time_expand(T);
+    // set initial state or read the initial state
+    param<Real> Pg_initial("Pg_initial");
+    param<bool> On_off_initial("On_off_initial");
+    for (auto g: grid.gens){
+        Pg_initial(g->_name) = 0;
+        On_off_initial(g->_name) = 0;
+    }
     Model ACUC("ACUC Model");
     /** Variables */
     vector<var<Real>> R_Xij;
@@ -628,14 +657,14 @@ int main (int argc, const char * argv[])
     R_lambda.initialize_all(0);
     Im_lambda.initialize_all(0);
     lambda.initialize_all(0);
-    double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg, Pg2, Qg,
-                                  Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
+    double lb_cts = getdual_relax(grid, T, P, nbparts, rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, 
+                                   On_off_initial,  Pg_initial, Pg, Pg2, Qg, Start_up, Shut_down, On_off, Xii, R_Xij,  Im_Xij, R_lambda, Im_lambda, lambda);
     //Improve the lower bound using MISCOP.
     std::vector<double> Subs; 
     Subs.resize(nbparts);
     double LB = 0;
     for(int c = 0; c < nbparts; c++) {
-        Subs[c]= subproblem(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, Pg[c], Pg2[c], Qg[c],
+        Subs[c]= subproblem(grid,T,P,c,rate_ramp, rate_switch, min_up, min_down, cost_up, cost_down, On_off_initial, Pg_initial, Pg[c], Pg2[c], Qg[c],
         Start_up[c], Shut_down[c], On_off[c], Xii[c], R_Xij[c],Im_Xij[c], R_lambda, Im_lambda, lambda, Xii_log[c], R_Xij_log[c], Im_Xij_log[c]);
         LB += Subs[c];
     }

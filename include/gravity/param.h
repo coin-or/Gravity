@@ -1670,7 +1670,7 @@ public:
     }
 
     
-    template<typename Tobj> param from_at(const vector<Tobj*>& vec, const unsigned t) {
+    template<typename Tobj> param from_at(const vector<Tobj*>& vec, const int t) {
         param res(this->_name);
         string key;
         vector<string> keys;
