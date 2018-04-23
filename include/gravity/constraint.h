@@ -133,11 +133,45 @@ public:
         }
         return *this;
     };
+    
+    Constraint& in(const vector<Node*>& vec, const unsigned T) {
+        this->func_::in(vec, T);
+        string key;
+        for (unsigned t = 0; t < T; t++) {
+            for (auto it = vec.begin(); it != vec.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                key = (*it)->_name + "," + to_string(t);
+                auto index = this->_indices->size();
+                auto pp = this->_indices->insert(make_pair<>(key, index));
+                if(pp.second) { //new index inserted
+                    this->_val->resize(max(_val->size(), index+1));
+                    this->_dim[0] = max(_dim[0],_val->size());
+                    this->_rev_indices->resize(_val->size());
+                    this->_rev_indices->at(index) = key;
+                    this->func_::_ids->at(0).push_back(index);
+                }
+                else {
+                    this->func_::_ids->at(0).push_back(pp.first->second);
+                }
+            }
+        }
+        return *this;
+    };
 
+    
+    Constraint& in_at(const vector<Node*>& vec, const int T) {
+        this->func_::in_at(vec, T);
+        return *this;
+    };
+
+    
     template<typename Tobj> Constraint& in_at(const vector<Tobj*>& vec, const unsigned T) {
         this->func_::in_at(vec, T);
         return *this;
     };
+    
 
     template<typename... Args>
     Constraint operator()(string t1, Args&&... args) {
