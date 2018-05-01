@@ -50,7 +50,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 24;
+    unsigned T = 2;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -58,8 +58,8 @@ int main (int argc, const char * argv[])
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
     for (auto g: grid->gens) {
-        rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.75*grid->pg_max(g->_name).getvalue());
-        rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 0.75*grid->pg_max(g->_name).getvalue());
+        rate_ramp(g->_name) = max(grid->pg_min(g->_name).getvalue(), 1*grid->pg_max(g->_name).getvalue());
+        rate_switch(g->_name) = max(grid->pg_min(g->_name).getvalue(), 1*grid->pg_max(g->_name).getvalue());
     }
     min_up = 2;
     min_down = 2;
@@ -233,7 +233,7 @@ int main (int argc, const char * argv[])
     // 7c
     for (int t = min_down.getvalue()-1; t < T; t++) {
         Constraint Min_Down("Min_Down_constraint" + to_string(t));
-        for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
+        for (int l = t-min_down.getvalue()+1; l < t+1; l++) {
             Min_Down   += Shut_down.in_at(grid->gens, l);
         }
         Min_Down -= 1 - On_off.in_at(grid->gens, t);
@@ -291,7 +291,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = true;
+    bool relax = false;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);
