@@ -547,16 +547,17 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
-    int nbparts = 3;
+    int nbparts = 10;
+
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
@@ -577,8 +578,8 @@ int main (int argc, const char * argv[])
     param<Real> cost_up("cost_up");
     param<Real> cost_down("cost_down");
     for (auto g: grid.gens) {
-        rate_ramp(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.75*grid.pg_max(g->_name).getvalue());
-        rate_switch(g->_name) = max(grid.pg_min(g->_name).getvalue(), 0.75*grid.pg_max(g->_name).getvalue());
+        rate_ramp(g->_name) = max(grid.pg_min(g->_name).getvalue(), 1*grid.pg_max(g->_name).getvalue());
+        rate_switch(g->_name) = max(grid.pg_min(g->_name).getvalue(), 1*grid.pg_max(g->_name).getvalue());
     }
     min_up = 2;
     min_down = 2;
