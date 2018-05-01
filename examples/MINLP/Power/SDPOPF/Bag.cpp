@@ -2,10 +2,12 @@
 // Created by kbestuzheva on 12/18/17.
 //
 
+#include <Eigen/Dense>
+//#include <Eigen/Eigenvalues>
 #include <gravity/param.h>
 #include "Bag.h"
 
-//#define FLAT
+#define FLAT
 
 Bag::Bag(int id, const PowerNet& grid, vector<Node*> nodes):_id(id),_grid((PowerNet*)&grid),_nodes(nodes) {
     Arc* aij = NULL;
@@ -146,6 +148,7 @@ param<double> Bag::fill_wstar(){
         _W_star.set_val(to_string(i+_nodes.size())+","+to_string(i+_nodes.size()),((Bus*)_nodes[i])->w);
         _W_star.set_val(to_string(i)+","+to_string(i+_nodes.size()),0.0);
     }
+    cout << "\nwstar: "; _wstarp.print(true);
     return W_star;
 }
 
@@ -300,7 +303,7 @@ bool Bag::is_PSD(){
     Node* node;
     arma::cx_mat A(n,n);
 
-
+    fill_wstar();
 
     Line *a12, *a13, *a23;
     Bus *n1, *n2, *n3;
@@ -381,6 +384,7 @@ void Bag::update_PSD(){
     _is_psd = is_PSD();
 }
 
+/* the indices of all elements in the upper triangular matrix of size n */
 vector<index_> triang_indices(int n) {
     vector<index_> res;
     for(int i = 0; i < n; i++) {
@@ -391,6 +395,181 @@ vector<index_> triang_indices(int n) {
     return res;
 }
 
+/* the following functions return the indices corresponding to some parts
+ * of a 2n x 2n matrix that is divided into 4 submatrices of equal size: */
+
+/* upper triangular part (including the diagonal) of the upper left submatrix */
+vector<index_> ul_u(int n) {
+    vector<index_> res;
+    for(int i = 0; i < n; i++) {
+        for(int j = i; j < n; j++) {
+            res.push_back(index_(to_string(i)+","+to_string(j)));
+        }
+    }
+    return res;
+}
+
+/* upper triangular part (including the diagonal) of the lower right submatrix */
+vector<index_> lr_u(int n) {
+    vector<index_> res;
+    for(int i = n; i < 2*n; i++) {
+        for(int j = i; j < 2*n; j++) {
+            res.push_back(index_(to_string(i)+","+to_string(j)));
+        }
+    }
+    return res;
+}
+
+/* upper triangular part (excluding the diagonal) of the upper right submatrix */
+vector<index_> ur_u(int n) {
+    vector<index_> res;
+    for(int i = 0; i < n; i++) {
+        for(int j = n+i+1; j < 2*n; j++) {
+            res.push_back(index_(to_string(i)+","+to_string(j)));
+        }
+    }
+    return res;
+}
+
+/* lower triangular part (excluding the diagonal) of the upper right submatrix */
+vector<index_> ur_l(int n) {
+    vector<index_> res;
+    for(int i = 0; i < n; i++) {
+        for(int j = n; j < n+i; j++) {
+            res.push_back(index_(to_string(i)+","+to_string(j)));
+        }
+    }
+    return res;
+}
+
+/*---------------------------------------*/
+#ifdef FLAT
+param<double> Bag::nfp(){
+    param<double> what;
+    fill_wstar();
+
+//    cout << "\nIndices:";
+//    for(auto& i: _indices) cout << "\n" << i->_name;
+//    cout << "\n---------\n";
+
+    Model NPP("NPP model");
+    int n = _nodes.size();
+    DebugOn("\nn = " << n);
+
+    var<double> W("W");
+    W._psd = true;
+    NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in upper triangle is n*(2*n+1)
+
+    var<double> z("z");
+    z.in_q_cone();
+    auto Rn = R(n*n+1);
+    NPP.add_var(z.in(Rn));
+
+    func_ obj;
+    obj = z("obj");
+    NPP.min(obj);
+
+//    min t
+//    s.t.
+//    ||z|| <= t    (z(obj) = t)
+//    w*-w = z
+//    W is PSD,
+//    L <= W <= U
+//    matr structure
+
+    /** Constraints **/
+
+    /* w*-w = z */
+    Constraint svec("svec");
+
+    auto idxs_ul_u = ul_u(n);
+    cout << "\nUpper left, upper: ";
+    for(auto& idx: idxs_ul_u) DebugOff(idx._name << "; ");
+
+    auto idxs_lr_u = lr_u(n);
+    cout << "\nLower right, upper: ";
+    for(auto& idx: idxs_lr_u) DebugOff(idx._name << "; ");
+
+    auto idxs_ur_u = ur_u(n);
+    cout << "\nUpper right, upper: ";
+    for(auto& idx: idxs_ur_u) DebugOff(idx._name << "; ");
+
+    auto idxs_ur_l = ur_l(n);
+    cout << "\nUpper right, lower: ";
+    for(auto& idx: idxs_ur_l) DebugOff(idx._name << "; ");
+
+    vector<index_> obj_idxs;
+    obj_idxs.insert(obj_idxs.end(),idxs_ul_u.begin(),idxs_ul_u.end());
+    obj_idxs.insert(obj_idxs.end(),idxs_ur_u.begin(),idxs_ur_u.end());
+    DebugOn("\nObj: ");
+    for(auto& idx: obj_idxs) DebugOn(idx._name << "; ");
+
+    auto idxs = triang_indices(2*n);
+    svec = _W_star - W - z;
+    NPP.add_constraint(svec.in(obj_idxs)==0);
+//    NPP.add_constraint(svec.in(idxs)==0);
+//    svec.print_expanded();
+
+    vector<index_> zero_idxs;
+    for(int i = 0; i < n; i++) zero_idxs.push_back(index_(to_string(i)+","+to_string(i+n)));
+
+    Constraint zeros("zeros");
+    zeros = W.in(zero_idxs);
+    NPP.add_constraint(zeros==0);
+    zeros.print_expanded();
+
+    Constraint real_symm("real_symm");
+    real_symm = W.submat(idxs_ul_u) - W.submat(idxs_lr_u);
+    NPP.add_constraint(real_symm==0);
+//    real_symm.print_expanded();
+
+    Constraint imag_symm("imag_symm");
+    imag_symm = W.submat(idxs_ur_u) + W.submat(idxs_ur_l);
+    NPP.add_constraint(imag_symm==0);
+//    imag_symm.print_expanded();
+
+    Constraint W_lb("W_lb");
+    W_lb = _Wmin - W;
+    NPP.add_constraint(W_lb.in(obj_idxs) <= 0);
+//    W_lb.print_expanded();
+
+    Constraint W_ub("W_ub");
+    W_ub = _Wmax - W;
+    NPP.add_constraint(W_ub.in(obj_idxs) >= 0);
+//    W_ub.print_expanded();
+
+    string namew, namewr, namewi;
+
+    solver s(NPP,Mosek);
+    s.run(0,0);
+
+    z.print(); cout << "\n";
+    W.print(); cout << "\n";
+//    w.print(); cout << "\n";
+
+    for(int i = 0; i < n; i++){
+        for(int j = i; j < n; j++){
+            if(i==j){
+                namew = "w(" + _nodes[i]->_name + ")";
+                what.set_val(namew,W(to_string(i)+","+to_string(j)).eval());
+            }
+            else {
+                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+                what.set_val(namewr, W(to_string(i)+","+to_string(j)).eval());
+                if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
+                    what.set_val(namewi, W(to_string(i)+","+to_string(j+_nodes.size())).eval());
+                else
+                    what.set_val(namewi, -W(to_string(i)+","+to_string(j+_nodes.size())).eval());
+            }
+        }
+    }
+
+    what.set_name("w_hat");
+    what.print(true);
+    return what;
+}
+#else
 param<double> Bag::nfp(){
     param<double> what;
     fill_wstar();
@@ -405,22 +584,12 @@ param<double> Bag::nfp(){
 
 //    _wstarp.print(true);
 
-#ifndef FLAT
     sdpvar<double> W("W");
     NPP.add_var(W^(2*n));
-#else
-    var<double> W("W");
-    W._psd = true;
-    NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in apper triangle is n*(2*n+1)
-#endif
 
     var<double> z("z");
     z.in_q_cone();
-#ifndef FLAT
     auto Rn = R(n*n+1);
-#else
-    auto Rn = R(2*n*2*n+1);
-#endif
     NPP.add_var(z.in(Rn));
 
     var<double> w("w");//, _wmin, _wmax);
@@ -443,39 +612,11 @@ param<double> Bag::nfp(){
     /* w*-w = z */
     Constraint svec("svec");
 
-#ifndef FLAT
     svec = _wstarp - w - z;
     NPP.add_constraint(svec.in(_indices)==0);
-#else
-    auto idxs = triang_indices(2*n);
-    svec = _W_star - W - z;
-    NPP.add_constraint(svec.in(idxs)==0);
-//    svec.print_expanded();
-
-//    vector<index_> zero_idxs;
-//    for(int i = 0; i < n; i++) {
-//        zero_idxs.push_back(index_(to_string(i)+","+to_string(i+n)));
-//    }
-//    Constraint zeros("zeros");
-//    zeros = W.in(zero_idxs);
-//    NPP.add_constraint(zeros==0);
-//    zeros.print_expanded();
-
-    Constraint W_lb("W_lb");
-    W_lb = _Wmin - W;
-    NPP.add_constraint(W_lb.in(idxs) <= 0);
-//    W_lb.print_expanded();
-
-    Constraint W_ub("W_ub");
-    W_ub = _Wmax - W;
-    NPP.add_constraint(W_ub.in(idxs) >= 0);
-//    W_ub.print_expanded();
-
-#endif
 
     string namew, namewr, namewi;
 
-#ifndef FLAT
     /* matrix structure */
     for(int i = 0; i < n; i++){
         for(int j = i; j < n; j++){
@@ -485,6 +626,7 @@ param<double> Bag::nfp(){
                 Constraint mstruct1("mstruct"+to_string(i+n)+to_string(i+n));
                 mstruct1 = w(namew) - W(i+n,i+n);
                 NPP.add_constraint(mstruct1==0);
+//                mstruct1.print_expanded();
 
                 Constraint mstruct2("mstruct"+to_string(i)+to_string(i));
                 mstruct2 = w(namew) - W(i,i);
@@ -519,15 +661,14 @@ param<double> Bag::nfp(){
             }
         }
     }
-#endif
 
     solver s(NPP,Mosek);
     s.run(0,0);
 
-//    z.print(); cout << "\n";
-//    W.print(true); cout << "\n";
+    z.print(); cout << "\n";
+    W.print(); cout << "\n";
 //    w.print(); cout << "\n";
-#ifndef FLAT
+
     for(int i = 0; i < n; i++){
         for(int j = i; j < n; j++){
             if(i==j){
@@ -545,142 +686,23 @@ param<double> Bag::nfp(){
             }
         }
     }
-#else
-    for(int i = 0; i < n; i++){
-        for(int j = i; j < n; j++){
-            if(i==j){
-                namew = "w(" + _nodes[i]->_name + ")";
-                what.set_val(namew,W(to_string(i)+","+to_string(j)).eval());
-            }
-            else {
-                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
-                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
-                what.set_val(namewr, W(to_string(i)+","+to_string(j)).eval());
-                if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
-                    what.set_val(namewi, W(to_string(i)+","+to_string(j+_nodes.size())).eval());
-                else
-                    what.set_val(namewi, -W(to_string(i)+","+to_string(j+_nodes.size())).eval());
-            }
-        }
-    }
-#endif
-//    what.set_name("w_hat");
-//    what.print(true);
-    return what;
-}
 
-param<double> Bag::nfp1(){
-//    fill_wstar();
-    param<double> what;
-    int n = _nodes.size();
-    DebugOff("\nn = " << n);
-
-    if(n == 2) {
-        DebugOff("Returning empty w_hat.");
-        return what;
-    }
-
-    int free_lines = 0;
-    for (int i = 0; i < _nodes.size() - 1; i++) {
-        for (int j = i + 1; j < _nodes.size(); j++) {
-            Arc *aij = _grid->get_arc(_nodes[i]->_name, _nodes[j]->_name);
-            if (aij->_free) free_lines++;
-        }
-    }
-
-    if (free_lines > 1) {
-        DebugOn("Returning empty w_hat.");
-        return what;
-    }
-
-    //the bag has all lines or has > 3 nodes
-
-    double tol = 1e-6;
-    arma::cx_mat A(n,n);
-
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j <= i; j++) {
-            if(i==j) {
-                A(i,j) = arma::cx_double(((Bus*)_grid->get_node(_nodes[i]->_name))->w,0);
-            }else{
-                
-                if(_grid->has_directed_arc(_nodes[i],_nodes[j])) {
-                    double AijI = ((Line*)_grid->get_arc(_nodes[i], _nodes[j]))->wi;
-                    double AijR = ((Line*)_grid->get_arc(_nodes[i], _nodes[j]))->wr;
-                    A(i,j) = arma::cx_double(AijR,AijI);
-                    A(j,i) = arma::cx_double(AijR,-AijI);
-                }
-                else {
-                    double AijI = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wi;
-                    double AijR = ((Line*)_grid->get_arc(_nodes[j], _nodes[i]))->wr;
-                    A(i,j) = arma::cx_double(AijR,-AijI);
-                    A(j,i) = arma::cx_double(AijR,AijI);
-                }
-                
-            }
-        }
-    }
-    arma::cx_mat Eigvec; arma::cx_mat W_hat;
-    arma::vec eigval;
-    DebugOn("x_star = ");
-    A.print();
-    arma::cx_mat B = (A+A.t())/2;
-    bool success = arma::eig_sym(eigval,Eigvec,B);
-    if (!success) {
-        throw invalid_argument("Matrix could not be decomposed");
-    }
-    DebugOn("\n");
-//    DebugOn("w_star = ");
-//    _wstarp.print(true);
-    
-    double min_eig = 0, max_eig = -1;
-    for(auto eig: eigval) {
-        if(eig < min_eig) min_eig = eig;
-        if(eig > max_eig) max_eig = eig;
-    }
-
-    if(min_eig/max_eig > -tol) {
-        DebugOff("\nBag is PSD");
-        return what;
-    } else {
-        DebugOff("\nBag is not PSD\n");
-        for(int i = 0; i < n; i++) {
-            if(eigval(i) < 0) {
-                eigval.at(i) = 0;
-//                Eigvec.col(i).zeros();
-//                Eigvec.row(i).zeros();
-            }
-        }
-        
-        arma::mat D(n,n);
-        D.zeros();
-        D.diag() = eigval;
-        W_hat = Eigvec*D*Eigvec.t();
-        DebugOn("x_hat = \n");
-        W_hat.print();
-    }
-
-    string namew, namewr, namewi;
-
-    for(int i = 0; i < n; i++){
-        for(int j = i; j < n; j++){
-            if(i==j){
-                namew = "w(" + _nodes[i]->_name + ")";
-                what.set_val(namew,W_hat(i,i).real());
-            }
-            else {
-                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
-                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
-                what.set_val(namewr, W_hat(i,j).real());
-                if(_grid->has_directed_arc(_nodes[i],_nodes[j]))
-                    what.set_val(namewi, W_hat(i,j).imag());
-                else
-                    what.set_val(namewi, -1*W_hat(i,j).imag());
-            }
-        }
-    }
+//    double w1, w2, w3, wr12, wr13, wr23, wi12, wi13, wi23;
+//    w1 = W("0,0").eval(); w2 = W("1,1").eval(); w3 = W("2,2").eval();
+//    wr12 = W("0,1").eval(); wr13 = W("0,2").eval(); wr23 = W("1,2").eval();
+//    wi12 = W("0,4").eval(); wi13 = W("0,5").eval(); wi23 = W("1,5").eval();
+//
+//    double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+//    SDP *= 2;
+//    SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+//    SDP += w1*w2*w3;
+//    DebugOn("\nSDP of w_hat = " << SDP);
+//    DebugOn("\nSOCP12 = " << wr12*wr12 + wi12*wi12 - w1*w2);
+//    DebugOn("\nSOCP13 = " << wr13*wr13 + wi13*wi13 - w1*w3);
+//    DebugOn("\nSOCP23 = " << wr23*wr23 + wi23*wi23 - w3*w2);
 
     what.set_name("w_hat");
     what.print(true);
     return what;
 }
+#endif
