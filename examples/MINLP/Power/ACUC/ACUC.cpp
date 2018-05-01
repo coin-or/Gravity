@@ -261,12 +261,12 @@ int main (int argc, const char * argv[])
         Ramp_up =  Pg.in_at(grid->gens, t);
         Ramp_up -= Pg.in_at(grid->gens, t-1);
         Ramp_up -= rate_ramp.in_at(grid->gens, t)*On_off.in_at(grid->gens, t-1);
-        Ramp_up -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t));
+        Ramp_up -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t-1));
 
         Ramp_down =  Pg.in_at(grid->gens, t-1);
         Ramp_down -= Pg.in_at(grid->gens, t);
         Ramp_down -= rate_ramp.in_at(grid->gens, t)*On_off.in_at(grid->gens, t);
-        Ramp_down -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t-1));
+        Ramp_down -= rate_switch.in_at(grid->gens, t)*(1 - On_off.in_at(grid->gens, t));
 
         ACUC.add_constraint(Ramp_up <= 0);
         ACUC.add_constraint(Ramp_down <= 0);
@@ -282,8 +282,6 @@ int main (int argc, const char * argv[])
     Ramp_down -= rate_switch.in_at(grid->gens, 0)*(1 - On_off.in_at(grid->gens, 0));
     ACUC.add_constraint(Ramp_down <= 0);
 
-
-    
     //set the initial state of generators.
     Constraint gen_initial("gen_initialisation");
     gen_initial += On_off.in_at(grid->gens, -1)- On_off_initial.in(grid->gens);
@@ -291,7 +289,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = false;
+    bool relax = true;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);
