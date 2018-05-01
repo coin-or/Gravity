@@ -294,8 +294,8 @@ double Global::getdual_relax_time_() {
                 Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t) + "," + g->_name);
                 string name = g->_name +"," + to_string(t);
                 string name1 = g->_name +"," + to_string(t-1);
-                Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t](name1) - rate_switch.getvalue()*(1 - On_off[t+1](name));
-                Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t+1](name)- rate_switch.getvalue()*(1 - On_off[t](name1));
+                Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t](name1) - rate_switch.getvalue()*(1 - On_off[t](name1));
+                Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t+1](name)- rate_switch.getvalue()*(1 - On_off[t+1](name));
                 ACUC.add_constraint(Ramp_up <= 0);
                 ACUC.add_constraint(Ramp_down <= 0);
             }
@@ -360,7 +360,9 @@ double Global::getdual_relax_time_() {
             if (g->_active) {
                 auto OOSS  = ACUC.get_constraint("OnOffStartupShutdown_"+ to_string(t) + ","+ g->_name);
                 string name = g->_name + "," + to_string(t);
-                mu(name) = -OOSS->_dual.at(0);
+                cout << "val: " << to_string(OOSS->eval(0)) << endl;
+                DebugOff("mu: " << -OOSS->_dual.at(0)  << endl);
+                mu(name) = -OOSS->_dual.at(0); // when positive and when negative?
             }
         }
     }
@@ -684,6 +686,9 @@ double Global::getdual_relax_spatial(){
                 R_lambda_(name) = -cR._dual.at(0);
                 Im_lambda_(name)= -cIm._dual.at(0);
                 lambda_(name) = -c._dual.at(0);
+                DebugOff("R_lambda_" << -cR._dual.at(0) << endl);
+                DebugOff("Im_lambda_" << -cIm._dual.at(0)<< endl);
+                DebugOff("lambda_" << -c._dual.at(0)<< endl);
             }
         }
     }
@@ -697,7 +702,7 @@ double Global::Subproblem_time_(int t) {
     Sub.add_var(Pg[t].in_at(grid->gens,t));
     Sub.add_var(Pg2[t].in_at(grid->gens,t));
     Sub.add_var(Qg[t].in_at(grid->gens,t));
-    Sub.add_var(On_off[t+1].in_at(grid->gens, t));
+    Sub.add_var(On_off[t+1].in_at(grid->gens, t));// On_off has ranges from -1 to 1. 
     Sub.add_var(Start_up[t].in_at(grid->gens, t));
     Sub.add_var(Shut_down[t].in_at(grid->gens, t));
     Sub.add_var(Xii[t].in_at(grid->nodes, t));
@@ -727,11 +732,11 @@ double Global::Subproblem_time_(int t) {
                        - zeta_up(name1)*rate_ramp(name1) -mu(name1))*On_off[t+1](name);
                 obj += cost_up.getvalue()*Start_up[t](name) + cost_down.getvalue()*Shut_down[t](name);
                 if (min_up.getvalue() >1) {
-                    string name2 = g->_name + to_string(min_up.getvalue()-1);
+                    string name2 = g->_name +"," + to_string(min_up.getvalue()-1);
                     obj += mu_up(name2)*Start_up[t](name);
                 }
                 if(min_down.getvalue()>1) {
-                    string name2 = g->_name + to_string(min_up.getvalue()-1);
+                    string name2 = g->_name + ","+to_string(min_down.getvalue()-1);
                     obj += mu_down(name2)*Shut_down[t](name);
                 }
             }
@@ -748,10 +753,10 @@ double Global::Subproblem_time_(int t) {
 
                 obj += (cost_up-lambda_up(name) - mu(name))*Start_up[t](name);
                 obj += (cost_down-lambda_down(name)+mu(name))*Shut_down[t](name);
-                if (min_up.getvalue() >1) {
+                if (min_up.getvalue() > 1) {
                     obj += mu_up(name)*Start_up[t](name);
                 }
-                if(min_down.getvalue()>1) {
+                if(min_down.getvalue()> 1) {
                     obj += mu_down(name)*Shut_down[t](name);
                 }
             }
@@ -766,19 +771,19 @@ double Global::Subproblem_time_(int t) {
                 obj += (grid->c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)
                         - zeta_down(name)*rate_ramp(name) - zeta_up(name1)*rate_ramp(name1)
                         + zeta_up(name1)*rate_switch(name1)+ zeta_down(name)*rate_switch(name)
-                        + mu(name))*On_off[t+1](name);
+                        + mu(name) - mu(name1))*On_off[t+1](name);
                 if (t >= min_up.getvalue() -1) {
                     obj -= mu_up(name)*On_off[t+1](name);
                 }
                 if (t >= min_down.getvalue() -1) {
-                    obj += mu_up(name)*On_off[t+1](name);
+                    obj += mu_down(name)*On_off[t+1](name);
                 }
 
                 obj += (cost_up.getvalue()-lambda_up(name)-mu(name))*Start_up[t](name);
                 obj += (cost_down.getvalue()-lambda_down(name)+mu(name))*Shut_down[t](name);
                 if (min_up.getvalue() >1) {
                     int start = std::max(min_up.getvalue()-1, t);
-                    int end = std::min(min_up.getvalue()+t-1, Num_time-1);
+                    int end = std::min(min_up.getvalue()+t, Num_time);
                     for (int l = start; l < end; l++) {
                         string name2 = g->_name+","+to_string(l);
                         obj +=mu_up(name2)*Start_up[t](name);
@@ -786,7 +791,7 @@ double Global::Subproblem_time_(int t) {
                 }
                 if(min_down.getvalue()>1) {
                     int start = std::max(min_down.getvalue()-1, t);
-                    int end = std::min(min_down.getvalue()+t-1, Num_time-1);
+                    int end = std::min(min_down.getvalue()+t, Num_time);
                     for (int l = start; l < end; l++) {
                         string name2 = g->_name+","+to_string(l);
                         obj +=mu_down(name2)*Shut_down[t](name);
@@ -904,12 +909,13 @@ double Global::Subproblem_time_(int t) {
 
     /* Solver selection */
     solver cpx_acuc(Sub, cplex);
-    bool relax = false;
+    bool relax = true;
     int output = 1;
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
     return Sub._obj_val;
 }
+
 double Global::LR_bound_time_() {
     double LB = 0;
     for(int t = 0; t < Num_time; t++) {
@@ -924,9 +930,9 @@ double Global::LR_bound_time_() {
         }
     }
     if (min_down.getvalue() - 1.0 > 0) {
-        for (int t = min_down.getvalue() -1;  t < Num_time; t++ ) {
+        for (int t = min_down.getvalue()-1;  t < Num_time; t++ ) {
             for (auto& g: grid->gens) {
-                string name = g->_name + "," + to_string(t);
+                string name = g->_name + ","+to_string(t);
                 LB -= mu_down(name).getvalue();
             }
         }
@@ -1141,7 +1147,7 @@ double Global::Subproblem_spatial_(int l) {
     }
     /* solve it! */
     solver solve_Subr(Subr, cplex);
-    bool relax = false;
+    bool relax = true;
     int output = 1;
     double tol = 1e-6;
     solve_Subr.run(output, relax, tol);
