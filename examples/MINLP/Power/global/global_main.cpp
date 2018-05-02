@@ -52,25 +52,28 @@ int main (int argc, const char * argv[])
     }
     auto grid = new PowerNet();
     grid->readgrid(fname);
-    //GRAPH PARTITION
-    double solver_time_end, total_time_end, solve_time, total_time;
+    auto nb_bus_pairs = grid->get_nb_active_bus_pairs();
+    auto nb_gen = grid->get_nb_active_gens();
+    auto nb_lines = grid->get_nb_active_arcs();
+    auto nb_buses = grid->get_nb_active_nodes();
+    double  total_time_end, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    int T = 2;
+    int T = 1;
     int Num_parts = 2;
+    bool include_min_updown = true;
     auto global = new Global(grid, Num_parts, T);
-    double cst_t = global->getdual_relax_time_();
-    double lr_t = global->LR_bound_time_();
+    double cst_t = global->getdual_relax_time_(include_min_updown);
+    double lr_t = global->LR_bound_time_(include_min_updown);
     cout << "time lr lower bound " << to_string(lr_t) << endl;
-    double cst_s =global->getdual_relax_spatial();
-    double lr_s = global->LR_bound_spatial_();
-    cout << "Spaital lr lower bound: " << to_string(lr_s) << endl;
+    //double cst_s =global->getdual_relax_spatial();
+    //double lr_s = global->LR_bound_spatial_();
+    //cout << "Spaital lr lower bound: " << to_string(lr_s) << endl;
 
-//    // now we need to solve it faster
-//    total_time_end = get_cpu_time();
-//    total_time = total_time_end - total_time_start;
-//    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
-//                 +", " + to_string(LB) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
-//    cout << out << endl;
+    total_time_end = get_cpu_time();
+    total_time = total_time_end - total_time_start;
+    string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
+                 +", " + to_string(lr_t) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
+    cout << out << endl;
     return 0;
 }

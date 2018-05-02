@@ -50,7 +50,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 2;
+    unsigned T = 24;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -289,7 +289,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = true;
+    bool relax = false;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);

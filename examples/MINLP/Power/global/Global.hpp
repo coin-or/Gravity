@@ -40,7 +40,7 @@ public:
     vector<var<bool>> Start_up;
     vector<var<bool>> Shut_down;
 
-   // multipliers
+   // multipliers time
     param<Real> lambda_up; // inter temporal: start up and shut down constraints
     param<Real> lambda_down;
     param<Real> zeta_up; // ramping constraints
@@ -48,20 +48,23 @@ public:
     param<Real> mu; // dual of min up down constraints
     param<Real> mu_up;
     param<Real> mu_down;
+    bool include_min_updown_ =false;
+    
     // multipliers spatial
     param<Real> R_lambda_;
     param<Real> Im_lambda_;
     param<Real> lambda_;
     // vals of each subproblem
-    vector<double> Sub_; 
+    vector<double> Sub_;
+    
     //Constructors
     Global();
     Global(PowerNet*, int parts, int T);
     ~Global();
     
     // Accessors
-    double getdual_relax_time_();
-    double LR_bound_time_();
+    double getdual_relax_time_(bool include);
+    double LR_bound_time_(bool included_min_up_down);
     double Subproblem_time_(int l);
 
     double getdual_relax_spatial();
