@@ -7,6 +7,16 @@
 //
 #include "Partition.hpp"
 #include "global.hpp"
+#include <iomanip>
+
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+    std::ostringstream out;
+    out << std::setprecision(n) << a_value;
+    return out.str();
+}
+
 bool node_id_compare(const Node* n1, const Node* n2) {
     return n1->_id < n2->_id;
 }
@@ -59,21 +69,32 @@ int main (int argc, const char * argv[])
     double  total_time_end, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    int T = 1;
+    int T = 10;
     int Num_parts = 2;
     bool include_min_updown = true;
     auto global = new Global(grid, Num_parts, T);
     double cst_t = global->getdual_relax_time_(include_min_updown);
     double lr_t = global->LR_bound_time_(include_min_updown);
-    cout << "time lr lower bound " << to_string(lr_t) << endl;
+    cout << "time lr lower bound: " << to_string(lr_t) << endl;
+    double ub = global->Upper_bound_sequence_(include_min_updown);
+    cout << "time upper bound is: " << to_string(ub) << endl;
+
+    // upper bound
     //double cst_s =global->getdual_relax_spatial();
     //double lr_s = global->LR_bound_spatial_();
     //cout << "Spaital lr lower bound: " << to_string(lr_s) << endl;
-
     total_time_end = get_cpu_time();
     total_time = total_time_end - total_time_start;
-    string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
-                 +", " + to_string(lr_t) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
-    cout << out << endl;
+    string out = grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
+                 +", " + to_string_with_precision(lr_t, 6) + ", " + to_string_with_precision(ub, 6) +"," + to_string_with_precision(total_time, 6);
+   cout << out << endl;
+   ofstream outfile("ACUC_MISOCP.txt", ios_base::app);
+    if (!outfile)
+        cerr << "Oops! Uable to save session data! \n";
+    else{
+        //      outfile << "Instance,  CPU, Value" << endl;
+        outfile << out << endl;
+    }
+
     return 0;
 }

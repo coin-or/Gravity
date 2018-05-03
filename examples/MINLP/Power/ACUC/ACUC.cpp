@@ -50,7 +50,7 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 24;
+    unsigned T = 10;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -299,7 +299,7 @@ int main (int argc, const char * argv[])
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
                  +", " + to_string(ACUC._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
 
-    cout << out << endl;
+    cout << std::setprecision(4) <<out << endl;
 
     return 0;
 }
