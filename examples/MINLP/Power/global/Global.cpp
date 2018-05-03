@@ -642,7 +642,6 @@ double Global::getdual_relax_spatial() {
     return ACUC._obj_val;
 }
 
-
 void Global::add_var_Sub_time(Model& Sub, int t) {
     const auto bus_pairs = grid->get_bus_pairs();
     //Sub.add_var(Pg[t]);
@@ -675,11 +674,11 @@ void Global::add_obj_Sub_time(gravity::Model& Sub, int t) {
             if (g->_active) {
                 string name = g->_name + ",0";
                 string name1 = g->_name + ",1";
-                //obj += (grid->c1(name) + zeta_down(name1)- zeta_up(name1))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
-                obj += (grid->c1(name))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
-                //obj +=(grid->c0(name) + lambda_down(name1) - lambda_up(name1) + zeta_up(name1)*rate_switch(name1)
-                //       - zeta_up(name1)*rate_ramp(name1)-mu(name1))*On_off[t+1](name);
-                obj +=(grid->c0(name) + lambda_down(name1) - lambda_up(name1) -mu(name1))*On_off[t](name);
+                obj += (grid->c1(name) + zeta_down(name1)- zeta_up(name1))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
+                //obj += (grid->c1(name))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
+                obj +=(grid->c0(name) + lambda_down(name1) - lambda_up(name1) + zeta_up(name1)*rate_switch(name1)
+                       - zeta_up(name1)*rate_ramp(name1)-mu(name1))*On_off[t](name);
+                //obj +=(grid->c0(name) + lambda_down(name1) - lambda_up(name1) -mu(name1))*On_off[t](name);
                 obj += cost_up.getvalue()*Start_up[t](name) + cost_down.getvalue()*Shut_down[t](name);
                 if (include_min_updown_) {
                     string name2 = g->_name +"," + to_string(min_up.getvalue()-1);
@@ -697,14 +696,14 @@ void Global::add_obj_Sub_time(gravity::Model& Sub, int t) {
         for (auto g:grid->gens) {
             if (g->_active) {
                 string name = g->_name + ","+ to_string(t);
-                //obj += (grid->c1(name) + zeta_up(name)- zeta_down(name))*Pg[t](name);
-                obj += (grid->c1(name))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
-                obj += (grid->c0(name)+lambda_up(name) -lambda_down(name)+mu(name))*On_off[t](name);
-                //obj += (grid->c0(name)+lambda_up(name) -lambda_down(name)
-                //        - zeta_down(name)*rate_ramp(name) + zeta_down(name)*rate_switch(name)
-                //        +mu(name))*On_off[t+1](name);
+                obj += (grid->c1(name) + zeta_up(name)- zeta_down(name))*Pg[t](name)+ grid->c2(name)*Pg2[t](name);
+                //obj += (grid->c1(name))*Pg[t](name) + grid->c2(name)*Pg2[t](name);
+                //obj += (grid->c0(name)+lambda_up(name) -lambda_down(name)+mu(name))*On_off[t](name);
+                obj += (grid->c0(name)+lambda_up(name) -lambda_down(name)
+                        - zeta_down(name)*rate_ramp(name) + zeta_down(name)*rate_switch(name)
+                        +mu(name))*On_off[t](name);
                 if (include_min_updown_) {
-                    obj += (mu_down(name)- mu_up(name))*On_off[t+1](name);
+                    obj += (mu_down(name)- mu_up(name))*On_off[t](name);
                 }
 
                 //obj += (cost_up-lambda_up(name))*Start_up[t](name);
@@ -727,15 +726,15 @@ void Global::add_obj_Sub_time(gravity::Model& Sub, int t) {
             if (g->_active) {
                 string name = g->_name + ","+ to_string(t);
                 string name1 = g->_name + ","+ to_string(t+1);
-                //obj += (grid->c1(name) + zeta_up(name)+zeta_down(name1)- zeta_down(name)-zeta_up(name1))*Pg[t](name)
-                //       + grid->c2(name)*Pg[t](name)*Pg[t](name);
-                obj += (grid->c1(name))*Pg[t](name)+ grid->c2(name)*Pg2[t](name);
+                obj += (grid->c1(name) + zeta_up(name)+zeta_down(name1)- zeta_down(name)-zeta_up(name1))*Pg[t](name)
+                       + grid->c2(name)*Pg2[t](name);
+                //obj += (grid->c1(name))*Pg[t](name)+ grid->c2(name)*Pg2[t](name);
 
-                obj += (grid->c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)+ mu(name) - mu(name1))*On_off[t](name);
-                //obj += (grid->c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)
-                //        - zeta_down(name)*rate_ramp(name) - zeta_up(name1)*rate_ramp(name1)
-                //        + zeta_up(name1)*rate_switch(name1)+ zeta_down(name)*rate_switch(name)
-                //        + mu(name) - mu(name1))*On_off[t+1](name);
+                //obj += (grid->c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)+ mu(name) - mu(name1))*On_off[t](name);
+                obj += (grid->c0(name)+lambda_up(name) -lambda_up(name1) + lambda_down(name1) -lambda_down(name)
+                        - zeta_down(name)*rate_ramp(name) - zeta_up(name1)*rate_ramp(name1)
+                        + zeta_up(name1)*rate_switch(name1)+ zeta_down(name)*rate_switch(name)
+                        + mu(name) - mu(name1))*On_off[t](name);
 
                 if (include_min_updown_) {
                     if (t >= min_up.getvalue() -1) {
@@ -779,7 +778,7 @@ void Global::add_obj_Sub_upper_time(gravity::Model& Sub, int t) {
     for (auto g:grid->gens) {
         if (g->_active) {
             string name = g->_name + ","+ to_string(t);
-            obj += grid->c1(name)*Pg[t](name)+ grid->c2(name)*Pg[t](name)*Pg[t](name) + grid->c0(name)*On_off[t+1](name);
+            obj += grid->c1(name)*Pg[t](name)+ grid->c2(name)*Pg[t](name)*Pg[t](name) + grid->c0(name)*On_off[t](name);
             obj += cost_up.getvalue()*Start_up[t](name)+ cost_down.getvalue()*Shut_down[t](name);
         }
     }
@@ -879,13 +878,13 @@ void  Global::add_MC_intertemporal_Sub_upper_time(Model& ACUC, int t) {
             if (t >0) {
                 string name = g->_name +"," + to_string(t);
                 string name1 = g->_name +"," + to_string(t-1);
-                MC1 = On_off[t+1](name) - On_off_sol_[t-1](name1) -Start_up[t](name);
-                MC2 = -1*On_off[t+1](name) -Shut_down[t](name) + On_off_sol_[t-1](name1) ;
+                MC1 = On_off[t](name) - On_off_sol_[t-1](name1) -Start_up[t](name);
+                MC2 = -1*On_off[t](name) -Shut_down[t](name) + On_off_sol_[t-1](name1) ;
             }
             else {
                 string name = g->_name +",0" ;
-                MC1 = On_off[t+1](name) -  On_off_initial(g->_name) -Start_up[t](name);
-                MC2 = -1*On_off[t+1](name)+ On_off_initial(g->_name)  -Shut_down[t](name);
+                MC1 = On_off[t](name) -  On_off_initial(g->_name) -Start_up[t](name);
+                MC2 = -1*On_off[t](name)+ On_off_initial(g->_name)  -Shut_down[t](name);
 
             }
             ACUC.add_constraint(MC1 <= 0);
@@ -900,11 +899,11 @@ void Global::add_OnOff_Sub_upper_time(Model& ACUC, int t) {
             string name = g->_name +"," + to_string(t);
             if (t >0) {
                 string name1 = g->_name +"," + to_string(t-1);
-                OnOffStartupShutdown = On_off[t+1](name) - On_off_sol_[t-1](name1)
+                OnOffStartupShutdown = On_off[t](name) - On_off_sol_[t-1](name1)
                                        - Start_up[t](name) + Shut_down[t](name);
             }
             else {
-                OnOffStartupShutdown = On_off[t+1](name) - On_off_initial(g->_name)
+                OnOffStartupShutdown = On_off[t](name) - On_off_initial(g->_name)
                                        - Start_up[t](name) + Shut_down[t](name);
             }
             ACUC.add_constraint(OnOffStartupShutdown == 0);
@@ -922,7 +921,7 @@ void Global::add_Ramp_Sub_upper_time(Model& ACUC, int t) {
                 string name1 = g->_name +"," + to_string(t-1);
                 Ramp_up =  Pg[t](name) - Pg_sol_[t-1](name1) -  rate_ramp.getvalue()*On_off_sol_[t-1](name1)
                            - rate_switch.getvalue()*(1 - On_off_sol_[t](name1));
-                Ramp_down =   -1* Pg[t](name) + Pg_sol_[t-1](name1) - rate_ramp.getvalue()*On_off[t+1](name)- rate_switch.getvalue()*(1 - On_off[t+1](name));
+                Ramp_down =   -1* Pg[t](name) + Pg_sol_[t-1](name1) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t](name));
                 ACUC.add_constraint(Ramp_up <= 0);
                 ACUC.add_constraint(Ramp_down <= 0);
             }
@@ -940,8 +939,8 @@ void Global::add_Ramp_Sub_upper_time(Model& ACUC, int t) {
 
                 Constraint Ramp_down("Ramp_down_constraint_0," + g->_name);
                 Ramp_down =   -1*Pg[0](name) + Pg_initial.in(g->_name);
-                Ramp_down -= rate_ramp(name)*On_off[1](name);
-                Ramp_down -= rate_switch(name)*(1 - On_off[1](name));
+                Ramp_down -= rate_ramp(name)*On_off[0](name);
+                Ramp_down -= rate_switch(name)*(1 - On_off[0](name));
                 ACUC.add_constraint(Ramp_down <= 0);
             }
         }
@@ -951,7 +950,7 @@ void Global::add_Ramp_Sub_upper_time(Model& ACUC, int t) {
 void Global::add_minupdown_Sub_upper_time(Model& ACUC, int t) {
     if ( t >= min_up.getvalue()-1 && t < Num_time) {
         Constraint Min_Up("Min_Up_constraint_"+ to_string(t));
-        Min_Up -= On_off[t+1].in_at(grid->gens, t);
+        Min_Up -= On_off[t].in_at(grid->gens, t);
         for (int l = t-min_up.getvalue()+1; l < t; l++) {
             Min_Up   += Start_up_sol_[l].in_at(grid->gens, l);
         }
@@ -960,7 +959,7 @@ void Global::add_minupdown_Sub_upper_time(Model& ACUC, int t) {
     }
     if ( t >= min_up.getvalue()-1 && t < Num_time) {
         Constraint Min_Down("Min_Down_constraint_" + to_string(t));
-        Min_Down -= 1 - On_off[t+1].in_at(grid->gens, t);
+        Min_Down -= 1 - On_off[t].in_at(grid->gens, t);
         for (int l = t-min_down.getvalue()+1; l < t; l++) {
             Min_Down   += Shut_down_sol_[l].in_at(grid->gens, l);
         }
@@ -977,63 +976,71 @@ double Global::Subproblem_time_(int t) {
     add_var_Sub_time(Sub, t);
     add_obj_Sub_time(Sub, t);
     add_perspective_OnOff_Sub_time(Sub, t);
-//    add_SOCP_Sub_time(Sub, t);
-//    add_KCL_Sub_time(Sub, t);
-//    add_thermal_Sub_time(Sub, t);
-//    add_MC_upper_Sub_time(Sub, t);
-//    if (t == 0) {
-//        for (auto& g: grid->gens) {
-//            if (g->_active) {
-//                Constraint MC1("Inter_temporal_MC1_0,"+ g->_name);
-//                Constraint MC2("Inter_temporal_MC2_0,"+ g->_name);
-//                string name = g->_name +",0" ;
-//                MC1 = On_off[t](name) -  On_off_initial(g->_name) -Start_up[t](name);
-//                MC2 = -1*On_off[t](name)+ On_off_initial(g->_name)  -Shut_down[t](name);
-//                Sub.add_constraint(MC1 <= 0);
-//                Sub.add_constraint(MC2 <= 0);
-//            }
-//        }
-//
-//        for (auto& g: grid->gens) {
-//            Constraint Ramp_up("Ramp_up_constraint_0," + g->_name);
-//            string name = g->_name +",0";
-//            Ramp_up =  Pg[t](name) - Pg_initial(g->_name)
-//                       - rate_ramp(name)*On_off_initial(g->_name);
-//            Ramp_up -= rate_switch(name)*(1 - On_off_initial(g->_name));
-//            Sub.add_constraint(Ramp_up <= 0);
-//
-//            Constraint Ramp_down("Ramp_down_constraint_0," + g->_name);
-//            Ramp_down =   -1*Pg[t](name) + Pg_initial.in(g->_name);
-//            Ramp_down -= rate_ramp(name)*On_off[t](name);
-//            Ramp_down -= rate_switch(name)*(1 - On_off[t](name));
-//            Sub.add_constraint(Ramp_down <= 0);
-//        }
-//        for (auto& g: grid->gens) {
-//            Constraint OnOffStartupShutdown("OnOffStartupShutdown_"+ to_string(t) + ","+ g->_name);
-//            string name = g->_name +"," + to_string(t);
-//            OnOffStartupShutdown = On_off[t](name) - On_off_initial(g->_name)
-//                                   - Start_up[t](name) + Shut_down[t](name);
-//            Sub.add_constraint(OnOffStartupShutdown == 0);
-//        }
-//    }
+    add_SOCP_Sub_time(Sub, t);
+    add_KCL_Sub_time(Sub, t);
+    add_thermal_Sub_time(Sub, t);
+    add_MC_upper_Sub_time(Sub, t);
+    if (t == 0) {
+        for (auto& g: grid->gens) {
+            if (g->_active) {
+                Constraint MC1("Inter_temporal_MC1_0,"+ g->_name);
+                Constraint MC2("Inter_temporal_MC2_0,"+ g->_name);
+                string name = g->_name +",0" ;
+                MC1 = On_off[t](name) -  On_off_initial(g->_name) -Start_up[t](name);
+                MC2 = -1*On_off[t](name)+ On_off_initial(g->_name)  -Shut_down[t](name);
+                Sub.add_constraint(MC1 <= 0);
+                Sub.add_constraint(MC2 <= 0);
+            }
+        }
 
+        for (auto& g: grid->gens) {
+            Constraint Ramp_up("Ramp_up_constraint_0," + g->_name);
+            string name = g->_name +",0";
+            Ramp_up =  Pg[t](name) - Pg_initial(g->_name)
+                       - rate_ramp(name)*On_off_initial(g->_name);
+            Ramp_up -= rate_switch(name)*(1 - On_off_initial(g->_name));
+            Sub.add_constraint(Ramp_up <= 0);
+
+            Constraint Ramp_down("Ramp_down_constraint_0," + g->_name);
+            Ramp_down =   -1*Pg[t](name) + Pg_initial.in(g->_name);
+            Ramp_down -= rate_ramp(name)*On_off[t](name);
+            Ramp_down -= rate_switch(name)*(1 - On_off[t](name));
+            Sub.add_constraint(Ramp_down <= 0);
+        }
+        for (auto& g: grid->gens) {
+            Constraint OnOffStartupShutdown("OnOffStartupShutdown_"+ to_string(t) + ","+ g->_name);
+            string name = g->_name +"," + to_string(t);
+            OnOffStartupShutdown = On_off[t](name) - On_off_initial(g->_name)
+                                   - Start_up[t](name) + Shut_down[t](name);
+            Sub.add_constraint(OnOffStartupShutdown == 0);
+        }
+    }
     /* Solver selection */
     solver cpx_acuc(Sub, cplex);
     bool relax = false;
     int output = 1;
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
+
     if (t==0) {
         // fill solution
-        On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
-        On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)));
+        On_off_sol_[t].set_name(" On_off_sol_"+to_string(t)+".in_at_" + to_string(t) + "Gen");
+        //std::string name = On_off[t].in_at(grid->gens, t).get_name();
+        On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+        for (auto& g: grid->gens){
+            string name = g->_name+","+to_string(t);
+            On_off_sol_[t](name)= On_off[t](name).eval();
+            Start_up_sol_[t](name) = Start_up[t](name).eval();
+            Shut_down_sol_[t](name) = Shut_down[t](name).eval();
+            Pg_sol_[t](name) = Pg[t](name).eval();
+        }
         //On_off_sol_[t].print(true);
-        Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)));
+        //Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Start_up_sol_[t].print(true);
-        Shut_down_sol_[t] = *(param<bool>*)(Sub.get_var("Shut_down_"+to_string(t)));
+        //Shut_down_sol_[t] = *(param<bool>*)(Sub.get_var("Shut_down_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Shut_down_sol_[t].print(true);
-        Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)));
-        Pg_sol_[t].print(true);
+        //Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+        //Pg_sol_[t].print(true);
     }
 
     return Sub._obj_val;
@@ -1064,15 +1071,23 @@ double Global::Subproblem_upper_time_(int t) {
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
     // fill solution
-    On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
-    On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)));
-    //On_off_sol_[t].print(true);
-    Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)));
-    //Start_up_sol_[t].print(true);
-    Shut_down_sol_[t] = *(param<bool>*)(Sub.get_var("Shut_down_"+to_string(t)));
-    //Shut_down_sol_[t].print(true);
-    Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)));
-    //Pg_sol_[t].print(true);
+    
+    for (auto& g: grid->gens){
+        string name = g->_name+","+to_string(t);
+        On_off_sol_[t](name)= On_off[t](name).eval();
+        Start_up_sol_[t](name) = Start_up[t](name).eval();
+        Shut_down_sol_[t](name) = Shut_down[t](name).eval();
+        Pg_sol_[t](name) = Pg[t](name).eval();
+    }
+//    On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
+//    On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+//    //On_off_sol_[t].print(true);
+//    Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+//    //Start_up_sol_[t].print(true);
+//    Shut_down_sol_[t] = *(param<bool>*)(Sub.get_var("Shut_down_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+//    //Shut_down_sol_[t].print(true);
+//    Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+//    Pg_sol_[t].print(true);
     return Sub._obj_val;
 }
 
@@ -1084,13 +1099,13 @@ double Global::LR_bound_time_(bool included_min_up_down) {
         Sub_[t]= Subproblem_time_(t);
         LB += Sub_[t];
     }
-    //for (int t = 1; t < Num_time; t++) {
-    //    for (auto& g: grid->gens) {
-    //        string name = g->_name + "," + to_string(t);
-    //        LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
-    //        LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
-    //    }
-    //}
+    for (int t = 1; t < Num_time; t++) {
+        for (auto& g: grid->gens) {
+            string name = g->_name + "," + to_string(t);
+            LB -= zeta_down(name).getvalue()*rate_switch(name).getvalue();
+            LB -= zeta_up(name).getvalue()*rate_switch(name).getvalue();
+        }
+    }
     if (include_min_updown_) {
         if (min_down.getvalue() - 1.0 > 0) {
             for (int t = min_down.getvalue()-1;  t < Num_time; t++ ) {
