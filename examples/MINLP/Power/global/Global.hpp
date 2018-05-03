@@ -39,6 +39,16 @@ public:
     vector<var<bool>> On_off; // range from -1, to T-1. size T+1.
     vector<var<bool>> Start_up;
     vector<var<bool>> Shut_down;
+    // sol
+    vector<param<bool>> On_off_sol_; 
+    vector<param<Real>> Pg_sol_;
+    vector<param<bool>> Start_up_sol_;
+    vector<param<bool>> Shut_down_sol_;
+    // power flow vars;
+    var<Real> Pf_from;
+    var<Real> Qf_from;
+    var<Real> Pf_to;
+    var<Real> Qf_to;
 
    // multipliers time
     param<Real> lambda_up; // inter temporal: start up and shut down constraints
@@ -65,7 +75,22 @@ public:
     // Accessors
     double getdual_relax_time_(bool include);
     double LR_bound_time_(bool included_min_up_down);
+    double Upper_bound_sequence_(bool included_min_up_down);
     double Subproblem_time_(int l);
+    double Subproblem_upper_time_(int l);
+    void add_var_Sub_time(Model&, int t);
+    void add_obj_Sub_time(Model&, int t);
+    void add_obj_Sub_upper_time(Model&, int t);
+    void add_SOCP_Sub_time(Model&, int t);
+    void add_KCL_Sub_time(Model&, int t);
+    void add_thermal_Sub_time(Model& , int t);
+    void add_perspective_OnOff_Sub_time(Model&, int t);
+    void add_MC_upper_Sub_time(Model&, int t);
+
+    void add_MC_intertemporal_Sub_upper_time(Model&, int t);
+    void add_OnOff_Sub_upper_time(Model&, int t);
+    void add_Ramp_Sub_upper_time(Model&, int t);
+    void add_minupdown_Sub_upper_time(Model&, int t);
 
     double getdual_relax_spatial();
     double LR_bound_spatial_();
