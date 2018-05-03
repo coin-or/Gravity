@@ -43,10 +43,12 @@ int main (int argc, const char * argv[])
 {
     // Decompose
     const char* fname;
-    double l = 0;
-    if (argc >= 2) {
+    int Num_part = 1;
+    int T= 1;
+    if (argc >= 3) {
         fname = argv[1];
-        l = atof(argv[2]);
+        T = atoi(argv[2]);
+        Num_part = atoi(argv[3]);
     }
     else {
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -54,14 +56,17 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
+       // fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case57_ieee.m";
-        l = 1;
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        fname = "../../data_sets/Power/nesta_case57_ieee.m";
+         Num_part = 1;
+         T =2;
     }
     auto grid = new PowerNet();
     grid->readgrid(fname);
+    //grid->c2.print(true);
     auto nb_bus_pairs = grid->get_nb_active_bus_pairs();
     auto nb_gen = grid->get_nb_active_gens();
     auto nb_lines = grid->get_nb_active_arcs();
@@ -69,10 +74,8 @@ int main (int argc, const char * argv[])
     double  total_time_end, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    int T = 10;
-    int Num_parts = 2;
-    bool include_min_updown = true;
-    auto global = new Global(grid, Num_parts, T);
+    bool include_min_updown = false;
+    auto global = new Global(grid, Num_part, T);
     double cst_t = global->getdual_relax_time_(include_min_updown);
     double lr_t = global->LR_bound_time_(include_min_updown);
     cout << "time lr lower bound: " << to_string(lr_t) << endl;

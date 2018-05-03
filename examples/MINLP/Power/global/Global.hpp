@@ -36,7 +36,7 @@ public:
     vector<var<Real>> Im_Xij;
     vector<var<Real>> Xii;
     // Commitment variables
-    vector<var<bool>> On_off; // range from -1, to T-1. size T+1.
+    vector<var<bool>> On_off; 
     vector<var<bool>> Start_up;
     vector<var<bool>> Shut_down;
     // sol
@@ -45,10 +45,10 @@ public:
     vector<param<bool>> Start_up_sol_;
     vector<param<bool>> Shut_down_sol_;
     // power flow vars;
-    var<Real> Pf_from;
-    var<Real> Qf_from;
-    var<Real> Pf_to;
-    var<Real> Qf_to;
+    vector<var<Real>> Pf_from;
+    vector<var<Real>> Qf_from;
+    vector<var<Real>> Pf_to;
+    vector<var<Real>> Qf_to;
 
    // multipliers time
     param<Real> lambda_up; // inter temporal: start up and shut down constraints
