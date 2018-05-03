@@ -56,7 +56,7 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
-       // fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case118_ieee.m";
@@ -79,6 +79,7 @@ int main (int argc, const char * argv[])
     double cst_t = global->getdual_relax_time_(include_min_updown);
     double lr_t = global->LR_bound_time_(include_min_updown);
     cout << "time lr lower bound: " << to_string(lr_t) << endl;
+    
     double ub = global->Upper_bound_sequence_(include_min_updown);
     cout << "time upper bound is: " << to_string(ub) << endl;
 
@@ -89,7 +90,8 @@ int main (int argc, const char * argv[])
     total_time_end = get_cpu_time();
     total_time = total_time_end - total_time_start;
     string out = grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
-                 +", " + to_string_with_precision(lr_t, 6) + ", " + to_string_with_precision(ub, 6) +"," + to_string_with_precision(total_time, 6);
+                 +", " + to_string(nb_gen) + ", "+ to_string_with_precision(lr_t, 6)
+                    + ", " + to_string_with_precision(ub, 6) +"," + to_string_with_precision(total_time, 6);
    cout << out << endl;
    ofstream outfile("ACUC_MISOCP.txt", ios_base::app);
     if (!outfile)
