@@ -321,7 +321,7 @@ double subproblem(PowerNet& grid,  int t, unsigned T, param<Real>& rate_ramp, pa
                 obj +=(grid.c0(name) + lambda_down(name1) - lambda_down(name1) + zeta_up(name1)*rate_switch(name1)
                        - zeta_up(name1)*rate_ramp(name1))*On_off(name);
             }
-          if (t == T-1) {
+          else if (t == T-1) {
                 string name = g->_name + ","+ to_string(t);
 //                obj += (grid.c1(name) + zeta_up(name)- zeta_down(name))*Pg(name)
 //                       + grid.c2(name)*Pg(name)*Pg(name);
@@ -473,14 +473,16 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case3_lmbd.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
+        fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+       // fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
         l = 1;
     }
     PowerNet grid;
     grid.readgrid(fname);
 
+    grid->c2.print(true);
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_bus_pairs = grid.get_nb_active_bus_pairs();

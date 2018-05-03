@@ -23,8 +23,10 @@ int main (int argc, const char * argv[])
     const char* fname;
     double solver_time_end, total_time_end, solve_time, total_time;
     double total_time_start = get_cpu_time();
+    int T = 1;
     if (argc >= 2) {
         fname = argv[1];
+        T = atoi(argv[2]);
     }
     else {
         // fname = "../../data_sets/Power/nesta_case3_lmbd.m";
@@ -33,9 +35,9 @@ int main (int argc, const char * argv[])
         // fname = "../../data_sets/Power/nesta_case2383wp_mp.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         // fname = "../../data_sets/Power/nesta_case5_pjm.m";
-        fname = "../../data_sets/Power/nesta_case14_ieee.m";
+        //fname = "../../data_sets/Power/nesta_case14_ieee.m";
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
+        fname = "../../data_sets/Power/nesta_case118_ieee.m";
         //string fname = "../../data_sets/Power/anu.m";
     }
     // ACUC
@@ -50,7 +52,6 @@ int main (int argc, const char * argv[])
     auto nb_buses = grid->get_nb_active_nodes();
 
     // Schedule
-    unsigned T = 10;
     param<Real> rate_ramp("rate_ramp");
     param<Real> rate_switch("rate_switch");
     param<Real> min_up("min_up");
@@ -289,7 +290,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
-    bool relax = false;
+    bool relax = true;
     int output = 1;
     double tol = 1e-6;
     OPF.run(output, relax, tol);

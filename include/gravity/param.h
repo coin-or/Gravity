@@ -812,7 +812,7 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            Debug("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
             res._is_indexed = true;
             return res;
@@ -859,7 +859,7 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            Debug("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
             res._is_indexed = true;
             return res;
@@ -904,7 +904,7 @@ public:
         res._rev_indices = this->_rev_indices;
         res._indices = this->_indices;
         if(vec.empty()) {
-            DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            Debug("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
             res._name += "EMPTY_VAR";
             //res._dim.resize(0);
             res._is_indexed = true;
