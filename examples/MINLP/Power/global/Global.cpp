@@ -143,6 +143,8 @@ Global::Global(PowerNet* net, int parts, int T) {
     mu_up.in(grid->gens, T);
     mu_down.in(grid->gens, T);
     Sub_.resize(T);
+    SOC_.resize(T);
+    SOC_outer_.resize(T);
 }
 
 double Global::getdual_relax_time_(bool include) {
@@ -167,6 +169,7 @@ double Global::getdual_relax_time_(bool include) {
     for (int t= 0; t < Num_time; t++) {
         add_SOCP_Sub_time(ACUC, t);
     }
+
     for (int t= 0; t < Num_time; t++) {
         add_KCL_Sub_time(ACUC, t);
         add_thermal_Sub_time(ACUC, t);
@@ -217,7 +220,7 @@ double Global::getdual_relax_time_(bool include) {
             for (int l = t-min_up.getvalue()+1; l < t+1; l++) {
                 Min_Up   += Start_up[l].in_at(grid->gens, l);
             }
-            Min_Up -= On_off[t+1].in_at(grid->gens, t);
+            Min_Up -= On_off[t].in_at(grid->gens, t);
             ACUC.add_constraint(Min_Up <= 0);
         }
         // 4c
@@ -226,7 +229,7 @@ double Global::getdual_relax_time_(bool include) {
             for (int l = t-min_down.getvalue()+1; l < t +1; l++) {
                 Min_Down   += Shut_down[l].in_at(grid->gens, l);
             }
-            Min_Down -= 1 - On_off[t+1].in_at(grid->gens, t);
+            Min_Down -= 1 - On_off[t].in_at(grid->gens, t);
             ACUC.add_constraint(Min_Down <= 0);
         }
     }
@@ -235,20 +238,21 @@ double Global::getdual_relax_time_(bool include) {
             add_MC_upper_Sub_time(ACUC,t);
         }
     }
-    //for (int t = 1; t < Num_time; t++) {
-    //    for (auto& g: grid->gens) {
-    //        if (g->_active) {
-    //            Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
-    //            Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t) + "," + g->_name);
-    //            string name = g->_name +"," + to_string(t);
-    //            string name1 = g->_name +"," + to_string(t-1);
-    //            Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t](name1) - rate_switch.getvalue()*(1 - On_off[t](name1));
-    //            Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t+1](name)- rate_switch.getvalue()*(1 - On_off[t+1](name));
-    //            ACUC.add_constraint(Ramp_up <= 0);
-    //            ACUC.add_constraint(Ramp_down <= 0);
-    //        }
-    //    }
-    //}
+    for (int t = 1; t < Num_time; t++) {
+        for (auto& g: grid->gens) {
+            if (g->_active) {
+                Constraint Ramp_up("Ramp_up_constraint_"  + to_string(t) + "," + g->_name);
+                Constraint Ramp_down("Ramp_down_constraint_"+ to_string(t) + "," + g->_name);
+                string name = g->_name +"," + to_string(t);
+                string name1 = g->_name +"," + to_string(t-1);
+                Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t-1](name1)
+                - rate_switch.getvalue()*(1 - On_off[t-1](name1));
+                Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t](name));
+                ACUC.add_constraint(Ramp_up <= 0);
+                ACUC.add_constraint(Ramp_down <= 0);
+            }
+        }
+    }
     // t =0, we have ramp up constraint.
     for (auto& g: grid->gens) {
         Constraint Ramp_up("Ramp_up_constraint_0," + g->_name);
@@ -268,6 +272,7 @@ double Global::getdual_relax_time_(bool include) {
     bool relax = true;
     int output = 1;
     solver cpx_acuc(ACUC, cplex);
+    //solver cpx_acuc(ACUC, ipopt);
     double tol = 10e-6;
     cpx_acuc.run(output, relax, tol);
     cout << "the continuous relaxation bound is: " << ACUC._obj_val << endl;
@@ -329,8 +334,10 @@ double Global::getdual_relax_time_(bool include) {
             }
         }
     }
+
     return ACUC._obj_val;
 }
+
 
 double Global::getdual_relax_spatial() {
     R_Xij.clear();
@@ -793,10 +800,22 @@ void Global::add_perspective_OnOff_Sub_time(Model& Sub, int t) {
 }
 void Global::add_SOCP_Sub_time(Model& Sub, int t) {
     const auto bus_pairs = grid->get_bus_pairs();
-    Constraint SOC("SOC_" + to_string(t));
-    SOC =  power(R_Xij[t], 2) + power(Im_Xij[t], 2) - Xii[t].from()*Xii[t].to() ;
-    Sub.add_constraint(SOC.in_at(bus_pairs, t) <= 0);
+    //Constraint SOC("SOC_" + to_string(t));
+    SOC_[t] = Constraint("SOC_" + to_string(t));
+    SOC_[t] =  power(R_Xij[t], 2) + power(Im_Xij[t], 2) - Xii[t].from()*Xii[t].to() ;
+    SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
+     //Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
 }
+void Global::add_SOCP_Outer_Sub_time(Model& Sub, int t) {
+    const auto bus_pairs = grid->get_bus_pairs();
+    //for (auto& pair: bus_pairs){
+        Constraint SOC_outer_linear("SOC_outer_linear_"+to_string(t));
+        SOC_outer_linear = SOC_outer_[t]->get_outer_app();
+        SOC_outer_linear.print(true);
+        Sub.add_constraint(SOC_outer_linear.in_at(bus_pairs, t) <= 0);
+    //}
+}
+
 void Global::add_KCL_Sub_time(Model& Sub, int t) {
     Constraint KCL_P("KCL_P_"+ to_string(t));
     Constraint KCL_Q("KCL_Q_"+ to_string(t));
@@ -920,7 +939,7 @@ void Global::add_Ramp_Sub_upper_time(Model& ACUC, int t) {
                 string name = g->_name +"," + to_string(t);
                 string name1 = g->_name +"," + to_string(t-1);
                 Ramp_up =  Pg[t](name) - Pg_sol_[t-1](name1) -  rate_ramp.getvalue()*On_off_sol_[t-1](name1)
-                           - rate_switch.getvalue()*(1 - On_off_sol_[t](name1));
+                           - rate_switch.getvalue()*(1 - On_off_sol_[t-1](name1));
                 Ramp_down =   -1* Pg[t](name) + Pg_sol_[t-1](name1) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t](name));
                 ACUC.add_constraint(Ramp_up <= 0);
                 ACUC.add_constraint(Ramp_down <= 0);
@@ -977,6 +996,7 @@ double Global::Subproblem_time_(int t) {
     add_obj_Sub_time(Sub, t);
     add_perspective_OnOff_Sub_time(Sub, t);
     add_SOCP_Sub_time(Sub, t);
+    //add_SOCP_Outer_Sub_time(Sub, t);
     add_KCL_Sub_time(Sub, t);
     add_thermal_Sub_time(Sub, t);
     add_MC_upper_Sub_time(Sub, t);
@@ -1024,9 +1044,12 @@ double Global::Subproblem_time_(int t) {
 
     if (t==0) {
         // fill solution
-        On_off_sol_[t].set_name(" On_off_sol_"+to_string(t)+".in_at_" + to_string(t) + "Gen");
+        //On_off_sol_[t].set_name(" On_off_sol_"+to_string(t)+".in_at_" + to_string(t) + "Gen");
         //std::string name = On_off[t].in_at(grid->gens, t).get_name();
-        On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+        //On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
+        On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
+        Start_up_sol_[t].set_name("Start_up_sol_" + to_string(t));
+        Shut_down_sol_[t].set_name("Shut_down_sol_" + to_string(t));
         for (auto& g: grid->gens){
             string name = g->_name+","+to_string(t);
             On_off_sol_[t](name)= On_off[t](name).eval();
@@ -1034,6 +1057,9 @@ double Global::Subproblem_time_(int t) {
             Shut_down_sol_[t](name) = Shut_down[t](name).eval();
             Pg_sol_[t](name) = Pg[t](name).eval();
         }
+        Start_up_sol_[t].print(true);
+        Shut_down_sol_[t].print(true);
+        On_off_sol_[t].print(true);
         //On_off_sol_[t].print(true);
         //Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Start_up_sol_[t].print(true);
@@ -1042,7 +1068,7 @@ double Global::Subproblem_time_(int t) {
         //Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Pg_sol_[t].print(true);
     }
-
+    check_rank1_constraint(Sub, t);
     return Sub._obj_val;
 }
 
@@ -1072,6 +1098,9 @@ double Global::Subproblem_upper_time_(int t) {
     cpx_acuc.run(output, relax, tol);
     // fill solution
     
+    On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
+    Start_up_sol_[t].set_name("Start_up_sol_" + to_string(t));
+    Shut_down_sol_[t].set_name("Shut_down_sol_" + to_string(t));
     for (auto& g: grid->gens){
         string name = g->_name+","+to_string(t);
         On_off_sol_[t](name)= On_off[t](name).eval();
@@ -1079,6 +1108,9 @@ double Global::Subproblem_upper_time_(int t) {
         Shut_down_sol_[t](name) = Shut_down[t](name).eval();
         Pg_sol_[t](name) = Pg[t](name).eval();
     }
+    Start_up_sol_[t].print(true);
+    Shut_down_sol_[t].print(true);
+    On_off_sol_[t].print(true);
 //    On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
 //    On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
 //    //On_off_sol_[t].print(true);
@@ -1088,6 +1120,7 @@ double Global::Subproblem_upper_time_(int t) {
 //    //Shut_down_sol_[t].print(true);
 //    Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
 //    Pg_sol_[t].print(true);
+    check_rank1_constraint(Sub, t);
     return Sub._obj_val;
 }
 
@@ -1210,9 +1243,11 @@ double Global::Subproblem_spatial_(int l) {
     }
 
     if (P_->bag_bus_pairs_union_directed[l].size() > 0) {
-        Constraint SOC("SOC_" + to_string(l));
-        SOC =  power(R_Xij[l], 2)+ power(Im_Xij[l], 2)-Xii[l].from()*Xii[l].to() ;
-        Subr.add_constraint(SOC.in(P_->bag_bus_pairs_union_directed[l], Num_time) <= 0);
+        SOC_[l] = Constraint("SOC_" + to_string(l));
+        //SOC =  power(R_Xij[l], 2)+ power(Im_Xij[l], 2)-Xii[l].from()*Xii[l].to() ;
+        SOC_[l] =  power(R_Xij[l], 2)+ power(Im_Xij[l], 2)-Xii[l].from()*Xii[l].to() ;
+        //Subr.add_constraint(SOC.in(P_->bag_bus_pairs_union_directed[l], Num_time) <= 0);
+        Subr.add_constraint(SOC_[l].in(P_->bag_bus_pairs_union_directed[l], Num_time) <= 0);
     }
     Constraint KCL_P("KCL_P");
     Constraint KCL_Q("KCL_Q");
@@ -1376,3 +1411,18 @@ double Global::LR_bound_spatial_() {
     }
     return LB;
 }
+
+void Global::check_rank1_constraint(Model& Sub, int t){
+    auto soc = Sub.get_constraint   ("SOC_"+to_string(t));
+    vector<int> violations;
+    for (int p = 0; p < grid->get_bus_pairs().size(); p++){
+        double eval = soc->eval(p);
+        Debug("soc["<<p <<"]=" << eval << endl);
+        if (eval < -1e-6){
+            violations.push_back(p);
+        }
+    }
+    cout << "\# equation violation: " << violations.size() << endl;
+    
+}
+

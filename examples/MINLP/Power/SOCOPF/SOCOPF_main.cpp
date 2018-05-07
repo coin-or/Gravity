@@ -23,7 +23,7 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool relax = false, use_cplex = true, use_gurobi = false;
+    bool relax = false, use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
@@ -219,6 +219,13 @@ int main (int argc, char * argv[])
     }
     /** Uncomment next line to print expanded model */
     /* SOCP.print_expanded(); */
+    for (auto& pair: bus_pairs){
+        auto S = SOCP.get_constraint("SOC");
+        auto  g = S->get_outer_app();
+        g.print(true);
+        cout << g.eval() << endl;
+    }
+    
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

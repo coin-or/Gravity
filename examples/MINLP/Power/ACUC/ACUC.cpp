@@ -126,15 +126,13 @@ int main (int argc, const char * argv[])
             for (int t = 0; t < T; t++) {
                 if (g->_active) {
                     string name = g->_name + ","+ to_string(t);
-                    //obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
-                    obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name)  + grid->c0(name)*On_off(name);
+                    obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg2(name) + grid->c0(name)*On_off(name);
+                    //obj += grid->c1(name)*Pg(name)+ grid->c2(name)*Pg(name)*Pg(name)  + grid->c0(name)*On_off(name);
                     obj += cost_up*Start_up(name)+ cost_down*Shut_down(name);
                 }
             }
         }
     }
-    //obj +=grid->c1*Pg+ grid->c2*Pg2 + grid->c0*On_off;
-    //obj +=cost_up.getvalue()*Start_up+ cost_down.getvalue()*Shut_down;
     ACUC.set_objective(min(obj));
 
     /** Define constraints */
@@ -145,9 +143,9 @@ int main (int argc, const char * argv[])
     ACUC.add_constraint(SOC.in(bus_pairs, T) <= 0);
     
     /* perspective formulation of Pg^2 */
-//    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
-//    Perspective_OnOff_Pg2 += power(Pg, 2) - Pg2*On_off;
-//    ACUC.add_constraint(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
+    Constraint Perspective_OnOff_Pg2("Perspective_OnOff_Pg2");
+    Perspective_OnOff_Pg2 += power(Pg, 2) - Pg2*On_off;
+    ACUC.add_constraint(Perspective_OnOff_Pg2.in(grid->gens, T) <= 0);
 //    for (auto g:grid->gens) {
 //        if (g->_active) {
 //            for (int t = 0; t < T; t++) {
