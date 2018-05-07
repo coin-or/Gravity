@@ -523,12 +523,12 @@ double subproblem(PowerNet& grid,  const unsigned T, const Partition& P, unsigne
     double tol = 1e-6;
     solve_Subr.run(output, relax, tol);
     // COLLECT THE LINKED VARIABLES
-    std::string name = Xii.in(P.bag_bus[c],T).get_name();
-    Xii_log= (*(var<Real>*) Subr.get_var(name));
-    name = R_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
-    R_Xij_log = (*(var<Real>*) Subr.get_var(name));
-    name = Im_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
-    Im_Xij_log = (*(var<Real>*) Subr.get_var(name));
+//    std::string name = Xii.in(P.bag_bus[c],T).get_name();
+//    Xii_log= (*(var<Real>*) Subr.get_var(name));
+//    name = R_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+//    R_Xij_log = (*(var<Real>*) Subr.get_var(name));
+//    name = Im_Xij.in(P.bag_bus_pairs_union[c], T).get_name();
+//    Im_Xij_log = (*(var<Real>*) Subr.get_var(name));
     return Subr._obj_val;
 }
 

@@ -66,6 +66,9 @@ public:
     param<Real> lambda_;
     // vals of each subproblem
     vector<double> Sub_;
+    // SOCP constraints
+    vector<Constraint> SOC_;
+    vector<shared_ptr<Constraint>> SOC_outer_;
     
     //Constructors
     Global();
@@ -82,6 +85,7 @@ public:
     void add_obj_Sub_time(Model&, int t);
     void add_obj_Sub_upper_time(Model&, int t);
     void add_SOCP_Sub_time(Model&, int t);
+    void add_SOCP_Outer_Sub_time(Model&, int t);
     void add_KCL_Sub_time(Model&, int t);
     void add_thermal_Sub_time(Model& , int t);
     void add_perspective_OnOff_Sub_time(Model&, int t);
@@ -91,6 +95,9 @@ public:
     void add_OnOff_Sub_upper_time(Model&, int t);
     void add_Ramp_Sub_upper_time(Model&, int t);
     void add_minupdown_Sub_upper_time(Model&, int t);
+    
+    // check rank 1 constraint.
+    void check_rank1_constraint(Model& Sub, int t);
 
     double getdual_relax_spatial();
     double LR_bound_spatial_();

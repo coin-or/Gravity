@@ -59,8 +59,8 @@ int main (int argc, const char * argv[])
         //fname = "../../data_sets/Power/nesta_case300_ieee.m";
         //fname = "../../data_sets/Power/nesta_case1354_pegase.m";
         //fname = "../../data_sets/Power/nesta_case14_ieee.m";
-        //fname = "../../data_sets/Power/nesta_case118_ieee.m";
-        fname = "../../data_sets/Power/nesta_case57_ieee.m";
+        fname = "../../data_sets/Power/nesta_case118_ieee.m";
+         //fname = "../../data_sets/Power/nesta_case57_ieee.m";
          Num_part = 1;
          T =2;
     }
@@ -74,7 +74,7 @@ int main (int argc, const char * argv[])
     double  total_time_end, total_time;
     double total_time_start = get_cpu_time();
     // Schedule Parameters
-    bool include_min_updown = false;
+    bool include_min_updown = true;
     auto global = new Global(grid, Num_part, T);
     double cst_t = global->getdual_relax_time_(include_min_updown);
     double lr_t = global->LR_bound_time_(include_min_updown);
