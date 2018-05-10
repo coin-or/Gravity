@@ -7,6 +7,10 @@
 //
 #ifndef Global_hpp
 #define Global_hpp
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "Partition.hpp"
 
 
@@ -37,13 +41,20 @@ public:
     vector<var<Real>> Xii;
     // Commitment variables
     vector<var<bool>> On_off; 
+    //vector<var<Real>> Start_up;
+    //vector<var<Real>> Shut_down;
     vector<var<bool>> Start_up;
     vector<var<bool>> Shut_down;
     // sol
     vector<param<bool>> On_off_sol_; 
     vector<param<Real>> Pg_sol_;
+    //vector<param<Real>> Start_up_sol_;
+    //vector<param<Real>> Shut_down_sol_;
     vector<param<bool>> Start_up_sol_;
     vector<param<bool>> Shut_down_sol_;
+    param<Real> Im_Xij_sol_; 
+    param<Real> R_Xij_sol_; 
+    param<Real> Xii_sol_; 
     // power flow vars;
     vector<var<Real>> Pf_from;
     vector<var<Real>> Qf_from;
@@ -69,22 +80,26 @@ public:
     // SOCP constraints
     vector<Constraint> SOC_;
     vector<shared_ptr<Constraint>> SOC_outer_;
+    // cuts due to Chenchen convex hull.
     
     //Constructors
     Global();
     Global(PowerNet*, int parts, int T);
     ~Global();
     
-    // Accessors
+    // modifiers.
     double getdual_relax_time_(bool include);
     double LR_bound_time_(bool included_min_up_down);
     double Upper_bound_sequence_(bool included_min_up_down);
     double Subproblem_time_(int l);
     double Subproblem_upper_time_(int l);
+    
     void add_var_Sub_time(Model&, int t);
     void add_obj_Sub_time(Model&, int t);
     void add_obj_Sub_upper_time(Model&, int t);
     void add_SOCP_Sub_time(Model&, int t);
+    void add_SOCP_chord_Sub_time(Model&, int t);
+
     void add_SOCP_Outer_Sub_time(Model&, int t);
     void add_KCL_Sub_time(Model&, int t);
     void add_thermal_Sub_time(Model& , int t);
@@ -96,8 +111,17 @@ public:
     void add_Ramp_Sub_upper_time(Model&, int t);
     void add_minupdown_Sub_upper_time(Model&, int t);
     
+    void add_SOCP_chen_(Model&, int);
+    void add_SDP_cut_(Model&, int);
+    // Extended formulation of SOCP
+    //vector<shared_ptr<Constraint>> BenNem_SOCP_(Model& model, int k, int t);
+    void add_BenNem_SOCP_time(Model& model, int k, int t);
+    void add_SDP_S_(Model& model, vector<int> indices, int t); //indices are non rank-1 second order submatrix.   
+    void add_SDP_LP_(Model& model, vector<int> indices, int t); //indices are non rank-1 second order submatrix.   
+    void add_3d_cuts_(Model& model, vector<int> indices, int);
+
     // check rank 1 constraint.
-    void check_rank1_constraint(Model& Sub, int t);
+    vector<int> check_rank1_constraint_(Model& Sub, int t);
 
     double getdual_relax_spatial();
     double LR_bound_spatial_();

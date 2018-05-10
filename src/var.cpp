@@ -609,8 +609,6 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
     }
     return res;
 }
-
-
     
 template class var<bool>;
 template class var<short>;

@@ -51,7 +51,7 @@ int main (int argc, const char * argv[])
         Num_part = atoi(argv[3]);
     }
     else {
-        // fname = "../../data_sets/Power/nesta_case5_pjm.m";
+         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
         //fname = "../../data_sets/Power/nesta_case30_ieee.m";
         //fname = "../../data_sets/Power/nesta_case6_c.m";
         //fname = "../../data_sets/Power/nesta_case5_pjm.m";
@@ -66,6 +66,9 @@ int main (int argc, const char * argv[])
     }
     auto grid = new PowerNet();
     grid->readgrid(fname);
+    grid->get_tree_decomp_bags();
+    grid->update_net();
+
     //grid->c2.print(true);
     auto nb_bus_pairs = grid->get_nb_active_bus_pairs();
     auto nb_gen = grid->get_nb_active_gens();
