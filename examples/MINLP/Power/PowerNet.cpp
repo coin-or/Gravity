@@ -585,7 +585,6 @@ void PowerNet::update_net(){
     Arc *a12, *a13, *a32;
     std::vector<std::vector<Node*>> bags_sorted;
 
-    // bags are cliques in the chordal completion graph
     for(auto& b: _bags){
         for(int i = 0; i < b.size()-1; i++) {
             for(int j = i+1; j < b.size(); j++) {
@@ -610,10 +609,11 @@ void PowerNet::update_net(){
     while (fixed != 0) {
         fixed = 0;
         DebugOff("\nNew iteration");
+       // for(auto b_it = _bags.begin(); b_it != _bags.end();) {
         for(auto b_it = _bags.begin(); b_it != _bags.end();) {
             std::vector<Node*> b = *b_it;
             if(b.size() == 3) {
-                DebugOff("\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name);
+                DebugOn("\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name);
                 a12 = get_arc(b[0], b[1]);
                 a13 = get_arc(b[0], b[2]);
                 a32 = get_arc(b[2], b[1]);
@@ -643,7 +643,6 @@ void PowerNet::update_net(){
             }
             else{ // Bags with size > 3; todo: leave only this as the general case?
                 DebugOff("\nBag with size > 3");
-
                 for(int i = 0; i < b.size()-1; i++) {
                     for (int j = i + 1; j < b.size(); j++) {
                         Arc* a = get_arc(b[i]->_name, b[j]->_name);
@@ -652,9 +651,9 @@ void PowerNet::update_net(){
                         //by now, all arcs in bags should be created
                         for (auto n1: b) {
                             if(n==n1) continue;
-                            Arc* a2 = get_arc(n->_name, n1->_name);
+                            Arc* a2 = get_undirected_arc(n->_name, n1->_name);
                             if (a2->_free) continue;
-                            Arc *a1 = get_arc(a->_dest, n1);
+                            Arc *a1 = get_undirected_arc(a->_dest, n1);
                             if (!a1->_free) {
                                 a->_free = false;
 
@@ -736,9 +735,7 @@ void PowerNet::update_net(){
             else wi_max_ = sin_max_*w_min_;
             if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
             else wi_min_ = sin_min_*w_max_;
-
 //            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
-
             wr_max.set_val(name,wr_max_);
             wr_min.set_val(name,wr_min_);
             wi_max.set_val(name,wi_max_);

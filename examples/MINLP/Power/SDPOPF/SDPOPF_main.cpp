@@ -467,7 +467,8 @@ int main (int argc, char * argv[]) {
     double tol = 1e-6;
     string mehrotra = "no";
 //    string fname = "../data_sets/Power/nesta_case3_lmbd.m";
-    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+ //   string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    string fname = "../data_sets/Power/nesta_case118_ieee.m";
 //    string fname = "../nesta-0.7.0/opf/api/nesta_case24_ieee_rts__api.m";
 //    fname = "/Users/hlh/Dropbox/Work/Dev/power_models/data/nesta_api/nesta_case30_fsr__api.m";
 

@@ -6,6 +6,7 @@
 //  Created by Guanglei on 5/3/18.
 //
 //
+
 #include "Global.hpp"
 #include <queue>
 #include <algorithm>
@@ -75,6 +76,7 @@ Global::Global(PowerNet* net, int parts, int T) {
     }
 
     auto bus_pairs = grid->get_bus_pairs();
+    auto bus_pairs_chord = grid->get_bus_pairs_chord();
     for (int t = 0; t < T; t++) {
         //var<Real> pgt("Pg_" + to_string(t), grid->pg_min, grid->pg_max);
         var<Real> pgt("Pg_" + to_string(t), grid->pg_min.in_at(grid->gens, t), grid->pg_max.in_at(grid->gens, t));
@@ -86,8 +88,8 @@ Global::Global(PowerNet* net, int parts, int T) {
     }
     //Lifted variables.
     for (int t = 0; t < T; t++) {
-        var<Real>  R_Xijt("R_Wij" + to_string(t), grid->wr_min.in_at(bus_pairs, t), grid->wr_max.in_at(bus_pairs, t)); // real part of Wij
-        var<Real>  Im_Xijt("Im_Wij" + to_string(t), grid->wi_min.in_at(bus_pairs, t), grid->wi_max.in_at(bus_pairs, t));
+        var<Real>  R_Xijt("R_Wij" + to_string(t), grid->wr_min.in_at(bus_pairs_chord, t), grid->wr_max.in_at(bus_pairs_chord, t)); // real part of Wij
+        var<Real>  Im_Xijt("Im_Wij" + to_string(t), grid->wi_min.in_at(bus_pairs_chord, t), grid->wi_max.in_at(bus_pairs_chord, t));
         var<Real>  Xiit("Wii" + to_string(t), grid->w_min.in_at(grid->nodes,t), grid->w_max.in_at(grid->nodes,t));
         R_Xijt.initialize_all(1.0);
         Xiit.initialize_all(1.001);
@@ -109,6 +111,8 @@ Global::Global(PowerNet* net, int parts, int T) {
     // Commitment variables
     for (int t = 0; t < T; t++) {
         var<bool>  On_offt("On_off_" + to_string(t));
+        //var<Real>  Start_upt("Start_up_" + to_string(t));
+        //var<Real>  Shut_downt("Shut_down_" + to_string(t));
         var<bool>  Start_upt("Start_up_" + to_string(t));
         var<bool>  Shut_downt("Shut_down_" + to_string(t));
         //On_off.push_back(On_offt.in_at(grid->gens, t-1));
@@ -122,6 +126,9 @@ Global::Global(PowerNet* net, int parts, int T) {
     Pg_sol_.resize(T);
     Start_up_sol_.resize(T);
     Shut_down_sol_.resize(T);
+    Im_Xij_sol_.set_name("Im_Xij_sol_");
+    R_Xij_sol_.set_name("R_Xij_sol_");
+    Xii_sol_.set_name("Xii_sol_");
     // multipliers.
     lambda_up.set_name("lambda_up");
     lambda_down.set_name("lambda_down");
@@ -174,26 +181,26 @@ double Global::getdual_relax_time_(bool include) {
         add_KCL_Sub_time(ACUC, t);
         add_thermal_Sub_time(ACUC, t);
     }
-  for (int t = 0; t < Num_time; t++) {
-      for (auto& g: grid->gens) {
-          if (g->_active) {
-              Constraint MC1("Inter_temporal_MC1_" + to_string(t)+ ","+ g->_name);
-              Constraint MC2("Inter_temporal_MC2_" + to_string(t)+ ","+ g->_name);
-              string name = g->_name +"," + to_string(t);
-              string name1 = g->_name +"," + to_string(t-1);
-              if (t >0){
-                  MC1 = On_off[t](name) -  On_off[t-1](name1) -Start_up[t](name);
-                  MC2 = On_off[t-1](name1) -  On_off[t](name) -Shut_down[t](name);
-              }
-              else{
-                  MC1 = On_off[0](name) -  On_off_initial(name1) -Start_up[0](name);
-                  MC2 =  -1*On_off[0](name) -Shut_down[0](name) + On_off_initial(name1);
-              }
-              ACUC.add_constraint(MC1 <= 0);
-              ACUC.add_constraint(MC2 <= 0);
-          }
-      }
-  }
+    for (int t = 0; t < Num_time; t++) {
+        for (auto& g: grid->gens) {
+            if (g->_active) {
+                Constraint MC1("Inter_temporal_MC1_" + to_string(t)+ ","+ g->_name);
+                Constraint MC2("Inter_temporal_MC2_" + to_string(t)+ ","+ g->_name);
+                string name = g->_name +"," + to_string(t);
+                string name1 = g->_name +"," + to_string(t-1);
+                if (t >0) {
+                    MC1 = On_off[t](name) -  On_off[t-1](name1) -Start_up[t](name);
+                    MC2 = On_off[t-1](name1) -  On_off[t](name) -Shut_down[t](name);
+                }
+                else {
+                    MC1 = On_off[0](name) -  On_off_initial(name1) -Start_up[0](name);
+                    MC2 =  -1*On_off[0](name) -Shut_down[0](name) + On_off_initial(name1);
+                }
+                ACUC.add_constraint(MC1 <= 0);
+                ACUC.add_constraint(MC2 <= 0);
+            }
+        }
+    }
     for (int t = 0; t < Num_time; t++) {
         for (auto& g: grid->gens) {
             if (g->_active) {
@@ -246,7 +253,7 @@ double Global::getdual_relax_time_(bool include) {
                 string name = g->_name +"," + to_string(t);
                 string name1 = g->_name +"," + to_string(t-1);
                 Ramp_up =  Pg[t](name) - Pg[t-1](name1) -  rate_ramp.getvalue()*On_off[t-1](name1)
-                - rate_switch.getvalue()*(1 - On_off[t-1](name1));
+                           - rate_switch.getvalue()*(1 - On_off[t-1](name1));
                 Ramp_down =  Pg[t-1](name1) - Pg[t](name) - rate_ramp.getvalue()*On_off[t](name)- rate_switch.getvalue()*(1 - On_off[t](name));
                 ACUC.add_constraint(Ramp_up <= 0);
                 ACUC.add_constraint(Ramp_down <= 0);
@@ -334,7 +341,7 @@ double Global::getdual_relax_time_(bool include) {
             }
         }
     }
-
+    check_rank1_constraint_(ACUC, 0);
     return ACUC._obj_val;
 }
 
@@ -371,6 +378,8 @@ double Global::getdual_relax_spatial() {
         var<bool>  bag_Onoff("On_off_" + to_string(c));
         var<bool>  bag_Up("Start_up_" + to_string(c));
         var<bool>  bag_Down("Shut_down_" + to_string(c));
+        //var<Real>  bag_Up("Start_up_" + to_string(c));
+        //var<Real>  bag_Down("Shut_down_" + to_string(c));
 
         On_off.push_back(bag_Onoff);
         Start_up.push_back(bag_Up);
@@ -651,6 +660,7 @@ double Global::getdual_relax_spatial() {
 
 void Global::add_var_Sub_time(Model& Sub, int t) {
     const auto bus_pairs = grid->get_bus_pairs();
+    const auto bus_pairs_chord = grid->get_bus_pairs_chord();
     //Sub.add_var(Pg[t]);
     Sub.add_var(Pg[t].in_at(grid->gens,t));
     Sub.add_var(Pg2[t].in_at(grid->gens,t));
@@ -662,8 +672,8 @@ void Global::add_var_Sub_time(Model& Sub, int t) {
     //Sub.add_var(Shut_down[t]);
     Sub.add_var(Shut_down[t].in_at(grid->gens, t));
     Sub.add_var(Xii[t].in_at(grid->nodes, t));
-    Sub.add_var(R_Xij[t].in_at(bus_pairs, t));
-    Sub.add_var(Im_Xij[t].in_at(bus_pairs, t));
+    Sub.add_var(R_Xij[t].in_at(bus_pairs_chord, t));
+    Sub.add_var(Im_Xij[t].in_at(bus_pairs_chord, t));
     Xii[t].initialize_all(1.001);
     R_Xij[t].initialize_all(1.0);
     //power flow
@@ -804,15 +814,25 @@ void Global::add_SOCP_Sub_time(Model& Sub, int t) {
     SOC_[t] = Constraint("SOC_" + to_string(t));
     SOC_[t] =  power(R_Xij[t], 2) + power(Im_Xij[t], 2) - Xii[t].from()*Xii[t].to() ;
     SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
-     //Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
+    //Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
 }
+
+void Global::add_SOCP_chord_Sub_time(Model& Sub, int t) {
+    const auto bus_pairs = grid->get_bus_pairs();
+    //Constraint SOC("SOC_" + to_string(t));
+    SOC_[t] = Constraint("SOC_" + to_string(t));
+    SOC_[t] =  power(R_Xij[t], 2) + power(Im_Xij[t], 2) - Xii[t].from()*Xii[t].to() ;
+    SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
+    //Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
+}
+
 void Global::add_SOCP_Outer_Sub_time(Model& Sub, int t) {
     const auto bus_pairs = grid->get_bus_pairs();
     //for (auto& pair: bus_pairs){
-        Constraint SOC_outer_linear("SOC_outer_linear_"+to_string(t));
-        SOC_outer_linear = SOC_outer_[t]->get_outer_app();
-        SOC_outer_linear.print(true);
-        Sub.add_constraint(SOC_outer_linear.in_at(bus_pairs, t) <= 0);
+    Constraint SOC_outer_linear("SOC_outer_linear_"+to_string(t));
+    SOC_outer_linear = SOC_outer_[t]->get_outer_app();
+    SOC_outer_linear.print(true);
+    Sub.add_constraint(SOC_outer_linear.in_at(bus_pairs, t) <= 0);
     //}
 }
 
@@ -994,8 +1014,10 @@ double Global::Subproblem_time_(int t) {
     Model Sub("Sub_" + to_string(t));
     add_var_Sub_time(Sub, t);
     add_obj_Sub_time(Sub, t);
-    add_perspective_OnOff_Sub_time(Sub, t);
+    //add_perspective_OnOff_Sub_time(Sub, t);
     add_SOCP_Sub_time(Sub, t);
+    //add_BenNem_SOCP_time(Sub, t, 12);
+    //add_BenNem_SOCP_time(Sub, t, 8);
     //add_SOCP_Outer_Sub_time(Sub, t);
     add_KCL_Sub_time(Sub, t);
     add_thermal_Sub_time(Sub, t);
@@ -1050,16 +1072,16 @@ double Global::Subproblem_time_(int t) {
         On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
         Start_up_sol_[t].set_name("Start_up_sol_" + to_string(t));
         Shut_down_sol_[t].set_name("Shut_down_sol_" + to_string(t));
-        for (auto& g: grid->gens){
+        for (auto& g: grid->gens) {
             string name = g->_name+","+to_string(t);
             On_off_sol_[t](name)= On_off[t](name).eval();
             Start_up_sol_[t](name) = Start_up[t](name).eval();
             Shut_down_sol_[t](name) = Shut_down[t](name).eval();
             Pg_sol_[t](name) = Pg[t](name).eval();
         }
-        Start_up_sol_[t].print(true);
-        Shut_down_sol_[t].print(true);
-        On_off_sol_[t].print(true);
+        //Start_up_sol_[t].print(true);
+        //Shut_down_sol_[t].print(true);
+        //On_off_sol_[t].print(true);
         //On_off_sol_[t].print(true);
         //Start_up_sol_[t] = *(param<bool>*)(Sub.get_var("Start_up_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Start_up_sol_[t].print(true);
@@ -1068,7 +1090,7 @@ double Global::Subproblem_time_(int t) {
         //Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
         //Pg_sol_[t].print(true);
     }
-    check_rank1_constraint(Sub, t);
+    //check_rank1_constraint_(Sub, t);
     return Sub._obj_val;
 }
 
@@ -1097,20 +1119,20 @@ double Global::Subproblem_upper_time_(int t) {
     double tol = 1e-6;
     cpx_acuc.run(output, relax, tol);
     // fill solution
-    
+
     On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
     Start_up_sol_[t].set_name("Start_up_sol_" + to_string(t));
     Shut_down_sol_[t].set_name("Shut_down_sol_" + to_string(t));
-    for (auto& g: grid->gens){
+    for (auto& g: grid->gens) {
         string name = g->_name+","+to_string(t);
         On_off_sol_[t](name)= On_off[t](name).eval();
         Start_up_sol_[t](name) = Start_up[t](name).eval();
         Shut_down_sol_[t](name) = Shut_down[t](name).eval();
         Pg_sol_[t](name) = Pg[t](name).eval();
     }
-    Start_up_sol_[t].print(true);
-    Shut_down_sol_[t].print(true);
-    On_off_sol_[t].print(true);
+    //Start_up_sol_[t].print(true);
+    //Shut_down_sol_[t].print(true);
+    //On_off_sol_[t].print(true);
 //    On_off_sol_[t].set_name(" On_off_sol_"+to_string(t));
 //    On_off_sol_[t] = *(param<bool>*)(Sub.get_var("On_off_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
 //    //On_off_sol_[t].print(true);
@@ -1120,7 +1142,7 @@ double Global::Subproblem_upper_time_(int t) {
 //    //Shut_down_sol_[t].print(true);
 //    Pg_sol_[t] = *(param<Real>*)(Sub.get_var("Pg_"+to_string(t)+".in_at_" + to_string(t) + "Gen"));
 //    Pg_sol_[t].print(true);
-    check_rank1_constraint(Sub, t);
+    //check_rank1_constraint_(Sub, t);
     return Sub._obj_val;
 }
 
@@ -1412,17 +1434,152 @@ double Global::LR_bound_spatial_() {
     return LB;
 }
 
-void Global::check_rank1_constraint(Model& Sub, int t){
-    auto soc = Sub.get_constraint   ("SOC_"+to_string(t));
+vector<int> Global::check_rank1_constraint_(Model& Sub, int t) {
+    auto soc = Sub.get_constraint("SOC_"+to_string(t));
     vector<int> violations;
-    for (int p = 0; p < grid->get_bus_pairs().size(); p++){
+    string name;
+    for (int p = 0; p < grid->get_bus_pairs().size(); p++) {
         double eval = soc->eval(p);
         Debug("soc["<<p <<"]=" << eval << endl);
-        if (eval < -1e-6){
+        if (eval < -1e-6) {
             violations.push_back(p);
         }
     }
-    cout << "\# equation violation: " << violations.size() << endl;
+    for (auto& p: grid->get_bus_pairs()) {
+        name = p->_name+","+to_string(t);
+        Debug(Im_Xij[t](name).eval()<<endl);
+        Im_Xij_sol_(name) = Im_Xij[t](name).eval();
+        R_Xij_sol_(name) = R_Xij[t](name).eval();
+    }
+
+    for (auto& n: grid->nodes){
+        name = n->_name+","+to_string(t);
+        Xii_sol_(name) = Xii[t](name).eval();
+    }
     
+    cout << "\# equation violation: " << violations.size() << endl;
+    return violations;
+}
+void  Global::add_BenNem_SOCP_time(Model& model, int t, int k) {
+    // recursive decomposition to dimension 2 Lorenz cone.
+    // we have L^3 rotated SOCP.
+    const auto bus_pairs = grid->get_bus_pairs();
+    var<Real> gamma("gamma");
+    var<Real> z("z");
+    model.add_var(z.in_at(bus_pairs, t));
+    model.add_var(gamma.in_at(bus_pairs, t));
+
+    Constraint Extend_SOCP("Extend_SOCP_1_");
+    Extend_SOCP = gamma - 0.5*Xii[t].from() - 0.5*Xii[t].to();
+    model.add_constraint(Extend_SOCP.in_at(bus_pairs, t)==0);
+    
+    Constraint Extend_SOCP2("Extend_SOCP_2_");
+    Extend_SOCP2 = 0.5*Xii[t].from() - 0.5*Xii[t].to()- z;
+    model.add_constraint(Extend_SOCP2.in_at(bus_pairs, t)==0);
+    // cone decomposition.
+    // R_xij^2 + Im_xij^2 + z^2 <= gamma^2...
+    
+    var<Real> y("y"); // auxilary vars for cone decomposition
+    model.add_var(y.in_at(bus_pairs, t));
+    // R_xij^2 + Im_xij^2 <= y^2.
+    // y^2 + z^2 < = r^2.
+    //BenNem_Lorenz_(model, y(name), z(name), gamma, k);
+    vector<var<Real>> alpha;
+    vector<var<Real>> beta;
+    for (int i = 1; i <k+1; i++){
+        var<Real> alphai("alpha_"+to_string(i));
+        var<Real> betai("beta_"+to_string(i));
+        model.add_var(alphai.in_at(bus_pairs, t));
+        model.add_var(betai.in_at(bus_pairs, t));
+        alpha.push_back(alphai);
+        beta.push_back(betai);
+    }
+    for (int i= 0; i <k; i++) {
+        Constraint Extend1("Extend1_"+to_string(t)+"_"+to_string(i));
+        Constraint Extend2("Extend2_"+to_string(t)+"_"+to_string(i));
+        Constraint Extend3("Extend3_"+to_string(t)+"_"+to_string(i));
+        if (i == 0){
+            Extend1 = alpha[i] + R_Xij[t] ;
+            Extend2 = -1*Im_Xij[t]   - beta[i] ;
+            Extend3 = Im_Xij[t]- beta[i];
+        }
+        else{
+            Extend1 = alpha[i] - alpha[i-1]*cos(M_PI*pow(0.5, i)) - beta[i-1]*sin(M_PI*pow(0.5, i));
+            Extend2 = beta[i-1]*cos(M_PI*pow(0.5, i))- alpha[i-1]*sin(M_PI*pow(0.5, i))  - beta[i];
+            Extend3 = alpha[i-1]*sin(M_PI*pow(0.5, i)) - beta[i-1]*cos(M_PI*pow(0.5, i)) - beta[i];
+        }
+        //Extend1.print_expanded();
+        //Extend2.print_expanded();
+        //Extend3.print_expanded();
+        model.add_constraint(Extend1.in_at(bus_pairs, t) ==0);
+        model.add_constraint(Extend2.in_at(bus_pairs, t) <=0);
+        model.add_constraint(Extend3.in_at(bus_pairs, t) <=0);
+    }
+        Constraint Extend4("Extend4_"+to_string(t));
+        Extend4 = y - alpha[k-1]*cos(M_PI*pow(0.5, k)) - beta[k-1]*sin(M_PI*pow(0.5, k));
+        model.add_constraint(Extend4.in_at(bus_pairs,t) ==0);
+
+    vector<var<Real>> alphay;
+    vector<var<Real>> betaz;
+    for (int i = 1; i <k+1; i++){
+        var<Real> alphayi("alphay_"+to_string(i));
+        var<Real> betazi("betaz_"+to_string(i));
+        model.add_var(alphayi.in_at(bus_pairs, t));
+        model.add_var(betazi.in_at(bus_pairs, t));
+        alphay.push_back(alphayi);
+        betaz.push_back(betazi);
+    }
+    for (int i= 0; i <k; i++) {
+        Constraint Extend1("Extend1_yz"+to_string(t)+"_"+to_string(i));
+        Constraint Extend2("Extend2_yz"+to_string(t)+"_"+to_string(i));
+        Constraint Extend3("Extend3_yz"+to_string(t)+"_"+to_string(i));
+        if (i == 0){
+            Extend1 = alphay[i] + y ;
+            Extend2 = -1*z   - betaz[i] ;
+            Extend3 = z- betaz[i];
+        }
+        else{
+            Extend1 = alphay[i] - alphay[i-1]*cos(M_PI*pow(0.5, i)) - betaz[i-1]*sin(M_PI*pow(0.5, i));
+            Extend2 = betaz[i-1]*cos(M_PI*pow(0.5, i))- alphay[i-1]*sin(M_PI*pow(0.5, i))  - betaz[i];
+            Extend3 = alphay[i-1]*sin(M_PI*pow(0.5, i)) - betaz[i-1]*cos(M_PI*pow(0.5, i)) - betaz[i];
+        }
+        model.add_constraint(Extend1.in_at(bus_pairs, t) ==0);
+        model.add_constraint(Extend2.in_at(bus_pairs, t) <=0);
+        model.add_constraint(Extend3.in_at(bus_pairs, t) <=0);
+    }
+        Constraint Extend4yz("Extend4_yz"+to_string(t));
+        Extend4yz = gamma - alphay[k-1]*cos(M_PI*pow(0.5, k)) - betaz[k-1]*sin(M_PI*pow(0.5, k));
+        model.add_constraint(Extend4yz.in_at(bus_pairs,t) ==0);
 }
 
+void  Global::add_SDP_S_(Model& model, vector<int> indices, int t){
+    // find the smallest bag containing indices. 
+    auto V = check_rank1_constraint_(model, t);
+    string name;
+    if (V.size() >0){
+        //find eigenvectors..with negative values...
+        arma::SpMat<double> val(2*grid->nodes.size(), 2*grid->nodes.size());
+        for (auto& node:grid->nodes){
+            name = node->_name + "," + to_string(t);
+            val(2*node->_id, 2*node->_id) = Xii_sol_(name).eval();
+            val(2*node->_id+1, 2*node->_id+1) = Xii_sol_(name).eval();
+            val(2*node->_id, 2*node->_id+1) = 0;
+            val(2*node->_id+1, 2*node->_id) = 0;
+        }
+        //for (auto &pair: grid->get_bus_pairs()) {
+          //  name = pair->_name + "," + to_string(t);
+//            val(2*pair->_src->_id, 2*pair->_dest->_id) =  R_Xij_sol_(name);
+//            val(2*pair->_src->_id+1, 2*pair->_dest->_id+1) =  R_Xij_sol_(name);
+//            val(2*pair->_src->_id, 2*pair->_dest->_id+1) =  -Im_Xij_sol_(name);
+//            val(2*pair->_src->_id+1, 2*pair->_dest->_id) =  Im_Xij_sol_(name);
+        //}
+    }
+}
+
+void Global::add_3d_cuts_(Model& model, vector<int> indices, int){
+    for(auto& bag:grid->_bags){
+        if (bag.size() == 3){
+            //if()
+        }
+    }
+}

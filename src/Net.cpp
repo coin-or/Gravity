@@ -640,10 +640,13 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             for (int j = i+1; j<bag_copy.size(); j++) {
                 nn = bag_copy.at(j);
                 if (u->is_connected(nn)) {
-                    if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
-                        Arc* off_arc = get_arc(u,nn);
-                        off_arc->_imaginary = true;
-                        off_arc->_free = true;
+                    for (auto& arc: get_arcs(u,nn)){
+                    //if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
+                        if (!arc->_active){
+                            Arc* off_arc = get_arc(u,nn);
+                            off_arc->_imaginary = true;
+                            off_arc->_free = true;
+                        }
                     }
                     continue;
                 }
