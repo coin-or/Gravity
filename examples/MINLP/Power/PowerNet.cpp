@@ -1,4 +1,4 @@
-    //
+//
 //  PowerNet.cpp
 //
 //
@@ -125,7 +125,7 @@ unsigned PowerNet::get_nb_active_bus_pairs() const {
     unsigned nb=0;
     for (auto bp: _bus_pairs._keys) {
 //        if (bp->_active) {
-            nb++;
+        nb++;
 //        }
     }
     return nb;
@@ -390,7 +390,7 @@ int PowerNet::readgrid(const char* fname) {
             src = dest;
             dest = key;
         }
-        
+
         arc = new Line(to_string(index) + "," + src + "," + dest); // Name of lines
         arc->_id = index++;
         arc->_src = get_node(src);
@@ -425,7 +425,7 @@ int PowerNet::readgrid(const char* fname) {
         file >> ws >> word;
 
 
-        
+
         arc->status = atoi(word.c_str());
         file >> ws >> word;
 
@@ -437,9 +437,9 @@ int PowerNet::readgrid(const char* fname) {
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
             DebugOn("Angle bounds are equal to zero. Setting them to -+60");
-             arc->tbound.min = -60*pi/180.;
+            arc->tbound.min = -60*pi/180.;
             arc->tbound.max = 60*pi/180.;
-            
+
         }
         if (reversed) {
             arc->g /= pow(arc->tr,2);
@@ -490,23 +490,23 @@ int PowerNet::readgrid(const char* fname) {
             }
         }
         else {
-        if(arc->b < 0){
-            Y_t.set_val(name,-pi*0.5);
-        } else {
-            Y_t.set_val(name,pi*0.5);
+            if(arc->b < 0) {
+                Y_t.set_val(name,-pi*0.5);
+            } else {
+                Y_t.set_val(name,pi*0.5);
+            }
         }
-    }
-    
-    Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch*0.5),2)));
-    if(arc->g != 0) {
-        Y_charge_t.set_val(name,atan((arc->b+arc->ch*0.5)/arc->g));
-    } else {
-        if(arc->b < 0) {
-            Y_charge_t.set_val(name,-pi*0.5);
+
+        Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch*0.5),2)));
+        if(arc->g != 0) {
+            Y_charge_t.set_val(name,atan((arc->b+arc->ch*0.5)/arc->g));
         } else {
-            Y_charge_t.set_val(name,pi*0.5);
+            if(arc->b < 0) {
+                Y_charge_t.set_val(name,-pi*0.5);
+            } else {
+                Y_charge_t.set_val(name,pi*0.5);
+            }
         }
-    }
         ch.set_val(name,arc->ch);
         S_max.set_val(name,arc->limit);
 //        DebugOn("charge = " << arc->ch << endl);
@@ -531,7 +531,7 @@ int PowerNet::readgrid(const char* fname) {
             th_max.set_val(name,arc->tbound.max);
             tan_th_min.set_val(name,tan(arc->tbound.min));
             tan_th_max.set_val(name,tan(arc->tbound.max));
-            
+
         }
         else {
             th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
@@ -575,7 +575,7 @@ int PowerNet::readgrid(const char* fname) {
 }
 
 /* Create imaginary lines, fill bus_pairs_chord, set lower and upper bounds */
-void PowerNet::update_net(){
+void PowerNet::update_net() {
     string name;
     double cos_max_, cos_min_, sin_max_, sin_min_;
     double wr_max_, wr_min_, wi_max_, wi_min_, w_max_, w_min_;
@@ -585,7 +585,7 @@ void PowerNet::update_net(){
     Arc *a12, *a13, *a32;
     std::vector<std::vector<Node*>> bags_sorted;
 
-    for(auto& b: _bags){
+    for(auto& b: _bags) {
         for(int i = 0; i < b.size()-1; i++) {
             for(int j = i+1; j < b.size(); j++) {
                 Arc* a = get_arc(b[i]->_name,b[j]->_name);
@@ -609,7 +609,7 @@ void PowerNet::update_net(){
     while (fixed != 0) {
         fixed = 0;
         DebugOff("\nNew iteration");
-       // for(auto b_it = _bags.begin(); b_it != _bags.end();) {
+        // for(auto b_it = _bags.begin(); b_it != _bags.end();) {
         for(auto b_it = _bags.begin(); b_it != _bags.end();) {
             std::vector<Node*> b = *b_it;
             if(b.size() == 3) {
@@ -618,7 +618,7 @@ void PowerNet::update_net(){
                 a13 = get_arc(b[0], b[2]);
                 a32 = get_arc(b[2], b[1]);
                 if ((a12->_free && a13->_free) || (a12->_free && a32->_free) || (a13->_free && a32->_free) ||
-                    (!a12->_free && !a13->_free && !a32->_free)) { // at least two missing lines or all lines real
+                        (!a12->_free && !a13->_free && !a32->_free)) { // at least two missing lines or all lines real
                     ++b_it;
                     continue;
                 }
@@ -634,14 +634,14 @@ void PowerNet::update_net(){
                 }
                 if (a32->_free) {
                     a32->_free = false;
-                    DebugOff("\nFixing arc a32 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
+                    DebugOff("\nFixing arc a23 (" << a32->_src->_name << ", " << a32->_dest->_name << "), adding bag #" << id_sorted);
                     fixed++;
                 }
                 bags_sorted.push_back(b);
                 _bags.erase(b_it);
                 id_sorted++;
             }
-            else{ // Bags with size > 3; todo: leave only this as the general case?
+            else { // Bags with size > 3; todo: leave only this as the general case?
                 DebugOff("\nBag with size > 3");
                 for(int i = 0; i < b.size()-1; i++) {
                     for (int j = i + 1; j < b.size(); j++) {
@@ -651,9 +651,9 @@ void PowerNet::update_net(){
                         //by now, all arcs in bags should be created
                         for (auto n1: b) {
                             if(n==n1) continue;
-                            Arc* a2 = get_undirected_arc(n->_name, n1->_name);
+                            Arc* a2 = get_arc(n->_name, n1->_name);
                             if (a2->_free) continue;
-                            Arc *a1 = get_undirected_arc(a->_dest, n1);
+                            Arc *a1 = get_arc(a->_dest, n1);
                             if (!a1->_free) {
                                 a->_free = false;
 
@@ -683,8 +683,8 @@ void PowerNet::update_net(){
     //add all remaining bags to bags_sorted
     for(auto b_it = _bags.begin(); b_it != _bags.end();) {
         std::vector<Node*> b = *b_it;
-            if(b.size() > 2) bags_sorted.push_back(b);
-            _bags.erase(b_it);
+        if(b.size() > 2) bags_sorted.push_back(b);
+        _bags.erase(b_it);
 //            id_sorted++;
     }
     _bags = bags_sorted;
@@ -694,12 +694,25 @@ void PowerNet::update_net(){
     }
 
 
-    for(auto& k: _bus_pairs._keys){
+    for(auto& k: _bus_pairs._keys) {
         _bus_pairs_chord._keys.push_back(new index_pair(*k));
     }
 
-    for(auto& a: arcs){
-        if(a->_imaginary){
+    for(auto& b: _bags) {
+        for(int i = 0; i < b.size()-1; i++) {
+            for(int j = i+1; j < b.size(); j++) {
+                Arc* a = get_arc(b[i]->_name,b[j]->_name);
+                if (a==nullptr) {
+                    new_arc->connect();
+                    add_undirected_arc(new_arc);
+                }
+            }
+        }
+    }
+
+
+    for(auto& a: arcs) {
+        if(a->_imaginary) {
             Bus* bus_s = (Bus*)(a->_src);
             Bus* bus_d = (Bus*)(a->_dest);
 
@@ -709,10 +722,10 @@ void PowerNet::update_net(){
             if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
                 cos_max_ = 1;
                 cos_min_ = -1;
-            } else if (m_theta_lb < 0 && m_theta_ub > 0){
+            } else if (m_theta_lb < 0 && m_theta_ub > 0) {
                 cos_max_ = 1;
                 cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
-            } else{
+            } else {
                 cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
                 cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
             }
@@ -723,10 +736,10 @@ void PowerNet::update_net(){
             if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
             else wr_min_ = cos_min_*w_min_;
 
-            if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
+            if(m_theta_lb < -1.57 && m_theta_ub > 1.57) {
                 sin_max_ = 1;
                 sin_min_ = -1;
-            } else{
+            } else {
                 sin_max_ = sin(m_theta_ub);
                 sin_min_ = sin(m_theta_lb);
             }
@@ -749,7 +762,7 @@ void PowerNet::update_net(){
             DebugOff(b.at(i)->_name << " ");
         }
         DebugOff("}" << endl);
-        if(add_3d_nlin && b.size()==3){
+        if(add_3d_nlin && b.size()==3) {
             for(int i = 0; i < 2; i++) {
                 for(int j = i+1; j < 3; j++) {
                     Arc* aij = get_arc(b[i],b[j]);
@@ -760,8 +773,62 @@ void PowerNet::update_net(){
     }
 }
 
-double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
-    
+void PowerNet::update_update_bus_pairs_chord(Net* chordal) {
+    string name;
+    double cos_max_, cos_min_, sin_max_, sin_min_;
+    double wr_max_, wr_min_, wi_max_, wi_min_, w_max_, w_min_;
+    for(auto& k: _bus_pairs._keys) {
+        _bus_pairs_chord._keys.push_back(new index_pair(*k));
+    }
+   // auto chordal = get_chordal_extension();
+
+    for (int id = arcs.size(); id < chordal->arcs.size(); id++) {
+            auto ns = get_node(chordal->arcs[id]->_src->_name);
+            auto nd = get_node(chordal->arcs[id]->_dest->_name);
+            Bus* bus_s = (Bus*)(ns);
+            Bus* bus_d = (Bus*)(nd);
+            name = bus_s->_name + "," + bus_d->_name;
+            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+
+            if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+                cos_max_ = 1;
+                cos_min_ = -1;
+            } else if (m_theta_lb < 0 && m_theta_ub > 0) {
+                cos_max_ = 1;
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            } else {
+                cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            }
+            w_max_ = bus_s->vbound.max*bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min*bus_d->vbound.min;
+
+            wr_max_ = cos_max_*w_max_;
+            if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
+            else wr_min_ = cos_min_*w_min_;
+
+            if(m_theta_lb < -1.57 && m_theta_ub > 1.57) {
+                sin_max_ = 1;
+                sin_min_ = -1;
+            } else {
+                sin_max_ = sin(m_theta_ub);
+                sin_min_ = sin(m_theta_lb);
+            }
+
+            if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
+            else wi_max_ = sin_max_*w_min_;
+            if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
+            else wi_min_ = sin_min_*w_max_;
+            wr_max.set_val(name,wr_max_);
+            wr_min.set_val(name,wr_min_);
+            wi_max.set_val(name,wi_max_);
+            wi_min.set_val(name,wi_min_);
+    }
+}
+
+
+double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol) {
+
     bool polar = (pmt==ACPOL);
     if (polar) {
         DebugOn("Using polar model\n");
@@ -776,18 +843,18 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     var<Real> Qg ("Qg", qg_min, qg_max);
     ACOPF.add_var(Pg.in(gens));
     ACOPF.add_var(Qg.in(gens));
-    
+
     /* Power flow variables */
     var<Real> Pf_from("Pf_from", S_max);
     var<Real> Qf_from("Qf_from", S_max);
     var<Real> Pf_to("Pf_to", S_max);
     var<Real> Qf_to("Qf_to", S_max);
-    
+
     ACOPF.add_var(Pf_from.in(arcs));
     ACOPF.add_var(Qf_from.in(arcs));
     ACOPF.add_var(Pf_to.in(arcs));
     ACOPF.add_var(Qf_to.in(arcs));
-    
+
     /** Voltage related variables */
     var<Real> theta("theta");
     var<Real> v("|V|", v_min, v_max);
@@ -795,7 +862,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     //    var<Real> vi("vi");
     var<Real> vr("vr", v_max);
     var<Real> vi("vi", v_max);
-    
+
     if (polar) {
         ACOPF.add_var(v.in(nodes));
         ACOPF.add_var(theta.in(nodes));
@@ -806,13 +873,13 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         ACOPF.add_var(vi.in(nodes));
         vr.initialize_all(1.0);
     }
-    
+
     /** Construct the objective function */
     func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
     ACOPF.min(obj.in(gens));
-    
+
     /** Define constraints */
-    
+
     /* REF BUS */
     Constraint Ref_Bus("Ref_Bus");
     if (polar) {
@@ -822,7 +889,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         Ref_Bus = vi(get_ref_bus());
     }
     ACOPF.add_constraint(Ref_Bus == 0);
-    
+
     /** KCL Flow conservation */
     Constraint KCL_P("KCL_P");
     Constraint KCL_Q("KCL_Q");
@@ -839,7 +906,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     }
     ACOPF.add_constraint(KCL_P.in(nodes) == 0);
     ACOPF.add_constraint(KCL_Q.in(nodes) == 0);
-    
+
     /** AC Power Flows */
     /** TODO write the constraints in Complex form */
     Constraint Flow_P_From("Flow_P_From");
@@ -855,7 +922,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
     ACOPF.add_constraint(Flow_P_From.in(arcs)==0);
-    
+
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to;
     if (polar) {
@@ -869,7 +936,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
     ACOPF.add_constraint(Flow_P_To.in(arcs)==0);
-    
+
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from;
     if (polar) {
@@ -896,14 +963,14 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
     ACOPF.add_constraint(Flow_Q_To.in(arcs)==0);
-    
+
     /** AC voltage limit constraints. */
     if (!polar) {
         Constraint Vol_limit_UB("Vol_limit_UB");
         Vol_limit_UB = power(vr, 2) + power(vi, 2);
         Vol_limit_UB -= power(v_max, 2);
         ACOPF.add_constraint(Vol_limit_UB.in(nodes) <= 0);
-        
+
         Constraint Vol_limit_LB("Vol_limit_LB");
         Vol_limit_LB = power(vr, 2) + power(vi, 2);
         Vol_limit_LB -= power(v_min,2);
@@ -911,8 +978,8 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         DebugOff(v_min.to_str(true) << endl);
         DebugOff(v_max.to_str(true) << endl);
     }
-    
-    
+
+
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     Constraint PAD_LB("PAD_LB");
@@ -929,7 +996,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
         DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
         PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
         PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
-        
+
         PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
         PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
         DebugOff(th_min.to_str(true) << endl);
@@ -937,14 +1004,14 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     }
     ACOPF.add_constraint(PAD_UB.in(bus_pairs) <= 0);
     ACOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
-    
-    
+
+
     /*  Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from -= power(S_max, 2);
     ACOPF.add_constraint(Thermal_Limit_from.in(arcs) <= 0);
-    
+
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(S_max,2);

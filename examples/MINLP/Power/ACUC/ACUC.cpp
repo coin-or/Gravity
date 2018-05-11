@@ -23,7 +23,7 @@ int main (int argc, const char * argv[])
     const char* fname;
     double solver_time_end, total_time_end, solve_time, total_time;
     double total_time_start = get_cpu_time();
-    int T = 1;
+    int T = 2;
     if (argc >= 2) {
         fname = argv[1];
         T = atoi(argv[2]);
@@ -112,9 +112,9 @@ int main (int argc, const char * argv[])
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     // Commitment variables
-    var<bool>  On_off("On_off");
-    var<bool>  Start_up("Start_up");
-    var<bool>  Shut_down("Shut_down");
+    var<Real>  On_off("On_off", 0, 1);
+    var<Real>  Start_up("Start_up", 0, 1);
+    var<Real>  Shut_down("Shut_down", 0, 1);
     ACUC.add_var(On_off.in(grid->gens, -1, T));// -1
     ACUC.add_var(Start_up.in(grid->gens, T));
     ACUC.add_var(Shut_down.in(grid->gens, T));
@@ -288,6 +288,7 @@ int main (int argc, const char * argv[])
 
     /* Resolve it! */
     solver OPF(ACUC, cplex);
+    //solver OPF(ACUC, ipopt);
     bool relax = true;
     int output = 1;
     double tol = 1e-6;
