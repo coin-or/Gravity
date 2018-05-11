@@ -16,7 +16,8 @@
 
 class Global {
 public:
-    PowerNet* grid; 
+    PowerNet* grid;
+    Net* chordal;
     Partition* P_;
     int Num_parts; //  spatial decomposition
     int Num_time; // time decomposition

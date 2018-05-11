@@ -28,6 +28,8 @@ Global::~Global() {
 
 Global::Global(PowerNet* net, int parts, int T) {
     grid = net;
+    chordal = grid->get_chordal_extension();
+    grid->update_update_bus_pairs_chord(chordal);
     P_ = new Partition();
     Num_parts = parts;
     if (Num_parts >=1 && Num_parts < grid->nodes.size()) {
@@ -174,7 +176,8 @@ double Global::getdual_relax_time_(bool include) {
     }
     ACUC.set_objective(min(obj));
     for (int t= 0; t < Num_time; t++) {
-        add_SOCP_Sub_time(ACUC, t);
+        //add_SOCP_Sub_time(ACUC, t);
+        add_SOCP_chord_Sub_time(ACUC, t);
     }
 
     for (int t= 0; t < Num_time; t++) {
@@ -818,11 +821,12 @@ void Global::add_SOCP_Sub_time(Model& Sub, int t) {
 }
 
 void Global::add_SOCP_chord_Sub_time(Model& Sub, int t) {
-    const auto bus_pairs = grid->get_bus_pairs();
+    const auto bus_pairs_chord = grid->get_bus_pairs_chord();
     //Constraint SOC("SOC_" + to_string(t));
     SOC_[t] = Constraint("SOC_" + to_string(t));
     SOC_[t] =  power(R_Xij[t], 2) + power(Im_Xij[t], 2) - Xii[t].from()*Xii[t].to() ;
-    SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
+    //SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs_chord, t) <= 0);
+    SOC_outer_[t] = Sub.add_constraint(SOC_[t].in_at(bus_pairs_chord, t) <= 0);
     //Sub.add_constraint(SOC_[t].in_at(bus_pairs, t) <= 0);
 }
 
@@ -1508,8 +1512,6 @@ void  Global::add_BenNem_SOCP_time(Model& model, int t, int k) {
             Extend2 = beta[i-1]*cos(M_PI*pow(0.5, i))- alpha[i-1]*sin(M_PI*pow(0.5, i))  - beta[i];
             Extend3 = alpha[i-1]*sin(M_PI*pow(0.5, i)) - beta[i-1]*cos(M_PI*pow(0.5, i)) - beta[i];
         }
-        //Extend1.print_expanded();
-        //Extend2.print_expanded();
         //Extend3.print_expanded();
         model.add_constraint(Extend1.in_at(bus_pairs, t) ==0);
         model.add_constraint(Extend2.in_at(bus_pairs, t) <=0);
@@ -1553,7 +1555,7 @@ void  Global::add_BenNem_SOCP_time(Model& model, int t, int k) {
 }
 
 void  Global::add_SDP_S_(Model& model, vector<int> indices, int t){
-    // find the smallest bag containing indices. 
+    // find all bags containning this link. 
     auto V = check_rank1_constraint_(model, t);
     string name;
     if (V.size() >0){
@@ -1571,15 +1573,23 @@ void  Global::add_SDP_S_(Model& model, vector<int> indices, int t){
 //            val(2*pair->_src->_id, 2*pair->_dest->_id) =  R_Xij_sol_(name);
 //            val(2*pair->_src->_id+1, 2*pair->_dest->_id+1) =  R_Xij_sol_(name);
 //            val(2*pair->_src->_id, 2*pair->_dest->_id+1) =  -Im_Xij_sol_(name);
-//            val(2*pair->_src->_id+1, 2*pair->_dest->_id) =  Im_Xij_sol_(name);
+//            val(2*pair->_src->_id+1, 2*pair->_dest->_id* =  Im_Xij_sol_(name);
         //}
     }
 }
 
-void Global::add_3d_cuts_(Model& model, vector<int> indices, int){
-    for(auto& bag:grid->_bags){
-        if (bag.size() == 3){
-            //if()
-        }
-    }
+void Global::add_3d_cuts_(Model& model, vector<int> indices, int t){
+    auto R_Xij_ = R_Xij[t].pairs_in_directed(*chordal, grid->_bags, 3);
+    auto Im_Xij_ = Im_Xij[t].pairs_in_directed(*chordal, grid->_bags, 3);
+    auto Xii_ = Xii[t].in(grid->_bags, 3);
+    Constraint sdpcut("3dcuts");
+    //sdpcut =  2*R_Xij_[0]*(R_Xij_[1]*R_Xij_[2]+Im_Xij_[1]*Im_Xij_[2]);
+    //sdpcut += 2* Im_Xij_[0]*(R_Xij_[1]*Im_Xij_[2]+ Im_Xij_[1]*R_Xij_[2]);
+    sdpcut =  2*R_Xij_[2]*(R_Xij_[0]*R_Xij_[1]-Im_Xij_[0]*Im_Xij_[1]);
+    sdpcut += 2* Im_Xij_[2]*(R_Xij_[0]*Im_Xij_[1]+ Im_Xij_[0]*R_Xij_[1]);
+    sdpcut -= (power(R_Xij_[0], 2) + power(Im_Xij_[0], 2))*Xii_[2];
+    sdpcut -= (power(R_Xij_[1], 2) + power(Im_Xij_[1], 2))*Xii_[0];
+    sdpcut -= (power(R_Xij_[2], 2) + power(Im_Xij_[2], 2))*Xii_[1];
+    sdpcut += Xii_[0]*Xii_[1]*Xii_[2];
+    model.add_constraint(sdpcut <= 0);
 }

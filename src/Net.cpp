@@ -106,7 +106,7 @@ Net* Net::clone_undirected() {
         /* Add the undirected arc to the list of arcs */
         copy_net->add_undirected_arc(arc);
 
-        /* Connects it to its source and destination */
+        /* Connects its source and destination */
         arc->connect();
     }
     return copy_net;
@@ -305,8 +305,6 @@ bool Net::add_arc(Arc* a) {
         throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
 
     }
-
-
     key.clear();
     key.append(src);
     key.append(",");
@@ -780,11 +778,11 @@ Net* Net::get_chordal_extension() {
 
     string name="";
     string name_chordal="";
-    Net* chordal_extension = clone();
+    Net* chordal_extension = clone_undirected();
     Net* graph_clone = clone_undirected();
     int nb = 0;
 
-    /** cliques with less than 1 nodes are useless for us.*/
+    /** cliques with less than 1 node are useless for us.*/
     while (graph_clone->nodes.size() > 1) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
         // last element has the minimum fill-in.
