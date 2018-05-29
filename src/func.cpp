@@ -5102,13 +5102,15 @@ namespace gravity{
             lval = _lson->_val->at(0);
         }
         else {
-            lval = _lson->get_val(i);
+//            lval = _lson->get_val(i);
+            lval = _lson->eval(i);
         }
         if (_rson->is_number()) {
             rval = _rson->_val->at(0);
         }
         else {
-            rval = _rson->get_val(i);
+//            rval = _rson->get_val(i);
+            rval = _rson->eval(i);
         }
         switch (_otype) {
             case plus_:
@@ -6486,6 +6488,7 @@ namespace gravity{
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
+
         if (is_constant() && _evaluated) {
             if (is_number()) {
                 return _val->at(0);
