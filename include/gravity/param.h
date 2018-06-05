@@ -94,18 +94,22 @@ namespace gravity {
 
         pair<size_t,size_t> get_sdp_inst(unsigned inst = 0) const {
             int idx = _ids->at(0).at(inst);
-            auto it = _indices->begin();
-            for(it =_indices->begin(); it != _indices->end(); ++it) {
-                if(it->second==idx) break;
-            }
-            string key = it->first;
-            DebugOff("\nkey found: " << it->first.at(0) << "," << it->first.at(2));
+//            auto it = _indices->begin();
+//            for(it =_indices->begin(); it != _indices->end(); ++it) {
+//                if(it->second==idx) break;
+//            }
+
+            string key = "";
+            key += _rev_indices->at(idx);
+
+//            string key = it->first;
+            DebugOff("\nkey found: " << key.at(0) << "," << key.at(2));
             pair<size_t,size_t> res;
             size_t idx1, idx2;
             int i = 1;
-            while(isdigit(it->first[i])) i++;
-            idx1 = std::stoi(it->first.substr(0,i));
-            idx2 = std::stoi(it->first.substr(i+1,it->first.size()-i-1));
+            while(isdigit(key[i])) i++;
+            idx1 = std::stoi(key.substr(0,i));
+            idx2 = std::stoi(key.substr(i+1,key.size()-i-1));
 
 //            res = make_pair(std::stoi(it->first.substr(0,1)),std::stoi(it->first.substr(2,1)));
             res = make_pair(idx1,idx2);

@@ -7,7 +7,7 @@
 #include <gravity/param.h>
 #include "Bag.h"
 
-#define FLAT
+//#define FLAT
 
 Bag::Bag(int id, const PowerNet& grid, vector<Node*> nodes):_id(id),_grid((PowerNet*)&grid),_nodes(nodes) {
     Arc* aij = NULL;
@@ -148,7 +148,7 @@ param<double> Bag::fill_wstar(){
         _W_star.set_val(to_string(i+_nodes.size())+","+to_string(i+_nodes.size()),((Bus*)_nodes[i])->w);
         _W_star.set_val(to_string(i)+","+to_string(i+_nodes.size()),0.0);
     }
-    cout << "\nwstar: "; _wstarp.print(true);
+//    cout << "\nwstar: "; _wstarp.print(true);
     return W_star;
 }
 
@@ -454,7 +454,7 @@ param<double> Bag::nfp(){
 
     Model NPP("NPP model");
     int n = _nodes.size();
-    DebugOn("\nn = " << n);
+    DebugOff("\nn = " << n);
 
     var<double> W("W");
     W._psd = true;
@@ -483,25 +483,25 @@ param<double> Bag::nfp(){
     Constraint svec("svec");
 
     auto idxs_ul_u = ul_u(n);
-    cout << "\nUpper left, upper: ";
-    for(auto& idx: idxs_ul_u) DebugOff(idx._name << "; ");
+//    cout << "\nUpper left, upper: ";
+//    for(auto& idx: idxs_ul_u) DebugOff(idx._name << "; ");
 
     auto idxs_lr_u = lr_u(n);
-    cout << "\nLower right, upper: ";
-    for(auto& idx: idxs_lr_u) DebugOff(idx._name << "; ");
+//    cout << "\nLower right, upper: ";
+//    for(auto& idx: idxs_lr_u) DebugOff(idx._name << "; ");
 
     auto idxs_ur_u = ur_u(n);
-    cout << "\nUpper right, upper: ";
-    for(auto& idx: idxs_ur_u) DebugOff(idx._name << "; ");
+//    cout << "\nUpper right, upper: ";
+//    for(auto& idx: idxs_ur_u) DebugOff(idx._name << "; ");
 
     auto idxs_ur_l = ur_l(n);
-    cout << "\nUpper right, lower: ";
-    for(auto& idx: idxs_ur_l) DebugOff(idx._name << "; ");
+//    cout << "\nUpper right, lower: ";
+//    for(auto& idx: idxs_ur_l) DebugOff(idx._name << "; ");
 
     vector<index_> obj_idxs;
     obj_idxs.insert(obj_idxs.end(),idxs_ul_u.begin(),idxs_ul_u.end());
     obj_idxs.insert(obj_idxs.end(),idxs_ur_u.begin(),idxs_ur_u.end());
-    DebugOn("\nObj: ");
+    DebugOff("\nObj: ");
     for(auto& idx: obj_idxs) DebugOn(idx._name << "; ");
 
     auto idxs = triang_indices(2*n);
@@ -516,7 +516,7 @@ param<double> Bag::nfp(){
     Constraint zeros("zeros");
     zeros = W.in(zero_idxs);
     NPP.add_constraint(zeros==0);
-    zeros.print_expanded();
+//    zeros.print_expanded();
 
     Constraint real_symm("real_symm");
     real_symm = W.submat(idxs_ul_u) - W.submat(idxs_lr_u);
@@ -542,9 +542,10 @@ param<double> Bag::nfp(){
 
     solver s(NPP,Mosek);
     s.run(0,0);
+//    exit(0);
 
-    z.print(); cout << "\n";
-    W.print(); cout << "\n";
+//    z.print(); cout << "\n";
+//    W.print(); cout << "\n";
 //    w.print(); cout << "\n";
 
     for(int i = 0; i < n; i++){
@@ -566,57 +567,122 @@ param<double> Bag::nfp(){
     }
 
     what.set_name("w_hat");
-    what.print(true);
+//    what.print(true);
     return what;
 }
 #else
+/*--------------------------------------------------------------------------------*/
 param<double> Bag::nfp(){
     param<double> what;
     fill_wstar();
 
-//    cout << "\nIndices:";
-//    for(auto& i: _indices) cout << "\n" << i->_name;
-//    cout << "\n---------\n";
+    //    cout << "\nIndices:";
+    //    for(auto& i: _indices) cout << "\n" << i->_name;
+    //    cout << "\n---------\n";
 
     Model NPP("NPP model");
     int n = _nodes.size();
     DebugOff("\nn = " << n);
 
-//    _wstarp.print(true);
+    //    _wstarp.print(true);
 
-    sdpvar<double> W("W");
-    NPP.add_var(W^(2*n));
+//#ifndef FLAT
+    var<double> W("W");
+    W._psd = true;
+//    W._is_matrix = true;
+    NPP.add_var(W.in(R(2*n,2*n)));
+//#else
+//    var<double> W("W");
+//    W._psd = true;
+//    NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in apper triangle is n*(2*n+1)
+//#endif
 
     var<double> z("z");
     z.in_q_cone();
+//#ifndef FLAT
     auto Rn = R(n*n+1);
+//#else
+//    auto Rn = R(2*n*2*n+1);
+//#endif
     NPP.add_var(z.in(Rn));
 
-    var<double> w("w");//, _wmin, _wmax);
+    var<double> w("w", _wmin, _wmax);
     NPP.add_var(w.in(_indices));
 
     func_ obj;
     obj = z("obj");
     NPP.min(obj);
 
-//    min t
-//    s.t.
-//    ||z|| <= t    (z(obj) = t)
-//    w*-w = z
-//    W is PSD,
-//    L <= W <= U
-//    matr structure
+    //    min t
+    //    s.t.
+    //    ||z|| <= t    (z(obj) = t)
+    //    w*-w = z
+    //    W is PSD,
+    //    L <= W <= U
+    //    matr structure
 
     /** Constraints **/
 
     /* w*-w = z */
     Constraint svec("svec");
 
+//#ifndef FLAT
     svec = _wstarp - w - z;
     NPP.add_constraint(svec.in(_indices)==0);
+//#else
+//    auto idxs = triang_indices(2*n);
+//    svec = _W_star - W - z;
+//    NPP.add_constraint(svec.in(idxs)==0);
+//    //    svec.print_expanded();
+//
+
+//    auto idxs_ul_u = ul_u(n);
+//    cout << "\nUpper left, upper: ";
+//    for(auto& idx: idxs_ul_u) DebugOff(idx._name << "; ");
+
+//    auto idxs_lr_u = lr_u(n);
+//    cout << "\nLower right, upper: ";
+//    for(auto& idx: idxs_lr_u) DebugOff(idx._name << "; ");
+
+//    auto idxs_ur_u = ur_u(n);
+//    cout << "\nUpper right, upper: ";
+//    for(auto& idx: idxs_ur_u) DebugOff(idx._name << "; ");
+
+//    auto idxs_ur_l = ur_l(n);
+
+//    Constraint real_symm("real_symm");
+//    real_symm = W.submat(idxs_ul_u) - W.submat(idxs_lr_u);
+//    NPP.add_constraint(real_symm==0);
+//    real_symm.print_expanded();
+
+//    Constraint imag_symm("imag_symm");
+//    imag_symm = W.submat(idxs_ur_u) + W.submat(idxs_ur_l);
+//    NPP.add_constraint(imag_symm==0);
+
+//    vector<index_> zero_idxs;
+//    for(int i = 0; i < n; i++) {
+//        zero_idxs.push_back(index_(to_string(i)+","+to_string(i+n)));
+//    }
+//    Constraint zeros("zeros");
+//    zeros = W.in(zero_idxs);
+//    NPP.add_constraint(zeros==0);
+//    zeros.print_expanded();
+
+//    Constraint W_lb("W_lb");
+//    W_lb = _Wmin - W;
+//    NPP.add_constraint(W_lb.in(idxs) <= 0);
+//    //    W_lb.print_expanded();
+
+//    Constraint W_ub("W_ub");
+//    W_ub = _Wmax - W;
+//    NPP.add_constraint(W_ub.in(idxs) >= 0);
+//    //    W_ub.print_expanded();
+
+//#endif
 
     string namew, namewr, namewi;
 
+//#ifndef FLAT
     /* matrix structure */
     for(int i = 0; i < n; i++){
         for(int j = i; j < n; j++){
@@ -624,51 +690,54 @@ param<double> Bag::nfp(){
                 namew = "w(" + _nodes[i]->_name + ")";
 
                 Constraint mstruct1("mstruct"+to_string(i+n)+to_string(i+n));
-                mstruct1 = w(namew) - W(i+n,i+n);
+                mstruct1 = w(namew) - W(to_string(i+n)+","+to_string(i+n));
                 NPP.add_constraint(mstruct1==0);
-//                mstruct1.print_expanded();
 
                 Constraint mstruct2("mstruct"+to_string(i)+to_string(i));
-                mstruct2 = w(namew) - W(i,i);
+                mstruct2 = w(namew) - W(to_string(i)+","+to_string(i));
                 NPP.add_constraint(mstruct2==0);
 
                 /* zeros */
                 Constraint zero("zero"+to_string(i)+to_string(i+n));
-                zero = W(i,i+n);
+                zero = W(to_string(i)+","+to_string(i+n));
                 NPP.add_constraint(zero==0);
                 Constraint zero2("zero"+to_string(i+n)+to_string(i));
-                zero2 = W(i+n,i);
+                zero2 = W(to_string(i+n)+","+to_string(i));
                 NPP.add_constraint(zero2==0);
             }
             else {
                 namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
 
                 Constraint mstruct("mstructr"+to_string(i)+to_string(j));
-                mstruct = w(namewr) - W(i,j);
+                mstruct = w(namewr) - W(to_string(i)+","+to_string(j));
                 NPP.add_constraint(mstruct==0);
+
                 Constraint mstruct2("mstructr"+to_string(i+n)+to_string(j+n));
-                mstruct2 = w(namewr) - W(i+n,j+n);
+                mstruct2 = w(namewr) - W(to_string(i+n)+","+to_string(j+n));
                 NPP.add_constraint(mstruct2==0);
 
                 namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
 
                 Constraint mstructi("mstructi"+to_string(i)+to_string(j+n));
-                mstructi = w(namewi) - W(i,j+n);
+                mstructi = w(namewi) - W(to_string(i)+","+to_string(j+n));
                 NPP.add_constraint(mstructi==0);
                 Constraint mstructi2("mstructi"+to_string(j)+to_string(i+n));
-                mstructi2 = w(namewi) + W(j,i+n);
+                mstructi2 = w(namewi) + W(to_string(j)+","+to_string(i+n));
                 NPP.add_constraint(mstructi2==0);
             }
         }
     }
+//#endif
+
+//    zeros.print_expanded();
 
     solver s(NPP,Mosek);
     s.run(0,0);
 
-    z.print(); cout << "\n";
-    W.print(); cout << "\n";
-//    w.print(); cout << "\n";
-
+    //    z.print(); cout << "\n";
+    //    W.print(true); cout << "\n";
+    //    w.print(); cout << "\n";
+//#ifndef FLAT
     for(int i = 0; i < n; i++){
         for(int j = i; j < n; j++){
             if(i==j){
@@ -686,23 +755,163 @@ param<double> Bag::nfp(){
             }
         }
     }
-
-//    double w1, w2, w3, wr12, wr13, wr23, wi12, wi13, wi23;
-//    w1 = W("0,0").eval(); w2 = W("1,1").eval(); w3 = W("2,2").eval();
-//    wr12 = W("0,1").eval(); wr13 = W("0,2").eval(); wr23 = W("1,2").eval();
-//    wi12 = W("0,4").eval(); wi13 = W("0,5").eval(); wi23 = W("1,5").eval();
-//
-//    double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
-//    SDP *= 2;
-//    SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
-//    SDP += w1*w2*w3;
-//    DebugOn("\nSDP of w_hat = " << SDP);
-//    DebugOn("\nSOCP12 = " << wr12*wr12 + wi12*wi12 - w1*w2);
-//    DebugOn("\nSOCP13 = " << wr13*wr13 + wi13*wi13 - w1*w3);
-//    DebugOn("\nSOCP23 = " << wr23*wr23 + wi23*wi23 - w3*w2);
-
+//#else
+//    for(int i = 0; i < n; i++){
+//        for(int j = i; j < n; j++){
+//            if(i==j){
+//                namew = "w(" + _nodes[i]->_name + ")";
+//                what.set_val(namew,W(to_string(i)+","+to_string(j)).eval());
+//            }
+//            else {
+//                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//                what.set_val(namewr, W(to_string(i)+","+to_string(j)).eval());
+//                if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
+//                    what.set_val(namewi, W(to_string(i)+","+to_string(j+_nodes.size())).eval());
+//                else
+//                what.set_val(namewi, -W(to_string(i)+","+to_string(j+_nodes.size())).eval());
+//            }
+//        }
+//    }
+//#endif
     what.set_name("w_hat");
-    what.print(true);
+    //    what.print(true);
+    //    exit(0);
     return what;
 }
+//param<double> Bag::nfp(){
+//    param<double> what;
+//    fill_wstar();
+//
+//    cout << "\nIndices:";
+//    for(auto& i: _indices) cout << "\n" << i._name;
+//    cout << "\n---------\n";
+//
+//    Model NPP("NPP model");
+//    int n = _nodes.size();
+//    DebugOff("\nn = " << n);
+//
+////    _wstarp.print(true);
+//
+//    sdpvar<double> W("W");
+//    NPP.add_var(W^(2*n));
+//
+//    var<double> z("z");
+//    z.in_q_cone();
+//    auto Rn = R(n*n+1);
+//    NPP.add_var(z.in(Rn));
+//
+//    var<double> w("w");//, _wmin, _wmax);
+//    NPP.add_var(w.in(_indices));
+//
+//    func_ obj;
+//    obj = z("obj");
+//    NPP.min(obj);
+//
+////    min t   s.t.
+////    ||z|| <= t    (z(obj) = t)
+////    w*-w = z
+////    W is PSD,
+////    L <= W <= U
+////    matr structure
+//
+//    /** Constraints **/
+//
+//    /* w*-w = z */
+//    Constraint svec("svec");
+//
+//    svec = _wstarp - w - z;
+//    NPP.add_constraint(svec.in(_indices)==0);
+//
+//    string namew, namewr, namewi;
+//
+//    /* matrix structure */
+//    for(int i = 0; i < n; i++){
+//        for(int j = i; j < n; j++){
+//            if(i==j){
+//                namew = "w(" + _nodes[i]->_name + ")";
+//
+//                Constraint mstruct1("mstruct"+to_string(i+n)+to_string(i+n));
+//                mstruct1 = w(namew) - W(i+n,i+n);
+//                NPP.add_constraint(mstruct1==0);
+//                mstruct1.print_expanded();
+//
+//                Constraint mstruct2("mstruct"+to_string(i)+to_string(i));
+//                mstruct2 = w(namew) - W(i,i);
+//                NPP.add_constraint(mstruct2==0);
+//
+//                /* zeros */
+//                Constraint zero("zero"+to_string(i)+to_string(i+n));
+//                zero = W(i,i+n);
+//                NPP.add_constraint(zero==0);
+//                Constraint zero2("zero"+to_string(i+n)+to_string(i));
+//                zero2 = W(i+n,i);
+//                NPP.add_constraint(zero2==0);
+//            }
+//            else {
+//                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//
+//                Constraint mstruct("mstructr"+to_string(i)+to_string(j));
+//                mstruct = w(namewr) - W(i,j);
+//                NPP.add_constraint(mstruct==0);
+//                Constraint mstruct2("mstructr"+to_string(i+n)+to_string(j+n));
+//                mstruct2 = w(namewr) - W(i+n,j+n);
+//                NPP.add_constraint(mstruct2==0);
+//
+//                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//
+//                Constraint mstructi("mstructi"+to_string(i)+to_string(j+n));
+//                mstructi = w(namewi) - W(i,j+n);
+//                NPP.add_constraint(mstructi==0);
+//                Constraint mstructi2("mstructi"+to_string(j)+to_string(i+n));
+//                mstructi2 = w(namewi) + W(j,i+n);
+//                NPP.add_constraint(mstructi2==0);
+//            }
+//        }
+//    }
+//
+//    solver s(NPP,Mosek);
+//    s.run(0,0);
+//
+////    z.print(); cout << "\n";
+////    W.print(); cout << "\n";
+////    w.print(); cout << "\n";
+//
+//    for(int i = 0; i < n; i++){
+//        for(int j = i; j < n; j++){
+//            if(i==j){
+//                namew = "w(" + _nodes[i]->_name + ")";
+//                what.set_val(namew,w(namew).eval());
+//            }
+//            else {
+//                namewr = "wr(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//                namewi = "wi(" + _nodes[i]->_name + "," + _nodes[j]->_name + ")";
+//                what.set_val(namewr, w(namewr).eval());
+//                if(_grid->get_directed_arc(_nodes[i]->_name,_nodes[j]->_name)!=nullptr)
+//                    what.set_val(namewi, w(namewi).eval());
+//                else
+//                    what.set_val(namewi, -w(namewi).eval());
+//            }
+//        }
+//    }
+//
+////    double w1, w2, w3, wr12, wr13, wr23, wi12, wi13, wi23;
+////    w1 = W("0,0").eval(); w2 = W("1,1").eval(); w3 = W("2,2").eval();
+////    wr12 = W("0,1").eval(); wr13 = W("0,2").eval(); wr23 = W("1,2").eval();
+////    wi12 = W("0,4").eval(); wi13 = W("0,5").eval(); wi23 = W("1,5").eval();
+////
+////    double SDP = wr12*(wr23*wr13 + wi23*wi13) + wi12*(-wi23*wr13 + wr23*wi13);
+////    SDP *= 2;
+////    SDP -= (wr12*wr12 + wi12*wi12)*w3 + (wr13*wr13 + wi13*wi13)*w2 + (wr23*wr23 + wi23*wi23)*w1;
+////    SDP += w1*w2*w3;
+////    DebugOn("\nSDP of w_hat = " << SDP);
+////    DebugOn("\nSOCP12 = " << wr12*wr12 + wi12*wi12 - w1*w2);
+////    DebugOn("\nSOCP13 = " << wr13*wr13 + wi13*wi13 - w1*w3);
+////    DebugOn("\nSOCP23 = " << wr23*wr23 + wi23*wi23 - w3*w2);
+//
+//    what.set_name("w_hat");
+////    what.print(true);
+//    return what;
+//}
+
 #endif

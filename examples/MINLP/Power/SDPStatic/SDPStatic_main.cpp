@@ -109,10 +109,11 @@ int main (int argc, char * argv[]) {
 
     /** Constraints */
 
-    /* Second-order cone constraints */ //TODO: implement quadratic constraints with Mosek
+    /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
 //    SDP.add_constraint(SOC.in(bus_pairs) <= 0);
+//    SOC.print_expanded();
 
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -164,12 +165,13 @@ int main (int argc, char * argv[]) {
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from <= power(grid.S_max,2);
-//    SDP.add_constraint(Thermal_Limit_from.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_from.in(grid.arcs));
+//    Thermal_Limit_from.print_expanded();
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to <= power(grid.S_max,2);
-//    SDP.add_constraint(Thermal_Limit_to.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_to.in(grid.arcs));
 
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
@@ -188,44 +190,85 @@ int main (int argc, char * argv[]) {
     SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
     LNC2.print_expanded();
 
-//    vector<var<double>> W;
-//    int i = 0;
-//    for(auto& b: grid._bags){
-//        int n = b.size();
-//        var<double> W_b("W"+to_string(i));
-//        W_b._psd = true;
-//        SDP.add_var(W_b.in(R(2*n,2*n)));
-//        W.push_back(W_b);
-//
-//        //connect W to the w vars
-//
-//        for(auto& node: b) {
-//
-//        }
-//
-//        //matrix symmetry //
-////        vector<index_> zero_idxs;
-////        for(int i = 0; i < n; i++) zero_idxs.push_back(index_(to_string(i)+","+to_string(i+n)));
-////
-////        Constraint zeros("zeros");
-////        zeros = W_b.in(zero_idxs);
-////        SDP.add_constraint(zeros==0);
-////        zeros.print_expanded();
-////
-////        Constraint real_symm("real_symm");
-////        real_symm = W_b.submat(idxs_ul_u) - W_b.submat(idxs_lr_u);
-////        SDP.add_constraint(real_symm==0);
-//////    real_symm.print_expanded();
-////
-////        Constraint imag_symm("imag_symm");
-////        imag_symm = W_b.submat(idxs_ur_u) + W_b.submat(idxs_ur_l);
-////        SDP.add_constraint(imag_symm==0);
-//
-//        i++;
-//    }
+    vector<var<double>> W; // store the matrix variables
+    int bagid = 0;
+
+    for (auto& a: grid.arcs) {
+        vector<Node*> v;
+        v.push_back(a->_src);
+        v.push_back(a->_dest);
+        grid._bags.push_back(v);
+    }
+
+    //todo: for SOCP: add lines to bags?
+    double solver_time_start = get_wall_time();
+    for(auto& b: grid._bags){
+        int n = b.size();
+        cout << "\nn = " << n;
+        var<double> W_b("W"+to_string(bagid));
+        W_b._psd = true;
+        SDP.add_var(W_b.in(R(2*n,2*n)));
+        W.push_back(W_b);
+
+        //connect W to the w vars: if all nodes are sorted and all arcs are proper direction, no need to worry about reversed etc?
+
+        vector<index_> wij_idxs, w_idxs, zero_idxs; //todo: need to save all indices?
+        vector<index_> d_u_idxs, ul_u_idxs, ur_u_idxs, ur_l_idxs, lr_u_idxs, d_l_idxs;
+
+        for(int i = 0; i < n; i++) {
+            for(int j = i; j < n; j++) {
+                if(i==j) { //diagonal
+                    w_idxs.push_back(index_(b[i]->_name));
+                    d_u_idxs.push_back(index_(to_string(i)+","+to_string(j)));
+                    d_l_idxs.push_back(index_(to_string(i+n)+","+to_string(j+n)));
+                    zero_idxs.push_back(index_(to_string(i)+","+to_string(j+n)));
+                }else{ // off diagonal
+                    wij_idxs.push_back(index_(b[i]->_name+","+b[j]->_name));
+                    ul_u_idxs.push_back(index_(to_string(i)+","+to_string(j)));
+                    ur_u_idxs.push_back(index_(to_string(i)+","+to_string(j+n)));
+                    ur_l_idxs.push_back(index_(to_string(j)+","+to_string(i+n)));
+                    lr_u_idxs.push_back(index_(to_string(i+n)+","+to_string(j+n)));
+                }
+            }
+        }
+
+        Constraint upper_diag("upper_diag"+to_string(bagid));
+        upper_diag = W_b.in(d_u_idxs) - Wii.in(w_idxs);
+        SDP.add_constraint(upper_diag == 0);
+//        upper_diag.print_expanded();
+
+        Constraint lower_diag("lower_diag"+to_string(bagid));
+        lower_diag = W_b.in(d_l_idxs) - Wii.in(w_idxs);
+        SDP.add_constraint(lower_diag == 0);
+//        lower_diag.print_expanded();
+
+        Constraint zeros("zeros"+to_string(bagid));
+        zeros = W_b.in(zero_idxs);
+        SDP.add_constraint(zeros == 0);
+//        zeros.print_expanded();
+
+        Constraint W_wR1("W_wR1"+to_string(bagid));
+        W_wR1 = W_b.in(ul_u_idxs) - R_Wij.in(wij_idxs);
+        SDP.add_constraint(W_wR1 == 0);
+//        W_wR1.print_expanded();
+
+        Constraint W_wR2("W_wR2"+to_string(bagid));
+        W_wR2 = W_b.in(lr_u_idxs) - R_Wij.in(wij_idxs);
+        SDP.add_constraint(W_wR2 == 0);
+//        W_wR2.print_expanded();
+
+        Constraint W_wI1("W_wI1"+to_string(bagid));
+        W_wI1 = W_b.in(ur_u_idxs) - Im_Wij.in(wij_idxs);
+        SDP.add_constraint(W_wI1 == 0);
+
+        Constraint W_wI2("W_wI2"+to_string(bagid));
+        W_wI2 = W_b.in(ur_l_idxs) + Im_Wij.in(wij_idxs);
+        SDP.add_constraint(W_wI2 == 0);
+
+        bagid++;
+    }
 
     solver s(SDP,Mosek);
-    double solver_time_start = get_wall_time();
     s.run(0,0);
 
     double solver_time_end = get_wall_time();
