@@ -17,6 +17,7 @@
 using namespace std;
 using namespace gravity;
 
+double time_in_create_constrs;
 
 void nearest_point(int i, int j, vector<param<>>& w_hat, const vector<Bag>& bags){
     for (unsigned index = i; index <j; index++) {
@@ -495,6 +496,8 @@ int main (int argc, char * argv[]) {
     }
     else if(solver_str.compare("cplex")==0) {
         solv_type = cplex;
+    }else if(solver_str.compare("Mosek")==0) {
+        solv_type = Mosek;
     }
 
     double total_time_start = get_wall_time();
@@ -635,24 +638,28 @@ int main (int argc, char * argv[]) {
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SDP.add_lazy(PAD_UB.in(bus_pairs));
+//    SDP.add_lazy(PAD_UB.in(bus_pairs));
+    SDP.add_constraint(PAD_UB.in(bus_pairs));
 
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SDP.add_lazy(PAD_LB.in(bus_pairs));
+//    SDP.add_lazy(PAD_LB.in(bus_pairs));
+    SDP.add_constraint(PAD_LB.in(bus_pairs));
 
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from <= power(grid.S_max,2);
-    SDP.add_lazy(Thermal_Limit_from.in(grid.arcs));
+//    SDP.add_lazy(Thermal_Limit_from.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_from.in(grid.arcs));
 
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to <= power(grid.S_max,2);
-    SDP.add_lazy(Thermal_Limit_to.in(grid.arcs));
+//    SDP.add_lazy(Thermal_Limit_to.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_to.in(grid.arcs));
 
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
@@ -660,14 +667,16 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
+//    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
 
     Constraint LNC2("LNC2");
     LNC2 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
     LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
+//    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     vector<Bag> bags;
     int n3 = 0;
@@ -680,7 +689,7 @@ int main (int argc, char * argv[]) {
 
     DebugOn("\nNum of 3d bags = " << n3 << endl);
 
-
+    total_time_start = get_wall_time();
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();

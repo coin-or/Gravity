@@ -40,6 +40,7 @@ bool MosekProgram::solve(bool relax) {
 //    _mosek_model->setSolverParam("intpntQoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntCoTolMuRed", 1);
     // Set max absolute gap (to its default value)
+    _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
 //    _mosek_model->setSolverParam("mioTolAbsGap", 0.0);
 //    _mosek_model->setSolverParam("numThreads",1);
     if(!_output) _mosek_model->setSolverParam("log", 0);
@@ -493,6 +494,7 @@ fusion::Expression::t MosekProgram::create_lin_expr(map<string, lterm>& lt, cons
                     else c_idx_inst = inst;
 
                     DebugOff("\nindex: " << pair.first << ", " << pair.second);
+                    DebugOff("\nMosek var:" << _mosek_vars[idx]->toString());
 
                     auto lterm = fusion::Expr::mul(poly_eval(it1.second._coef, c_idx_inst),
                                                    _mosek_vars[idx]->index(pair.first,pair.second));
@@ -536,45 +538,114 @@ fusion::Expression::t MosekProgram::create_lin_expr(map<string, lterm>& lt, cons
 
 //TODO: check use inst
 fusion::Expression::t MosekProgram::form_Fx(map<string, qterm>& qterms, size_t qn, size_t inst){
-    size_t aidx = 0, idx, idx_inst;
-    Eigen::MatrixXf A = Eigen::MatrixXf::Zero(qn,qn);
-    fusion::Variable::t xi;
+    size_t aidx = 0, idx1 = 0, idx2 = 0, idx_inst = 0;
+
+    //create a var map
+    map<pair<size_t,size_t>,int> qvars;
+    int idx_in_A = 0;
+    for(auto& it1: qterms) {
+        idx1 = it1.second._p->first->get_vec_id();
+        idx2 = it1.second._p->second->get_vec_id();
+        if ((it1.second._coef->_is_transposed || it1.second._coef->_is_matrix) && !it1.second._p->first->_is_matrix) {
+            auto dim = it1.second._p->first->get_nb_instances(inst);
+            for (int j = 0; j < dim; j++) {
+                idx_inst = it1.second._p->first->get_id_inst(inst, j);
+                pair<size_t, size_t> p = make_pair(idx1, idx_inst);
+                if (qvars.find(p) == qvars.end()) {
+                    qvars.insert(make_pair(p, idx_in_A));
+                    idx_in_A++;
+                }
+                idx_inst = it1.second._p->second->get_id_inst(inst, j);
+                p = make_pair(idx2, idx_inst);
+                if (qvars.find(p) == qvars.end()) {
+                    qvars.insert(make_pair(p, idx_in_A));
+                    idx_in_A++;
+                }
+            }
+        } else if (it1.second._p->first->_is_transposed) {
+//                auto dim = _p->first->get_nb_instances(i);
+//                for (int j = 0; j<dim; j++)
+//                    res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
+        } else {
+            idx_inst = it1.second._p->first->get_id_inst(inst);
+            pair<size_t, size_t> p = make_pair(idx1, idx_inst);
+            if (qvars.find(p) == qvars.end()) {
+                qvars.insert(make_pair(p, idx_in_A));
+                idx_in_A++;
+            }
+            idx_inst = it1.second._p->second->get_id_inst(inst);
+            p = make_pair(idx2, idx_inst);
+            if (qvars.find(p) == qvars.end()) {
+                qvars.insert(make_pair(p, idx_in_A));
+                idx_in_A++;
+            }
+        }
+    }
+    auto qvars_arr = new_array_ptr<fusion::Variable::t,1>(qvars.size());
+    for(auto& it1: qvars) {
+        (*qvars_arr)[it1.second] = _mosek_vars[it1.first.first]->index(it1.first.second);
+        DebugOff("\nqvar with index " << it1.second << " is (" << it1.first.first << ", " << it1.first.second << ")");
+        DebugOff("\ncorresp mosek vars are " << _mosek_vars[it1.first.first]->index(it1.first.second)->toString());
+    }
+
+    Eigen::MatrixXf A = Eigen::MatrixXf::Zero(qvars.size(),qvars.size());
+    fusion::Variable::t xi = fusion::Var::vstack(qvars_arr);
+//    auto qvarsi = new_array_ptr<fusion::Variable::t,1>(qn);
+
+    size_t j2 = 0;
     for (auto& it1: qterms) {
         double sign;
         if(!it1.second._sign) sign = -2;
         else sign = 2;
-        idx = it1.second._p->first->get_vec_id();
+        idx1 = it1.second._p->first->get_vec_id();
+        idx2 = it1.second._p->second->get_vec_id();
         if ((it1.second._coef->_is_transposed || it1.second._coef->_is_matrix) && !it1.second._p->first->_is_matrix) {
-            auto dim = it1.second._p->first->get_nb_instances(inst);
-            auto qvarsi = new_array_ptr<fusion::Variable::t,1>(dim);
-            for (int j = 0; j<dim; j++) {
-//                    res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
-                if(it1.second._p->first->get_id_inst(inst,j) != it1.second._p->second->get_id_inst(inst,j))
-                    throw invalid_argument("Bilinear expressions in Mosek objective are not implemented.");
-                A(aidx,aidx) = sign*poly_eval(it1.second._coef,inst,j);
-                aidx++;
-                idx_inst = it1.second._p->first->get_id_inst(inst,j);
-                (*qvarsi)(j) = _mosek_vars[idx]->index(idx_inst);
-            }
-            xi = fusion::Var::vstack(qvarsi);
+            throw invalid_argument("This type of expression in the constraint is not implemented.");
+//            auto dim = it1.second._p->first->get_nb_instances(inst);
+//            auto qvarsi = new_array_ptr<fusion::Variable::t,1>(dim);
+//            for (int j = 0; j<dim; j++) {
+////                    res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
+//                if(it1.second._p->first->get_id_inst(inst,j) != it1.second._p->second->get_id_inst(inst,j))
+//                    throw invalid_argument("Bilinear expressions in Mosek objective are not implemented.");
+//                A(aidx,aidx) = sign*poly_eval(it1.second._coef,inst,j);
+//                aidx++;
+//                idx_inst = it1.second._p->first->get_id_inst(inst,j);
+////                (*qvarsi)(j) = _mosek_vars[idx1]->index(idx_inst);
+//            }
+//            xi = fusion::Var::vstack(qvarsi);
         }
         else if(it1.second._p->first->_is_transposed){
 //                auto dim = _p->first->get_nb_instances(i);
 //                for (int j = 0; j<dim; j++)
 //                    res += poly_eval(_coef,i,j) * poly_eval(_p->first, i,j)* poly_eval(_p->second, i,j);
-            throw invalid_argument("This type of expression in the objective is not implemented.");
+            throw invalid_argument("This type of expression in the constraint is not implemented.");
         }
         else {
 //                res = poly_eval(_coef,i) * poly_eval(_p->first, i) * poly_eval(_p->second, i);
-            throw invalid_argument("This type of expression in the objective is not implemented.");
+            idx_inst = it1.second._p->first->get_id_inst(inst);
+            int aidx1 = qvars.find(make_pair(idx1,idx_inst))->second;
+            DebugOff("\nvars: " << _mosek_vars[idx1]->index(idx_inst)->toString());
+            idx_inst = it1.second._p->second->get_id_inst(inst);
+            int aidx2 = qvars.find(make_pair(idx2,idx_inst))->second;
+            DebugOff(", " << _mosek_vars[idx2]->index(idx_inst)->toString());
+            if(aidx1==aidx2) A(aidx1,aidx2) = sign*poly_eval(it1.second._coef,inst);
+            else {
+                A(aidx1,aidx2) = 0.5*sign*poly_eval(it1.second._coef,inst);
+                A(aidx2,aidx1) = 0.5*sign*poly_eval(it1.second._coef,inst);
+            }
+//            aidx++;
+
+//            (*qvarsi)(j2) = _mosek_vars[idx1]->index(idx_inst);
+//            j2++;
         }
 //            if (!it1.second._sign) res *= -1;
     }
-    DebugOn("\nA = " << A);
-    DebugOn("\nx = " << xi->toString());
+    DebugOff("\nA = \n" << A);
+    DebugOff("\nx = " << xi->toString());
 
     Eigen::LLT<Eigen::MatrixXf> lltOfA(A); // compute the Cholesky decomposition of A
     Eigen::MatrixXf L = lltOfA.matrixL();
+//    Eigen::MatrixXf L = A.sqrt();
     DebugOff("\nL: " << L);
 
     std::shared_ptr<ndarray<double, 1>> Farr = new_array_ptr<double,1>(qn*qn);
@@ -583,7 +654,7 @@ fusion::Expression::t MosekProgram::form_Fx(map<string, qterm>& qterms, size_t q
             (*Farr)[Fi*(L.cols())+Fj] = L(Fi,Fj);
         }
     }
-    fusion::Matrix::t F = fusion::Matrix::dense(qn,qn,Farr);
+    fusion::Matrix::t F = fusion::Matrix::dense(qvars.size(),qvars.size(),Farr);
     DebugOff("\nF = " << F->toString());
     fusion::Expression::t Fx = fusion::Expr::mul(F, xi);
     DebugOff("\nFx = " << Fx->toString());
@@ -597,42 +668,43 @@ void MosekProgram::create_mosek_constraints() {
     shared_ptr<Constraint> c;
     for(auto& p: _model->_cons) {
         c = p.second;
+        DebugOff("\nconstr " << c->get_name());
         if(c->is_nonlinear() && !c->is_quadratic())
             throw invalid_argument("Mosek cannot handle nonlinear constraints that are not convex quadratic.\n");
 
         nb_inst = c->get_nb_instances();
 
-        if (c->is_nonlinear()) {
+        if (c->is_quadratic()) {
             size_t qn = get_num_qterms(c->get_qterms());
             auto fusion_cols = new_array_ptr<fusion::Expression::t,1>(nb_inst);
             for (int i = 0; i< nb_inst; i++) {
-                //vectorise: first create columns
+                //create matrix F;
+                fusion::Expression::t Fx = form_Fx(c->get_qterms(),qn,i);
 
-                //create a matrix F;
-                fusion::Expression::t Fx = form_Fx(_model->_obj.get_qterms(),qn,i);
-
-                //build a linear expression
+                //build the linear expression
                 fusion::Expression::t lin_expr_i = create_lin_expr(c->get_lterms(), c->get_cst(), i);
 
-                //arrange it all into a column, add the column to an array (instead of creating the conic constr immediately)
+                //arrange it all into a row, add the row to an array
                 auto Earr = new_array_ptr<fusion::Expression::t,1>(2 + qn);
                 (*Earr)[0] = fusion::Expr::constTerm(1);
                 (*Earr)[1] = fusion::Expr::mul(lin_expr_i,-1);
                 for(size_t Fxi = 0; Fxi < qn; Fxi++) {
                     (*Earr)[Fxi+2] = Fx->index(Fxi);
                 }
-                fusion::Expression::t qexpr = fusion::Expr::vstack(Earr);
+                fusion::Expression::t qexpr = fusion::Expr::hstack(Earr);
                 DebugOff("\nqexpr = " << qexpr->toString());
 
                 (*fusion_cols)[i] = qexpr;
             }
 
-            // use the array of columns to create a matrix
-            auto M = fusion::Expr::hstack(fusion_cols);
+            // use the array of rows to create a matrix
+            auto M = fusion::Expr::vstack(fusion_cols);
+            DebugOff("\nM = " << M->toString());
 
-//            add a conic constraint
-            _mosek_model->constraint(c->get_name(), M, fusion::Domain::inRotatedQCone());//todo: order of rows and cols
-        }// quadratic expression
+            // add a conic constraint
+            auto mosek_constr = _mosek_model->constraint(c->get_name(), M, fusion::Domain::inRotatedQCone(nb_inst,2+qn));
+            DebugOff("\nConstraint generated: " << mosek_constr->toString());
+        } // quadratic expression
         else{
             auto fusion_sums = new_array_ptr<fusion::Expression::t, 1>(nb_inst);
             for (int i = 0; i < nb_inst; i++) {
@@ -642,19 +714,19 @@ void MosekProgram::create_mosek_constraints() {
             }
             auto E = fusion::Expr::vstack(fusion_sums);
 
-            DebugOn("\nconstr in Mosek: " << E->toString());
+            DebugOff("\nconstr " << c->get_name() << " in Mosek: " << E->toString());
             if (c->get_type() == geq) {
-                DebugOn("\n >= " << c->get_rhs());
+                DebugOff("\n >= " << c->get_rhs());
                 _mosek_model->constraint(c->get_name(), E, fusion::Domain::greaterThan(c->get_rhs()));
             } else if (c->get_type() == leq) {
-                DebugOn("\n <= " << c->get_rhs());
+                DebugOff("\n <= " << c->get_rhs());
                 _mosek_model->constraint(c->get_name(), E, fusion::Domain::lessThan(c->get_rhs()));
             } else if (c->get_type() == eq) {
-                DebugOn(" = " << c->get_rhs());
+                DebugOff(" = " << c->get_rhs());
                 _mosek_model->constraint(c->get_name(), E, fusion::Domain::equalsTo(c->get_rhs()));
             }
         } // linear expression
-    }//for(p: _model->_cons)
+    } //for(p: _model->_cons)
 }
 
 fusion::Expression::t MosekProgram::form_Fx(map<string, qterm>& qterms, size_t qn){
@@ -693,8 +765,8 @@ fusion::Expression::t MosekProgram::form_Fx(map<string, qterm>& qterms, size_t q
         }
 //            if (!it1.second._sign) res *= -1;
     }
-    DebugOn("\nA = " << A);
-    DebugOn("\nx = " << xi->toString());
+    DebugOff("\nA = " << A);
+    DebugOff("\nx = " << xi->toString());
 
     Eigen::LLT<Eigen::MatrixXf> lltOfA(A); // compute the Cholesky decomposition of A
     Eigen::MatrixXf L = lltOfA.matrixL();
