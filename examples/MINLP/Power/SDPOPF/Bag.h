@@ -17,6 +17,7 @@ class Bag{
 public:
     int _id;
     bool _is_psd;
+    double _violation = 0;
     PowerNet* _grid;
     std::vector<Node*> _nodes;
 //    bool _all_lines = true;
