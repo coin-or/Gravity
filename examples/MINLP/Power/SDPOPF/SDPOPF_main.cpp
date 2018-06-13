@@ -457,11 +457,16 @@ vector<param<>> signs(Net& net, const std::vector<std::vector<Node*>>& bags) {
 //    return 0;
 //}
 
+const bool bag_compare(const Bag b1, const Bag b2) {
+    return b1._violation < b2._violation;
+}
 
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false;
+    size_t num_bags;
+    string num_bags_s = "100";
     string solver_str = "ipopt";
     SolverType solv_type = ipopt;
     double tol = 1e-6;
@@ -477,6 +482,7 @@ int main (int argc, char * argv[]) {
                    "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
+    opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
 
@@ -499,6 +505,10 @@ int main (int argc, char * argv[]) {
     }else if(solver_str.compare("Mosek")==0) {
         solv_type = Mosek;
     }
+
+    num_bags = atoi(opt["b"].c_str());
+
+    cout << "\nnum bags = " << num_bags;
 
     double total_time_start = get_wall_time();
     PowerNet grid;
@@ -687,6 +697,14 @@ int main (int argc, char * argv[]) {
         bagid++;
     }
 
+    num_bags = bags.size()*num_bags / 100;
+    double num_bags_tol = num_bags/2;
+
+    if(bags.size() < 20) {
+        num_bags = bags.size();
+        num_bags_tol = num_bags;
+    }
+
     DebugOn("\nNum of 3d bags = " << n3 << endl);
 
     total_time_start = get_wall_time();
@@ -715,7 +733,7 @@ int main (int argc, char * argv[]) {
     int iter = 0, hdim_cuts = 0, cuts_added = 1;
     double time_in_all_nfp = 0, time_in_nfp;
 
-    unsigned nr_threads = 1;
+    unsigned nr_threads = 5;
     double gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
     while(cuts_added > 0 && gap > 1) {
         DebugOn("Current Gap = " << to_string(gap) << "%."<<endl);
@@ -732,11 +750,19 @@ int main (int argc, char * argv[]) {
         vector<Bag> violated_bags;
         for(auto& b: bags){
             b.update_PSD();
-            if (!b._is_psd) {
+            if (!b._is_psd && b._nodes.size() > 3) {
                 violated_bags.push_back(b);
             }
         }
-        auto nb_bags = violated_bags.size();
+	if(violated_bags.size() > num_bags) std::partial_sort(violated_bags.begin(), violated_bags.begin()+num_bags, violated_bags.end(), bag_compare);
+        else if(violated_bags.size() < num_bags_tol) break;
+
+	//for(auto& bv: violated_bags) {
+        //    cout << "\nViolation: " << bv._violation;
+        //}
+
+        //auto nb_bags = violated_bags.size();
+        size_t nb_bags = min(violated_bags.size(),size_t(num_bags));
         w_hat_vec.resize(nb_bags);
         vector<thread> threads;
         /* Split subproblems into nr_threads parts */
@@ -847,10 +873,15 @@ int main (int argc, char * argv[]) {
         }
         for(auto& node: grid.nodes) ((Bus*)node)->w = Wii(node->_name).eval();
 
+        if(get_wall_time() - solver_time_start > 300) {
+            cout << "\nTime limit reached";
+            break;
+        }
 
         cout << "\nNum of iterations = " << iter << ", number of cuts = " << numcuts << ", " << cuts_added << endl;
 //        if((SDP._obj_val - prev_opt)/SDP._obj_val < fp_tol) unchanged++;
     }
+
     string lin = "lin";
     int num_act_cuts = 0;
     for (auto &cp: SDP._cons) {
