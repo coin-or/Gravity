@@ -574,6 +574,58 @@ int PowerNet::readgrid(const char* fname) {
     return 0;
 }
 
+void PowerNet::fill_wbnds(){
+    double cos_max_, cos_min_, w_max_, w_min_, wr_max_, wr_min_, sin_max_, sin_min_, wi_max_, wi_min_;
+    for(int i = 0; i < nodes.size()-1; i++) {
+        for(int j = i+1; j < nodes.size(); j++) {
+            Bus *bus_s = (Bus *) (nodes[i]);
+            Bus *bus_d = (Bus *) (nodes[j]);
+
+            if(get_arc(bus_s, bus_d)) continue;
+
+            string name = bus_s->_name + "," + bus_d->_name;
+            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+
+            if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+                cos_max_ = 1;
+                cos_min_ = -1;
+            } else if (m_theta_lb < 0 && m_theta_ub > 0) {
+                cos_max_ = 1;
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            } else {
+                cos_max_ = max(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            }
+            w_max_ = bus_s->vbound.max * bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min * bus_d->vbound.min;
+
+            wr_max_ = cos_max_ * w_max_;
+            if (cos_min_ < 0) wr_min_ = cos_min_ * w_max_;
+            else wr_min_ = cos_min_ * w_min_;
+
+            if (m_theta_lb < -1.57 && m_theta_ub > 1.57) {
+                sin_max_ = 1;
+                sin_min_ = -1;
+            } else {
+                sin_max_ = sin(m_theta_ub);
+                sin_min_ = sin(m_theta_lb);
+            }
+
+            if (sin_max_ > 0) wi_max_ = sin_max_ * w_max_;
+            else wi_max_ = sin_max_ * w_min_;
+            if (sin_min_ > 0) wi_min_ = sin_min_ * w_min_;
+            else wi_min_ = sin_min_ * w_max_;
+
+//            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
+
+            wr_max.set_val(name, wr_max_);
+            wr_min.set_val(name, wr_min_);
+            wi_max.set_val(name, wi_max_);
+            wi_min.set_val(name, wi_min_);
+        }
+    }
+}
+
 /* Create imaginary lines, fill bus_pairs_chord, set lower and upper bounds */
 void PowerNet::update_net(){
     string name;
