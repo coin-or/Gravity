@@ -19,6 +19,7 @@
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false;
+    bool decompose = false;
     string solver_str = "mosek";
     SolverType solv_type = Mosek;
     double tol = 1e-6;
@@ -61,7 +62,10 @@ int main (int argc, char * argv[]) {
     grid.get_tree_decomp_bags();
     grid.update_net();
 
+    if(!decompose) grid.fill_wbnds();
+
     auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_all = grid.get_bus_pairs_all();
     auto bus_pairs_chord = grid.get_bus_pairs_chord();
 //    auto nb_bus_pairs_chord = bus_pairs_chord.size();
     auto nb_gen = grid.get_nb_active_gens();
@@ -95,8 +99,13 @@ int main (int argc, char * argv[]) {
     /* Magnitude of Wii = Vi^2 */
     var<Real>  Wii("Wii", grid.w_min, grid.w_max);
     SDP.add_var(Wii.in(grid.nodes));
-    SDP.add_var(R_Wij.in(bus_pairs_chord));
-    SDP.add_var(Im_Wij.in(bus_pairs_chord));
+    if(decompose) {
+        SDP.add_var(R_Wij.in(bus_pairs_chord));
+        SDP.add_var(Im_Wij.in(bus_pairs_chord));
+    }else{
+        SDP.add_var(R_Wij.in(bus_pairs_all));
+        SDP.add_var(Im_Wij.in(bus_pairs_all));
+    }
 
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
@@ -198,6 +207,12 @@ int main (int argc, char * argv[]) {
         v.push_back(a->_src);
         v.push_back(a->_dest);
         grid._bags.push_back(v);
+    }
+
+    if(!decompose) {
+        grid._bags.clear();
+        vector<Node*> bag = grid.nodes;
+        grid._bags.push_back(bag);
     }
 
     //todo: for SOCP: add lines to bags?
