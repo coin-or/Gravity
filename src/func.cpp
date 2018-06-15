@@ -5102,25 +5102,15 @@ namespace gravity{
             lval = _lson->_val->at(0);
         }
         else {
-<<<<<<< HEAD
             lval = _lson->get_val(i);
-//            lval = _lson->eval(i);
-=======
 //            lval = _lson->get_val(i);
-            lval = _lson->eval(i);
->>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
         }
         if (_rson->is_number()) {
             rval = _rson->_val->at(0);
         }
         else {
-<<<<<<< HEAD
             rval = _rson->get_val(i);
-//            rval = _rson->eval(i);
-=======
 //            rval = _rson->get_val(i);
-            rval = _rson->eval(i);
->>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
         }
         switch (_otype) {
             case plus_:

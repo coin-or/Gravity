@@ -459,11 +459,6 @@ param<double> Bag::nfp(){
     var<double> W("W");
     W._psd = true;
     NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in upper triangle is n*(2*n+1)
-<<<<<<< HEAD
-//#endif
-=======
->>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
-
     var<double> z("z");
     z.in_q_cone();
     auto Rn = R(n*n+1);
