@@ -139,6 +139,11 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 };
 
 /* Modifiers */
+    
+template<typename type> void   var<type>::set_size(vector<size_t> dims) {
+    param<type>::set_size(dims);
+};
+
 template<typename type> void   var<type>::set_size(size_t s, type val) {
     param<type>::set_size(s,val);
 };
@@ -332,14 +337,24 @@ template<typename type> void var<type>::print(bool bounds) const {
     }
     if(_lb != nullptr && _ub != nullptr) {
         if (param_::_is_indexed) {
-            idx = param_::get_id_inst();
-            cout << " [ " << (*_lb->_val)[idx] << ", " << (*_ub->_val)[idx] << "]";
+            if (_lb->_val->size() >1){
+                idx = param_::get_id_inst(); // may return empty in_gens 
+                cout << " [ " << (*_lb->_val)[idx] << ", " << (*_ub->_val)[idx] << "]";
+            }
+            else
+                cout << " [ " << (*_lb->_val)[0] << ", " << (*_ub->_val)[0] << "]";
         }
         else {
+            auto temp = (*_lb->_val);
             for(int i = 0 ; i < param_::get_dim(); i++) {
                 cout << "(" << i << ") = ";
                 cout << " [ " << (*_lb->_val)[i] << ", " << (*_ub->_val)[i] << "]\n";
             }
+            //for(int i = 0 ; i < param_::get_dim(); i++) {
+//            for(auto& entry: (*param_::_indices)) {
+//                cout << "(" << entry.first << ") = ";
+//                cout << " [ " << (*_lb->_val)[entry.second] << ", " << (*_ub->_val)[entry.second] << "]\n";
+//            }
         }
         cout << ";\n";
     }
@@ -594,8 +609,6 @@ template<typename type>vector<var<type>> var<type>::in(const std::vector<std::ve
     }
     return res;
 }
-
-
     
 template class var<bool>;
 template class var<short>;

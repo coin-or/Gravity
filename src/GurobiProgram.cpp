@@ -201,7 +201,7 @@ void GurobiProgram::create_grb_constraints(){
     double coeff;    
     for(auto& p: _model->_cons){
         auto c = p.second;
-        if (!c->_new) {
+        if (!c->_new && c->_all_satisfied) {
             continue;
         }
         c->_new = false;
@@ -224,63 +224,76 @@ void GurobiProgram::create_grb_constraints(){
         nb_inst = c->_nb_instances;
         if (c->is_linear()) {
             for (int i = 0; i< nb_inst; i++){
-                linlhs = 0;
-                for (auto& it1: c->get_lterms()) {
-                    lterm = 0;
-                    if (it1.second._coef->_is_transposed) {
-                        auto dim =it1.second._p->get_dim(i);
-                        for (int j = 0; j<dim; j++) {
-                            coeff = poly_eval(it1.second._coef,i,j);
-                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
+                if (c->_violated[i]) {
+                    linlhs = 0;
+                    for (auto& it1: c->get_lterms()) {
+                        lterm = 0;
+                        if (it1.second._coef->_is_transposed) {
+                            auto dim =it1.second._p->get_dim(i);
+                            for (int j = 0; j<dim; j++) {
+                                coeff = poly_eval(it1.second._coef,i,j);
+                                gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
+                                lterm += coeff*gvar1;
+                            }
+                        }
+                        else {
+                            coeff = poly_eval(it1.second._coef,i);
+                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
                             lterm += coeff*gvar1;
                         }
+                        if (!it1.second._sign) {
+                            lterm *= -1;
+                        }
+                        linlhs += lterm;
                     }
-                    else {
-                        coeff = poly_eval(it1.second._coef,i);
-                        gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
-                        lterm += coeff*gvar1;
-                    }
-                    if (!it1.second._sign) {
-                        lterm *= -1;
-                    }
-                    linlhs += lterm;
+                    linlhs += poly_eval(c->get_cst(), i);                
+                    grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name()+"_"+to_string(i));
                 }
-                linlhs += poly_eval(c->get_cst(), i);                
-                grb_mod->addConstr(linlhs,sense,c->get_rhs(),c->get_name()+"_"+to_string(i));
             }
         }
         else {
             for (int i = 0; i< nb_inst; i++){
-                quadlhs = 0;
-                for (auto& it1: c->get_lterms()) {
-                    lterm = 0;
-                    if (it1.second._coef->_is_transposed) {
-                        auto dim =it1.second._p->get_dim(i);
-                        for (int j = 0; j<dim; j++) {
-                            coeff = poly_eval(it1.second._coef,i,j);
-                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
+                if (c->_violated[i]) {
+                    quadlhs = 0;
+                    for (auto& it1: c->get_lterms()) {
+                        lterm = 0;
+                        if (it1.second._coef->_is_transposed) {
+                            auto dim =it1.second._p->get_dim(i);
+                            for (int j = 0; j<dim; j++) {
+                                coeff = poly_eval(it1.second._coef,i,j);
+                                gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
+                                lterm += coeff*gvar1;
+                            }
+                        }
+                        else {
+                            coeff = poly_eval(it1.second._coef,i);
+                            gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
                             lterm += coeff*gvar1;
                         }
+                        if (!it1.second._sign) {
+                            lterm *= -1;
+                        }
+                        quadlhs += lterm;
                     }
-                    else {
-                        coeff = poly_eval(it1.second._coef,i);
-                        gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
-                        lterm += coeff*gvar1;
-                    }
-                    if (!it1.second._sign) {
-                        lterm *= -1;
-                    }
-                    quadlhs += lterm;
-                }
-                for (auto& it1: c->get_qterms()) {
-                    gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
-                    gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
-                    if (it1.second._coef->_is_transposed) {
-                        auto dim =it1.second._p->first->get_dim(i);
-                        for (int j = 0; j<dim; j++) {
-                            coeff = poly_eval(it1.second._coef,i,j);
-                            gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i,j)];
-                            gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i,j)];
+                    for (auto& it1: c->get_qterms()) {
+                        gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
+                        gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
+                        if (it1.second._coef->_is_transposed) {
+                            auto dim =it1.second._p->first->get_dim(i);
+                            for (int j = 0; j<dim; j++) {
+                                coeff = poly_eval(it1.second._coef,i,j);
+                                gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i,j)];
+                                gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i,j)];
+                                if (!it1.second._sign) {
+                                    quadlhs += -1*coeff*gvar1*gvar2;
+                                }
+                                else {
+                                    quadlhs += coeff*gvar1*gvar2;
+                                }
+                            }
+                        }
+                        else {
+                            coeff = poly_eval(it1.second._coef,i);
                             if (!it1.second._sign) {
                                 quadlhs += -1*coeff*gvar1*gvar2;
                             }
@@ -289,18 +302,9 @@ void GurobiProgram::create_grb_constraints(){
                             }
                         }
                     }
-                    else {
-                        coeff = poly_eval(it1.second._coef,i);
-                        if (!it1.second._sign) {
-                            quadlhs += -1*coeff*gvar1*gvar2;
-                        }
-                        else {
-                            quadlhs += coeff*gvar1*gvar2;
-                        }
-                    }
+                    quadlhs += poly_eval(c->get_cst(), i);
+                    grb_mod->addQConstr(quadlhs,sense,c->get_rhs(),c->get_name()+"_"+to_string(i));
                 }
-                quadlhs += poly_eval(c->get_cst(), i);
-                grb_mod->addQConstr(quadlhs,sense,c->get_rhs(),c->get_name()+"_"+to_string(i));
             }
         }
     }

@@ -62,5 +62,9 @@ public:
     unsigned get_nb_active_nodes() const;
     void time_expand(unsigned T); /* < Time expansion of the grid parameters */
     void update_net();
+    void update_update_bus_pairs_chord(Net* chordal);
+    
+    /** Power Models */
+    double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
 };
 #endif

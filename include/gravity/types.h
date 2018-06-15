@@ -35,10 +35,13 @@ namespace gravity{
     typedef enum { minimize, maximize } ObjectiveType;
     typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_} OperatorType;  /* Operation type in the expression tree */
 
+    typedef enum { R_, R_p_, C_, C_p_} SpaceType;  /* Operation type in the expression tree */
+
     typedef enum { ordered_pairs_, unordered_ } SetType;
 //    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10, time_expand_ = 11, in_set_at_} IndexType;  /* Index type */
 
-    typedef enum { unindexed_, in_, in_pairs_, out_, from_, to_, in_at_, in_time_, from_time_, to_time_, in_arcs_, out_arcs_, in_gens_} IndexType;  /* Index type */
+    typedef enum {unindexed_, in_, in_pairs_,  out_, from_, to_, in_at_, in_time_, from_time_, to_time_, to_at_,
+        from_at_, in_arcs_, out_arcs_, in_gens_, in_pairs_time_,in_pairs_at_, out_arcs_time_, in_arcs_time_, out_arcs_at_, in_arcs_at_, in_gens_time_, in_gens_at_} IndexType;  /* Index type */
 
     using namespace std;
 

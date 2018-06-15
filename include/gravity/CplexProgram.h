@@ -15,6 +15,7 @@
 #define __PowerTools____CplexProgram
 
 #ifdef USE_CPLEX
+#define ZEROTOL 1e-6  //used for extract the dual multipliers of SOCP/QCP constraints (refer to cplex tutorial iloqcpdual.cpp)
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
@@ -27,6 +28,13 @@ private:
     IloEnv* _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
+    vector<IloRangeArray>  _cplex_constraints; /** useful for retrieving dual mulipliers */
+   /*  CPLEX does not give us the dual multipliers for quadratic        *
+    *   constraints directly. This is because they may not be properly  *
+    *   defined at the cone top and deciding whether we are at the cone *
+    *   top or not involves (problem specific) tolerance issues. CPLEX  *
+    *   instead gives us all the values we need in order to compute the *
+    *   dual multipliers if we are not at the cone top.                 */
 public:
     Model* _model;
     int _output;
@@ -47,6 +55,10 @@ public:
     void fill_in_cplex_vars();
     void create_cplex_constraints();
     void set_cplex_objective();
+    // associate a cplex_var to an index. 
+    std::pair<unsigned, unsigned>* get_cplex_var_index(IloExtractable const& t) {
+        return static_cast<std::pair<unsigned, unsigned>*>(t.getObject());
+    }
     
     void print_constraints();
 };
