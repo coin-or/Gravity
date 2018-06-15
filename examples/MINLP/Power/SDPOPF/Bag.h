@@ -16,6 +16,7 @@
 class Bag{
 public:
     int _id;
+    bool _is_psd;
     PowerNet* _grid;
     std::vector<Node*> _nodes;
 //    bool _all_lines = true;
@@ -23,6 +24,9 @@ public:
     vector <gravity::index_> _indices;
     param<double> _wmin;
     param<double> _wmax;
+
+    param<double> _Wmin;
+    param<double> _Wmax;
 
 //    gravity::node_pairs _bus_pairs;
 
@@ -39,10 +43,13 @@ public:
 
     /* find nearest feasible point */
     param<double> nfp();
+    param<double> nfp1(); // uses eigenvalues, disregards bounds
 
     bool add_lines();
 
     param<double> fill_wstar();
+
+    void update_PSD();
 };
 
 #endif //GRAVITY_BAG_H

@@ -22,7 +22,60 @@
 using namespace std;
 
 namespace gravity {
+    
+    
 class func_;
+    class space{
+    public:
+        SpaceType       _type;
+        vector<size_t>  _dim;
+    };
+
+    class R: public space{
+    public:
+        R(){};
+        template<typename... Args>
+        R(size_t t1, Args&&... args) {
+            _type = R_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        R operator^(size_t n){return R(n);};
+    };
+    
+    class R_p: public space{
+    public:
+        R_p(){};
+        template<typename... Args>
+        R_p(size_t t1, Args&&... args) {
+            _type = R_p_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        R_p operator^(size_t n){return R_p(n);};
+        
+    };
+    
+    class C: public space{
+    public:
+        /* TODO */
+    };
+    
 /** Backbone class for parameter */
 class var_ {
 public:
@@ -146,6 +199,16 @@ public:
         res._ub = this->_ub;
         return res;
     }
+
+    template<typename Tobj>
+    var from_at(const vector<Tobj*>& vec, const unsigned t){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from_at(vec, t));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
     
     template<typename Tobj>
     var from(const vector<Tobj>& vec){
@@ -173,6 +236,16 @@ public:
     var to(const vector<Tobj*>& vec){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::to(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
+    template<typename Tobj>
+    var to_at(const vector<Tobj*>& vec, const unsigned t){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to_at(vec, t));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -206,7 +279,7 @@ public:
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);
         if(!this->_lb->is_number()){
-            *res._lb = this->_lb->in(vec);
+            *res._lb = this->_lb->in(vec); // lb is func_
         }
         if(!this->_ub->is_number()){
             *res._ub = this->_ub->in(vec);
@@ -243,10 +316,45 @@ public:
         res._ub = this->_ub;
         return res;
     }
+    var in_arcs_at(const vector<Node*>& vec, const unsigned t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs_at(vec, t));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_arcs(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     
     var out_arcs(const vector<Node*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::out_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
+    var out_arcs_at(const vector<Node*>& vec, const unsigned t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs_at(vec, t));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    var out_arcs(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs(vec, T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -262,11 +370,41 @@ public:
         res._ub = this->_ub;
         return res;
     }
+
+    var in_gens_at(const vector<Node*>& vec, unsigned t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens_at(vec, t));
+        //res.print(true);
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_gens(const vector<Node*>& vec, unsigned T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens(vec, T));
+        //res.print(true);
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
     
     template<typename Tobj>
     var in_pairs(const vector<Tobj*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_pairs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+
+    template<typename Tobj>
+    var in_pairs_at(const vector<Tobj*>& vec, unsigned t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pairs_at(vec, t));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -292,12 +430,24 @@ public:
         res._ub = this->_ub;
         return res;
     }
+    
+    
 
 
     template<typename Tobj>
     var in(const vector<Tobj>& vec, unsigned T) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var in(const vector<Tobj>& vec, int T0, int T1) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in(vec, T0, T1));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -316,6 +466,16 @@ public:
 
     template<typename Tobj>
     var in_at(const vector<Tobj>& vec, unsigned t) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_at(vec, t));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var in_at(const vector<Tobj*>& vec, int t) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_at(vec, t));
         res.param<type>::set_type(var_c);
@@ -356,6 +516,7 @@ public:
     Sign get_sign(int idx = 0) const;
 
     /* Modifiers */
+    void    set_size(vector<size_t>);
     void    set_size(size_t s, type val = 0);
 
     void    add_bounds(type lb, type ub);
@@ -383,10 +544,16 @@ public:
     
     bool operator==(const var& v) const;
     bool operator!=(const var& v) const;
-    var& operator^(size_t d) {
-        set_size(d);
+    
+    var& in(const space& s){
+        set_size(s._dim);
         return *this;
     }
+    
+//    var& operator^(size_t d) {
+//        set_size(d);
+//        return *this;
+//    }
 
     var tr() const {
         auto v = var(*this);

@@ -28,6 +28,7 @@ Arc::Arc(Node* s, Node* d) {
     _src = s;
     _dest = d;
     _weight = 1;
+    _name = s->_name + "," + d->_name;
 //   in_cycle = false;
     //  parallel = false;
     //  connect();

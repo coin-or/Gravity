@@ -1027,9 +1027,6 @@ namespace gravity{
         _sign = p._sign;
         return *this;
     }
-
-
-
     func_::func_(){
         _to_str = "noname";
         set_type(func_c);
@@ -2059,10 +2056,10 @@ namespace gravity{
         if (is_number() && all_zeros(poly_to_str(this))){
             return true;
         }
-//        if (is_param() || is_var()) {
-//            auto p_c = (param_*)this;
-//            return p_c->get_all_sign()==zero_;
-//        }
+        if (is_param() || is_var()) {
+            auto p_c = (param_*)this;
+            return p_c->get_all_sign()==zero_;
+        }
 //        if (is_uexpr() || is_bexpr()) {
 //            auto e_p = (expr*)this;
 //            return e_p->get_all_sign()==zero_;
@@ -6365,7 +6362,13 @@ namespace gravity{
 //                throw invalid_argument("error");
 //            }
         if (_val->size()<=i){
-            throw invalid_argument("Func get_val out of range");
+            if (i ==0) {
+                DebugOn("empty variable! default bound 0!");
+                return 0;
+            }
+            else{
+                throw invalid_argument("Func get_val out of range");
+            }
         }
             return _val->at(i);
 //        }
@@ -7156,6 +7159,9 @@ namespace gravity{
         size_t n = 0;
         for (auto &p: *_vars) {
             if (p.second.first->_is_vector) {
+                if (p.second.first->_dim.size()>1) {
+                    throw invalid_argument("get_nb_vars() should be called with an index, i.e. get_nb_vars(int)");
+                }
                 n += p.second.first->get_dim();
             }
             else {
@@ -7372,14 +7378,14 @@ namespace gravity{
         if(is_number() && !_is_vector && !_is_transposed && poly_eval(this)==0){
             return true;
         }
-//        if (_ftype==const_ && _cst->is_zero()){
-//            for (auto& it:*_params) {
-//                if (!it.second.first->is_zero()) {
-//                    return false;
-//                }
-//            }
-//            return true;
-//        }
+        if (_ftype==const_ && _cst->is_zero()){
+            for (auto& it:*_params) {
+                if (!it.second.first->is_zero()) {
+                    return false;
+                }
+            }
+            return true;
+        }
         return false;
     }
 

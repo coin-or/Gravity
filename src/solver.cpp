@@ -132,10 +132,17 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             iapp->Options()->SetNumericValue("tol", tol);
             iapp->Options()->SetIntegerValue("print_level", print_level);
             
+            /** Bonmin options */
+//            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
+//            iapp->Options()->SetStringValue("mu_oracle", "probing");
+//            iapp->Options()->SetNumericValue("gamma_phi", 1e-8);
+//            iapp->Options()->SetNumericValue("gamma_theta", 1e-4);
+            
+            
             /** Hot start if already solved */
             if (!_model->_first_run) {
 //            if (false) {
-                DebugOff("Using Hot Start!\n");
+                DebugOn("Using Hot Start!\n");
                 iapp->Options()->SetNumericValue("mu_init", mu_init);
                 iapp->Options()->SetStringValue("warm_start_init_point", "yes");
             }
@@ -171,7 +178,6 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             
             SmartPtr<TNLP> tmp = new IpoptProgram(_model);
             status = iapp->OptimizeTNLP(tmp);
-            violated_constraints = _model->has_violated_constraints(tol);
                 if (status == Solve_Succeeded) {
                     // Retrieve some statistics about the solve
                     
@@ -292,7 +298,11 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             bonminNotAvailable();
     #endif
         }
-        violated_constraints = false;
+        violated_constraints = _model->has_violated_constraints(tol);
+        if (violated_constraints) {
+            _model->reindex();
+        }
+//        violated_constraints = false;
     }
     return return_status;
 }
