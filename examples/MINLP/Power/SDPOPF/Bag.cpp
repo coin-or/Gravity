@@ -5,7 +5,7 @@
 #include <gravity/param.h>
 #include "Bag.h"
 
-//#define FLAT
+#define FLAT
 
 Bag::Bag(int id, const PowerNet& grid, vector<Node*> nodes):_id(id),_grid((PowerNet*)&grid),_nodes(nodes) {
     Arc* aij = NULL;
@@ -411,7 +411,7 @@ param<double> Bag::nfp(){
 #else
     var<double> W("W");
     W._psd = true;
-    NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in apper triangle is n*(2*n+1)
+    NPP.add_var(W.in(R(2*n,2*n))); // note: number of instances in upper triangle is n*(2*n+1)
 #endif
 
     var<double> z("z");
