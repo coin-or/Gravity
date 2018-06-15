@@ -482,7 +482,7 @@ int main (int argc, const char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
 
-    grid->c2.print(true);
+//    grid->c2.print(true);
     //GRAPH PARTITION
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_bus_pairs = grid.get_nb_active_bus_pairs();
