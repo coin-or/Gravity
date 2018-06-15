@@ -119,33 +119,33 @@ int main (int argc, char * argv[])
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
+    SOCP.add(SOC.in(bus_pairs) <= 0);
 
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
     KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens()) + grid.gs*Wii;
-    SOCP.add_constraint(KCL_P.in(grid.nodes) == 0);    
+    SOCP.add(KCL_P.in(grid.nodes) == 0);    
     
     Constraint KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens()) - grid.bs*Wii;
-    SOCP.add_constraint(KCL_Q.in(grid.nodes) == 0);
+    SOCP.add(KCL_Q.in(grid.nodes) == 0);
 
     /* AC Power Flow */
     Constraint Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (grid.g_ff*Wii.from() + grid.g_ft*R_Wij.in_pairs() + grid.b_ft*Im_Wij.in_pairs());
-    SOCP.add_constraint(Flow_P_From.in(grid.arcs) == 0);
+    SOCP.add(Flow_P_From.in(grid.arcs) == 0);
     
     Constraint Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (grid.g_tt*Wii.to() + grid.g_tf*R_Wij.in_pairs() - grid.b_tf*Im_Wij.in_pairs());
-    SOCP.add_constraint(Flow_P_To.in(grid.arcs) == 0);
+    SOCP.add(Flow_P_To.in(grid.arcs) == 0);
     
     Constraint Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in_pairs() - grid.b_ff*Wii.from() - grid.b_ft*R_Wij.in_pairs());
-    SOCP.add_constraint(Flow_Q_From.in(grid.arcs) == 0);
+    SOCP.add(Flow_Q_From.in(grid.arcs) == 0);
 
     Constraint Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + (grid.b_tt*Wii.to() + grid.b_tf*R_Wij.in_pairs() + grid.g_tf*Im_Wij.in_pairs());
-    SOCP.add_constraint(Flow_Q_To.in(grid.arcs) == 0);
+    SOCP.add(Flow_Q_To.in(grid.arcs) == 0);
 
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
@@ -216,7 +216,7 @@ int main (int argc, char * argv[])
         total_time = total_time_end - total_time_start;
     }
     /** Uncomment next line to print expanded model */
-    /* SOCP.print_expanded(); */
+//    SOCP.print_expanded();
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

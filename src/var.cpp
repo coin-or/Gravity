@@ -388,7 +388,7 @@ template<typename type> void sdpvar<type>::print(bool vals) const {
     param<type>::print(vals);
 };
 
-template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, const std::vector<std::vector<Node*>>& bags, unsigned size){
+template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net1, const std::vector<std::vector<Node*>>& bags, unsigned size){
     vector<var> res;
     string key;
     res.resize(size);
@@ -423,12 +423,12 @@ template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, 
             continue;
         }
         for (int i = 0; i< size-1; i++) {
-            if(net.get_directed_arc(bag[i]->_name, bag[i+1]->_name)!=nullptr) {
+//            if(net.get_directed_arc(bag[i]->_name, bag[i+1]->_name)!=nullptr) {
                 key = bag[i]->_name + "," + bag[i+1]->_name;
-            }
-            else {
-                key = bag[i+1]->_name + "," + bag[i]->_name;
-            }
+//            }
+//            else {
+//                throw invalid_argument("Edge with inconsistent orientation source->id should be less than target->id\n");
+//            }
             auto index = param_::_indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
@@ -443,12 +443,12 @@ template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, 
             }
         }
         /* Loop back pair */
-        if(net.get_directed_arc(bag[0]->_name, bag[size-1]->_name)!=nullptr) {
+//        if(net.get_directed_arc(bag[0]->_name, bag[size-1]->_name)!=nullptr) {
             key = bag[0]->_name + "," + bag[size-1]->_name;
-        }
-        else{
-            key = bag[size-1]->_name + "," + bag[0]->_name;
-        }
+//        }
+//        else{
+//            key = bag[size-1]->_name + "," + bag[0]->_name;
+//        }
         auto index = param_::_indices->size();
         auto pp = param_::_indices->insert(make_pair<>(key,index));
         if(pp.second) { //new index inserted
