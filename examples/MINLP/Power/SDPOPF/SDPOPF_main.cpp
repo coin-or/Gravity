@@ -483,18 +483,32 @@ int main (int argc, char * argv[]) {
     /* power generation variables */
     var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
     var<Real> Qg ("Qg", grid.qg_min, grid.qg_max);
+<<<<<<< HEAD
     SDP.add(Pg.in(grid.gens));
     SDP.add(Qg.in(grid.gens));
     
+=======
+    SDP.add_var(Pg.in(grid.gens));
+    SDP.add_var(Qg.in(grid.gens));
+
+
+>>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
     /* power flow variables */
     var<Real> Pf_from("Pf_from", grid.S_max);
     var<Real> Qf_from("Qf_from", grid.S_max);
     var<Real> Pf_to("Pf_to", grid.S_max);
     var<Real> Qf_to("Qf_to", grid.S_max);
+<<<<<<< HEAD
     SDP.add(Pf_from.in(grid.arcs));
     SDP.add(Qf_from.in(grid.arcs));
     SDP.add(Pf_to.in(grid.arcs));
     SDP.add(Qf_to.in(grid.arcs));
+=======
+    SDP.add_var(Pf_from.in(grid.arcs));
+    SDP.add_var(Qf_from.in(grid.arcs));
+    SDP.add_var(Pf_to.in(grid.arcs));
+    SDP.add_var(Qf_to.in(grid.arcs));
+>>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
 
     /* Real part of Wij = ViVj */
     var<Real>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
@@ -504,10 +518,18 @@ int main (int argc, char * argv[]) {
     var<Real>  Wii("Wii", grid.w_min, grid.w_max);
     SDP.add(Wii.in(grid.nodes));
 
+<<<<<<< HEAD
     SDP.add(R_Wij.in(bus_pairs_chord));
     SDP.add(Im_Wij.in(bus_pairs_chord));
 //    SDP.add(R_Wij.in(bus_pairs));
 //    SDP.add(Im_Wij.in(bus_pairs));
+=======
+    SDP.add_var(R_Wij.in(bus_pairs_chord));
+    SDP.add_var(Im_Wij.in(bus_pairs_chord));
+//    SDP.add_var(R_Wij.in(bus_pairs));
+//    SDP.add_var(Im_Wij.in(bus_pairs));
+
+>>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
@@ -549,6 +571,7 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
+<<<<<<< HEAD
     SDP.add(SOC.in(bus_pairs) == 0);
     
     /* Flow conservation */
@@ -577,6 +600,36 @@ int main (int argc, char * argv[]) {
     Flow_Q_To = Qf_to + (grid.b_tt*Wii.to() + grid.b_tf*R_Wij.in_pairs() + grid.g_tf*Im_Wij.in_pairs());
     SDP.add(Flow_Q_To.in(grid.arcs) == 0);
     
+=======
+    SDP.add_constraint(SOC.in(bus_pairs) <= 0);
+
+    /* Flow conservation */
+    Constraint KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens()) + grid.gs*Wii;
+    SDP.add_constraint(KCL_P.in(grid.nodes) == 0);
+
+    Constraint KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens()) - grid.bs*Wii;
+    SDP.add_constraint(KCL_Q.in(grid.nodes) == 0);
+
+    /* AC Power Flow */
+    Constraint Flow_P_From("Flow_P_From");
+    Flow_P_From = Pf_from - (grid.g_ff*Wii.from() + grid.g_ft*R_Wij.in_pairs() + grid.b_ft*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_P_From.in(grid.arcs) == 0);
+
+    Constraint Flow_P_To("Flow_P_To");
+    Flow_P_To = Pf_to - (grid.g_tt*Wii.to() + grid.g_tf*R_Wij.in_pairs() - grid.b_tf*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_P_To.in(grid.arcs) == 0);
+
+    Constraint Flow_Q_From("Flow_Q_From");
+    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in_pairs() - grid.b_ff*Wii.from() - grid.b_ft*R_Wij.in_pairs());
+    SDP.add_constraint(Flow_Q_From.in(grid.arcs) == 0);
+
+    Constraint Flow_Q_To("Flow_Q_To");
+    Flow_Q_To = Qf_to + (grid.b_tt*Wii.to() + grid.b_tf*R_Wij.in_pairs() + grid.g_tf*Im_Wij.in_pairs());
+    SDP.add_constraint(Flow_Q_To.in(grid.arcs) == 0);
+
+>>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
     /* Phase Angle Bounds constraints */
 
     Constraint PAD_UB("PAD_UB");
@@ -595,6 +648,7 @@ int main (int argc, char * argv[]) {
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from <= power(grid.S_max,2);
+<<<<<<< HEAD
     SDP.add(Thermal_Limit_from.in(grid.arcs));
     
     
@@ -603,6 +657,17 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to <= power(grid.S_max,2);
     SDP.add(Thermal_Limit_to.in(grid.arcs));
     
+=======
+//    SDP.add_lazy(Thermal_Limit_from.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_from.in(grid.arcs));
+
+
+    Constraint Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to <= power(grid.S_max,2);
+//    SDP.add_lazy(Thermal_Limit_to.in(grid.arcs));
+    SDP.add_constraint(Thermal_Limit_to.in(grid.arcs));
+>>>>>>> 7dcdc8071be1a3ac27626d8d86230e441495cff1
 
     /* Lifted Nonlinear Cuts */
     Constraint LNC1("LNC1");
