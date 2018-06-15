@@ -119,7 +119,7 @@ int main (int argc, char * argv[])
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SOCP.add_constraint(SOC.in(bus_pairs) <= 0);
+    SOCP.add_constraint(SOC.in(bus_pairs) == 0);
 
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -151,12 +151,12 @@ int main (int argc, char * argv[])
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add(PAD_UB.in(bus_pairs));
+//    SOCP.add(PAD_UB.in(bus_pairs));
     
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add(PAD_LB.in(bus_pairs));
+//    SOCP.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -176,14 +176,14 @@ int main (int argc, char * argv[])
     LNC1 -= grid.v_max.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SOCP.add(LNC1.in(bus_pairs) >= 0);
+//    SOCP.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint LNC2("LNC2");
     LNC2 += (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to()*grid.cos_d*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*grid.cos_d*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*grid.cos_d*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-    SOCP.add(LNC2.in(bus_pairs) >= 0);
+//    SOCP.add(LNC2.in(bus_pairs) >= 0);
 
     
     /* Solver selection */
@@ -216,7 +216,7 @@ int main (int argc, char * argv[])
         total_time = total_time_end - total_time_start;
     }
     /** Uncomment next line to print expanded model */
-    /* SOCP.print_expanded(); */
+    SOCP.print_expanded();
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SOCP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;
