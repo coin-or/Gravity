@@ -27,59 +27,61 @@ using namespace std;
 namespace gravity {
 /** Backbone class for parameter */
 class param_: public constant_ {
-
+    
 protected:
-
+    
     NType                                  _intype;
     shared_ptr<map<string,unsigned>>       _indices = nullptr; /*<< A map storing all the indices this parameter has, the key is represented by a string, while the entry indicates the right position in the values and bounds vectors */
     shared_ptr<vector<string>>              _rev_indices = nullptr; /*<< A vector storing all the indices this parameter has */
-
+    int                                     unique_counter = 0;
+    
+    
     /* (Guanglei) added this part to record the indices of sdp variables. SDP should be indexed by a pair of integers. This is true for all SDP solvers. */
     shared_ptr<map<string,pair<unsigned, unsigned>>> _sdpindices;
-
+    
 public:
     shared_ptr<int>                                _id;
     shared_ptr<int>                                _vec_id; /**< index in the vector array (useful for Cplex). **/
-
+    
     string                                         _name;
     shared_ptr<vector<vector<unsigned>>>           _ids = nullptr; /*<<A vector storing all the indices this parameter has in the order they were created */
     unique_id                              _unique_id = make_tuple<>(-1,unindexed_,0,0,0); /* */
-
+    
     bool                                   _is_indexed = false;
     bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
     vector<double>                         _l_dual; /*<<Dual values for lower bounds */
     vector<double>                         _u_dual; /*<<Dual values for upper bounds */
-
-
+    
+    
     virtual ~param_() {};
-
+    
     void set_id(size_t idx) {
         *_id = idx;
         get<0>(_unique_id) = idx;
     };
-
+    
     void set_vec_id(size_t idx) {
         *_vec_id = idx;
     };
-
+    
     size_t get_id() const {
         return *_id;
     };
-
+    
     size_t get_vec_id() const {
         return *_vec_id;
     };
-
+    
     size_t get_id_inst(unsigned inst = 0) const {
         if (_is_indexed) {
-            if(_ids->at(0).size() <= inst) {
-                throw invalid_argument("get_id_inst out of range: _ids->at(0) might be empty!");
+            if(_ids->at(0).size() <= inst){
+                throw invalid_argument("get_id_inst out of range");
             }
             return _ids->at(0).at(inst);
         }
         return inst;
     };
-
+    
     size_t get_id_inst(unsigned inst1, unsigned inst2) const {
         if (_is_indexed) {
             if (_ids->size()==1) {
@@ -993,6 +995,52 @@ public:
         return res;
     }
 
+    template<typename Tobj> param submat(const vector<Tobj>& vec) {
+        param res(this->_name);
+        res._id = this->_id;
+        res._vec_id = this->_vec_id;
+        res._intype = this->_intype;
+        res._range = this->_range;
+        res._val = this->_val;
+        res._is_vector = this->_is_vector;
+        res._is_matrix = this->_is_matrix;
+        res._is_transposed = _is_transposed;
+        res._rev_indices = this->_rev_indices; res._indices = this->_indices;
+        if(vec.empty()){
+            DebugOn("In function param.in(const vector<Tobj*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+            res._name += "EMPTY_VAR";
+            res._is_indexed = true;
+            return res;
+        }
+        DebugOff(_name << " = ");
+        string key;
+        for(auto it = vec.begin(); it!= vec.end(); it++) {
+            if(!(*it)._active) {
+                continue;
+            }
+            key = (*it)._name;
+            auto index = _indices->size();
+            auto pp = param_::_indices->insert(make_pair<>(key, index));
+            if(pp.second) { //new index inserted
+                _val->resize(max(_val->size(),index+1));
+                _dim[0] = max(_dim[0],_val->size());
+                _rev_indices->resize(_val->size());
+                _rev_indices->at(index) = key;
+                res._ids->at(0).push_back(index);
+            }
+            else {
+                res._ids->at(0).push_back(pp.first->second);
+            }
+        }
+        DebugOff(endl);
+        res._dim[0]=res._ids->at(0).size();
+        res._name += ".in_" + vec.front()._type_name + to_string(unique_counter);
+        unique_counter++;
+        res._unique_id = make_tuple<>(res.get_id(),in_, typeid(Tobj).hash_code(), 0,0);
+        res._is_indexed = true;
+        return res;
+    }
+    
     param in_arcs(const vector<Node*>& vec, unsigned T) {
         param res(this->_name);
         res._id = this->_id;
