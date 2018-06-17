@@ -299,7 +299,7 @@ int main (int argc, const char * argv[])
     string out = "DATA_OPF, " + grid->_name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines)
                  +", " + to_string(ACUC._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) +", CPU time, " + to_string(total_time);
 
-    cout << std::setprecision(4) <<out << endl;
+//    cout << std::setprecision(4) <<out << endl;
 
     return 0;
 }
