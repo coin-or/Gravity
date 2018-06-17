@@ -6,7 +6,7 @@
 //
 //
 #include "Partition.hpp"
-#include "global.hpp"
+#include "Global.hpp"
 #include <iomanip>
 
 template <typename T>
