@@ -1,8 +1,7 @@
 
 [![Build Status](https://travis-ci.org/Allinsights/Gravity.svg?branch=master)](https://travis-ci.org/Allinsights/Gravity)
 
-
-Private Repo for Gravity
+Repo for Gravity
 =======
 
 Mathematical Modeling for Optimization and Machine Learning
