@@ -29,10 +29,10 @@ option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
 
-#execute_process(
-#  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
-#  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
-#  )
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
+  )
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
