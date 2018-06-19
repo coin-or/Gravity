@@ -28,7 +28,7 @@ Line::Line(){
     smax = 0;
 }
 
-Line::Line(string name):Line(){
+Line::Line(const string& name):Line(){
     _name = name;    
 }
 
@@ -44,10 +44,13 @@ Line::~Line(){
 //}
 
 void Line::print(){
-    std::cout << "limit = " << limit;
-    std::cout << "; r = " << r;
-    std::cout << "; x = " << x;
-    std::cout << "; charge = " << ch;
-    std::cout << "; tr = " << tr;
-    std::cout << "; as = " << as << std::endl;
+    cout << _name << " : ";
+//    cout << "(" << _src->_name<< "," <<_dest->_name << "): ";
+    cout << "Expansion cost = " << cost;
+    cout << "; limit = " << smax;
+    cout << "; r = " << r;
+    cout << "; x = " << x;
+    cout << "; charge = " << ch;
+    cout << "; tap ration = " << tr;
+    cout << "; phase shift = " << as << std::endl;
 }

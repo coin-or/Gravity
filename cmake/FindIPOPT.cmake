@@ -4,6 +4,7 @@ message("Looking for Ipopt in ${IPOPT_ROOT_DIR}")
 
 find_path(IPOPT_INCLUDE_DIR
 	NAMES IpNLP.hpp 
+	HINTS ext_lib/CoinIpopt/build/include/coin
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include
@@ -17,8 +18,9 @@ find_library(IPOPT_LIBRARY
 )
 elseif(UNIX)
 find_library(IPOPT_LIBRARY 
-	libipopt.so 
+	libipopt.so
 	HINTS /usr/local/lib
+	HINTS ext_lib/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
 )
 endif()

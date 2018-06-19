@@ -22,7 +22,7 @@ public:
     ~GurobiProgram();
     void reset_model();
 
-    bool solve(bool relax);
+    bool solve(bool relax = false, double mipgap = 0.01);
     void prepare_model();
     void update_model();
     void update_solution();

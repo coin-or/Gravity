@@ -1,6 +1,11 @@
 #include <gravity/utils.h>
+#include <gravity/types.h>
 #ifdef _WIN32
 #include <Windows.h>
+
+using namespace std;
+using namespace gravity;
+
 double get_wall_time() {
     LARGE_INTEGER time,freq;
     if (!QueryPerformanceFrequency(&freq)) {
@@ -56,3 +61,11 @@ std::vector<int> bounds(int parts, int mem) {
     }
     return bnd;
 }
+
+
+gravity::indices time(unsigned p1 ,unsigned p2){
+    gravity::indices res(p1,p2);
+    res._time_extended = true;
+    return res;
+}
+
