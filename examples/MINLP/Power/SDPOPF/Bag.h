@@ -17,7 +17,6 @@ class Bag{
 public:
     int _id;
     bool _is_psd;
-    double _violation = 0;
     PowerNet* _grid;
     std::vector<Node*> _nodes;
 //    bool _all_lines = true;
@@ -44,7 +43,6 @@ public:
 
     /* find nearest feasible point */
     param<double> nfp();
-//    param<double> nfp1(); // uses eigenvalues, disregards bounds
 
     bool add_lines();
 

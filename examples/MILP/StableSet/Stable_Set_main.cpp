@@ -35,6 +35,7 @@ int main (int argc, const char * argv[])
     auto Rn = R(n);
     var<bool> x("x");
     model.add_var(x.in(Rn));
+    
     /**  Objective **/
     model.max(sum(x));
     
@@ -46,7 +47,7 @@ int main (int argc, const char * argv[])
     model.add_constraint(c.in(graph.arcs));
     
     /**  Solver **/
-    SolverType stype = cplex;
+    SolverType stype = gurobi;
     solver s(model,stype);
     s.run();
     return 0;

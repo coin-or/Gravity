@@ -178,7 +178,7 @@ int main (int argc, const char * argv[])
     if (mt == MIP_tree || mt == SDP_tree)
     {
         mymodel._chordal_extension = graph->get_chordal_extension();
-        graph->get_clique_tree_prim();
+        graph->get_clique_tree();
     }
     
     double wall0 = get_wall_time();

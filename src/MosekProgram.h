@@ -41,10 +41,6 @@ public:
 private:
     mosek::fusion::Model::t _mosek_model;
     vector<mosek::fusion::Variable::t> _mosek_vars;
-
-    mosek::fusion::Expression::t form_Fx(map<string, qterm> &qterms, size_t qn);
-    mosek::fusion::Expression::t form_Fx(map<string, qterm> &qterms, size_t qn, size_t inst);
-    mosek::fusion::Expression::t create_lin_expr(map<string, lterm>& lt, constant_* cst, size_t inst);
 };
 
 #endif /* MosekProgram_h */

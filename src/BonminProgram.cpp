@@ -8,12 +8,12 @@ using namespace std;
 
 
 BonminProgram::BonminProgram(Model* m):_model(m){
-    if (!m->_built) {
-        m->fill_in_maps();
-    }
-    else {
-        m->reset_funcs();
-    }
+//    if (!m->_built) {
+//        m->fill_in_maps();
+//    }
+//    else {
+//        m->reset_funcs();
+//    }
 }
 
 bool BonminProgram::get_variables_types(Index n, VariableType* var_types){

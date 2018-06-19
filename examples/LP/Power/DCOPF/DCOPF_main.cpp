@@ -107,6 +107,16 @@ int main (int argc, char * argv[])
     Flow_P = Pf - grid.b*(theta.from() - theta.to());
     DCOPF.add_constraint(Flow_P.in(grid.arcs) == 0);
 
+//    func_ test = constant<>(1).tr()*power(theta.from() - theta.to(), 2);//TODO this raises error
+//    func_ test = constant<>(1).tr()*(theta.from() - theta.to());
+//    test.in(bus_pairs);
+//    DebugOn(test.to_str() << endl);
+//    test.print_expanded();
+//    test.compute_derivatives();
+//    auto df = test.get_derivative(*test.get_vars().begin()->second.first);
+//    DebugOn(df.to_str() << endl);
+//    df.print_expanded();
+//    return 0;
     /* Phase Angle Bounds constraints */
     Constraint PAD_UB("PAD_UB");
     PAD_UB = theta.from() - theta.to();
@@ -116,7 +126,12 @@ int main (int argc, char * argv[])
     PAD_LB = theta.from() - theta.to();
     PAD_LB -= grid.th_min;
     DCOPF.add_constraint(PAD_LB.in(bus_pairs) >= 0);
-    
+    DCOPF.print_constraints();
+    DCOPF.print_expanded();
+    DCOPF.project();
+    DebugOn(endl<< "After Projection" << endl);
+    DCOPF.print_expanded();
+    return 0;
     /* Solver selection */
     if (use_cplex) {
         solver DCOPF_CPX(DCOPF, cplex);
@@ -139,14 +154,14 @@ int main (int argc, char * argv[])
     else {
         solver DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
-        DCOPF_IPT.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+        DCOPF_IPT.run(output, relax = false, tol = 1e-6, 0.01, "ma27", mehrotra = "no");
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
     /** Uncomment next line to print expanded model */
-    /* DCOPF.print_expanded(); */
+    
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(DCOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;

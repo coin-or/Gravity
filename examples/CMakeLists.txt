@@ -1,5 +1,16 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
+
+
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
+# the RPATH to be used when installing, but only if it's not a system directory
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+
 file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/NLP/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/MinKPart/*.cpp)
 file(GLOB STABLE_S_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/StableSet/*.cpp)
@@ -8,17 +19,13 @@ file(GLOB ACOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/ACOPF/*.cpp)
 file(GLOB SOCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/SOCOPF/*.cpp)
 file(GLOB DCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/LP/Power/DCOPF/*.cpp)
 file(GLOB SDPOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/SDPOPF/*.cpp)
-file(GLOB SDPSTATIC_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/SDPStatic/*.cpp)
 file(GLOB ACUC_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/ACUC/*.cpp)
 file(GLOB MICROGRID_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Microgrid/*.cpp)
 file(GLOB CLASS_SOURCES ${PROJECT_SOURCE_DIR}/examples/Classification/*.cpp)
 file(GLOB SVM_SOURCES ${PROJECT_SOURCE_DIR}/examples/Classification/SVM/*.cpp)
 file(GLOB NEURALNET_SOURCES ${PROJECT_SOURCE_DIR}/examples/Classification/NeuralNet/*.cpp)
-#file(GLOB Decompose_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Decompose/*.cpp)
-file(GLOB Decompose2_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Decompose2/*.cpp)
-file(GLOB ACUC_decompose_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/ACUC_decompose/*.cpp)
-file(GLOB ACUC_decompose_time_SOURCES  ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/ACUC_decompose_time/*.cpp)
-file(GLOB global_SOURCES  ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/global/*.cpp)
+file(GLOB Decompose_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Decompose/*.cpp)
+file(GLOB Reform_SOURCES ${PROJECT_SOURCE_DIR}/examples/MINLP/Power/Reform/*.cpp)
 
 add_executable(gravity101 ${PROJECT_SOURCE_DIR}/examples/Gravity101_main.cpp)
 add_executable(ising ${ISING_SOURCES}) 
@@ -28,17 +35,10 @@ add_executable(dcopf ${DCOPF_SOURCES} ${Power_SOURCES})
 add_executable(socopf ${SOCOPF_SOURCES} ${Power_SOURCES})
 add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 add_executable(sdpopf ${SDPOPF_SOURCES} ${Power_SOURCES})
-add_executable(sdpstatic ${SDPSTATIC_SOURCES} ${Power_SOURCES})
 add_executable(svm ${CLASS_SOURCES} ${SVM_SOURCES})
 add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
-#add_executable(microg ${MICROGRID_SOURCES} ${Power_SOURCES})
-#add_executable(decompose ${Decompose_SOURCES} ${Power_SOURCES})
-#add_executable(decompose2 ${Decompose2_SOURCES} ${Power_SOURCES})
+add_executable(microgid ${MICROGRID_SOURCES} ${Power_SOURCES})
 add_executable(min_k_part ${MINK_SOURCES})
-add_executable(acuc_decompose ${ACUC_decompose_SOURCES} ${Power_SOURCES})
-add_executable(acuc_decompose_time ${ACUC_decompose_time_SOURCES} ${Power_SOURCES})
-add_executable(global ${global_SOURCES} ${Power_SOURCES})
-#add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 
 target_link_libraries(ising gravity)
 target_link_libraries(stable_set gravity)
@@ -48,15 +48,9 @@ target_link_libraries(socopf gravity)
 target_link_libraries(min_k_part gravity)
 target_link_libraries(acuc gravity)
 target_link_libraries(sdpopf gravity)
-target_link_libraries(sdpstatic gravity)
 target_link_libraries(gravity101 gravity)
 target_link_libraries(svm gravity)
 target_link_libraries(neuralnet gravity)
-#target_link_libraries(microg gravity)
-#target_link_libraries(decompose2 gravity)
-target_link_libraries(global gravity)
-#target_link_libraries(acuc gravity)
-target_link_libraries(acuc gravity option_parser)
-target_link_libraries(acuc_decompose gravity)
-target_link_libraries(acuc_decompose_time gravity)
-target_link_libraries(min_k_part gravity)
+target_link_libraries(microgid gravity)
+
+

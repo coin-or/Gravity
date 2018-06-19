@@ -42,4 +42,13 @@ namespace gravity{
         }
         
     }
+    std::vector<index_> indices(unsigned p1 ,unsigned p2){
+        std::vector<index_> _keys;
+        for (int i = p1; i <= p2; i++){
+            _keys.push_back(index_(to_string(i)));
+        }
+        return _keys;
+    }
 }
+
+
