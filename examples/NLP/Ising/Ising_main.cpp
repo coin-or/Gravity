@@ -189,7 +189,7 @@ int main (int argc, char * argv[])
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
         fname = "../" + fname;
     }
-    unsigned nr_threads = std::thread::hardware_concurrency()-1;
+    unsigned nr_threads = 1;
     
     // create a OptionParser with options
     op::OptionParser opt;

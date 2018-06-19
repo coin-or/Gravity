@@ -403,6 +403,7 @@ int main (int argc, const char * argv[])
 //    cc1 += 2*p*q;
 //    DebugOn(cc1.to_str(true) << endl);
 
+    
     param<int> a("a");
     a(0) = -1;
     a(1) = -3;

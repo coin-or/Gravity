@@ -1,5 +1,17 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
+
+
+
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
+# the RPATH to be used when installing, but only if it's not a system directory
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+
 file(GLOB HEADERS ${PROJECT_INCLUDE_DIR} *.h)
 file(GLOB SOURCES . *.cpp ${PROJECT_INCLUDE_DIR}/gravity/*.h)
 
@@ -28,6 +40,7 @@ endif()
 set(ARMADILLO_LIBRARIES armadillo)
 set(CPP_OPTION_PARSER option_parser)
 
-add_library(gravity ${SOURCES} ${HEADERS})
+add_library(gravity STATIC ${SOURCES} ${HEADERS})
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${ARMADILLO_LIBRARIES} ${CPP_OPTION_PARSER})
+
 

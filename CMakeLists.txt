@@ -29,10 +29,10 @@ option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
 
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
-  )
+#execute_process(
+#  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
+#  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
+#  )
 
 # configure a header file to pass some of the CMake settings
 # to the source code.
@@ -130,9 +130,6 @@ include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
 add_subdirectory(ext_lib/cpp_option_parser)
 set(LIBS ${LIBS} option_parser)
 
-# Inlude Eigen Header files
-include_directories(${PROJECT_SOURCE_DIR}/ext_lib)
-
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MINLP/Power)
 
@@ -149,7 +146,27 @@ set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CMAKE_BUILD_TYPE "Release")
 #set(CMAKE_BUILD_TYPE "Debug")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lpthread")
+#set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+#Static Libs
+#Set Linker flags
+set(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,'\$ORIGIN/lib'")
+# use, i.e. don't skip the full RPATH for the build tree
+#SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+# when building, don't use the install RPATH already
+# (but later on when installing)
+#SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
+# the RPATH to be used when installing, but only if it's not a system directory
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
 
 #set( CMAKE_VERBOSE_MAKEFILE on )
 

@@ -108,7 +108,7 @@ namespace gravity {
         size_t get_dim() const {
             size_t dim = 1;
             for (auto d:_dim) {
-                dim *= d;
+                dim*= d;
             }
             return dim;
         }

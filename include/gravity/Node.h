@@ -25,7 +25,7 @@ public:
     std::string _type_name="Node";
     int _id=-1;
     bool _active = true;
-    std::vector<Arc*> branches; // all directed arcs connected to the node. 
+    std::vector<Arc*> branches;
     
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
     int fill_in = 0;
@@ -66,9 +66,19 @@ public:
     
     
     virtual vector<gravity::aux*> get_gens(){return vector<gravity::aux*>();};
+    
+    virtual vector<gravity::aux*> get_bats(){return vector<gravity::aux*>();};
+    
+    virtual vector<gravity::aux*> get_pot_gens(){return vector<gravity::aux*>();};
+    
+    virtual vector<gravity::aux*> get_pot_bats(){return vector<gravity::aux*>();};
+    
+    virtual vector<gravity::aux*> get_wind(){return vector<gravity::aux*>();};
+    
+    virtual vector<gravity::aux*> get_pv(){return vector<gravity::aux*>();};
 
     /* return its neighbours */
-    std::vector<Node*> get_neighbours();
+    std::set<Node*> get_neighbours();
 };
 
 #endif
