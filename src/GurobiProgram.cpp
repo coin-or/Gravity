@@ -33,11 +33,13 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax){
+bool GurobiProgram::solve(bool relax, double mipgap){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
 //    print_constraints();
     if (relax) relax_model();
 //    relax_model();
+    grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
+    grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->optimize();
 //    grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {

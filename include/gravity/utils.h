@@ -27,6 +27,7 @@
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
 #include <vector>
+#include <gravity/types.h>
 double get_wall_time();
 double get_cpu_time();
 
@@ -46,4 +47,12 @@ std::vector<int> bounds(int parts, int mem);
 //    return new_vec;
 //}
 
+gravity::indices time(unsigned p1 ,unsigned p2);
+
+template<typename... Args>
+gravity::indices time(std::string idx1, Args&&... args) {
+    gravity::indices res(idx1,(args)...);
+    res._time_extended = true;
+    return res;
+}
 #endif

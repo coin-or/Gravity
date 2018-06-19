@@ -530,11 +530,8 @@ namespace gravity{
 
     Sign param_::get_all_sign() const{
         switch (_intype) {
-            case binary_:
-                if (is_param()) {
-                    return ((param<bool>*)this)->get_all_sign();
-                }
-                return ((var<bool>*)this)->get_all_sign();
+            case binary_:                
+                return pos_;
                 break;
             case short_:
                 if (is_param()) {
@@ -824,7 +821,10 @@ namespace gravity{
 
     Real lterm::eval(size_t i) const{
         Real res = 0;
-        if ((_coef->_is_transposed || _coef->_is_matrix) && !_p->_is_matrix) {
+        if (_p->_is_indexed && _p->_ids->size()>1 && _p->_ids->at(i).size()==0) {
+            return 0;
+        }
+        if ((_coef->_is_transposed || _coef->_is_matrix || _p->_ids->size()>1) && !_p->_is_matrix) {
             auto dim = _p->get_nb_instances(i);
             for (int j = 0; j<dim; j++) {
                 res += poly_eval(_coef,i,j) * poly_eval(_p,i,j);
@@ -1027,6 +1027,9 @@ namespace gravity{
         _sign = p._sign;
         return *this;
     }
+
+
+
     func_::func_(){
         _to_str = "noname";
         set_type(func_c);
@@ -1149,6 +1152,7 @@ namespace gravity{
                     _dim = c._dim;
                     _nb_instances = c.get_nb_instances();
                     _ids = p_c2->_ids;
+                    _indices = p_c2->get_rev_indices();
 //                    _evaluated = true;
                     break;
                 }
@@ -1173,6 +1177,10 @@ namespace gravity{
                     if (p_c2->_ids) {
                         _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                     }
+                    if (p_c2->get_rev_indices()) {
+                        _indices = make_shared<vector<string>>(*p_c2->get_rev_indices());
+                    }
+                    
                     break;
                 }
                            // newly added
@@ -1445,6 +1453,9 @@ namespace gravity{
                 if (p_c2->_ids) {
                     _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
                 }
+                if (p_c2->get_rev_indices()) {
+                    _indices = make_shared<vector<string>>(*p_c2->get_rev_indices());
+                }
 //                _val->resize(_nb_instances);
 //                for (unsigned inst = 0; inst < _val->size(); inst++) {
 //                    _val->at(inst) = poly_eval(p_c2.get(), inst);
@@ -1469,6 +1480,9 @@ namespace gravity{
                 _all_range = p_c2->get_range();
                 if (p_c2->_ids) {
                     _ids = make_shared<vector<vector<unsigned>>>(*p_c2->_ids);
+                }
+                if (p_c2->get_rev_indices()) {
+                    _indices = make_shared<vector<string>>(*p_c2->get_rev_indices());
                 }
                 break;
             }
@@ -1718,6 +1732,7 @@ namespace gravity{
         _nb_vars = f._nb_vars;
         _val = move(f._val);
         _ids = move(f._ids);
+        _indices = move(f._indices);
     }
 
     func_::func_(const func_& f){
@@ -1803,7 +1818,13 @@ namespace gravity{
         _hess_link = f._hess_link;
         _nb_instances = f._nb_instances;
         _nb_vars = f._nb_vars;
-        _ids = f._ids;
+        if (f._ids) {
+            _ids = make_shared<vector<vector<unsigned>>>(*f._ids);
+        }
+        if (f._indices) {
+            _indices = make_shared<vector<string>>(*f._indices);
+        }
+        
         
 
     }
@@ -1918,7 +1939,9 @@ namespace gravity{
         if (f._ids) {
             _ids = make_shared<vector<vector<unsigned>>>(*f._ids);
         }
-        
+        if (f._indices) {
+            _indices = make_shared<vector<string>>(*f._indices);
+        }
         if (is_constant()) {
             _evaluated = f._evaluated;
         }
@@ -1995,6 +2018,7 @@ namespace gravity{
         _dfdx = move(f._dfdx);
         _val = move(f._val);
         _ids = move(f._ids);
+        _indices = move(f._indices);
         if (is_constant()) {
             _evaluated = f._evaluated;
         }
@@ -3382,6 +3406,9 @@ namespace gravity{
         auto pname = p.get_name();
         
         auto pair_it = _lterms->find(pname);
+        if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
+            throw invalid_argument("param and var with same name: " + p.get_name());
+        }
         if (_ftype == const_ && p.is_var()) {
             _ftype = lin_;
         }
@@ -3509,6 +3536,7 @@ namespace gravity{
             update_convexity(q);
             update_nb_instances(q);
             _qterms->insert(make_pair<>(qname, move(q)));
+            update_convexity();
             return true;
         }
         else {
@@ -5100,14 +5128,12 @@ namespace gravity{
         }
         else {
             lval = _lson->get_val(i);
-//            lval = _lson->get_val(i);
         }
         if (_rson->is_number()) {
             rval = _rson->_val->at(0);
         }
         else {
             rval = _rson->get_val(i);
-//            rval = _rson->get_val(i);
         }
         switch (_otype) {
             case plus_:
@@ -5480,7 +5506,7 @@ namespace gravity{
         return nullptr;
     }
 
-    constant_* substract(constant_* c1, const constant_& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    constant_* substract(constant_* c1, const constant_& c2){ /**< substracts c2 from c1, updates its type and returns the result **/
         switch (c2.get_type()) {
             case binary_c: {
                 return substract(c1, *(constant<bool>*)&c2);
@@ -5599,9 +5625,13 @@ namespace gravity{
                 break;
             }
             case func_c: {
+                auto f2 = (func_*)&c2;
+                if (f2->is_number()) {
+                    return substract(c1, *f2->get_cst());
+                }
                 auto f = new func_(*c1);
                 delete c1;
-                *f -= c2;
+                *f -= *f2;
                 return c1 = (constant_*)f;
                 break;
                 break;
@@ -6125,12 +6155,15 @@ namespace gravity{
         string str;
         constant_* c_new = _coef;
         param_* p_new = (param_*)_p;
+        if (p_new->get_dim(inst)==0) {
+            return str;
+        }
         unsigned dim = 1;
         if (c_new->_is_transposed) {
             dim = p_new->get_nb_instances(inst);
         }
         for (unsigned idx = 0; idx <dim; idx++) {
-            if (c_new->is_number()){
+            if (c_new->constant_::is_number()){
                 string v;
                 v = poly_to_str(c_new);
                 if (_sign) {
@@ -6166,22 +6199,25 @@ namespace gravity{
                 }
             }
             else{
+                
                 if (!_sign) {
                     str += " - ";
                 }
                 if((ind > 0 || idx >0) && _sign) {
                     str += " + ";
                 }
-                str += "(";
-                if (c_new->_is_transposed) {
-                    str += poly_to_str(c_new, inst, idx);
+                if (!c_new->is_function() || !((func_*)c_new)->is_unit_instance()) {
+                    str += "(";
+                    if (c_new->_is_transposed) {
+                        str += poly_to_str(c_new, inst, idx);
+                    }
+                    else{
+                        str += poly_to_str(c_new, inst);
+                    }
+                    str += ")";
                 }
-                else{
-                    str += poly_to_str(c_new, inst);
-                }
-                str += ")";
             }
-            if (c_new->_is_transposed) {
+            if (c_new->_is_transposed || p_new->_ids->size()>1) {
                 str += poly_to_str(p_new, inst, idx);
             }
             else{
@@ -6252,9 +6288,48 @@ namespace gravity{
         }
     }
     
+    void func_::reindex(param_* v){
+        
+    }
+    
+    void func_::replace(param_* v, func_& f){
+        auto vin = get_var(*v->_vec_id);
+        f.reindex(v);
+        //index f here!
+        for (auto &l_p:*_lterms) {
+            auto &lt = l_p.second;
+            if (lt._p==vin) {
+                //replace here.
+            }
+        }
+        
+        if (_expr) {
+            if (_expr->is_uexpr()) {
+                auto ue = (uexpr*)_expr.get();
+                ue->_son->replace(v,f);
+            }
+            else {
+                auto be = (bexpr*)_expr.get();
+                be->_lson->replace(v,f);
+                be->_rson->replace(v,f);
+            }
+        }
+        _vars->erase(v->_name);
+        DebugOn(to_str());
+//        print_expanded();
+    }
+
+    param_* func_::get_var(unsigned vid) const{
+        for (auto &v_p:*_vars) {
+            if (*v_p.second.first->_vec_id == vid) {
+                return v_p.second.first.get();
+            }
+        }
+        return nullptr;
+    }
     
     bool func_::has_var(const param_& v) const{
-        return _vars->count(v.get_name())>0;
+        return get_var(*v._vec_id)!=nullptr;
     }
 
     
@@ -6290,6 +6365,11 @@ namespace gravity{
                     res -= *coef*(*lt.second._p->second);
                 }
                 delete coef;
+                if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
+                    res._is_vector = true;
+                    res._nb_instances = lt.second._coef->get_nb_instances();
+                    res._dim = lt.second._coef->_dim;
+                }
             }
             if (*lt.second._p->second == v) {
                 auto coef = copy(*lt.second._coef);
@@ -6303,12 +6383,18 @@ namespace gravity{
                     res -= *coef*(*lt.second._p->first);
                 }
                 delete coef;
+                if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
+                    res._is_vector = true;
+                    res._nb_instances = lt.second._coef->get_nb_instances();
+                    res._dim = lt.second._coef->_dim;
+                }
             }
-            if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
-                res._is_vector = true;
-                res._nb_instances = lt.second._coef->get_nb_instances();
-                res._dim = lt.second._coef->_dim;
-            }
+            //CHECK THIS
+//            if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
+//                res._is_vector = true;
+//                res._nb_instances = lt.second._coef->get_nb_instances();
+//                res._dim = lt.second._coef->_dim;
+//            }
         }
         for (auto &lt: *_pterms) {
             for (auto &p: *lt.second._l) {
@@ -6364,13 +6450,7 @@ namespace gravity{
 //                throw invalid_argument("error");
 //            }
         if (_val->size()<=i){
-            if (i ==0) {
-                DebugOn("empty variable! default bound 0!");
-                return 0;
-            }
-            else{
-                throw invalid_argument("Func get_val out of range");
-            }
+            throw invalid_argument("Func get_val out of range");
         }
             return _val->at(i);
 //        }
@@ -6491,7 +6571,6 @@ namespace gravity{
 //        if (!_val) {
 //            throw invalid_argument("_val not defined for function.\n");
 //        }
-
         if (is_constant() && _evaluated) {
             if (is_number()) {
                 return _val->at(0);
@@ -6662,11 +6741,11 @@ namespace gravity{
             if (is_number()) {
                 str += poly_to_str(_cst);
             }
-            else if (_ids && _ids->at(0).size()>1) {
-                str += to_string(_val->at(_ids->at(0).at(index)));
-            }
+//            else if (_ids && _ids->at(0).size()>1) {
+//                str += to_string(_val->at(_ids->at(0).at(index)));
+//            }
             else {
-                str += to_string(_val->at(index));
+                str += to_string_with_precision(_val->at(index),10);
             }
             return str;
         }
@@ -6691,6 +6770,9 @@ namespace gravity{
         ind = 0;
         for (auto &pair:*_lterms) {
             str += pair.second.to_str(ind++, index);
+            if (str.length()==0) {
+                ind--;
+            }
         }
         if (_cst->is_number()) {
             auto val = poly_to_str(_cst);
@@ -6734,11 +6816,34 @@ namespace gravity{
     }
     
     void func_::print_expanded(){
-        
+        string str;
+        if (!_embedded && !is_constant() && _all_convexity==convex_) {
+            str += "Convex function: ";
+        }
+        if (!_embedded && !is_constant() && _all_convexity==concave_) {
+            str += "Concave function: ";
+        }
+        if (!_embedded && !is_constant()) {
+            str += "f(";
+            for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+                //                    if (!pair_it->second.first->_is_vector) {
+                str += pair_it->second.first->get_name();
+                //                    str += pair_it->second.first->get_name()+"[";
+                //                    str += to_string(pair_it->second.first->get_id_inst())+"]";
+                if (next(pair_it) != _vars->end()) {
+                    str += ",";
+                }
+                //                }
+                pair_it++;
+            }
+            str += ") = ";
+        }
+        cout << str;
         auto nb_inst = get_nb_instances();
         for (unsigned inst = 0; inst<nb_inst; inst++) {
             eval(inst);
             print(inst);
+            cout << endl;
         }
         cout << endl;
     }
@@ -7162,9 +7267,6 @@ namespace gravity{
         size_t n = 0;
         for (auto &p: *_vars) {
             if (p.second.first->_is_vector) {
-                if (p.second.first->_dim.size()>1) {
-                    throw invalid_argument("get_nb_vars() should be called with an index, i.e. get_nb_vars(int)");
-                }
                 n += p.second.first->get_dim();
             }
             else {
@@ -7372,6 +7474,13 @@ namespace gravity{
     
     bool func_::is_unit() const{/*<< A function is one if it is constant and equals one*/
         if (is_number() && !_is_transposed && !_is_vector && poly_eval(this)==1){
+            return true;
+        }
+        return false;
+    }
+    
+    bool func_::is_unit_instance() const{/*<< If every instance is one*/
+        if (is_number() && poly_eval(this)==1){
             return true;
         }
         return false;
@@ -7729,6 +7838,7 @@ namespace gravity{
     }
     
     template func_ product<double,double>(const param<double>& p, const param<double>& v);
+    template func_ product<double,bool>(const param<double>& p, const param<bool>& v);
     template func_ product<double,int>(const param<double>& p, const param<int>& v);
     template func_ product<int,double>(const param<int>& p, const param<double>& v);
     template func_ product<short,double>(const param<short>& p, const param<double>& v);
@@ -7749,6 +7859,64 @@ namespace gravity{
     template func_ product<short>(const param<short>& v1, const func_& f);
     template func_ product<bool>(const param<bool>& v1, const func_& f);
     
+    bool func_::is_rotated_soc() const{
+        if (_qterms->empty() || !_pterms->empty() || _expr) {
+            return false;
+        }
+        unsigned nb_bilinear = 0;
+        Sign bilinear_sign = unknown_, quadratic_sign = unknown_, var1_sign = unknown_, var2_sign = unknown_;
+        for (auto &qt_pair: *_qterms) {
+            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                bilinear_sign = qt_pair.second.get_all_sign();
+                var1_sign = qt_pair.second._p->first->get_all_sign();
+                var2_sign = qt_pair.second._p->second->get_all_sign();
+                if (bilinear_sign==unknown_ || var1_sign==neg_ || var2_sign==neg_) {
+                    return false;
+                }
+                nb_bilinear++;
+                if (nb_bilinear > 1) {
+                    return false;
+                }
+            }
+            else{
+                auto sign = qt_pair.second.get_all_sign();
+                if (quadratic_sign!=unknown_ && quadratic_sign!=sign) {
+                    return false;
+                }
+                if (quadratic_sign!=unknown_ && bilinear_sign!=unknown_ && quadratic_sign==bilinear_sign) {
+                    return false;
+                }
+                else {
+                    quadratic_sign = sign;
+                }
+            }
+        }
+        return true;
+    }
+    
+    bool func_::is_soc() const{
+        if (_qterms->empty() || !_pterms->empty() || _expr) {
+            return false;
+        }
+        unsigned nb_neg = 0, nb_pos = 0;
+        for (auto &qt_pair: *_qterms) {
+            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                    return false;
+            }
+            auto sign = qt_pair.second.get_all_sign();
+            if (sign==unknown_) {
+                return false;
+            }
+            if (sign==pos_) {
+                nb_pos++;
+            }
+            else if(sign==neg_){
+                nb_neg++;
+            }
+        }
+        return (nb_neg==1 || nb_pos==1);
+    }
+    
     void func_::update_convexity(){
         if (!_pterms->empty()) {
             _all_convexity = undet_;
@@ -7759,6 +7927,10 @@ namespace gravity{
             return;
         }
         if (!_qterms->empty() && !_expr) {
+            if(is_soc() || is_rotated_soc()){
+                _all_convexity = convex_;
+                return;
+            }
             _all_convexity = get_convexity(_qterms->begin()->second);
             for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
                 Convexity conv = get_convexity(pair_it->second);
