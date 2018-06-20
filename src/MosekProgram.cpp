@@ -43,7 +43,7 @@ bool MosekProgram::solve(bool relax) {
     _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
 //    _mosek_model->setSolverParam("mioTolAbsGap", 0.0);
 //    _mosek_model->setSolverParam("numThreads",1);
-    if(!_output) _mosek_model->setSolverParam("log", 0);
+    //if(!_output) _mosek_model->setSolverParam("log", 0);
     if(relax) {
         for (auto &vv: _mosek_vars)
             vv->makeContinuous();
