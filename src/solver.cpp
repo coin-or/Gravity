@@ -263,10 +263,10 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
 //            iapp->Options()->SetNumericValue("bound_frac", 1e-12);
 //            iapp->Options()->SetNumericValue("slack_bound_frac", 1e-12);
 //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
-            iapp->Options()->SetNumericValue("constr_viol_tol", 1e-8);
+//            iapp->Options()->SetNumericValue("constr_viol_tol", 1e-8);
 //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
 //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
+//            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
 //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
 //            iapp->Options()->SetStringValue("derivative_test", "second-order");
             /** Hot start if already solved */

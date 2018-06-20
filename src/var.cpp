@@ -447,11 +447,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, 
                 key = bag[i]->_name + "," + bag[i+1]->_name;
             }
             else {
+                throw invalid_argument("indexing issue in bags.");
                 key = bag[i+1]->_name + "," + bag[i]->_name;
             }
             auto index = param_::_indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
+                throw invalid_argument("indexing issue in bags.");
                 this->_val->resize(max(this->_val->size(),index+1));
                 this->_dim[0] = max(this->_dim[0],this->_val->size());
                 param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
@@ -467,11 +469,13 @@ template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net, 
             key = bag[0]->_name + "," + bag[size-1]->_name;
         }
         else{
+            throw invalid_argument("indexing issue in bags.");
             key = bag[size-1]->_name + "," + bag[0]->_name;
         }
         auto index = param_::_indices->size();
         auto pp = param_::_indices->insert(make_pair<>(key,index));
         if(pp.second) { //new index inserted
+            throw invalid_argument("indexing issue in bags.");
             this->_val->resize(max(this->_val->size(),index+1));
             this->_dim[0] = max(this->_dim[0],this->_val->size());
             param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
@@ -603,6 +607,7 @@ template<typename type>vector<var<type>> var<type>::in_bags(const std::vector<st
             auto index = param_::_indices->size();
             auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
+                throw invalid_argument("indexing issue in bags.");
                 this->_val->resize(max(this->_val->size(),index+1));
                 this->_dim[0] = max(this->_dim[0],this->_val->size());
                 param_::_rev_indices->resize(max(param_::_rev_indices->size(),index+1));
