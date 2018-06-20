@@ -257,7 +257,7 @@ void PowerNet::time_expand(unsigned T) {
 }
 
 int PowerNet::readGAMS(const string& fname) {
-//    double pi = 4.*atan(1.);
+    double pi = 4.*atan(1.);
     string name;
     double kvb = 0;
     //    int id = 0;
@@ -749,8 +749,8 @@ int PowerNet::readGAMS(const string& fname) {
         S_max.set_val(name,arc->limit);
         arc->connect();
         add_arc(arc);
-        arc->tbound.min = -30*M_PI/180;
-        arc->tbound.max = 30*M_PI/180;
+        arc->tbound.min = -30*pi/180;
+        arc->tbound.max = 30*pi/180;
         m_theta_lb += arc->tbound.min;
         m_theta_ub += arc->tbound.max;
         arc->print();
@@ -806,7 +806,7 @@ int PowerNet::readGAMS(const string& fname) {
 
 
 int PowerNet::readgrid(const char* fname) {
-//    double pi = 4.*atan(1.);
+    double pi = 4.*atan(1.);
     string name;
     double kvb = 0;
 //    int id = 0;
@@ -988,13 +988,17 @@ int PowerNet::readgrid(const char* fname) {
     string src,dest,key;
     file >> word;
     index = 0;
+    bool reversed = false;
     while(word.compare("];")) {
         src = word;
         file >> dest;
         key = dest+","+src;//Taking care of reversed direction arcs
-        if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
-            Debug("Adding arc linking " +src+" and "+dest);
-            Debug(" with reversed direction, reversing source and destination.\n");
+        reversed = false;
+        if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
+            //            if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
+            DebugOn("Adding arc linking " +src+" and "+dest);
+            DebugOn(" with reversed direction, reversing source and destination.\n");
+            reversed = true;
             key = src;
             src = dest;
             dest = key;
@@ -1004,13 +1008,13 @@ int PowerNet::readgrid(const char* fname) {
         arc->_id = index++;
         arc->_src = get_node(src);
         arc->_dest= get_node(dest);
-
+        
         file >> word;
         arc->r = atof(word.c_str());
         file >> word;
         arc->x = atof(word.c_str());
         res = pow(arc->r,2) + pow(arc->x,2);
-
+        
         if (res==0) {
             cerr << " line with r = x = 0" << endl;
             exit(-1);
@@ -1022,7 +1026,7 @@ int PowerNet::readgrid(const char* fname) {
         arc->ch = atof(word.c_str());
         file >> word;
         arc->limit = atof(word.c_str())/bMVA;
-
+        
         // skip rate A rate B rate C.
         file >> ws >> word >> ws >> word >> ws >> word;
         if(atof(word.c_str()) == 0)
@@ -1030,37 +1034,47 @@ int PowerNet::readgrid(const char* fname) {
         else
             arc->tr = atof(word.c_str());
         file >> ws >> word;
-        arc->as = atof(word.c_str())*M_PI/180.;
+        arc->as = atof(word.c_str())*pi/180.;
         file >> ws >> word;
-
-
-        arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
-        arc->dd = arc->tr*sin(arc->as);
+        
+        
+        
         arc->status = atoi(word.c_str());
         file >> ws >> word;
-
-        arc->tbound.min = atof(word.c_str())*M_PI/180.;
-//        arc->tbound.min = -30*pi/180;
+        
+        arc->tbound.min = atof(word.c_str())*pi/180.;
+        //        arc->tbound.min = -30*pi/180;
         m_theta_lb += arc->tbound.min;
         file >>  ws >>word;
-
-        arc->tbound.max = atof(word.c_str())*M_PI/180.;
+        
+        arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
-            Debug("Angle bounds are equal to zero. Setting them to -+60");
-             arc->tbound.min = -60*M_PI/180;
-            arc->tbound.max = 60*M_PI/180;
+            DebugOn("Angle bounds are equal to zero. Setting them to -+60");
+            arc->tbound.min = -60*pi/180.;
+            arc->tbound.max = 60*pi/180.;
             
         }
-//        arc->tbound.max = 30*pi/180;
+        if (reversed) {
+            arc->g /= pow(arc->tr,2);
+            arc->b /= pow(arc->tr,2);
+            arc->tr = 1./arc->tr;
+            arc->as *= -1.;
+            auto temp = arc->tbound.max;
+            arc->tbound.max = -1.*arc->tbound.min;
+            arc->tbound.min = -1.*temp;
+        }
+        arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
+        arc->dd = arc->tr*sin(arc->as);
+        //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
-
+        
         Bus* bus_s = (Bus*)(arc->_src);
         Bus* bus_d = (Bus*)(arc->_dest);
-
+        
         arc->smax = max(
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                         pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
-                    );
+                        );
         name = arc->_name;
         g.set_val(name,arc->g);
         b.set_val(name,arc->b);
@@ -1068,51 +1082,51 @@ int PowerNet::readgrid(const char* fname) {
         as.set_val(name,arc->as);
         g_ff.set_val(name,arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         g_ft.set_val(name,(-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-
+        
         g_tt.set_val(name,arc->g);
         g_tf.set_val(name,(-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-
-
+        
+        
         b_ff.set_val(name,(arc->ch*0.5 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         b_ft.set_val(name,(-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-
+        
         b_tt.set_val(name,(arc->ch*0.5 + arc->b));
         b_tf.set_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-
+        
         Y.set_val(name,sqrt(arc->g*arc->g + arc->b*arc->b));
         if (arc->g!=0) {
             Y_t.set_val(name,atan(arc->b/arc->g));
             if(arc->b < 0) {
-                Y_t.set_val(name,atan(arc->b/arc->g) - M_PI);
+                Y_t.set_val(name,atan(arc->b/arc->g) - pi);
             } else {
-                Y_t.set_val(name,atan(arc->b/arc->g) + M_PI);
+                Y_t.set_val(name,atan(arc->b/arc->g) + pi);
             }
         }
         else {
-        if(arc->b < 0){
-            Y_t.set_val(name,-M_PI*0.5);
-        } else {
-            Y_t.set_val(name,M_PI*0.5);
+            if(arc->b < 0){
+                Y_t.set_val(name,-pi*0.5);
+            } else {
+                Y_t.set_val(name,pi*0.5);
+            }
         }
-    }
-    
-    Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch*0.5),2)));
-    if(arc->g != 0) {
-        Y_charge_t.set_val(name,atan((arc->b+arc->ch*0.5)/arc->g));
-    } else {
-        if(arc->b < 0) {
-            Y_charge_t.set_val(name,-M_PI*0.5);
+        
+        Y_charge.set_val(name,sqrt(pow(arc->g,2) + pow((arc->b+arc->ch*0.5),2)));
+        if(arc->g != 0) {
+            Y_charge_t.set_val(name,atan((arc->b+arc->ch*0.5)/arc->g));
         } else {
-            Y_charge_t.set_val(name,M_PI*0.5);
+            if(arc->b < 0) {
+                Y_charge_t.set_val(name,-pi*0.5);
+            } else {
+                Y_charge_t.set_val(name,pi*0.5);
+            }
         }
-    }
         ch.set_val(name,arc->ch);
         S_max.set_val(name,arc->limit);
-//        Debug("charge = " << arc->ch << endl);
-//        Debug("as = " << arc->as << endl);
-//        Debug("tr = " << arc->tr << endl);
-
-
+        //        DebugOn("charge = " << arc->ch << endl);
+        //        DebugOn("as = " << arc->as << endl);
+        //        DebugOn("tr = " << arc->tr << endl);
+        
+        
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
             DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
@@ -1165,11 +1179,11 @@ int PowerNet::readgrid(const char* fname) {
     DebugOff(ch.to_str(true) << endl);
     DebugOff(as.to_str(true) << endl);
     DebugOff(tr.to_str(true) << endl);
-
+    
     file.close();
-//    if (nodes.size()>2000) {
+    if (nodes.size()>1000) {
         add_3d_nlin = false;
-//    }
+    }
     return 0;
 }
 
@@ -1802,7 +1816,7 @@ void PowerNet::save_base_case_sol(const string& fname){
 }
 
 void PowerNet::save_all_sol(const string& fname){
-//    double pi = 4.*atan(1.);
+    double pi = 4.*atan(1.);
     ofstream myfile;
     myfile.open (fname);
     myfile << "--contingency generator\n";
@@ -1837,7 +1851,7 @@ void PowerNet::save_all_sol(const string& fname){
     auto v_vals = v_base.get_vals();
     auto theta_vals = theta_base.get_vals();
     for (auto node:nodes) {
-        myfile << "0," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./M_PI,12) << endl;
+        myfile << "0," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./pi,12) << endl;
         idx++;
     }
     for (auto cont = 0; cont<_nb_conting; cont++) {
@@ -1845,7 +1859,7 @@ void PowerNet::save_all_sol(const string& fname){
         auto theta_vals = theta_cont[cont].get_vals();
         idx = 0;
         for (auto node:nodes) {
-            myfile << cont+1 << "," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./M_PI,12) << endl;
+            myfile << cont+1 << "," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./pi,12) << endl;
             idx++;
         }
     }
@@ -2777,19 +2791,19 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, d
     
     
     if (sdp_cuts) {
-        auto R_Wij_ = R_Wij.pairs_in_directed(*this, _bags, 3);
-        auto Im_Wij_ = Im_Wij.pairs_in_directed(*this, _bags, 3);
-        auto Wii_ = Wii.in_bags(_bags, 3);
-        auto I_sgn = signs();
-        Constraint SDP3("SDP_3D");
-        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_[1] * Im_Wij_[2]);
-        SDP3 += 2 * I_sgn[0] * Im_Wij_[0] * (R_Wij_[1] * I_sgn[2] * Im_Wij_[2] - I_sgn[1] * Im_Wij_[1] * R_Wij_[2]);
-        SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-        SOCP->add(SDP3 >= 0);
+//        auto R_Wij_ = R_Wij.pairs_in_directed(*this, _bags, 3);
+//        auto Im_Wij_ = Im_Wij.pairs_in_directed(*this, _bags, 3);
+//        auto Wii_ = Wii.in(_bags, 3);
+//        auto I_sgn = signs();
+//        Constraint SDP3("SDP_3D");
+//        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_[1] * Im_Wij_[2]);
+//        SDP3 += 2 * I_sgn[0] * Im_Wij_[0] * (R_Wij_[1] * I_sgn[2] * Im_Wij_[2] - I_sgn[1] * Im_Wij_[1] * R_Wij_[2]);
+//        SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
+//        SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
+//        SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
+//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
+//        SOCP->add(SDP3 >= 0);
     }
     
     /* Second-order cone constraints */
@@ -4479,6 +4493,59 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     auto mipgap = 1e-6;
     OPF.run(output, relax = false, tol = 1e-6, mipgap, "ma27");
     return ACOPF->_obj_val;
+}
+
+
+void PowerNet::fill_wbnds(){
+    double cos_max_, cos_min_, w_max_, w_min_, wr_max_, wr_min_, sin_max_, sin_min_, wi_max_, wi_min_;
+    for(int i = 0; i < nodes.size()-1; i++) {
+        for(int j = i+1; j < nodes.size(); j++) {
+            Bus *bus_s = (Bus *) (nodes[i]);
+            Bus *bus_d = (Bus *) (nodes[j]);
+            
+            if(get_arc(bus_s, bus_d)) continue;
+            
+            string name = bus_s->_name + "," + bus_d->_name;
+            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+            
+            if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+                cos_max_ = 1;
+                cos_min_ = -1;
+            } else if (m_theta_lb < 0 && m_theta_ub > 0) {
+                cos_max_ = 1;
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            } else {
+                cos_max_ = max(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+            }
+            w_max_ = bus_s->vbound.max * bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min * bus_d->vbound.min;
+            
+            wr_max_ = cos_max_ * w_max_;
+            if (cos_min_ < 0) wr_min_ = cos_min_ * w_max_;
+            else wr_min_ = cos_min_ * w_min_;
+            
+            if (m_theta_lb < -1.57 && m_theta_ub > 1.57) {
+                sin_max_ = 1;
+                sin_min_ = -1;
+            } else {
+                sin_max_ = sin(m_theta_ub);
+                sin_min_ = sin(m_theta_lb);
+            }
+            
+            if (sin_max_ > 0) wi_max_ = sin_max_ * w_max_;
+            else wi_max_ = sin_max_ * w_min_;
+            if (sin_min_ > 0) wi_min_ = sin_min_ * w_min_;
+            else wi_min_ = sin_min_ * w_max_;
+            
+            //            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
+            
+            wr_max.set_val(name, wr_max_);
+            wr_min.set_val(name, wr_min_);
+            wi_max.set_val(name, wi_max_);
+            wi_min.set_val(name, wi_min_);
+        }
+    }
 }
 
 

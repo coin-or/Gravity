@@ -143,5 +143,7 @@ public:
     Arc *get_directed_arc(std::string src, std::string dest);
 
     std::vector<gravity::index_pair *> get_bus_pairs_chord();
+    
+    vector<gravity::index_pair *> get_bus_pairs_all();
 };
 #endif
