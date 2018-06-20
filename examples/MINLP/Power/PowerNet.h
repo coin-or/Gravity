@@ -275,6 +275,7 @@ public:
     shared_ptr<Model> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
     shared_ptr<Model> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
     
+    void fill_wbnds();
 };
 
 #endif

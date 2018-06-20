@@ -130,6 +130,9 @@ include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
 add_subdirectory(ext_lib/cpp_option_parser)
 set(LIBS ${LIBS} option_parser)
 
+# Inlude Eigen Header files
+include_directories(${PROJECT_SOURCE_DIR}/ext_lib)
+
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MINLP/Power)
 

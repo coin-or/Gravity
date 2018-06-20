@@ -217,9 +217,9 @@ bool Net::add_arc(Arc* a) {
     dest = a->_dest->_name;
     if (src == dest){
         throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-    
+        
     }
-
+    
     
     key.clear();
     key.append(src);
@@ -235,14 +235,13 @@ bool Net::add_arc(Arc* a) {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
         s->insert(a);
-        DebugOn("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        DebugOff("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }
     arcs.push_back(a);
     return parallel;
 }
-
 // undirected
 void Net::add_undirected_arc(Arc* a) {
     bool parallel = false;
@@ -866,3 +865,17 @@ Net* Net::get_clique_tree(){
 //        }
 //    printf("With cholesky decomposition, the chordal graph added  %lu edges \n", (num_nonzeros - arcs.size()));
 //}
+
+
+std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
+    vector<gravity::index_pair*> res;
+    string ni, nj;
+    for(int i = 0; i < nodes.size()-1; i++) {
+        for(int j = i+1; j < nodes.size(); j++) {
+            ni = nodes[i]->_name;
+            nj = nodes[j]->_name;
+            res.push_back(new index_pair(index_(ni), index_(nj), 1));
+        }
+    }
+    return res;
+}

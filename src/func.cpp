@@ -5124,16 +5124,36 @@ namespace gravity{
 //        }
         Real lval = 0, rval = 0;
         if (_lson->is_number()) {
-            lval = _lson->_val->at(0);
+            if (_lson->_val->size()==0) {
+                lval = _lson->eval(0);
+            }
+            else {
+                lval = _lson->_val->at(0);
+            }
         }
         else {
-            lval = _lson->get_val(i);
+            if (_lson->_val->size()<=i) {
+                lval = _lson->eval(i);
+            }
+            else {
+                lval = _lson->get_val(i);
+            }
         }
         if (_rson->is_number()) {
-            rval = _rson->_val->at(0);
+            if (_rson->_val->size()==0) {
+                rval = _rson->eval(0);
+            }
+            else {
+                rval = _rson->_val->at(0);
+            }
         }
         else {
-            rval = _rson->get_val(i);
+            if (_rson->_val->size()<=i) {
+                rval = _rson->eval(i);
+            }
+            else {
+                rval = _rson->get_val(i);
+            }
         }
         switch (_otype) {
             case plus_:
