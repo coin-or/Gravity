@@ -673,7 +673,7 @@ bool Model::has_violated_constraints(double tol){
 //                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
-                        violated = true;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;
@@ -700,7 +700,7 @@ bool Model::has_violated_constraints(double tol){
 //                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
-                        violated = true;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;
@@ -731,7 +731,7 @@ bool Model::has_violated_constraints(double tol){
 //                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
-                        violated = true;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;

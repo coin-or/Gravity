@@ -452,7 +452,7 @@ int main (int argc, char * argv[]) {
 
     num_bags = atoi(opt["b"].c_str());
 
-    cout << "\nnum bags = " << num_bags;
+    cout << "\nnum bags = " << num_bags << endl;
 
     double total_time_start = get_wall_time();
     PowerNet grid;
@@ -517,15 +517,15 @@ int main (int argc, char * argv[]) {
     SDP.min(obj.in(grid.gens));
 
     /** Constraints */
-
+    
     if(grid.add_3d_nlin) {
         auto bags_copy = grid._bags;
-//        auto bag_size = grid._bags.size();
-//        DebugOn("\nNum of 3d bags = " << bag_size << endl);
-//        if (bag_size>1000) {
-//            bags_copy.resize(1000);
-//            DebugOn("\nOnly adding the first 1000 3d cuts." << endl);
-//        }
+        //        auto bag_size = grid._bags.size();
+        //        DebugOn("\nNum of 3d bags = " << bag_size << endl);
+        //        if (bag_size>1000) {
+        //            bags_copy.resize(1000);
+        //            DebugOn("\nOnly adding the first 1000 3d cuts." << endl);
+        //        }
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_directed(grid, bags_copy, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_directed(grid, bags_copy, 3);
@@ -533,22 +533,20 @@ int main (int argc, char * argv[]) {
         
         Constraint SDP3("SDP_3D");
         SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
-        SDP3 += 2 * Im_Wij_[0] * (R_Wij_[1] * Im_Wij_[2] - Im_Wij_[1] * R_Wij_[2]);
+        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
         SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
         SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
         SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         SDP.add(SDP3 >= 0);
         
-        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-//        SDP3.print_expanded();
+        DebugOn("\nsdp 3d nb inst = " << SDP3.get_nb_instances() << endl);
+        //        SDP3.print_expanded();
     }
-
-
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SDP.add(SOC.in(bus_pairs) <= 0);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
     
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -583,13 +581,13 @@ int main (int argc, char * argv[]) {
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
 //    SDP.add_lazy(PAD_UB.in(bus_pairs));
-    SDP.add_constraint(PAD_UB.in(bus_pairs));
+    SDP.add(PAD_UB.in(bus_pairs));
 
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
 //    SDP.add_lazy(PAD_LB.in(bus_pairs));
-    SDP.add_constraint(PAD_LB.in(bus_pairs));
+    SDP.add(PAD_LB.in(bus_pairs));
 
     /* Thermal Limit Constraints */
     Constraint Thermal_Limit_from("Thermal_Limit_from");
@@ -611,7 +609,7 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
 //    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
-    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    SDP.add(LNC1.in(bus_pairs) >= 0);
 
     Constraint LNC2("LNC2");
     LNC2 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
@@ -619,7 +617,7 @@ int main (int argc, char * argv[]) {
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
 //    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
-    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+    SDP.add(LNC2.in(bus_pairs) >= 0);
 
     vector<Bag> bags;
     int n3 = 0;
@@ -630,8 +628,8 @@ int main (int argc, char * argv[]) {
         bagid++;
     }
 
-    num_bags = bags.size()*num_bags / 100;
-    double num_bags_tol = num_bags/2;
+    num_bags = bags.size()*num_bags / 100.;
+    double num_bags_tol = num_bags/2.;
 
     if(bags.size() < 20) {
         num_bags = bags.size();
@@ -644,9 +642,9 @@ int main (int argc, char * argv[]) {
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
-    SDPOPF.run(output = 5, relax = false);
-    SDP.print_expanded();
-//    SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+//    SDPOPF.run(output = 5, relax = false);
+//    SDP.print_expanded();
+    SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-4, "ma27", mehrotra = "no");
 
     for(auto& arc: grid.arcs){
         ((Line*)arc)->wr = R_Wij(arc->_src->_name+","+arc->_dest->_name).eval();
@@ -689,7 +687,7 @@ int main (int argc, char * argv[]) {
             }
         }
 	if(violated_bags.size() > num_bags) std::partial_sort(violated_bags.begin(), violated_bags.begin()+num_bags, violated_bags.end(), bag_compare);
-        else if(violated_bags.size() < num_bags_tol) break;
+//        else if(violated_bags.size() < num_bags_tol) break;
 
 	//for(auto& bv: violated_bags) {
         //    cout << "\nViolation: " << bv._violation;
@@ -795,7 +793,7 @@ int main (int argc, char * argv[]) {
             if(a->_imaginary && !a->_active) a->_free = true;
         }
 
-        SDPOPF.run(output = 0, relax = false, tol = 1e-6, 1e-6, "ma27", mehrotra = "no");
+        SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "ma27", mehrotra = "no");
         gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
         DebugOff("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
         DebugOff("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);
