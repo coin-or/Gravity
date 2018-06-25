@@ -548,7 +548,7 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SDP.add(SOC.in(bus_pairs) == 0);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
     
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
