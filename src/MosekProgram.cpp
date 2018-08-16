@@ -31,7 +31,7 @@ void MosekProgram::update_model() {};
 
 // remain to do
 bool MosekProgram::solve(bool relax) {
-    _mosek_model->setSolverParam("log", 10);
+//    _mosek_model->setSolverParam("log", 10);
     // Set max solution time
 //    _mosek_model->setSolverParam("mioMaxTime", 360.0);
     // Set max relative gap (to its default value)
@@ -40,7 +40,7 @@ bool MosekProgram::solve(bool relax) {
 //    _mosek_model->setSolverParam("intpntQoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntCoTolMuRed", 1);
     // Set max absolute gap (to its default value)
-    _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
+//    _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
 //    _mosek_model->setSolverParam("mioTolAbsGap", 0.0);
 //    _mosek_model->setSolverParam("numThreads",1);
     //if(!_output) _mosek_model->setSolverParam("log", 0);
@@ -866,7 +866,7 @@ void MosekProgram::set_mosek_objective() {
     else {
         _mosek_model->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
     }
-    cout << "\nObj = " << expr->toString() << endl;
+//    cout << "\nObj = " << expr->toString() << endl;
 }
 
 void MosekProgram::prepare_model() {

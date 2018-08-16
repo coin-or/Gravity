@@ -64,7 +64,7 @@ public:
     void update_net();
     
     /** Power Models */
-    double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
+    double solve_acopf(PowerModelType model=ACRECT, int output=0, double tol=1e-6);
 
     void fill_wbnds();
 };

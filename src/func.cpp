@@ -5102,15 +5102,15 @@ namespace gravity{
             lval = _lson->_val->at(0);
         }
         else {
-            lval = _lson->get_val(i);
 //            lval = _lson->get_val(i);
+            lval = _lson->eval(i);
         }
         if (_rson->is_number()) {
             rval = _rson->_val->at(0);
         }
         else {
-            rval = _rson->get_val(i);
 //            rval = _rson->get_val(i);
+            rval = _rson->eval(i);
         }
         switch (_otype) {
             case plus_:
