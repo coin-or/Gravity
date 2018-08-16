@@ -418,8 +418,19 @@ template<typename type>vector<var<type>> var<type>::pairs_in_directed(Net& net1,
         }
         if(ids.count(ids_bag)==0) {
             ids.insert(ids_bag);
+            Debug("New Unique Bag: { ");
+            for (int i = 0; i< size; i++) {
+                Debug(bag[i]->_name + " ");
+            }
+            Debug("};\n");
+            Debug("Number of Unique Bags added so far = " + to_string(ids.size()) +".\n");
         }
         else {
+            Debug("Bag already added: { ");
+            for (int i = 0; i< size; i++) {
+                Debug(bag[i]->_name + " ");
+            }
+            Debug("};\n");
             continue;
         }
         for (int i = 0; i< size-1; i++) {

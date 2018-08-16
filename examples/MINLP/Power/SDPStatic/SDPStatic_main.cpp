@@ -113,7 +113,7 @@ int main (int argc, char * argv[]) {
 
     /**  Objective */
     auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
-    obj.print_expanded();
+//    obj.print_expanded();
     SDP.min(obj.in(grid.gens));
 
     /** Constraints */
@@ -188,7 +188,7 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
 //    LNC1.print_expanded();
 
     Constraint LNC2("LNC2");
@@ -196,7 +196,7 @@ int main (int argc, char * argv[]) {
     LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 //    LNC2.print_expanded();
 
     vector<var<double>> W; // store the matrix variables
@@ -217,7 +217,7 @@ int main (int argc, char * argv[]) {
 
     //todo: for SOCP: add lines to bags?
     double solver_time_start = get_wall_time();
-    cout << "number of bags = " << grid._bags.size() << endl;
+//    cout << "number of bags = " << grid._bags.size() << endl;
     for(auto& b: grid._bags){
         int n = b.size();
 //        cout << "\nn = " << n;
@@ -285,6 +285,7 @@ int main (int argc, char * argv[]) {
     }
 
     solver s(SDP,Mosek);
+    cout << "Done building Mosek Model" << endl;
     s.run(0,0);
 
     double solver_time_end = get_wall_time();

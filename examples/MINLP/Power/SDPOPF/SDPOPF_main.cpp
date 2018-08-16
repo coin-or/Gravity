@@ -410,10 +410,11 @@ const bool bag_compare(const Bag b1, const Bag b2) {
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool relax = false;
-    size_t num_bags;
+    bool relax = false, sdp_cuts = true;
+    size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
+    string sdp_cuts_s = "yes";
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
@@ -427,6 +428,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
+    opt.add_option("c", "sdpcuts", "Generate 3d SDP cuts, default = yes", sdp_cuts_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
 
@@ -449,7 +451,11 @@ int main (int argc, char * argv[]) {
     }else if(solver_str.compare("Mosek")==0) {
         solv_type = Mosek;
     }
-
+    solver_str = opt["c"];
+    if (solver_str.compare("no")==0) {
+        sdp_cuts = false;
+    }
+    
     num_bags = atoi(opt["b"].c_str());
 
     cout << "\nnum bags = " << num_bags;
@@ -518,10 +524,11 @@ int main (int argc, char * argv[]) {
 
     /** Constraints */
 
-    if(grid.add_3d_nlin) {
+//    if(grid.add_3d_nlin && sdp_cuts) {
+    if (true) {
         auto bags_copy = grid._bags;
-//        auto bag_size = grid._bags.size();
-//        DebugOn("\nNum of 3d bags = " << bag_size << endl);
+        auto bag_size = grid._bags.size();
+        DebugOn("\nNum of bags = " << bag_size << endl);
 //        if (bag_size>1000) {
 //            bags_copy.resize(1000);
 //            DebugOn("\nOnly adding the first 1000 3d cuts." << endl);
@@ -548,7 +555,13 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint SOC("SOC");
     SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    if (sdp_cuts) {
+        SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    }
+    else{
+        SDP.add(SOC.in(bus_pairs) <= 0);
+    }
+    
     
     /* Flow conservation */
     Constraint KCL_P("KCL_P");
@@ -610,16 +623,16 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
+//    SDP.add(LNC1.in(bus_pairs) >= 0);
 //    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
-    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
 
     Constraint LNC2("LNC2");
     LNC2 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
     LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
+//    SDP.add(LNC2.in(bus_pairs) >= 0);
 //    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
-    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
 
     vector<Bag> bags;
     int n3 = 0;
@@ -645,7 +658,7 @@ int main (int argc, char * argv[]) {
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 5, relax = false);
-    SDP.print_expanded();
+//    SDP.print_expanded();
 //    SDPOPF.run(output = 0, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
 
     for(auto& arc: grid.arcs){
@@ -684,7 +697,7 @@ int main (int argc, char * argv[]) {
         vector<Bag> violated_bags;
         for(auto& b: bags){
             b.update_PSD();
-            if (!b._is_psd && b._nodes.size() > 3) {
+            if (!b._is_psd) {
                 violated_bags.push_back(b);
             }
         }
@@ -695,8 +708,8 @@ int main (int argc, char * argv[]) {
         //    cout << "\nViolation: " << bv._violation;
         //}
 
-        //auto nb_bags = violated_bags.size();
-        size_t nb_bags = min(violated_bags.size(),size_t(num_bags));
+        auto nb_bags = violated_bags.size();
+//        size_t nb_bags = min(violated_bags.size(),size_t(num_bags));
         w_hat_vec.resize(nb_bags);
         vector<thread> threads;
         /* Split subproblems into nr_threads parts */
@@ -785,10 +798,10 @@ int main (int argc, char * argv[]) {
             cuts_added++; numcuts++;
         }
 
-        if(!bus_pairs_sdp._keys.empty()) {
-            SDP.add_indices("SOC",bus_pairs_sdp);
-            bus_pairs_sdp.clear();
-        }
+//        if(!bus_pairs_sdp._keys.empty()) {
+//            SDP.add_indices("SOC",bus_pairs_sdp);
+//            bus_pairs_sdp.clear();
+//        }
 
 
         for(auto& a: grid.arcs){

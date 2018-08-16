@@ -578,11 +578,11 @@ void Net::get_tree_decomp_bags(bool print_bags) {
             //                cout << bag_copy.at(i)->_name << " ";
             //            }
             //            DebugOn("}" << endl);
-            DebugOn("bag = {");
-            for (int i=0; i<bag.size();     i++) {
-                cout << bag.at(i)->_name << " ";
-            }
-            DebugOn("}" << endl);
+            DebugOff("bag = {");
+//            for (int i=0; i<bag.size();     i++) {
+//                cout << bag.at(i)->_name << " ";
+//            }
+            DebugOff("}" << endl);
         }
         //        _bags_copy.push_back(bag_copy);
         _bags.push_back(bag); // bag original
@@ -590,33 +590,33 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         if (bag_copy.size()==3) {
             nb++;
         }
-        else if(bag_copy.size()>3){
-            DebugOn("Decomposing bigger bag into 3d bags\n");
-            
-            for (auto i = 0; i<bag_copy.size()-2; i++) {
-                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-                    for (auto k = j+1; k<bag_copy.size(); k++) {
-                        vector<Node*> new_bag;
-                        new_bag.push_back(bag[i]);
-                        new_bag.push_back(bag[j]);
-                        new_bag.push_back(bag[k]);
-                        DebugOn("new bag = {");
-                        for (int i=0; i<new_bag.size();     i++) {
-                            cout << new_bag.at(i)->_name << " ";
-                        }
-                        DebugOn("}" << endl);
-                        _bags.push_back(new_bag);
-                    }
-                }
-            }
-        }
+//        else if(bag_copy.size()>3){
+//            DebugOn("Decomposing bigger bag into 3d bags\n");
+//            
+//            for (auto i = 0; i<bag_copy.size()-2; i++) {
+//                for (auto j = i+1; j<bag_copy.size()-1; j++) {
+//                    for (auto k = j+1; k<bag_copy.size(); k++) {
+//                        vector<Node*> new_bag;
+//                        new_bag.push_back(bag[i]);
+//                        new_bag.push_back(bag[j]);
+//                        new_bag.push_back(bag[k]);
+//                        DebugOn("new bag = {");
+//                        for (int i=0; i<new_bag.size();     i++) {
+//                            cout << new_bag.at(i)->_name << " ";
+//                        }
+//                        DebugOn("}" << endl);
+//                        _bags.push_back(new_bag);
+//                    }
+//                }
+//            }
+//        }
         delete n;
     }
     //    sort(_bags.begin(), _bags.end(), bag_compare);
     
     
     Debug("\n Number of 3D bags = " << nb << endl);
-    DebugOn("\n Total number of bags = " << _bags.size() << endl);
+//    DebugOn("\n Total number of bags = " << _bags.size() << endl);
     
     delete graph_clone;
     
