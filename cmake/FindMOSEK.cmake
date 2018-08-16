@@ -16,7 +16,7 @@ find_path(MOSEK_INCLUDE_DIR
     HINTS "${MOSEK_ROOT_DIR}/h/")
 find_library (MOSEK_LIBRARY1  libfusion64.a   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY2  libfusion64.so   HINTS "${MOSEK_ROOT_DIR}/bin/")
-find_library (MOSEK_LIBRARY4  libmosek64.so HINTS "${MOSEK_ROOT_DIR}/bin/")
+find_library (MOSEK_LIBRARY3  libmosek64.so HINTS "${MOSEK_ROOT_DIR}/bin/")
 #find_library (MOSEK_LIBRARY5  libcilkrts.so.5  HINTS "${MOSEK_ROOT_DIR}/bin/")
 endif()
 
@@ -28,7 +28,7 @@ if(MOSEK_FOUND)
     message("—- Found MOSEK under ${MOSEK_INCLUDE_DIR}")
     set(MOSEK_LICENSE_FILE "~/mosek/mosek.lic")
     set(MOSEK_INCLUDE_DIRS ${MOSEK_INCLUDE_DIR})
-    set(MOSEK_LIBRARIES  -Wl -L${MOSEK_ROOT_DIR}/bin ${MOSEK_LIBRARY1} ${MOSEK_LIBRARY2} ${MOSEK_LIBRARY3}
+    set(MOSEK_LIBRARIES  -L${MOSEK_ROOT_DIR}/bin ${MOSEK_LIBRARY1} ${MOSEK_LIBRARY2} ${MOSEK_LIBRARY3}
         ${MOSEK_LIBRARY4} ${MOSEK_LIBRARY5})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(MOSEK_LIBRARIES "${MOSEK_LIBRARIES};m;pthread")
