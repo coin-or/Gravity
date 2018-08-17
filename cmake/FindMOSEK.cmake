@@ -6,7 +6,6 @@ if(APPLE)
 find_path(MOSEK_INCLUDE_DIR	 
     NAMES fusion.h
     HINTS "${MOSEK_ROOT_DIR}/h/")
-find_library (MOSEK_LIBRARY1  libfusion64.a   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY2  libfusion64.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY3  libmosek64.dylib   HINTS "${MOSEK_ROOT_DIR}/bin/")
 #find_library (MOSEK_LIBRARY5  libcilkrts.5.dylib  HINTS "${MOSEK_ROOT_DIR}/bin/")
@@ -14,7 +13,6 @@ elseif(UNIX)
 find_path(MOSEK_INCLUDE_DIR	 
     NAMES fusion.h
     HINTS "${MOSEK_ROOT_DIR}/h/")
-find_library (MOSEK_LIBRARY1  libfusion64.a   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY2  libfusion64.so   HINTS "${MOSEK_ROOT_DIR}/bin/")
 find_library (MOSEK_LIBRARY3  libmosek64.so HINTS "${MOSEK_ROOT_DIR}/bin/")
 #find_library (MOSEK_LIBRARY5  libcilkrts.so.5  HINTS "${MOSEK_ROOT_DIR}/bin/")
@@ -22,7 +20,7 @@ endif()
 
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(MOSEK DEFAULT_MSG MOSEK_LIBRARY1   MOSEK_LIBRARY2 MOSEK_LIBRARY3 MOSEK_INCLUDE_DIR)
+find_package_handle_standard_args(MOSEK DEFAULT_MSG MOSEK_LIBRARY2 MOSEK_LIBRARY3 MOSEK_INCLUDE_DIR)
 
 if(MOSEK_FOUND)
     message("—- Found MOSEK under ${MOSEK_INCLUDE_DIR}")
