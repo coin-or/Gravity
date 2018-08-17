@@ -62,6 +62,7 @@ bool MosekProgram::solve(bool relax) {
     DebugOn("Cost = " << _mosek_model->primalObjValue() << std::endl);
     
     // set the optimal value.
+    _mosek_model->acceptedSolutionStatus(mosek::fusion::AccSolutionStatus::Feasible);
     _model->_obj_val = _mosek_model->primalObjValue();
 
 
