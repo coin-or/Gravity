@@ -112,9 +112,25 @@ int main (int argc, char * argv[]) {
     Wii.initialize_all(1.001);
 
     /**  Objective */
-    auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
+//    auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
 //    obj.print_expanded();
-    SDP.min(obj.in(grid.gens));
+//    SDP.min(obj.in(grid.gens));
+    var<> v_obj("Obj",pos_);
+    SDP.add(v_obj);
+    SDP.min(v_obj);
+    
+    /* Linking constraint for objective */
+//    auto Obj_fn = product(grid.c1, Pg) + sum(grid.c0);
+    Constraint Obj_cstr("Obj_cstr");
+    for (auto g: grid.gens) {
+        if (!g->_active)
+            continue;
+        Obj_cstr += g->_cost->c2*power(Pg(g->_name), 2) + g->_cost->c1*Pg(g->_name) + g->_cost->c0;
+    }
+    Obj_cstr -= v_obj;
+    SDP.add(Obj_cstr <= 0);
+//    Obj_cstr.print();
+
 
     /** Constraints */
 
@@ -287,7 +303,7 @@ int main (int argc, char * argv[]) {
     solver s(SDP,Mosek);
     cout << "Done building Mosek Model" << endl;
     s.run(0,0);
-
+    Pg.param::print(true);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
