@@ -350,6 +350,7 @@ int PowerNet::readgrid(const char* fname) {
     for (int i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
         c2.set_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
+//        c2.set_val(to_string(i),atof(word.c_str())*bMVA);
         file >> word;
         c1.set_val(to_string(i),atof(word.c_str())*bMVA);
         file >> word;

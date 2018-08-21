@@ -809,7 +809,7 @@ void MosekProgram::set_mosek_objective() {
             (*Earr)[Fxi+2] = Fx->index(Fxi);
         }
         fusion::Expression::t qexpr = fusion::Expr::vstack(Earr);
-        DebugOff("\nqexpr = " << qexpr->toString());
+        DebugOn("\nqexpr = " << qexpr->toString());
 
         //(1,r,Fx) in Qr
         _mosek_model->constraint(qexpr, fusion::Domain::inRotatedQCone());
