@@ -285,6 +285,7 @@ namespace gravity {
     public:
         virtual void update_model(){};
         virtual ~Program(){};
+        string _status;
     };
 }
 #endif /* model_hpp */
