@@ -35,7 +35,7 @@ bool MosekProgram::solve(bool relax) {
     // Set max solution time
 //    _mosek_model->setSolverParam("mioMaxTime", 360.0);
     // Set max relative gap (to its default value)
-//    _mosek_model->setSolverParam("intpntCoTolRelGap", 1e-10);
+    _mosek_model->setSolverParam("intpntCoTolRelGap", 1e-6);
 //    _mosek_model->setSolverParam("intpntCoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntQoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntCoTolMuRed", 1);
@@ -59,9 +59,42 @@ bool MosekProgram::solve(bool relax) {
         cout << _mosek_model->getPrimalSolutionStatus() << endl;
     }
 
+
+    switch (_mosek_model->getPrimalSolutionStatus()) {
+        case mosek::fusion::SolutionStatus::Undefined:
+            _status = "Undefined";
+            break;
+        case mosek::fusion::SolutionStatus::Unknown:
+            _status = "Unknown";
+            break;
+        case mosek::fusion::SolutionStatus::Optimal:
+            _status = "Optimal";
+            break;
+        case mosek::fusion::SolutionStatus::NearOptimal:
+            _status = "NearOptimal";
+            break;
+        case mosek::fusion::SolutionStatus::Feasible:
+            _status = "Feasible";
+            break;
+        case mosek::fusion::SolutionStatus::NearFeasible:
+            _status = "NearFeasible";
+            break;
+        case mosek::fusion::SolutionStatus::Certificate:
+            _status = "Certificate";
+            break;
+        case mosek::fusion::SolutionStatus::NearCertificate:
+            _status = "NearCertificate";
+            break;
+        case mosek::fusion::SolutionStatus::IllposedCert:
+            _status = "IllposedCert";
+            break;
+        default:
+            break;
+    }
     DebugOn("Cost = " << _mosek_model->primalObjValue() << std::endl);
     
     // set the optimal value.
+    
     _mosek_model->acceptedSolutionStatus(mosek::fusion::AccSolutionStatus::Feasible);
     _model->_obj_val = _mosek_model->primalObjValue();
 
