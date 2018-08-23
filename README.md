@@ -1,7 +1,6 @@
 
 [![Build Status](https://travis-ci.org/Allinsights/Gravity.svg?branch=master)](https://travis-ci.org/Allinsights/Gravity)
 
-
 Gravity
 =======
 
@@ -40,8 +39,14 @@ Some Numerical Results:
 Performance Profile on ACOPF
 -----------
 
+The first figure below is a performance profile illustrating percentage of instances solved as a function of time.
+The figure compares Gravity, [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index.html) and AMPL's NL interface (used by [AMPL](http://ampl.com/) and [Pyomo](http://www.pyomo.org/)) on all standard instances found in the [PGLIB](https://github.com/power-grid-lib/pglib-opf) benchmark library.
+
 ![Performance Profile on ACOPF](https://static.wixstatic.com/media/c6cff5_9b2b29e8a33840c59902fc95ffabf3ed~mv2.png/v1/crop/x_0,y_0,w_1064,h_600/fill/w_869,h_490,al_c,usm_0.66_1.00_0.01/c6cff5_9b2b29e8a33840c59902fc95ffabf3ed~mv2.png)
 
+The figure below compares model build time between Gravity and [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index.html) on the [PGLIB](https://github.com/power-grid-lib/pglib-opf) benchmarks.
+
+![Model Build Time on ACOPF](https://static.wixstatic.com/media/c6cff5_7d8e39d464b647fe98ee7f74d57f289d~mv2.png/v1/fill/w_894,h_535,al_c,usm_0.66_1.00_0.01/c6cff5_7d8e39d464b647fe98ee7f74d57f289d~mv2.png)
 
 -----------
 Performance Profile on Inverse Ising Model

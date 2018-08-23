@@ -217,9 +217,9 @@ bool Net::add_arc(Arc* a) {
     dest = a->_dest->_name;
     if (src == dest){
         throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-    
+        
     }
-
+    
     
     key.clear();
     key.append(src);
@@ -242,7 +242,6 @@ bool Net::add_arc(Arc* a) {
     arcs.push_back(a);
     return parallel;
 }
-
 // undirected
 void Net::add_undirected_arc(Arc* a) {
     bool parallel = false;
@@ -627,19 +626,6 @@ std::vector<gravity::index_pair*> Net::get_bus_pairs(){
     return _bus_pairs._keys;
 }
 
-std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
-    vector<gravity::index_pair*> res;
-    string ni, nj;
-    for(int i = 0; i < nodes.size()-1; i++) {
-        for(int j = i+1; j < nodes.size(); j++) {
-            ni = nodes[i]->_name;
-            nj = nodes[j]->_name;
-            res.push_back(new index_pair(index_(ni), index_(nj), 1));
-        }
-    }
-    return res;
-}
-
 /** Return the vector of arcs of the chordal completion ignoring parallel lines **/
 std::vector<gravity::index_pair*> Net::get_bus_pairs_chord(){
     return _bus_pairs_chord._keys;
@@ -905,3 +891,17 @@ Net* Net::get_clique_tree(){
 //        }
 //    printf("With cholesky decomposition, the chordal graph added  %lu edges \n", (num_nonzeros - arcs.size()));
 //}
+
+
+std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
+    vector<gravity::index_pair*> res;
+    string ni, nj;
+    for(int i = 0; i < nodes.size()-1; i++) {
+        for(int j = i+1; j < nodes.size(); j++) {
+            ni = nodes[i]->_name;
+            nj = nodes[j]->_name;
+            res.push_back(new index_pair(index_(ni), index_(nj), 1));
+        }
+    }
+    return res;
+}

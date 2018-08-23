@@ -21,11 +21,16 @@ class Bus;
 
 class Gen: public gravity::aux{
 public:
-    /** @brief Identifier
+    /** @brief Unit name
      @note One bus may have multiple generators
      */    
+    string _unit_name;
+    
+    string _type_name="Gen";
 
-    std::string _type_name="Gen";
+    
+    
+    int _gen_type = -1;
     
     /** Position of a generator in a container. **/
     int _id;
@@ -38,6 +43,9 @@ public:
 
     /** @brief Reactive Power Generation Bounds */
     Bound _qbound;
+    
+    /** @brief Participation Factor */
+    double _part_factor = 0;
 
     /** @brief generation cost function/coefficients */
     GenCost* _cost;
@@ -60,6 +68,7 @@ public:
      */
     Gen(Bus* b, std::string name, double p_min, double p_max, double q_min, double q_max);
     
+    Gen(const string& name);
     
     /** @brief Destructor
      */

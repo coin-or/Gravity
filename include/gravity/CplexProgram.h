@@ -40,7 +40,7 @@ public:
         return *_cplex_model;
     }
     
-    bool solve(bool relax);
+    bool solve(bool relax=false, double mipgap = 0.01);
     void prepare_model();    
     void relax_model();
     

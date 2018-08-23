@@ -64,6 +64,8 @@ namespace gravity {
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
         map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
         map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        map<unsigned, var<bool>>       _bin_vars; /**< Sorted map pointing to all binary variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         vector<shared_ptr<Constraint>>              _cons_vec;
@@ -83,6 +85,7 @@ namespace gravity {
         func_                           _obj; /** Objective function */
         ObjectiveType                   _objt; /** Minimize or maximize */
         double                          _obj_val = 0;/** Objective function value */
+        int                             _status = -1;/**<< status when last solved */
 
         /** Constructor */
         //@{
@@ -96,6 +99,8 @@ namespace gravity {
         ~Model();
         
         /* Accessors */
+        
+        string get_name() const {return _name;}
         
         size_t get_nb_vars() const;
         
@@ -116,6 +121,7 @@ namespace gravity {
         }
         
         param_* get_var(const string& vname) const;
+        param_* get_var(int id) const;
         
         shared_ptr<Constraint> get_constraint(const string& name) const;
         
@@ -134,7 +140,9 @@ namespace gravity {
         
         template <typename type>
         void add_var(var<type>& v){//Add variables by copy
-            
+            if (v.get_dim()==0) {
+                return;
+            }
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
                 for (unsigned i = 0; i<nb_ind; i++) {
@@ -163,9 +171,27 @@ namespace gravity {
             add_var(v);
         }
         
+        template <typename type>
+        void add(var<type>&& v){
+            add_var(move(v));
+        }
+        
+    
+        template <typename type, typename... Args>
+        void add(var<type>&& v, Args&&... args){
+            list<var<type>> vars;
+            vars = {forward<var<type>>(args)...};
+            vars.push_front(move(v));
+            for (auto &v:vars) {
+                add_var(move(v));
+            }            
+        }
         
         template <typename type>
         void add_var(var<type>&& v){//Add variables by copy
+            if (v.get_dim()==0) {
+                return;
+            }
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
                 for (unsigned i = 0; i<nb_ind; i++) {
@@ -205,20 +231,17 @@ namespace gravity {
             }
         };
         
-        template <typename type>
-        void add(var<type>&& v){
-            add_var(move(v));
-        }
-        
         void del_var(const param_& v);
         
         
         void add_param(param_& v); //Add variables by copying variable
         void del_param(const param_& v);
         
-        
+        void add_integrality_cuts();
         void add_lazy(const Constraint& c);
         void add(const Constraint& c);
+        void project();/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+        void replace(param_* v, func_& f);/**<  Replace v with function f everywhere it appears */
         shared_ptr<Constraint> add_constraint(const Constraint& c);
         
         shared_ptr<func_> embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
@@ -232,7 +255,7 @@ namespace gravity {
         void init_indices();// Initialize the indices of all variables involved in the model
         void reindex(); /*<< Reindexes the constraints after violated ones have been detected and aded to the formulation */
         bool has_violated_constraints(double tol); /*<< Returns true if some constraints are violated by the current solution with tolerance tol */
-        void check_feasible(const double* x);
+        bool is_feasible(double tol);
         void reset_funcs();
         void fill_in_maps();/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */
         void fill_in_var_bounds(double* x_l ,double* x_u);
@@ -270,8 +293,12 @@ namespace gravity {
         /* Output */
         void print_nl_functions() const;
         void print() const;
-        void print_expanded() const;
-        void print_solution() const;
+        void print_expanded();
+        void print_solution(bool only_discrete=true) const;
+        void round_solution();
+        void add_round_solution_cuts();
+        void add_round_solution_obj(bool balance_obj = true);
+        void add_integrality();
         void print_constraints() const;
         
     };
@@ -288,4 +315,7 @@ namespace gravity {
         string _status;
     };
 }
+
+
+
 #endif /* model_hpp */

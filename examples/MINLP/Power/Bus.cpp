@@ -16,9 +16,21 @@ Bus::Bus(string name, double pl, double ql, double gs, double bs, double v_min, 
 };
 
 Bus::~Bus(){
-    for (Conductor* cond:_cond) {
+    for (auto cond:_cond) {
         delete cond;
     }
+    for (auto b: _bat) {
+        delete b;
+    }
+    _bat.clear();
+    for (auto w: _wind) {
+        delete w;
+    }
+    _wind.clear();
+    for (auto g: _pv) {
+        delete g;
+    }
+    _pv.clear();
 }
 
 //void Bus::init_complex(bool polar){
@@ -93,6 +105,47 @@ vector<gravity::aux*> Bus::get_gens(){
     return res;
 }
 
+vector<gravity::aux*> Bus::get_pot_gens(){
+    vector<gravity::aux*> res;
+    for (auto g:_pot_gen) {
+        res.push_back(g);
+    }
+    return res;
+}
+
+vector<gravity::aux*> Bus::get_bats(){
+    vector<gravity::aux*> res;
+    for (auto b:_bat) {
+        res.push_back(b);
+    }
+    return res;
+}
+
+vector<gravity::aux*> Bus::get_pot_bats(){
+    vector<gravity::aux*> res;
+    for (auto b:_pot_bat) {
+        res.push_back(b);
+    }
+    return res;
+}
+
+vector<gravity::aux*> Bus::get_wind(){
+    vector<gravity::aux*> res;
+    for (auto w:_wind) {
+        res.push_back(w);
+    }
+    return res;
+}
+
+
+vector<gravity::aux*> Bus::get_pv(){
+    vector<gravity::aux*> res;
+    for (auto w:_pv) {
+        res.push_back(w);
+    }
+    return res;
+}
+
 /** @brief Returns the lower bound on the voltage magnitude at this bus */
 double Bus::vmin(){
     return vbound.min;
@@ -108,15 +161,72 @@ void Bus::print(){
     printf("\nBus Id: %s | load = %.02f | shunt = (%.02f,%.02f) | vbounds = (%.02f,%.02f)\n", _name.c_str(), _cond[0]->_pl, _cond[0]->_gs, _cond[0]->_bs, vbound.min, vbound.max);
         //v.print();
         //theta.print();
-    if(_has_gen){
-        printf("    List of installed generators:\n");
+    
+    if (_wind_gens>0) {
+        printf("\tHas %zu wind generators.\n", _wind_gens);
+    }
+//    if (_diesel_invest) {
+//        for (auto &data: _diesel_data) {
+//            if (data.second.existing>0) {
+//                printf("\tHas %u installed diesel technology of type %u: (age=%u)\n", data.second.existing,data.first, data.second.existing_age);
+//            }
+//        }
+//    }
+//    if (_diesel_invest) {
+//        printf("\tHas Diesel Generation Investment Option:\n");
+//        for (auto &data: _diesel_data) {
+//            if (data.second.max_invest>0) {
+//                printf("\t\tHas potential diesel technology of type %u: (min=%u, max=%u)\n", data.first, data.second.min_invest,data.second.max_invest);
+//            }
+//        }
+//    }
+//    for (auto &data: _battery_data) {
+//        if (data.second.existing>0) {
+//            printf("\tHas %u installed battery technology of type %u: (age=%u)\n", data.second.existing,data.first, data.second.existing_age);
+//        }
+//    }
+//    if (_batt_invest) {
+//        printf("\tHas Battery Investment Option.\n");
+//        printf("\tMinimum Battery Investment Option = %g.\n", _min_batt_cap);
+//        printf("\tMaximum Battery Investment Option = %g.\n", _max_batt_cap);
+//        printf("\tBattery Investment Option:\n");
+//        for (auto &data: _battery_data) {
+//            if (data.second.max_invest>0) {
+//                printf("\t\tHas potential battery inverter technology of type %u: (min=%u, max=%u)\n", data.first, data.second.min_invest,data.second.max_invest);
+//            }
+//        }
+//    }
+//    if(_existing_batt_cap > 0){
+//        printf("\tHas Existing Battery inverter with Capacity %g anf age %u.\n", _existing_batt_cap, _existing_batt_age);
+//    }
+    
+    printf("\tList of connected lines: ");
+    for (auto a:branches) {
+        cout << "(" << a->_src->_name<< "," << a->_dest->_name << ") ";
+    }
+    if(!_bat.empty()){
+        printf("\tList of existing + potential batteries:\n");
+        for(auto b:_bat) {
+            b->print();
+        }
+    }
+    if(!_pot_bat.empty()){
+        printf("\tList of potential batteries:\n");
+        for(auto b:_pot_bat) {
+            b->print();
+        }
+    }
+    if(!_gen.empty()){
+        printf("\tList of installed + potential diesnel generators:\n");
         for(Gen * g:_gen) {
             g->print();
         }
     }
-    printf("    List of connected lines:\n");
-    for (auto it:_lines) {
-        cout << " " << it.first;
+    if(!_pot_gen.empty()){
+        printf("\tList of potential diesel generators:\n");
+        for (auto g:_pot_gen) {
+            g->print();
+        }
     }
     cout << ";\n";
 }

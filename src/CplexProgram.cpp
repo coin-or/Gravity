@@ -23,11 +23,12 @@ CplexProgram::~CplexProgram() {
 }
 
 
-bool CplexProgram::solve(bool relax) {
+bool CplexProgram::solve(bool relax, double mipgap) {
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
     //if (relax) relax_model();
     //    relax_model();
+    int return_status = -1;
     try {
         IloCplex cplex(*_cplex_env);
 
@@ -42,10 +43,14 @@ bool CplexProgram::solve(bool relax) {
         else {
             cplex.extract(*_cplex_model);
         }
+        cplex.setParam(IloCplex::EpGap, mipgap);
         cplex.solve();
-        if (cplex.getStatus() == IloAlgorithm::Infeasible)
+        if (cplex.getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;
-
+        }
+        else if(cplex.getStatus() == IloAlgorithm::Optimal){
+            return_status = 100;
+        }
         _cplex_env->out() << "Solution status: " << cplex.getStatus() << endl;
 
         // Print results
@@ -72,7 +77,7 @@ bool CplexProgram::solve(bool relax) {
         cerr << "Error" << endl;
     }
 //    _cplex_env->end();
-    return 0;
+    return return_status==100;
 }
 
 void CplexProgram::fill_in_cplex_vars() {
@@ -302,5 +307,8 @@ void CplexProgram::prepare_model() {
     fill_in_cplex_vars();
     create_cplex_constraints();
     set_cplex_objective();
+//    IloCplex cplex(*_cplex_model);
+//    cplex.exportModel("lpex2.lp");
+
     //    print_constraints();
 }
