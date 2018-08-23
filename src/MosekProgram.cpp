@@ -31,19 +31,19 @@ void MosekProgram::update_model() {};
 
 // remain to do
 bool MosekProgram::solve(bool relax) {
-    _mosek_model->setSolverParam("log", 10);
+//    _mosek_model->setSolverParam("log", 10);
     // Set max solution time
 //    _mosek_model->setSolverParam("mioMaxTime", 360.0);
     // Set max relative gap (to its default value)
-//    _mosek_model->setSolverParam("intpntCoTolRelGap", 1e-10);
+    _mosek_model->setSolverParam("intpntCoTolRelGap", 1e-6);
 //    _mosek_model->setSolverParam("intpntCoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntQoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntCoTolMuRed", 1);
     // Set max absolute gap (to its default value)
-    _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
+//    _mosek_model->setSolverParam("mioTolRelGap", 1e-4);
 //    _mosek_model->setSolverParam("mioTolAbsGap", 0.0);
 //    _mosek_model->setSolverParam("numThreads",1);
-    if(!_output) _mosek_model->setSolverParam("log", 0);
+    //if(!_output) _mosek_model->setSolverParam("log", 0);
     if(relax) {
         for (auto &vv: _mosek_vars)
             vv->makeContinuous();
@@ -59,9 +59,43 @@ bool MosekProgram::solve(bool relax) {
         cout << _mosek_model->getPrimalSolutionStatus() << endl;
     }
 
+
+    switch (_mosek_model->getPrimalSolutionStatus()) {
+        case mosek::fusion::SolutionStatus::Undefined:
+            _status = "Undefined";
+            break;
+        case mosek::fusion::SolutionStatus::Unknown:
+            _status = "Unknown";
+            break;
+        case mosek::fusion::SolutionStatus::Optimal:
+            _status = "Optimal";
+            break;
+        case mosek::fusion::SolutionStatus::NearOptimal:
+            _status = "NearOptimal";
+            break;
+        case mosek::fusion::SolutionStatus::Feasible:
+            _status = "Feasible";
+            break;
+        case mosek::fusion::SolutionStatus::NearFeasible:
+            _status = "NearFeasible";
+            break;
+        case mosek::fusion::SolutionStatus::Certificate:
+            _status = "Certificate";
+            break;
+        case mosek::fusion::SolutionStatus::NearCertificate:
+            _status = "NearCertificate";
+            break;
+        case mosek::fusion::SolutionStatus::IllposedCert:
+            _status = "IllposedCert";
+            break;
+        default:
+            break;
+    }
     DebugOn("Cost = " << _mosek_model->primalObjValue() << std::endl);
     
     // set the optimal value.
+    
+    _mosek_model->acceptedSolutionStatus(mosek::fusion::AccSolutionStatus::Feasible);
     _model->_obj_val = _mosek_model->primalObjValue();
 
 
@@ -808,7 +842,7 @@ void MosekProgram::set_mosek_objective() {
             (*Earr)[Fxi+2] = Fx->index(Fxi);
         }
         fusion::Expression::t qexpr = fusion::Expr::vstack(Earr);
-        DebugOff("\nqexpr = " << qexpr->toString());
+        DebugOn("\nqexpr = " << qexpr->toString());
 
         //(1,r,Fx) in Qr
         _mosek_model->constraint(qexpr, fusion::Domain::inRotatedQCone());
@@ -866,7 +900,7 @@ void MosekProgram::set_mosek_objective() {
     else {
         _mosek_model->objective("obj", mosek::fusion::ObjectiveSense::Minimize, expr);
     }
-    cout << "\nObj = " << expr->toString() << endl;
+//    cout << "\nObj = " << expr->toString() << endl;
 }
 
 void MosekProgram::prepare_model() {

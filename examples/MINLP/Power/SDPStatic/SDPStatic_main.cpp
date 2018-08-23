@@ -112,9 +112,25 @@ int main (int argc, char * argv[]) {
     Wii.initialize_all(1.001);
 
     /**  Objective */
-    auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
-    obj.print_expanded();
-    SDP.min(obj.in(grid.gens));
+//    auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
+//    obj.print_expanded();
+//    SDP.min(obj.in(grid.gens));
+    var<> v_obj("Obj",pos_);
+    SDP.add(v_obj);
+    SDP.min(v_obj);
+    
+    /* Linking constraint for objective */
+//    auto Obj_fn = product(grid.c1, Pg) + sum(grid.c0);
+    Constraint Obj_cstr("Obj_cstr");
+    for (auto g: grid.gens) {
+        if (!g->_active)
+            continue;
+        Obj_cstr += g->_cost->c2*power(Pg(g->_name), 2) + g->_cost->c1*Pg(g->_name) + g->_cost->c0;
+    }
+    Obj_cstr -= v_obj;
+    SDP.add(Obj_cstr <= 0);
+//    Obj_cstr.print();
+
 
     /** Constraints */
 
@@ -161,13 +177,13 @@ int main (int argc, char * argv[]) {
     Constraint PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-//    SDP.add_constraint(PAD_UB.in(bus_pairs));
+    SDP.add_constraint(PAD_UB.in(bus_pairs));
 //    PAD_UB.print_expanded();
 
     Constraint PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-//    SDP.add_constraint(PAD_LB.in(bus_pairs));
+    SDP.add_constraint(PAD_LB.in(bus_pairs));
 //    PAD_LB.print_expanded();
 
     /* Thermal Limit Constraints */ //TODO
@@ -188,7 +204,8 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+
 //    LNC1.print_expanded();
 
     Constraint LNC2("LNC2");
@@ -196,18 +213,19 @@ int main (int argc, char * argv[]) {
     LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+    SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+
 //    LNC2.print_expanded();
 
     vector<var<double>> W; // store the matrix variables
     int bagid = 0;
 
-    for (auto& a: grid.arcs) {
-        vector<Node*> v;
-        v.push_back(a->_src);
-        v.push_back(a->_dest);
-        grid._bags.push_back(v);
-    }
+//    for (auto& a: grid.arcs) {
+//        vector<Node*> v;
+//        v.push_back(a->_src);
+//        v.push_back(a->_dest);
+//        grid._bags.push_back(v);
+//    }
 
     if(!decompose) {
         grid._bags.clear();
@@ -217,9 +235,10 @@ int main (int argc, char * argv[]) {
 
     //todo: for SOCP: add lines to bags?
     double solver_time_start = get_wall_time();
+//    cout << "number of bags = " << grid._bags.size() << endl;
     for(auto& b: grid._bags){
         int n = b.size();
-        cout << "\nn = " << n;
+//        cout << "\nn = " << n;
         var<double> W_b("W"+to_string(bagid));
         W_b._psd = true;
         SDP.add_var(W_b.in(R(2*n,2*n)));
@@ -284,13 +303,14 @@ int main (int argc, char * argv[]) {
     }
 
     solver s(SDP,Mosek);
+    cout << "Done building Mosek Model" << endl;
     s.run(0,0);
-
+    Pg.param::print(true);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", "+ s._prog->_status + ", " + to_string(total_time);
     DebugOn(out <<endl);
 
     return 0;
