@@ -140,9 +140,6 @@ namespace gravity {
         
         template <typename type>
         void add_var(var<type>& v){//Add variables by copy
-            if (v.get_dim()==0) {
-                return;
-            }
             if (v._is_indexed) {
                 auto nb_ind = v.get_nb_instances();
                 for (unsigned i = 0; i<nb_ind; i++) {
