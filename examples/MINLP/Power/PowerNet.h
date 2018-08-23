@@ -247,7 +247,7 @@ public:
     
     void save_base_case_sol(const string& fname);
     void save_all_sol(const string& fname);
-    /** Power Models */
+    /** Power Models *
     
     vector<shared_ptr<Model>> conting_mods;/* < Contingency models */
     

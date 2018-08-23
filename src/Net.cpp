@@ -512,15 +512,15 @@ void Net::get_tree_decomp_bags(bool print_bags) {
     Node* u = nullptr;
     Node* nn = nullptr;
     Arc* arc = nullptr;
-
+    
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
-
+    
     /** cliques with less than 1 nodes are useless for us.*/
     while (graph_clone->nodes.size()> 2) {
         sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
-
+        
         // last element has the minimum fill-in.
         n = graph_clone->nodes.back();
         if(!n->_active) {
@@ -531,20 +531,20 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         Debug(graph_clone->nodes.size() << endl);
         vector<Node*> bag_copy;
         vector<Node*> bag;
-        DebugOn("new bag = { ");
+        DebugOff("new bag = { ");
         for (auto nn: n->get_neighbours()) {
             if(!nn->_active) continue;
             bag_copy.push_back(nn);
             bag.push_back(get_node(nn->_name)); // Note it takes original node.
-            DebugOn(nn->_name << ", ");
+            DebugOff(nn->_name << ", ");
         }
-        DebugOn(n->_name << "}\n");
+        DebugOff(n->_name << "}\n");
         graph_clone->remove_end_node();
         bag_copy.push_back(n);
         bag.push_back(get_node(n->_name)); // node in this graph
         sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-
+        
         // update clone_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.size(); i++) {
             u = bag_copy.at(i);
@@ -560,7 +560,7 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 }
                 name = to_string((int) graph_clone->arcs.size()+1);
                 arc = new Arc(name);
-
+                
                 arc->_id = arcs.size();
                 arc->_src = u;
                 arc->_dest = nn;
@@ -570,27 +570,53 @@ void Net::get_tree_decomp_bags(bool print_bags) {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-
-        if (print_bags) {
-            DebugOn("bag_copy = {");
-            for (int i=0; i<bag_copy.size();     i++) {
-                cout << bag_copy.at(i)->_name << " ";
-            }
-            DebugOn("}" << endl);
+        
+        if (true) {
+            //            DebugOn("bag_copy = {");
+            //            for (int i=0; i<bag_copy.size();     i++) {
+            //                cout << bag_copy.at(i)->_name << " ";
+            //            }
+            //            DebugOn("}" << endl);
+            DebugOff("bag = {");
+//            for (int i=0; i<bag.size();     i++) {
+//                cout << bag.at(i)->_name << " ";
+//            }
+            DebugOff("}" << endl);
         }
-//        _bags_copy.push_back(bag_copy);
+        //        _bags_copy.push_back(bag_copy);
         _bags.push_back(bag); // bag original
-
+        
         if (bag_copy.size()==3) {
             nb++;
         }
+//        else if(bag_copy.size()>3){
+//            DebugOn("Decomposing bigger bag into 3d bags\n");
+//            
+//            for (auto i = 0; i<bag_copy.size()-2; i++) {
+//                for (auto j = i+1; j<bag_copy.size()-1; j++) {
+//                    for (auto k = j+1; k<bag_copy.size(); k++) {
+//                        vector<Node*> new_bag;
+//                        new_bag.push_back(bag[i]);
+//                        new_bag.push_back(bag[j]);
+//                        new_bag.push_back(bag[k]);
+//                        DebugOn("new bag = {");
+//                        for (int i=0; i<new_bag.size();     i++) {
+//                            cout << new_bag.at(i)->_name << " ";
+//                        }
+//                        DebugOn("}" << endl);
+//                        _bags.push_back(new_bag);
+//                    }
+//                }
+//            }
+//        }
         delete n;
     }
-//    sort(_bags.begin(), _bags.end(), bag_compare);
-
-
+    //    sort(_bags.begin(), _bags.end(), bag_compare);
+    
+    
     Debug("\n Number of 3D bags = " << nb << endl);
-
+//    DebugOn("\n Total number of bags = " << _bags.size() << endl);
+    
     delete graph_clone;
     
 }

@@ -312,6 +312,7 @@ namespace gravity {
     public:
         virtual void update_model(){};
         virtual ~Program(){};
+        string _status;
     };
 }
 

@@ -50,6 +50,7 @@ namespace gravity {
         /* Destructor */
         ~solver();
         
+
         int run(int output = 0, bool relax = false, double tol = 1e-6, double mipgap = 1e-3, const string& lin_solver = "ma57", const string& mehrotra = "no",  int max_iter = 1000);
         
     };

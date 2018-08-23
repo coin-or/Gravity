@@ -16,6 +16,7 @@
 #endif
 #include <gravity/model.h>
 
+using namespace gravity;
 class MosekProgram: public Program{
 public:
     Model* _model;
