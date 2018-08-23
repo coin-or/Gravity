@@ -3,6 +3,8 @@
 
 Gravity
 =======
+<img src="https://static.wixstatic.com/media/c6cff5_6bf3b6b728bc4e738988a81b38969193~mv2.png/v1/fill/w_240,h_240,al_c,q_80,usm_0.66_1.00_0.01/c6cff5_6bf3b6b728bc4e738988a81b38969193~mv2.webp" width="68">
+
 
 Mathematical Modeling for Optimization and Machine Learning
 -----------
