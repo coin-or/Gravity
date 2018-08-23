@@ -23,6 +23,11 @@ Gen::Gen(Bus* bus, string name, double p_min, double p_max, double q_min, double
     _id = -1;
 };
 
+Gen::Gen(const string& name):_cost(new GenCost()){
+    _name = name;
+    _active = true;
+}
+
 Gen::~Gen(){
     delete _cost;
 }
@@ -35,12 +40,14 @@ Gen::~Gen(){
 /** @brief Prints generator infos */
 void Gen::print(){
 
-    cout << "Gen Id: "<< std::atoi(_name.c_str());
+//    cout << "Gen Id: "<< std::atoi(_name.c_str());
+    cout << _name;
     if(!_active)
         cout << " | WARNING: Inactive generator";
     printf(" | Cost coefficients: (c0=%.02f,c1=%.02f,c2=%.02f)", _cost->c0, _cost->c1, _cost->c2);
     printf(" | Active Power Bounds: (%.02f,%.02f)", _pbound.min, _pbound.max);
-    printf(" | Reactive Power Bounds: (%.02f,%.02f)\n", _qbound.min, _qbound.max);
+    printf(" | Reactive Power Bounds: (%.02f,%.02f)", _qbound.min, _qbound.max);
+    printf(" | Participation Factor: %.02f%%\n", _part_factor);
 
 };
 

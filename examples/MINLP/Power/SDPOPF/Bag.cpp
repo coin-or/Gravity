@@ -352,19 +352,19 @@ bool Bag::is_PSD(){
     arma::cx_mat P;
     arma::vec v;// = arma::eig_sym(A);
     arma::eig_sym(v,P,A);
-    DebugOff("\n");
+    DebugOn("\n");
     double min_eig = 0, max_eig = -1;
     for(auto eig: v) {
         if(eig < min_eig) min_eig = eig;
         if(eig > max_eig) max_eig = eig;
     }
     if(min_eig/max_eig > -tol) {
-        DebugOff("\nBag is PSD");
+        DebugOn("\nBag is PSD");
         return true;
     }
     else {
         double pos_tol = -0.00001;
-        DebugOff("\nBag is not PSD\n");
+        DebugOn("\nBag is not PSD\n");
         for(int i = 0; i < n; i++) {
             if(v[i] < 0) {
                 v[i] = 0;

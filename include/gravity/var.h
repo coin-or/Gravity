@@ -16,6 +16,7 @@
 #include <set>
 #include <list>
 #include <limits>
+#include <random>
 
 
 
@@ -81,7 +82,7 @@ class func_;
 /** Backbone class for parameter */
 class var_ {
 public:
-    virtual ~var_() {};
+    virtual ~var_() {};    
 };
 
 /** A variable can be a bool, a short, an int, a float or a double*/
@@ -109,8 +110,9 @@ public:
     //@{
     /** Bounded variable constructor */
     var(const string& name, type lb, type ub);
-    var(const string& name, const param<type>& lb, const param<type>& ub);//TODO move version of bounds
-//    var(const string& name, func_&& lb, func_&& ub);
+//    var(const string& name, const param<type>& lb, const param<type>& ub);//TODO move version of bounds
+    var(const string& name, const func_& lb, const func_& ub);
+    var(const string& name, func_&& lb, func_&& ub);
     var(const string& name, const param<type>& sb);// Constructor with symmetric bound: [-sb, sb]
 //    var(const string& name, func_&& sb);// Constructor with symmetric bound: [-sb, sb]
     //@}
@@ -136,6 +138,10 @@ public:
         res._ub = this->_ub;
         return res;
     }
+    
+    
+    
+
 
     
     var in_pairs(){
@@ -155,6 +161,25 @@ public:
         res._ub = this->_ub;
         return res;
     }
+    
+    var prev(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::prev());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var min_time(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::min_time());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     
     var out_arcs(){
         var<type> res(this->_name);
@@ -177,6 +202,42 @@ public:
     var in_gens(){
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_gens());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_pot_gens(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pot_gens());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_bats(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_bats());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_wind(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_wind());
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_pv(){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pv());
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -212,6 +273,25 @@ public:
         return res;
     }
     
+    template<typename Tobj>
+    var from(const vector<Tobj*>& vec, const indices& T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::from(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    template<typename Tobj>
+    var to(const vector<Tobj*>& vec, const indices& T){
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::to(vec, T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
     
 
     template<typename Tobj>
@@ -254,6 +334,58 @@ public:
         return res;
     }
 
+    template<typename... Args>
+    var in(const indices& vec1, Args&&... args) {
+        var<type> res(this->_name);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        if(get<1>(param_::_unique_id)==unindexed_){
+            if(this->_rev_indices->size()==0 && (!res._ub->is_number() || !res._lb->is_number())){
+                auto ids = indices(vec1,args...);
+                if(!res._lb->is_number()){
+                    (res._lb->in(ids));
+                }
+                if(!res._ub->is_number()){
+                    (res._ub->in(ids));
+                }
+            }
+        }
+        res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));
+        res.param<type>::set_type(var_c);
+        res._is_relaxed = param_::_is_relaxed;
+        return res;
+    }
+    
+    template<typename... Args>
+    var prev(const indices& vec1, Args&&... args) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::prev(vec1, forward<Args>(args)...));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        //        if(!this->_lb->is_number()){
+        //            *res._lb = this->_lb->in(vec);
+        //        }
+        //        if(!this->_ub->is_number()){
+        //            *res._ub = this->_ub->in(vec);
+        //        }
+        return res;
+    }
+    
+    
+    template<typename Tobj> var min_time(const vector<Tobj*>& vec, const indices& ids, param<int> time) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::min_time(vec, ids, time));
+        res.param<type>::set_type(var_c);
+        //        if(!this->_lb->is_number()){
+        //            *res._lb = this->_lb->in(vec);
+        //        }
+        //        if(!this->_ub->is_number()){
+        //            *res._ub = this->_ub->in(vec);
+        //        }
+        return res;
+    }
+    
     
     template<typename Tobj>
     var in(const vector<Tobj*>& vec) {
@@ -261,10 +393,18 @@ public:
         res.param<type>::operator=(param<type>::in(vec));
         res.param<type>::set_type(var_c);
         if(!this->_lb->is_number()){
-            *res._lb = this->_lb->in(vec);
+            this->_lb->in(vec);
+            res._lb = this->_lb;
+        }
+        else {
+            res._lb = _lb;
         }
         if(!this->_ub->is_number()){
-            *res._ub = this->_ub->in(vec);
+            this->_ub->in(vec);
+            res._ub = this->_ub;
+        }
+        else {
+            res._ub = _ub;
         }
         return res;
     }
@@ -273,20 +413,6 @@ public:
     var in(const vector<Tobj>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in(vec));
-        res.param<type>::set_type(var_c);
-        if(!this->_lb->is_number()){
-            *res._lb = this->_lb->in(vec);
-        }
-        if(!this->_ub->is_number()){
-            *res._ub = this->_ub->in(vec);
-        }
-        return res;
-    }
-
-    template<typename Tobj>
-    var submat(const vector<Tobj>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::submat(vec));
         res.param<type>::set_type(var_c);
         if(!this->_lb->is_number()){
             *res._lb = this->_lb->in(vec);
@@ -313,9 +439,27 @@ public:
         return res;
     }
     
+    var in_arcs(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_arcs(vec,T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     var out_arcs(const vector<Node*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::out_arcs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var out_arcs(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::out_arcs(vec,T));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -332,10 +476,57 @@ public:
         return res;
     }
     
+    var in_gens(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_gens(vec,T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_bats(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_bats(vec,T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_wind(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_wind(vec,T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    var in_pv(const vector<Node*>& vec, const indices& T) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pv(vec,T));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
     template<typename Tobj>
     var in_pairs(const vector<Tobj*>& vec) {
         var<type> res(this->_name);
         res.param<type>::operator=(param<type>::in_pairs(vec));
+        res.param<type>::set_type(var_c);
+        res._lb = this->_lb;
+        res._ub = this->_ub;
+        return res;
+    }
+    
+    
+    template<typename Tobj>
+    var in_pairs(const vector<Tobj*>& vec, const indices& ids) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::in_pairs(vec,ids));
         res.param<type>::set_type(var_c);
         res._lb = this->_lb;
         res._ub = this->_ub;
@@ -402,10 +593,24 @@ public:
         return res;
     }
     
+    template<typename Tobj>
+    var submat(const vector<Tobj>& vec) {
+        var<type> res(this->_name);
+        res.param<type>::operator=(param<type>::submat(vec));
+        res.param<type>::set_type(var_c);
+        if(!this->_lb->is_number()){
+            *res._lb = this->_lb->in(vec);
+        }
+        if(!this->_ub->is_number()){
+            *res._ub = this->_ub->in(vec);
+        }
+        return res;
+    }
+    
     var from(const ordered_pairs& pairs);
     var to(const ordered_pairs& pairs);
     var in(const ordered_pairs& pairs);
-    vector<var> in(const std::vector<std::vector<Node*>>& bags, unsigned size);
+    vector<var> in_bags(const std::vector<std::vector<Node*>>& bags, unsigned size);
     vector<var> pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size);
     vector<var> pairs_in_directed(Net& net, const std::vector<std::vector<Node*>>& bags, unsigned size);
 
@@ -455,8 +660,25 @@ public:
     bool operator!=(const var& v) const;
     
     var& in(const space& s){
+//        if(s._dim.size()>1){
+//            throw invalid_argument("2D spaces unsupported yet");
+//        }
         set_size(s._dim);
+        param_::_rev_indices->resize(s._dim[0]);
+        for(unsigned i = 0 ; i< s._dim[0]; i++){
+            auto key = to_string(i);
+            param_::_indices->insert(make_pair<>(key,i));
+            (*param_::_rev_indices)[i] = key;
+        }
         return *this;
+    }
+    
+    void initialize_uniform() {
+        std::default_random_engine generator;
+        for (int i = 0; i<param<type>::_val->size(); i++) {
+            std::uniform_real_distribution<double> distribution(get_lb(i),get_ub(i));
+            param<type>::_val->at(i) = distribution(generator);
+        }
     }
     
 //    var& operator^(size_t d) {
@@ -555,6 +777,11 @@ public:
     }
 
     /* Modifiers */
+    
+    
+    
+    
+    
     //void    set_size(size_t s, type val = 0);
     /* Operators */
     sdpvar& operator = (type v) {

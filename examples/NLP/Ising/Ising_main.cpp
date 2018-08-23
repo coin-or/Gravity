@@ -148,7 +148,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         /** Solver */
         solver NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
-        NLP.run(log_lev,relax=false,1e-12,"ma27",mehrotra);
+        NLP.run(log_lev,relax=false,1e-12,1e-6,"ma27",mehrotra);
 //        Ising.print_nl_functions();
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
@@ -189,7 +189,7 @@ int main (int argc, char * argv[])
     if (path.find("/bin")!=string::npos && path.find("/bin/ising")==string::npos) {//Not running from terminal
         fname = "../" + fname;
     }
-    unsigned nr_threads = std::thread::hardware_concurrency()-1;
+    unsigned nr_threads = 1;
     
     // create a OptionParser with options
     op::OptionParser opt;

@@ -78,16 +78,20 @@ size_t Model::get_nb_nnz_h(){
     size_t idx = 0;
     bool idx_inc = false;
     Constraint* c = nullptr;
+    auto max_f_idx = 0;
     for (auto &pairs: _hess_link) {
-        auto f_pair = *pairs.second.begin();
-//        for (auto &f_pair:pairs.second) {
+//        auto f_pair = *pairs.second.begin();
+//        max_f_idx = 0;
+//        auto f_idx = 0;
+        for (auto &f_pair:pairs.second) {
             idx_inc = false;
             auto f = f_pair.first;
-        if (f->_is_constraint) {
-            c = (Constraint*)f;
-        }
+            if (f->_is_constraint) {
+                c = (Constraint*)f;
+            }
             auto d2f = f_pair.second;
             size_t nb_inst = f->_nb_instances;
+//            f_idx = 0;
             for (unsigned inst = 0; inst<nb_inst; inst++) {
                 if (!(f->_is_constraint && *c->_all_lazy && c->_lazy[inst])) {
                     if (d2f->_is_matrix) {
@@ -107,7 +111,12 @@ size_t Model::get_nb_nnz_h(){
                     }
                 }
             }
+//            if(max_f_idx<f_idx) {
+//                max_f_idx = f_idx;
+//            }
         }
+//        idx += max_f_idx;
+    }
 //    }
     _nnz_h = idx;
     return _nnz_h;
@@ -136,6 +145,10 @@ param_* Model::get_var(const string& vname) const{
         return _vars_name.at(vname);
 }
 
+param_* Model::get_var(int id) const{
+    return _vars.at(id);
+}
+
 
 
 /* Modifiers */
@@ -147,12 +160,15 @@ void Model::reindex(){
     for(auto& c_p: _cons_name)
     {
         c = c_p.second;
+        nb_inst = c->get_nb_instances();
+        if (nb_inst==0) {
+            continue;
+        }
         cid = c->_id;
         if (cid!=new_cid) {
             c->_id = new_cid;
         }
         new_cons[c->_id] = c;
-        nb_inst = c->get_nb_instances();
         new_cid = c->_id+nb_inst;
     }
     _cons = new_cons;
@@ -233,16 +249,115 @@ void Model::del_param(const param_& v){
 };
 
 
+void Model::add_integrality_cuts(){
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                break;
+            }
+            case long_:{
+                break;
+            }
+            case double_:{
+                if (v->_is_relaxed) {
+                    auto real_var = (var<double>*)v;
+                    Constraint Integer_Cut("Integer_Cut"+v->_name);
+                    Integer_Cut += power((*real_var),2) - (*real_var);
+                    add(Integer_Cut==0);
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                Constraint Integer_Cut("Integer_Cut"+v->_name);
+                Integer_Cut += power((*real_var),2) - (*real_var);
+                add(Integer_Cut==0);
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                Constraint Integer_Cut("Integer_Cut"+v->_name);
+                Integer_Cut += power((*real_var),2) - (*real_var);
+                add(Integer_Cut==0);
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                Constraint Integer_Cut("Integer_Cut"+v->_name);
+                Integer_Cut += power((*real_var),2) - (*real_var);
+                add(Integer_Cut==0);
+                break;
+            }
+
+        }
+    }
+}
+
 void Model::add(const Constraint& c){
+    if (c.get_dim()==0) {
+        return;
+    }
     add_constraint(c);
 }
 void Model::add_lazy(const Constraint& c){
+    if (c.get_dim()==0) {
+        return;
+    }
+    *c._all_lazy = true;
     auto newc = add_constraint(c);
     newc->make_lazy();
     _has_lazy = true;
 }
 
+void Model::replace(param_* v, func_& f){
+    for (auto &c_p: _cons_name) {
+        auto c = c_p.second;
+        if (!c->has_var(*v)) {
+            continue;
+        }
+        c->replace(v, f);
+    }
+    _vars_name.erase(v->_name);
+    auto vid = *v->_vec_id;
+    delete _vars.at(vid);
+    _vars.erase(vid);
+
+}
+
+
+void Model::project() {
+    for (auto& c_pair:_cons_name) {
+        if (!c_pair.second->is_ineq()) {
+            auto &lterms = c_pair.second->get_lterms();
+            if (!lterms.empty()) {
+                auto first = lterms.begin();
+                auto v = first->second._p;
+                if (v->_is_vector) {
+                    continue;
+                }
+                auto f = *c_pair.second - c_pair.second->get_rhs();
+                if (first->second._sign) {
+                    f -= *v;
+                    f *= -1;
+                }
+                else {
+                    f += *v;
+                }
+                DebugOn(f.to_str());
+                _cons.erase(c_pair.second->_id);
+                _cons_name.erase(c_pair.first);
+                replace(v,f);
+                project();
+                return;
+            }
+        }
+    }
+}
 shared_ptr<Constraint> Model::add_constraint(const Constraint& c){
+    if (c.get_dim()==0) {
+        return nullptr;
+    }
     if (_cons_name.count(c.get_name())==0) {
         auto newc = make_shared<Constraint>(c);
         if (newc->is_constant()) {
@@ -440,29 +555,39 @@ shared_ptr<Constraint> Model::add_constraint(const Constraint& c){
         }
 //            embed();
 //        }
+        
+        newc->_violated.resize(newc->_nb_instances,true);
+        _cons_name[c.get_name()] = newc;
         if(*newc->_all_lazy){
             newc->_lazy.resize(newc->_nb_instances,true);
+            return newc;
         }
-        newc->_violated.resize(newc->_nb_instances,true);
-        newc->_id = get_nb_cons();
-//        embed(newc);
-        _cons_name[c.get_name()] = newc;
-        _cons[newc->_id] = newc;
-        _built = false;
-//        newc->print_expanded();
         int nb_inst = c._nb_instances;
-        _nb_cons += nb_inst;
-        for (unsigned inst = 0; inst<nb_inst; inst++) {
-            _nnz_g += c.get_nb_vars(inst);
-        }
-        if (_type==lin_m && c.is_quadratic()) {
-            _type = quad_m;
-        }
-        if ((_type==lin_m || _type==quad_m) && (c.is_nonlinear() || c.is_polynomial())) {
-            _type = nlin_m;
-        }
-        if (_is_convex && !c.is_convex()) {
-            _is_convex = false;
+        if (nb_inst>0) {
+//            if (_cons.empty()) {
+                newc->_id = _nb_cons;
+//            }
+//            else {
+//                auto last_added = *_cons.end();
+//                newc->_id = last_added.first + last_added.second->get_nb_instances();
+//            }
+    //        embed(newc);
+            _cons[newc->_id] = newc;
+            _built = false;
+    //        newc->print_expanded();
+            _nb_cons += nb_inst;
+            for (unsigned inst = 0; inst<nb_inst; inst++) {
+                _nnz_g += c.get_nb_vars(inst);
+            }
+            if (_type==lin_m && c.is_quadratic()) {
+                _type = quad_m;
+            }
+            if ((_type==lin_m || _type==quad_m) && (c.is_nonlinear() || c.is_polynomial())) {
+                _type = nlin_m;
+            }
+            if (_is_convex && !c.is_convex()) {
+                _is_convex = false;
+            }
         }
         return newc;
     }
@@ -520,9 +645,9 @@ void Model::set_objective_type(ObjectiveType t) {
 }
 
 bool Model::has_violated_constraints(double tol){
-    if (!_has_lazy) {
-        return false;
-    }
+//    if (!_has_lazy) {
+//        return false;
+//    }
 //    int cid = 0;
     unsigned nb_inst = 0, nb_viol = 0, nb_viol_all = 0;
     unsigned nb_active = 0, nb_active_all = 0;
@@ -542,12 +667,13 @@ bool Model::has_violated_constraints(double tol){
         switch (c->get_type()) {
             case eq:
                 for (unsigned inst=0; inst<nb_inst; inst++) {
-                    diff = fabs(c->eval(inst) - c->_rhs);
+                    diff = abs(c->eval(inst) - c->_rhs);
                     if(diff > tol) {
                         DebugOff("Violated equation: ");
-                        DebugOff(c->to_str(inst));
+//                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;
@@ -557,10 +683,10 @@ bool Model::has_violated_constraints(double tol){
                         else {
 //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                         }
-                        c->_violated[inst] = true;
+//                        c->_violated[inst] = true;
                     }
                     else {
-                        c->_violated[inst] = false;
+//                        c->_violated[inst] = false;
                     }
 //                    nb_active++;
                 }
@@ -571,9 +697,10 @@ bool Model::has_violated_constraints(double tol){
                     diff = c->eval(inst) - c->_rhs;
                     if(diff > tol) {
                         DebugOff("Violated inequality: ");
-                        DebugOff(c->to_str(inst));
+//                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;
@@ -584,7 +711,7 @@ bool Model::has_violated_constraints(double tol){
 //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                         }
                     }
-                    else if (fabs(diff)>tol) {
+                    else if (abs(diff)>tol) {
                         c->_active[inst] = false;
 //                        if (*c->_all_lazy) {
 //                            c->_lazy[inst] = true;
@@ -601,9 +728,10 @@ bool Model::has_violated_constraints(double tol){
                     diff = c->eval(inst) - c->_rhs;
                     if(diff < -tol) {
                         DebugOff("Violated inequality: ");
-                        DebugOff(c->to_str(inst));
+//                        c->print(inst);
                         DebugOff(", violation = "<< diff << endl);
                         nb_viol++;
+//                        violated = true;
                         if (*c->_all_lazy) {
                             c->_all_satisfied = false;
                             c->_violated[inst] = true;
@@ -614,7 +742,7 @@ bool Model::has_violated_constraints(double tol){
 //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                         }
                     }
-                    else if (fabs(diff)> tol) {
+                    else if (abs(diff)> tol) {
                         c->_active[inst] = false;
 //                        if (*c->_all_lazy) {
 //                            c->_lazy[inst] = true;
@@ -629,13 +757,14 @@ bool Model::has_violated_constraints(double tol){
             default:
                 break;
         }
+//        *c->_all_lazy = false;
         nb_viol_all += nb_viol;
         nb_active_all += nb_active;
         if (nb_viol>0) {
             DebugOn("Percentage of violated constraints for " << c->get_name() << " = " << to_string(100.*nb_viol/nb_inst) << "%\n");
         }
         if (c->get_type()!=eq) {
-            DebugOff("Percentage of active constraints for " << c->get_name() << " = " << to_string(100.*nb_active/nb_inst) << "%\n");
+            DebugOn("Percentage of active constraints for " << c->get_name() << " = " << to_string(100.*nb_active/nb_inst) << "%\n");
         }
     }
     DebugOn("Total percentage of violated constraints = " << to_string(100.*nb_viol_all/_nb_cons) << "%\n");
@@ -644,55 +773,107 @@ bool Model::has_violated_constraints(double tol){
     return violated;
 }
 
-void Model::check_feasible(const double* x){
-//    int vid = 0;
-    //    param_* v = NULL;
-//    var<>* var = NULL;
-    /* return the structure of the hessian */
-//    for(auto& v: _vars)
-//    {
-//        vid = v->get_idx();
-//        var = getparam_<double>(vid);
-//        if ((x[vid] - var->get_ub())>1e-6) {
-//            cerr << "violated upper bound constraint: ";
-//            var->print();
-//        }
-//        if ((x[vid] - var->get_lb())<-1e-6) {
-//            cerr << "violated lower bound constraint: ";
-//            var->print();
-//        }
-//    }
-//    int cid = 0;
-//    for(auto& c: _cons)
-//    {
-//        cid = c->get_idx();
-//        switch (c->get_type()) {
-//            case eq:
-//                if(fabs(c->eval(x)-c->_rhs) > 1e-6) {
-//                    cerr << "violated constraint: ";
-//                    c->print();
-//                    printf ("violation = %.10f;\n",(c->eval(x)-c->_rhs));
-//                }
-//                break;
-//            case leq:
-//                if((c->eval(x)-c->_rhs) > 1e-6) {
-//                    cerr << "violated constraint: ";
-//                    c->print();
-//                    printf ("violation = %.10f;\n",(c->eval(x)-c->_rhs));
-//                }
-//                break;
-//            case geq:
-//                if((c->eval(x)-c->_rhs) < -1e-6) {
-//                    cerr << "violated constraint: ";
-//                    c->print();
-//                    printf ("violation = %.10f;\n",(c->eval(x)-c->_rhs));
-//                }
-//                break;
-//                
-//            default:
-//                break;
-//        }
-//    }
+bool Model::is_feasible(double tol){
+    unsigned vid;
+    param_* v;
+    double viol = 0;
+    bool feasible = true;
+    for(auto& v_p: _vars)
+    {
+        v = v_p.second;
+        vid = v->get_id();
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    viol = real_var->get_lb(i) - real_var->_val->at(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                        
+                    }
+                    viol = real_var->_val->at(i) - real_var->get_ub(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    viol = real_var->get_lb(i) - real_var->_val->at(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                    viol = real_var->_val->at(i) - real_var->get_ub(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    viol = real_var->get_lb(i) - real_var->_val->at(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                    viol = real_var->_val->at(i) - real_var->get_ub(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    viol = real_var->get_lb(i) - real_var->_val->at(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                    viol = real_var->_val->at(i) - real_var->get_ub(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                }
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                for (int i = 0; i < real_var->get_dim(); i++) {
+                    viol = real_var->get_lb(i) - real_var->_val->at(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                    viol = real_var->_val->at(i) - real_var->get_ub(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                    }
+                }
+                break;
+            }
+            case binary_:{
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+    
+    feasible = feasible && !has_violated_constraints(tol);
+    return feasible;
 }
 
 
@@ -722,8 +903,15 @@ void Model::fill_in_var_types(Bonmin::TMINLP::VariableType* var_types){
             case double_:{
                 auto real_var = (var<double>*)v;
                 DebugOff(real_var->get_name() << " in:" << endl);
-                for (int i = 0; i < real_var->get_dim(); i++) {
-                    var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
+                if (real_var->_is_relaxed) {
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        var_types[vid+i] = Bonmin::TMINLP::BINARY;
+                    }
+                }
+                else {
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
+                    }
                 }
                 DebugOff(";" << endl);
                 break;
@@ -1190,7 +1378,7 @@ void compute_jac(vector<shared_ptr<Constraint>>& vec, double* res, int i, int j,
             for (auto &v_p: c->get_vars()){
                 v = v_p.second.first.get();
                 vid = v->_unique_id;
-                dfdx = c->get_stored_derivative(vid);
+                dfdx = c->get_stored_derivative(vid);                
                 id_inst = 0;
                 for (int inst = 0; inst< nb_ins; inst++){
                     if (!*c->_all_lazy || !c->_lazy[inst]) {
@@ -1198,7 +1386,7 @@ void compute_jac(vector<shared_ptr<Constraint>>& vec, double* res, int i, int j,
                         if (v->_is_vector) {
                             auto dim = v->get_dim(inst);
                             for (int j = 0; j<dim; j++) {
-                                res[idx] = dfdx->eval(inst,j);
+                                res[idx] = dfdx->eval(inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
                                 jac_vals[idx] = res[idx];
                                 idx++;
                             }
@@ -1436,8 +1624,10 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
         vid = vi->get_id();
         vjd = vj->get_id();
         idx_pair = idx;
+//        auto max_f_idx = 0;
         for (auto &f_pair:pairs.second) {
-            idx = idx_pair;
+//            auto f_idx = 0;
+//            idx = idx_pair;
 //        auto f_pair = *pairs.second.begin();
             auto f = f_pair.first;
             if (f->_is_constraint) {
@@ -1455,6 +1645,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
                                 iRow[idx] = vid + vi->get_id_inst(i);
                                 jCol[idx] = vjd + vj->get_id_inst(j);
                                 idx++;
+//                                f_idx++;
                             }
                         }
                     }
@@ -1467,6 +1658,7 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
                             iRow[idx] = vid + vi->get_id_inst(j);
                             jCol[idx] = vjd + vj->get_id_inst(j);
                             idx++;
+//                            f_idx++;
                         }
                     }
                     else {
@@ -1474,10 +1666,15 @@ void Model::fill_in_hess_nnz(int* iRow , int* jCol){
                         iRow[idx] = vid + vi->get_id_inst(inst);
                         jCol[idx] = vjd + vj->get_id_inst(inst);
                         idx++;
+//                        f_idx++;
                     }
                 }
             }
+//            if(max_f_idx < f_idx){
+//                max_f_idx = f_idx;
+//            }
         }
+//        idx = idx_pair+max_f_idx;
     }
     if (idx!=_nnz_h) {
         throw invalid_argument("idx!=_nnz_h");
@@ -1497,11 +1694,13 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         set_x(x);
         compute_funcs();
     }
-    if (_first_call_hess) {
+    if (true) {
         for (auto &pairs: _hess_link) {
             idx_pair = idx;
+//            auto max_f_idx = 0;
             for (auto &f_pair:pairs.second) {
-                idx = idx_pair;
+//                auto f_idx = 0;
+//                idx = idx_pair;
                 idx_inc = false;
                 auto f = f_pair.first;
                 if (f->_is_constraint) {
@@ -1522,6 +1721,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                         hess = d2f->get_val(i,j);
                                         _hess_vals[idx_in++] = hess;
                                         res[idx++] += lambda[c->_id + c_inst] * hess;
+//                                        f_idx++;
                                         idx_inc = true;
                                     }
                                 }
@@ -1532,6 +1732,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                     _hess_vals[idx_in++] = hess;
                                     res[idx] += lambda[c->_id + c_inst] * hess;
                                     idx++;
+//                                    f_idx++;
                                     idx_inc = true;
                                     //                    }
                                 }
@@ -1558,6 +1759,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 _hess_vals[idx_in++] = hess;
                                 res[idx] += obj_factor * hess;
                                 idx++;
+//                                f_idx++;
                                 idx_inc = true;
                             }
                         }
@@ -1569,9 +1771,14 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                     }
                     if (!idx_inc) {
                         idx++;
+//                        f_idx++;
                     }
                 }
+//                if(max_f_idx < f_idx){
+//                    max_f_idx = f_idx;
+//                }
             }
+//            idx = idx_pair+max_f_idx;
         }
         _first_call_hess = false;
         return;
@@ -1580,8 +1787,10 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
         unsigned id_inst = 0;
         for (auto &pairs: _hess_link) {
             idx_pair = idx;
+//            auto max_f_idx = 0;
             for (auto &f_pair:pairs.second) {
-                idx = idx_pair;
+//                auto f_idx = 0;
+//                idx = idx_pair;
                 idx_inc = false;
                 auto f = f_pair.first;
                 if (f->_is_constraint) {
@@ -1600,6 +1809,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                     for (unsigned j = i; j < d2f->_dim[1]; j++) {
                                         res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                         idx++;
+//                                        f_idx++;
                                         idx_inc = true;
                                     }
                                 }
@@ -1608,6 +1818,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 for (unsigned j = 0; j < d2f->_dim[0]; j++) {
                                     res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                     idx++;
+//                                    f_idx++;
                                     idx_inc = true;
                                 }
                             }
@@ -1624,6 +1835,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                             for (unsigned j = 0; j < d2f->_dim[0]; j++) {
                                 res[idx] += obj_factor * _hess_vals[idx_in++];
                                 idx++;
+//                                f_idx++;
                                 idx_inc = true;
                             }
                         }
@@ -1633,16 +1845,23 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                     }
                     if (!idx_inc) {
                         idx++;
+//                        f_idx++;
                     }
                 }
+//                if(max_f_idx < f_idx){
+//                    max_f_idx = f_idx;
+//                }
             }
+//            idx = idx_pair+max_f_idx;
         }
         return;
     }
     for (auto &pairs: _hess_link) {
         idx_pair = idx;
+//        auto max_f_idx = 0;
         for (auto &f_pair:pairs.second) {
-            idx = idx_pair;
+//            auto f_idx = 0;
+//            idx = idx_pair;
             idx_inc = false;
             auto f = f_pair.first;
             if (f->_is_constraint) {
@@ -1661,6 +1880,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 for (unsigned i = 0; i < d2f->_dim[0]; i++) {
                                     for (unsigned j = i; j < d2f->_dim[1]; j++) {
                                         res[idx++] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
+//                                        f_idx++;
                                         idx_inc = true;
                                     }
                                 }
@@ -1669,6 +1889,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 for (unsigned j = 0; j < d2f->_dim[0]; j++) {
                                     res[idx] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                     idx++;
+//                                    f_idx++;
                                     idx_inc = true;
                                 }
                             }
@@ -1682,6 +1903,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                     hess = d2f->get_val(i,j);
                                     _hess_vals[idx_in++] = hess;
                                     res[idx++] += lambda[c->_id + c_inst] * hess;
+//                                    f_idx++;
                                     idx_inc = true;
                                 }
                             }
@@ -1692,6 +1914,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                                 _hess_vals[idx_in++] = hess;
                                 res[idx] += lambda[c->_id + c_inst] * hess;
                                 idx++;
+//                                f_idx++;
                                 idx_inc = true;
                             }
                         }
@@ -1716,6 +1939,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                             for (unsigned j = 0; j < d2f->_dim[0]; j++) {
                                 res[idx] += obj_factor * _hess_vals[idx_in++];
                                 idx++;
+//                                f_idx++;
                                 idx_inc = true;
                             }
                         }
@@ -1730,6 +1954,7 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                             _hess_vals[idx_in++] = hess;
                             res[idx] += obj_factor * hess;
                             idx++;
+//                            f_idx++;
                             idx_inc = true;
                             //                    }
                         }
@@ -1742,9 +1967,14 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                 }
                 if (!idx_inc) {
                     idx++;
+//                    f_idx++;
                 }
             }
+//            if(max_f_idx < f_idx){
+//                max_f_idx = f_idx;
+//            }
         }
+//        idx = idx_pair+max_f_idx;
     }
 }
 
@@ -1852,22 +2082,26 @@ void Model::fill_in_maps() {
 void Model::fill_in_duals(double* lambda, double* z_L, double* z_U){
     for (auto &cp: _cons) {
         unsigned idx = 0;
-        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
-            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
-                lambda[cp.second->_id + idx++] = 0;
-            }
-            
-        }
+//        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+//            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+//                lambda[cp.second->_id + idx++] = 0;
+//            }
+//            
+//        }
         idx = 0;
         for (unsigned inst = 0; inst < cp.second->_dual.size(); inst++) {
             if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                 auto index = cp.second->_id + idx++;
                 lambda[index] = cp.second->_dual[inst];
             }
+//            else
+//            {
+//                lambda[index] = 100;
+//            }
         }
     }
     for (auto &vp: _vars) {
-        auto nb_inst = vp.second->get_nb_instances();
+        auto nb_inst = vp.second->get_dim();
         auto vid = vp.second->get_id();
         for (unsigned inst = 0; inst < nb_inst; inst++) {
             auto id_inst = vp.second->get_id_inst(inst);
@@ -2173,6 +2407,9 @@ shared_ptr<func_> Model::embed(shared_ptr<func_> f){
     }
     bool found_cpy = false;
     auto name = f->to_str();
+    if(name.compare("-(sin(theta_c.from_Arc - theta_c.to_Arc))")==0){
+        cerr << "found";
+    }
     if (name.back()=='T') {
         name = name.substr(0,name.size()-2);
         if (_nl_funcs_map.count(name)>0) {
@@ -2234,14 +2471,374 @@ void Model::print_nl_functions() const{
     cout << endl;
 }
 
-void Model::print_solution() const{
-    
+void Model::print_solution(bool only_discrete) const{
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                if(!only_discrete || real_var->_is_relaxed)
+                    real_var->param::print(true);
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                if(!only_discrete || real_var->_is_relaxed)
+                    real_var->param::print(true);
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                DebugOff(real_var->get_name() << " in:" << endl);
+                if(!only_discrete || real_var->_is_relaxed)
+                    real_var->param::print(true);
+                DebugOff(";" << endl);
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
 }
 
+void Model::round_solution(){
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                if(real_var->_is_relaxed){
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        (real_var->_val->at(i)) = round(real_var->_val->at(i));                        
+                    }
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                if(real_var->_is_relaxed){
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        (real_var->_val->at(i)) = round(real_var->_val->at(i));
+                    }
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                if(real_var->_is_relaxed){
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        if(real_var->_val->at(i)>0.1){
+                            real_var->_val->at(i) = 1;
+                        }
+                        else {
+                            real_var->_val->at(i) = 0;
+                        }
+                    }
+                }
+                break;
+            }
+            case integer_:{
+                break;
+            }
+            case short_:{
+                break;
+            }
+            case binary_:{
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+    for (auto &v_p:_bin_vars) {
+        auto bin_var = v_p.second;
+        auto real_var = (var<double>*)get_var(v_p.first);
+        for (int i = 0; i < real_var->get_dim(); i++) {
+            if(round(real_var->_val->at(i))==1){
+                bin_var._val->at(i) = true;
+            }
+            else{
+                bin_var._val->at(i) = false;
+            }
+        }
+    }
+}
 
-void Model::print_expanded() const{
+void Model::add_integrality(){
+    func_ new_obj;
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    new_obj += power(*real_var - rhs,2);
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    new_obj += power(*real_var - rhs,2);
+                }
+                break;
+            }
+            case double_:{                
+                auto real_var = (var<double>*)v;
+                Constraint Fix_int("Fix_int_"+real_var->_name);
+                Fix_int += *real_var - power((*real_var),2);
+                add(Fix_int<=0);
+                break;
+            }
+            case integer_:{
+                //                auto real_var = (var<int>*)v;
+                //                real_var->param::print(true);
+                break;
+            }
+            case short_:{
+                //                auto real_var = (var<short>*)v;
+                //                real_var->param::print(true);
+                break;
+            }
+            case binary_:{
+                //                auto real_var = (var<bool>*)v;
+                //                real_var->param::print(true);
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+}
+
+void Model::add_round_solution_obj(bool balance_obj){
+    func_ new_obj;
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        v->_new = true;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    new_obj += power(*real_var - rhs,2);
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    new_obj += power(*real_var - rhs,2);
+                }
+                break;
+            }
+            case double_:{
+                double rhs = 0;
+                auto real_var = (var<double>*)v;
+                if(real_var->_is_relaxed){
+                    param<double> coef("coef"+v->_name);
+                    auto rev_indices = real_var->get_rev_indices();
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+//                        auto idx = real_var->get_id_inst(i);
+                        if ((real_var->_val->at(i))>=0.1) {
+//                            new_obj -= 500000*(*real_var)(rev_indices->at(i));
+//                            coef.set_val(rev_indices->at(i), -500000);
+                            coef = -2;
+                            rhs += 2;
+                        }
+                        else{
+//                            new_obj += 500000*(*real_var)(rev_indices->at(i));
+//                            coef.set_val(rev_indices->at(i), 500000);
+                            coef = 2;
+//                            rhs = 20000;
+                        }
+                        
+                    }
+                    new_obj += rhs + product(coef,(*real_var));
+//                    new_obj.print_expanded();
+//                    new_obj += power(rhs - *real_var,2);
+//                    new_obj += sum(rhs) - sum(*real_var);
+                }
+//                else{
+////                    param<int> rhs("rhs");
+//                    auto rev_indices = real_var->get_rev_indices();
+//                    for (int i = 0; i < real_var->get_dim(); i++) {
+//                        new_obj += 1e-2*power(real_var->_val->at(i) - (*real_var)(rev_indices->at(i)),2);
+////                        rhs.set_val(rev_indices->at(i),real_var->_val->at(i));
+//                    }
+////                    new_obj += constant<>(1e-2).tr()*power(rhs - (*real_var),2);
+//                    //                    new_obj += power(rhs - *real_var,2);
+//                    //                    new_obj += sum(rhs) - sum(*real_var);
+//                }
+                break;
+            }
+            case integer_:{
+//                auto real_var = (var<int>*)v;
+//                real_var->param::print(true);
+                break;
+            }
+            case short_:{
+//                auto real_var = (var<short>*)v;
+//                real_var->param::print(true);
+                break;
+            }
+            case binary_:{
+//                auto real_var = (var<bool>*)v;
+//                real_var->param::print(true);
+                break;
+            }
+            default:
+                break;
+        } ;
+    }
+    if (balance_obj) {
+        _obj = _obj*(1./_obj_val) + new_obj;
+    }
+    else {
+        _obj = new_obj;
+//        for(auto& p: _cons){
+//            p.second->_new = true;
+//            p.second->_dfdx->clear();
+//        }
+//        _hess_link.clear();
+
+    }
+//    _obj = new_obj;
+//    _obj.print_expanded();
+    _obj._dfdx->clear();
+    _obj._new = true;
+    for(auto& p: _cons){
+        p.second->_new = true;
+        p.second->_dfdx->clear();        
+    }
+    _hess_link.clear();
+}
+
+void Model::add_round_solution_cuts(){
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                auto real_var = (var<float>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    Constraint Fix_int("Fix_int_"+real_var->_name);
+                    Fix_int += *real_var - rhs;
+                    add(Fix_int==0);
+                }
+                break;
+            }
+            case long_:{
+                auto real_var = (var<long double>*)v;
+                if(real_var->_is_relaxed){
+                    param<int> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    Constraint Fix_int("Fix_int_"+real_var->_name);
+                    Fix_int += *real_var - rhs;
+                    add(Fix_int==0);
+                }
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                if(real_var->_is_relaxed){
+                    param<> rhs("rhs");
+                    for (int i = 0; i < real_var->get_dim(); i++) {
+                        rhs.set_val(i,round(real_var->_val->at(i)));
+                    }
+                    Constraint Fix_int("Fix_int_"+real_var->_name);
+                    Fix_int += power((rhs - *real_var),2);
+                    add(Fix_int<=1e-12);
+                }
+                break;
+            }
+            case integer_:{
+                auto real_var = (var<int>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            case short_:{
+                auto real_var = (var<short>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            case binary_:{
+                auto real_var = (var<bool>*)v;
+                real_var->param::print(true);
+                break;
+            }
+            default:
+                break;
+        } ;
+    }    
+}
+
+void Model::print_expanded(){
+    compute_funcs();
+    _obj.print_expanded();
     for(auto& p: _cons){
         p.second->print_expanded();
+    }
+    for (auto &pair:_vars) {
+        auto v = pair.second;
+        switch (v->get_intype()) {
+            case float_: {
+                break;
+            }
+            case long_:{
+                break;
+            }
+            case double_:{
+                auto real_var = (var<double>*)v;
+                real_var->print(true);
+                break;
+            }
+            case integer_:{
+                break;
+            }
+            case short_:{
+                break;
+            }
+            case binary_:{
+                break;
+            }
+                
+        }
     }
 }
 
@@ -2367,3 +2964,6 @@ void Model::add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v
     //    MC4 <= 0;
     //    add_on_off(MC4, on);
 }
+
+
+

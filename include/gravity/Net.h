@@ -28,9 +28,15 @@ public:
     /** Set of nodes */
     std::vector<Node*> nodes;
     
-    /** Set of arcs */
+    /** Set of existing + potential arcs */
     std::vector<Arc*> arcs;
     
+    /** Set of contingency arcs */
+    std::vector<Arc*> conting_arcs;
+    
+    /** Set of existing arcs */
+    std::vector<Arc*> _exist_arcs;
+        
     /** Set of bus pairs */
     gravity::node_pairs _bus_pairs;
 
@@ -39,6 +45,10 @@ public:
     
     /** Mapping the directed arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     std::map<std::string, std::set<Arc*>*> arcID;
+    
+    /** Mapping the line name to the line pointer */
+    std::map<std::string, Arc*> arcMap;
+        
     
     /** Mapping the node name to its position in the vector, key = node name */
     std::map<std::string, Node*> nodeID;
@@ -133,7 +143,7 @@ public:
     Arc *get_directed_arc(std::string src, std::string dest);
 
     std::vector<gravity::index_pair *> get_bus_pairs_chord();
-
+    
     vector<gravity::index_pair *> get_bus_pairs_all();
 };
 #endif

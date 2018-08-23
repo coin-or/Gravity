@@ -205,6 +205,7 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
     SDP.add_constraint(LNC1.in(bus_pairs) >= 0);
+
 //    LNC1.print_expanded();
 
     Constraint LNC2("LNC2");
@@ -213,6 +214,7 @@ int main (int argc, char * argv[]) {
     LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
     LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
     SDP.add_constraint(LNC2.in(bus_pairs) >= 0);
+
 //    LNC2.print_expanded();
 
     vector<var<double>> W; // store the matrix variables

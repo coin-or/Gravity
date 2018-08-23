@@ -20,6 +20,7 @@ Constraint::Constraint(string name, ConstraintType ctype){
     _rhs = 0;
     _is_constraint = true;
     _all_lazy = make_shared<bool>(false);
+    _dim[0] = 1;
 };
 
 Constraint::Constraint(const Constraint& c):func_(c){
@@ -28,7 +29,7 @@ Constraint::Constraint(const Constraint& c):func_(c){
     _rhs = c._rhs;
     _id = c._id;
     _is_constraint = true;
-    _all_lazy = make_shared<bool>(false);
+    _all_lazy = c._all_lazy;
 }
 
 //@}
@@ -69,8 +70,8 @@ int Constraint::get_type() const{
     return _ctype;
 };
 
-bool Constraint::is_active(unsigned inst) const{
-    return fabs(get_val(inst) - _rhs) < EPS;
+bool Constraint::is_active(unsigned inst, double tol) const{
+    return fabs(get_val(inst) - _rhs) < tol;
 //    return fabs(_dual[inst]) >  EPS;
 }
 
@@ -158,17 +159,25 @@ void Constraint::print_expanded(){
 void Constraint::print(unsigned inst){
     cout << _name;
     if (_nb_instances>1) {
-        cout << "[" << to_string(inst) << "]";
+        if (!_indices || _indices->empty()) {
+            cout << "[" << inst << "]";
+        }
+        else {
+            cout << "[" << _indices->at(_ids->at(0).at(inst)) << "]";
+        }
     }
-    if (is_convex()) {
-        cout << " (Convex Constraint) : ";
+    if (is_linear()) {
+        cout << " (Linear) : ";
+    }
+    else if (is_convex()) {
+        cout << " (Convex) : ";
     }
     else if (is_concave()){
-        cout << " (Concave Constraint) : ";
+        cout << " (Concave) : ";
     }
     else {
-        cout << " : ";
-    }        
+        cout << " (Unknown) : ";
+    }
     this->func_::print(inst);
     switch (_ctype) {
         case leq:
@@ -188,11 +197,11 @@ void Constraint::print(unsigned inst){
 };
 
 bool Constraint::is_convex() const{
-    return ((_all_convexity==convex_ &&_ctype==leq) || (_all_convexity==concave_ &&_ctype==geq));
+    return (_all_convexity==linear_ || (_all_convexity==convex_ &&_ctype==leq) || (_all_convexity==concave_ &&_ctype==geq));
 }
 
 bool Constraint::is_concave() const{
-    return ((_all_convexity==convex_ &&_ctype==geq) || (_all_convexity==concave_ &&_ctype==leq));
+    return (_all_convexity==linear_ || (_all_convexity==convex_ &&_ctype==geq) || (_all_convexity==concave_ &&_ctype==leq));
 }
 
 bool Constraint::is_ineq() const{
@@ -201,14 +210,17 @@ bool Constraint::is_ineq() const{
 
 void Constraint::print(){
     cout << _name;
-    if (is_convex()) {
-        cout << " (Convex Constraint) : ";
+    if (is_linear()) {
+        cout << " (Linear) : ";
+    }
+    else if (is_convex()) {
+        cout << " (Convex) : ";
     }
     else if (is_concave()){
-        cout << " (Concave Constraint) : ";
+        cout << " (Concave) : ";
     }
     else {
-        cout << " : ";
+        cout << " (Unknown) : ";
     }
     this->func_::print(false,false);
     switch (_ctype) {

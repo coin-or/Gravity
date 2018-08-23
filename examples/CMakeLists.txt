@@ -1,5 +1,16 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
+
+
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
+# the RPATH to be used when installing, but only if it's not a system directory
+#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+
 file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/NLP/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/MinKPart/*.cpp)
 file(GLOB STABLE_S_SOURCES ${PROJECT_SOURCE_DIR}/examples/MILP/StableSet/*.cpp)
@@ -28,11 +39,8 @@ add_executable(sdpopf ${SDPOPF_SOURCES} ${Power_SOURCES})
 add_executable(sdpstatic ${SDPSTATIC_SOURCES} ${Power_SOURCES})
 add_executable(svm ${CLASS_SOURCES} ${SVM_SOURCES})
 add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
-#add_executable(microg ${MICROGRID_SOURCES} ${Power_SOURCES})
-#add_executable(decompose ${Decompose_SOURCES} ${Power_SOURCES})
-#add_executable(reform ${Reform_SOURCES} ${Power_SOURCES})
+#add_executable(microgid ${MICROGRID_SOURCES} ${Power_SOURCES})
 add_executable(min_k_part ${MINK_SOURCES})
-#add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 
 target_link_libraries(ising gravity)
 target_link_libraries(stable_set gravity)
@@ -46,10 +54,6 @@ target_link_libraries(sdpstatic gravity)
 target_link_libraries(gravity101 gravity)
 target_link_libraries(svm gravity)
 target_link_libraries(neuralnet gravity)
-#target_link_libraries(microg gravity)
-#target_link_libraries(decompose gravity)
-#target_link_libraries(reform gravity)
-#target_link_libraries(acuc gravity)
-#target_link_libraries(min_k_part gravity)
+#target_link_libraries(microgid gravity)
 
 

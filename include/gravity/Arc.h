@@ -19,11 +19,14 @@ class Arc{
 public:
     int _id;
     std::string _name;
+    std::string _circuit_id;
     std::string _type_name="Arc";
     Node* _src;
     Node* _dest;
     double _weight;
+    double _len = 0;
     bool _active = true;
+    bool _expansion = false;
     bool _parallel = false;
     bool _imaginary = false;
     int _free = false;

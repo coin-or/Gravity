@@ -13,7 +13,7 @@ using namespace  Ipopt;
 using namespace Bonmin;
 using namespace gravity;
 
-class BonminProgram : public TMINLP {
+class BonminProgram : public TMINLP, public Program {
 public:
     Model* _model = nullptr;
     
