@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 <p align="center">
-<img src="https://static.wixstatic.com/media/c6cff5_9ac4e8fadea44aa3890c5369ae180260~mv2.png/v1/crop/x_0,y_0,w_506,h_645/fill/w_480,h_612,al_c,usm_0.66_1.00_0.01/c6cff5_9ac4e8fadea44aa3890c5369ae180260~mv2.png" width="200">
+<img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
 </p>
 
 Mathematical Modeling for Optimization and Machine Learning
