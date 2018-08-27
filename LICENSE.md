@@ -1,8 +1,8 @@
 BSD 3-Clause License
 
-Copyright (c) 2018, The Australian National University, written by Hassan Hijazi. 
-Use of this software should be cited as:
-Hijazi et al. (2018), Gravity: a Modeling Language for Optimization and Machine Learning.
+Copyright (c) 2018, The Australian National University, written by Hassan Hijazi.  
+Use of this software should be cited as:  
+Hijazi et al. (2018), Gravity: a Modeling Language for Optimization and Machine Learning.  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
