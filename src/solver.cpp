@@ -310,9 +310,9 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
     //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                                 iapp->Options()->SetNumericValue("tol", 1e-6);
-                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
+//                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
     //            iapp->Options()->SetStringValue("derivative_test", "second-order");
-                            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-14);
+//                            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-14);
     //            iapp.Options()->SetIntegerValue("print_level", 5);
 
     //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");

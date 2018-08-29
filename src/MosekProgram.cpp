@@ -36,6 +36,7 @@ bool MosekProgram::solve(bool relax) {
 //    _mosek_model->setSolverParam("mioMaxTime", 360.0);
     // Set max relative gap (to its default value)
     _mosek_model->setSolverParam("intpntCoTolRelGap", 1e-6);
+    _mosek_model->setSolverParam("presolveUse", "on");
 //    _mosek_model->setSolverParam("intpntCoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntQoTolPfeas", 1);
 //    _mosek_model->setSolverParam("intpntCoTolMuRed", 1);

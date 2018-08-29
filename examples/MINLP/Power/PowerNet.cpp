@@ -1297,7 +1297,7 @@ void PowerNet::update_net(){
     //add all remaining bags to bags_sorted
     for(auto b_it = _bags.begin(); b_it != _bags.end();) {
         std::vector<Node*> b = *b_it;
-            if(b.size() > 2) bags_sorted.push_back(b);
+            if(b.size() >= 2) bags_sorted.push_back(b);
             _bags.erase(b_it);
 //            id_sorted++;
     }
