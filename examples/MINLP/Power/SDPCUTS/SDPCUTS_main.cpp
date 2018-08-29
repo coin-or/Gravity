@@ -419,7 +419,7 @@ int main (int argc, char * argv[]) {
     double tol = 1e-6;
     string mehrotra = "no";
 
-    string fname = "../data_sets/Power/nesta_case5_pjm.m";
+    string fname = "../../data_sets/Power/nesta_case5_pjm.m";
 
     // create a OptionParser with options
     op::OptionParser opt;
@@ -464,7 +464,7 @@ int main (int argc, char * argv[]) {
     PowerNet grid;
     grid.readgrid(fname.c_str());
 
-    grid.get_tree_decomp_bags();
+    grid.get_tree_decomp_bags(false,true);
     grid.update_net();
 
     // Grid Parameters
@@ -808,7 +808,7 @@ int main (int argc, char * argv[]) {
             if(a->_imaginary && !a->_active) a->_free = true;
         }
 
-        SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "ma27", mehrotra = "no");
+        SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "ma97", mehrotra = "no");
         gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
         DebugOff("\nPrev = " << prev_opt << ", cur = " << SDP._obj_val);
         DebugOff("\n(opt - prev)/opt = " << (SDP._obj_val - prev_opt)/SDP._obj_val << endl);

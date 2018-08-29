@@ -121,7 +121,7 @@ public:
     void remove_arc(Arc* a);
     
     /** Compute the tree decomposition bags **/
-    void get_tree_decomp_bags(bool print_bags = false);
+    void get_tree_decomp_bags(bool print_bags = false, bool decompose = false);
     
    
     /** get algorithmic graph */ 

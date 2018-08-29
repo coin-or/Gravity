@@ -507,7 +507,7 @@ string Net::remove_end_node() {
 }
 
 // use greedy fill-in algorithm.
-void Net::get_tree_decomp_bags(bool print_bags) {
+void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -589,26 +589,26 @@ void Net::get_tree_decomp_bags(bool print_bags) {
         if (bag_copy.size()==3) {
             nb++;
         }
-//        else if(bag_copy.size()>3){
-//            DebugOn("Decomposing bigger bag into 3d bags\n");
-//            
-//            for (auto i = 0; i<bag_copy.size()-2; i++) {
-//                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-//                    for (auto k = j+1; k<bag_copy.size(); k++) {
-//                        vector<Node*> new_bag;
-//                        new_bag.push_back(bag[i]);
-//                        new_bag.push_back(bag[j]);
-//                        new_bag.push_back(bag[k]);
-//                        DebugOn("new bag = {");
-//                        for (int i=0; i<new_bag.size();     i++) {
-//                            cout << new_bag.at(i)->_name << " ";
-//                        }
-//                        DebugOn("}" << endl);
-//                        _bags.push_back(new_bag);
-//                    }
-//                }
-//            }
-//        }
+        else if(decompose && bag_copy.size()>3){
+            DebugOn("Decomposing bigger bag into 3d bags\n");
+            
+            for (auto i = 0; i<bag_copy.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.size(); k++) {
+                        vector<Node*> new_bag;
+                        new_bag.push_back(bag[i]);
+                        new_bag.push_back(bag[j]);
+                        new_bag.push_back(bag[k]);
+                        DebugOn("new bag = {");
+                        for (int i=0; i<new_bag.size();     i++) {
+                            cout << new_bag.at(i)->_name << " ";
+                        }
+                        DebugOn("}" << endl);
+                        _bags.push_back(new_bag);
+                    }
+                }
+            }
+        }
         delete n;
     }
     //    sort(_bags.begin(), _bags.end(), bag_compare);
