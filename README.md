@@ -1,10 +1,10 @@
 
 [![Build Status](https://travis-ci.org/Allinsights/Gravity.svg?branch=master)](https://travis-ci.org/Allinsights/Gravity)
+[![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-Gravity
-=======
-<img src="https://static.wixstatic.com/media/c6cff5_6bf3b6b728bc4e738988a81b38969193~mv2.png/v1/fill/w_240,h_240,al_c,q_80,usm_0.66_1.00_0.01/c6cff5_6bf3b6b728bc4e738988a81b38969193~mv2.webp" width="68">
-
+<p align="center">
+<img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
+</p>
 
 Mathematical Modeling for Optimization and Machine Learning
 -----------
