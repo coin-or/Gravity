@@ -30,8 +30,8 @@ option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
 
 execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/ext_lib/armadillo.tar.xz
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/ext_lib
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/armadillo.tar.xz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
 
 # configure a header file to pass some of the CMake settings
@@ -126,12 +126,14 @@ set(LIBS ${LIBS} armadillo)
 add_subdirectory(${ARMADILLO_ROOT_DIR})
 
 # Include cpp_option_parser
-include_directories(${PROJECT_SOURCE_DIR}/ext_lib/cpp_option_parser)
-add_subdirectory(ext_lib/cpp_option_parser)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
+add_subdirectory(third_party/cpp_option_parser)
+add_subdirectory(third_party/qpp-1.0)
 set(LIBS ${LIBS} option_parser)
 
 # Inlude Eigen Header files
-include_directories(${PROJECT_SOURCE_DIR}/ext_lib)
+include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MINLP/Power)

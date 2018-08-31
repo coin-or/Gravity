@@ -27,7 +27,7 @@ namespace gravity {
     constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
     constant_* copy(constant_&& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
     bool equals(const constant_* c1, const constant_* c2);
-    void poly_set_val(unsigned i, Real val, param_* p);
+    void poly_set_val(unsigned i, double val, param_* p);
 
     template<typename type> type eval(ind i, const constant_* c1);
     template<typename type> type eval(const constant_* c1);
@@ -39,13 +39,13 @@ namespace gravity {
     class expr: public constant_{
     protected:
     public:
-        Real                                 _coef = 1.; /**< coefficient multpying the expression */
+        double                                 _coef = 1.; /**< coefficient multpying the expression */
         string                                 _to_str; /**< A string representation of the expression */
         
         string get_str();
         string to_str(unsigned inst);
-        Real eval(size_t i) const;
-        Real eval(size_t i, size_t j) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         func_ get_derivative(const param_ &v) const;
         void propagate_nb_ind(size_t);/*<< Propagates number of indices */
         void reset_val();
@@ -99,10 +99,10 @@ namespace gravity {
             return unknown_;// TO UPDATE
         }
         
-        Real eval(size_t i) const;
-        Real eval(size_t i, size_t j) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
-        Real eval() const{
+        double eval() const{
             return eval(0);
         }
         
@@ -197,8 +197,8 @@ namespace gravity {
         
         void print_tree() const;
         
-        Real eval(ind i) const;
-        Real eval(ind i, ind j) const;
+        double eval(ind i) const;
+        double eval(ind i, ind j) const;
         
         func_ get_derivative(const param_ &v) const;
         
@@ -235,7 +235,7 @@ namespace gravity {
         
         
         lterm(bool sign, param_* p){
-            _coef = new constant<Real>(1);
+            _coef = new constant<double>(1);
             _p = p;
             _sign = sign;
         };
@@ -265,8 +265,8 @@ namespace gravity {
             return sign;
         }
         
-        Real eval(size_t i) const;
-        Real eval(size_t i, size_t j) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~lterm(){
             delete _coef;
@@ -311,7 +311,7 @@ namespace gravity {
         
         qterm(constant_* coef, param_* p1, param_* p2):qterm(true, coef, p1, p2){};
         
-        qterm(bool sign, param_* p1, param_* p2):qterm(true, new constant<Real>(1), p1, p2){};
+        qterm(bool sign, param_* p1, param_* p2):qterm(true, new constant<double>(1), p1, p2){};
         
         qterm(bool sign, constant_* coef, param_* p1, param_* p2){
             _coef = coef;
@@ -363,8 +363,8 @@ namespace gravity {
             return sign;
         }
         
-        Real eval(size_t i) const;
-        Real eval(size_t i, size_t j) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~qterm(){
             delete _coef;
@@ -464,8 +464,8 @@ namespace gravity {
             return sign;
         }
         
-        Real eval(size_t i) const;
-        Real eval(size_t i, size_t j) const;
+        double eval(size_t i) const;
+        double eval(size_t i, size_t j) const;
         
         ~pterm(){
             delete _coef;
@@ -509,11 +509,11 @@ namespace gravity {
         deque<shared_ptr<expr>>*               _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
         Convexity                              _all_convexity; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
-        pair<Real, Real>*                      _all_range = nullptr; /**< Range of the return value considering all instances of the current function. >>**/
+        pair<double, double>*                      _all_range = nullptr; /**< Range of the return value considering all instances of the current function. >>**/
 
         vector<Convexity>*                     _convexity = nullptr; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
         vector<Sign>*                          _sign = nullptr; /**< vector storing the sign of return value if known. >>**/
-        vector<pair<Real, Real>>*              _range = nullptr; /**< Bounds of the return value if known. >>**/
+        vector<pair<double, double>>*              _range = nullptr; /**< Bounds of the return value if known. >>**/
         
         map<unsigned, set<unsigned>>           _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
         
@@ -533,7 +533,7 @@ namespace gravity {
         bool                                   _embedded = false; /**< If the function is embedded in
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
-        shared_ptr<vector<Real>>               _val;
+        shared_ptr<vector<double>>               _val;
         shared_ptr<vector<vector<unsigned>>>   _ids = nullptr; /*<<A vector storing the ordering of the indices this constraint has*/
         shared_ptr<vector<string>>             _indices = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
@@ -653,7 +653,7 @@ namespace gravity {
             (*_dfdx)[v1._unique_id]->_dfdx->at(v2._unique_id)->_is_hessian = true;
         }
         
-        void set_val(unsigned i, unsigned j, Real val){
+        void set_val(unsigned i, unsigned j, double val){
             if (_is_transposed) {
                 _val->at(_dim[0]*j + i) = val;
             }
@@ -662,7 +662,7 @@ namespace gravity {
             }
         }
         
-        void update_range(Real val) {
+        void update_range(double val) {
             if (val < _all_range->first) {
                 _all_range->first = val;
             }
@@ -671,7 +671,7 @@ namespace gravity {
             }
         }
         
-        void set_val(size_t i, Real val) {
+        void set_val(size_t i, double val) {
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
             _val->at(i) = val;
@@ -3355,7 +3355,7 @@ namespace gravity {
         func_ get_outer_app(); /**< Returns an outer-approximation of the function using the current value of the variables **/
         
         Sign get_all_sign() const;
-        pair<Real, Real>* get_all_range() const;
+        pair<double, double>* get_all_range() const;
         Sign get_sign(int idx=0) const;
         Sign get_all_sign(const lterm& l);
         Sign get_all_sign(const qterm& l);
@@ -3408,12 +3408,12 @@ namespace gravity {
         
         void update_sign();
         
-        Real get_val(size_t inst) const;
-        Real get_val(size_t i, size_t j) const;
-        Real eval(size_t i);
-        Real eval(size_t i, size_t j);
-//        Real force_eval(size_t i);
-        Real eval(){ return eval(0);};
+        double get_val(size_t inst) const;
+        double get_val(size_t i, size_t j) const;
+        double eval(size_t i);
+        double eval(size_t i, size_t j);
+//        double force_eval(size_t i);
+        double eval(){ return eval(0);};
         string to_str() const;
         string to_str(size_t inst) const;
         void print(bool endline, bool display_input);
@@ -3429,8 +3429,8 @@ namespace gravity {
 
     size_t get_poly_id_inst(const constant_* c, unsigned inst = 0);
 
-    Real poly_eval(const constant_* c, size_t i=0);
-    Real poly_eval(const constant_* c, size_t i, size_t j);
+    double poly_eval(const constant_* c, size_t i=0);
+    double poly_eval(const constant_* c, size_t i, size_t j);
 
 
     void poly_print(const constant_* c);
