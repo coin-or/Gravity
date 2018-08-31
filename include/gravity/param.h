@@ -23,6 +23,8 @@
 #include <limits>
 #include <math.h>
 #include <random>
+#include "qpp.h"
+#include <Eigen/Sparse>
 
 using namespace std;
 
@@ -251,7 +253,7 @@ namespace gravity {
         
         Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
         Sign get_sign(int idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
-        pair<Real,Real>* get_range() const;
+        pair<double,double>* get_range() const;
         
         /** Operators */
         bool operator==(const param_& p) const {
@@ -428,6 +430,7 @@ namespace gravity {
             return p;
         }
         
+        
         shared_ptr<vector<type>> get_vals() const {
             return _val;
         }
@@ -571,9 +574,8 @@ namespace gravity {
             _dim.resize(2);
             _dim[0] = s1;
             _dim[1] = s2;
-            auto index = _dim[1]*s1-1+s2-1;
-            _val->resize(index+1);
-            _val->at(index) = val;
+            auto index = _dim[0]*_dim[1];
+            _val->resize(index);            
         };
         
         void   set_size(size_t s, type val = 0) {
@@ -721,6 +723,75 @@ namespace gravity {
                 _val->at(i) = distribution(generator);
             }
         }
+        
+        /* Matrix representation of a Quantum T gate */
+        void QuantumT(unsigned qubit_pos, unsigned nb_qubits, bool transpose=false) {
+            using namespace qpp;
+            if (transpose) {
+                auto U = gt.expandout(adjoint(gt.T), qubit_pos, nb_qubits);
+                Debug("T transpose matrix at position " << to_string(qubit_pos) <<" = " << endl);
+                Debug(disp(U) << "\n");
+                Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
+                for (int k=0; k<SU.outerSize(); ++k) {
+                    for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
+                        set_val(2*it.row(), 2*it.col(), it.value().real());
+                        set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
+                        set_val(2*it.row()+1, 2*it.col(), it.value().imag());
+                        set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
+                    }
+                }
+            }
+            else {
+                auto U = gt.expandout(gt.T, qubit_pos, nb_qubits);
+                Debug("T matrix at position " << to_string(qubit_pos) <<" = " << endl);
+                Debug(disp(U) << "\n");
+                Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
+                for (int k=0; k<SU.outerSize(); ++k) {
+                    for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
+                        set_val(2*it.row(), 2*it.col(), it.value().real());
+                        set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
+                        set_val(2*it.row()+1, 2*it.col(), it.value().imag());
+                        set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
+                    }
+                }
+            }
+        }
+        
+        /* Matrix representation of a Quantum Hadamard gate */
+        void QuantumH(unsigned qubit_pos, unsigned nb_qubits) {
+            using namespace qpp;
+            auto U = gt.expandout(gt.H, qubit_pos, nb_qubits);
+            Debug("H matrix at position " << to_string(qubit_pos) <<" = " << endl);
+            Debug(disp(U) << "\n");
+            Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
+            for (int k=0; k<SU.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
+                    set_val(2*it.row(), 2*it.col(), it.value().real());
+                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
+                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
+                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
+                }
+            }
+        }
+        
+        
+        /* Matrix representation of a Quantum Cnot gate with qc as control qubit and qt as target one */
+        void QuantumCnot(unsigned qc, unsigned qt, unsigned nb_qubits) {
+            using namespace qpp;
+            auto U = gt.expandout(gt.CTRL(gt.X, {qc}, {qt}, nb_qubits), 0, 1, pow(2,nb_qubits));
+            Debug("Cnot matrix from " << to_string(qc) << " to " << to_string(qt) << " = " << endl);
+            Debug(disp(U) << "\n");
+            Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
+            for (int k=0; k<SU.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
+                    set_val(2*it.row(), 2*it.col(), it.value().real());
+                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
+                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
+                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
+                }
+            }
+        }
+        
         
         void initialize_all(type v) {
             for (int i = 0; i<_val->size(); i++) {
@@ -954,7 +1025,7 @@ namespace gravity {
                 dims.push_back(vec.size());
             }
             unsigned den = 1;
-            size_t real_idx = 0;
+            size_t double_idx = 0;
             for(size_t idx = 0; idx < dim ; idx++){
                 bool excluded = false;
                 string key;
@@ -962,12 +1033,12 @@ namespace gravity {
                 for(auto it = vecs.begin(); it!= vecs.end(); it++) {
                     auto vec = &(*it);
                     den /= vec->size();
-                    real_idx = (idx/den)%vec->size();
-                    if(vec->_excluded_indices.count(real_idx)!=0){
+                    double_idx = (idx/den)%vec->size();
+                    if(vec->_excluded_indices.count(double_idx)!=0){
                         excluded = true;
                         break;
                     }
-                    key += vec->_indices->at(real_idx-1);
+                    key += vec->_indices->at(double_idx-1);
                     if(next(it)!=vecs.end()){
                         key += ",";
                     }
@@ -2520,7 +2591,7 @@ namespace gravity {
                     res._dim[0]++;
                 }
             }
-            res._name += ".excl(" +  to_string(index) +")"; // _name and _unique_id should be really unique.
+            res._name += ".excl(" +  to_string(index) +")"; // _name and _unique_id should be doublely unique.
             res._unique_id = make_tuple<>(res._id, in_ ,typeid(type).hash_code(), index ,index);
             res._is_indexed = true;
             return res;
@@ -2560,7 +2631,7 @@ namespace gravity {
                 }
             }
             res._dim[0]=res._ids->at(0).size();
-            res._name += ".in_time_" +  nm->_name + "_time_" + to_string(T); // _name and _unique_id should be really unique.
+            res._name += ".in_time_" +  nm->_name + "_time_" + to_string(T); // _name and _unique_id should be doublely unique.
             hash<string> str_hash;
             res._unique_id = make_tuple<>(res._id, in_time_,str_hash(nm->_name), 0,res._dim[0]);
             res._is_indexed = true;
@@ -2899,6 +2970,17 @@ namespace gravity {
             str = name;
             if (vals) {
                 str += " = [ \n";
+                if(_is_matrix){
+                    for (unsigned i = 0; i < _dim[0]; i++) {
+                        for (unsigned j = 0; j < _dim[1]; j++) {
+                            str += to_string_with_precision(_val->at(i*_dim[1]+j),3);
+                            str += " ";
+                        }
+                        str += "\n";
+                    }
+                    str += "];\n";
+                    return str;
+                }
                 if(_rev_indices->size()>0) {
                     for (unsigned idx = 0; idx < _val->size(); idx++) {
 //                        if (!_is_relaxed || fabs(roundf(_val->at(idx)) - _val->at(idx)) > 1e-4) {

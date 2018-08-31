@@ -63,27 +63,27 @@ solver::solver(Model& model, SolverType stype){
             if (v_p.second->is_integer() || v_p.second->is_binary()) {
                 has_int = true;
                 auto v = v_p.second;
-                auto new_v = new var<Real>(v_p.second->_name, 0,1);
+                auto new_v = new var<double>(v_p.second->_name, 0,1);
                 new_v->copy(*v);
                 new_v->_is_relaxed = true;
                 new_v->_val->resize(new_v->get_dim());
                 if (v->get_intype()==integer_) {
-                    auto real_var = (var<int>*)v;
-                    for (int i = 0; i < real_var->get_dim(); i++) {
-                        new_v->_val->at(i) = real_var->_val->at(i);
+                    auto double_var = (var<int>*)v;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
                     }
                 }
                 if (v->get_intype()==short_) {
-                    auto real_var = (var<short>*)v;
-                    for (int i = 0; i < real_var->get_dim(); i++) {
-                        new_v->_val->at(i) = real_var->_val->at(i);
+                    auto double_var = (var<short>*)v;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
                     }
                 }
                 if (v->get_intype()==binary_) {
-                    auto real_var = (var<bool>*)v;
-                    _model->_bin_vars[v_p.second->get_vec_id()] = *real_var;
-                    for (int i = 0; i < real_var->get_dim(); i++) {
-                        new_v->_val->at(i) = real_var->_val->at(i);
+                    auto double_var = (var<bool>*)v;
+                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
                     }
                 }
                 v_p.second = new_v;
@@ -153,27 +153,27 @@ solver::solver(Model& model, SolverType stype){
 //            if (v_p.second->is_integer() || v_p.second->is_binary()) {
 //                has_int = true;
 //                auto v = v_p.second;
-//                auto new_v = new var<Real>(v_p.second->_name, 0,1);
+//                auto new_v = new var<double>(v_p.second->_name, 0,1);
 //                new_v->copy(*v);
 //                new_v->_is_relaxed = true;
 //                new_v->_val->resize(new_v->get_dim());
 //                if (v->get_intype()==integer_) {
-//                    auto real_var = (var<int>*)v;
-//                    for (int i = 0; i < real_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = real_var->_val->at(i);
+//                    auto double_var = (var<int>*)v;
+//                    for (int i = 0; i < double_var->get_dim(); i++) {
+//                        new_v->_val->at(i) = double_var->_val->at(i);
 //                    }
 //                }
 //                if (v->get_intype()==short_) {
-//                    auto real_var = (var<short>*)v;
-//                    for (int i = 0; i < real_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = real_var->_val->at(i);
+//                    auto double_var = (var<short>*)v;
+//                    for (int i = 0; i < double_var->get_dim(); i++) {
+//                        new_v->_val->at(i) = double_var->_val->at(i);
 //                    }
 //                }
 //                if (v->get_intype()==binary_) {
-//                    auto real_var = (var<bool>*)v;
-//                    _model->_bin_vars[v_p.second->get_vec_id()] = *real_var;
-//                    for (int i = 0; i < real_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = real_var->_val->at(i);
+//                    auto double_var = (var<bool>*)v;
+//                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
+//                    for (int i = 0; i < double_var->get_dim(); i++) {
+//                        new_v->_val->at(i) = double_var->_val->at(i);
 //                    }
 //                }
 //                v_p.second = new_v;
@@ -324,9 +324,9 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
                     optimal = true;
                     for (auto &v_p:_model->_bin_vars) {
                         auto bin_var = v_p.second;
-                        auto real_var = (var<double>*)_model->get_var(v_p.first);
-                        for (int i = 0; i < real_var->get_dim(); i++) {
-                            if(round(real_var->_val->at(i))==1){
+                        auto double_var = (var<double>*)_model->get_var(v_p.first);
+                        for (int i = 0; i < double_var->get_dim(); i++) {
+                            if(round(double_var->_val->at(i))==1){
                                 bin_var._val->at(i) = true;
                             }
                             else{

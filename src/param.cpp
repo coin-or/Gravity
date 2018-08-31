@@ -18,24 +18,24 @@ namespace gravity{
         return name;
     };
 
-    pair<Real, Real>* param_::get_range() const{
+    pair<double, double>* param_::get_range() const{
         switch (get_intype()) {
             case binary_:
-                return new pair<Real,Real>(((param<bool>*)this)->_range->first, ((param<bool>*)this)->_range->second);
+                return new pair<double,double>(((param<bool>*)this)->_range->first, ((param<bool>*)this)->_range->second);
                 break;
             case short_:
-                return new pair<Real,Real>(((param<short>*)this)->_range->first, ((param<short>*)this)->_range->second);
+                return new pair<double,double>(((param<short>*)this)->_range->first, ((param<short>*)this)->_range->second);
                 break;
             case integer_:
-                return new pair<Real,Real>(((param<int>*)this)->_range->first, ((param<int>*)this)->_range->second);
+                return new pair<double,double>(((param<int>*)this)->_range->first, ((param<int>*)this)->_range->second);
                 break;
             case float_:
-                return new pair<Real,Real>(((param<float>*)this)->_range->first, ((param<float>*)this)->_range->second);
+                return new pair<double,double>(((param<float>*)this)->_range->first, ((param<float>*)this)->_range->second);
             case double_:
-                return new pair<Real,Real>(((param<double>*)this)->_range->first, ((param<double>*)this)->_range->second);
+                return new pair<double,double>(((param<double>*)this)->_range->first, ((param<double>*)this)->_range->second);
                 break;
             case long_:
-                return new pair<Real,Real>(((param<long double>*)this)->_range->first, ((param<long double>*)this)->_range->second);
+                return new pair<double,double>(((param<long double>*)this)->_range->first, ((param<long double>*)this)->_range->second);
                 break;
             default:
                 break;
