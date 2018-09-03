@@ -24,6 +24,7 @@ using namespace gravity;
 
 int main (int argc, char * argv[])
 {
+    #ifdef USE_QPP
     //  Start Timers
     string path = argv[0];
     int output = 0;
@@ -97,5 +98,10 @@ int main (int argc, char * argv[])
     auto total_time_end = get_wall_time();
     auto total_time = total_time_end - total_time_start;
     DebugOn("Total Computing Time = " << total_time << endl);
+#else
+    cerr << "Error: this version of Gravity "
+    "was compiled without QPP support. Please rerun cmake with -DENABLE_QPP=1." << endl;
+#endif
+    
     return 0;
 }
