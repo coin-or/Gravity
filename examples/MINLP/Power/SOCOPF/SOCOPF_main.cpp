@@ -81,28 +81,28 @@ int main (int argc, char * argv[])
     
     /** Variables */
     /* power generation variables */
-    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
-    var<Real> Qg ("Qg", grid.qg_min, grid.qg_max);
+    var<double> Pg("Pg", grid.pg_min, grid.pg_max);
+    var<double> Qg ("Qg", grid.qg_min, grid.qg_max);
     SOCP.add_var(Pg.in(grid.gens));
     SOCP.add_var(Qg.in(grid.gens));
     
     
     /* power flow variables */
-    var<Real> Pf_from("Pf_from", grid.S_max);
-    var<Real> Qf_from("Qf_from", grid.S_max);
-    var<Real> Pf_to("Pf_to", grid.S_max);
-    var<Real> Qf_to("Qf_to", grid.S_max);
+    var<double> Pf_from("Pf_from", grid.S_max);
+    var<double> Qf_from("Qf_from", grid.S_max);
+    var<double> Pf_to("Pf_to", grid.S_max);
+    var<double> Qf_to("Qf_to", grid.S_max);
     SOCP.add_var(Pf_from.in(grid.arcs));
     SOCP.add_var(Qf_from.in(grid.arcs));
     SOCP.add_var(Pf_to.in(grid.arcs));
     SOCP.add_var(Qf_to.in(grid.arcs));
     
     /* Real part of Wij = ViVj */
-    var<Real>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
+    var<double>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<Real>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
+    var<double>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<Real>  Wii("Wii", grid.w_min, grid.w_max);
+    var<double>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP.add_var(Wii.in(grid.nodes));
     SOCP.add_var(R_Wij.in(bus_pairs));
     SOCP.add_var(Im_Wij.in(bus_pairs));

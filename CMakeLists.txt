@@ -28,6 +28,9 @@ option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
 # include BOOST (optional)
 option(ENABLE_BOOST "Link to BOOST libraries" OFF)
 
+# include QPP (optional)
+option(ENABLE_QPP "Link to QPP libraries" OFF)
+
 
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/armadillo.tar.xz
@@ -127,12 +130,18 @@ add_subdirectory(${ARMADILLO_ROOT_DIR})
 
 # Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
-include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
 add_subdirectory(third_party/cpp_option_parser)
-add_subdirectory(third_party/qpp-1.0)
 set(LIBS ${LIBS} option_parser)
 
-# Inlude Eigen Header files
+# Include qpp headers
+# Find QPP?
+if (ENABLE_QPP)
+    message(STATUS "Enable QPP")
+    add_definitions(-DUSE_QPP)
+    include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
+endif()
+
+# Inlude dir
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs

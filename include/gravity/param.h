@@ -23,7 +23,9 @@
 #include <limits>
 #include <math.h>
 #include <random>
-#include "qpp.h"
+#ifdef USE_QPP
+	#include "qpp.h"
+#endif
 #include <Eigen/Sparse>
 
 using namespace std;
@@ -723,7 +725,8 @@ namespace gravity {
                 _val->at(i) = distribution(generator);
             }
         }
-        
+       
+#ifdef USE_QPP 
         /* Matrix representation of a Quantum T gate */
         void QuantumT(unsigned qubit_pos, unsigned nb_qubits, bool transpose=false) {
             using namespace qpp;
@@ -791,7 +794,7 @@ namespace gravity {
                 }
             }
         }
-        
+#endif
         
         void initialize_all(type v) {
             for (int i = 0; i<_val->size(); i++) {

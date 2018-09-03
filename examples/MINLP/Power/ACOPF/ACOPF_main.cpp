@@ -79,13 +79,13 @@ using namespace gravity;
 //    Model ACOPF("AC-OPF Model");
 //    /** Variables */
 //    /* Power generation variables */
-//    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
-//    var<Real> Qg("Qg", grid.qg_min, grid.qg_max);
+//    var<double> Pg("Pg", grid.pg_min, grid.pg_max);
+//    var<double> Qg("Qg", grid.qg_min, grid.qg_max);
 //
 //
 //    /** Voltage related variables */
-//    var<Real> vr("vr", grid.v_max);
-//    var<Real> vi("vi", grid.v_max);
+//    var<double> vr("vr", grid.v_max);
+//    var<double> vi("vi", grid.v_max);
 //    
 //    ACOPF.add(vr.in(grid.nodes));
 //    ACOPF.add(vi.in(grid.nodes));
@@ -439,16 +439,16 @@ int main (int argc, char * argv[])
     Model ACOPF("AC-OPF Model");
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
-    var<Real> Qg ("Qg", grid.qg_min, grid.qg_max);
+    var<double> Pg("Pg", grid.pg_min, grid.pg_max);
+    var<double> Qg ("Qg", grid.qg_min, grid.qg_max);
     ACOPF.add(Pg.in(grid.gens));
     ACOPF.add(Qg.in(grid.gens));
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", grid.S_max);
-    var<Real> Qf_from("Qf_from", grid.S_max);
-    var<Real> Pf_to("Pf_to", grid.S_max);
-    var<Real> Qf_to("Qf_to", grid.S_max);
+    var<double> Pf_from("Pf_from", grid.S_max);
+    var<double> Qf_from("Qf_from", grid.S_max);
+    var<double> Pf_to("Pf_to", grid.S_max);
+    var<double> Qf_to("Qf_to", grid.S_max);
     
     ACOPF.add(Pf_from.in(grid.arcs));
     ACOPF.add(Qf_from.in(grid.arcs));
@@ -457,12 +457,12 @@ int main (int argc, char * argv[])
     
     
     /** Voltage related variables */
-    var<Real> theta("theta");
-    var<Real> v("|V|", grid.v_min, grid.v_max);
-//    var<Real> vr("vr", grid.v_max);
-//    var<Real> vi("vi", grid.v_max);
-    var<Real> vr("vr");
-    var<Real> vi("vi");
+    var<double> theta("theta");
+    var<double> v("|V|", grid.v_min, grid.v_max);
+//    var<double> vr("vr", grid.v_max);
+//    var<double> vi("vi", grid.v_max);
+    var<double> vr("vr");
+    var<double> vi("vi");
     
     if (polar) {
         ACOPF.add(v.in(grid.nodes));
