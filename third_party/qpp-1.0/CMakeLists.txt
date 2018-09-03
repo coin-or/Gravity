@@ -36,7 +36,9 @@ SET(SOURCE_FILES
 
 #### Eigen3
 MESSAGE(STATUS "Detecting Eigen3")
-SET(EIGEN3_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/third_party/Eigen3" CACHE PATH "Path to Eigen3")
+SET(EIGEN3_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/../Eigen" CACHE PATH "Path to Eigen3")
+message("—- Looking for Eigen under ${EIGEN3_INCLUDE_DIR}")
+#message("—- PROJECT_SOURCE_DIR is under ${PROJECT_SOURCE_DIR}")
 #### Location manually specified
 IF (NOT ${EIGEN3_INCLUDE_DIR} STREQUAL "")
     IF (IS_DIRECTORY ${EIGEN3_INCLUDE_DIR})

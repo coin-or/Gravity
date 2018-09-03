@@ -1380,7 +1380,7 @@ void PowerNet::update_net(){
 //    for (auto &v_p:model->_vars) {
 //        if (v_p.second->is_integer() || v_p.second->is_binary()) {
 //            auto v = v_p.second;
-//            auto new_v = new var<Real>(v_p.second->_name, 0,1);
+//            auto new_v = new var<double>(v_p.second->_name, 0,1);
 //            new_v->copy(*v);
 //            new_v->_is_relaxed = true;
 //            new_v->_val->resize(new_v->get_dim());
@@ -1426,18 +1426,18 @@ shared_ptr<Model> PowerNet::build_SCOPF_line_contingency(int cont, const string&
     }
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg_cont", pg_min, pg_max);
-    var<Real> Qg ("Qg_cont", qg_min, qg_max);
-    var<Real> Sp ("Sp", pos_);
-    var<Real> Sn ("Sn", pos_);
+    var<double> Pg("Pg_cont", pg_min, pg_max);
+    var<double> Qg ("Qg_cont", qg_min, qg_max);
+    var<double> Sp ("Sp", pos_);
+    var<double> Sn ("Sn", pos_);
     CSCOPF->add(Pg.in(gens), Qg.in(gens), Sp.in(gens), Sn.in(gens));
     Qg_cont[cont] = Qg;
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     CSCOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     p_from[cont] = Pf_from;
@@ -1445,7 +1445,7 @@ shared_ptr<Model> PowerNet::build_SCOPF_line_contingency(int cont, const string&
     p_to[cont] = Pf_to;
     q_to[cont] = Qf_to;
     
-    var<Real> delta("delta", pos_);
+    var<double> delta("delta", pos_);
     CSCOPF->add(delta.in(R(1)));
     _delta[cont] = delta;
     
@@ -1456,14 +1456,14 @@ shared_ptr<Model> PowerNet::build_SCOPF_line_contingency(int cont, const string&
             Ng.add(bus->_name);
         }
     }
-    var<Real> v_diff("v_diff", pos_);
+    var<double> v_diff("v_diff", pos_);
     CSCOPF->add(v_diff.in(Ng));
     
     /** Voltage related variables */
-    var<Real> theta("theta");
-    var<Real> v("v_cont", v_min, v_max);
-    var<Real> vr("vr");
-    var<Real> vi("vi");
+    var<double> theta("theta");
+    var<double> v("v_cont", v_min, v_max);
+    var<double> vr("vr");
+    var<double> vi("vi");
     
     if (polar) {
         CSCOPF->add_var(v.in(nodes));
@@ -1628,43 +1628,43 @@ shared_ptr<Model> PowerNet::build_ROMDST_contingency(const string& name, PowerMo
     
     
     /* Diesel power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
-    var<Real> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
     ROMDST->add(Pg.in(new_Gt),Pg_.in(new_Gt),Qg.in(new_Gt));
     
     
     /* Battery power generation variables */
-    var<Real> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
-    var<Real> Pb_diff("Pb_diff", pos_);/**< Difference in active power generation outside and inside the battery */
-    var<Real> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
-    var<Real> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
-//    var<Real> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
+    var<double> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
+    var<double> Pb_diff("Pb_diff", pos_);/**< Difference in active power generation outside and inside the battery */
+    var<double> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
+    var<double> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
+//    var<double> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
     ROMDST->add(Pb.in(new_Bt), Qb.in(new_Bt), Pb_.in(new_Bt), Pb_diff.in(new_Bt));
     
     
     /* PV power generation variables */
-    var<Real> Pv("Pv", pos_);
+    var<double> Pv("Pv", pos_);
     ROMDST->add(Pv.in(new_PVt));
     
     /* Battery state of charge variables */
-    var<Real> Sc("Sc", pos_);
+    var<double> Sc("Sc", pos_);
     ROMDST->add(Sc.in(new_Bt));
     
     /* Wind power generation variables */
-    var<Real> Pw("Pw", pw_min, pw_max);
+    var<double> Pw("Pw", pw_min, pw_max);
     //    pw_max.print(true);
     ROMDST->add(Pw.in(Wt));
     
     /* Power flow variables */
-    var<Real> Pij("Pfrom", S_max);
-    var<Real> Qij("Qfrom", S_max);
-    var<Real> Pji("Pto", S_max);
-    var<Real> Qji("Qto", S_max);
+    var<double> Pij("Pfrom", S_max);
+    var<double> Qij("Qfrom", S_max);
+    var<double> Pji("Pto", S_max);
+    var<double> Qji("Qto", S_max);
     
-    var<Real> P_shed("P_shed", pos_);
-    var<Real> P_shed_max("P_shed_max", pos_);
-//    var<Real> Q_shed("Q_shed", pos_);
+    var<double> P_shed("P_shed", pos_);
+    var<double> P_shed_max("P_shed_max", pos_);
+//    var<double> Q_shed("Q_shed", pos_);
     
     ROMDST->add(Pij.in(new_Et),Qij.in(new_Et), P_shed.in(Nt), P_shed_max.in(R(1)));
     if (pmt!=LDISTF) {
@@ -1672,12 +1672,12 @@ shared_ptr<Model> PowerNet::build_ROMDST_contingency(const string& name, PowerMo
     }
     
     /** Voltage magnitude (squared) variables */
-    var<Real> v("v", vmin, vmax);
+    var<double> v("v", vmin, vmax);
     ROMDST->add(v.in(Nt));
     v.initialize_all(0.64);
     
     /** Power loss variables */
-    var<Real> loss("loss", pos_);
+    var<double> loss("loss", pos_);
     if (pmt==DISTF || pmt==CDISTF) {
         ROMDST->add(loss.in(Nt));
     }
@@ -2012,14 +2012,14 @@ unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double 
     
     /* Investment binaries */
     
-//    var<Real> Pv_cap("Pv_cap", 0, pv_max); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
-    var<Real> Pv_cap("Pv_cap", pos_); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
+//    var<double> Pv_cap("Pv_cap", 0, pv_max); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
+    var<double> Pv_cap("Pv_cap", pos_); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
     auto pot_pv = indices(_potential_PV_gens);
     ROMDST->add(Pv_cap.in(pot_pv));
-//        var<Real> w_g("w_g",0,1); /**< Binary variable indicating if generator g is built on bus */
-//        var<Real> w_b("w_b",0,1); /**< Binary variable indicating if battery b is built on bus */
-//        var<Real> w_e("w_e",0,1); /**< Binary variable indicating if expansion is selected for edge e */
-//        var<Real> w_pv("w_pv",0,1); /**< Binary variable indicating if expansion is selected for edge e */
+//        var<double> w_g("w_g",0,1); /**< Binary variable indicating if generator g is built on bus */
+//        var<double> w_b("w_b",0,1); /**< Binary variable indicating if battery b is built on bus */
+//        var<double> w_e("w_e",0,1); /**< Binary variable indicating if expansion is selected for edge e */
+//        var<double> w_pv("w_pv",0,1); /**< Binary variable indicating if expansion is selected for edge e */
 //        w_g._is_relaxed = true;
 //        w_b._is_relaxed = true;
 //        w_e._is_relaxed = true;
@@ -2052,11 +2052,11 @@ unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double 
     
     
     /* Diesel power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
-    var<Real> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
-//    var<Real> Pg2("Pg2", 0, power(pg_max,2));/**< Square of Pg */
-    var<Real> Pg2("Pg2", pos_);/**< Square of Pg */
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
+//    var<double> Pg2("Pg2", 0, power(pg_max,2));/**< Square of Pg */
+    var<double> Pg2("Pg2", pos_);/**< Square of Pg */
     ROMDST->add(Pg.in(Gt),Pg_.in(Gt),Qg.in(Gt),Pg2.in(pot_Gt));
     DebugOff("size Pg = " << Pg.get_dim() << endl);
     DebugOff("size Pg_ = " << Pg_.get_dim() << endl);
@@ -2068,37 +2068,37 @@ unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double 
     this->Pg_ = Pg_;    
     
     /* Battery power generation variables */
-    var<Real> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
-    var<Real> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
-    var<Real> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
-//    var<Real> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
+    var<double> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
+    var<double> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
+    var<double> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
+//    var<double> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
     ROMDST->add(Pb.in(Bt), Qb.in(Bt), Pb_.in(Bt));
     DebugOff("size Pb = " << Pb.get_dim() << endl);
     DebugOff("size Qb = " << Qb.get_dim() << endl);
     
     
     /* PV power generation variables */
-//    var<Real> Pv("Pv", 0,pv_max);
-    var<Real> Pv("Pv", pos_);
+//    var<double> Pv("Pv", 0,pv_max);
+    var<double> Pv("Pv", pos_);
     ROMDST->add(Pv.in(PVt));
     DebugOff("size Pv = " << Pv.get_dim() << endl);
     
     /* Battery state of charge variables */
-    var<Real> Sc("Sc", pos_);
+    var<double> Sc("Sc", pos_);
     ROMDST->add(Sc.in(Bt));
     DebugOff("size Sc = " << Sc.get_dim() << endl);
     
     /* Wind power generation variables */
-    var<Real> Pw("Pw", pw_min, pw_max);
+    var<double> Pw("Pw", pw_min, pw_max);
     //    pw_max.print(true);
     ROMDST->add(Pw.in(Wt));
     DebugOff("size Pw = " << Pw.get_dim() << endl);
     
     /* Power flow variables */
-    var<Real> Pij("Pfrom", S_max);
-    var<Real> Qij("Qfrom", S_max);
-    var<Real> Pji("Pto", S_max);
-    var<Real> Qji("Qto", S_max);
+    var<double> Pij("Pfrom", S_max);
+    var<double> Qij("Qfrom", S_max);
+    var<double> Pji("Pto", S_max);
+    var<double> Qji("Qto", S_max);
     
     ROMDST->add(Pij.in(Et),Qij.in(Et));
     DebugOff("size Pij = " << Pij.get_dim() << endl);
@@ -2107,13 +2107,13 @@ unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double 
     }
     
     /** Voltage magnitude (squared) variables */
-    var<Real> v("v", vmin, vmax);
+    var<double> v("v", vmin, vmax);
     ROMDST->add(v.in(Nt));
     DebugOff("size v = " << v.get_dim() << endl);
 //    v.initialize_all(0.64);
     
     /** Power loss variables */
-    var<Real> loss("loss", pos_);
+    var<double> loss("loss", pos_);
     if (pmt==DISTF || pmt==CDISTF) {
         ROMDST->add(loss.in(Nt));
     }
@@ -2345,18 +2345,18 @@ unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output
     unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -2366,13 +2366,13 @@ unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output
     
     /** Voltage related variables */
     
-    var<Real> theta("theta_base", -6.3, 6.3);
-    var<Real> v("v_base", v_min, v_max);
+    var<double> theta("theta_base", -6.3, 6.3);
+    var<double> v("v_base", v_min, v_max);
     
-    //    var<Real> vr("vr");
-    //    var<Real> vi("vi");
-    var<Real> vr("vr", v_max);
-    var<Real> vi("vi", v_max);
+    //    var<double> vr("vr");
+    //    var<double> vi("vi");
+    var<double> vr("vr", v_max);
+    var<double> vi("vi", v_max);
     
     if (polar) {
         ACOPF->add(v.in(nodes), theta.in(nodes));
@@ -2518,10 +2518,10 @@ unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
         
         
@@ -2553,10 +2553,10 @@ unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output
             }
         }
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -2564,12 +2564,12 @@ unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output
         p_to[cont] = Pf_to_c;
         q_to[cont] = Qf_to_c;
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         ACOPF->add(delta.in(R(1)));
         _delta[cont] = delta;
         
-        var<Real> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-        var<Real> v_c("v_c"+to_string(cont), v_min, v_max);
+        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
+        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
         
         ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
         v_c.initialize_all(1);
@@ -2739,18 +2739,18 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, d
     unique_ptr<Model> SOCP(new Model("SOCP Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     SOCP->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     SOCP->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -2768,11 +2768,11 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, d
     /** Voltage related variables */
     
     /* Real part of Wij = ViVj */
-    var<Real>  R_Wij("R_Wij", wr_min, wr_max);
+    var<double>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<Real>  Im_Wij("Im_Wij", wi_min, wi_max);
+    var<double>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<Real>  Wii("Wii", w_min, w_max);
+    var<double>  Wii("Wii", w_min, w_max);
     SOCP->add_var(Wii.in(nodes));
     auto bus_pairs = get_bus_pairs();
     auto bus_pairs_chord = get_bus_pairs_chord();
@@ -2882,18 +2882,18 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, d
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         SOCP->add(Pg_c.in(gens), Qg_c.in(gens));
         Qg_cont[cont] = Qg_c;
         
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         SOCP->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -2901,15 +2901,15 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, d
         p_to[cont] = Pf_to_c;
         q_to[cont] = Qf_to_c;
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         SOCP->add(delta.in(R(1)));
         _delta[cont] = delta;
         /* Real part of Wij = ViVj */
-        var<Real>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
+        var<double>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
         /* Imaginary part of Wij = ViVj */
-        var<Real>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
+        var<double>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
         /* Magnitude of Wii = Vi^2 */
-        var<Real>  Wii_c("Wii"+to_string(cont), w_min, w_max);
+        var<double>  Wii_c("Wii"+to_string(cont), w_min, w_max);
         SOCP->add_var(Wii_c.in(nodes));
         SOCP->add_var(R_Wij_c.in(bus_pairs));
         SOCP->add_var(Im_Wij_c.in(bus_pairs));
@@ -3029,18 +3029,18 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_MINLP(PowerModelType pmt, int output,
     unique_ptr<Model> SOCP(new Model("SOCP Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     SOCP->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     SOCP->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -3059,11 +3059,11 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_MINLP(PowerModelType pmt, int output,
     
     
     /* Real part of Wij = ViVj */
-    var<Real>  R_Wij("R_Wij", wr_min, wr_max);
+    var<double>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<Real>  Im_Wij("Im_Wij", wi_min, wi_max);
+    var<double>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<Real>  Wii("Wii", w_min, w_max);
+    var<double>  Wii("Wii", w_min, w_max);
     SOCP->add_var(Wii.in(nodes));
     auto bus_pairs = get_bus_pairs();
     auto bus_pairs_chord = get_bus_pairs_chord();
@@ -3149,18 +3149,18 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_MINLP(PowerModelType pmt, int output,
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         SOCP->add(Pg_c.in(gens), Qg_c.in(gens));
         Qg_cont[cont] = Qg_c;
         
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         SOCP->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -3168,15 +3168,15 @@ unique_ptr<Model> PowerNet::build_SOCP_OPF_MINLP(PowerModelType pmt, int output,
         p_to[cont] = Pf_to_c;
         q_to[cont] = Qf_to_c;
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         SOCP->add(delta.in(R(1)));
         _delta[cont] = delta;
         /* Real part of Wij = ViVj */
-        var<Real>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
+        var<double>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
         /* Imaginary part of Wij = ViVj */
-        var<Real>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
+        var<double>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
         /* Magnitude of Wii = Vi^2 */
-        var<Real>  Wii_c("Wii"+to_string(cont), w_min, w_max);
+        var<double>  Wii_c("Wii"+to_string(cont), w_min, w_max);
         SOCP->add_var(Wii_c.in(nodes));
         SOCP->add_var(R_Wij_c.in(bus_pairs));
         SOCP->add_var(Im_Wij_c.in(bus_pairs));
@@ -3335,18 +3335,18 @@ unique_ptr<Model> PowerNet::build_ACOPF_MINLP(PowerModelType pmt, int output, do
     unique_ptr<Model> ACOPF(new Model("ACOPF_MINLP Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -3364,8 +3364,8 @@ unique_ptr<Model> PowerNet::build_ACOPF_MINLP(PowerModelType pmt, int output, do
     /** Voltage related variables */
     
     
-    var<Real> theta("theta_base", -6.3, 6.3);
-    var<Real> v("v_base", v_min, v_max);
+    var<double> theta("theta_base", -6.3, 6.3);
+    var<double> v("v_base", v_min, v_max);
     
     /** Define constraints */
     
@@ -3451,18 +3451,18 @@ unique_ptr<Model> PowerNet::build_ACOPF_MINLP(PowerModelType pmt, int output, do
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
         Qg_cont[cont] = Qg_c;
         
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -3470,12 +3470,12 @@ unique_ptr<Model> PowerNet::build_ACOPF_MINLP(PowerModelType pmt, int output, do
         p_to[cont] = Pf_to_c;
         q_to[cont] = Qf_to_c;
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         ACOPF->add(delta.in(R(1)));
         _delta[cont] = delta;
         
-        var<Real> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-        var<Real> v_c("v_c"+to_string(cont), v_min, v_max);
+        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
+        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
         
         ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
         v_c.initialize_all(1);
@@ -3630,18 +3630,18 @@ unique_ptr<Model> PowerNet::build_ACOPF_N_1(PowerModelType pmt, int output, doub
     unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -3658,13 +3658,13 @@ unique_ptr<Model> PowerNet::build_ACOPF_N_1(PowerModelType pmt, int output, doub
     
     /** Voltage related variables */
     
-    var<Real> theta("theta_base", -6.3, 6.3);
-    var<Real> v("v_base", v_min, v_max);
+    var<double> theta("theta_base", -6.3, 6.3);
+    var<double> v("v_base", v_min, v_max);
     
-    //    var<Real> vr("vr");
-    //    var<Real> vi("vi");
-    var<Real> vr("vr", v_max);
-    var<Real> vi("vi", v_max);
+    //    var<double> vr("vr");
+    //    var<double> vi("vi");
+    var<double> vr("vr", v_max);
+    var<double> vi("vi", v_max);
     
     if (polar) {
         ACOPF->add(v.in(nodes), theta.in(nodes));
@@ -3810,18 +3810,18 @@ unique_ptr<Model> PowerNet::build_ACOPF_N_1(PowerModelType pmt, int output, doub
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
         Qg_cont[cont] = Qg_c;
         
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -3829,12 +3829,12 @@ unique_ptr<Model> PowerNet::build_ACOPF_N_1(PowerModelType pmt, int output, doub
         p_to[cont] = Pf_to_c;
         q_to[cont] = Qf_to_c;
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         ACOPF->add(delta.in(R(1)));
         _delta[cont] = delta;
         
-        var<Real> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-        var<Real> v_c("v_c"+to_string(cont), v_min, v_max);
+        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
+        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
         
         ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
         v_c.initialize_all(1);
@@ -3941,8 +3941,8 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
     unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
@@ -3950,10 +3950,10 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
 //    Qg.initialize_uniform();
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
@@ -3974,13 +3974,13 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
     
     /** Voltage related variables */
 
-    var<Real> theta("theta_base", -6.3, 6.3);
-    var<Real> v("v_base", v_min, v_max);
+    var<double> theta("theta_base", -6.3, 6.3);
+    var<double> v("v_base", v_min, v_max);
 
-    //    var<Real> vr("vr");
-    //    var<Real> vi("vi");
-    var<Real> vr("vr", v_max);
-    var<Real> vi("vi", v_max);
+    //    var<double> vr("vr");
+    //    var<double> vi("vi");
+    var<double> vr("vr", v_max);
+    var<double> vi("vi", v_max);
     
     if (polar) {
         ACOPF->add(v.in(nodes), theta.in(nodes));
@@ -4128,19 +4128,19 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
         if (i>0) {
             _conting_lines[i-1]->_active = true;
         }
-        var<Real> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-        var<Real> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-        //    var<Real> Sp ("Sp", pos_);
-        //    var<Real> Sn ("Sn", pos_);
+        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
+        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
+        //    var<double> Sp ("Sp", pos_);
+        //    var<double> Sn ("Sn", pos_);
         ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
         Qg_cont[cont] = Qg_c;
 
 //        Pg_c.initialize_uniform();
 //        Qg_c.initialize_uniform();
         
-        var<Real> v_diff_p("v_diff_p"+to_string(cont), pos_);
+        var<double> v_diff_p("v_diff_p"+to_string(cont), pos_);
         ACOPF->add(v_diff_p.in(Ng));
-        var<Real> v_diff_n("v_diff_n"+to_string(cont), pos_);
+        var<double> v_diff_n("v_diff_n"+to_string(cont), pos_);
         ACOPF->add(v_diff_n.in(Ng));
         
         v_diff_p_cont[cont] = v_diff_p;
@@ -4150,10 +4150,10 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
         
 //        ACOPF->_obj*=1e-4;
         
-        var<Real> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-        var<Real> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-        var<Real> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-        var<Real> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
+        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
+        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
+        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
+        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
         ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
         
         p_from[cont] = Pf_from_c;
@@ -4166,12 +4166,12 @@ unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output,
 //        Pf_to_c.initialize_normal(0, 1);
 //        Qf_to_c.initialize_normal(0, 1);
         
-        var<Real> delta("delta"+to_string(cont), pos_);
+        var<double> delta("delta"+to_string(cont), pos_);
         ACOPF->add(delta.in(R(1)));
         _delta[cont] = delta;
         
-        var<Real> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-        var<Real> v_c("v_c"+to_string(cont), v_min, v_max);
+        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
+        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
         
         ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
         v_c.initialize_all(1);
@@ -4302,29 +4302,29 @@ unique_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double t
     unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", pg_min, pg_max);
-    var<Real> Qg ("Qg", qg_min, qg_max);
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens), Qg.in(gens));
     Pg_base = Pg;
     Qg_base = Qg;
     
     /* Power flow variables */
-    var<Real> Pf_from("Pf_from", S_max);
-    var<Real> Qf_from("Qf_from", S_max);
-    var<Real> Pf_to("Pf_to", S_max);
-    var<Real> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     p_from_base = Pf_from;
     p_to_base = Pf_to;
     q_from_base = Qf_from;
     q_to_base = Qf_to;
     /** Voltage related variables */
-    var<Real> theta("theta", -6.3, 6.3);
-    var<Real> v("|V|", v_min, v_max);
-    //    var<Real> vr("vr");
-    //    var<Real> vi("vi");
-    var<Real> vr("vr", v_max);
-    var<Real> vi("vi", v_max);
+    var<double> theta("theta", -6.3, 6.3);
+    var<double> v("|V|", v_min, v_max);
+    //    var<double> vr("vr");
+    //    var<double> vi("vi");
+    var<double> vr("vr", v_max);
+    var<double> vi("vi", v_max);
     
     if (polar) {
         ACOPF->add_var(v.in(nodes));

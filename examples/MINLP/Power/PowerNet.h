@@ -95,35 +95,35 @@ public:
     double m_theta_lb = 0, m_theta_ub = 0; /**< BigM values for phase angles */
     double vmin = 0, vmax = 0; /**< Global values for voltage bounds */
     size_t nb_nodes = 0, nb_branches = 0, nb_gens = 0;
-    param<Real> cb_f, cb_v;/**< Battery fixed nd variable costs */
-    param<Real> inverter_capcost, gen_capcost, expansion_capcost, pv_capcost, pv_varcost;/**< Inverter, Generators, Expansion and PV capital costs */
+    param<double> cb_f, cb_v;/**< Battery fixed nd variable costs */
+    param<double> inverter_capcost, gen_capcost, expansion_capcost, pv_capcost, pv_varcost;/**< Inverter, Generators, Expansion and PV capital costs */
     
-    param<Real> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
-    param<Real> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
-    param<Real> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */    
-    param<Real> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
-    param<Real> pv_out; /**< Normalized PV generation on bus */
-    param<Real> c0, c1, c2; /**< Generation costs */
-    param<Real> p_factor; /**< Participation factor for generators */
-    param<Real> ramp_up, ramp_down; /**< Generation ramp up/down params */
-    param<Real> gen_eff; /**< Diesel generation efficiency */
+    param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
+    param<double> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
+    param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */    
+    param<double> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
+    param<double> pv_out; /**< Normalized PV generation on bus */
+    param<double> c0, c1, c2; /**< Generation costs */
+    param<double> p_factor; /**< Participation factor for generators */
+    param<double> ramp_up, ramp_down; /**< Generation ramp up/down params */
+    param<double> gen_eff; /**< Diesel generation efficiency */
     param<int> min_ut, min_dt; /**< Minimum Uptime and Downtime for Generators */
     int max_ident_units; /**< Maximum number of identical units */
     param<int> min_diesel_invest, max_diesel_invest; /**< Minimum and Maximum number of Diesel generation investment at a given bus */
     param<int> min_batt_invest, max_batt_invest; /**< Minimum and Maximum number of Battery investment at a given bus */    
-    param<Real> th_min, th_max, tan_th_min, tan_th_max, cphi, sphi, cos_d; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
-    param<Real> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
-    param<Real> v_diff_max; /**< Voltage bounds difference upper bound */
-    param<Real> w_min, w_max; /**< Voltage bounds in lifted W space */
-    param<Real> pl, ql, pl_ratio; /**< Load vectors */
-    param<Real> gs, bs; /**< Transformer params */
-    param<Real> eff_a, eff_b; /**< Efficiency params */
+    param<double> th_min, th_max, tan_th_min, tan_th_max, cphi, sphi, cos_d; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
+    param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
+    param<double> v_diff_max; /**< Voltage bounds difference upper bound */
+    param<double> w_min, w_max; /**< Voltage bounds in lifted W space */
+    param<double> pl, ql, pl_ratio; /**< Load vectors */
+    param<double> gs, bs; /**< Transformer params */
+    param<double> eff_a, eff_b; /**< Efficiency params */
     unsigned _nb_eff_pieces = 1;/**< Number of pieces for the efficiency curves */
     unsigned _nb_conting = 0;/**< Number of contingencies for N-1 */
     indices _eff_pieces;/**< Set of indices for pieces for the efficiency curves */
-    param<Real> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
-    param<Real> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
-    param<Real> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, Y, Y_t, Y_charge, Y_charge_t; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
+    param<double> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
+    param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
+    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, Y, Y_t, Y_charge, Y_charge_t; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
     
     /** Set of all diesel generators */
     std::vector<Gen*> gens;
@@ -201,27 +201,27 @@ public:
     
     /** Investment Binary Variables */
     var<bool> w_g, w_b, w_e, w_pv;
-    var<Real> Pv_cap; /**< Real variable indicating the extra capacity of PV to be installed */
-    param<Real> Pv_cap_; /**< Real variable indicating the extra capacity of PV that has been installed */
-    var<Real> Pg_; /**< Real variable indicating the power generation levels on committed generators */
-    var<Real> Qg_; /**< Real variable indicating the power generation levels on committed generators */
-    param<Real> v_base; /**< Voltage magnitude on buses */
-    param<Real> theta_base; /**< Phase angle on buses */
-    param<Real> p_from_base;/**< Params storing power flows in the base case */
-    param<Real> p_to_base;/**< Params storing power flows in the base case */
-    param<Real> q_from_base;/**< Params storing power flows in the base case */
-    param<Real> q_to_base;/**< Params storing power flows in the base case */
-    param<Real> Pg_base, Qg_base; /**< Real and Reactive params storing the power generation levels on committed generators in the base case */
-    vector<param<Real>> Qg_cont;/**< Params storing the reactive power generation levels on committed generators in the contingency cases */
-    vector<param<Real>> v_cont;/**< Params storing voltage magnitudes in the contingency cases */
-    vector<param<Real>> v_diff_p_cont;/**< Params storing voltage magnitudes differences in the contingency cases */
-    vector<param<Real>> v_diff_n_cont;/**< Params storing voltage magnitudes differences in the contingency cases */
-    vector<param<Real>> theta_cont;/**< Params storing phase angles in the contingency cases */
-    vector<param<Real>> p_from;/**< Params storing power flows in the contingency cases */
-    vector<param<Real>> p_to;/**< Params storing power flows in the contingency cases */
-    vector<param<Real>> q_from;/**< Params storing power flows in the contingency cases */
-    vector<param<Real>> q_to;/**< Params storing power flows in the contingency cases */
-    vector<param<Real>> _delta;/**< Params storing power generation delta for contingency cases */
+    var<double> Pv_cap; /**< Real variable indicating the extra capacity of PV to be installed */
+    param<double> Pv_cap_; /**< Real variable indicating the extra capacity of PV that has been installed */
+    var<double> Pg_; /**< Real variable indicating the power generation levels on committed generators */
+    var<double> Qg_; /**< Real variable indicating the power generation levels on committed generators */
+    param<double> v_base; /**< Voltage magnitude on buses */
+    param<double> theta_base; /**< Phase angle on buses */
+    param<double> p_from_base;/**< Params storing power flows in the base case */
+    param<double> p_to_base;/**< Params storing power flows in the base case */
+    param<double> q_from_base;/**< Params storing power flows in the base case */
+    param<double> q_to_base;/**< Params storing power flows in the base case */
+    param<double> Pg_base, Qg_base; /**< Real and Reactive params storing the power generation levels on committed generators in the base case */
+    vector<param<double>> Qg_cont;/**< Params storing the reactive power generation levels on committed generators in the contingency cases */
+    vector<param<double>> v_cont;/**< Params storing voltage magnitudes in the contingency cases */
+    vector<param<double>> v_diff_p_cont;/**< Params storing voltage magnitudes differences in the contingency cases */
+    vector<param<double>> v_diff_n_cont;/**< Params storing voltage magnitudes differences in the contingency cases */
+    vector<param<double>> theta_cont;/**< Params storing phase angles in the contingency cases */
+    vector<param<double>> p_from;/**< Params storing power flows in the contingency cases */
+    vector<param<double>> p_to;/**< Params storing power flows in the contingency cases */
+    vector<param<double>> q_from;/**< Params storing power flows in the contingency cases */
+    vector<param<double>> q_to;/**< Params storing power flows in the contingency cases */
+    vector<param<double>> _delta;/**< Params storing power generation delta for contingency cases */
     /** Constructors */
     PowerNet();
     ~PowerNet();

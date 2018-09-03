@@ -332,8 +332,8 @@ int main (int argc, const char * argv[])
 ////    p[1]->print(true);
 //    
 //    func_ polynomial;
-//    var<Real> xvar("x", -1, 1);
-//    param<Real> c("c");
+//    var<double> xvar("x", -1, 1);
+//    param<double> c("c");
 //    param<double> d("d");
 //
 //    c = 1;
@@ -344,13 +344,13 @@ int main (int argc, const char * argv[])
 //    cout << "the constant of this polynomial function is: " << poly_eval(polynomial.get_cst()) << endl;
 //    
 //    unsigned n = 10;
-//    param<Real> ones("ones");
-//    param<Real> zeros("zeros");
+//    param<double> ones("ones");
+//    param<double> zeros("zeros");
 //
 //    ones.set_size(n, 1);
 //    zeros.set_size(n, 0);
-//    var<Real> yvar("y", zeros, ones);
-//    var<Real> Xvar("X", -1, 1);
+//    var<double> yvar("y", zeros, ones);
+//    var<double> Xvar("X", -1, 1);
 //
 //    Xvar(1,1) =2;
 //    Xvar.print(true);

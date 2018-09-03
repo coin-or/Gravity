@@ -81,15 +81,15 @@ int main (int argc, char * argv[])
     
     /** Variables */
     /* Power generation variables */
-    var<Real> Pg("Pg", grid.pg_min, grid.pg_max);
+    var<double> Pg("Pg", grid.pg_min, grid.pg_max);
     DCOPF.add_var(Pg.in(grid.gens));
     
     /* Power flow variables */
-    var<Real> Pf("Pf", grid.S_max);
+    var<double> Pf("Pf", grid.S_max);
     DCOPF.add_var(Pf.in(grid.arcs));
     
     /* Phase angle variables */
-    var<Real> theta("theta");
+    var<double> theta("theta");
     DCOPF.add_var(theta.in(grid.nodes));
     
     /**  Objective */
