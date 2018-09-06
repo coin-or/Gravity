@@ -726,6 +726,17 @@ namespace gravity {
             }
         }
        
+        void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
+            for (int k=0; k<SM.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
+                    set_val(2*it.row(), 2*it.col(), it.value().real());
+                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
+                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
+                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
+                }
+            }
+        }
+        
 #ifdef USE_QPP 
         /* Matrix representation of a Quantum T gate */
         void QuantumT(unsigned qubit_pos, unsigned nb_qubits, bool transpose=false) {
@@ -734,29 +745,13 @@ namespace gravity {
                 auto U = gt.expandout(adjoint(gt.T), qubit_pos, nb_qubits);
                 Debug("T transpose matrix at position " << to_string(qubit_pos) <<" = " << endl);
                 Debug(disp(U) << "\n");
-                Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
-                for (int k=0; k<SU.outerSize(); ++k) {
-                    for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
-                        set_val(2*it.row(), 2*it.col(), it.value().real());
-                        set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                        set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                        set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                    }
-                }
+                set_vals(U.sparseView());
             }
             else {
                 auto U = gt.expandout(gt.T, qubit_pos, nb_qubits);
                 Debug("T matrix at position " << to_string(qubit_pos) <<" = " << endl);
                 Debug(disp(U) << "\n");
-                Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
-                for (int k=0; k<SU.outerSize(); ++k) {
-                    for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
-                        set_val(2*it.row(), 2*it.col(), it.value().real());
-                        set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                        set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                        set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                    }
-                }
+                set_vals(U.sparseView());
             }
         }
         
@@ -766,17 +761,8 @@ namespace gravity {
             auto U = gt.expandout(gt.H, qubit_pos, nb_qubits);
             Debug("H matrix at position " << to_string(qubit_pos) <<" = " << endl);
             Debug(disp(U) << "\n");
-            Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
-            for (int k=0; k<SU.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
-                    set_val(2*it.row(), 2*it.col(), it.value().real());
-                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                }
-            }
+            set_vals(U.sparseView());
         }
-        
         
         /* Matrix representation of a Quantum Cnot gate with qc as control qubit and qt as target one */
         void QuantumCnot(unsigned qc, unsigned qt, unsigned nb_qubits) {
@@ -784,15 +770,8 @@ namespace gravity {
             auto U = gt.expandout(gt.CTRL(gt.X, {qc}, {qt}, nb_qubits), 0, 1, pow(2,nb_qubits));
             Debug("Cnot matrix from " << to_string(qc) << " to " << to_string(qt) << " = " << endl);
             Debug(disp(U) << "\n");
-            Eigen::SparseMatrix<complex<double>,Eigen::RowMajor> SU = U.sparseView();
-            for (int k=0; k<SU.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SU,k); it; ++it){
-                    set_val(2*it.row(), 2*it.col(), it.value().real());
-                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                }
-            }
+            set_vals(U.sparseView());
+            Debug(to_str(true));
         }
 #endif
         
@@ -817,6 +796,27 @@ namespace gravity {
             update_range(v);
             return *this;
         }
+        
+//        param operator[](unsigned idx){
+//            
+//            param res(this->_name);
+//            res._id = this->_id;
+//            res._vec_id = this->_vec_id;
+//            res._intype = this->_intype;
+//            res._range = this->_range;
+//            res._val = this->_val;
+//            res._is_vector = this->_is_vector;
+//            res._is_matrix = this->_is_matrix;
+//            res._is_transposed = _is_transposed;
+//            res._rev_indices = this->_rev_indices; res._indices = this->_indices;
+//            res._ids->at(0).push_back(idx);
+//            res._dim[0]=1;
+//            res._name += "["+to_string(idx)+"]";
+//            res._unique_id = make_tuple<>(res._id,unindexed_,typeid(type).hash_code(), idx, 1);
+//            res._is_indexed = true;
+//            //_is_indexed = true; // Guanglei added this line.
+//            return res;
+//        }
         
         template<typename... Args>
         param operator()(size_t t1, Args&&... args) {
@@ -843,17 +843,17 @@ namespace gravity {
                 it++;
             }
             size_t index = 0;
-            if (indices.size()==2) {
-                _is_matrix = true;
-                _dim.resize(2);
-                _dim[0] = max(_dim[0],indices.front()+1);
-                _dim[1] = max(_dim[1],indices.back()+1);
-                index = _dim[1]*indices.front()+indices.back();
-            }
-            else {
-                _dim[0] = max(_dim[0],indices.front()+1);
-                index = indices.front();
-            }
+//            if (indices.size()==2) {
+//                _is_matrix = true;
+//                _dim.resize(2);
+//                _dim[0] = max(_dim[0],indices.front()+1);
+//                _dim[1] = max(_dim[1],indices.back()+1);
+//                index = _dim[1]*indices.front()+indices.back();
+//            }
+//            else {
+//                _dim[0] = max(_dim[0],indices.front()+1);
+//                index = indices.front();
+//            }
             auto pp = param_::_indices->insert(make_pair<>(key,index));
             if(pp.second) { //new index inserted
                 _val->resize(max(_val->size(),index+1));
