@@ -85,12 +85,12 @@ int main (int argc, char * argv[])
         auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
 //        auto M2 = gt.expandout(gt.T, 1, n);
         auto M3 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
-//        auto M4 = gt.expandout(gt.H, 2, n);
+        auto M4 = gt.expandout(gt.T, 2, n);
 //        auto M5 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
 //        auto M2 = gt.expandout(gt.CNOT, 0, 1, m);
 //        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
 //        auto M3 = gt.expandout(gt.H, 2, n);
-        auto Mp = M1*M2*M3;
+        auto Mp = M1*M2*M3*M4;
 //        auto Mp = gt.expandout(gt.Id(), 0, n);
 //        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
         DebugOn("Target matrix = " << endl);
@@ -193,16 +193,16 @@ int main (int argc, char * argv[])
     /** Objective **/
     Qdesign.min(sum(zH) + sum(zT) + sum(zTt) + sum(zCnot));
     
-    func_ obj;
-    for (size_t depth = 0; depth < d; depth++) {
-        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
-            obj -= zT_[depth][qubit1]*zT_[depth][qubit1] + zTt_[depth][qubit1]*zTt_[depth][qubit1] + zH_[depth][qubit1]*zH_[depth][qubit1];
-            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
-                obj += 1e3*zCnot_[depth][qubit1][qubit2];
-//                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
-            }
-        }
-    }
+//    func_ obj;
+//    for (size_t depth = 0; depth < d; depth++) {
+//        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
+//            obj -= zT_[depth][qubit1]*zT_[depth][qubit1] + zTt_[depth][qubit1]*zTt_[depth][qubit1] + zH_[depth][qubit1]*zH_[depth][qubit1];
+//            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
+//                obj += 1e3*zCnot_[depth][qubit1][qubit2];
+////                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
+//            }
+//        }
+//    }
 //    Qdesign.min(obj);
 
     
@@ -250,14 +250,27 @@ int main (int argc, char * argv[])
     }
     else {
         /** Lifted gate constraint **/
-        for (size_t depth = 0; depth < d-2; depth++) {
+        /** Depth 0 **/
+        for (unsigned i = 0; i < 2*m; i++) {
+            for (unsigned j = 0; j < 2*m; j++) {
+                Constraint LiftedGate("LiftedGate_0_"+to_string(i+1)+to_string(j+1));
+                LiftedGate += L_[0][i][j];
+                for (unsigned k = 0; k < 2*m; k++) {
+                    if (!zeros[i][k] && !zeros[k][j]) {
+                        LiftedGate -= G_[0][i][k]*G_[1][k][j];
+                    }
+                }
+                Qdesign.add(LiftedGate==0);
+            }
+        }
+        for (unsigned depth = 1; depth < d-2; depth++) {
             for (unsigned i = 0; i < 2*m; i++) {
                 for (unsigned j = 0; j < 2*m; j++) {
-                    Constraint LiftedGate("LiftedGate"+to_string(i+1)+to_string(j+1));
+                    Constraint LiftedGate("LiftedGate"+to_string(depth)+"_"+to_string(i+1)+to_string(j+1));
                     LiftedGate += L_[depth][i][j];
                     for (unsigned k = 0; k < 2*m; k++) {
-                        if (!zeros[i][k] && !zeros[k][j]) {
-                            LiftedGate -= G_[depth][i][k]*G_[depth+1][k][j];
+                        if (!zeros[k][j]) {
+                            LiftedGate -= L_[depth-1][i][k]*G_[depth+1][k][j];
                         }
                     }
                     Qdesign.add(LiftedGate==0);
@@ -278,6 +291,25 @@ int main (int argc, char * argv[])
                     Qdesign.add(TargetGate==M.eval(i,j));
                 }
                 
+            }
+        }
+    }
+    
+    for (size_t depth = 0; depth < d-1; depth++) {
+        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
+            Constraint NonConseqT("NonConseq_T_" +to_string(depth)+"_"+to_string(qubit1+1));
+            NonConseqT += zT_[depth][qubit1] + zT_[depth+1][qubit1];
+            Qdesign.add(NonConseqT <= 1);
+            Constraint NonConseqTt("NonConseq_Tt_" +to_string(depth)+"_"+to_string(qubit1+1));
+            NonConseqTt += zTt_[depth][qubit1] + zTt_[depth+1][qubit1];
+            Qdesign.add(NonConseqTt <= 1);
+            Constraint NonConseqH("NonConseq_H_" +to_string(depth)+"_"+to_string(qubit1+1));
+            NonConseqH += zH_[depth][qubit1] + zH_[depth+1][qubit1];
+            Qdesign.add(NonConseqH <= 1);
+            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
+                Constraint NonConseqCnot("NonConseq_Cnot_" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+                NonConseqCnot += zCnot_[depth][qubit1][qubit2] + zCnot_[depth+1][qubit1][qubit2];
+                Qdesign.add(NonConseqCnot <= 1);
             }
         }
     }
