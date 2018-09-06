@@ -2067,7 +2067,7 @@ namespace gravity{
     bool all_zeros(const string& s){
         auto it = s.begin();
         while (it != s.end()) {
-            if ((*it)!='0' && (*it)!='.') {
+            if ((*it)!='-' && (*it)!='0' && (*it)!='.') {
                 return false;
             }
             it++;
@@ -3976,19 +3976,11 @@ namespace gravity{
         res._queue->push_back(res._expr);
         if (!res._vars->empty()) {
             res._ftype = nlin_;
-            auto exp = make_shared<uexpr>(uexpr(sqrt_,make_shared<func_>(func_(c))));
-            res._expr = exp;
-            res.embed(res._expr);
-            //        res._DAG->insert(make_pair<>(res._expr->get_str(), res._expr));
-            res._queue->push_back(res._expr);
-            if (!res._vars->empty()) {
-                res._ftype = nlin_;
-                if (exp->_son->is_concave()) {
-                    res._all_convexity = concave_;
-                }
-                else {
-                    res._all_convexity = undet_;
-                }
+            if (exp->_son->is_concave()) {
+                res._all_convexity = concave_;
+            }
+            else {
+                res._all_convexity = undet_;
             }
         }
         return res;

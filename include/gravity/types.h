@@ -129,6 +129,21 @@ namespace gravity{
             _indices = make_shared<vector<string>>();
         }
         
+        indices(const ordered_pairs& pairs){
+            auto n = pairs._keys.size();
+            _indices_map = make_shared<map<string,unsigned>>();
+            _indices = make_shared<vector<string>>();
+            _indices->resize(n);
+            unsigned index = 0;
+            string key;
+            for (int i = 0; i < n; i++){
+                key = pairs._keys.at(index)->_name;
+                (*_indices_map)[key]= index;
+                (*_indices)[index++] = key;
+            }
+        }
+        
+        
         indices(unsigned p1 ,unsigned p2){
             auto n = p2 - p1 + 1;
             assert(n >= 0);
