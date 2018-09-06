@@ -81,16 +81,23 @@ int main (int argc, char * argv[])
     M.set_size(2*m, 2*m, 0);
     {
         using namespace qpp;
-        auto M1 = gt.expandout(gt.T, 0, n);
-        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
-//        auto M2 = gt.expandout(gt.T, 1, n);
-        auto M3 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
-        auto M4 = gt.expandout(gt.T, 2, n);
-//        auto M5 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
+//        auto M1 = gt.expandout(gt.T, 0, n);
+//        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
+////        auto M2 = gt.expandout(gt.T, 1, n);
+//        auto M3 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
+//        auto M4 = gt.expandout(gt.T, 2, n);
+//        auto M5 = gt.expandout(gt.T, 1, n);
+//        auto M1 = gt.expandout(gt.T, 0, n);
+        auto M1 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
+        auto M2 = gt.expandout(gt.T, 1, n);
+        auto M3 = gt.expandout(gt.T, 0, n);
+        auto M4 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
+        auto M5 = gt.expandout(gt.T, 2, n);
+        
 //        auto M2 = gt.expandout(gt.CNOT, 0, 1, m);
 //        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
 //        auto M3 = gt.expandout(gt.H, 2, n);
-        auto Mp = M1*M2*M3*M4;
+        auto Mp = M1*M2*M3*M4*M5;
 //        auto Mp = gt.expandout(gt.Id(), 0, n);
 //        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
         DebugOn("Target matrix = " << endl);
@@ -153,7 +160,7 @@ int main (int argc, char * argv[])
     }
     if (d>2) {
         for (unsigned depth = 0; depth < d-2; depth++) {
-            L[depth] = var<>("L_"+to_string(depth+1), -10,10);
+            L[depth] = var<>("L_"+to_string(depth+1), -3,3);
             Qdesign.add(L[depth].in(m2));
         }
     }
@@ -279,7 +286,7 @@ int main (int argc, char * argv[])
         }
 
         /** Target gate constraint **/
-        for (unsigned i = 0; i < 2*m; i++) {
+        for (unsigned i = 0; i < 2*m; i+=2) {
             for (unsigned j = 0; j < 2*m; j++) {
                 Constraint TargetGate("TargetGate_"+to_string(i+1)+to_string(j+1));
                 for (unsigned k = 0; k < 2*m; k++) {
@@ -295,24 +302,24 @@ int main (int argc, char * argv[])
         }
     }
     
-    for (size_t depth = 0; depth < d-1; depth++) {
-        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
-            Constraint NonConseqT("NonConseq_T_" +to_string(depth)+"_"+to_string(qubit1+1));
-            NonConseqT += zT_[depth][qubit1] + zT_[depth+1][qubit1];
-            Qdesign.add(NonConseqT <= 1);
-            Constraint NonConseqTt("NonConseq_Tt_" +to_string(depth)+"_"+to_string(qubit1+1));
-            NonConseqTt += zTt_[depth][qubit1] + zTt_[depth+1][qubit1];
-            Qdesign.add(NonConseqTt <= 1);
-            Constraint NonConseqH("NonConseq_H_" +to_string(depth)+"_"+to_string(qubit1+1));
-            NonConseqH += zH_[depth][qubit1] + zH_[depth+1][qubit1];
-            Qdesign.add(NonConseqH <= 1);
-            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
-                Constraint NonConseqCnot("NonConseq_Cnot_" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
-                NonConseqCnot += zCnot_[depth][qubit1][qubit2] + zCnot_[depth+1][qubit1][qubit2];
-                Qdesign.add(NonConseqCnot <= 1);
-            }
-        }
-    }
+//    for (size_t depth = 0; depth < d-1; depth++) {
+//        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
+//            Constraint NonConseqT("NonConseq_T_" +to_string(depth)+"_"+to_string(qubit1+1));
+//            NonConseqT += zT_[depth][qubit1] + zT_[depth+1][qubit1];
+//            Qdesign.add(NonConseqT <= 1);
+//            Constraint NonConseqTt("NonConseq_Tt_" +to_string(depth)+"_"+to_string(qubit1+1));
+//            NonConseqTt += zTt_[depth][qubit1] + zTt_[depth+1][qubit1];
+//            Qdesign.add(NonConseqTt <= 1);
+//            Constraint NonConseqH("NonConseq_H_" +to_string(depth)+"_"+to_string(qubit1+1));
+//            NonConseqH += zH_[depth][qubit1] + zH_[depth+1][qubit1];
+//            Qdesign.add(NonConseqH <= 1);
+//            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
+//                Constraint NonConseqCnot("NonConseq_Cnot_" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+//                NonConseqCnot += zCnot_[depth][qubit1][qubit2] + zCnot_[depth+1][qubit1][qubit2];
+//                Qdesign.add(NonConseqCnot <= 1);
+//            }
+//        }
+//    }
 //    Constraint TargetGate("TargetGate");
 //    TargetGate += G[d-2]*G[d-1] - M;
 //    Qdesign.add(TargetGate==0);
