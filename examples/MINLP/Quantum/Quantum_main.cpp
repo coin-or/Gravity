@@ -155,7 +155,7 @@ int main (int argc, char * argv[])
     DebugOff("Total number of variables after adding the binaries = " << Qdesign.get_nb_vars() << endl);
     /** Gate Matrices **/
     for (unsigned depth = 0; depth < d; depth++) {
-        G[depth] = var<>("G_"+to_string(depth+1), -1,1);
+        G[depth] = var<>("G_"+to_string(depth+1), -1/sqrt(2),1);
         Qdesign.add(G[depth].in(m2));
     }
     if (d>2) {
@@ -305,7 +305,7 @@ int main (int argc, char * argv[])
 //    for (size_t depth = 0; depth < d-1; depth++) {
 //        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
 //            Constraint NonConseqT("NonConseq_T_" +to_string(depth)+"_"+to_string(qubit1+1));
-//            NonConseqT += zT_[depth][qubit1] + zT_[depth+1][qubit1];
+//            NonConseqT += zT_[depth][qubit1] + zTt_[depth+1][qubit1];
 //            Qdesign.add(NonConseqT <= 1);
 //            Constraint NonConseqTt("NonConseq_Tt_" +to_string(depth)+"_"+to_string(qubit1+1));
 //            NonConseqTt += zTt_[depth][qubit1] + zTt_[depth+1][qubit1];
@@ -317,6 +317,34 @@ int main (int argc, char * argv[])
 //                Constraint NonConseqCnot("NonConseq_Cnot_" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
 //                NonConseqCnot += zCnot_[depth][qubit1][qubit2] + zCnot_[depth+1][qubit1][qubit2];
 //                Qdesign.add(NonConseqCnot <= 1);
+//                Constraint Symmetry1("Symmetry1" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+//                Symmetry1 += zH_[depth][qubit1] - zH_[depth+1][qubit2];
+//                Qdesign.add(Symmetry1 >= 0);
+////                Constraint Symmetry2("Symmetry2" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+////                Symmetry2 += zT_[depth][qubit1] - zT_[depth+1][qubit2];
+////                Qdesign.add(Symmetry2 >= 0);
+////                Constraint Symmetry3("Symmetry3" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+////                Symmetry3 += zTt_[depth][qubit1] - zTt_[depth+1][qubit2];
+////                Qdesign.add(Symmetry3 >= 0);
+////                Constraint Symmetry4("Symmetry4" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1));
+////                Symmetry4 += zTt_[depth][qubit1] - zH_[depth+1][qubit2];
+////                Qdesign.add(Symmetry4 >= 0);
+//                for (size_t qubit3 = 0; qubit3 < n; qubit3++) {
+////                    if (qubit3!=qubit1 && qubit3!=qubit2) {
+////                        Constraint Symmetry5("Symmetry5" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1)+"_"+to_string(qubit3+1));
+////                        Symmetry5 += zH_[depth][qubit3] - zCnot_[depth][qubit1][qubit2];
+////                        Qdesign.add(Symmetry5 >= 0);
+////                    }
+//                    if (qubit3<qubit2) {
+//                        Constraint Symmetry6("Symmetry6" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1)+"_"+to_string(qubit3+1));
+//                        Symmetry6 += zT_[depth][qubit3] - zCnot_[depth+1][qubit1][qubit2];
+//                        Qdesign.add(Symmetry6 <= 0);
+////                        Constraint Symmetry7("Symmetry7" +to_string(depth)+"_"+to_string(qubit1+1)+"_"+to_string(qubit2+1)+"_"+to_string(qubit3+1));
+////                        Symmetry7 += zTt_[depth][qubit3] - zCnot_[depth][qubit1][qubit2];
+////                        Qdesign.add(Symmetry7 >= 0);
+//                    }
+//                }
+//
 //            }
 //        }
 //    }
@@ -337,7 +365,7 @@ int main (int argc, char * argv[])
         Qdesign.add(OneGate==1);
 //        OneGate.print();
     }
-//    Qdesign.print_expanded();
+    Qdesign.print_expanded();
     
     solver slvr(Qdesign,ipopt);
     auto solver_time_start = get_wall_time();
