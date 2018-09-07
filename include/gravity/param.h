@@ -764,6 +764,15 @@ namespace gravity {
             set_vals(U.sparseView());
         }
         
+        /* Matrix representation of a Quantum Rx gate */
+        void QuantumRx(unsigned qubit_pos, unsigned nb_qubits) {
+            using namespace qpp;
+            auto U = gt.expandout(gt.Rn(pi/2, {1,0,0}), qubit_pos, nb_qubits);
+            Debug("H matrix at position " << to_string(qubit_pos) <<" = " << endl);
+            Debug(disp(U) << "\n");
+            set_vals(U.sparseView());
+        }
+        
         /* Matrix representation of a Quantum Cnot gate with qc as control qubit and qt as target one */
         void QuantumCnot(unsigned qc, unsigned qt, unsigned nb_qubits) {
             using namespace qpp;
