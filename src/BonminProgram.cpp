@@ -17,7 +17,7 @@ BonminProgram::BonminProgram(Model* m):_model(m){
 
 
 bool BonminProgram::get_variables_types(Index n, VariableType* var_types){
-    assert(n==model->get_nb_vars());
+    assert(n==_model->get_nb_vars());
     _model->fill_in_var_types(var_types);
     return true;
 }
@@ -39,14 +39,17 @@ bool BonminProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
 void BonminProgram::finalize_solution(TMINLP::SolverReturn status,
                                Index n, const Number* x, Number obj_value)
 {
-    _model->set_x(x);
-    _model->_obj_val = obj_value;
+    if (status==TMINLP::SolverReturn::SUCCESS) {
+        _model->set_x(x);
+    
+        _model->_obj_val = obj_value;
     //    _model->print_solution();
     //    _model->compute_funcs();
     //    _model->check_feasible(x);
-    if(_model->_objt==maximize){
-        _model->_obj *= -1.;
-        _model->_obj_val *= -1.;
+        if(_model->_objt==maximize){
+            _model->_obj *= -1.;
+            _model->_obj_val *= -1.;
+        }
     }
     //    _model->_obj_val = _model->_obj.eval();
 //    for (auto &cp: _model->_cons) {

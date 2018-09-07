@@ -459,8 +459,17 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
 //            using namespace Bonmin;
             BonminSetup bonmin;
             bonmin.initializeOptionsAndJournalist();
-            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
-            bonmin.options()->SetIntegerValue("num_resolve_at_root", 50);
+//            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
+//            bonmin.options()->SetIntegerValue("solution_limit", 1);
+            bonmin.options()->SetIntegerValue("bb_log_level", 5);
+//            bonmin.options()->SetNumericValue("resolve_on_small_infeasibility", INFINITY);
+//            bonmin.options()->SetStringValue("heuristic_dive_MIP_fractional", "yes");
+//            bonmin.options()->SetStringValue("heuristic_dive_MIP_vectorLength", "yes");
+//            bonmin.options()->SetStringValue("heuristic_dive_fractional", "yes");
+//            bonmin.options()->SetStringValue("heuristic_dive_vectorLength", "yes");
+//            bonmin.options()->SetStringValue("algorithm", "B-iFP");
+//            bonmin.options()->SetStringValue("node_comparison", "depth-first");
+//            bonmin.options()->SetIntegerValue("num_resolve_at_root", 50);
             
             _prog->update_model();
             SmartPtr<TMINLP> tmp = new BonminProgram(_model);

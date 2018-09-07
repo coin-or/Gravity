@@ -99,7 +99,8 @@ int main (int argc, char * argv[])
 //        auto M3 = gt.expandout(gt.H, 2, n);
 //        auto Mp = M1*M2*M3*M4*M5;
 //        auto Mp = gt.expandout(gt.Id(), 0, n);
-        auto Mp = gt.expandout(gt.CTRL(gt.X, {1}, {0}, n), 0, 1, pow(2,n));
+//        auto Mp = gt.expandout(gt.CTRL(gt.X, {1}, {0}, n), 0, 1, pow(2,n));
+        auto Mp = gt.expandout(gt.SWAP, 0, 1, m);
 //        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
         DebugOn("Target matrix = " << endl);
         DebugOn(disp(Mp) << "\n");
@@ -354,13 +355,18 @@ int main (int argc, char * argv[])
 //    Qdesign.add(TargetGate==0);
 //    TargetGate.print();
     
-//    Constraint TOFF_H("TOFF_H");
-//    TOFF_H += sum(zH);
-//    Qdesign.add(TOFF_H==4);
+    Constraint TOFF_H("TOFF_H");
+    TOFF_H += sum(zH);
+    Qdesign.add(TOFF_H==4);
 //
-//    Constraint TOFF_T("TOFF_T");
-//    TOFF_T += sum(zT);
-//    Qdesign.add(TOFF_T==0);
+    Constraint TOFF_T("TOFF_T");
+    TOFF_T += sum(zT)+sum(zTt);
+    Qdesign.add(TOFF_T==0);
+
+//    Constraint TOFF_C("TOFF_C");
+//    TOFF_C += sum(zCnot);
+//    Qdesign.add(TOFF_C==3);
+
     
 //    Constraint TOFF_C("TOFF_C");
 //    TOFF_C += zCnot_[2][0][1];
@@ -383,7 +389,7 @@ int main (int argc, char * argv[])
     }
 //    Qdesign.print_expanded();
     
-    solver slvr(Qdesign,bonmin);
+    solver slvr(Qdesign,ipopt);
     auto solver_time_start = get_wall_time();
     slvr.run(output, relax = false, tol=1e-6, 0.01, "ma27");
     Qdesign.print_solution();
