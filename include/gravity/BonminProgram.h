@@ -18,7 +18,9 @@ public:
     Model* _model = nullptr;
     
     BonminProgram(Model* m);
-
+    
+    void update_model();
+    
     /** Pass the type of the variables (INTEGER, BINARY, CONTINUOUS) to the optimizer */
     virtual bool get_variables_types(Index n, VariableType* var_types);
 
@@ -66,7 +68,7 @@ public:
     /** Method called by Ipopt */
     virtual void finalize_solution(TMINLP::SolverReturn status,
                                    Index n, const Number* x, Number obj_value);
-
+    
 
     virtual bool get_variables_linearity(Index n, TNLP::LinearityType* var_types);
     virtual bool get_constraints_linearity(Index m, TNLP::LinearityType* const_types);

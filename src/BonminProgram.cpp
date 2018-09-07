@@ -7,14 +7,14 @@
 using namespace std;
 
 
-BonminProgram::BonminProgram(Model* m):_model(m){
-//    if (!m->_built) {
-//        m->fill_in_maps();
-//    }
-//    else {
-//        m->reset_funcs();
-//    }
+void BonminProgram::update_model(){
+    _model->reset_funcs();
+    _model->fill_in_maps();
 }
+
+BonminProgram::BonminProgram(Model* m):_model(m){
+}
+
 
 bool BonminProgram::get_variables_types(Index n, VariableType* var_types){
     assert(n==model->get_nb_vars());
@@ -36,31 +36,38 @@ bool BonminProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     return true;
 }
 
-void
-BonminProgram::finalize_solution(TMINLP::SolverReturn status,
-                            Index n, const Number* x, Number obj_value)
+void BonminProgram::finalize_solution(TMINLP::SolverReturn status,
+                               Index n, const Number* x, Number obj_value)
 {
     _model->set_x(x);
+    _model->_obj_val = obj_value;
+    //    _model->print_solution();
+    //    _model->compute_funcs();
     //    _model->check_feasible(x);
     if(_model->_objt==maximize){
         _model->_obj *= -1.;
+        _model->_obj_val *= -1.;
     }
-    _model->_obj_val = _model->_obj.eval();
+    //    _model->_obj_val = _model->_obj.eval();
 //    for (auto &cp: _model->_cons) {
 //        cp.second->_dual.resize(cp.second->_nb_instances);
+//        auto idx = 0;
 //        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
-//            cp.second->_dual[inst] = lambda[cp.second->_id + inst];
+//            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
+//                cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
+//            }
 //        }
 //    }
-    for (auto &vp: _model->_vars) {
-        auto nb_inst = vp.second->get_nb_instances();
-        vp.second->_u_dual.resize(nb_inst);
-        vp.second->_l_dual.resize(nb_inst);
+//    for (auto &vp: _model->_vars) {
+//        auto nb_inst = vp.second->get_dim();
+//        vp.second->_u_dual.resize(nb_inst);
+//        vp.second->_l_dual.resize(nb_inst);
+//        auto vid = vp.second->get_id();
 //        for (unsigned inst = 0; inst < nb_inst; inst++) {
-//            vp.second->_u_dual[inst] = z_L[vp.second->_id + vp.second->get_id_inst(inst)];
-//            vp.second->_l_dual[inst] = z_U[vp.second->_id + vp.second->get_id_inst(inst)];
+//            vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
+//            vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
 //        }
-    }
+//    }
     cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
 }
 
@@ -90,15 +97,19 @@ bool BonminProgram::get_starting_point(Index n, bool init_x, Number* x,
     assert(n==_model->get_nb_vars());
     assert(m==_model->get_nb_cons());
     
-    //    if (init_x) {
-    _model->fill_in_var_init(x);
+    if (init_x) {
+        _model->fill_in_var_init(x);
+    }
+    if (init_lambda && init_z) {
+        _model->fill_in_duals(lambda,z_L,z_U);
+    }
     //    DebugOn("initial point = \n");
     //    DebugOn("x = [ ");
     //    for (int i = 0; i<n; i++) {
     //        DebugOn(to_string(x[i]) << " ");
     //    }
     //    DebugOn("]\n");
-    //    }
+    
     return true;
 }
 
@@ -141,7 +152,6 @@ bool BonminProgram::eval_jac_g(Index n, const Number* x, bool new_x,
     
     return true;
 }
-
 
 bool BonminProgram::eval_h(Index n, const Number* x, bool new_x,
                           Number obj_factor, Index m, const Number* lambda,
@@ -187,6 +197,8 @@ bool BonminProgram::get_constraints_linearity(Index m, Ipopt::TNLP::LinearityTyp
     //    return true;
     return false;
 }
+
+
 
 
 const BonminProgram::SosInfo* BonminProgram::sosConstraints() const{

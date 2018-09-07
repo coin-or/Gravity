@@ -146,6 +146,52 @@ solver::solver(Model& model, SolverType stype){
     }
     else if(_stype==bonmin) {
 #ifdef USE_BONMIN
+        bool has_int = false;
+        //_model->relax();
+        //_model->unrelax();
+        for (auto &v_p:_model->_vars_name) {
+            if (v_p.second->is_integer() || v_p.second->is_binary()) {
+                has_int = true;
+                auto v = v_p.second;
+                auto new_v = new var<double>(v_p.second->_name, 0,1);
+                new_v->copy(*v);
+                new_v->_is_relaxed = true;
+                new_v->_val->resize(new_v->get_dim());
+                if (v->get_intype()==integer_) {
+                    auto double_var = (var<int>*)v;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
+                    }
+                }
+                if (v->get_intype()==short_) {
+                    auto double_var = (var<short>*)v;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
+                    }
+                }
+                if (v->get_intype()==binary_) {
+                    auto double_var = (var<bool>*)v;
+                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
+                    for (int i = 0; i < double_var->get_dim(); i++) {
+                        new_v->_val->at(i) = double_var->_val->at(i);
+                    }
+                }
+                v_p.second = new_v;
+            }
+        }
+        for (auto &v_p:_model->_vars) {
+            if (v_p.second->is_integer() || v_p.second->is_binary()) {
+                auto name = v_p.second->_name;
+                delete v_p.second;
+                v_p.second = _model->get_var(name);
+            }
+        }
+        if(has_int){
+            _model->_obj.relax(_model->_vars);
+            for (auto &c_p: _model->_cons) {
+                c_p.second->relax(_model->_vars);
+            }
+        }
 //        bool has_int = false;
 //        //_model->relax();
 //        //_model->unrelax();
@@ -413,9 +459,14 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
 //            using namespace Bonmin;
             BonminSetup bonmin;
             bonmin.initializeOptionsAndJournalist();
+            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
+            bonmin.options()->SetIntegerValue("num_resolve_at_root", 50);
+            
+            _prog->update_model();
             SmartPtr<TMINLP> tmp = new BonminProgram(_model);
             bonmin.initialize(tmp);
 
+            
             bool ok = false;
     //        bonmin.initialize(prog.bonmin_prog);
             try {
