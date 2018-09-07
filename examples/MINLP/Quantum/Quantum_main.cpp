@@ -72,6 +72,9 @@ int main (int argc, char * argv[])
     /* Hadamard gate matrices */
     param<> H[n];
     
+    /* Rx gate matrices */
+    param<> Rx[n];
+    
     /* Cnot gate matrices */
     param<> Cnot[n*(n-1)/2];
     
@@ -88,11 +91,11 @@ int main (int argc, char * argv[])
 //        auto M4 = gt.expandout(gt.T, 2, n);
 //        auto M5 = gt.expandout(gt.T, 1, n);
 //        auto M1 = gt.expandout(gt.T, 0, n);
-//        auto M1 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
-//        auto M2 = gt.expandout(gt.T, 1, n);
-//        auto M3 = gt.expandout(gt.T, 0, n);
-//        auto M4 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
-//        auto M5 = gt.expandout(gt.T, 2, n);
+//        auto M1 = gt.expandout(gt.H, 0, n);
+//        auto M2 = gt.expandout(gt.H, 1, n);
+//        auto M3 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
+//        auto M4 = gt.expandout(gt.H, 0, n);
+//        auto M5 = gt.expandout(gt.H, 1, n);
         
 //        auto M2 = gt.expandout(gt.CNOT, 0, 1, m);
 //        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
@@ -100,8 +103,11 @@ int main (int argc, char * argv[])
 //        auto Mp = M1*M2*M3*M4*M5;
 //        auto Mp = gt.expandout(gt.Id(), 0, n);
 //        auto Mp = gt.expandout(gt.CTRL(gt.X, {1}, {0}, n), 0, 1, pow(2,n));
-        auto Mp = gt.expandout(gt.SWAP, 0, 1, m);
-//        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
+//        auto Mp = gt.expandout(gt.SWAP, 0, 1, m);
+//        auto M1 = gt.expandout(gt.Rn(pi/2, {1,0,0}), 0, n);
+//        auto M2 = gt.expandout(gt.T, 1, n);
+//        auto Mp = M1*M2;
+        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
         DebugOn("Target matrix = " << endl);
         DebugOn(disp(Mp) << "\n");
         M.set_vals(Mp.sparseView());
@@ -116,6 +122,9 @@ int main (int argc, char * argv[])
         Tt[i].set_name("Tt_"+to_string(i+1));
         Tt[i].set_size(2*m, 2*m, 0);
         Tt[i].QuantumT(i,n,true);/* Fill nonzero values corresponding to a T conjugate transpose gate */
+        Rx[i].set_name("Rx_"+to_string(i+1));
+        Rx[i].set_size(2*m, 2*m, 0);
+        Rx[i].QuantumRx(i,n);/* Fill nonzero values corresponding to an H gate */
         H[i].set_name("H_"+to_string(i+1));
         H[i].set_size(2*m, 2*m, 0);
         H[i].QuantumH(i,n);/* Fill nonzero values corresponding to an H gate */
@@ -140,6 +149,7 @@ int main (int argc, char * argv[])
     var<bool> zT("zT"); /*< Binary variables for T gates */
     var<bool> zTt("zTt"); /*< Binary variables for T conjugate gates */
     var<bool> zH("zH"); /*< Binary variables for H gates */
+    var<bool> zRx("zRx"); /*< Binary variables for H gates */
     var<bool> zCnot("zCnot"); /*< Binary variables for CNOT gates */
     /** Gate Matrices **/
     var<> G[d]; /*< Base Gate Matrices */
@@ -153,7 +163,8 @@ int main (int argc, char * argv[])
     /** Adding Variables **/
     Model Qdesign("Qdesign");
     /** Binaries **/
-    Qdesign.add(zT.in(d_ids,q_ids), zTt.in(d_ids,q_ids), zH.in(d_ids,q_ids), zCnot.in(d_ids,pairs));
+//    Qdesign.add(zT.in(d_ids,q_ids), zTt.in(d_ids,q_ids), zH.in(d_ids,q_ids), zCnot.in(d_ids,pairs));
+    Qdesign.add(zT.in(d_ids,q_ids), zTt.in(d_ids,q_ids), zH.in(d_ids,q_ids),zRx.in(d_ids,q_ids), zCnot.in(d_ids,pairs));
     DebugOff("Total number of variables after adding the binaries = " << Qdesign.get_nb_vars() << endl);
     /** Gate Matrices **/
     for (unsigned depth = 0; depth < d; depth++) {
@@ -172,13 +183,14 @@ int main (int argc, char * argv[])
     
     /** Adding Constraints **/
     /** Building indexed variables as matrices (for a faster access in constraints) **/
-    var<bool> zT_[d][n], zTt_[d][n], zH_[d][n], zCnot_[d][n][n];
+    var<bool> zT_[d][n], zTt_[d][n], zH_[d][n],zRx_[d][n], zCnot_[d][n][n];
     var<> G_[d][2*m][2*m], L_[d-2][2*m][2*m];
     for (size_t depth = 0; depth < d; depth++) {
         for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
             zT_[depth][qubit1] = zT(depth+1,qubit1+1);
             zTt_[depth][qubit1] = zTt(depth+1,qubit1+1);
             zH_[depth][qubit1] = zH(depth+1,qubit1+1);
+            zRx_[depth][qubit1] = zRx(depth+1,qubit1+1);
             for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
                 zCnot_[depth][qubit1][qubit2] = zCnot(depth+1,qubit1+1,qubit2+1);
             }
@@ -200,12 +212,12 @@ int main (int argc, char * argv[])
     }
     
     /** Objective **/
-    Qdesign.min(sum(zH) + sum(zT) + sum(zTt) + sum(zCnot));
+    Qdesign.min(sum(zRx) + sum(zH) + sum(zT) + sum(zTt) + sum(zCnot));
     
 //    func_ obj;
 //    for (size_t depth = 0; depth < d; depth++) {
 //        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
-//            obj -= zT_[depth][qubit1]*zT_[depth][qubit1] + zTt_[depth][qubit1]*zTt_[depth][qubit1] + zH_[depth][qubit1]*zH_[depth][qubit1];
+//            obj -= zT_[depth][qubit1]*zT_[depth][qubit1] + zTt_[depth][qubit1]*zTt_[depth][qubit1] + zH_[depth][qubit1]*zH_[depth][qubit1]+ zRx_[depth][qubit1]*zRx_[depth][qubit1];
 //            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
 //                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
 ////                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
@@ -223,7 +235,7 @@ int main (int argc, char * argv[])
                 BaseGate = G_[depth][i][j];
                 unsigned idx = 0;
                 for (unsigned qubit = 0; qubit < n; qubit++) {
-                    BaseGate -= zT_[depth][qubit]*T[qubit].eval(i,j) + zTt_[depth][qubit]*Tt[qubit].eval(i,j) + zH_[depth][qubit]*H[qubit].eval(i,j);
+                    BaseGate -= zT_[depth][qubit]*T[qubit].eval(i,j) + zTt_[depth][qubit]*Tt[qubit].eval(i,j) + zH_[depth][qubit]*H[qubit].eval(i,j)+ zRx_[depth][qubit]*Rx[qubit].eval(i,j);
                     for (unsigned qubit2 = qubit+1; qubit2 < n; qubit2++) {
                         BaseGate -= zCnot_[depth][qubit][qubit2]*Cnot[idx++].eval(i,j);
                     }
@@ -243,7 +255,7 @@ int main (int argc, char * argv[])
     /** Lifted + Target gate constraint **/
     /* No need to use lifted matrices if the depth = 2 */
     if (d==2) {
-        for (unsigned i = 0; i < 2*m; i++) {
+        for (unsigned i = 0; i < 2*m; i+=2) {
             for (unsigned j = 0; j < 2*m; j++) {
                 Constraint TargetGate("TargetGate_"+to_string(i+1)+to_string(j+1));
                 for (unsigned k = 0; k < 2*m; k++) {
@@ -260,7 +272,7 @@ int main (int argc, char * argv[])
     else {
         /** Lifted gate constraint **/
         /** Depth 0 **/
-        for (unsigned i = 0; i < 2*m; i++) {
+        for (unsigned i = 0; i < 2*m; i+=2) {
             for (unsigned j = 0; j < 2*m; j++) {
                 Constraint LiftedGate("LiftedGate_0_"+to_string(i+1)+to_string(j+1));
                 LiftedGate += L_[0][i][j];
@@ -273,7 +285,7 @@ int main (int argc, char * argv[])
             }
         }
         for (unsigned depth = 1; depth < d-2; depth++) {
-            for (unsigned i = 0; i < 2*m; i++) {
+            for (unsigned i = 0; i < 2*m; i+=2) {
                 for (unsigned j = 0; j < 2*m; j++) {
                     Constraint LiftedGate("LiftedGate"+to_string(depth)+"_"+to_string(i+1)+to_string(j+1));
                     LiftedGate += L_[depth][i][j];
@@ -355,17 +367,17 @@ int main (int argc, char * argv[])
 //    Qdesign.add(TargetGate==0);
 //    TargetGate.print();
     
-    Constraint TOFF_H("TOFF_H");
-    TOFF_H += sum(zH);
-    Qdesign.add(TOFF_H==4);
-//
-    Constraint TOFF_T("TOFF_T");
-    TOFF_T += sum(zT)+sum(zTt);
-    Qdesign.add(TOFF_T==0);
+//    Constraint TOFF_H("TOFF_H");
+//    TOFF_H += sum(zH);
+//    Qdesign.add(TOFF_H==4);
+////
+//    Constraint TOFF_T("TOFF_T");
+//    TOFF_T += sum(zT)+sum(zTt);
+//    Qdesign.add(TOFF_T==0);
 
-//    Constraint TOFF_C("TOFF_C");
-//    TOFF_C += sum(zCnot);
-//    Qdesign.add(TOFF_C==3);
+    Constraint TOFF_C("TOFF_C");
+    TOFF_C += sum(zCnot);
+    Qdesign.add(TOFF_C==6);
 
     
 //    Constraint TOFF_C("TOFF_C");
@@ -380,7 +392,7 @@ int main (int argc, char * argv[])
     for(unsigned depth = 0; depth < d ; depth++){
         Constraint OneGate("OneGate_"+to_string(depth+1));
         for(unsigned qubit = 0; qubit < n ; qubit++){
-            OneGate += zT_[depth][qubit] + zTt_[depth][qubit] + zH_[depth][qubit];
+            OneGate += zT_[depth][qubit] + zTt_[depth][qubit] + zH_[depth][qubit]+ zRx_[depth][qubit];
             for (unsigned qubit2 = qubit+1; qubit2 < n; qubit2++) {
                 OneGate += zCnot_[depth][qubit][qubit2];
             }
