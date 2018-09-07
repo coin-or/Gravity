@@ -88,17 +88,18 @@ int main (int argc, char * argv[])
 //        auto M4 = gt.expandout(gt.T, 2, n);
 //        auto M5 = gt.expandout(gt.T, 1, n);
 //        auto M1 = gt.expandout(gt.T, 0, n);
-        auto M1 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
-        auto M2 = gt.expandout(gt.T, 1, n);
-        auto M3 = gt.expandout(gt.T, 0, n);
-        auto M4 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
-        auto M5 = gt.expandout(gt.T, 2, n);
+//        auto M1 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
+//        auto M2 = gt.expandout(gt.T, 1, n);
+//        auto M3 = gt.expandout(gt.T, 0, n);
+//        auto M4 = gt.expandout(gt.CTRL(gt.X, {1}, {2}, n), 0, 1, pow(2,n));
+//        auto M5 = gt.expandout(gt.T, 2, n);
         
 //        auto M2 = gt.expandout(gt.CNOT, 0, 1, m);
 //        auto M2 = gt.expandout(gt.CTRL(gt.X, {0}, {1}, n), 0, 1, pow(2,n));
 //        auto M3 = gt.expandout(gt.H, 2, n);
-        auto Mp = M1*M2*M3*M4*M5;
+//        auto Mp = M1*M2*M3*M4*M5;
 //        auto Mp = gt.expandout(gt.Id(), 0, n);
+        auto Mp = gt.expandout(gt.CTRL(gt.X, {1}, {0}, n), 0, 1, pow(2,n));
 //        auto Mp = gt.expandout(gt.TOF, 0, 1, m);
         DebugOn("Target matrix = " << endl);
         DebugOn(disp(Mp) << "\n");
@@ -160,7 +161,7 @@ int main (int argc, char * argv[])
     }
     if (d>2) {
         for (unsigned depth = 0; depth < d-2; depth++) {
-            L[depth] = var<>("L_"+to_string(depth+1), -3,3);
+            L[depth] = var<>("L_"+to_string(depth+1), -10,10);
             Qdesign.add(L[depth].in(m2));
         }
     }
@@ -205,7 +206,7 @@ int main (int argc, char * argv[])
 //        for (size_t qubit1 = 0; qubit1 < n; qubit1++) {
 //            obj -= zT_[depth][qubit1]*zT_[depth][qubit1] + zTt_[depth][qubit1]*zTt_[depth][qubit1] + zH_[depth][qubit1]*zH_[depth][qubit1];
 //            for (size_t qubit2 = qubit1+1; qubit2 < n; qubit2++) {
-//                obj += 1e3*zCnot_[depth][qubit1][qubit2];
+//                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
 ////                obj -= zCnot_[depth][qubit1][qubit2]*zCnot_[depth][qubit1][qubit2];
 //            }
 //        }
@@ -353,6 +354,22 @@ int main (int argc, char * argv[])
 //    Qdesign.add(TargetGate==0);
 //    TargetGate.print();
     
+//    Constraint TOFF_H("TOFF_H");
+//    TOFF_H += sum(zH);
+//    Qdesign.add(TOFF_H==4);
+//
+//    Constraint TOFF_T("TOFF_T");
+//    TOFF_T += sum(zT);
+//    Qdesign.add(TOFF_T==0);
+    
+//    Constraint TOFF_C("TOFF_C");
+//    TOFF_C += zCnot_[2][0][1];
+//    Qdesign.add(TOFF_C==1);
+//
+//    Constraint TOFF_Tt("TOFF_Tt");
+//    TOFF_Tt += sum(zTt);
+//    Qdesign.add(TOFF_Tt==3);
+    
     /** One gate per depth constraints **/
     for(unsigned depth = 0; depth < d ; depth++){
         Constraint OneGate("OneGate_"+to_string(depth+1));
@@ -363,11 +380,10 @@ int main (int argc, char * argv[])
             }
         }
         Qdesign.add(OneGate==1);
-//        OneGate.print();
     }
-    Qdesign.print_expanded();
+//    Qdesign.print_expanded();
     
-    solver slvr(Qdesign,ipopt);
+    solver slvr(Qdesign,bonmin);
     auto solver_time_start = get_wall_time();
     slvr.run(output, relax = false, tol=1e-6, 0.01, "ma27");
     Qdesign.print_solution();
