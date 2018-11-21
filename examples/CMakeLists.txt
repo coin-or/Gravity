@@ -27,7 +27,7 @@ file(GLOB NEURALNET_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Super
 
 add_executable(gravity_test ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
 add_executable(ising ${ISING_SOURCES}) 
-add_executable(quantum ${QUANTUM_SOURCES}) 
+#add_executable(quantum ${QUANTUM_SOURCES})
 add_executable(stable_set ${STABLE_S_SOURCES})
 add_executable(acopf ${ACOPF_SOURCES} ${Power_SOURCES})
 add_executable(cpxopf ${CPXOPF_SOURCES} ${Power_SOURCES})
@@ -42,7 +42,7 @@ add_executable(svm ${ML_SOURCES} ${SVM_SOURCES})
 #add_executable(min_k_part ${MINK_SOURCES})
 
 target_link_libraries(ising gravity)
-target_link_libraries(quantum gravity)
+#target_link_libraries(quantum gravity)
 target_link_libraries(stable_set gravity)
 target_link_libraries(acopf gravity)
 target_link_libraries(cpxopf gravity)
