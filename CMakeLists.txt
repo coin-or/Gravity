@@ -119,7 +119,7 @@ set(UNZIPPED OFF CACHE BOOL "Already unzipped")
 if(NOT UNZIPPED)
   message(STATUS "Unzipping Classification Data and Eigen v3.3.5")
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/data_sets/Archive.tar.gz
+    COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/data_sets/Classification/Archive.tar.gz
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data_sets/Classification
      )
 execute_process(
