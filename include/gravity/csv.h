@@ -32,6 +32,7 @@
 #ifndef CSV_H
 #define CSV_H
 
+
 #include <vector>
 #include <string>
 #include <cstring>
@@ -48,7 +49,9 @@
 #include <cassert>
 #include <cerrno>
 #include <istream>
-
+#include <complex.h>
+#define Cpx complex<double>
+using namespace std;
 namespace io{
         ////////////////////////////////////////////////////////////////////////////
         //                                 LineReader                             //
@@ -1067,10 +1070,77 @@ namespace io{
                         if(is_neg)
                                 x = -x;
                 }
+            
+            
+            void parse_cpx(const char*col, Cpx &x1){
+                bool is_neg = false;
+                if(*col == '-'){
+                    is_neg = true;
+                    ++col;
+                }else if(*col == '+')
+                    ++col;
+                
+                double x_r = 0;
+                while('0' <= *col && *col <= '9'){
+                    int y = *col - '0';
+                    x_r *= 10;
+                    x_r += y;
+                    ++col;
+                }
+                
+                if(*col == '.'|| *col == ','){
+                    ++col;
+                    double pos = 1;
+                    while('0' <= *col && *col <= '9'){
+                        pos /= 10;
+                        int y = *col - '0';
+                        ++col;
+                        x_r += y*pos;
+                    }
+                }
+                
+                if(*col == 'e' || *col == 'E'){
+                    ++col;
+                    int e;
+                    
+                    parse_signed_integer<set_to_max_on_overflow>(col, e);
+                    
+                    if(e != 0){
+                        double base;
+                        if(e < 0){
+                            base = 0.1;
+                            e = -e;
+                        }else{
+                            base = 10;
+                        }
+                        
+                        while(e != 1){
+                            if((e & 1) == 0){
+                                base = base*base;
+                                e >>= 1;
+                            }else{
+                                x_r *= base;
+                                --e;
+                            }
+                        }
+                        x_r *= base;
+                    }
+                }else{
+                    if(*col != '\0')
+                        throw error::no_digit();
+                }
+                
+                if(is_neg)
+                    x_r = -x_r;
+                x1.real(x_r);
+            }
+            
 
                 template<class overflow_policy> void parse(char*col, float&x) { parse_float(col, x); }
                 template<class overflow_policy> void parse(char*col, double&x) { parse_float(col, x); }
                 template<class overflow_policy> void parse(char*col, long double&x) { parse_float(col, x); }
+            
+            template<class overflow_policy> void parse(char*col, Cpx &x) { parse_cpx(col, x); }
 
                 template<class overflow_policy, class T>
                 void parse(char*col, T&x){

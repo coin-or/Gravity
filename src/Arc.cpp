@@ -2,8 +2,8 @@
 //  Arc.cpp
 //  Cycle_Basis_PF
 //
-//  Created by Sumiran on 18/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
+//  Created by Hassan on 18/06/2014.
+
 //
 
 #include <gravity/Arc.h>

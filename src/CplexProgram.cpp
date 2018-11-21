@@ -62,10 +62,10 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
                 if(cplex.isExtracted(_cplex_vars[i][j])){
-                    poly_set_val(j, cplex.getValue(_cplex_vars[i][j]), _model->_vars[i]);
+                    set_val(_model->_vars[i], cplex.getValue(_cplex_vars[i][j]), j);
                 }
                 else {
-                    poly_set_val(j, 0, _model->_vars[i]);
+                    set_val(_model->_vars[i], 0, j);
                 }
             }
         }
@@ -122,11 +122,26 @@ void CplexProgram::fill_in_cplex_vars() {
             auto real_var = (var<double>*)v;
             auto lb = IloNumArray(*_cplex_env, real_var->get_dim());
             auto ub = IloNumArray(*_cplex_env, real_var->get_dim());
+//            real_var->print();
+//            cout << ": ";
             for (int i = 0; i < real_var->get_dim(); i++) {
                 lb[i] = real_var->get_lb(i);
                 ub[i] = real_var->get_ub(i);
             }
-            _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
+            
+            if (real_var->_is_relaxed) {
+                _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub, ILOINT);
+            }
+            else {
+                _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
+            }
+//            for (int i = 0; i < real_var->get_dim(); i++) {
+//                cout << _cplex_vars.at(vid)[i].getName() << ", ";
+//                cout << real_var->get_rev_indices()->at(i) << " : ";
+//                cout << to_string(_cplex_vars.at(vid)[i].getId()) << " in [";
+//                cout << lb[i] << "," << ub[i]<< "]\n";
+//            }
+//            cout << endl;
             break;
         }
         case integer_: {
@@ -182,13 +197,13 @@ void CplexProgram::set_cplex_objective() {
         if (it_qterm.second._coef->_is_transposed) {
             auto dim = it_qterm.second._p->first->get_dim();
             for (int j = 0; j<dim; j++) {
-                qterm += poly_eval(it_qterm.second._coef,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
+                qterm += t_eval(it_qterm.second._coef,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
             }            
         }
         else {
             idx_inst1 = it_qterm.second._p->first->get_id_inst();
             idx_inst2 = it_qterm.second._p->second->get_id_inst();
-            qterm += poly_eval(it_qterm.second._coef)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
+            qterm += t_eval(it_qterm.second._coef)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
         }
         if (!it_qterm.second._sign) {
             qterm *= -1;
@@ -203,12 +218,12 @@ void CplexProgram::set_cplex_objective() {
         if (it_lterm.second._coef->_is_transposed) {
             auto dim = it_lterm.second._p->get_dim();
             for (int j = 0; j<dim; j++) {
-                lterm += poly_eval(it_lterm.second._coef,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(j)];
+                lterm += t_eval(it_lterm.second._coef,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(j)];
             }
         }
         else {
             idx_inst = it_lterm.second._p->get_id_inst();
-            lterm += poly_eval(it_lterm.second._coef)*_cplex_vars[idx][idx_inst];
+            lterm += t_eval(it_lterm.second._coef)*_cplex_vars[idx][idx_inst];
         }
         if (!it_lterm.second._sign) {
             lterm *= -1;
@@ -217,7 +232,7 @@ void CplexProgram::set_cplex_objective() {
         lterm.end();
     }
 
-    obj += poly_eval(_model->_obj.get_cst());
+    obj += t_eval(_model->_obj.get_cst());
 
     if (_model->_objt == maximize) {
         _cplex_obj = IloMaximize(*_cplex_env,obj);
@@ -242,9 +257,9 @@ void CplexProgram::create_cplex_constraints() {
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
-        nb_inst = c->_nb_instances;
+        nb_inst = c->_dim[0];
         inst = 0;
-        for (int i = 0; i< nb_inst; i++) {
+        for (size_t i = 0; i< nb_inst; i++) {
             IloNumExpr cc(*_cplex_env);
             for (auto& it_qterm: c->get_qterms()) {
                 IloNumExpr qterm(*_cplex_env);
@@ -252,14 +267,14 @@ void CplexProgram::create_cplex_constraints() {
                 idx2 = it_qterm.second._p->second->get_vec_id();
                 if (it_qterm.second._coef->_is_transposed) {
                     auto dim = it_qterm.second._p->first->get_dim(i);
-                    for (int j = 0; j<dim; j++) {
-                        qterm += poly_eval(it_qterm.second._coef,i,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(i,j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(i,j)];
+                    for (size_t j = 0; j<dim; j++) {
+                        qterm += t_eval(it_qterm.second._coef,i,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(i,j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(i,j)];
                     }
                 }
                 else {                    
                     idx_inst1 = it_qterm.second._p->first->get_id_inst(inst);
                     idx_inst2 = it_qterm.second._p->second->get_id_inst(inst);
-                    qterm += poly_eval(it_qterm.second._coef, inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
+                    qterm += t_eval(it_qterm.second._coef, inst)*_cplex_vars[idx1][idx_inst1]*_cplex_vars[idx2][idx_inst2];
                 }
                 if (!it_qterm.second._sign) {
                     qterm *= -1;
@@ -274,12 +289,12 @@ void CplexProgram::create_cplex_constraints() {
                 if (it_lterm.second._coef->_is_transposed) {
                     auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j<dim; j++) {
-                        lterm += poly_eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
+                        lterm += t_eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
                     }                    
                 }
                 else {
                     idx_inst = it_lterm.second._p->get_id_inst(inst);
-                    lterm += poly_eval(it_lterm.second._coef, inst)*_cplex_vars[idx][idx_inst];
+                    lterm += t_eval(it_lterm.second._coef, inst)*_cplex_vars[idx][idx_inst];
                 }
                 if (!it_lterm.second._sign) {
                     lterm *= -1;
@@ -287,7 +302,7 @@ void CplexProgram::create_cplex_constraints() {
                 cc += lterm;
                 lterm.end();
             }
-            cc += poly_eval(c->get_cst(), inst);
+            cc += t_eval(c->get_cst(), inst);
 
             if(c->get_type()==geq) {
                 _cplex_model->add(cc >= c->get_rhs());

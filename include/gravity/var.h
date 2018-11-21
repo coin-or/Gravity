@@ -25,7 +25,7 @@ using namespace std;
 namespace gravity {
     
     
-class func_;
+    class func_;
     class space{
     public:
         SpaceType       _type;
@@ -76,25 +76,36 @@ class func_;
     
     class C: public space{
     public:
+        C(){};
+        template<typename... Args>
+        C(size_t t1, Args&&... args) {
+            _type = C_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        C operator^(size_t n){return C(n);};
         /* TODO */
     };
     
-/** Backbone class for parameter */
-class var_ {
-public:
-    virtual ~var_() {};    
-};
 
-/** A variable can be a bool, a short, an int, a float or a double*/
+/** A variable can be a bool, a short, an int, a float, a double, a long double or a complex<double>*/
 template<typename type = double>
 // define variable as a parameter with bounds
-class var: public param<type>, public var_ {
+class var: public param<type>{
 
 public:
     shared_ptr<func_>   _lb; /**< Lower Bound */
     shared_ptr<func_>   _ub; /**< Upper Bound */
-    bool _in_q_cone = false;
-    bool _psd = false;
+    bool _in_q_cone = false; /**< Used by Mosek */
+    bool _psd = false; /**< Has to be positive semidefinite */
     
     /* Constructors */
     //@{
@@ -109,510 +120,205 @@ public:
 
     //@{
     /** Bounded variable constructor */
-    var(const string& name, type lb, type ub);
-//    var(const string& name, const param<type>& lb, const param<type>& ub);//TODO move version of bounds
-    var(const string& name, const func_& lb, const func_& ub);
-    var(const string& name, func_&& lb, func_&& ub);
-    var(const string& name, const param<type>& sb);// Constructor with symmetric bound: [-sb, sb]
-//    var(const string& name, func_&& sb);// Constructor with symmetric bound: [-sb, sb]
+    template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> var(const string& name, const T& lb, const T& ub):param<T>(name){
+        param<T>::set_type(var_c);
+        _lb = make_shared<func_>(constant<T>(lb));
+        _ub = make_shared<func_>(constant<T>(ub));
+        param<T>::_range->first = lb;
+        param<T>::_range->second = ub;
+    }
+    
+    template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> var(const string& name, T&& lb, T&& ub):param<T>(name){
+        param<T>::set_type(var_c);
+        _lb = make_shared<func_>(constant<T>(lb));
+        _ub = make_shared<func_>(constant<T>(ub));
+        param<T>::_range->first = lb;
+        param<T>::_range->second = ub;
+    }
+    
+    var(const string& name, type lb, type ub):var(name){
+        _lb = make_shared<func_>(constant<type>(lb));
+        _ub = make_shared<func_>(constant<type>(ub));
+        param<type>::_range->first = lb;
+        param<type>::_range->second = ub;
+    };
+    
+    var(const string& name, const param<type>& lb, const param<type>& ub):var(name){
+        _lb = make_shared<func_>(lb);
+        _ub = make_shared<func_>(ub);
+        param<type>::_range->first = lb._range->first;
+        param<type>::_range->second = ub._range->second;
+    };
+    
+    template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type>
+    var(const string& name, const param<T>& sb):var(name) {
+        _lb = make_shared<func_>(-1*sb);
+        _ub = make_shared<func_>(sb);
+        param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
+        param<type>::_range->second = sb._range->second;
+    }
+
+    var(const string& name, const func_& lb, const func_& ub):var(name){
+        _lb = make_shared<func_>(move(lb));
+        _ub = make_shared<func_>(move(ub));
+    };
+
+    var(const string& name, func_&& lb, func_&& ub):var(name) {
+        _lb = make_shared<func_>(lb);
+        _ub = make_shared<func_>(ub);
+    };
+
     //@}
 
 
-    // Retrieve specified indexed variable.
+    void initialize_all(type v) {
+        this->set_val_all(v);
+    }
+        
+    /* Retrieve specified indexed variable. */
     template<typename... Args>  
-    var operator()(size_t t1, Args&&... args) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::operator()(t1, args...));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+    var operator()(size_t i, size_t j) {
+        bool indexed = param<type>::_indices!=nullptr;
+        var<type> res(*this);
+        res.param<type>::operator=(param<type>::operator()(i, j));
+        if(!indexed && !res._lb->is_number()){
+            (res._lb->in(*res._indices));
+        }
+        if(!indexed && !res._ub->is_number()){
+            (res._ub->in(*res._indices));
+        }
         return res;
     }
 
     template<typename... Args>
     var operator()(string t1, Args&&... args) {
-        var<type> res(this->_name);
+        bool indexed = param<type>::_indices!=nullptr;
+        var<type> res(*this);
         res.param<type>::operator=(param<type>::operator()(t1, args...));
         res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        if(!indexed & !res._lb->is_number()){
+            (res._lb->in(*res._indices));
+        }
+        if(!indexed & !res._ub->is_number()){
+            (res._ub->in(*res._indices));
+        }
         return res;
     }
     
-    
-    
-
-
-    
     var in_pairs(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pairs());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        var<type> res(*this);
+        res._name += ".in_pairs";
+        res._indices->_type = in_pairs_;
         return res;
     }
     
     var from(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        var<type> res(*this);
+        res._name += ".from";
+        res._indices->_type = from_;
         return res;
     }
     
-    var prev(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::prev());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var min_time(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::min_time());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+   
+    var to(){
+        var<type> res(*this);
+        res._name += ".to";
+        res._indices->_type = to_;
         return res;
     }
     
     
     var out_arcs(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::out_arcs());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        var<type> res(*this);
+        res._name += ".out_arcs";
+        res._indices->_type = out_arcs_;
         return res;
     }
     
     var in_arcs(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_arcs());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        var<type> res(*this);
+        res._name += ".in_arcs";
+        res._indices->_type = in_arcs_;
         return res;
     }
     
     var in_gens(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_gens());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+        var<type> res(*this);
+        res._name += ".in_gens";
+        res._indices->_type = in_gens_;
         return res;
     }
     
-    var in_pot_gens(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pot_gens());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
     
-    var in_bats(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_bats());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
     
-    var in_wind(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_wind());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var in_pv(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pv());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var to(){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to());
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var from(const vector<Tobj*>& vec){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var from(const vector<Tobj>& vec){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var from(const vector<Tobj*>& vec, const indices& T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var to(const vector<Tobj*>& vec, const indices& T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-
-    template<typename Tobj>
-    var from(const vector<Tobj*>& vec, unsigned T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::from(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var to(const vector<Tobj*>& vec){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var to(const vector<Tobj>& vec){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    template<typename Tobj>
-    var to(const vector<Tobj*>& vec, unsigned T){
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::to(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+    var in_pairs(const indices& ids) {
+        bool indexed = param<type>::_indices!=nullptr;
+        var<type> res(*this);
+        res.param<type>::operator=(param<type>::in(ids));
+        if(!indexed && !res._lb->is_number()){
+            (res._lb->in(*res._indices));
+        }
+        if(!indexed && !res._ub->is_number()){
+            (res._ub->in(*res._indices));
+        }
         return res;
     }
 
     template<typename... Args>
     var in(const indices& vec1, Args&&... args) {
-        var<type> res(this->_name);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        if(get<1>(param_::_unique_id)==unindexed_){
-            if(this->_rev_indices->size()==0 && (!res._ub->is_number() || !res._lb->is_number())){
-                auto ids = indices(vec1,args...);
-                if(!res._lb->is_number()){
-                    (res._lb->in(ids));
-                }
-                if(!res._ub->is_number()){
-                    (res._ub->in(ids));
-                }
-            }
-        }
+        bool indexed = param<type>::_indices!=nullptr;
+        var<type> res(*this);
         res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));
-        res.param<type>::set_type(var_c);
-        res._is_relaxed = param_::_is_relaxed;
-        return res;
-    }
-    
-    template<typename... Args>
-    var prev(const indices& vec1, Args&&... args) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::prev(vec1, forward<Args>(args)...));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        //        if(!this->_lb->is_number()){
-        //            *res._lb = this->_lb->in(vec);
-        //        }
-        //        if(!this->_ub->is_number()){
-        //            *res._ub = this->_ub->in(vec);
-        //        }
-        return res;
-    }
-    
-    
-    template<typename Tobj> var min_time(const vector<Tobj*>& vec, const indices& ids, param<int> time) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::min_time(vec, ids, time));
-        res.param<type>::set_type(var_c);
-        //        if(!this->_lb->is_number()){
-        //            *res._lb = this->_lb->in(vec);
-        //        }
-        //        if(!this->_ub->is_number()){
-        //            *res._ub = this->_ub->in(vec);
-        //        }
-        return res;
-    }
-    
-    
-    template<typename Tobj>
-    var in(const vector<Tobj*>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(vec));
-        res.param<type>::set_type(var_c);
-        if(!this->_lb->is_number()){
-            this->_lb->in(vec);
-            res._lb = this->_lb;
+        if(!indexed && !res._lb->is_number()){
+            (res._lb->in(*res._indices));
         }
-        else {
-            res._lb = _lb;
-        }
-        if(!this->_ub->is_number()){
-            this->_ub->in(vec);
-            res._ub = this->_ub;
-        }
-        else {
-            res._ub = _ub;
+        if(!indexed && !res._ub->is_number()){
+            (res._ub->in(*res._indices));
         }
         return res;
     }
     
-    template<typename Tobj>
-    var in(const vector<Tobj>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(vec));
-        res.param<type>::set_type(var_c);
-        if(!this->_lb->is_number()){
-            *res._lb = this->_lb->in(vec);
-        }
-        if(!this->_ub->is_number()){
-            *res._ub = this->_ub->in(vec);
-        }
-        return res;
-    }
     
-    var in(const node_pairs& np){
-        return this->in(np._keys);
-    }
-    
-    
-    
-    
+//    var in(const node_pairs& np){
+//        return this->in(np._keys);
+//    }
+
     var in_arcs(const vector<Node*>& vec) {
-        var<type> res(this->_name);
+        var<type> res(*this);
         res.param<type>::operator=(param<type>::in_arcs(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var in_arcs(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_arcs(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
         return res;
     }
     
     var out_arcs(const vector<Node*>& vec) {
-        var<type> res(this->_name);
+        var<type> res(*this);
         res.param<type>::operator=(param<type>::out_arcs(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var out_arcs(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::out_arcs(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
         return res;
     }
     
     
-    var in_gens(const vector<Node*>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_gens(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+    var in_aux(const vector<Node*>& vec, const string& aux_type) {
+        var<type> res(*this);
+        res.param<type>::operator=(param<type>::in_aux(vec,aux_type));
         return res;
     }
     
-    var in_gens(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_gens(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var in_bats(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_bats(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var in_wind(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_wind(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    var in_pv(const vector<Node*>& vec, const indices& T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pv(vec,T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var in_pairs(const vector<Tobj*>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pairs(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    
-    template<typename Tobj>
-    var in_pairs(const vector<Tobj*>& vec, const indices& ids) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pairs(vec,ids));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-    
-    template<typename Tobj>
-    var in_pairs(const vector<Tobj>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pairs(vec));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
+
+    var excl(size_t index) {
+        var<type> res(*this);
+        res._indices->_type = excl_;
         return res;
     }
 
-    template<typename Tobj>
-    var in_pairs(const vector<Tobj*>& vec, unsigned T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_pairs(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-
-    template<typename Tobj>
-    var in(const vector<Tobj>& vec, unsigned T) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(vec, T));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    template<typename Tobj>
-    var in(const Tobj nm, unsigned t) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in(nm, t));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    template<typename Tobj>
-    var in_at(const vector<Tobj>& vec, unsigned t) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::in_at(vec, t));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
-
-    var excl(unsigned index) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::excl(index));
-        res.param<type>::set_type(var_c);
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        return res;
-    }
     
-    template<typename Tobj>
-    var submat(const vector<Tobj>& vec) {
-        var<type> res(this->_name);
-        res.param<type>::operator=(param<type>::submat(vec));
-        res.param<type>::set_type(var_c);
-        if(!this->_lb->is_number()){
-            *res._lb = this->_lb->in(vec);
-        }
-        if(!this->_ub->is_number()){
-            *res._ub = this->_ub->in(vec);
-        }
-        return res;
-    }
-    
-    var from(const ordered_pairs& pairs);
-    var to(const ordered_pairs& pairs);
-    var in(const ordered_pairs& pairs);
-    vector<var> in_bags(const std::vector<std::vector<Node*>>& bags, unsigned size);
-    vector<var> pairs_in(const std::vector<std::vector<Node*>>& bags, unsigned size);
-    vector<var> pairs_in_directed(Net& net, const std::vector<std::vector<Node*>>& bags, unsigned size);
+    /* Create a vector of variables indexed based on nodes from bags of size bag_size
+     e.g., given bag { 1, 5, 7 } index the first variable (1), the second (5) and the last (7)
+     */
+    vector<var> in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
+
+    /* Create a vector of variables indexed as pair of nodes from bags of size bag_size
+     e.g., given bag { 1, 5, 7 } index the first variable (1,5), the second (5,7) and the last (1,7)
+     */
+    vector<var> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
 
     /* Querries */
 
@@ -621,38 +327,43 @@ public:
     type    get_ub(size_t i = 0) const;
 
 
-    bool is_bounded_above(int i = 0) const;
+    template<typename T=type,
+    typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool is_bounded_above(size_t i = 0) const;
 
-    bool is_bounded_below(int i = 0) const;
+    template<typename T=type,
+    typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool is_bounded_below(size_t i = 0) const;
 
-    bool is_constant(int i=0) const;
-
-    Sign get_sign(int idx = 0) const;
+    template<typename T=type,
+    typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool is_constant(size_t i=0) const;
+    
+    template<typename T=type,
+    typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    Sign get_sign(size_t idx = 0) const;
 
     /* Modifiers */
     void    set_size(vector<size_t>);
-    void    set_size(size_t s, type val = 0);
+    void    set_size(size_t s);
 
     void    add_bounds(type lb, type ub);
     void    add_lb_only(type v); /**< Adds a new lower bound and infinity in the corresponding upper bound*/
     void    add_ub_only(type v); /**< Adds a new upper bound and -infinity in the corresponding lower bound*/
 
-    void    set_lb(int i, type v);
-    void    set_ub(int i, type v);
+    
+    void    set_lb(type v);
+    void    set_ub(type v);
 
     void in_q_cone(); /**< States that the variable is contained in a quadratic cone, for mosek */
 
-    //void    set_lb(string name, type v); // change lb and ub via names.
-    //void    set_ub(string name, type v);
 
     /* Operators */
     var& operator=(const var& v);
     var& operator=(var&& v);
 
     var& operator=(type v) {
-        param<type>::_val->push_back(v);
-        param<type>::update_range(v);
-        param<type>::_dim[0]++;
+        this->set_val_all(v);
         return *this;
     }
     
@@ -660,153 +371,45 @@ public:
     bool operator!=(const var& v) const;
     
     var& in(const space& s){
-//        if(s._dim.size()>1){
-//            throw invalid_argument("2D spaces unsupported yet");
-//        }
         set_size(s._dim);
-        param_::_rev_indices->resize(s._dim[0]);
-        for(unsigned i = 0 ; i< s._dim[0]; i++){
-            auto key = to_string(i);
-            param_::_indices->insert(make_pair<>(key,i));
-            (*param_::_rev_indices)[i] = key;
-        }
+        this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
         return *this;
     }
     
-    void initialize_uniform() {
+    template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform() {
         std::default_random_engine generator;
         for (int i = 0; i<param<type>::_val->size(); i++) {
             std::uniform_real_distribution<double> distribution(get_lb(i),get_ub(i));
             param<type>::_val->at(i) = distribution(generator);
         }
     }
-    
-//    var& operator^(size_t d) {
-//        set_size(d);
-//        return *this;
-//    }
 
     var tr() const {
         auto v = var(*this);
-        v._is_transposed = true;
-        v._is_vector = true;
+        v.constant_::transpose();
+//        v._is_transposed = true;
+//        v._is_vector = true;
         return v;
     }
     
     var vec() const {
         auto v = var(*this);
         v._is_vector = true;
+        v._name = "["+v._name+"]";
         return v;
     }
 
     /* Output */
-    void print(bool bounds=false) const;
+    string to_str(bool bounds=true, int prec = 10) const;
+    void print(bool bounds=true, int prec = 10) const;
 
 };
 
-template<typename type>
-var<type> all(const var<type>& p) {
-    auto pp = var<type>(p);
-    pp._is_vector = true;
-    return pp;
+    var<Cpx> conj(const var<Cpx>& p);
+    var<Cpx> ang(const var<Cpx>& p);
+    var<Cpx> sqrmag(const var<Cpx>& p);
+    var<Cpx> real(const var<Cpx>& p);
+    var<Cpx> imag(const var<Cpx>& p);
+    
 }
-
-
-// In contrast to a general variable, indices of an SDP variable should be
-// recorded using _sdpindices, moreover the size of an SDP variable is d (d x d).
-template<typename type = double>
-//class sdpvar: public param<type>, public var_{
-class sdpvar: public var<type> {
-
-public:
-    size_t _symdim=0;
-    //@{
-    /** Unbounded sdp-variable constructor */
-    sdpvar();
-    ~sdpvar() {};
-
-    sdpvar(const string& name);
-    sdpvar(const sdpvar<type>& v);
-    sdpvar(sdpvar<type>&& v);
-    //@}
-
-    /** bounded sdp-variable constructor */
-    sdpvar(const string& name, type lb, type ub);
-
-    template<typename... Args>
-    sdpvar operator()(size_t t1, Args&&... args) {
-        sdpvar res(this->_name);
-        res._id = this->_id;
-        res._vec_id = this->_vec_id;
-        res._intype = this->_intype;
-        res._val = this->_val;
-        res._range = this->_range;
-        res._lb = this->_lb;
-        res._ub = this->_ub;
-        list<size_t> indices;
-        indices = {forward<size_t>(args)...};
-        indices.push_front(t1);
-        string key;
-        auto it = indices.begin();
-
-        for (size_t i= 0; i<indices.size(); i++) {
-            key += to_string(*it);
-            if (i<indices.size()-1) {
-                key += ",";
-            }
-            it++;
-        }
-
-        auto it2 = param_::_sdpindices->find(key);
-        if (it2 == param_::_sdpindices->end()) {
-            auto temp = make_pair<>(t1, (*(++indices.begin())));
-            res._sdpindices->insert(make_pair<>(key,temp));
-            param_::_sdpindices->insert(make_pair<>(key,temp));
-//            res._dim[0] = 1;
-//            res._symdim = 1;
-        }
-        else {
-            auto temp = param_::_sdpindices->at(key);
-            res._sdpindices->insert(make_pair<>(key,temp));
-            res._dim[0] = 1;
-            res._symdim = 1;
-        }
-        res._name += "["+key+"]";
-        res._is_indexed = true;
-        return res;
-    }
-
-    /* Modifiers */
-    
-    
-    
-    
-    
-    //void    set_size(size_t s, type val = 0);
-    /* Operators */
-    sdpvar& operator = (type v) {
-        param<type>::_val->push_back(v);
-        param<type>::_dim[0]++;
-        return *this;
-    }
-
-    bool operator == (const sdpvar& v) const;
-    bool operator >= (const sdpvar& v) const;
-    bool operator != (const sdpvar& v) const;
-    sdpvar& operator^(size_t d) {
-        // the upper/lower triangular part.
-        param<type>::set_size(d*(d+1)/2);
-        _symdim = d;
-        return *this;
-    }
-
-    sdpvar tr() const {
-        auto v = sdpvar(*this);
-        v._is_transposed = true;
-        return v;
-    }
-    /* Output */
-    void print(bool vals = false) const;
-};
-}
-#endif /* sdpvar_h */
+#endif /* var_h */

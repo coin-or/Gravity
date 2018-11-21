@@ -1,9 +1,9 @@
 //
 //  solver.cpp
-//  PowerTools++
+//  Gravity++
 //
 //  Created by Hassan on 30/01/2015.
-//  Copyright (c) 2015 NICTA. All rights reserved.
+
 //
 
 #include <gravity/solver.h>
@@ -51,59 +51,14 @@ namespace {
 }
 
 
+
 solver::solver(Model& model, SolverType stype){
     _stype = stype;
     _model = &model;
     if (_stype==ipopt) {
 #ifdef USE_IPOPT
-        bool has_int = false;
-        //_model->relax();
-        //_model->unrelax();
-        for (auto &v_p:_model->_vars_name) {
-            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                has_int = true;
-                auto v = v_p.second;
-                auto new_v = new var<double>(v_p.second->_name, 0,1);
-                new_v->copy(*v);
-                new_v->_is_relaxed = true;
-                new_v->_val->resize(new_v->get_dim());
-                if (v->get_intype()==integer_) {
-                    auto double_var = (var<int>*)v;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                if (v->get_intype()==short_) {
-                    auto double_var = (var<short>*)v;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                if (v->get_intype()==binary_) {
-                    auto double_var = (var<bool>*)v;
-                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                v_p.second = new_v;
-            }
-        }
-        for (auto &v_p:_model->_vars) {
-            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                auto name = v_p.second->_name;
-                delete v_p.second;
-                v_p.second = _model->get_var(name);
-            }
-        }
-        if(has_int){
-            _model->_obj.relax(_model->_vars);
-            for (auto &c_p: _model->_cons) {
-                c_p.second->relax(_model->_vars);
-            }
-        }
         
-
+        _model->replace_integers();
         SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
         iapp->RethrowNonIpoptException(true);
         ApplicationReturnStatus status = iapp->Initialize();
@@ -146,98 +101,7 @@ solver::solver(Model& model, SolverType stype){
     }
     else if(_stype==bonmin) {
 #ifdef USE_BONMIN
-        bool has_int = false;
-        //_model->relax();
-        //_model->unrelax();
-        for (auto &v_p:_model->_vars_name) {
-            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                has_int = true;
-                auto v = v_p.second;
-                auto new_v = new var<double>(v_p.second->_name, 0,1);
-                new_v->copy(*v);
-                new_v->_is_relaxed = true;
-                new_v->_val->resize(new_v->get_dim());
-                if (v->get_intype()==integer_) {
-                    auto double_var = (var<int>*)v;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                if (v->get_intype()==short_) {
-                    auto double_var = (var<short>*)v;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                if (v->get_intype()==binary_) {
-                    auto double_var = (var<bool>*)v;
-                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
-                    for (int i = 0; i < double_var->get_dim(); i++) {
-                        new_v->_val->at(i) = double_var->_val->at(i);
-                    }
-                }
-                v_p.second = new_v;
-            }
-        }
-        for (auto &v_p:_model->_vars) {
-            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                auto name = v_p.second->_name;
-                delete v_p.second;
-                v_p.second = _model->get_var(name);
-            }
-        }
-        if(has_int){
-            _model->_obj.relax(_model->_vars);
-            for (auto &c_p: _model->_cons) {
-                c_p.second->relax(_model->_vars);
-            }
-        }
-//        bool has_int = false;
-//        //_model->relax();
-//        //_model->unrelax();
-//        for (auto &v_p:_model->_vars_name) {
-//            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-//                has_int = true;
-//                auto v = v_p.second;
-//                auto new_v = new var<double>(v_p.second->_name, 0,1);
-//                new_v->copy(*v);
-//                new_v->_is_relaxed = true;
-//                new_v->_val->resize(new_v->get_dim());
-//                if (v->get_intype()==integer_) {
-//                    auto double_var = (var<int>*)v;
-//                    for (int i = 0; i < double_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = double_var->_val->at(i);
-//                    }
-//                }
-//                if (v->get_intype()==short_) {
-//                    auto double_var = (var<short>*)v;
-//                    for (int i = 0; i < double_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = double_var->_val->at(i);
-//                    }
-//                }
-//                if (v->get_intype()==binary_) {
-//                    auto double_var = (var<bool>*)v;
-//                    _model->_bin_vars[v_p.second->get_vec_id()] = *double_var;
-//                    for (int i = 0; i < double_var->get_dim(); i++) {
-//                        new_v->_val->at(i) = double_var->_val->at(i);
-//                    }
-//                }
-//                v_p.second = new_v;
-//            }
-//        }
-//        for (auto &v_p:_model->_vars) {
-//            if (v_p.second->is_integer() || v_p.second->is_binary()) {
-//                auto name = v_p.second->_name;
-//                delete v_p.second;
-//                v_p.second = _model->get_var(name);
-//            }
-//        }
-//        if(has_int){
-//            _model->_obj.relax(_model->_vars);
-//            for (auto &c_p: _model->_cons) {
-//                c_p.second->relax(_model->_vars);
-//            }
-//        }
+        _model->replace_integers();
         if(_model->_objt==maximize){
             _model->_obj *= -1;
         }
@@ -281,11 +145,13 @@ void run_parallel(const std::vector<shared_ptr<Model>>& models, SolverType stype
 int solver::run(int print_level, bool relax, double tol, double mipgap, const string& lin_solver, const string& mehrotra, int max_iter){
     int return_status = -1;
     bool violated_constraints = true, optimal = true;
+    unsigned nb_it = 0;
     while(violated_constraints && optimal){
         if (_stype==ipopt) {
     #ifdef USE_IPOPT
-//            double mu_init = exp(-1)/exp(10);
+//            double mu_init = 0.1;
             double mu_init = exp(-1)/exp(2);
+//            double mu_init = exp(1);
             SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
             iapp->RethrowNonIpoptException(true);
             ApplicationReturnStatus status = iapp->Initialize();
@@ -315,9 +181,12 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
 //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
 //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
 //            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//            iapp->Options()->SetNumericValue("mu_init", mu_init);
+//            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
             /** Hot start if already solved */
             if (!_model->_first_run) {
 //            if (false) {
+                mu_init = exp(-1)/exp(2);
                 DebugOn("Using Hot Start!\n");
                 iapp->Options()->SetNumericValue("mu_init", mu_init);
                 iapp->Options()->SetStringValue("warm_start_init_point", "yes");
@@ -355,10 +224,10 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
     //                        iapp->Options()->SetNumericValue("ma27_la_init_factor", 100);
     //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
-                                iapp->Options()->SetNumericValue("tol", 1e-6);
+                                iapp->Options()->SetNumericValue("tol", tol);
 //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
     //            iapp->Options()->SetStringValue("derivative_test", "second-order");
-//                            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-14);
+//                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
     //            iapp.Options()->SetIntegerValue("print_level", 5);
 
     //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
@@ -461,9 +330,18 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             bonmin.initializeOptionsAndJournalist();
 //            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
 //            bonmin.options()->SetIntegerValue("solution_limit", 1);
-//            bonmin.options()->SetIntegerValue("bb_log_level", 5);
-            bonmin.options()->SetNumericValue("allowable_gap", -10);
-//            bonmin.options()->SetNumericValue("cutoff", 1e-4);
+//            bonmin.options()->SetIntegerValue("bb_log_level", 3);
+//            bonmin.options()->SetNumericValue("allowable_gap", -1e5);
+//            bonmin.options()->SetNumericValue("allowable_fraction_gap", -1e5);
+//            bonmin.options()->SetNumericValue("tol", tol);
+//            bonmin.options()->SetIntegerValue("print_level", 5);
+            bonmin.options()->SetStringValue("tree_search_strategy", "top-node");
+            bonmin.options()->SetStringValue("warm_start", "optimum");
+            
+//            bonmin.options()->SetStringValue("variable_selection", "random");
+//            bonmin.options()->SetStringValue("linear_solver", "ma57");
+//            bonmin.options()->SetIntegerValue("nlp_log_at_root", 5);
+            bonmin.options()->SetNumericValue("cutoff", 0.9);
 //            bonmin.options()->SetNumericValue("resolve_on_small_infeasibility", INFINITY);
             bonmin.options()->SetStringValue("heuristic_dive_MIP_fractional", "no");
             bonmin.options()->SetStringValue("heuristic_dive_MIP_vectorLength", "no");
@@ -473,8 +351,8 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             bonmin.options()->SetStringValue("pump_for_minlp", "no");
 //            bonmin.options()->SetStringValue("algorithm", "B-iFP");
             bonmin.options()->SetStringValue("node_comparison", "best-guess");
-            bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
-//            bonmin.options()->SetIntegerValue("num_resolve_at_root", 50);
+//            bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
+            bonmin.options()->SetIntegerValue("num_resolve_at_root", 5);
             
             _prog->update_model();
             SmartPtr<TMINLP> tmp = new BonminProgram(_model);
@@ -528,11 +406,26 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             violated_constraints = _model->has_violated_constraints(tol);
             if (violated_constraints) {
                 _model->reindex();
+//                Constraint obj_cstr("obj_cstr_"+to_string(nb_it));
+//                obj_cstr += _model->_obj - _model->_obj_ub;
+//                if (_model->_objt==minimize) {
+//                    _model->add(obj_cstr <= 0);
+//                }
+//                else {
+//                    _model->add(obj_cstr >= 0);
+//                }
+//                _model->print();
             }
         }
         if(_stype!=ipopt) {
             violated_constraints = false;
         }
+        nb_it++;
+    }
+    if (nb_it>1) {
+        DebugOn(endl << "####################" << endl);
+        DebugOn("Solved in " << nb_it << " constraint generation iterations" << endl);
+        DebugOn("####################" << endl);
     }
     _model->_status = return_status;
     return return_status;

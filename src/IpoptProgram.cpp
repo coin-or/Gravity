@@ -24,6 +24,7 @@ bool IpoptProgram::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
     _model->_jac_vals.resize(nnz_jac_g,0);
     nnz_h_lag = (Index)_model->get_nb_nnz_h();
     _model->_first_call_jac = true;
+    //If quadratic model and we're resolving no need to reset these
     _model->_first_call_hess = true;
     _model->_first_call_gard_obj = true;
     return true;
@@ -53,9 +54,9 @@ void IpoptProgram::finalize_solution(Ipopt::SolverReturn             status    ,
     }
 //    _model->_obj_val = _model->_obj.eval();
     for (auto &cp: _model->_cons) {
-        cp.second->_dual.resize(cp.second->_nb_instances);
+        cp.second->_dual.resize(cp.second->_dim[0]);
         auto idx = 0;
-        for (unsigned inst = 0; inst < cp.second->_nb_instances; inst++) {
+        for (size_t inst = 0; inst < cp.second->_dim[0]; inst++) {
             if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                 cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
             }

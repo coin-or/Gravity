@@ -103,7 +103,7 @@ public:
     
     char* readline(FILE *input);
     void exit_input_error(int line_num);
-    void read_adjacency_matrix(const char* fname);
+    void read_adjacency_matrix(const string& fname);
     void readrudy(const char* fname);
     void get_complement(const char* fname);//  (i, j): i<j \E
     
@@ -131,7 +131,7 @@ public:
     Net* get_chordal_extension();
     
     /** Compute the vector of bus pairs, ignoring parallel lines **/
-    std::vector<gravity::index_pair*> get_bus_pairs();
+    gravity::indices get_bus_pairs();
     
     /** Compute the tree decomposition bags **/
     void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques. 
@@ -141,8 +141,7 @@ public:
     void chol_decompose(bool print=false);
 
     Arc *get_directed_arc(std::string src, std::string dest);
-
-    std::vector<gravity::index_pair *> get_bus_pairs_chord();
+    
     
     vector<gravity::index_pair *> get_bus_pairs_all();
 };

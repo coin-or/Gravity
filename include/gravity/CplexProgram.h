@@ -11,8 +11,8 @@
 
 #include <stdio.h>
 
-#ifndef __PowerTools____CplexProgram
-#define __PowerTools____CplexProgram
+#ifndef __Gravity____CplexProgram
+#define __Gravity____CplexProgram
 
 #ifdef USE_CPLEX
 #include <ilcplex/ilocplex.h>
@@ -52,5 +52,5 @@ public:
 };
 
 
-#endif /* defined(__PowerTools____CplexProgram) */
+#endif /* defined(__Gravity____CplexProgram) */
 #endif /* CplexProgram_hpp */

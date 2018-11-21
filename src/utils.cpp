@@ -46,6 +46,15 @@ double get_cpu_time() {
 //if possible the function will split mem into equal chuncks, if not
 //the last chunck will be slightly larger
 
+op::OptionParser readOptions(int argc, char * argv[]){
+    string log_level ="0";
+    op::OptionParser opt;
+    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
+    opt.add_option("l", "log", "Log level (def. 0)", log_level );
+    
+    return opt;
+}
+
 std::vector<int> bounds(int parts, int mem) {
     std::vector<int>bnd;
     int delta = mem / parts;

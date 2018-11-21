@@ -5,11 +5,13 @@
 #ifndef GRAVITY_CONSTANT_H
 #define GRAVITY_CONSTANT_H
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <forward_list>
 #include <assert.h>
 #include <string>
 #include <map>
+#include <complex>
 #include <memory>
 #include <typeinfo>
 #include <gravity/types.h>
@@ -20,6 +22,14 @@ using namespace std;
 
 namespace gravity {
 
+    template <typename T>
+    std::string to_string_with_precision(const T a_value, const int n)
+    {
+        std::ostringstream out;
+        out << std::setprecision(n) << a_value;
+        return out.str();
+    }
+    
     /** Backbone class for constant */
     class constant_{
     protected:
@@ -27,10 +37,14 @@ namespace gravity {
         
         
     public:
-        bool                            _is_transposed = false; /**< True if the constant is considered as a transposed vector */
-        bool                            _is_vector = false; /**< True if the constant is considered as a vector */
-        bool                            _is_matrix = false; /**< True if the constant is considered as a matrix */
-        vector<size_t>                  _dim; /*<< dimension of current object. Implmented as a vector to account for multidimentional indices. */
+        bool                            _is_transposed = false; /**< True if the constant is transposed */
+        bool                            _is_vector = false; /**< True if the constant is a vector */
+        bool                            _is_conjugate = false; /**< True if the constant is a complex number and is conjugated */
+        bool                            _is_sqrmag = false; /**< True if the constant is the magnitude squared of a complex number */
+        bool                            _is_angle = false; /**< True if the constant is the angle of a complex number */
+        bool                            _is_real = false; /**< True if the constant is the real part of a complex number */
+        bool                            _is_imag = false; /**< True if the constant is the imaginary part of a complex number */
+        size_t                          _dim[2] = {1,1}; /*< dimension of current object */
         
         virtual ~constant_(){};
         CType get_type() const { return _type;}
@@ -61,8 +75,13 @@ namespace gravity {
             return (_type==long_c);
         };
         
+        bool is_complex() const{
+            return (_type==complex_c);
+        };
+
+        
         virtual bool is_number() const{
-            return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=sdpvar_c && _type!=func_c);
+            return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=func_c);
         }
         bool is_param() const{
             return (_type==par_c);
@@ -85,39 +104,32 @@ namespace gravity {
             return (_type==var_c);
         };
         
-        bool is_sdpvar() const{
-            return (_type==sdpvar_c);
-        };
-        
+        bool is_matrix() const{
+            return (_dim[0]>1 && _dim[1]>1);
+        }
         bool is_function() const{
             return (_type==func_c);
         };
         
-        virtual size_t get_nb_instances() const {
-            return get_dim(0);
-        }
         
-        size_t get_dim(size_t i) const {
-            if (_dim.size()<=i) {
-//                throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
+        virtual size_t get_dim(size_t i) const {
+            if (i>0) {
                 return 1;
+                throw invalid_argument("In Function: size_t get_dim(size_t i) const, i is out of range!\n");
             }
             return _dim[i];
         }
         
         size_t get_dim() const {
-            size_t dim = 1;
-            for (auto d:_dim) {
-                dim*= d;
+            size_t dim = _dim[0];
+            if(_dim[1]>0){
+                dim*= _dim[1];
             }
             return dim;
         }
         
 //        virtual size_t get_nb_instances() const {
-//            if(_is_transposed || _is_vector){
-//                if (_is_matrix) {
-//                    return _dim[1];
-//                }
+//            if(_is_vector && _is_transposed && !is_matrix()){
 //                return 1;
 //            }
 //            return _dim[0];
@@ -127,32 +139,93 @@ namespace gravity {
             _is_vector = true;
         }
         
-        void tr(){
-            _is_transposed = true;
-            _is_vector = true;
-        }
-        
         virtual void transpose(){
             _is_transposed = !_is_transposed;
-            if (!_is_vector) {
-                _is_vector = true;
-            }
-            if (_is_matrix) {
-                auto temp = _dim[0];
-                _dim[0] = _dim[1];
-                _dim[1] = temp;
-            }
+            _is_vector = true;
+            auto temp = _dim[0];
+            _dim[0] = _dim[1];
+            _dim[1] = temp;
         }
         
-        void untranspose(){
+        bool update_dot(const constant_& c2){
+            if(_is_transposed || c2._is_vector){
+                _is_transposed = false;
+                if(!is_matrix() && c2.is_matrix()){
+                    _dim[0] = c2._dim[0];
+                    _dim[1] = c2._dim[1];
+                }
+                else if(!is_matrix() || c2.is_matrix() || !c2._is_transposed){
+                    _dim[1] = c2._dim[1];
+                }
+                if(is_matrix()){
+                    _is_vector = true;
+                }
+                return true;
+            }
+            return false;
+        }
+        
+        bool update_dot_dim(const constant_& c1, const constant_& c2){
             _is_transposed = false;
-//            _is_vector = false;
+            if(c1._is_vector || c2._is_vector){
+                _dim[0] = c1._dim[0];
+                _dim[1] = c2._dim[1];
+                /* Instructions above work for matrix and vector dot products, below we check if it's a component-wise vector,matrix product */
+                if(!c1.is_matrix() && c2.is_matrix()){
+                    _dim[0] = c2._dim[0];
+                }
+                if(c1.is_matrix() && !c2.is_matrix() && c2._is_transposed){
+                    _dim[1] = c1._dim[1];
+                }
+                if(is_matrix()){
+                    _is_vector = true;
+                }
+                return true;
+            }
+            return false;
         }
-        
+        /* Update the dimensions based on the product (this*c2) */
+//        bool update_dot_dim(const constant_& c2) {
+//            if (_is_vector || c2._is_vector) {
+//                if(!is_matrix() || c2.is_matrix()){
+//                    _dim[1] = c2._dim[1];
+//                }
+//                if (is_matrix()) {
+//                    _is_transposed = false;
+//                }
+//                else {//this is a vector
+//                    if (_is_transposed) {
+//                        if (!c2._is_transposed && !c2.is_matrix()) {//if c2 is not transposed and is a vector, we have a scalar product
+//                            _is_vector = false;
+//                            _is_transposed = false;
+//                        }
+//                        else {//c2 is either transposed or a matrix at this stage
+//                            _is_transposed = true;
+//                            _is_vector = true;
+//                        }
+//                    }
+//                    else {//this is a column vector
+//                        if (!c2.is_matrix()) {//if c2 is not a matrix, the result is component wise vector product
+//                            _is_vector = true;
+//                            _is_transposed = false;
+//                        }
+//                        else {//c2 a matrix, the result is a vector matrix columnwise product
+//                            _is_transposed = c2._is_transposed;
+//                        }
+//                    }
+//
+//                }
+//                if(!is_matrix() && c2.is_matrix()){
+//                    _dim[0] = c2._dim[0];
+//                }
+//                return true;
+//            }
+//            return false;
+//        }
         
         
         Sign get_all_sign() const;
-        Sign get_sign(int idx=0) const;
+        Sign get_sign(size_t idx=0) const;
         bool is_zero() const; /**< Returns true if constant equals 0 */
         bool is_unit() const; /**< Returns true if constant equals 1 */
         bool is_neg_unit() const; /**< Returns true if constant equals -1 */
@@ -174,7 +247,6 @@ namespace gravity {
         
         /** Constructors */
         constant(){
-            _dim.resize(1,1);
             if(typeid(type)==typeid(bool)){
                 set_type(binary_c);
                 return;
@@ -199,6 +271,11 @@ namespace gravity {
                 set_type(long_c);
                 return;
             }
+            if(typeid(type)==typeid(complex<double>)) {
+                set_type(complex_c);
+                return;
+            }
+
             throw invalid_argument("Unknown constant type.");
         }
         
@@ -207,8 +284,13 @@ namespace gravity {
             _val = c._val;
             _is_transposed = c._is_transposed;
             _is_vector = c._is_vector;
-            _is_matrix = c._is_matrix;
-            _dim = c._dim;
+            _is_angle = c._is_angle;
+            _is_sqrmag = c._is_sqrmag;
+            _is_conjugate = c._is_conjugate;
+            _is_real = c._is_real;
+            _is_imag = c._is_imag;
+            _dim[0] = c._dim[0];
+            _dim[1] = c._dim[1];
         };
 
         constant(type val):constant(){
@@ -221,8 +303,7 @@ namespace gravity {
         
         constant tr(){
             auto newc(*this);
-            newc._is_vector = true;
-            newc._is_transposed = true;
+            newc.transpose();
             return newc;
         };
                 
@@ -361,13 +442,23 @@ namespace gravity {
 
         
         /** Output */
-        void print() const{
-            cout << _val;
+        void print(int prec = 10) const{
+            cout << to_str(prec);
         }
         
-        string to_str() const;
+        void println(int prec = 10) const{
+            cout << to_str(prec) << endl;
+        }
+        
+        string to_str(int prec = 10) const{
+            return to_string_with_precision(_val,prec);
+        }
         
     };
+    
+    constant<Cpx> conj(const constant<Cpx>& cst);
+    constant<double> real(const constant<Cpx>& cst);
+    constant<double> imag(const constant<Cpx>& cst);
 
 }
 

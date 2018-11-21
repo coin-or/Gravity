@@ -2,8 +2,8 @@
 //  Node.cpp
 //  Cycle_Basis_PF
 //  adapt from power tools 
-//  Created by Sumiran on 17/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
+//  Created by Hassan on 17/06/2014.
+
 //
 
 #include <gravity/Node.h>

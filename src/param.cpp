@@ -6,18 +6,40 @@
 //
 //
 #include <gravity/param.h>
-namespace gravity{
-    string param_::get_name(bool indices) const {
-        string name = _name;
-        if (_is_vector) {
-            name = "[" + name + "]";
-        }
-//        if (_is_transposed) {
-//            name += "^T";
-//        }
-        return name;
-    };
 
+namespace gravity {
+
+    
+    
+    template<>
+    void param<complex<double>>::update_range(const complex<double>& val) {
+        if(_range->first.real()>val.real()){
+            _range->first.real(val.real());
+        }
+        if(_range->second.real()<val.real()){
+            _range->second.real(val.real());
+        }
+        if(_range->first.imag()>val.imag()){
+            _range->first.imag(val.imag());
+        }
+        if(_range->second.imag()<val.imag()){
+            _range->second.imag(val.imag());
+        }
+    }
+    
+    
+    template<>
+    void param<complex<double>>::set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
+        if (!is_complex()) {
+            throw invalid_argument("Function void set_complex_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM) is only implemented for complex<double> typed params/vars");
+        }
+        for (size_t k=0; k<SM.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
+                set_val(it.row(), it.col(), it.value());
+            }
+        }
+    }
+    
     pair<double, double>* param_::get_range() const{
         switch (get_intype()) {
             case binary_:
@@ -38,17 +60,49 @@ namespace gravity{
                 return new pair<double,double>(((param<long double>*)this)->_range->first, ((param<long double>*)this)->_range->second);
                 break;
             default:
+                return new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
+//                throw invalid_argument("get_range() only supports arithmetic types");
                 break;
         }
         
     }
-    std::vector<index_> indices(unsigned p1 ,unsigned p2){
-        std::vector<index_> _keys;
-        for (int i = p1; i <= p2; i++){
-            _keys.push_back(index_(to_string(i)));
+    
+    param<Cpx> conj(const param<Cpx>& p){
+        param<Cpx> newp(p);
+        if(newp._is_conjugate){
+            newp._name = newp._name.substr(newp._name.find("("),newp._name.find(")"));
         }
-        return _keys;
+        else {
+            newp._name = "conj("+newp._name+")";
+        }
+        return newp;
+    }
+    
+    param<Cpx> ang(const param<Cpx>& p){
+        param<Cpx> newp(p);
+        newp._is_angle = true;
+        newp._name = "ang("+newp._name+")";
+        return newp;
+    }
+    
+    param<Cpx> sqrmag(const param<Cpx>& p){
+        param<Cpx> newp(p);
+        newp._is_sqrmag = true;
+        newp._name = "|"+newp._name+"|²";
+        return newp;
+    }
+    
+    param<Cpx> real(const param<Cpx>& p){
+        param<Cpx> newp(p);
+        newp._name = "real("+newp._name+")";
+        newp._is_real = true;
+        return newp;
+    }
+    
+    param<Cpx> imag(const param<Cpx>& p){
+        param<Cpx> newp(p);
+        newp._name = "imag("+newp._name+")";
+        newp._is_imag = true;
+        return newp;
     }
 }
-
-
