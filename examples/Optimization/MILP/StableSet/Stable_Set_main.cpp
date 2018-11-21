@@ -15,7 +15,7 @@ int main (int argc, const char * argv[])
 {
     cout << "Welcome, this is an implementation of the Stable Set problem in Gravity" << endl;
     Net graph;
-    graph.read_adjacency_matrix(string(prj_dir)+"/data_sets/stable_set/p.3n150.txt");
+    graph.read_adjacency_matrix(string(prj_dir)+"/data_sets/Stable_set/p.3n150.txt");
 
     unsigned n = graph.nodes.size();
     Model model;
