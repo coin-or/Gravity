@@ -1032,6 +1032,8 @@ namespace gravity {
         
         void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
         
+        vector<pterm> get_monomials(unsigned d);
+        
         void update_sign();
         
         double get_val(size_t inst) const;
