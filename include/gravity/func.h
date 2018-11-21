@@ -9,7 +9,9 @@
 #ifndef func_h
 #define func_h
 
-#include <gravity/var.h>
+
+#include <gravity/expr.h>
+#include <gravity/poly.h>
 #include <gravity/Auxiliary.h>
 #include <stdio.h>
 #include <map>
@@ -22,470 +24,9 @@
 using namespace std;
 
 namespace gravity {
-    class func_;
-    void reverse_sign(constant_* c); /**< Reverses the sign of the constant. */
-    constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
-    constant_* copy(constant_&& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
-    bool equals(const constant_* c1, const constant_* c2);
-    void poly_set_val(unsigned i, double val, param_* p);
 
-    template<typename type> type eval(ind i, const constant_* c1);
-    template<typename type> type eval(const constant_* c1);
-    template<typename type> param<type> vec(type t, int n); /**< Returns a vector of dimension n and storing the value t */
-
-
-    /** Backbone class for unary and binary expressions. */
-
-    class expr: public constant_{
-    protected:
-    public:
-        double                                 _coef = 1.; /**< coefficient multpying the expression */
-        string                                 _to_str; /**< A string representation of the expression */
-        
-        string get_str();
-        string to_str(unsigned inst);
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        func_ get_derivative(const param_ &v) const;
-        void propagate_nb_ind(size_t);/*<< Propagates number of indices */
-        void reset_val();
-        void untranspose();
-        virtual ~expr(){};
-    };
-
-
-    /** Class uexpr (unary expression), stores a unary expression tree. */
-    class uexpr: public expr{
-        
-    public:
-        OperatorType                _otype;
-        shared_ptr<func_>           _son;
-        
-        uexpr();
-        uexpr(const uexpr& exp);
-        uexpr(uexpr&& exp);
-        uexpr(OperatorType ot, shared_ptr<func_> son);
-        uexpr& operator=(const uexpr& e);
-        uexpr& operator=(uexpr&& e);
-        
-        
-        ~uexpr(){};
-                
-        void reset_val();
-        
-        void reset(){
-            _son = nullptr;
-            _otype = id_;
-            _to_str = "noname";
-            _coef = 1.;
-        };
-        
-        
-        OperatorType get_otype() const{
-            return _otype;
-        };
-        
-        /** Operators */
-        
-        void untranspose();
-        
-        bool operator==(const uexpr &c)const;
-        
-        bool operator!=(const uexpr& c) const{
-            return !(*this==c);
-        };
-        
-        Sign get_all_sign() const{
-            return unknown_;// TO UPDATE
-        }
-        
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        double eval() const{
-            return eval(0);
-        }
-        
-        string to_str() const;
-        string to_str(size_t) const;
-        void print(bool endline = true) const;
-        func_ get_derivative(const param_ &v) const;
-        vector<shared_ptr<param_>> get_nl_vars() const;
-    };
-
-
-    class bexpr: public expr{
-    private:
-        
-    public:
-        OperatorType    _otype;
-        shared_ptr<func_>      _lson;
-        shared_ptr<func_>      _rson;
-        
-        bexpr();
-        
-        bexpr(OperatorType otype, shared_ptr<func_> lson, shared_ptr<func_> rson);
-        
-        bexpr(const bexpr& exp);
-        
-        bexpr(bexpr&& exp);
-        
-        bexpr& operator=(const bexpr& e);
-        
-        bexpr& operator=(bexpr&& e);
-        
-        ~bexpr(){}
-        
-        void reset_val();
-        
-        void reset(){
-            _otype = id_;
-            _to_str = "noname";
-            _coef = 1.;            
-            _lson = nullptr;
-            _rson = nullptr;
-        };
-        
-        void untranspose();
-        
-        shared_ptr<func_> get_lson() const{
-            return _lson;
-        };
-        
-        shared_ptr<func_> get_rson() const{
-            return _rson;
-        };
-        
-        void set_lson(shared_ptr<func_> c){
-            _lson = c;
-        };
-        
-        void set_rson(shared_ptr<func_> c){
-            _rson = c;
-        };
-        
-        OperatorType get_otype() const {
-            return _otype;
-        };
-        
-        
-        bool operator==(const bexpr &c)const;
-        
-        bool operator!=(const bexpr& c) const{
-            return !(*this==c);
-        };
-        
-        Sign get_all_sign() const{
-            return unknown_; // TO UPDATE
-        }
-        
-        bool is_inner_product() const;
-        
-        template<typename other_type> bexpr& operator +=(const other_type& v);
-        template<typename other_type> bexpr& operator -=(const other_type& v);
-        template<typename other_type> bexpr& operator *=(const other_type& v);
-        template<typename other_type> bexpr& operator /=(const other_type& v);
-        
-        
-        string to_str() const;
-        string to_str(size_t) const;
-        void print(size_t inst) const{
-            cout << to_str(inst) << endl;
-        }
-        
-        void print() const;
-        
-        void print_tree() const;
-        
-        double eval(ind i) const;
-        double eval(ind i, ind j) const;
-        
-        func_ get_derivative(const param_ &v) const;
-        
-        vector<shared_ptr<param_>> get_nl_vars() const;
-        
-    };
-
-
-
-    /** A class to represent a linear term, e.g. 2x. */
-    class lterm{
-        
-    public:
-        constant_*              _coef;
-        param_*                 _p;
-        bool                    _sign = true; /**< True if +, flase if - */    
-        
-        lterm(){
-            _coef = nullptr; // coefficent
-            _p = nullptr; // terms. 
-        }
-        
-        lterm(lterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _p = t._p;
-            t._p = nullptr;
-            _sign = t._sign;
-        };
-        
-        
-        lterm(param_* p):lterm(true,p){
-        };
-        
-        
-        lterm(bool sign, param_* p){
-            _coef = new constant<double>(1);
-            _p = p;
-            _sign = sign;
-        };
-        
-        lterm(constant_* coef, param_* p):lterm(true,coef,p){};
-        
-        lterm(bool sign, constant_* coef, param_* p);
-        
-        void reverse_sign() {
-            _sign = ! _sign;
-        }
-        
-        Sign get_all_sign() const{
-            auto sign = _coef->get_all_sign();
-            if (sign==unknown_) {
-                return unknown_;
-            }
-            if (_sign) {
-                return sign;
-            }
-            if (sign==pos_) {
-                return neg_;
-            }
-            if (sign==neg_) {
-                return pos_;
-            }
-            return sign;
-        }
-        
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~lterm(){
-            delete _coef;
-        };
-        
-        bool operator==(const lterm& l) const;
-        bool operator!=(const lterm& l) const;
-        
-        lterm& operator=(const lterm& l);
-        lterm& operator=(lterm&& l);
-        
-        string to_str(int ind) const;
-        string to_str(int ind, unsigned inst) const;
-        void print(int ind) const;
-    };
-
-
-    /** A class to represent a quadratic term, e.g. 2xy or 3x^2. */
-    class qterm{
-        
-    public:
-        constant_*                  _coef;
-        pair<param_*,param_*>*      _p;
-        bool                        _sign = true; /**< True if +, flase if - */
-        
-        qterm(){
-            _coef = nullptr;
-            _p = nullptr;
-        }
-        
-        qterm(qterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _p = t._p;
-            t._p = nullptr;
-            _sign = t._sign;
-        };
-        
-        
-        qterm(param_* p1, param_* p2):qterm(true, p1, p2){};
-        
-        
-        qterm(constant_* coef, param_* p1, param_* p2):qterm(true, coef, p1, p2){};
-        
-        qterm(bool sign, param_* p1, param_* p2):qterm(true, new constant<double>(1), p1, p2){};
-        
-        qterm(bool sign, constant_* coef, param_* p1, param_* p2){
-            _coef = coef;
-            _p = new pair<param_*, param_*>(make_pair(p1,p2));
-            _sign = sign;
-//            if (coef->_is_transposed){
-//                p1->_is_vector=true;
-//                p2->_is_vector=true;
-//            }
-//            if(p1->_is_vector){
-//                coef->_is_transposed=true;
-//                p2->_is_vector=true;
-//            }
-//            if(p2->_is_vector){
-//                coef->_is_transposed=true;
-//                p1->_is_vector=true;
-//            }
-            if (coef->_is_transposed && p1->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-            }
-//            if (p1->_is_transposed) {
-//                if (p1->get_dim() != p2->get_dim()) {
-//                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-//                }
-//            }
-            if (p2->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-            }
-        };
-        
-        void reverse_sign() {
-            _sign = ! _sign;
-        }
-        
-        Sign get_all_sign() const{
-            auto sign = _coef->get_all_sign();
-            if (sign==unknown_) {
-                return unknown_;
-            }
-            if (_sign) {
-                return sign;
-            }
-            if (sign==pos_) {
-                return neg_;
-            }
-            if (sign==neg_) {
-                return pos_;
-            }
-            return sign;
-        }
-        
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~qterm(){
-            delete _coef;
-            if (_p) {
-                delete _p;
-            }
-        };
-        
-        
-        bool operator==(const qterm& l) const;
-        bool operator!=(const qterm& l) const;
-        
-        qterm& operator=(const qterm& l);
-        qterm& operator=(qterm&& l);
-        
-        string to_str(int ind) const;
-        string to_str(int ind, unsigned inst) const;
-        void print(int ind) const;
-    };
-
-
-    /** A class to represent a polynomial term, e.g. 2xyz or 3x^2y. */
-    class pterm{
-        
-    public:
-        constant_*                      _coef;
-        list<pair<param_*, int>>*       _l; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
-        bool                            _sign = true; /**< True if +, flase if - */
-        
-        pterm(){
-            _coef = nullptr;
-            _l = nullptr;
-        }
-        
-        
-        pterm(bool sign, constant_* coef, param_* p, int exp){
-            _coef = coef;
-            if (coef->_is_transposed && p->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-            }
-            if (p->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-            }
-            _l = new list<pair<param_*, int>>();
-            _l->push_back(make_pair<>(p, exp));
-            _sign = sign;
-        };
-        
-        
-        pterm(pterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _l = t._l;
-            t._l = nullptr;
-            _sign = t._sign;
-        };
-        
-        pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
-            param_* p1 = nullptr;
-            param_* p2 = nullptr;
-            for (auto it = l->begin(); it != l->end(); it++){
-                p1 = it->first;
-                if (p1->_is_transposed && next(it)!=l->end()) {
-                    p2 = next(it)->first;
-                    if (p1->get_dim() != p2->get_dim()) {
-                        throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                    }
-                }
-                if (p1->_is_transposed && next(it)==l->end()) {
-                    throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
-                }
-            }
-            _coef = coef;
-            _l = l;
-            _sign = sign;
-        };
-
-        
-        void reverse_sign() {
-            _sign = ! _sign;
-        }
-        
-        Sign get_all_sign() const{
-            auto sign = _coef->get_all_sign();
-            if (sign==unknown_) {
-                return unknown_;
-            }
-            if (_sign) {
-                return sign;
-            }
-            if (sign==pos_) {
-                return neg_;
-            }
-            if (sign==neg_) {
-                return pos_;
-            }
-            return sign;
-        }
-        
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~pterm(){
-            delete _coef;
-            if (_l) {
-                delete _l;
-            }
-        };
-        
-        bool operator==(const pterm& l) const;
-        bool operator!=(const pterm& l) const;
-        
-        pterm& operator=(const pterm& l);
-        pterm& operator=(pterm&& l);
-        
-        string to_str(int ind) const;
-        string to_str(int ind, unsigned inst) const;
-        void print(int ind) const;
-        
-    };
-
+    
+    
     /** Backbone class for function */
     class func_ : public constant_{
     private:
@@ -495,10 +36,10 @@ namespace gravity {
     protected:
         
         FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
-        NType                                  _return_type = integer_; /**< Return type, e.g., bool, integer, complex... >>**/
+        NType                                  _return_type = double_; /**< Return type, e.g., bool, integer, complex... >>**/
 
-        map<string, pair<shared_ptr<param_>, int>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-        map<string, pair<shared_ptr<param_>, int>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+        map<string, pair<shared_ptr<param_>, unsigned>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+        map<string, pair<shared_ptr<param_>, unsigned>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
                 
         constant_*                             _cst = nullptr;/**< Constant part of the function */
         map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
@@ -515,17 +56,17 @@ namespace gravity {
         vector<Sign>*                          _sign = nullptr; /**< vector storing the sign of return value if known. >>**/
         vector<pair<double, double>>*              _range = nullptr; /**< Bounds of the return value if known. >>**/
         
-        map<unsigned, set<unsigned>>           _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
+        map<size_t, set<size_t>>           _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
         
         size_t                                 _nb_vars = 0; /**< Number of variables */
                                                                    
         size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
-        size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Jacobian **/
+        size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Hessian **/
         
     public:
-        shared_ptr<map<unique_id,shared_ptr<func_>>>      _dfdx;/**< A map storing the first derivatives of f per variable name*/
+        shared_ptr<map<string,shared_ptr<func_>>>      _dfdx;/**< A map storing the first derivatives of f per variable name*/
 
-        size_t                                 _nb_instances = 1; /**< Number of different instances this constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
+//        size_t                                 _nb_instances = 1; /**< Number of different instances this function/constraint has (different indices, constant coefficients and bounds, but same structure).>>**/
 
         bool                                   _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                   _is_constraint = false;
@@ -534,8 +75,7 @@ namespace gravity {
                                                                    a mathematical model or in another function, this is used for memory management. >>**/
         bool                                   _evaluated = false;/**< If the function has already been evaluated, useful for constant funcs */
         shared_ptr<vector<double>>               _val;
-        shared_ptr<vector<vector<unsigned>>>   _ids = nullptr; /*<<A vector storing the ordering of the indices this constraint has*/
-        shared_ptr<vector<string>>             _indices = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
+        shared_ptr<indices>                     _indices = nullptr; /*<<A vector storing all the indices this constraint has in the order they were created */
         string                                 _to_str;
         
         func_();
@@ -553,17 +93,17 @@ namespace gravity {
 
         ~func_();
 
-        map<unsigned, set<unsigned>>& get_hess_link() { return _hess_link;};
-        map<string, pair<shared_ptr<param_>, int>>& get_vars() { return *_vars;};
-        map<string, pair<shared_ptr<param_>, int>>& get_params() { return *_params;};
+        map<size_t, set<size_t>>& get_hess_link() { return _hess_link;};
+        map<string, pair<shared_ptr<param_>, unsigned>>& get_vars() { return *_vars;};
+        map<string, pair<shared_ptr<param_>, unsigned>>& get_params() { return *_params;};
         
-        param_* get_var(unsigned vec_id) const;
+        param_* get_var(size_t vec_id) const;
         bool has_var(const param_& v) const;
         bool has_var(const string& name) const;
         
         void reset_val();
-        void relax(const map<unsigned, param_*>& vars){
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
+        void relax(const map<size_t, param_*>& vars){
+            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
             bool has_int = false;
             for (auto &v_p:*_vars) {
                 if (v_p.second.first->is_integer() || v_p.second.first->is_binary()) {
@@ -571,11 +111,11 @@ namespace gravity {
                     auto new_var = shared_ptr<param_>((param_*)copy(*vars.at(v_p.second.first->get_vec_id())));
                     new_var->copy(*v_p.second.first);
                     new_var->_is_relaxed = true;
-                    (*new_vars)[new_var->get_name()] = make_pair<>(new_var,v_p.second.second);
+                    (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,v_p.second.second);
                 }
                 else{
                     auto new_var = shared_ptr<param_>((param_*)copy(*v_p.second.first));
-                    (*new_vars)[new_var->get_name()] = make_pair<>(new_var,v_p.second.second);
+                    (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,v_p.second.second);
                 }
             }
             if (!has_int) {
@@ -585,21 +125,21 @@ namespace gravity {
             
                 for (auto &lt:get_lterms()) {
 //                    if (lt.second._p->is_integer() || lt.second._p->is_binary()) {
-                        lt.second._p = new_vars->at(lt.second._p->get_name()).first.get();
+                        lt.second._p = new_vars->at(lt.second._p->get_name(false,false)).first.get();
 //                    }
                 }
                 for (auto &lt:get_qterms()) {
 //                    if (lt.second._p->first->is_integer() || lt.second._p->first->is_binary()) {
-                        lt.second._p->first = new_vars->at(lt.second._p->first->get_name()).first.get();
+                        lt.second._p->first = new_vars->at(lt.second._p->first->get_name(false,false)).first.get();
 //                    }
 //                    if (lt.second._p->second->is_integer() || lt.second._p->second->is_binary()) {
-                        lt.second._p->second = new_vars->at(lt.second._p->second->get_name()).first.get();
+                        lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first.get();
 //                    }
                 }
                 for (auto &lt:get_pterms()) {
                     for (auto &v_p:*lt.second._l) {
 //                        if (v_p.first->is_integer() || v_p.first->is_binary()) {
-                            v_p.first = new_vars->at(v_p.first->get_name()).first.get();
+                            v_p.first = new_vars->at(v_p.first->get_name(false,false)).first.get();
 //                        }
                     }
                 }
@@ -629,37 +169,37 @@ namespace gravity {
         }
 
         void transpose(){
-            _is_transposed = !_is_transposed;
-            if (!_is_vector) {
-                _is_vector = true;
+            this->constant_::transpose();
+            if(_expr){
+                _expr->transpose();
             }
-            if (_is_matrix) {
-                auto temp = _dim[0];
-                _dim[0] = _dim[1];
-                _dim[1] = temp;
-                for (auto &p_t:*_params) {
-                    p_t.second.first->transpose();
+            if(get_nb_vars()==1){
+                for (auto &vp:*_vars) {
+                    //                vars_cpy.erase(vp.first);
+                    vp.second.first->transpose();
+                    //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+                    //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
                 }
             }
         }
         void set_first_derivative(const param_& v, func_&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v._unique_id] = make_shared<func_>(move(f));
+            (*_dfdx)[v._name] = make_shared<func_>(move(f));
         }
         
         void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v1._unique_id]->_dfdx->insert(make_pair<>(v2._unique_id, make_shared<func_>(move(f))));
-            (*_dfdx)[v1._unique_id]->_dfdx->at(v2._unique_id)->_is_hessian = true;
+            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
         }
         
-        void set_val(unsigned i, unsigned j, double val){
+        void set_val(size_t i, size_t j, double val){
             if (_is_transposed) {
                 _val->at(_dim[0]*j + i) = val;
             }
             else {
                 _val->at(_dim[1]*i + j) = val;
             }
+            update_range(val);
         }
         
         void update_range(double val) {
@@ -672,629 +212,27 @@ namespace gravity {
         }
         
         void set_val(size_t i, double val) {
-            _dim[0] = max(_dim[0],i+1);
-            _val->resize(max(_val->size(),i+1));
+//            _dim[0] = max(_dim[0],i+1);
+//            _val->resize(max(_val->size(),i+1));
             _val->at(i) = val;
             update_range(val);
         }
         
-        void untranspose(){/**< Untranspose the output of the current function */
-            _is_transposed = false;
-            _is_vector = false;
-            auto vars_cpy = *_vars;
-            for (auto &vp:*_vars) {
-                vars_cpy.erase(vp.first);
-                vp.second.first->untranspose();
-                _nb_instances = max(_nb_instances, vp.second.first->get_nb_instances());
-                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
-            }
-            *_vars = move(vars_cpy);
-            auto params_cpy = *_params;
-            for (auto &vp:*_params) {
-                params_cpy.erase(vp.first);
-                vp.second.first->untranspose();
-                _nb_instances = max(_nb_instances, vp.second.first->get_nb_instances());
-                params_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
-            }
-            *_params = move(params_cpy);
-//            _val->resize(max(_val->size(),_nb_instances));
-            if(_expr){
-                _expr->untranspose();
-//                embed(_expr);
-            }
-            
-        }
+                
+        Convexity get_convexity(const qterm& q);
         
-        void add_indices_in(const node_pairs& np) {
-            size_t nb_active = 0;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                v->_name += np._name;
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if(get<1>(v->_unique_id)==in_){
-                    //
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                    _ids = v->get_ids();
-                }
-                else if(get<1>(v->_unique_id)==from_){
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_src->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                }
-                else if(get<1>(v->_unique_id)==to_){
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_dest->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                v->_name += np._name;
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                if(get<1>(v->_unique_id)==in_){
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                }
-                else if(get<1>(v->_unique_id)==from_){
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_src->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                }
-                else if(get<1>(v->_unique_id)==to_){
-                    nb_active = 0;
-                    for(auto it = np._keys.begin(); it!= np._keys.end(); it++) {
-                        if(!(*it)->_active) {
-                            continue;
-                        }
-                        nb_active++;
-                        key = (*it)->_dest->_name;
-                        auto index = v->get_indices()->size();
-                        auto pp = v->get_indices()->insert(make_pair<>(key, index));
-                        if(pp.second) { //new index inserted
-                            switch (v->get_intype()) {
-                                case binary_:{
-                                    auto vv = ((var<bool>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case short_:{
-                                    auto vv = ((var<short>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                   break;
-                                }
-                                case integer_:{
-                                    auto vv = ((var<int>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));                                    break;
-                                }
-                                case float_:{
-                                    auto vv = ((var<float>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case double_:{
-                                    auto vv = ((var<double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                case long_:{
-                                    auto vv = ((var<long double>*)v.get());
-                                    vv->get_vals()->resize(max(vv->get_vals()->size(), index+1));
-                                    break;
-                                }
-                                default:
-                                    break;
-                            }
-                            v->_dim[0] = max(v->_dim[0],index+1);
-                            v->get_rev_indices()->resize(v->_dim[0]);
-                            v->get_rev_indices()->at(index) = key;
-                            v->get_ids()->at(0).push_back(index);
-                        }
-                        else {
-                            v->get_ids()->at(0).push_back(pp.first->second);
-                        }
-                    }
-                }
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            _dim[0] += nb_active;
-            _nb_instances += nb_active;
-            propagate_nb_ind(_nb_instances);
-            _dfdx->clear();            
-            _new = true;
-        }
         
-        func_& in(const node_pairs& np) {
-            return this->in(np._keys);
-        }
+//        func_& in(const node_pairs& np) {
+//            return this->in(np._keys);
+//        }
         
-        func_& in(const vector<index_>& vec) {
-            _nb_vars = 0;
-            _nb_instances = 1;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        *vv = vv->in(vec);
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                }
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
-        func_& in(const vector<index_*>& vec) {
-            _nb_vars = 0;
-            _nb_instances = 1;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        *vv = vv->in(vec);
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        *vv = vv->in(vec);
-                        _ids = vv->get_ids();
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                }
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
         
         func_& in(const indices& ids) {
             _nb_vars = 0;
-            _nb_instances = 1;
+//            _nb_instances = 1;
             string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, unsigned>>();
             auto iter = _vars->begin();
             while (iter!=_vars->end()) {
                 auto pair = (*iter++);
@@ -1302,81 +240,71 @@ namespace gravity {
                 switch (v->get_intype()) {
                     case binary_:{
                         auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0]){
-                                *vv = vv->in(ids);
-                            }
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case short_:{
                         auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case integer_:{
                         auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case float_:{
                         auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case double_:{
                         auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0]){
-                                *vv = vv->in(ids);
-                            }
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case long_:{
                         auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
+                        }
+                        break;
+                    }
+                    case complex_:{
+                        auto vv = ((var<Cpx>*)v.get());
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
+                        }
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
@@ -1398,87 +326,71 @@ namespace gravity {
                 switch (v->get_intype()) {
                     case binary_:{
                         auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case short_:{
                         auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case integer_:{
                         auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case float_:{
                         auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case double_:{
                         auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-//                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-//                            else
-//                                cerr << "ok";
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
                     case long_:{
                         auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            if(ids.nb_active_indices()!=vv->_dim[0])
-                                *vv = vv->in(ids);
-                            
-
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
                         }
-                        else if(get<1>(v->_unique_id)==prev_){
-                            *vv = vv->prev(ids);
-                            
+                        else {
+                            *vv = vv->in(ids);
+                        }
+                        break;
+                    }
+                    case complex_:{
+                        auto vv = ((param<Cpx>*)v.get());
+                        if(v->_indices->_type==in_pairs_){
+                            *vv = vv->in_pairs(ids);
+                        }
+                        else {
+                            *vv = vv->in(ids);
                         }
                         break;
                     }
@@ -1491,31 +403,18 @@ namespace gravity {
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            _indices = ids._indices;
-            _ids = make_shared<vector<vector<unsigned>>>();
-//            if(is_constant() && _params->size()==1){
-//                _ids = _params->begin()->second.first->get_ids();
-//            }
-//            else {
-                _ids->resize(1);
-                for(auto idx = 0; idx < _indices->size(); idx++){
-                    if(ids._excluded_indices.count(idx)==0){
-                        _ids->at(0).push_back(idx);
-                    }
-                }
-//            }
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);
+            _indices = make_shared<indices>(ids);
+            propagate_dim(_indices->size());
             return *this;
         }
         
-        template<typename Tobj>
-        func_& in(const vector<Tobj*>& vec) {
+        func_& in(const vector<Node*>& vec) {
+            _indices = make_shared<indices>(vec);
             _nb_vars = 0;
-            _nb_instances = 1;
+//            _nb_instances = 0;
             string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
+            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
+            auto new_params = new map<string, pair<shared_ptr<param_>, unsigned>>();
             auto iter = _vars->begin();
             while (iter!=_vars->end()) {
                 auto pair = (*iter++);
@@ -1523,97 +422,113 @@ namespace gravity {
                 switch (v->get_intype()) {
                     case binary_:{
                         auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(!v->_indices){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case short_:{
                         auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case integer_:{
                         auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case float_:{
                         auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case double_:{
                         auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case long_:{
                         auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
+                        }
+                        break;
+                    }
+                    case complex_:{
+                        auto vv = ((var<Cpx>*)v.get());
+                        if(v->_indices->_type==unindexed_){
+                            *vv = vv->in(vec);
+                        }
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
@@ -1635,96 +550,113 @@ namespace gravity {
                 switch (v->get_intype()) {
                     case binary_:{
                         auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case short_:{
                         auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case integer_:{
                         auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case float_:{
                         auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case double_:{
                         auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);                    }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        if(v->_indices->_type==unindexed_){
+                            *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
                     case long_:{
                         auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
+                        if(v->_indices->_type==unindexed_){
                             *vv = vv->in(vec);
                         }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
                         }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
+                        }
+                        break;
+                    }
+                    case complex_:{
+                        auto vv = ((param<Cpx>*)v.get());
+                        if(v->_indices->_type==unindexed_){
+                            *vv = vv->in(vec);
+                        }
+                        else if(v->_indices->_type==in_arcs_){
+                            *vv = vv->in_arcs(vec);
+                        }
+                        else if(v->_indices->_type==out_arcs_){
+                            *vv = vv->out_arcs(vec);
+                        }
+                        else if(v->_indices->_type==in_gens_){
+                            *vv = vv->in_aux(vec,"gens");
                         }
                         break;
                     }
@@ -1733,1337 +665,18 @@ namespace gravity {
                 }
                 (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
             }
-            auto ids = indices(vec);
-            _indices = ids._indices;
-            _ids = make_shared<vector<vector<unsigned>>>();
-            _ids->resize(1);
-            for(auto idx = 0; idx < _indices->size(); idx++){
-                if(ids._excluded_indices.count(idx)==0){
-                    _ids->at(0).push_back(idx);
-                }
-            }
             delete _vars;
             _vars = new_vars;
             delete _params;
             _params = new_params;
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);            
+            propagate_dim(_indices->size());
             return *this;
         }
         
-        template<typename Tobj>
-        func_& in(const vector<Tobj>& vec) {
-            _nb_vars = 0;
-            _nb_instances = 0;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);                    }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances());
-                }
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
+        
         void eval_matrix();
         void eval_vector();
         
-        func_& in(const vector<Node*>& vec) {
-            _nb_vars = 0;
-            _nb_instances = 0;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec);
-                            _ids = vv->get_ids();
-                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
-        
-        template<typename Tobj>
-        func_& in(const vector<Tobj*>& vec, const indices& ids) {
-            _nb_vars = 0;
-            _nb_instances = 1;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,ids);
-//                            _ids = vv->get_ids();
-//                            _indices = vv->get_rev_indices();
-                        }
-                        else if(get<1>(v->_unique_id)==from_){
-                            *vv = vv->from(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==to_){
-                            *vv = vv->to(vec,ids);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pairs_){
-                            *vv = vv->in_pairs(vec,ids);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            auto all_ids = indices(vec,ids);
-            _indices = all_ids._indices;
-            _ids = make_shared<vector<vector<unsigned>>>();
-            _ids->resize(1);
-            for(auto idx = 0; idx < _indices->size(); idx++){
-                if(ids._excluded_indices.count(idx)==0){
-                    _ids->at(0).push_back(idx);
-                }
-            }
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
-        
-        func_& in(const vector<Node*>& vec, const indices& T) {
-            _nb_vars = 0;
-            _nb_instances = 0;
-            string key;
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(indices(vec,T));
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_arcs_){
-                            *vv = vv->in_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==out_arcs_){
-                            *vv = vv->out_arcs(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_gens_){
-                            *vv = vv->in_gens(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_bats_){
-                            *vv = vv->in_bats(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_wind_){
-                            *vv = vv->in_wind(vec,T);
-                        }
-                        else if(get<1>(v->_unique_id)==in_pv_){
-                            *vv = vv->in_pv(vec,T);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_instances = max(_nb_instances, v->get_nb_instances(0));
-                }
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            auto all_ids = indices(vec,T);
-            _indices = all_ids._indices;
-            _ids = make_shared<vector<vector<unsigned>>>();
-            _ids->resize(1);
-            for(auto idx = 0; idx < _indices->size(); idx++){
-                if(T._excluded_indices.count(idx)==0){
-                    _ids->at(0).push_back(idx);
-                }
-            }
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
-        
-        template<typename Tobj> func_& in(const vector<Tobj*>& vec, const indices& ids, const param<int>& time) {
-            _nb_vars = 0;
-            _nb_instances = 1;
-            string key;
-            auto new_ids = indices(vec,ids);
-            auto new_vars = new map<string, pair<shared_ptr<param_>, int>>();
-            auto new_params = new map<string, pair<shared_ptr<param_>, int>>();
-            auto iter = _vars->begin();
-            while (iter!=_vars->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((var<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((var<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((var<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((var<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((var<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((var<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-                if (!v->_is_vector) {// i.e., it is not transposed
-                    _nb_vars++;
-                }
-                else {
-                    _nb_vars += v->get_dim();
-                }
-            }
-            iter = _params->begin();
-            while (iter!=_params->end()) {
-                auto pair = (*iter++);
-                auto v = pair.second.first;
-                switch (v->get_intype()) {
-                    case binary_:{
-                        auto vv = ((param<bool>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto vv = ((param<short>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto vv = ((param<int>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case float_:{
-                        auto vv = ((param<float>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto vv = ((param<double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto vv = ((param<long double>*)v.get());
-                        if(get<1>(v->_unique_id)==unindexed_){
-                            *vv = vv->in(new_ids);
-                            
-                        }
-                        else if(get<1>(v->_unique_id)==min_time_){
-                            *vv = vv->min_time(vec, ids,time);
-                            
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-            }
-            delete _vars;
-            _vars = new_vars;
-            delete _params;
-            _params = new_params;
-            _indices = new_ids._indices;
-            _ids = make_shared<vector<vector<unsigned>>>();
-            _ids->resize(1);
-            for(auto idx = 0; idx < _indices->size(); idx++){
-                if(ids._excluded_indices.count(idx)==0){
-                    _ids->at(0).push_back(idx);
-                }
-            }
-            _nb_instances = max(_nb_instances, _ids->at(0).size());
-            propagate_nb_ind(_nb_instances);
-            return *this;
-        }
         
         void insert(const lterm& term);
         
@@ -3071,18 +684,14 @@ namespace gravity {
         
         void insert(const pterm& term);
         
-//        void insert(expr& e);
         void update_to_str(bool input = false);
         size_t get_nb_vars() const;
         
         size_t get_nb_vars(unsigned inst) const{
             unsigned n = 0;
             for (auto &vp:*_vars) {
-                if(vp.second.first->_is_indexed && vp.second.first->_ids->size()>1){
+                if(vp.second.first->_is_vector){
                     n += vp.second.first->get_dim(inst);
-                }
-                else if(vp.second.first->_is_vector){
-                    n += vp.second.first->get_dim();
                 }
                 else {
                     n += 1;
@@ -3091,9 +700,23 @@ namespace gravity {
             return n;
         };
         
-        size_t get_nb_instances() const {
-            return max((size_t)1,constant_::get_nb_instances());
+        size_t get_dim() const{
+            return constant_::get_dim();
         }
+        
+        size_t get_dim(size_t i) const{
+            if (_indices->_ids && _indices->_ids->size()>1) {
+                return _indices->_ids->at(i).size();
+            }
+            return constant_::get_dim(i);
+        }
+
+        
+        size_t get_nb_instances() const {
+            return _dim[0];
+        }
+//            return max((size_t)1,constant_::get_nb_instances());
+//        }
         
         constant_* get_cst();
         
@@ -3113,102 +736,96 @@ namespace gravity {
         void delete_param(const string& vid);
         
 
-        void update_nb_instances(const lterm& term){
-            if ((term._coef->_is_matrix || term._coef->_is_vector) && (term._p->_is_matrix || term._p->_is_vector)) {
-                if (term._coef->_is_matrix) {
-                    if (term._coef->_is_transposed) {//TODO check matrix dims match
-                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
-                    }
-                    else {
-                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
-                    }
-                    _dim[0] = _nb_instances;
-                    if (term._p->_is_matrix) {//Matrix product
-                        _dim.resize(2);
-                        _dim[1] = _nb_instances;
-                    }
+//        void update_nb_instances(const lterm& term){
+//            if ((term._coef->_is_matrix || term._coef->_is_vector) && (term._p->_is_matrix || term._p->_is_vector)) {
+//                if (term._coef->_is_matrix) {
+//                    if (term._coef->_is_transposed) {//TODO check matrix dims match
+//                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
+//                    }
+//                    else {
+//                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
+//                    }
+//                    _dim[0] = _nb_instances;
+//                    if (term._p->_is_matrix) {//Matrix product
+//                        _dim[1] = _nb_instances;
+//                    }
+////                    else {
+////                        _dim[1] = 1;
+////                    }
+//                    _is_vector = true;
+//                    _is_matrix = false;
+//                }
+//                else {//_coef is a transposed vector
+//                    if (!term._p->_is_transposed && !term._p->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
+//                        _dim[0] = 1;
+//                        _nb_instances = 1;//TODO seems not correct
+//                        _is_vector = false;
+//                        _is_matrix = false;
+//                    }
+//                    else {//_p is either transposed or a matrix at this stage
+//                        _dim[0] = term._coef->_dim[0];
+//                        _nb_instances = _dim[0];//TODO check nb_instances vs dim
+//                        _is_transposed = true;
+//                        _is_vector = true;
+//                        _is_matrix = false;
+//                    }
+//                }
+//                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
+//            }
+//            else {
+//                _nb_instances = max(_nb_instances, term._p->get_nb_instances(0));
+//            }
+////            _val->resize(_nb_instances);
+//        }
+        
+//        void update_nb_instances(const qterm& term){
+//            if ((term._p->first->_is_matrix || term._p->first->_is_vector) && (term._p->second->_is_matrix || term._p->second->_is_vector)) {
+//                if (term._p->first->_is_matrix) {
+//                    if (term._p->first->_is_transposed) {//TODO check matrix dims match
+//                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
+//                    }
+//                    else {
+//                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
+//                    }
+//                    _dim[0] = _nb_instances;
+//                    if (term._p->second->_is_matrix) {//Matrix product
+//                        _dim[1] = _nb_instances;
+//                    }
 //                    else {
 //                        _dim[1] = 1;
 //                    }
-                    _is_vector = true;
-                    _is_matrix = false;
-                }
-                else {//_coef is a transposed vector
-                    if (!term._p->_is_transposed && !term._p->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
-                        _dim.resize(1);
-                        _dim[0] = 1;
-                        _nb_instances = 1;//TODO seems not correct
-                        _is_vector = false;
-                        _is_matrix = false;
-                    }
-                    else {//_p is either transposed or a matrix at this stage
-                        _dim.resize(1);
-                        _dim[0] = term._coef->_dim[0];
-                        _nb_instances = _dim[0];//TODO check nb_instances vs dim
-                        _is_transposed = true;
-                        _is_vector = true;
-                        _is_matrix = false;
-                    }
-                }
-                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
-            }
-            else {
-                _nb_instances = max(_nb_instances, term._p->get_nb_instances(0));
-            }
-//            _val->resize(_nb_instances);
-        }
-        
-        void update_nb_instances(const qterm& term){
-            if ((term._p->first->_is_matrix || term._p->first->_is_vector) && (term._p->second->_is_matrix || term._p->second->_is_vector)) {
-                if (term._p->first->_is_matrix) {
-                    if (term._p->first->_is_transposed) {//TODO check matrix dims match
-                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
-                    }
-                    else {
-                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
-                    }
-                    _dim[0] = _nb_instances;
-                    if (term._p->second->_is_matrix) {//Matrix product
-                        _dim[1] = _nb_instances;
-                    }
-                    else {
-                        _dim[1] = 1;
-                    }
-                    _is_vector = true;
-                    _is_matrix = false;
-                }
-                else {//_coef is a transposed vector
-                    if (!term._p->second->_is_transposed && !term._p->second->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
-                        _dim.resize(1);
-                        _dim[0] = 1;
-                        _nb_instances = 1;
-                        _is_vector = false;
-                        _is_matrix = false;
-                    }
-                    else {//_p is either transposed or a matrix at this stage
-                        _dim.resize(1);
-                        _dim[0] = term._coef->_dim[0];
-                        _nb_instances = _dim[0];
-                        _is_transposed = true;
-                        _is_vector = true;
-                        _is_matrix = false;
-                    }
-                }
-//                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
-            }
-            else {
-                _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
-                _dim.resize(1);
-                _dim[0] = max(_dim[0], term._p->first->get_nb_instances());
-            }
-//            _val->resize(_nb_instances);
-        }
+//                    _is_vector = true;
+//                    _is_matrix = false;
+//                }
+//                else {//_coef is a transposed vector
+//                    if (!term._p->second->_is_transposed && !term._p->second->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
+//                        _dim[0] = 1;
+//                        _nb_instances = 1;
+//                        _is_vector = false;
+//                        _is_matrix = false;
+//                    }
+//                    else {//_p is either transposed or a matrix at this stage
+//                        _dim[0] = term._coef->_dim[0];
+//                        _nb_instances = _dim[0];
+//                        _is_transposed = true;
+//                        _is_vector = true;
+//                        _is_matrix = false;
+//                    }
+//                }
+////                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
+//            }
+//            else {
+//                _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
+//                _dim[0] = max(_dim[0], term._p->first->get_nb_instances());
+//            }
+////            _val->resize(_nb_instances);
+//        }
 
-        void update_nb_instances(const pterm& term){
-                _nb_instances = max(_nb_instances, term._l->begin()->first->get_nb_instances());
-                _dim[0] = max(_dim[0], term._l->begin()->first->get_nb_instances());
-
-        }
+//        void update_nb_instances(const pterm& term){
+//                _nb_instances = max(_nb_instances, term._l->begin()->first->get_nb_instances());
+//                _dim[0] = max(_dim[0], term._l->begin()->first->get_nb_instances());
+//
+//        }
         
         int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
         
@@ -3223,19 +840,20 @@ namespace gravity {
         void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
         
         
-        pair<ind,func_*> operator[](ind i);
+        pair<size_t,func_*> operator[](size_t i);
         void replace(param_* v, func_& f);/**<  Replace v with function f everywhere it appears */
         void reindex(param_* v);/**<  Reindex function according to v's indexing */
         bool is_convex() const;
         bool is_concave() const;
-        bool is_convex(int idx) const;
-        bool is_concave(int idx) const;
+        bool is_convex(size_t idx) const;
+        bool is_concave(size_t idx) const;
         bool is_number() const;
         bool is_constant() const;
         bool is_linear() const;
         bool is_quadratic() const;
         bool is_polynomial() const;
         bool is_nonlinear() const;
+        bool is_complex() const;
         bool is_zero() const;/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
         bool is_unit() const;
         bool is_unit_instance() const;
@@ -3243,8 +861,8 @@ namespace gravity {
         FType get_ftype() const;
         void embed(func_& f);
         void embed(shared_ptr<expr> e);
-        void propagate_nb_ind(size_t);/*<< Propagates number of indices */
-        
+        void propagate_dim(size_t);/*<< Propagates dimension to sub-functions */
+        void allocate_mem();/*<< allocates memory for the _val vector */
         void update_nb_ind();/*<< Update number of indices */
         
         
@@ -3254,15 +872,15 @@ namespace gravity {
         
         void reverse_convexity();
         
-        void untranspose_derivatives(){
-            for (auto &fp:*_dfdx) {
-                auto df = fp.second;
-                df->untranspose();
-                df->_nb_instances = max(df->_nb_instances, _nb_instances);
-//                df->_val->resize(max(df->_val->size(),_nb_instances));
-                df->untranspose_derivatives();
-            }
-        }
+//        void untranspose_derivatives(){
+//            for (auto &fp:*_dfdx) {
+//                auto df = fp.second;
+//                df->transpose();
+//                df->_nb_instances = max(df->_nb_instances, _nb_instances);
+////                df->_val->resize(max(df->_val->size(),_nb_instances));
+//                df->untranspose_derivatives();
+//            }
+//        }
         
         
         
@@ -3270,18 +888,21 @@ namespace gravity {
             auto f = func_(*this);
             f._is_vector = true;
 //            auto vars_cpy = *f._vars;
-            for (auto &vp:*f._vars) {
-//                vars_cpy.erase(vp.first);
-                vp.second.first->_is_vector = true;
-//                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-//                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+            if(f.get_nb_vars()==1){
+                for (auto &vp:*f._vars) {
+    //                vars_cpy.erase(vp.first);
+                    vp.second.first->_is_vector = true;
+                    vp.second.first->_name = "[" + vp.second.first->_name + "]";
+    //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
+    //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
+                }
             }
             
 //            for (auto &vp:*f._params) {
                 //                vars_cpy.erase(vp.first);
 //                vp.second.first->_is_vector = true;
 //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-                //                vars_cpy[vp.second.first->get_name()]= make_pair<>(vp.second.first, vp.second.second);
+                //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
 //            }
 //            *f._vars = move(vars_cpy);
 //            if (f._expr) {
@@ -3356,13 +977,12 @@ namespace gravity {
         
         Sign get_all_sign() const;
         pair<double, double>* get_all_range() const;
-        Sign get_sign(int idx=0) const;
+        Sign get_sign(size_t idx=0) const;
         Sign get_all_sign(const lterm& l);
         Sign get_all_sign(const qterm& l);
         Sign get_all_sign(const pterm& l);
 
         
-        Convexity get_convexity(const qterm& q);
         
         void update_sign(const constant_& c);
         
@@ -3376,8 +996,12 @@ namespace gravity {
         
         void update_convexity();
         
-        bool is_soc() const;
-        bool is_rotated_soc() const;
+        void update_dim(const lterm& l);
+        
+        void update_dim(const qterm& q);
+        
+        bool is_soc();
+        bool is_rotated_soc();
         
         map<string, lterm>& get_lterms() const{
             return *_lterms;
@@ -3395,13 +1019,15 @@ namespace gravity {
             return _expr;
         }
         
-        shared_ptr<map<unique_id,shared_ptr<func_>>> get_dfdx() const{
+        shared_ptr<map<string,shared_ptr<func_>>> get_dfdx() const{
             return _dfdx;
         };
         
-        shared_ptr<func_> get_stored_derivative(const unique_id& vid) const; /**< Returns the stored derivative with respect to variable v. */
+        shared_ptr<func_> get_stored_derivative(const string& vid) const; /**< Returns the stored derivative with respect to variable v. */
         
         func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
+        
+        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
         
         
         void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
@@ -3410,15 +1036,20 @@ namespace gravity {
         
         double get_val(size_t inst) const;
         double get_val(size_t i, size_t j) const;
+        void eval_all(){
+            for(size_t i = 0; i<get_dim();i++){
+                eval(i);
+            }
+        };
         double eval(size_t i);
         double eval(size_t i, size_t j);
 //        double force_eval(size_t i);
         double eval(){ return eval(0);};
         string to_str() const;
         string to_str(size_t inst) const;
-        void print(bool endline, bool display_input);
+        void print_symbolic(bool endline = true, bool display_input = true);
         void print(size_t index);
-        void print_expanded();
+        void print();
     };
 
 
@@ -3429,15 +1060,12 @@ namespace gravity {
 
     size_t get_poly_id_inst(const constant_* c, unsigned inst = 0);
 
-    double poly_eval(const constant_* c, size_t i=0);
-    double poly_eval(const constant_* c, size_t i, size_t j);
+//    double poly_eval(const constant_* c, size_t i=0);
+//    double poly_eval(const constant_* c, size_t i, size_t j);
 
 
     void poly_print(const constant_* c);
 
-    string poly_to_str(const constant_* c);
-    string poly_to_str(const constant_* c, size_t inst);
-    string poly_to_str(const constant_* c, size_t inst1, size_t inst2);
 
 
     func_ operator+(const constant_& c1, const constant_& c2);
@@ -3498,7 +1126,11 @@ namespace gravity {
     };
 
     template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(const constant_& c1, T c2){
-        return func_(c1) /= c2;
+        return func_(c1) *= 1/c2;
+    };
+    
+    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(T c2, const constant_& c1){
+        return func_(c2) /= c1;
     };
 
     func_ operator*(const constant_& c1, const constant_& c2);
@@ -3515,7 +1147,7 @@ namespace gravity {
         
     constant_* add(constant_* c1, const constant_& c2); /**< adds c2 to c1, updates its type and returns the result **/
     //
-    template<typename T> constant_* add(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* add(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
         switch (c1->get_type()) {
             case binary_c: {
                 if (c2.is_binary() ) {
@@ -3584,6 +1216,13 @@ namespace gravity {
                 }
                 break;
             }
+            case complex_c: {
+                auto f = new func_(*c1);
+                *f += c2;
+                c1 =(constant_*)(f);
+                return c1;
+                break;
+            }
             case par_c:{            
                 auto f = new func_(*c1);
                 *f += c2;
@@ -3629,7 +1268,7 @@ namespace gravity {
 
     //constant_* add(constant_* c1, const func_& f);
 
-    template<typename T> constant_* add(constant_* c1, const param<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    template<class T> constant_* add(constant_* c1, const param<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
         switch (c1->get_type()) {
             case binary_c: {
                 auto val = ((constant<bool>*)c1)->eval();
@@ -3678,6 +1317,15 @@ namespace gravity {
             }
             case long_c: {
                 auto val = ((constant<long double>*)c1)->eval();
+                delete c1;
+                auto f = new func_(c2);
+                *f += val;
+                c1 = (constant_*)(f);
+                return c1;
+                break;
+            }
+            case complex_c: {
+                auto val = *((constant<Cpx>*)c1);
                 delete c1;
                 auto f = new func_(c2);
                 *f += val;
@@ -3738,7 +1386,7 @@ namespace gravity {
     constant_* substract(constant_* c1, const constant_& c2);
 
 
-    template<typename T> constant_* substract(constant_* c1, const param<T>& c2){ /**< Substracts c2 from c1, updates its type and returns the result **/
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* substract(constant_* c1, const param<T>& c2){ /**< Substracts c2 from c1, updates its type and returns the result **/
         switch (c1->get_type()) {
             case binary_c: {
                 auto val = ((constant<bool>*)c1)->eval();
@@ -3794,6 +1442,16 @@ namespace gravity {
                 return c1;
                 break;
             }
+            case complex_c:{
+                auto newcst = (*(constant<Cpx>*)c1);
+                delete c1;
+                auto res = new func_(c2);
+                *res *= -1;
+                auto cst = res->get_cst();
+                cst = add(cst, c2);
+                return c1 = res;
+                break;
+            }
             case par_c:{
                 auto res = new func_(*c1);
                 delete c1;
@@ -3809,7 +1467,7 @@ namespace gravity {
                 }
                 else {
                     auto cst = res->get_cst();
-                    cst = add(cst, c2);
+                    cst = substract(cst, c2);
                 }
                 return c1 = res;
                 break;
@@ -3854,6 +1512,7 @@ namespace gravity {
                     delete c1;
                     return c1 = new param<T>(c2);
                 }
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3869,6 +1528,7 @@ namespace gravity {
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3884,6 +1544,7 @@ namespace gravity {
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3899,6 +1560,7 @@ namespace gravity {
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3924,6 +1586,7 @@ namespace gravity {
 //                }
 //                *f *= val;
 //                c1 = c;
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3939,6 +1602,25 @@ namespace gravity {
                 auto f = new func_(c2);
                 *f *= val;
                 c1 = (constant_*)(f);
+//                c1->update_dot_dim(c2);
+                return c1;
+                break;
+            }
+            case complex_c:{
+                auto f = new func_(*c1);
+                delete c1;
+                *f *= c2;
+                c1 =(constant_*)(f);
+//                c1->update_dot_dim(c2);
+                return c1;
+                break;
+            }
+            case var_c:{
+                auto f = new func_(*c1);
+                delete c1;
+                *f *= c2;
+                c1 =(constant_*)(f);
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3947,6 +1629,7 @@ namespace gravity {
                 delete c1;
                 *f *= c2;
                 c1 =(constant_*)(f);
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3954,6 +1637,7 @@ namespace gravity {
                 auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3961,6 +1645,7 @@ namespace gravity {
                 auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
                 delete c1;
                 c1 = (constant_*)res;
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3970,6 +1655,7 @@ namespace gravity {
     //            *res *= c2;
     //            return c1 = res;
                 (*(func_*)c1) *= c2;
+//                c1->update_dot_dim(c2);
                 return c1;
                 break;
             }
@@ -3983,7 +1669,7 @@ namespace gravity {
 
 
 
-    template<typename T> constant_* substract(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* substract(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
         switch (c1->get_type()) {
             case binary_c: {
                 if (c2.is_binary() ) {
@@ -4052,6 +1738,10 @@ namespace gravity {
                 }
                 break;
             }
+            case complex_c: {
+                (*(constant<Cpx>*)c1) -= c2.eval();
+                break;
+            }
             case par_c:{
                 auto f = new func_(*c1);
                 *f -= c2;
@@ -4097,7 +1787,7 @@ namespace gravity {
     constant_* divide(constant_* c1, const constant_& c2);
 
 
-    template<typename T> constant_* multiply(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* multiply(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
         switch (c1->get_type()) {
             case binary_c: {
                 if (c2.is_binary() ) {
@@ -4166,6 +1856,10 @@ namespace gravity {
                 }
                 break;
             }
+            case complex_c: {
+                (*(constant<Cpx>*)c1) *= c2.eval();
+                break;
+            }
             case par_c:{
                 auto pc1 = (param_*)(c1);
                 auto l = new func_(*pc1);
@@ -4199,7 +1893,7 @@ namespace gravity {
         return c1;
     }
 
-    template<typename T> constant_* divide(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* divide(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
         if (c2.eval()==0) {
             throw invalid_argument("dividing by zero!\n");
         }
@@ -4269,6 +1963,10 @@ namespace gravity {
                     delete c1;
                     c1 = new constant<T>(c2.eval() / val);
                 }
+                break;
+            }
+            case complex_c: {
+                (*(constant<Cpx>*)c1) /= c2.eval();
                 break;
             }
             case par_c:{
@@ -4424,7 +2122,14 @@ namespace gravity {
     
     func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
     
+    func_ conj(const func_& f);
+    func_ ang(const func_& f);
+    func_ sqrmag(const func_& f);
+    func_ real(const func_& f);
+    func_ imag(const func_& f);
 }
+
+
 
 #endif /* func_h */
 

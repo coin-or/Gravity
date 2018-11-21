@@ -2,8 +2,8 @@
 //  Arc.h
 //  Cycle_Basis_PF
 //
-//  Created by Sumiran on 18/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
+//  Created by Hassan on 18/06/2014.
+
 //
 
 #ifndef Cycle_Basis_PF_Arc_h
@@ -20,7 +20,7 @@ public:
     int _id;
     std::string _name;
     std::string _circuit_id;
-    std::string _type_name="Arc";
+    std::string _type_name="Arcs";
     Node* _src;
     Node* _dest;
     double _weight;

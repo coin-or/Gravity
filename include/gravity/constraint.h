@@ -19,8 +19,8 @@ namespace gravity {
         string                      _name = "no_name";
         
     public:        
-        unsigned                    _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
-        unsigned                    _id = 0;
+        size_t                    _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
+        size_t                    _id = 0;
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
         double                      _rhs = 0;
         vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
@@ -64,7 +64,7 @@ namespace gravity {
         string get_name() const;
         int get_type() const;
         double get_rhs() const;
-        bool is_active(unsigned inst = 0, double tol = 1e-6) const;
+        bool is_active(size_t inst = 0, double tol = 1e-6) const;
         bool is_convex() const;
         bool is_concave() const;
         bool is_ineq() const;
@@ -76,34 +76,23 @@ namespace gravity {
         
         void make_lazy() {
             *_all_lazy = true;
-            _lazy.resize(_nb_instances,true);
+            _lazy.resize(get_dim(),true);
         }
         
-        
-        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec, const indices& ind){
-            if(vec.empty() || ind.empty()){
-                _indices = nullptr;
-                _ids = nullptr;
-                _dim[0] = 0;
-                return *this;
-            }
-            this->func_::in(vec,ind);
+//
+//
+//        Constraint& in(const node_pairs& np){
+//            this->func_::in(np);
+//            return *this;
+//        };
+//
+        Constraint& in(const vector<Node*>& vec) {
+            this->func_::in(vec);
             return *this;
-        };
-        
-        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec, const indices& ind, const param<int>& t){
-            this->func_::in(vec,ind,t);
-            return *this;
-        };
-        
-        Constraint& in(const node_pairs& np){
-            this->func_::in(np);
-            return *this;
-        };
+        }
         
         Constraint& in(const indices& ids){
             if(ids.empty()){
-                _ids = nullptr;
                 _indices = nullptr;
                 _dim[0] = 0;
                 return *this;
@@ -111,21 +100,12 @@ namespace gravity {
             this->func_::in(ids);
             return *this;
         };
-        
-        template<typename Tobj> Constraint& in(const vector<Tobj*>& vec){
-            this->func_::in(vec);
-            return *this;
-        };
-        
-        template<typename Tobj> Constraint& in(const vector<Tobj>& vec){
-            this->func_::in(vec);
-            return *this;
-        };
+//
         
         /* Output */
-        void print_expanded();
-        void print(unsigned);
         void print();
+        void print(size_t);
+        void print_symbolic();
         
         
     };

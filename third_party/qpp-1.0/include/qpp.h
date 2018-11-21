@@ -74,8 +74,8 @@
 #include <vector>
 
 // Eigen headers
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+#include <eigen/Dense>
+#include <eigen/SVD>
 
 // Quantum++ headers
 

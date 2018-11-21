@@ -12,3 +12,4 @@ before_install:
 - mkdir build && cd build && cmake ..
 script:
 - make
+- ../bin/Release/gravity_test

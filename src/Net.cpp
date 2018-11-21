@@ -8,6 +8,7 @@
 #include <gravity/Net.h>
 #include <algorithm>
 #include <map>
+#include <set>
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <list>
@@ -235,7 +236,7 @@ bool Net::add_arc(Arc* a) {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
         s->insert(a);
-        DebugOff("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
+        Warning("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
     }
@@ -368,14 +369,13 @@ void Net::readrudy(const char* fname) {
 
 
 /** construct a graph by reading an adjacency matrix */
-void Net::read_adjacency_matrix(const char* fname) {
-    FILE *fp = fopen(fname,"r");
+void Net::read_adjacency_matrix(const string& fname) {
+    FILE *fp = fopen(fname.c_str(),"r");
     if(fp == NULL)
     {
-        fprintf(stderr,"can’t open input file %s\n",fname);
-        exit(1);
+            clog << "Can’t open input file " << fname;
+            exit(1);
     }
-
     max_line_len = 1024;
     line = new char[max_line_len];
 
@@ -512,7 +512,7 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     Node* u = nullptr;
     Node* nn = nullptr;
     Arc* arc = nullptr;
-    
+    set<vector<Node*>> unique_bags;
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
@@ -584,13 +584,15 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
             DebugOff("}" << endl);
         }
         //        _bags_copy.push_back(bag_copy);
-        _bags.push_back(bag); // bag original
+        if(unique_bags.insert(bag).second){
+            _bags.push_back(bag); // bag original
+        }
         
         if (bag_copy.size()==3) {
             nb++;
         }
         else if(decompose && bag_copy.size()>3){
-            DebugOn("Decomposing bigger bag into 3d bags\n");
+            DebugOff("Decomposing bigger bag into 3d bags\n");
             
             for (auto i = 0; i<bag_copy.size()-2; i++) {
                 for (auto j = i+1; j<bag_copy.size()-1; j++) {
@@ -599,12 +601,14 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
                         new_bag.push_back(bag[i]);
                         new_bag.push_back(bag[j]);
                         new_bag.push_back(bag[k]);
-                        DebugOn("new bag = {");
-                        for (int i=0; i<new_bag.size();     i++) {
-                            cout << new_bag.at(i)->_name << " ";
+                        DebugOff("new bag = {");
+//                        for (int i=0; i<new_bag.size();     i++) {
+//                            cout << new_bag.at(i)->_name << " ";
+//                        }
+                        DebugOff("}" << endl);
+                        if(unique_bags.insert(new_bag).second){
+                            _bags.push_back(new_bag);
                         }
-                        DebugOn("}" << endl);
-                        _bags.push_back(new_bag);
                     }
                 }
             }
@@ -622,14 +626,17 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
-std::vector<gravity::index_pair*> Net::get_bus_pairs(){
-    return _bus_pairs._keys;
+indices Net::get_bus_pairs(){
+    indices bpairs("bus_pairs");
+    for (auto a: arcs) {
+        if (!a->_parallel) {
+            bpairs.add(a->_src->_name+","+a->_dest->_name);
+        }
+    }
+    return bpairs;
 }
 
-/** Return the vector of arcs of the chordal completion ignoring parallel lines **/
-std::vector<gravity::index_pair*> Net::get_bus_pairs_chord(){
-    return _bus_pairs_chord._keys;
-}
+
 
 Net* Net::get_chordal_extension() {
     Node* n = nullptr;

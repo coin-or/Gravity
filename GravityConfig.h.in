@@ -1,4 +1,1 @@
-#define PowerTools_VERSION_MAJOR @PowerTools_VERSION_MAJOR@
-#define PowerTools_VERSION_MINOR @PowerTools_VERSION_MINOR@
-
-cmakedefine ENABLE_GUROBI
+#define prj_dir "@PROJECT_SOURCE_DIR@"

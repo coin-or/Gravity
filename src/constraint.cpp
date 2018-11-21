@@ -46,9 +46,9 @@ Constraint::~Constraint(){};
 size_t Constraint::get_nb_instances() const{
     size_t nb = 0;
     if (!*_all_lazy) {
-        return _nb_instances;
+        return _dim[0];
     }
-    for (unsigned i = 0; i<_nb_instances; i++) {
+    for (size_t i = 0; i<_dim[0]; i++) {
         if (!_lazy[i]) {
             nb++;
         }
@@ -70,7 +70,7 @@ int Constraint::get_type() const{
     return _ctype;
 };
 
-bool Constraint::is_active(unsigned inst, double tol) const{
+bool Constraint::is_active(size_t inst, double tol) const{
     return fabs(get_val(inst) - _rhs) < tol;
 //    return fabs(_dual[inst]) >  EPS;
 }
@@ -139,7 +139,7 @@ Constraint& Constraint::operator=(const func_& f){
 
 
 size_t Constraint::get_id_inst(size_t ind) const{
-    if (_nb_instances==1) {
+    if (_dim[0]==1) {
         return 0;
     }
     return ind;
@@ -148,28 +148,32 @@ size_t Constraint::get_id_inst(size_t ind) const{
 
 /* Output */
 
-void Constraint::print_expanded(){
-    auto nb_inst = get_nb_instances();
-    for (unsigned inst = 0; inst<nb_inst; inst++) {
+void Constraint::print(){
+    auto nb_inst = _dim[0];
+    allocate_mem();
+    for (size_t inst = 0; inst<nb_inst; inst++) {
+        if (*_all_lazy && _lazy[inst]) {
+            continue;
+        }
         eval(inst);
         print(inst);
     }
 }
 
-void Constraint::print(unsigned inst){
+void Constraint::print(size_t inst){
     cout << _name;
-    if (_nb_instances>1) {
+    if (_dim[0]>1) {
         if (!_indices || _indices->empty()) {
             cout << "[" << inst << "]";
         }
         else {
-            cout << "[" << _indices->at(_ids->at(0).at(inst)) << "]";
+            cout << "[" << _indices->_keys->at(inst) << "]";
         }
     }
     if (is_linear()) {
         cout << " (Linear) : ";
     }
-    else if (is_convex()) {
+    else if (is_convex() || is_rotated_soc() || is_soc()) {
         cout << " (Convex) : ";
     }
     else if (is_concave()){
@@ -208,7 +212,7 @@ bool Constraint::is_ineq() const{
     return (_ctype==leq || _ctype==geq);
 }
 
-void Constraint::print(){
+void Constraint::print_symbolic(){
     cout << _name;
     if (is_linear()) {
         cout << " (Linear) : ";
@@ -222,7 +226,7 @@ void Constraint::print(){
     else {
         cout << " (Unknown) : ";
     }
-    this->func_::print(false,false);
+    this->func_::print_symbolic(false,false);
     switch (_ctype) {
         case leq:
             cout << " <= ";

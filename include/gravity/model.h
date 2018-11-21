@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <gravity/constraint.h>
-#include <gravity/utils.h>
 #include <map>
 #include <unordered_set>
 #include <math.h>
@@ -62,14 +61,14 @@ namespace gravity {
         vector<double>                  _jac_vals; /* Jacobian values stored in sparse format */        
         vector<double>                  _obj_grad_vals; /* Objective gradient values stored in sparse format */
         vector<double>                  _hess_vals; /* Hessian values stored in sparse format */
-        map<unsigned, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
-        map<unsigned, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
-        map<unsigned, var<bool>>       _bin_vars; /**< Sorted map pointing to all binary variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        map<size_t, param_*>          _params; /**< Sorted map pointing to all parameters contained in this model */
+        map<size_t, param_*>          _vars; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
+        map<size_t, var<bool>>       _bin_vars; /**< Sorted map pointing to all binary variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         
         map<string, param_*>            _params_name; /**< Sorted map pointing to all parameters contained in this model */
         map<string, param_*>            _vars_name; /**< Sorted map pointing to all variables contained in this model. Note that a variable is a parameter with a bounds attribute. */
         vector<shared_ptr<Constraint>>              _cons_vec;
-        map<unsigned, shared_ptr<Constraint>>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
+        map<size_t, shared_ptr<Constraint>>       _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<string, shared_ptr<Constraint>>         _cons_name; /**< Sorted map (increasing index) pointing to all constraints contained in this model */
         map<unique_id, set<Constraint*>>  _v_in_cons; /**< Set of constraints where each variable appears */
 
@@ -85,6 +84,7 @@ namespace gravity {
         func_                           _obj; /** Objective function */
         ObjectiveType                   _objt; /** Minimize or maximize */
         double                          _obj_val = 0;/** Objective function value */
+        double                          _obj_ub = 0;/** Upper bound on Objective function value */
         int                             _status = -1;/**<< status when last solved */
 
         /** Constructor */
@@ -140,18 +140,12 @@ namespace gravity {
         
         template <typename type>
         void add_var(var<type>& v){//Add variables by copy
-            if (v._is_indexed) {
-                auto nb_ind = v.get_nb_instances();
-                for (unsigned i = 0; i<nb_ind; i++) {
-                    v._lb->eval(i);
-                    v._ub->eval(i);
-                }
-            }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 param_* newv;
-                if (v._dim[0]==0) {
+                if (v._val->empty()) {
+                    Warning("WARNING adding unindex variable to model, treating it as a one dimensional Real.\n");
                     newv = (param_*)copy(v.in(R(1)));
                 }
                 else {
@@ -164,7 +158,7 @@ namespace gravity {
         };
         
         template <typename type>
-        void add(var<type>& v){//Add variables by copy
+        void add(var<type>& v){//Add variables by copy            
             add_var(v);
         }
         
@@ -186,44 +180,18 @@ namespace gravity {
         
         template <typename type>
         void add_var(var<type>&& v){//Add variables by copy
-            if (v.get_dim()==0) {
-                return;
-            }
-            if (v._is_indexed) {
-                auto nb_ind = v.get_nb_instances();
-                for (unsigned i = 0; i<nb_ind; i++) {
-                    v._lb->eval(i);
-                    v._ub->eval(i);
-                }
-//                shared_ptr<vector<type>> lb = make_shared<vector<type>>(nb_ind);
-//                shared_ptr<vector<type>> ub = make_shared<vector<type>>(nb_ind);
-//                unsigned i = 0;
-////                for (auto &p: *v.get_rev_indices()) {//TODO fix this
-////                    lb->at(i) = v._lb->eval(v._lb->get_indices()->at(p));
-////                    ub->at(i) = v._ub->eval(v._ub->get_indices()->at(p));
-////                    i++;
-////                }
-//                v._lb->_val = move(lb);
-//                v._ub->_val = move(ub);
-//                v._lb->_evaluated = true;
-//                v._ub->_evaluated = true;
-//                v._lb->_nb_instances = nb_ind;
-//                v._lb->_dim[0] = nb_ind;
-//                v._ub->_nb_instances = nb_ind;
-//                v._ub->_dim[0] = nb_ind;                
-            }
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
-                param_* newv;
                 if (v._dim[0]==0) {
-                    newv = (param_*)copy(v.in(R(1)));
+                    Warning("WARNING adding unindex variable to model, treating it as a one dimensional Real.\n");
+                    v.in(R(1));
                 }
-                else {
-                    newv = (param_*)copy(v);
-                }
-                _vars_name[v._name] = newv;
-                _vars[v.get_vec_id()] = newv;
+                auto new_v = new var<type>(v);
+                new_v->_lb->allocate_mem();
+                new_v->_ub->allocate_mem();
+                _vars_name[v._name] = new_v;
+                _vars[v.get_vec_id()] = new_v;
                 _nb_vars += v.get_dim();
             }
         };
@@ -240,6 +208,9 @@ namespace gravity {
         void project();/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
         void replace(param_* v, func_& f);/**<  Replace v with function f everywhere it appears */
         shared_ptr<Constraint> add_constraint(const Constraint& c);
+        
+        
+        shared_ptr<Model> build_McCormick();/**< Build the sequential McCormick relaxation for polynomial programs */
         
         shared_ptr<func_> embed(shared_ptr<func_> f);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
         void embed(expr& e);/**<  Transfer all variables and parameters to the model, useful for a centralized memory management. */
@@ -279,9 +250,11 @@ namespace gravity {
         void add_on_off(var<>& v, var<bool>& on);
         
         void add_on_off_McCormick(string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on);
-        void add_McCormick(string name, var<>& v, var<>& v1, var<>& v2);
-
         
+        void add_McCormick(string name, param_* vlift, param_* v1, param_* v2);
+        
+        void replace_integers();/*< Replace internal type of integer variables so that continuous relaxations can be computed */
+
         
         /* Operators */
         
@@ -289,8 +262,8 @@ namespace gravity {
         
         /* Output */
         void print_nl_functions() const;
-        void print() const;
-        void print_expanded();
+        void print_symbolic();
+        void print();
         void print_solution(bool only_discrete=true) const;
         void round_solution();
         void add_round_solution_cuts();

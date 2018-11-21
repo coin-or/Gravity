@@ -4,32 +4,35 @@ project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-# Find Gurobi (optional)
-option(ENABLE_GUROBI "Link to Gurobi libraries" OFF)
+# Debug mode
+option(debug "Turn on debug mode" OFF)
+
+# Find GUROBI (optional)
+option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(ENABLE_IPOPT "Link to IPOPT libraries" OFF)
+option(Ipopt "Link to IPOPT libraries" OFF)
 
-# Find xlnt (optional)
-option(ENABLE_XLNT "Link to XLNT libraries" OFF)
+# Find XLNT (optional)
+option(Xlnt "Link to XLNT libraries" OFF)
 
 # Find BONMIN (optional)
-option(ENABLE_BONMIN "Link to BONMIN libraries" OFF)
+option(Bonmin "Link to BONMIN libraries" OFF)
 
 # Find CPLEX (optional)
-option(ENABLE_CPLEX "Link to Cplex libraries" OFF)
+option(Cplex "Link to CPLEX libraries" OFF)
 
 # Find SDPA (optional)
-option(ENABLE_SDPA "Link to SDPA libraries" OFF)
+option(Sdpa "Link to SDPA libraries" OFF)
 
 # Find MOSEK (optional)
-option(ENABLE_MOSEK "Link to MOSEK libraries" OFF)
+option(Mosek "Link to MOSEK libraries" OFF)
 
 # include BOOST (optional)
-option(ENABLE_BOOST "Link to BOOST libraries" OFF)
+option(Boost "Link to BOOST libraries" OFF)
 
 # include QPP (optional)
-option(ENABLE_QPP "Link to QPP libraries" OFF)
+option(Qpp "Link to QPP libraries" OFF)
 
 
 execute_process(
@@ -37,15 +40,8 @@ execute_process(
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
 
-# configure a header file to pass some of the CMake settings
-# to the source code.
-configure_file (
-    "${PROJECT_SOURCE_DIR}/GravityConfig.h.in"
-    "${PROJECT_BINARY_DIR}/include/gravity/GravityConfig.h")
-
-
 # Find Ipopt.
-if (ENABLE_IPOPT)
+if (Ipopt)
 	message(STATUS "Enable IPOPT")
 	add_definitions(-DUSE_IPOPT)
 	find_package(IPOPT REQUIRED)
@@ -54,7 +50,7 @@ if (ENABLE_IPOPT)
 endif()
 
 # Find xlnt
-if (ENABLE_XLNT)
+if (Xlnt)
 	message(STATUS "Enable XLNT")
 	add_definitions(-DUSE_XLNT)
 	find_package(XLNT REQUIRED)
@@ -64,7 +60,7 @@ endif()
 
 
 # Find SDPA.
-if (ENABLE_SDPA)
+if (Sdpa)
 	message(STATUS "Enable SDPA")
 	add_definitions(-DUSE_SDPA)
 	find_package(SDPA REQUIRED)
@@ -75,7 +71,7 @@ if (ENABLE_SDPA)
 endif()
 
 # Find MOSEK.
-if (ENABLE_MOSEK)
+if (Mosek)
 	message(STATUS "Enable MOSEK")
 	add_definitions(-DUSE_MOSEK)
 	find_package(MOSEK REQUIRED)
@@ -84,8 +80,8 @@ if (ENABLE_MOSEK)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
-# Find GUROBI?
-if (ENABLE_GUROBI)
+# Find gurobi?
+if (Gurobi)
     message(STATUS "Enable GUROBI")
     add_definitions(-DUSE_GUROBI)
     find_package(GUROBI)
@@ -94,7 +90,7 @@ if (ENABLE_GUROBI)
 endif()
 
 # Find BONMIN?
-if (ENABLE_BONMIN)
+if (Bonmin)
     message(STATUS "Enable BONMIN")
     add_definitions(-DUSE_BONMIN)
     find_package(BONMIN)
@@ -103,7 +99,7 @@ if (ENABLE_BONMIN)
 endif()
 
 # Find CPLEX?
-if (ENABLE_CPLEX)
+if (Cplex)
     message(STATUS "Enable CPLEX")
     add_definitions(-DUSE_CPLEX)
     find_package(CPLEX)
@@ -115,7 +111,7 @@ endif()
 
 
 # Find BOOST?
-if (ENABLE_BOOST)
+if (Boost)
     message(STATUS "Enable BOOST")
     add_definitions(-DUSE_BOOST)
     include_directories("/usr/local/include/")
@@ -133,9 +129,8 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
 add_subdirectory(third_party/cpp_option_parser)
 set(LIBS ${LIBS} option_parser)
 
-# Include qpp headers
 # Find QPP?
-if (ENABLE_QPP)
+if (qpp)
     message(STATUS "Enable QPP")
     add_definitions(-DUSE_QPP)
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
@@ -145,7 +140,10 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
-include_directories(${PROJECT_SOURCE_DIR}/examples/MINLP/Power)
+include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
+
+# Include ML dirs
+include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
 
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
@@ -154,43 +152,21 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast")
 # Build options
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Release)
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 set(CMAKE_BUILD_TYPE "Release")
-#set(CMAKE_BUILD_TYPE "Debug")
+if (debug)
+set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Debug)
+endif()
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lpthread")
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-#Static Libs
-#Set Linker flags
 set(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,'\$ORIGIN/lib'")
-# use, i.e. don't skip the full RPATH for the build tree
-#SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
-
-# when building, don't use the install RPATH already
-# (but later on when installing)
-#SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-
-#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-
-# add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-
-# the RPATH to be used when installing, but only if it's not a system directory
-#SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
-
-#set( CMAKE_VERBOSE_MAKEFILE on )
 
 add_subdirectory(src)
 add_subdirectory(examples)
 
-# Install
-install(FILES ${PROJECT_BINARY_DIR}/PowerToolsConfig.h DESTINATION include/gravity)
-
-# Includes Catch in the project:
-#add_subdirectory(src/external/catch)
-#include_directories(${CATCH_INCLUDE_DIR} ${COMMON_INCLUDES})
-#enable_testing(true)  # Enables unit-testing.
+#Get user defined configuration including passing project source directory into c++ code
+configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)

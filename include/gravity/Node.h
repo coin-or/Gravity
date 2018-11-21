@@ -22,7 +22,7 @@ class Node{
     
 public:
     std::string _name="noname";
-    std::string _type_name="Node";
+    std::string _type_name="Nodes";
     int _id=-1;
     bool _active = true;
     std::vector<Arc*> branches;
@@ -64,18 +64,11 @@ public:
      */
     std::vector<Arc*> get_in();
     
+    /*
+     @brief Returns the vector of auxiliary objects attached to current node
+     */
+    virtual vector<gravity::aux*> get_aux(const string& aux_type){return vector<gravity::aux*>();};
     
-    virtual vector<gravity::aux*> get_gens(){return vector<gravity::aux*>();};
-    
-    virtual vector<gravity::aux*> get_bats(){return vector<gravity::aux*>();};
-    
-    virtual vector<gravity::aux*> get_pot_gens(){return vector<gravity::aux*>();};
-    
-    virtual vector<gravity::aux*> get_pot_bats(){return vector<gravity::aux*>();};
-    
-    virtual vector<gravity::aux*> get_wind(){return vector<gravity::aux*>();};
-    
-    virtual vector<gravity::aux*> get_pv(){return vector<gravity::aux*>();};
 
     /* return its neighbours */
     std::set<Node*> get_neighbours();

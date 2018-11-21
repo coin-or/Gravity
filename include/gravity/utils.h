@@ -25,11 +25,18 @@
 #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
-
+#include <optionParser.hpp>
 #include <vector>
 #include <gravity/types.h>
+#include <gravity/GravityConfig.h>
 double get_wall_time();
 double get_cpu_time();
+
+
+op::OptionParser readOptions(int argc, char * argv[]);
+//    opt.add_option("m", "model", "power flow model: ACPOL/ACRECT (def. ACPOL)", mtype );
+
+
 
 //Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
 //if possible the function will split mem into equal chuncks, if not

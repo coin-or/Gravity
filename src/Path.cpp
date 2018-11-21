@@ -2,8 +2,8 @@
 //  Path.cpp
 //  Cycle_Basis_PF
 //
-//  Created by Sumiran on 17/06/2014.
-//  Copyright (c) 2014 NICTA. All rights reserved.
+//  Created by Hassan on 17/06/2014.
+
 //
 
 #include <gravity/Path.h>

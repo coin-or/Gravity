@@ -61,7 +61,7 @@ For instance, if you install MOSEK 8 under `DIR/mosek8/` on a linux machine, you
 
 * `cd build`
 
-* `cmake -DENABLE_IPOPT=ON -DENABLE_GUROBI=ON -DENABLE_CPLEX=ON -DENABLE_BONMIN=ON ..`
+* `cmake -DIpopt=ON -DGurobi=ON -DCplex=ON -DBonmin=ON ..`
 
 All dependencies are switched off by default, to enable a solver that is installed on your system,  
 append the flag `-DENABLE_$SOLVERNAME$=ON` as shown above.
@@ -72,6 +72,6 @@ Note: To build an Xcode project append `-G Xcode` to the command above
 
 This will install all the models found under `Gravity/examples`.
 
-The corresponding binaries will then appear under `Gravity/bin`.
+The corresponding binaries will then appear under `Gravity/bin/Release`.
 
 All executables can be called with the flag --help or -h to get help on running instructions.
