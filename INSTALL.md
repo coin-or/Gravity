@@ -5,7 +5,7 @@ cmake: http://www.cmake.org (Version 3.2 or better)
 Included ThirdParty Libraries
 -------
 
-Armadillo: http://arma.sourceforge.net/
+Eigen: https://github.com/eigenteam/eigen-git-mirror
 
 cpp_option_parser: https://github.com/nerzadler/cpp_option_parser
 
@@ -25,6 +25,8 @@ Mosek: https://www.mosek.com
 Boost: http://www.boost.org/
 
 XLNT: https://github.com/tfussell/xlnt
+
+QPP: https://github.com/vsoftco/qpp
 
 -------
 
@@ -64,7 +66,7 @@ For instance, if you install MOSEK 8 under `DIR/mosek8/` on a linux machine, you
 * `cmake -DIpopt=ON -DGurobi=ON -DCplex=ON -DBonmin=ON ..`
 
 All dependencies are switched off by default, to enable a solver that is installed on your system,  
-append the flag `-DENABLE_$SOLVERNAME$=ON` as shown above.
+append the flag `-D$Solvername$=ON` as shown above.
 
 Note: To build an Xcode project append `-G Xcode` to the command above
 
