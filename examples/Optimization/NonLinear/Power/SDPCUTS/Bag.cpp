@@ -2,7 +2,7 @@
 // Created by kbestuzheva on 12/18/17.
 //
 
-#include <eigen/Dense>
+#include <Dense>
 #include <gravity/param.h>
 #include "Bag.h"
 

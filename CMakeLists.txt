@@ -35,10 +35,6 @@ option(Boost "Link to BOOST libraries" OFF)
 option(Qpp "Link to QPP libraries" OFF)
 
 
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/armadillo.tar.xz
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
-  )
 
 # Find Ipopt.
 if (Ipopt)
@@ -117,12 +113,18 @@ if (Boost)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
+# Include Eigen
 
-# Include Armadillo
-find_package(ARMADILLO)
-include_directories(${ARMADILLO_ROOT_DIR})
-set(LIBS ${LIBS} armadillo)
-add_subdirectory(${ARMADILLO_ROOT_DIR})
+set(UNZIPPED OFF CACHE BOOL "Already unzipped")
+if(NOT UNZIPPED)
+message(STATUS "Unzipping Eigen v3.3.5")
+
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5.tar.gz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
+  )
+include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5/Eigen/include)
+endif()
 
 # Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
@@ -130,12 +132,16 @@ add_subdirectory(third_party/cpp_option_parser)
 set(LIBS ${LIBS} option_parser)
 
 # Find QPP?
-if (qpp)
-    message(STATUS "Enable QPP")
-    add_definitions(-DUSE_QPP)
+if (Qpp AND NOT UNZIPPED)
+message(STATUS "Unzipping QPP v1.0")
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/qpp-1.0.tar.gz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
+  )
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
 endif()
 
+set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
 # Inlude dir
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
