@@ -26,7 +26,7 @@
 #ifdef USE_QPP
 	#include "qpp.h"
 #endif
-#include <eigen/Sparse>
+#include <Sparse>
 
 using namespace std;
 
