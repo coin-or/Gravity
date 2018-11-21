@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <optionParser.hpp>
-#include "Bag.h"
 
 using namespace std;
 using namespace gravity;
