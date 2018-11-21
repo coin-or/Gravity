@@ -19,7 +19,7 @@ www.allinsights.io/gravity
 
 ## License
 
-Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE.md](https://github.com/Allinsights/Gravity/blob/master/LICENSE.md) file for details.
+Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
 
 [<img 
 src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
