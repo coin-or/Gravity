@@ -11,5 +11,5 @@ before_install:
 - echo $LC_ALL
 - mkdir build && cd build && cmake ..
 script:
-- make
+- make -j5
 - ../bin/Release/gravity_test
