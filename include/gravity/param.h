@@ -26,7 +26,7 @@
 #ifdef USE_QPP
 	#include "qpp.h"
 #endif
-#include <Sparse>
+#include <Eigen/Sparse>
 
 using namespace std;
 
@@ -1283,7 +1283,7 @@ namespace gravity {
             }
         }
         void update_range(const complex<double>& val);
-        void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM);
+//        void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM);
        
     };
     
