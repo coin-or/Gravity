@@ -16,8 +16,6 @@
 using namespace std;
 using namespace gravity;
 
-double time_in_create_constrs;
-
 
 /* main */
 int main (int argc, char * argv[]) {

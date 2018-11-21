@@ -160,7 +160,7 @@ public:
     DataPoint<type>*                     _ref = nullptr;// Reference point for the comparison function
     DataPoint<type>**                    _points = nullptr;//Array of arrays sorted per class
     unsigned*                            _class_sizes = nullptr; //Storing the nb of points in each class    
-    pair<type,type>**                     _range; //Array storing the range of each feature per class.
+    pair<type,type>**                    _range; //Array storing the range of each feature per class.
     pair<type,type>*                     _all_range; //Array storing the overall range of all features.
     map<int,unsigned>                    _label_to_index; // Mapping negative class labels to their index in arrays
     map<unsigned,unsigned>               _points_per_feature; // Number of points each feature appears in

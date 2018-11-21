@@ -123,7 +123,7 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5.tar.gz
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
-include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5/Eigen)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
 endif()
 
 # Include cpp_option_parser
@@ -138,6 +138,7 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/qpp-1.0.tar.gz
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
+    add_definitions(-DUSE_QPP)
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
 endif()
 
