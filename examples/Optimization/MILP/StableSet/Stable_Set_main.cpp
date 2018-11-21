@@ -16,12 +16,17 @@ int main (int argc, const char * argv[])
     cout << "Welcome, this is an implementation of the Stable Set problem in Gravity" << endl;
     Net graph;
     graph.read_adjacency_matrix(string(prj_dir)+"/data_sets/stable_set/p.3n150.txt");
-    
+
+    unsigned n = graph.nodes.size();
     Model model;
+    /* Declaring the n-dimensional Real space */
+    auto Rn = R(n);    
     
     /** Variables **/
     var<bool> x("x");
-    model.add(x.in(graph.nodes));
+    model.add_var(x.in(Rn));
+    /* Or equivalently */
+    /* model.add(x.in(graph.nodes)); (graph nodes are indexed in {0,...,n})*/
     
     /** Objective **/
     model.max(sum(x));
