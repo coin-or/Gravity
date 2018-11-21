@@ -29,7 +29,7 @@ int main (int argc, char * argv[])
     string solver_str ="ipopt", lazy = "no";
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
 
-    string fname = string(prj_dir)+"/data_sets/classification/Archive/vowel";
+    string fname = string(prj_dir)+"/data_sets/Classification/Archive/vowel";
     
     /* Create a OptionParser with options */
     op::OptionParser opt;
