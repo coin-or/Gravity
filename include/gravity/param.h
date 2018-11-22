@@ -338,7 +338,7 @@ namespace gravity {
         }
         
         param& operator=(const param& p) {
-            _type = par_c;
+            _type = p._type;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
@@ -361,7 +361,7 @@ namespace gravity {
         }
         
         param& operator=(param&& p) {
-            _type = par_c;
+            _type = p._type;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
@@ -879,6 +879,19 @@ namespace gravity {
             }
             return res;
         }
+        
+        param operator()(size_t idx) {
+            if(!_indices){
+                throw invalid_argument("Current param/var is not indexed.");
+            }
+            param res(*this);
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_ids->resize(1);
+            res._indices->_ids->at(0).push_back(idx);
+            res._dim[0] = 1;
+            return res;
+        }
+        
         template<bool...> struct bool_pack;
         template<bool... bs>
         using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;

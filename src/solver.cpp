@@ -417,9 +417,9 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
 //                _model->print();
             }
         }
-        if(_stype!=ipopt) {
-            violated_constraints = false;
-        }
+//        if(_stype!=ipopt) {
+//            violated_constraints = false;
+//        }
         nb_it++;
     }
     if (nb_it>1) {

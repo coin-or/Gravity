@@ -785,7 +785,7 @@ bool Model::has_violated_constraints(double tol){
             DebugOn("Percentage of violated constraints for " << c->get_name() << " = " << to_string(100.*nb_viol/nb_inst) << "%\n");
         }
         if (c->get_type()!=eq) {
-            DebugOn("Percentage of active constraints for " << c->get_name() << " = " << to_string(100.*nb_active/nb_inst) << "%\n");
+            DebugOff("Percentage of active constraints for " << c->get_name() << " = " << to_string(100.*nb_active/nb_inst) << "%\n");
         }
     }
     DebugOn("Total percentage of violated constraints = " << to_string(100.*nb_viol_all/_nb_cons) << "%\n");

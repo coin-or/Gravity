@@ -36,7 +36,7 @@ unsigned DataSet<type>::hamming_distance(const DataPoint<type>& p1, const DataPo
     }
     return d;
 }
-    
+
 template<typename type>
 type DataSet<type>::distance(const DataPoint<type>& p1, const DataPoint<type>& p2) const{
     type d = 0;
@@ -143,7 +143,7 @@ pair<pair<type,DataPoint<type>*>,pair<type,DataPoint<type>*>> DataSet<type>::get
 
 template<typename type>
 bool DataSet<type>::compare_ref(const DataPoint<type>& p1, const DataPoint<type>& p2) const{ // Points sotred by decreasing distance from _ref.
-//    return true;
+    //    return true;
     return distance(p1,*_ref) > distance(p2,*_ref);
 }
 
@@ -241,7 +241,7 @@ void DataSet<type>::print_stats(bool print_points) const{
 
 template<typename type>
 void DataSet<type>::parse(string filename, DataSet<type>* training_data){
-
+    
     
     _name = filename;
     auto pos = _name.find_last_of("/");
@@ -343,7 +343,7 @@ void DataSet<type>::parse(string filename, DataSet<type>* training_data){
         pair.second = i;
         _label_to_index.insert(pair);
         i++;
-    }    
+    }
     if (training_data) {
         if (training_data->_label_to_index.size() > _label_to_index.size()) { // If some classes do not appear in the test data
             _label_to_index = training_data->_label_to_index;
@@ -432,7 +432,7 @@ void DataSet<type>::parse(string filename, DataSet<type>* training_data){
             }
             else {
                 v = strtof(val,&endptr);
-            }            
+            }
             _points[cl][c_id]._features[index] = v;
             if (_feature_range[cl].count(index)==0) {
                 _feature_range[cl].insert(index);
@@ -450,9 +450,9 @@ void DataSet<type>::parse(string filename, DataSet<type>* training_data){
             min_v = fmin(min_v, v);
             max_v = fmax(max_v, v);
             av += v;
-//            if (v != _range[cl][index].first && v != _range[cl][index].second) {
-//                extreme = false;
-//            }
+            //            if (v != _range[cl][index].first && v != _range[cl][index].second) {
+            //                extreme = false;
+            //            }
             if (v == _range[cl][index].first || v == _range[cl][index].second) {
                 extreme = true;
             }
@@ -469,6 +469,25 @@ void DataSet<type>::parse(string filename, DataSet<type>* training_data){
     delete[] line;
     fclose(fp);
 }
+
+using namespace gravity;
+template<typename type>
+vector<vector<param<>>> DataSet<type>::get_features() const{
+    vector<vector<param<>>> res;
+    res.resize(_nb_classes);
+    for (auto i = 0; i<_nb_classes; i++) {
+        res[i].resize(_class_sizes[i]);
+        for (auto j = 0; j<res[i].size(); j++) {
+            res[i][j] = param<>("f"+to_string(i)+to_string(j));
+            res[i][j].in(R(_nb_features));
+            for (auto k = 0; k<_nb_features; k++) {
+                res[i][j].set_val(k, _points[i][j]._features[k]);
+            }
+        }
+    }
+    return res;
+}
+
 
 template class DataSet<float>;
 template class DataPoint<float>;

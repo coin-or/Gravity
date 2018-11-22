@@ -1,6 +1,6 @@
 //
 //  param.cpp
-//  
+//
 //
 //  Created by Hassan on 20/05/2016.
 //
@@ -8,7 +8,7 @@
 #include <gravity/param.h>
 
 namespace gravity {
-
+    
     
     
     template<>
@@ -28,17 +28,17 @@ namespace gravity {
     }
     
     
-//    template<>
-//    void param<complex<double>>::set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
-//        if (!is_complex()) {
-//            throw invalid_argument("Function void set_complex_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM) is only implemented for complex<double> typed params/vars");
-//        }
-//        for (size_t k=0; k<SM.outerSize(); ++k) {
-//            for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
-//                set_val(it.row(), it.col(), it.value());
-//            }
-//        }
-//    }
+    //    template<>
+    //    void param<complex<double>>::set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
+    //        if (!is_complex()) {
+    //            throw invalid_argument("Function void set_complex_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM) is only implemented for complex<double> typed params/vars");
+    //        }
+    //        for (size_t k=0; k<SM.outerSize(); ++k) {
+    //            for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
+    //                set_val(it.row(), it.col(), it.value());
+    //            }
+    //        }
+    //    }
     
     pair<double, double>* param_::get_range() const{
         switch (get_intype()) {
@@ -61,7 +61,7 @@ namespace gravity {
                 break;
             default:
                 return new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-//                throw invalid_argument("get_range() only supports arithmetic types");
+                //                throw invalid_argument("get_range() only supports arithmetic types");
                 break;
         }
         
