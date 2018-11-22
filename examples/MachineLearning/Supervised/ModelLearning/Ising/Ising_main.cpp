@@ -206,7 +206,8 @@ int main (int argc, char * argv[])
         exit(0);
     }
     if (nr_threads<1) {
-        nr_threads=std::thread::hardware_concurrency()-1;
+//        nr_threads=std::thread::hardware_concurrency()-1;
+        nr_threads=1;
     }
     DebugOn("Using " << nr_threads << " threads" << endl);
     DebugOn("Regularizor = " << regularizor << endl);

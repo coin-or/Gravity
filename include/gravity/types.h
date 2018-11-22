@@ -19,17 +19,17 @@
 namespace gravity{
 #define EPS 0.00001
 #define Cpx complex<double>
-//#define Real double
-//#define Integer integer  //same name with a boost graph library.
+    //#define Real double
+    //#define Integer integer  //same name with a boost graph library.
 #define Binary bool
 #define Debug(x)
 #define DebugOn(x) cout << x
 #define Warning(x)
 #define DebugOff(x)
-
+    
     typedef unsigned int uint; /* Index type */
     //typedef std::set<ind> indx; /* Set of indices type */
-
+    
     typedef enum { linear_, convex_, concave_, undet_} Convexity; /* Convexity Type */
     typedef enum { neg_ = -2, non_pos_ = -1, zero_ = 0, non_neg_ = 1, pos_ = 2, unknown_ = 3} Sign; /* Sign Type */
     typedef enum { binary_, short_, integer_, float_, double_, long_, complex_} NType; /* Number Type */
@@ -48,17 +48,87 @@ namespace gravity{
     typedef enum { lin_m, quad_m, pol_m, nlin_m } MType;  /* Model type: Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { minimize, maximize } ObjectiveType;
     typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_} OperatorType;  /* Operation type in the expression tree */
-
+    
     typedef enum { R_, R_p_, C_} SpaceType;  /* Real, Positive Reals, Complex */
-
+    
     typedef enum { ordered_pairs_, unordered_ } SetType;
-//    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10, time_expand_ = 11, in_set_at_} IndexType;  /* Index type */
-
+    //    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10, time_expand_ = 11, in_set_at_} IndexType;  /* Index type */
+    
     typedef enum { unindexed_, in_, in_pairs_, out_, from_, to_, prev_, in_at_, in_time_, from_time_, to_time_, in_arcs_, out_arcs_, in_gens_, in_pot_gens_, in_bats_, in_pot_bats_,in_wind_, in_pv_, min_time_, excl_} IndexType;  /* Index type */
-
+    
     using namespace std;
-
-
+    
+    class space{
+    public:
+        SpaceType       _type;
+        vector<size_t>  _dim;
+    };
+    
+    class R: public space{
+    public:
+        R(){};
+        template<typename... Args>
+        R(size_t t1, Args&&... args) {
+            _type = R_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        R operator^(size_t n){return R(n);};
+        
+    };
+    
+    class R_p: public space{
+    public:
+        R_p(){};
+        template<typename... Args>
+        R_p(size_t t1, Args&&... args) {
+            _type = R_p_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        R_p operator^(size_t n){return R_p(n);};
+        
+    };
+    
+    class C: public space{
+    public:
+        C(){};
+        template<typename... Args>
+        C(size_t t1, Args&&... args) {
+            _type = C_;
+            list<size_t> dims = {forward<size_t>(args)...};
+            dims.push_front(t1);
+            size_t size = dims.size();
+            _dim.resize(size);
+            auto it = dims.begin();
+            size_t index = 0;
+            while (it!=dims.end()) {
+                _dim[index++] = *it++;
+            }
+        }
+        
+        C operator^(size_t n){return C(n);};
+        /* TODO */
+    };
+    
+    
+    
     /** Class for manipulating indices */
     class index_{
     public:
@@ -152,10 +222,10 @@ namespace gravity{
         shared_ptr<vector<string>>              _keys = nullptr; /*<< A vector storing all the keys */
         
         shared_ptr<map<string,size_t>>          _keys_map = nullptr; /*<< A map storing all the indices, the size_t number indicates the right position in the _keys vector */
-
+        
         set<size_t>                             _excluded_keys; /*<< A set storing all indices that should be excluded */
         shared_ptr<vector<vector<size_t>>>      _ids = nullptr;
-
+        
         
         indices(string name){
             _name = name;
@@ -182,6 +252,13 @@ namespace gravity{
             }
         }
         
+        indices(const space& s){
+            list<indices> l;
+            for (auto i = 0; i<s._dim.size(); i++) {
+                l.push_back(indices(0,s._dim[i]-1));
+            }
+            *this = indices(l);
+        }
         
         indices(size_t p1 ,size_t p2){
             auto n = p2 - p1 + 1;
@@ -251,34 +328,34 @@ namespace gravity{
             *this=move(cpy);
         }
         
-//        template<typename Tobj>
-//        indices(const vector<Tobj*>& vec){
-//            _keys_map = make_shared<map<string,size_t>>();
-//            _keys = make_shared<vector<string>>();
-//            size_t i = 0;
-//            for (auto idx:vec) {
-//                if(idx->_active){
-//                    _keys->push_back(idx->_name);
-//                    (*_keys_map)[idx->_name]= i;
-//                    i++;
-//                }
-//            }
-//        }
-//        
-//        template<typename Tobj>
-//        indices(const vector<Tobj>& vec){
-//            _keys_map = make_shared<map<string,size_t>>();
-//            _keys = make_shared<vector<string>>();
-//            size_t i = 0;
-//            for (auto idx:vec) {
-//                if(idx._active){
-//                    _keys->push_back(idx._name);
-//                    (*_keys_map)[idx._name]= i;                    
-//                    i++;
-//                }
-//            }
-//        }
-
+        //        template<typename Tobj>
+        //        indices(const vector<Tobj*>& vec){
+        //            _keys_map = make_shared<map<string,size_t>>();
+        //            _keys = make_shared<vector<string>>();
+        //            size_t i = 0;
+        //            for (auto idx:vec) {
+        //                if(idx->_active){
+        //                    _keys->push_back(idx->_name);
+        //                    (*_keys_map)[idx->_name]= i;
+        //                    i++;
+        //                }
+        //            }
+        //        }
+        //
+        //        template<typename Tobj>
+        //        indices(const vector<Tobj>& vec){
+        //            _keys_map = make_shared<map<string,size_t>>();
+        //            _keys = make_shared<vector<string>>();
+        //            size_t i = 0;
+        //            for (auto idx:vec) {
+        //                if(idx._active){
+        //                    _keys->push_back(idx._name);
+        //                    (*_keys_map)[idx._name]= i;
+        //                    i++;
+        //                }
+        //            }
+        //        }
+        
         template<typename Tobj>
         indices(const vector<Tobj*>& vec){
             _keys_map = make_shared<map<string,size_t>>();
@@ -313,20 +390,17 @@ namespace gravity{
             }
         }
         
-        template<typename... Args>
-        indices(const indices& vec1, Args&&... args) {
+        
+        indices(const list<indices>& vecs) {
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
-            list<indices> vecs;
-            vecs = {forward<Args>(args)...};
-            vecs.push_front(vec1);
             size_t dim = 1;
             size_t time_pos= 0, nb_ids = 0;
             vector<size_t> dims;
             for(auto &vec: vecs){
                 if(vec.empty()){
                     Warning("\n\nWARNING: Defining indices with an empty vector!\n\n");
-//                    exit(-1);
+                    //                    exit(-1);
                 }
                 if(vec._time_extended){
                     _time_extended = true;
@@ -339,6 +413,7 @@ namespace gravity{
                 dims.push_back(vec.size());
                 _name += vec._name+",";
             }
+            auto vec1 = vecs.front();
             _name = _name.substr(0,_name.size()-1); /* remove last comma */
             if(_time_extended && !vec1._time_extended){
                 if(time_pos==0 && !vec1.empty()) {//TODO CHECK
@@ -375,6 +450,15 @@ namespace gravity{
                 }
             }
         }
+        
+        template<typename... Args>
+        indices(const indices& vec1, Args&&... args) {
+            list<indices> vecs;
+            vecs = {forward<Args>(args)...};
+            vecs.push_front(vec1);
+            *this = indices(vecs);
+        }
+        
         template<typename... Args>
         void add(string s1, Args&&... args) {
             list<string> indices;
@@ -429,7 +513,7 @@ namespace gravity{
         };
         
         size_t nb_active_keys() const {return _keys->size() - _excluded_keys.size();};
-
+        
         bool empty() const {
             return _keys->size() - _excluded_keys.size() == 0;
         }
@@ -452,7 +536,7 @@ namespace gravity{
             return _keys->back();
         }
     };
-        
+    
     
     class node_pairs{
         
@@ -473,12 +557,12 @@ namespace gravity{
     };
     
     typedef enum { ipopt, gurobi, bonmin, cplex, sdpa, Mosek} SolverType;  /* Solver type */
-
+    
     // settings of solvers. used by solvers like sdpa.
     typedef enum {unsolved = -1, penalty=0, fast=1, medium=2, stable=3} SolverSettings;
-
+    
     typedef pair<shared_ptr<size_t>,shared_ptr<indices>> unique_id; /* A unique identifier is defined as a pair<variable id, index address> */
-
+    
     template <class T>
     std::string type_name(const T& t) {
         return t._type_name;
