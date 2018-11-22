@@ -167,7 +167,6 @@ namespace gravity {
             add_var(move(v));
         }
         
-    
         template <typename type, typename... Args>
         void add(var<type>&& v, Args&&... args){
             list<var<type>> vars;
@@ -175,7 +174,7 @@ namespace gravity {
             vars.push_front(move(v));
             for (auto &v:vars) {
                 add_var(move(v));
-            }            
+            }
         }
         
         template <typename type>

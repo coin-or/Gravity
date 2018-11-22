@@ -34,7 +34,6 @@ double get_cpu_time();
 
 
 op::OptionParser readOptions(int argc, char * argv[]);
-//    opt.add_option("m", "model", "power flow model: ACPOL/ACRECT (def. ACPOL)", mtype );
 
 
 
@@ -43,16 +42,6 @@ op::OptionParser readOptions(int argc, char * argv[]);
 //the last chunck will be slightly larger
 std::vector<int> bounds(int parts, int mem);
 
-//template<typename Tobj>
-//std::vector<Tobj*> get_ptr_vec(const std::vector<Tobj>& vec){
-//    auto new_vec = std::vector<Tobj*>();
-//    auto n = vec.size();
-//    new_vec.resize(n);
-//    for(unsigned i = 0; i<n; i++ ){
-//        new_vec[i] = (Tobj*)&vec[i];
-//    }
-//    return new_vec;
-//}
 
 gravity::indices time(unsigned p1 ,unsigned p2);
 

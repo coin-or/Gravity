@@ -54,7 +54,7 @@ namespace gravity{
     typedef enum { ordered_pairs_, unordered_ } SetType;
     //    typedef enum { vec_=0, in_ordered_pairs_=1, from_ordered_pairs_=2, to_ordered_pairs_=3, in_arcs_=4, from_arcs_=5, to_arcs_=6, in_nodes_=7, in_set_=8, mask_=9, in_bags_=10, time_expand_ = 11, in_set_at_} IndexType;  /* Index type */
     
-    typedef enum { unindexed_, in_, in_pairs_, out_, from_, to_, prev_, in_at_, in_time_, from_time_, to_time_, in_arcs_, out_arcs_, in_gens_, in_pot_gens_, in_bats_, in_pot_bats_,in_wind_, in_pv_, min_time_, excl_} IndexType;  /* Index type */
+    typedef enum { unindexed_, in_, in_pairs_, out_, from_, to_, prev_, in_at_, in_time_, from_time_, to_time_, in_arcs_, out_arcs_, in_gens_, in_pot_gens_, in_bats_, in_pot_bats_,in_wind_, in_pv_, min_time_, excl_, matrix_} IndexType;  /* Index type */
     
     using namespace std;
     
@@ -219,6 +219,7 @@ namespace gravity{
         IndexType                               _type = unindexed_;/**< index type */
         bool                                    _time_extended = false;/*<< indices are time extended */
         size_t                                  _time_pos = 0;/*<< number of commas before time extension */
+        shared_ptr<vector<size_t>>              _dim = nullptr;/*<< A vector storing the dimension of sub-indices */
         shared_ptr<vector<string>>              _keys = nullptr; /*<< A vector storing all the keys */
         
         shared_ptr<map<string,size_t>>          _keys_map = nullptr; /*<< A map storing all the indices, the size_t number indicates the right position in the _keys vector */
@@ -231,17 +232,20 @@ namespace gravity{
             _name = name;
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
         }
         
         indices(){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
         }
         
         indices(const ordered_pairs& pairs){
             auto n = pairs._keys.size();
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
             _keys->resize(n);
             size_t index = 0;
             string key;
@@ -250,15 +254,19 @@ namespace gravity{
                 (*_keys_map)[key]= index;
                 (*_keys)[index++] = key;
             }
+            _dim->resize(1);
+            _dim->at(0) = n;
         }
         
-        indices(const space& s){
-            list<indices> l;
-            for (auto i = 0; i<s._dim.size(); i++) {
-                l.push_back(indices(0,s._dim[i]-1));
-            }
-            *this = indices(l);
-        }
+//        indices(const space& s){
+//            list<indices> l;
+//            _dim->resize(l.size());
+//            for (auto i = 0; i<s._dim.size(); i++) {
+//                l.push_back(indices(0,s._dim[i]-1));
+//                _dim->at(i) = s._dim[i];
+//            }
+//            *this = indices(l);
+//        }
         
         indices(size_t p1 ,size_t p2){
             auto n = p2 - p1 + 1;
@@ -266,6 +274,9 @@ namespace gravity{
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _keys->resize(n);
+            _dim = make_shared<vector<size_t>>();
+            _dim->resize(1);
+            _dim->at(0) = n;
             size_t index = 0;
             for (int i = p1; i <= p2; i++){
                 (*_keys_map)[to_string(i)]= index;
@@ -284,6 +295,9 @@ namespace gravity{
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _keys->resize(n);
+            _dim = make_shared<vector<size_t>>();
+            _dim->resize(1);
+            _dim->at(0) = n;
             auto it = indices.begin();
             for (size_t i= 0; i< n; i++) {
                 (*_keys_map)[*it]= i;
@@ -299,6 +313,7 @@ namespace gravity{
             _keys_map = cpy._keys_map;
             _excluded_keys = cpy._excluded_keys;
             _keys = cpy._keys;
+            _dim = cpy._dim;
             if(cpy._ids){
                 _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
             }
@@ -314,6 +329,7 @@ namespace gravity{
             _keys_map = move(cpy._keys_map);
             _excluded_keys = move(cpy._excluded_keys);
             _keys = move(cpy._keys);
+            _dim = move(cpy._dim);
             _ids = move(cpy._ids);
             _time_extended = cpy._time_extended;
             _time_pos = cpy._time_pos;
@@ -360,6 +376,8 @@ namespace gravity{
         indices(const vector<Tobj*>& vec){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
+            _dim->resize(1);
             size_t i = 0;
             for (auto idx:vec) {
                 if(idx->_active){
@@ -371,12 +389,15 @@ namespace gravity{
             if (_keys->size()>0) {
                 _name = vec.front()->_type_name;
             }
+            _dim->at(0) = _keys->size();
         }
         
         template<typename Tobj>
         indices(const vector<Tobj>& vec){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
+            _dim->resize(1);
             size_t i = 0;
             for (auto idx:vec) {
                 if(idx._active){
@@ -388,14 +409,20 @@ namespace gravity{
             if (_keys->size()>0) {
                 _name = vec.front()->_type_name;
             }
+            _dim->at(0) = _keys->size();
         }
         
         
         indices(const list<indices>& vecs) {
+            if (vecs.size()==2) {
+                _type = matrix_;
+            }
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
+            _dim = make_shared<vector<size_t>>();
+            _dim->resize(vecs.size());
             size_t dim = 1;
-            size_t time_pos= 0, nb_ids = 0;
+            size_t time_pos= 0, nb_ids = 0, idx = 0;
             vector<size_t> dims;
             for(auto &vec: vecs){
                 if(vec.empty()){
@@ -412,6 +439,7 @@ namespace gravity{
                 dim *= vec.size();
                 dims.push_back(vec.size());
                 _name += vec._name+",";
+                _dim->at(idx++) = vec.size();
             }
             auto vec1 = vecs.front();
             _name = _name.substr(0,_name.size()-1); /* remove last comma */
