@@ -317,11 +317,13 @@ namespace gravity {
         bool operator==(const var& v) const;
         bool operator!=(const var& v) const;
         
-        //    var& in(const space& s){
-        //        set_size(s._dim);
-        //        this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
-        //        return *this;
-        //    }
+            var in(const space& s){
+                set_size(s._dim);
+                if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
+                    this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+                }
+                return *this;
+            }
         
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform() {
             std::default_random_engine generator;

@@ -522,12 +522,11 @@ namespace gravity {
         }
         
         void   set_size(size_t s1, size_t s2) {
-//            _is_matrix = true;
             _is_vector = true;
             _dim[0] = s1;
             _dim[1] = s2;
-            auto index = _dim[0]*_dim[1];
-            _val->resize(index);
+            auto dim = _dim[0]*_dim[1];
+            _val->resize(dim);
         };
         
         void   set_size(size_t s) {
@@ -916,6 +915,14 @@ namespace gravity {
             return res;
         }
         
+        /* Use this for dense indexing, prefer indices() for sparse indexing */
+        param& in(const space& s){
+            set_size(s._dim);
+            if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
+                this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+            }
+            return *this;
+        }
         
         param in(const node_pairs& np){
             return this->in(np._keys);
@@ -945,11 +952,23 @@ namespace gravity {
                 _indices = make_shared<indices>(ids);
                 auto dim = _indices->size();
                 _val->resize(dim);
-                if(_is_transposed){
-                    _dim[1] = dim;
+                if(ids._type==matrix_){
+                    if(_is_transposed){
+                        _dim[0] = ids._dim->at(1);
+                        _dim[1] = ids._dim->at(0);
+                    }
+                    else {
+                        _dim[1] = ids._dim->at(0);
+                        _dim[0] = ids._dim->at(1);
+                    }
                 }
                 else {
-                    _dim[0] = dim;
+                    if(_is_transposed){
+                        _dim[1] = dim;
+                    }
+                    else {
+                        _dim[0] = dim;
+                    }
                 }
                 param res(*this);
                 res._name += ".in("+ids._name+")";
