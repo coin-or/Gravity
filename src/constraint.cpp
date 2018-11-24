@@ -170,7 +170,10 @@ void Constraint::print(size_t inst){
             cout << "[" << _indices->_keys->at(inst) << "]";
         }
     }
-    if (is_linear()) {
+    if (is_complex()) {
+        cout << " (Complex) : ";
+    }
+    else if (is_linear()) {
         cout << " (Linear) : ";
     }
     else if (is_convex() || is_rotated_soc() || is_soc()) {
@@ -214,7 +217,10 @@ bool Constraint::is_ineq() const{
 
 void Constraint::print_symbolic(){
     cout << _name;
-    if (is_linear()) {
+    if (is_complex()) {
+        cout << " (Complex) : ";
+    }
+    else if (is_linear()) {
         cout << " (Linear) : ";
     }
     else if (is_convex()) {

@@ -80,7 +80,9 @@ namespace gravity {
                 }
                 return _indices->_ids->at(0).at(inst);
             }
-            return inst;
+            if(get_dim()==1)
+                return 0;
+            return min(_dim[0]-1, inst);
         };
         
         size_t get_id_inst(size_t inst1, size_t inst2) const {
@@ -164,8 +166,8 @@ namespace gravity {
                 size_t rev_idx = _indices->_ids->at(0).at(inst);
                 name += "["+_indices->_keys->at(rev_idx)+"]";
             }
-            else if(_indices){
-                name += "["+_indices->_keys->at(inst)+"]";
+            else if(_indices){                
+                name += "["+to_string(get_id_inst(inst))+"]";
             }
             else {
                 name += "["+to_string(inst)+"]";
@@ -465,19 +467,20 @@ namespace gravity {
             if(is_matrix()){
                 throw invalid_argument("eval() should be called with double index here\n");
             }
+            auto idx = get_id_inst(i);
             if (is_indexed()) {
                 if (_indices->_ids->size()>1) {
                     throw invalid_argument("eval() should be called with double index here\n");
                 }
-                if (_val->size()<=_indices->_ids->at(0).at(i)){
+                if (_val->size()<=idx){
                     throw invalid_argument("Param eval out of range");
                 }
-                return _val->at(_indices->_ids->at(0).at(i));
+                return _val->at(idx);
             }
-            if (_val->size()<=i){
+            if (_val->size()<=idx){
                 throw invalid_argument("Param eval out of range");
             }
-            return _val->at(i);
+            return _val->at(idx);
         }
         
         

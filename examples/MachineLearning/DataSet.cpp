@@ -488,6 +488,22 @@ vector<vector<param<>>> DataSet<type>::get_features() const{
     return res;
 }
 
+template<typename type>
+vector<param<>> DataSet<type>::get_features_matrix() const{
+    vector<param<>> res;
+    res.resize(_nb_classes);
+    for (auto i = 0; i<_nb_classes; i++) {
+        res[i] = param<>("f"+to_string(i));
+        res[i].set_size(_class_sizes[i], _nb_features);
+        for (auto j = 0; j<_class_sizes[i]; j++) {
+            for (auto k = 0; k<_nb_features; k++) {
+                res[i].set_val(j,k, _points[i][j]._features[k]);
+            }
+        }
+    }
+    return res;
+}
+
 
 template class DataSet<float>;
 template class DataPoint<float>;

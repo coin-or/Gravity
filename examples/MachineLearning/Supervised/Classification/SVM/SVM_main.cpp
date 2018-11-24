@@ -23,6 +23,95 @@
 using namespace std;
 using namespace gravity;
 
+/* Builds the static SVM model */
+unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
+    
+    /* Defining parameters ans indices */
+    auto nf = training_set._nb_features;
+    auto m1 = training_set._class_sizes[0];
+    auto m2 = training_set._class_sizes[1];
+    auto f = training_set.get_features_matrix(); /* Feature values */
+    
+    /* Model */
+    unique_ptr<Model> SVM = unique_ptr<Model>(new Model());
+    /* Variables */
+    var<> w("w");
+    var<> xi1("xi1", pos_);
+    var<> xi2("xi2", pos_);
+    var<> b("b");
+    SVM->add(w.in(R(nf)), xi1.in(R(m1)), xi2.in(R(m2)), b.in(R(1)));
+    /* Objective function */
+    SVM->min(product(0.5,power(w,2)) + mu*sum(xi1) + mu*sum(xi2));
+    
+    /* Constraints */
+
+    /* Class 1 constraints */
+    auto Class1 = Constraint("Class1");
+    Class1 = product(f[0],w) + b + (xi1 - 1);
+    SVM->add(Class1 >= 0);
+    /* Class 2 constraints */
+    auto Class2 = Constraint("Class2");
+    Class2 = product(f[1],w) + b + (1 - xi2);
+    SVM->add(Class2 <= 0);
+    return SVM;
+}
+
+
+unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, size_t nb_c, double mu){
+    
+    /* Defining parameters ans indices */
+    auto nf = training_set._nb_features;
+    auto m = training_set._nb_points;
+    auto m1 = training_set._class_sizes[0]; /* Number of points in first class */
+    auto m2 = training_set._class_sizes[1]; /* Number of points in second class */
+    auto f = training_set.get_features(); /* Feature values */
+    
+    /* Model */
+    unique_ptr<Model> SVM = unique_ptr<Model>(new Model());
+    /* Variables */
+    var<> w("w");
+    var<> xi("xi", pos_);
+    var<> b("b");
+    SVM->add(w.in(R(nf)), xi.in(R(m)), b.in(R(1)));
+    /* Objective function */
+    SVM->min(product(0.5,power(w,2)) + mu*sum(xi));
+    
+    /* Constraints */
+    size_t nb_c1 = m1;
+    if (nb_c >= 0 && nb_c <= m1) { /* Activating constraint generation */
+        nb_c1 = nb_c;
+    }
+    for (auto i = 0; i<nb_c1; i++) {
+        auto Class1 = Constraint("Class1_"+to_string(i));
+        Class1 = product(f[0][i],w) + b + (xi(i) - 1);
+        SVM->add(Class1 >= 0);
+    }
+    /* Remaining constraints are lazy */
+    for (auto i = nb_c1; i<m1; i++) {
+        auto Class1 = Constraint("Class1_"+to_string(i));
+        Class1 = product(f[0][i],w) + b + (xi(i) - 1);
+        SVM->add_lazy(Class1 >= 0);
+    }
+    
+    /* Class 2 constraints */
+    size_t nb_c2 = m2;
+    if (nb_c >= 0 && nb_c < m2) { /* Activating constraint generation */
+        nb_c2 = nb_c;
+    }
+    for (auto i = 0; i<nb_c2; i++) {
+        auto Class2 = Constraint("Class2_"+to_string(i));
+        Class2 = product(f[1][i],w) + b + (1 - xi(i+m1));
+        SVM->add(Class2 <= 0);
+    }
+    /* Remaining constraints are lazy */
+    for (auto i = nb_c2; i<m2; i++) {
+        auto Class2 = Constraint("Class2_"+to_string(i));
+        Class2 = product(f[1][i],w) + b + (1 - xi(i+m1));
+        SVM->add_lazy(Class2 <= 0);
+    }
+    return SVM;
+}
+
 
 int main (int argc, char * argv[])
 {
@@ -83,65 +172,17 @@ int main (int argc, char * argv[])
     DataSet<> training_set;
     training_set.parse(fname);
     training_set.print_stats();
-    DataSet<> test_set;
-    test_set.parse(fname+".t", &training_set);
-    test_set.print_stats();
-    
-    /* Defining parameters ans indices */
     auto nf = training_set._nb_features;
-    auto m = training_set._nb_points;
-    auto Rnf = indices(1,nf); /* Indices 1 to total number of features */
-    auto Rm = indices(1,m); /* Indices 1 to total number of training points */
-    auto M1 = indices(1,training_set._class_sizes[0]); /* Indices 1 to number of points in first class */
-    auto M2 = indices(1,training_set._class_sizes[1]); /* Indices 1 to number of points in second class */
-    auto f = training_set.get_features(); /* Feature values */
-    
-    /* Model */
-    Model SVM;
-    /* Variables */
-    var<> w("w");
-    var<> xi("xi", pos_);
-    var<> b("b");
-    SVM.add(w.in(Rnf), xi.in(Rm), b.in(R(1)));
-    /* Objective function */
-    SVM.min(product(0.5,power(w,2)) + mu*sum(xi));
-    
-    /* Constraints */
-    size_t nb_c1 = M1.size();
-    if (nb_c >= 0 && nb_c <= M1.size()) { /* Activating constraint generation */
-        nb_c1 = nb_c;
+    unique_ptr<Model> SVM;
+    if (nb_c<0) {
+        SVM = build_svm(training_set, mu);
     }
-    for (auto i = 0; i<nb_c1; i++) {
-        auto Class1 = Constraint("Class1_"+to_string(i));
-        Class1 = product(f[0][i],w) + b + (xi(i) - 1);
-        SVM.add(Class1 >= 0);
-    }
-    /* Remaining constraints are lazy */
-    for (auto i = nb_c1; i<M1.size(); i++) {
-        auto Class1 = Constraint("Class1_"+to_string(i));
-        Class1 = product(f[0][i],w) + b + (xi(i) - 1);
-        SVM.add_lazy(Class1 >= 0);
-    }
-    
-    /* Class 2 constraints */
-    size_t nb_c2 = M2.size();
-    if (nb_c >= 0 && nb_c < M2.size()) { /* Activating constraint generation */
-        nb_c2 = nb_c;
-    }
-    for (auto i = 0; i<nb_c2; i++) {
-        auto Class2 = Constraint("Class2_"+to_string(i));
-        Class2 = product(f[1][i],w) + b + (1 - xi(i+M1.size()));
-        SVM.add(Class2 <= 0);
-    }
-    /* Remaining constraints are lazy */
-    for (auto i = nb_c2; i<M2.size(); i++) {
-        auto Class2 = Constraint("Class2_"+to_string(i));
-        Class2 = product(f[1][i],w) + b + (1 - xi(i+M1.size()));
-        SVM.add_lazy(Class2 <= 0);
+    else {
+        SVM = build_lazy_svm(training_set, nb_c, mu);
     }
     
     /* Start Timers */
-    solver SVM_solver(SVM,solv_type);
+    solver SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();
     SVM_solver.run(output);
     double solver_time_end = get_wall_time();
@@ -149,18 +190,23 @@ int main (int argc, char * argv[])
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
     /* Uncomment line below to print expanded model */
-    /* SVM.print(); */
+    /* SVM->print(); */
     
     /* Testing */
+    DataSet<> test_set;
+    test_set.parse(fname+".t", &training_set);
+    test_set.print_stats();
+    auto w = SVM->get_var("w");
+    auto b = SVM->get_var("b");
     unsigned err = 0;
     for (auto c = 0; c<test_set._nb_classes; c++) {
         for (auto i = 0; i<test_set._class_sizes[c]; i++) {
             double lhs = 0;
             auto pt = test_set._points[c][i];
             for (auto j = 0; j<nf; j++) {
-                lhs += pt._features[j]*w.eval(j);
+                lhs += pt._features[j]*t_eval(w,j);
             }
-            lhs += b.eval();
+            lhs += t_eval(b);
             if (c == 0 && lhs <= 0) {
                 err++;
             }
