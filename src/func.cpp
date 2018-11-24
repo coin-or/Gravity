@@ -761,7 +761,7 @@ namespace gravity{
                     _dim[0] = c._dim[0];
                     _dim[1] = c._dim[1];
                     //                    _nb_instances = c._dim[0];
-                    _indices = p_c2->_indices;
+//                    _indices = p_c2->_indices;
                     _evaluated = false;
                     break;
                 }
@@ -785,9 +785,9 @@ namespace gravity{
                     //                    _is_matrix = p_c2->_is_matrix;
                     _dim[0] = p_c2->_dim[0];
                     _dim[1] = p_c2->_dim[1];
-                    if (p_c2->_indices) {
-                        _indices = p_c2->_indices;
-                    }
+//                    if (p_c2->_indices) {
+//                        _indices = p_c2->_indices;
+//                    }
                     
                     break;
                 }
@@ -1050,7 +1050,7 @@ namespace gravity{
                 _dim[0] = c._dim[0];
                 _dim[1] = c._dim[1];
                 //                _nb_instances = c._dim[0];
-                _indices = p_c2->_indices;
+//                _indices = p_c2->_indices;
                 //                _val->resize(_nb_instances);
                 //                for (unsigned inst = 0; inst < _val->size(); inst++) {
                 //                    _val->at(inst) = eval(p_c2.get(), inst);
@@ -1074,7 +1074,7 @@ namespace gravity{
                 _cst = new constant<double>(0);
                 _all_sign = p_c2->get_all_sign();
                 _all_range = p_c2->get_range();
-                _indices = p_c2->_indices;
+//                _indices = p_c2->_indices;
                 break;
             }
             case uexp_c: {
@@ -4913,7 +4913,7 @@ namespace gravity{
         for (auto &lt: *_lterms) {
             if (*lt.second._p == v) {
                 auto coef = copy(*lt.second._coef);
-                if ((coef->_is_vector && coef->_is_transposed) || coef->is_matrix()) {
+                if ((coef->_is_vector && coef->_is_transposed)) {
                     coef->transpose();
                 }
                 res = move(*coef);
@@ -4926,7 +4926,7 @@ namespace gravity{
         for (auto &lt: *_qterms) {
             if (*lt.second._p->first == v) {
                 auto coef = copy(*lt.second._coef);
-                if (coef->_is_vector || coef->is_matrix()) {
+                if (coef->_is_vector && coef->_is_transposed) {
                     coef->transpose();
                 }
                 if(lt.second._sign) {
@@ -4943,7 +4943,7 @@ namespace gravity{
             }
             if (*lt.second._p->second == v) {
                 auto coef = copy(*lt.second._coef);
-                if (coef->_is_vector || coef->is_matrix()) {
+                if (coef->_is_vector && coef->_is_transposed) {
                     coef->transpose();
                 }
                 if(lt.second._sign) {
@@ -5277,6 +5277,9 @@ namespace gravity{
             if (is_constant()) {
                 cout << " (Constant) : ";
             }
+            if (is_complex()) {
+                cout << " (Complex) : ";
+            }
             else if (is_linear()) {
                 cout << " (Linear) : ";
             }
@@ -5396,6 +5399,9 @@ namespace gravity{
         string str;
         if (is_constant()) {
             str += " (Constant) : ";
+        }
+        if (is_complex()) {
+            cout << " (Complex) : ";
         }
         else if (is_linear()) {
             str += " (Linear) : ";
