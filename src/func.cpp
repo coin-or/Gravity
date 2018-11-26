@@ -1965,6 +1965,11 @@ namespace gravity{
             //            this->update_dot_dim(c);
             return *this;
         }
+//        if (c.is_matrix() || is_matrix()) {
+//            *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c)));
+//            _evaluated = false;
+//            return *this;
+//        }
         /* Case where the current function is not constant and the other operand is */
         if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
             bool transp = false;
@@ -2120,13 +2125,13 @@ namespace gravity{
             return *this = move(f);
         }
         if (c.is_param() || c.is_var()) {
-            //            if (c._is_matrix || _is_matrix) {
-            //                *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c)));
-            //            }
-            //            else {
-            func_ f(c);
-            *this *= f;
-            //            }
+//            if (c.is_matrix() || is_matrix()) {
+//                *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c)));
+//            }
+//            else {
+                func_ f(c);
+                *this *= f;
+//            }
             _evaluated = false;
             return *this;
         }

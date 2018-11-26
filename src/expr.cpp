@@ -816,7 +816,7 @@ namespace gravity{
                 lval = _lson->_val->at(0);
             }
         }
-        else {
+        else if(!_lson->_is_vector){
             if (_lson->_val->size()<=i) {
                 lval = _lson->eval(i);
             }
@@ -832,7 +832,7 @@ namespace gravity{
                 rval = _rson->_val->at(0);
             }
         }
-        else {
+        else if(!_rson->_is_vector){
             if (_rson->_val->size()<=i) {
                 rval = _rson->eval(i);
             }
