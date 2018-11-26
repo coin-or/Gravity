@@ -211,7 +211,7 @@ int main (int argc, char * argv[])
     unique_ptr<Model> SVM;
     if(dual){
         SVM = build_svm_dual(training_set, mu, "linear",0,0,0);
-        return 0;
+//        return 0;
     }
     else {
         if (nb_c<0) {
