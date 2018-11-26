@@ -199,7 +199,8 @@ public:
     void regenerate_extremes(list<DataPoint<type>>& idents);
     vector<vector<gravity::param<>>> get_features() const;
     vector<gravity::param<>> get_features_matrix() const;
-    
+    gravity::param<> get_kernel_matrix(const string& kernel_type="linear", double lambda = 0, double r = 0, unsigned d = 0) const;
+    gravity::param<int> get_classes() const;
 };
 
 

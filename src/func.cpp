@@ -1967,6 +1967,11 @@ namespace gravity{
         }
         /* Case where the current function is not constant and the other operand is */
         if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
+            bool transp = false;
+            if(is_linear() && _is_transposed){
+                this->transpose();
+                transp = true;
+            }
             if (!_cst->is_zero()) {
                 _cst = multiply(_cst, c);
                 if (_cst->is_function()) {
@@ -2018,7 +2023,12 @@ namespace gravity{
                 }
             }
             _evaluated = false;
-            this->update_dot(c);
+            if(transp){
+                this->transpose();
+            }
+            else {
+                this->update_dot(c);
+            }
             return *this;
         }
         /* Case where the current function is constant and the other operand is not. */
@@ -5261,12 +5271,9 @@ namespace gravity{
         if (_is_transposed) {
             str += "\u1D40";
         }
-        //            str += "\n";
-        //        }
-        //        str += "["+to_string(_nb_instances)+"]";
-        //        if (_dfdx->size()>0) {
-        //            str+= "_has_deriv";
-        //        }
+        if(str.size()==0){
+            str = "0";
+        }
         return str;
     }
     
@@ -5277,7 +5284,7 @@ namespace gravity{
             if (is_constant()) {
                 cout << " (Constant) : ";
             }
-            if (is_complex()) {
+            else if (is_complex()) {
                 cout << " (Complex) : ";
             }
             else if (is_linear()) {
@@ -5400,7 +5407,7 @@ namespace gravity{
         if (is_constant()) {
             str += " (Constant) : ";
         }
-        if (is_complex()) {
+        else if (is_complex()) {
             cout << " (Complex) : ";
         }
         else if (is_linear()) {

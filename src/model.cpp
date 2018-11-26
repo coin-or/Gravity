@@ -3136,7 +3136,7 @@ void Model::print_symbolic(){
                 
         }
     }
-    cout << "Objective: ";
+    cout << "Objective ";
     _obj.print_symbolic();
     for(auto& p: _cons){
         p.second->print_symbolic();

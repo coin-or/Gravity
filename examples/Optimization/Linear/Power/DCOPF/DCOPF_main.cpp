@@ -82,7 +82,7 @@ int main (int argc, char * argv[])
     DCOPF.add(Pf.in(grid.arcs));
     
     /* Phase angle variables */
-    var<double> theta("theta");
+    var<double> theta("𝛉");
     DCOPF.add(theta.in(grid.nodes));
     
     /**  Objective */

@@ -318,19 +318,27 @@ template<typename type> string var<type>::to_str(bool bounds, int prec) const {
     if (!bounds) {
         return str;
     }
-    str += " in:\n";
+    if(_lb->is_number() && _ub->is_number()){
+        str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"];\n";        
+        return str;
+    }
+    str += " : ";
+    auto space_size = str.size();
     if(this->_indices) {
         for (size_t i = 0; i < this->_dim[0]; i++) {
+            if(i>0){
+                str.insert(str.end(), space_size, ' ');
+            }
             auto idx = this->get_id_inst(i);
-            str += "(" + this->_indices->_keys->at(idx) + ") = ";
-            str += " [" + _lb->to_str(i) + ", " + _ub->to_str(i) + "]\n";
+            str += "(" + this->_indices->_keys->at(idx) + ") ∈ ";
+            str += " [" + _lb->to_str(i) + "," + _ub->to_str(i) + "]\n";
             str += " \n";
         }
     }
     else {
         for (size_t idx = 0; idx < this->_dim[0]; idx++) {
             str += "["+to_string(idx) + "] = ";
-            str += " [" + _lb->to_str(idx) + ", " + _ub->to_str(idx) + "]\n";
+            str += " [" + _lb->to_str(idx) + "," + _ub->to_str(idx) + "]\n";
             str += " \n";
         }
     }
