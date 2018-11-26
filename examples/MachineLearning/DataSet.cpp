@@ -546,7 +546,7 @@ param<> DataSet<type>::get_kernel_matrix(const string& kernel_type, double gamma
                     val += val1*val2;
                 }
             }
-            if(i!=j){
+            if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
                 val *= -1;
             }
             if (kernel_type=="rbf") {
