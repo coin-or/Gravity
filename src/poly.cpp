@@ -499,16 +499,22 @@ namespace gravity{
             if(ind > 0 && _sign) {
                 str += " + ";
             }
+            if(p_new1->_is_transposed){
+                str += "(";
+            }
             str += "(";
             str += poly_to_str(c_new);
             str += ")";
         }
         str += poly_to_str(p_new1);
+        if(p_new1->_is_transposed){
+            str += ")\u1D40";
+        }
         if (p_new1==p_new2) {
             str += "²";
         }
         else {
-            str += "*";
+//            str += ".";
             str += poly_to_str(p_new2);
         }
         return str;

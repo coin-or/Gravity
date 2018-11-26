@@ -74,15 +74,15 @@ namespace gravity {
         };
         
         size_t get_id_inst(size_t inst = 0) const {
+            assert(!is_matrix());
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
                     throw invalid_argument("get_id_inst out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
             }
-            if(get_dim()==1)
-                return 0;
-            return min(_dim[0]-1, inst);
+            auto dim = get_dim();
+            return min(dim-1, inst);
         };
         
         size_t get_id_inst(size_t inst1, size_t inst2) const {
@@ -192,7 +192,7 @@ namespace gravity {
                 if(name.back()==']'){
                     name = name.substr(1, name.size()-2);
                 }
-                else {
+                else if(name.front()=='['){
                     name = name.substr(1, name.size()-1);
                 }
             }
@@ -1245,19 +1245,19 @@ namespace gravity {
                 return to_string_with_precision(eval(index1,index2),prec);
             }
             if (is_indexed()) {
-                return to_string_with_precision(_val->at(_indices->_ids->at(index1).at(index2)),prec);
+                return to_string_with_precision(eval(index1,index2),prec);
             }
             else {
-                return to_string_with_precision(_val->at(index2),prec);
+                return to_string_with_precision(eval(index2),prec);
             }
         }
         
         string to_str(size_t index, int prec = 10) const {
             if (is_indexed()) {
-                return to_string_with_precision(_val->at(_indices->_ids->at(0).at(index)), prec);
+                return to_string_with_precision(eval(index), prec);
             }
             else {
-                return to_string_with_precision(_val->at(index), prec);
+                return to_string_with_precision(eval(index), prec);
             }
         }
         
@@ -1288,14 +1288,13 @@ namespace gravity {
                 }
                 if(_indices) {
                     for (size_t i = 0; i < _dim[0]; i++) {
-                        auto idx = get_id_inst(i);
-                        str += "[" + _indices->_keys->at(idx) + "] = " + to_string_with_precision(_val->at(idx), prec);
+                        str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
                         str += " \n";
                     }
                 }
                 else {
                     for (size_t idx = 0; idx < _val->size(); idx++) {
-                        str += "["+to_string(idx) + "] = " + to_string_with_precision(_val->at(idx),prec);
+                        str += "["+to_string(idx) + "] = " + to_string_with_precision(eval(idx),prec);
                         str += " \n";
                     }
                 }
@@ -1328,5 +1327,23 @@ namespace gravity {
     param<Cpx> real(const param<Cpx>& p);
     param<Cpx> imag(const param<Cpx>& p);
 
+    template<typename type>
+    param<type> diag(const param<type>& p){
+        param<type> res("diag("+p._name+")");
+        if(p.i_matrix()){
+            res.set_size(min(p._dim[0], p._dim[1]));
+            for (auto i = 0; i<res._dim[0]; i++) {
+                res.set_val(i,p.eval(i,i));
+            }
+        }
+        else{
+            res.set_size(p._dim[0], p._dim[0]);
+            for (auto i = 0; i<res._dim[0]; i++) {
+                res.set_val(i,i,p.eval(i));
+            }
+        }
+        return res;
+    }
+    
 }
 #endif /* defined(____param__) */

@@ -14,6 +14,7 @@
 #include <complex>
 #include <memory>
 #include <typeinfo>
+#include <limits>
 #include <gravity/types.h>
 #include <gravity/utils.h>
 
@@ -22,13 +23,21 @@ using namespace std;
 
 namespace gravity {
 
-    template <typename T>
+    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type>
     std::string to_string_with_precision(const T a_value, const int n)
     {
         std::ostringstream out;
+        if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::lowest()){
+            return "−∞";
+        }
+        if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::max()){
+            return "+∞";
+        }
         out << std::setprecision(n) << a_value;
         return out.str();
     }
+    
+    std::string to_string_with_precision(const Cpx& a_value, const int n);
     
     /** Backbone class for constant */
     class constant_{

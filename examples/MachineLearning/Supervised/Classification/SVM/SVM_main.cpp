@@ -33,7 +33,8 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     auto f = training_set.get_features_matrix(); /* Feature values */
     
     /* Model */
-    unique_ptr<Model> SVM = unique_ptr<Model>(new Model());
+    auto SVM = unique_ptr<Model>(new Model());
+    
     /* Variables */
     var<> w("w");
     var<> xi1("xi1", pos_);
@@ -44,7 +45,6 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     SVM->min(product(0.5,power(w,2)) + mu*sum(xi1) + mu*sum(xi2));
     
     /* Constraints */
-
     /* Class 1 constraints */
     auto Class1 = Constraint("Class1");
     Class1 = product(f[0],w) + b + (xi1 - 1);
@@ -53,6 +53,35 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     auto Class2 = Constraint("Class2");
     Class2 = product(f[1],w) + b + (1 - xi2);
     SVM->add(Class2 <= 0);
+    
+    return SVM;
+}
+
+
+/* Builds the dual SVM model */
+unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const string& kernel_type, double gamma, double r, unsigned d){
+    
+    /* Defining parameters ans indices */
+    auto m = training_set._nb_points;
+    auto K = training_set.get_kernel_matrix(kernel_type, gamma, r, d);
+    auto y = training_set.get_classes();
+
+    /* Model */
+    auto SVM = unique_ptr<Model>(new Model());
+    
+    /* Variables */
+    var<> alpha("𝛂", 0, mu);
+    SVM->add(alpha.in(R(m)));
+    /* Objective function */
+    SVM->min(0.5*alpha.tr()*K*alpha - sum(alpha));
+//    SVM->min(0.5*(K*alpha).tr()*alpha - sum(alpha));
+    
+    /* Constraints */
+    /* Equality constraints */
+    auto Equ0 = Constraint("Equation");
+    Equ0 = y.tr()*alpha;
+    SVM->add(Equ0 == 0);    
+    SVM->print_symbolic();
     return SVM;
 }
 
@@ -116,7 +145,7 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, size_t nb_c, dou
 int main (int argc, char * argv[])
 {
     auto total_time_start = get_wall_time();
-    string solver_str ="ipopt", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5";
+    string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5";
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
     
     string fname = string(prj_dir)+"/data_sets/Classification/Archive/svmguide1";
@@ -127,8 +156,9 @@ int main (int argc, char * argv[])
                    "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: Ipopt/Cplex/Gurobi, default = Ipopt", solver_str);
+    opt.add_option("d", "dual", "Solve dual SVM, yes/no, default = no", dual_str);
     opt.add_option("o", "output", "Output level, default = 5", output_str);
-    opt.add_option("lz", "lazy", "Generate constraints in a lazy fashion, default = no", lazy_str);
+    opt.add_option("lz", "lazy", "Generate constraints in a lazy fashion, yes/no, default = no", lazy_str);
     opt.add_option("mu", "multiplier", "Value of penalization multiplier, default = 1e+6", mu_str);
     opt.add_option("nb", "nb_init_cstr", "Initial number of constraints to add, default = 200 (will add the constraints corresponding to the first 'nb' points in each class). Setting this parameter to -1 will deactivate constraint generation.", nb_c_str);
     /* Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -159,6 +189,11 @@ int main (int argc, char * argv[])
     if (lazy_str.compare("yes")==0) {
         lazy = true;
     }
+    dual_str = opt["d"];
+    bool dual = false;
+    if (dual_str.compare("yes")==0) {
+        dual = true;
+    }
     mu_str = opt["mu"];
     double mu = op::str2double(mu_str);
     
@@ -174,11 +209,17 @@ int main (int argc, char * argv[])
     training_set.print_stats();
     auto nf = training_set._nb_features;
     unique_ptr<Model> SVM;
-    if (nb_c<0) {
-        SVM = build_svm(training_set, mu);
+    if(dual){
+        SVM = build_svm_dual(training_set, mu, "linear",0,0,0);
+        return 0;
     }
     else {
-        SVM = build_lazy_svm(training_set, nb_c, mu);
+        if (nb_c<0) {
+            SVM = build_svm(training_set, mu);
+        }
+        else {
+            SVM = build_lazy_svm(training_set, nb_c, mu);
+        }
     }
     
     /* Start Timers */

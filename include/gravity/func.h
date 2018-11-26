@@ -173,13 +173,24 @@ namespace gravity {
             if(_expr){
                 _expr->transpose();
             }
-            if(get_nb_vars()==1){
+            if(_vars->size()==1 && _params->size()==0){ // If function is a variable.
+                auto vars_cpy = *_vars;
                 for (auto &vp:*_vars) {
-                    //                vars_cpy.erase(vp.first);
                     vp.second.first->transpose();
-                    //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-                    //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
+                    vars_cpy.erase(vp.first);
+                    vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
                 }
+                *_vars = move(vars_cpy);
+            }
+            else if(_vars->size()==0 && _params->size()==1){ // If function is a parameter.
+                auto params_cpy = *_params;
+                for (auto &vp:*_params) {
+                    vp.second.first->transpose();
+                    params_cpy.erase(vp.first);
+                    params_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
+                }
+                *_params = move(params_cpy);
+
             }
         }
         void set_first_derivative(const param_& v, func_&& f){
