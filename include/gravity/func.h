@@ -159,7 +159,7 @@ namespace gravity {
         }
         
         bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
-        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
        
         func_ tr() const {
@@ -898,39 +898,31 @@ namespace gravity {
         func_ vec() const {
             auto f = func_(*this);
             f._is_vector = true;
-//            auto vars_cpy = *f._vars;
-            if(f.get_nb_vars()==1){
+            if(_vars->size()==1 && _params->size()==0){ // If function is a variable.
+                auto vars_cpy = *_vars;
                 for (auto &vp:*f._vars) {
-    //                vars_cpy.erase(vp.first);
-                    vp.second.first->_is_vector = true;
-                    vp.second.first->_name = "[" + vp.second.first->_name + "]";
-    //                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-    //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
+                    if(!vp.second.first->_is_vector){
+                        vp.second.first->_is_vector=true;
+                        vp.second.first->_name = "["+vp.second.first->_name+"]";
+                    }
+                    vars_cpy.erase(vp.first);
+                    vars_cpy[vp.second.first->get_name(true,false)]= make_pair<>(vp.second.first, vp.second.second);
                 }
+                *f._vars = move(vars_cpy);
             }
-            
-//            for (auto &vp:*f._params) {
-                //                vars_cpy.erase(vp.first);
-//                vp.second.first->_is_vector = true;
-//                f._nb_instances = max(f._nb_instances, vp.second.first->get_nb_instances());
-                //                vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
-//            }
-//            *f._vars = move(vars_cpy);
-//            if (f._expr) {
-//                f._expr->_is_vector = true;
-//                if(f._expr->is_uexpr()){
-//                    auto ue = dynamic_pointer_cast<uexpr>(f._expr);
-//                    auto s = (func_*)(ue->_son.get());
-//                    *s = s->vec();
-//                }
-//                else {
-//                    auto be = dynamic_pointer_cast<bexpr>(f._expr);
-//                    auto fl = (func_*)(be->_lson.get());
-//                    *fl = fl->vec();
-//                    auto fr = (func_*)(be->_rson.get());
-//                    *fr = fr->vec();
-//                }
-//            }
+            else if(_vars->size()==0 && _params->size()==1){ // If function is a parameter.
+                auto params_cpy = *_params;
+                for (auto &vp:*f._params) {
+                    if(!vp.second.first->_is_vector){
+                        vp.second.first->_is_vector=true;
+                        vp.second.first->_name = "["+vp.second.first->_name+"]";
+                    }
+                    params_cpy.erase(vp.first);
+                    params_cpy[vp.second.first->get_name(true,false)]= make_pair<>(vp.second.first, vp.second.second);
+                }
+                *f._params = move(params_cpy);
+                
+            }
             return f;
         }
         

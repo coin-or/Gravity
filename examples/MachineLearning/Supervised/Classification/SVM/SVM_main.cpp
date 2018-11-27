@@ -74,19 +74,17 @@ unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const
     SVM->add(alpha.in(R(m)));
     /* Objective function */
     SVM->min(0.5*alpha.tr()*K*alpha - sum(alpha));
-//    SVM->min(0.5*(K*alpha).tr()*alpha - sum(alpha));
     
     /* Constraints */
     /* Equality constraints */
     auto Equ0 = Constraint("Equation");
     Equ0 = y.tr()*alpha;
-    SVM->add(Equ0 == 0);    
-    SVM->print_symbolic();
+    SVM->add(Equ0 == 0);
     return SVM;
 }
 
 
-unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, size_t nb_c, double mu){
+unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double mu){
     
     /* Defining parameters ans indices */
     auto nf = training_set._nb_features;
@@ -221,11 +219,13 @@ int main (int argc, char * argv[])
             SVM = build_lazy_svm(training_set, nb_c, mu);
         }
     }
-    
+    SVM->print_symbolic();
     /* Start Timers */
     solver SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();
     SVM_solver.run(output);
+    if(dual)//need to recover w and b from dual
+        return 0;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;

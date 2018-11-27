@@ -226,7 +226,7 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                                 iapp->Options()->SetNumericValue("tol", tol);
 //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
-    //            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
     //            iapp.Options()->SetIntegerValue("print_level", 5);
 

@@ -1973,18 +1973,20 @@ namespace gravity{
         /* Case where the current function is not constant and the other operand is */
         if(!is_constant() && (c.is_param() || (c.is_function() && ((func_*)&c)->is_constant()))) {
             bool transp = false;
-            if(is_linear() && _is_transposed){
+            auto fc = func_(c);
+            if(is_linear() && _is_transposed){// Situation where var^T * c is transformed into (c^T*var)^T
+                fc.transpose();
                 this->transpose();
                 transp = true;
             }
             if (!_cst->is_zero()) {
-                _cst = multiply(_cst, c);
+                _cst = multiply(_cst, fc);
                 if (_cst->is_function()) {
                     embed(*(func_*)_cst);
                 }
             }
             for (auto &pair:*_lterms) {
-                pair.second._coef = multiply(pair.second._coef, c);
+                pair.second._coef = multiply(pair.second._coef, fc);
                 if (pair.second._coef->is_function()) {
                     embed(*(func_*)pair.second._coef);
                 }
@@ -1992,14 +1994,14 @@ namespace gravity{
                 
             }
             for (auto &pair:*_qterms) {
-                pair.second._coef = multiply(pair.second._coef, c);
+                pair.second._coef = multiply(pair.second._coef, fc);
                 if (pair.second._coef->is_function()) {
                     embed(*(func_*)pair.second._coef);
                 }
                 //                update_nb_instances(pair.second);
             }
             for (auto &pair:*_pterms) {
-                pair.second._coef = multiply(pair.second._coef, c);
+                pair.second._coef = multiply(pair.second._coef, fc);
                 if (pair.second._coef->is_function()) {
                     embed(*(func_*)pair.second._coef);
                 }
@@ -2129,8 +2131,19 @@ namespace gravity{
 //                *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c)));
 //            }
 //            else {
+            if(_is_transposed && !c._is_vector){
+                auto new_c = copy(c);
+                auto new_p = (param_*)new_c;
+                new_p->_is_vector = true;
+                new_p->_name = "["+new_p->_name+"]";
+                func_ f(*new_p);
+                *this *= f;
+                delete new_c;
+            }
+            else {
                 func_ f(c);
                 *this *= f;
+            }
 //            }
             _evaluated = false;
             return *this;
@@ -2275,15 +2288,15 @@ namespace gravity{
                 
             }
             for (auto& t1: *_lterms) {
-                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
-                    auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-                    *this = func_(be);
-                    _evaluated = false;
-                    return *this;
-                }
+//                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
+//                    auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
+//                    *this = func_(be);
+//                    _evaluated = false;
+//                    return *this;
+//                }
                 for (auto& t2: *f->_pterms) {
                     is_sum = nullptr;
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                         auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
                         *this = func_(be);
                         _evaluated = false;
@@ -2297,7 +2310,7 @@ namespace gravity{
                     delete coef;
                 }
                 for (auto& t2: *f->_qterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
                         auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
                         *this = func_(be);
                         _evaluated = false;
@@ -2313,15 +2326,15 @@ namespace gravity{
                     delete coef;
                 }
                 for (auto& t2: *f->_lterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-                        *this = func_(be);
-                        _evaluated = false;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
+//                        *this = func_(be);
+//                        _evaluated = false;
+//                        return *this;
+//                    }
                     coef = copy(*t1.second._coef);
                     coef = multiply(coef, *t2.second._coef);
-                    res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p);
+                    res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
                     delete coef;
                 }
                 if (!f->_cst->is_zero()) {
@@ -2931,6 +2944,11 @@ namespace gravity{
         if(q._p->first->is_indexed() && q._p->first->_indices->_ids->size()>1){//This is a multi-instance product
             return;
         }
+        if(q._c_p1_transposed){ // q = (coef*p1)^T*p2
+            _dim[0] = max(_dim[0],q._p->first->_dim[1]);
+            _dim[1] = max(_dim[1],q._p->second->_dim[1]);
+            return;
+        }
         if(!q._coef->_is_transposed && !q._p->first->_is_vector){
             _dim[0] = max(_dim[0], q._p->first->_dim[0]);
         }
@@ -3072,7 +3090,7 @@ namespace gravity{
         //        _val->resize(_nb_instances);
     }
     
-    bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+    bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
         auto ps1 = p1.get_name(false,false);
         auto ps2 = p2.get_name(false,false);
         auto qname = ps1+","+ps2;
@@ -3131,6 +3149,7 @@ namespace gravity{
                 embed(*(func_*)c_new);
             }
             qterm q(sign, c_new, p_new1.get(), p_new2.get());
+            q._c_p1_transposed = c_p1_transposed;
             update_sign(q);
             update_convexity(q);
             update_dim(q);
@@ -3172,7 +3191,7 @@ namespace gravity{
     };
     
     void func_::insert(const qterm& term){
-        insert(term._sign, *term._coef, *term._p->first, *term._p->second);
+        insert(term._sign, *term._coef, *term._p->first, *term._p->second, term._c_p1_transposed);
     }
     
     
@@ -4174,7 +4193,7 @@ namespace gravity{
     
     func_ operator*(const constant_& c1, const constant_& c2){// Rewrite this to change res after the multiplication is done, make sure both vars are now vecs.
         if(c1.is_number()) {
-            if (c1._is_transposed) {//TODO check when matrix
+            if (c1._is_transposed && !c1.is_matrix()) {//TODO check when matrix
                 auto new_c2 = copy(c2);
                 new_c2->_is_vector = true;
                 auto res = func_(c1);
@@ -4190,6 +4209,28 @@ namespace gravity{
             }
         }
         else {
+//        if (c1._is_transposed) {//TODO check when matrix
+//            auto new_c2 = copy(c2);
+//            new_c2->_is_vector = true;
+//            return func_(c1) *= *new_c2;
+//        }
+//        if(c1.is_number()) {
+//            if (c1._is_transposed && !c1.is_matrix()) {//TODO check when matrix
+//                auto new_c2 = copy(c2);
+//                new_c2->_is_vector = true;
+//                auto res = func_(c1);
+//                res._dim[1] = c2._dim[0];
+//                res *= move(*new_c2);
+//                res._is_vector = false;
+//                res._is_transposed = false;
+//                delete new_c2;
+//                return res;
+//            }
+//            else {
+//                return func_(c1) *= c2;
+//            }
+//        }
+//        else {
             //            if (c1._is_transposed) {
             ////                auto new_c2 = copy(c2);
             ////                new_c2->_is_vector = true;
@@ -4945,10 +4986,20 @@ namespace gravity{
                     coef->transpose();
                 }
                 if(lt.second._sign) {
-                    res += *coef*(*lt.second._p->second);
+//                    if(lt.second._c_p1_transposed){
+//                        res += (*coef*(*lt.second._p->second)).tr();
+//                    }
+//                    else {
+                        res += *coef*(*lt.second._p->second);
+//                    }
                 }
                 else {
-                    res -= *coef*(*lt.second._p->second);
+//                    if(lt.second._c_p1_transposed){
+//                        res -= (*coef*(*lt.second._p->second)).tr();
+//                    }
+//                    else {
+                        res -= *coef*(*lt.second._p->second);
+//                    }
                 }
                 delete coef;
                 if (lt.second._coef->_is_vector || lt.second._coef->is_matrix()) {
@@ -4972,6 +5023,7 @@ namespace gravity{
                     res._is_vector = true;
                 }
             }
+        
             //CHECK THIS
             //            if (lt.second._coef->_is_vector || lt.second._coef->_is_matrix) {
             //                res._is_vector = true;

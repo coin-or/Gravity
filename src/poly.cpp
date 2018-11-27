@@ -60,6 +60,7 @@ namespace gravity{
         _coef = copy(*q._coef);
         _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
         _sign = q._sign;
+        _c_p1_transposed = q._c_p1_transposed;
         return *this;
     }
 
@@ -76,6 +77,7 @@ namespace gravity{
         _p = q._p;
         q._p = nullptr;
         _sign = q._sign;
+        _c_p1_transposed = q._c_p1_transposed;
         return *this;
     }
 
@@ -183,7 +185,20 @@ namespace gravity{
 
     double qterm::eval(size_t i) const{
         double res = 0;
-        if (_p->first->is_matrix() && !_p->second->is_matrix() && !_p->second->_is_transposed) {//matrix * vect            
+        if (_c_p1_transposed) { // qterm = (coef*p1)^T*p2
+            assert(_p->first->_dim[1]==1 && _coef->_dim[0]==_p->second->_dim[0]);
+            for (auto i = 0; i<_p->first->_dim[0]; i++) {
+                for (auto j = 0; j<_p->first->_dim[0]; j++) {
+                    res += t_eval(_coef,i,j)* t_eval(_p->first,i) * t_eval(_p->second,j);
+                }
+            }
+            if (!_sign) {
+                res *= -1;
+            }
+            return res;
+            
+        }
+        if (_p->first->is_matrix() && !_p->second->is_matrix() && !_p->second->_is_transposed) {//matrix * vect
             for (size_t j = 0; j<_p->second->_dim[0]; j++) {
                 res += t_eval(_p->first,i,j) * t_eval(_p->second,j);
             }
@@ -499,7 +514,7 @@ namespace gravity{
             if(ind > 0 && _sign) {
                 str += " + ";
             }
-            if(p_new1->_is_transposed){
+            if(_c_p1_transposed){
                 str += "(";
             }
             str += "(";
@@ -507,16 +522,15 @@ namespace gravity{
             str += ")";
         }
         str += poly_to_str(p_new1);
-        if(p_new1->_is_transposed){
+        if(_c_p1_transposed){
             str += ")\u1D40";
         }
-        if (p_new1==p_new2) {
+        else if (p_new1==p_new2) {
             str += "²";
+            return str;
         }
-        else {
 //            str += ".";
-            str += poly_to_str(p_new2);
-        }
+        str += poly_to_str(p_new2);
         return str;
     }
     

@@ -1221,6 +1221,15 @@ void Model::fill_in_grad_obj(const double* x , double* res, bool new_x){
         v = vi_p.second.first.get();
         vid = v->get_id();
         df = _obj.get_stored_derivative(v->_name);
+//        if (v->is_matrix()) {
+//            for (size_t i = 0; i < v->_dim[0]; i++) {
+//                for (size_t j = 0; j < v->_dim[1]; j++) {
+//                    vid_inst = vid + v->get_id_inst(i);
+//                    res[vid_inst] = df->eval(i);
+//                    _obj_grad_vals[index++] =res[vid_inst];
+//                }
+//            }
+//        }
         if (v->_is_vector) {
             for (size_t i = 0; i < v->get_dim(); i++) {
                 vid_inst = vid + v->get_id_inst(i);
@@ -2001,7 +2010,18 @@ void Model::fill_in_hess(const double* x , double obj_factor, const double* lamb
                         }
                     }
                     else {
-                        if(d2f->_is_vector){
+                        if (d2f->is_matrix()) {
+                            for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                for (size_t j = i; j < d2f->_dim[1]; j++) {
+                                    hess = d2f->eval(i,j);
+                                    _hess_vals[idx_in++] = hess;
+                                    res[idx++] += obj_factor * hess;
+                                    //                                        f_idx++;
+                                    idx_inc = true;
+                                }
+                            }
+                        }
+                        else if(d2f->_is_vector){
                             for (size_t j = 0; j < d2f->_dim[0]; j++) {
                                 hess = d2f->eval(j);
                                 _hess_vals[idx_in++] = hess;
