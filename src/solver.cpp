@@ -239,7 +239,7 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
                     optimal = true;
                     for (auto &v_p:_model->_bin_vars) {
                         auto bin_var = v_p.second;
-                        auto double_var = (var<double>*)_model->get_var(v_p.first);
+                        auto double_var = (var<double>*)_model->get_var_ptr(v_p.first);
                         for (int i = 0; i < double_var->get_dim(); i++) {
                             if(round(double_var->_val->at(i))==1){
                                 bin_var._val->at(i) = true;

@@ -489,7 +489,7 @@ vector<vector<param<>>> DataSet<type>::get_features() const{
 }
 
 template<typename type>
-vector<param<>> DataSet<type>::get_features_matrix() const{
+vector<param<>> DataSet<type>::get_features_matrices() const{
     vector<param<>> res;
     res.resize(_nb_classes);
     for (auto i = 0; i<_nb_classes; i++) {
@@ -498,6 +498,23 @@ vector<param<>> DataSet<type>::get_features_matrix() const{
         for (auto j = 0; j<_class_sizes[i]; j++) {
             for (auto k = 0; k<_nb_features; k++) {
                 res[i].set_val(j,k, _points[i][j]._features[k]);
+            }
+        }
+    }
+    return res;
+}
+
+template<typename type>
+param<> DataSet<type>::get_features_matrix() const{
+    param<> res("F");
+    res.set_size(_nb_points, _nb_features);
+    for (auto i = 0; i<_nb_points; i++) {
+        for (auto j = 0; j<_nb_features; j++) {
+            if (i<_class_sizes[0]) {
+                res.set_val(i,j, _points[0][i]._features[j]);
+            }
+            else {
+                res.set_val(i,j, _points[1][i - _class_sizes[0]]._features[j]);
             }
         }
     }
@@ -519,7 +536,7 @@ gravity::param<int> DataSet<type>::get_classes() const{
 
 template<typename type>
 param<> DataSet<type>::get_kernel_matrix(const string& kernel_type, double gamma, double r, unsigned d) const{
-    auto F = get_features_matrix();
+    auto F = get_features_matrices();
     param<> res("K");
     res.set_size(_nb_points,_nb_points);
     int c1 = 0, c2 = 1;
@@ -546,26 +563,44 @@ param<> DataSet<type>::get_kernel_matrix(const string& kernel_type, double gamma
                     val += val1*val2;
                 }
             }
-            if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
-                val *= -1;
-            }
             if (kernel_type=="rbf") {
                 assert(gamma>0);
-                res.set_val(i,j, exp(-gamma*val));
-                res.set_val(j,i, exp(-gamma*val));
+                if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
+                    res.set_val(i,j, -exp(-gamma*val));
+                    res.set_val(j,i, -exp(-gamma*val));
+                }
+                else {
+                    res.set_val(i,j, exp(-gamma*val));
+                    res.set_val(j,i, exp(-gamma*val));
+                }
             }
             else if (kernel_type=="linear") {
+                if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
+                    val *= -1;
+                }
                 res.set_val(i,j, val);
                 res.set_val(j,i, val);
             }
             else if (kernel_type=="poly") {
                 assert(gamma>0);
-                res.set_val(i,j, pow(gamma*val+r,d));
-                res.set_val(j,i, pow(gamma*val+r,d));
+                if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
+                    res.set_val(i,j, -pow(gamma*val+r,d));
+                    res.set_val(j,i, -pow(gamma*val+r,d));
+                }
+                else {
+                    res.set_val(i,j, pow(gamma*val+r,d));
+                    res.set_val(j,i, pow(gamma*val+r,d));
+                }
             }
-            else if (kernel_type=="rbf") {
-                res.set_val(i,j, tanh(gamma*val+r));
-                res.set_val(j,i, tanh(gamma*val+r));
+            else if (kernel_type=="sigm") {
+                if (i<_class_sizes[c1] && j>=_class_sizes[c1]) {
+                    res.set_val(i,j, -tanh(gamma*val+r));
+                    res.set_val(j,i, -tanh(gamma*val+r));
+                }
+                else {
+                    res.set_val(i,j, tanh(gamma*val+r));
+                    res.set_val(j,i, tanh(gamma*val+r));
+                }
             }
             else {
                 throw invalid_argument("Unsupported Kernel, choose among: linear, poly, rbf or sigm");

@@ -120,8 +120,13 @@ namespace gravity {
             return !_is_convex;
         }
         
-        param_* get_var(const string& vname) const;
-        param_* get_var(int id) const;
+        param_* get_var_ptr(const string& vname) const;
+        
+        param_* get_var_ptr(size_t idx) const;
+        
+        template <typename type=double>
+        var<type> get_var(const string& vname) const;
+
         
         shared_ptr<Constraint> get_constraint(const string& name) const;
         

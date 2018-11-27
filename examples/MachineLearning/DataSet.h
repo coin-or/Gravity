@@ -198,7 +198,8 @@ public:
     DataPoint<type> get_midrange(const DataPoint<type>& p, unsigned cl, unsigned dir, type radius) const; // Get neighboring point to p where coordinate dir is increased by radius for points in class cl
     void regenerate_extremes(list<DataPoint<type>>& idents);
     vector<vector<gravity::param<>>> get_features() const;
-    vector<gravity::param<>> get_features_matrix() const;
+    gravity::param<> get_features_matrix() const;/*< Get one features' matrix */
+    vector<gravity::param<>> get_features_matrices() const;/*< Get a features' matrix per class */
     gravity::param<> get_kernel_matrix(const string& kernel_type="linear", double lambda = 0, double r = 0, unsigned d = 0) const;
     gravity::param<int> get_classes() const;
 };

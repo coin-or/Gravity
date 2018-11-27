@@ -44,6 +44,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             cplex.extract(*_cplex_model);
         }
         cplex.setParam(IloCplex::EpGap, mipgap);
+        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
         cplex.solve();
         if (cplex.getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;

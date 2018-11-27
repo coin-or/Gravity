@@ -5200,9 +5200,9 @@ namespace gravity{
     }
     
     double func_::eval(size_t i){
-        //        if (_val->size()<=i) {
-        //            _val->resize(i+1);
-        //        }
+                if (_val->size()<=i) {
+                    allocate_mem();
+                }
         //        if (!_val) {
         //            throw invalid_argument("_val not defined for function.\n");
         //        }

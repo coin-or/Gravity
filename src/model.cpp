@@ -141,7 +141,7 @@ shared_ptr<Constraint> Model::get_constraint(const string& cname) const{
     return _cons_name.at(cname);
 }
 
-param_* Model::get_var(const string& vname) const{
+param_* Model::get_var_ptr(const string& vname) const{
     auto it = _vars_name.find(vname);
     if (it==_vars_name.end()) {
         return nullptr;
@@ -149,10 +149,27 @@ param_* Model::get_var(const string& vname) const{
     return it->second;
 }
 
-param_* Model::get_var(int id) const{
-    return _vars.at(id);
+param_* Model::get_var_ptr(size_t idx) const{
+    return _vars.at(idx);
 }
 
+
+template <typename type>
+var<type> Model::get_var(const string& vname) const{
+    auto it = _vars_name.find(vname);
+    if (it==_vars_name.end()) {
+        throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
+    }
+    return *(var<type>*)it->second;
+}
+
+template var<double> Model::get_var(const string& vname) const;
+template var<int> Model::get_var(const string& vname) const;
+template var<short> Model::get_var(const string& vname) const;
+template var<bool> Model::get_var(const string& vname) const;
+template var<Cpx> Model::get_var(const string& vname) const;
+template var<float> Model::get_var(const string& vname) const;
+template var<long double> Model::get_var(const string& vname) const;
 
 
 /* Modifiers */
@@ -1355,7 +1372,7 @@ shared_ptr<Model> Model::build_McCormick(){
                     new_name = qt.second._p->first->_name+"_"+qt.second._p->second->_name+"_lifted";
                 }
                 var<> v(new_name);
-                auto new_v = Mc->get_var(new_name);
+                auto new_v = Mc->get_var_ptr(new_name);
                 if(new_v == nullptr){
                     Mc->add(v);
                     new_v = (param_*)&v;
@@ -1407,7 +1424,7 @@ shared_ptr<Model> Model::build_McCormick(){
                         new_name = qt.second._p->first->_name+"_"+qt.second._p->second->_name+"_lifted";
                     }
                     var<> v(new_name);
-                    auto new_v = Mc->get_var(new_name);
+                    auto new_v = Mc->get_var_ptr(new_name);
                     if(new_v == nullptr){
                         Mc->add(v);
                         new_v = (param_*)&v;
@@ -2878,7 +2895,7 @@ void Model::round_solution(){
     }
     for (auto &v_p:_bin_vars) {
         auto bin_var = v_p.second;
-        auto real_var = (var<double>*)get_var(v_p.first);
+        auto real_var = (var<double>*)get_var_ptr(v_p.first);
         for (size_t i = 0; i < real_var->get_dim(); i++) {
             if(round(real_var->_val->at(i))==1){
                 bin_var._val->at(i) = true;
@@ -3264,7 +3281,7 @@ void Model::replace_integers(){
         if (v_p.second->is_integer() || v_p.second->is_binary()) {
             auto name = v_p.second->_name;
             delete v_p.second;
-            v_p.second = this->get_var(name);
+            v_p.second = this->get_var_ptr(name);
         }
     }
     if(has_int){
