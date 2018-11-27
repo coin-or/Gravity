@@ -194,11 +194,21 @@ void CplexProgram::set_cplex_objective() {
         IloNumExpr qterm(*_cplex_env);
         idx1 = it_qterm.second._p->first->get_vec_id();
         idx2 = it_qterm.second._p->second->get_vec_id();
-        if (it_qterm.second._coef->_is_transposed) {
-            auto dim = it_qterm.second._p->first->get_dim();
-            for (int j = 0; j<dim; j++) {
-                qterm += t_eval(it_qterm.second._coef,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
-            }            
+        if (it_qterm.second._coef->_is_vector) {//Vectorial/Matrix product
+            if (it_qterm.second._c_p1_transposed) { // qterm = (coef*p1)^T*p2
+                assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
+                for (auto i = 0; i<it_qterm.second._p->first->_dim[0]; i++) {
+                    for (auto j = 0; j<it_qterm.second._p->first->_dim[0]; j++) {
+                        qterm += t_eval(it_qterm.second._coef,i,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(i)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
+                    }
+                }
+            }
+            else {//TODO fix this
+                auto dim = it_qterm.second._p->first->get_dim();
+                for (int j = 0; j<dim; j++) {
+                    qterm += t_eval(it_qterm.second._coef,j)*_cplex_vars[idx1][it_qterm.second._p->first->get_id_inst(j)]*_cplex_vars[idx2][it_qterm.second._p->second->get_id_inst(j)];
+                }
+            }
         }
         else {
             idx_inst1 = it_qterm.second._p->first->get_id_inst();
@@ -215,7 +225,8 @@ void CplexProgram::set_cplex_objective() {
     for (auto& it_lterm: _model->_obj.get_lterms()) {
         IloNumExpr lterm(*_cplex_env);
         idx = it_lterm.second._p->get_vec_id();
-        if (it_lterm.second._coef->_is_transposed) {
+        if (it_lterm.second._coef->_is_vector) {//Vectorial/Matrix product
+            assert(it_lterm.second._p->_is_vector && it_lterm.second._coef->_dim[0]==1 && it_lterm.second._p->_dim[1]==1); // We're in the objective dimensions should reduce to one.
             auto dim = it_lterm.second._p->get_dim();
             for (int j = 0; j<dim; j++) {
                 lterm += t_eval(it_lterm.second._coef,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(j)];

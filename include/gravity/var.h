@@ -335,9 +335,10 @@ namespace gravity {
         
         var tr() const {
             auto v = var(*this);
+            if(!this->_is_vector){
+                v._name = "["+v._name+"]";
+            }
             v.constant_::transpose();
-            //        v._is_transposed = true;
-            //        v._is_vector = true;
             return v;
         }
         

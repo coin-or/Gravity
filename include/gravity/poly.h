@@ -115,6 +115,7 @@ namespace gravity {
         constant_*                  _coef;
         pair<param_*,param_*>*      _p;
         bool                        _sign = true; /**< True if +, flase if - */
+        bool                        _c_p1_transposed = false; /**< True if the qterm is (coef*p1)^T*p2 */
         
         qterm(){
             _coef = nullptr;
@@ -127,6 +128,7 @@ namespace gravity {
             _p = t._p;
             t._p = nullptr;
             _sign = t._sign;
+            _c_p1_transposed = t._c_p1_transposed;
         };
         
         
