@@ -30,7 +30,7 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     auto nf = training_set._nb_features;
     auto m1 = training_set._class_sizes[0];
     auto m2 = training_set._class_sizes[1];
-    auto f = training_set.get_features_matrix(); /* Feature values */
+    auto F = training_set.get_features_matrices(); /* Features matrices, one per-class */
     
     /* Model */
     auto SVM = unique_ptr<Model>(new Model());
@@ -47,11 +47,11 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     /* Constraints */
     /* Class 1 constraints */
     auto Class1 = Constraint("Class1");
-    Class1 = product(f[0],w) + b + (xi1 - 1);
+    Class1 = product(F[0],w) + b + (xi1 - 1);
     SVM->add(Class1 >= 0);
     /* Class 2 constraints */
     auto Class2 = Constraint("Class2");
-    Class2 = product(f[1],w) + b + (1 - xi2);
+    Class2 = product(F[1],w) + b + (1 - xi2);
     SVM->add(Class2 <= 0);
     
     return SVM;
@@ -142,8 +142,9 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double
 
 int main (int argc, char * argv[])
 {
+    double tol = 1e-6;
     auto total_time_start = get_wall_time();
-    string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5";
+    string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5", kernel = "linear";
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
     
     string fname = string(prj_dir)+"/data_sets/Classification/Archive/svmguide1";
@@ -155,6 +156,7 @@ int main (int argc, char * argv[])
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: Ipopt/Cplex/Gurobi, default = Ipopt", solver_str);
     opt.add_option("d", "dual", "Solve dual SVM, yes/no, default = no", dual_str);
+    opt.add_option("k", "kernel", "Choose kernel, linear/poly/rbf/sigm, default = linear", kernel);
     opt.add_option("o", "output", "Output level, default = 5", output_str);
     opt.add_option("lz", "lazy", "Generate constraints in a lazy fashion, yes/no, default = no", lazy_str);
     opt.add_option("mu", "multiplier", "Value of penalization multiplier, default = 1e+6", mu_str);
@@ -208,8 +210,8 @@ int main (int argc, char * argv[])
     auto nf = training_set._nb_features;
     unique_ptr<Model> SVM;
     if(dual){
-        SVM = build_svm_dual(training_set, mu, "linear",0,0,0);
-//        return 0;
+        kernel = opt["k"];
+        SVM = build_svm_dual(training_set, mu, kernel,1./training_set._nb_features,0,3);
     }
     else {
         if (nb_c<0) {
@@ -223,31 +225,68 @@ int main (int argc, char * argv[])
     /* Start Timers */
     solver SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();
-    SVM_solver.run(output);
-    if(dual)//need to recover w and b from dual
-        return 0;
+    SVM_solver.run(output,false,tol,1e-3,"ma27");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
     /* Uncomment line below to print expanded model */
     /* SVM->print(); */
-    
+    SVM->print_solution(false);
     /* Testing */
     DataSet<> test_set;
     test_set.parse(fname+".t", &training_set);
     test_set.print_stats();
-    auto w = SVM->get_var("w");
-    auto b = SVM->get_var("b");
+    func_ w_f, b_f;
+    vector<double> w;
+    w.resize(nf);
+    double b = 0;
+    if(dual){
+        auto alpha  = SVM->get_var<>("𝛂");
+        auto y = training_set.get_classes();
+        auto F = training_set.get_features_matrix();
+        for (auto j = 0; j<training_set._nb_features; j++) {
+            for (auto i = 0; i<training_set._nb_points; i++) {
+                w[j] += y.eval(i)*alpha.eval(i)*F.eval(i,j);
+            }
+        }
+        double tot = 0;
+        unsigned nb_support = 0;
+        for (auto i = 0; i<training_set._nb_points; i++) {
+            if (alpha.eval(i)>tol && alpha.eval(i)<mu-tol) {//point lies on the margin
+                b = y.eval(i);
+                for (auto j = 0; j<training_set._nb_features; j++) {
+                    b -= F.eval(i,j)*w[j];
+                }
+                break;
+            }
+            if(alpha.eval(i)>0){//support vector
+                nb_support++;
+                double val = y.eval(i);
+                for (auto j = 0; j<training_set._nb_features; j++) {
+                    val -= F.eval(i,j)*w[j];
+                }
+                tot += abs(val);
+            }
+        }
+        if(b==0){// No point lies on the margin
+            b = tot/nb_support;
+        }
+    }
+    else {
+        w = *SVM->get_var<>("w").get_vals().get();
+        b = SVM->get_var<>("b").eval();
+    }
+    DebugOn("b = " << b << endl);
     unsigned err = 0;
     for (auto c = 0; c<test_set._nb_classes; c++) {
         for (auto i = 0; i<test_set._class_sizes[c]; i++) {
             double lhs = 0;
             auto pt = test_set._points[c][i];
             for (auto j = 0; j<nf; j++) {
-                lhs += pt._features[j]*t_eval(w,j);
+                lhs += pt._features[j]*w[j];
             }
-            lhs += t_eval(b);
+            lhs += b;
             if (c == 0 && lhs <= 0) {
                 err++;
             }
