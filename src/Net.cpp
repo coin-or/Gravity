@@ -516,6 +516,7 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
+    unsigned max_size = 0;
     
     /** cliques with less than 1 nodes are useless for us.*/
     while (graph_clone->nodes.size()> 2) {
@@ -591,6 +592,9 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
         if (bag_copy.size()==3) {
             nb++;
         }
+        if (bag_copy.size()>max_size) {
+            max_size = bag_copy.size();
+        }
         else if(decompose && bag_copy.size()>3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
@@ -619,6 +623,7 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     
     
     Debug("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Max cliwue size = " << max_size << endl);
 //    DebugOn("\n Total number of bags = " << _bags.size() << endl);
     
     delete graph_clone;

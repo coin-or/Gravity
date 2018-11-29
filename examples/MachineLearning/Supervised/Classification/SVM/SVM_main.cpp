@@ -80,6 +80,7 @@ unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const
     auto Equ0 = Constraint("Equation");
     Equ0 = y.tr()*alpha;
     SVM->add(Equ0 == 0);
+    
     return SVM;
 }
 
@@ -142,7 +143,8 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double
 
 int main (int argc, char * argv[])
 {
-    double tol = 1e-6;
+    double tol = 1e-6, r = 0, gamma = 0;
+    unsigned d = 3;
     auto total_time_start = get_wall_time();
     string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5", kernel = "linear";
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
@@ -208,6 +210,7 @@ int main (int argc, char * argv[])
     training_set.parse(fname);
     training_set.print_stats();
     auto nf = training_set._nb_features;
+    gamma = 1./nf;
     unique_ptr<Model> SVM;
     if(dual){
         kernel = opt["k"];
@@ -232,68 +235,72 @@ int main (int argc, char * argv[])
     auto total_time = total_time_end - total_time_start;
     /* Uncomment line below to print expanded model */
     /* SVM->print(); */
-    SVM->print_solution(false);
+//    SVM->print_solution(false);
     /* Testing */
+    unsigned err = 0;
     DataSet<> test_set;
     test_set.parse(fname+".t", &training_set);
-    test_set.print_stats();
-    func_ w_f, b_f;
-    vector<double> w;
-    w.resize(nf);
-    double b = 0;
     if(dual){
-        auto alpha  = SVM->get_var<>("𝛂");
+        double b = 0;
+        auto alpha = SVM->get_var<>("𝛂");
         auto y = training_set.get_classes();
-        auto F = training_set.get_features_matrix();
-        for (auto j = 0; j<training_set._nb_features; j++) {
-            for (auto i = 0; i<training_set._nb_points; i++) {
-                w[j] += y.eval(i)*alpha.eval(i)*F.eval(i,j);
-            }
-        }
-        double tot = 0;
-        unsigned nb_support = 0;
+        bool point_on_margin = false;
         for (auto i = 0; i<training_set._nb_points; i++) {
             if (alpha.eval(i)>tol && alpha.eval(i)<mu-tol) {//point lies on the margin
+                auto pi = training_set._all_points[i];
                 b = y.eval(i);
-                for (auto j = 0; j<training_set._nb_features; j++) {
-                    b -= F.eval(i,j)*w[j];
+                for (auto k = 0; k<training_set._nb_points; k++) {
+                    auto pk = training_set._all_points[k];
+                    b -= alpha.eval(k)*y.eval(k)*training_set.K(*pi,*pk, kernel, gamma, r, d);
                 }
+                point_on_margin = true;
                 break;
             }
-            if(alpha.eval(i)>0){//support vector
-                nb_support++;
-                double val = y.eval(i);
-                for (auto j = 0; j<training_set._nb_features; j++) {
-                    val -= F.eval(i,j)*w[j];
-                }
-                tot += abs(val);
-            }
         }
-        if(b==0){// No point lies on the margin
-            b = tot/nb_support;
+        if (!point_on_margin) {
+            DebugOn("No points found on margin, aborting" << endl);
+            return 0;
+        }
+        DebugOn("b = " << b << endl);        
+        for (auto c = 0; c<test_set._nb_classes; c++) {
+            for (auto i = 0; i<test_set._class_sizes[c]; i++) {
+                double lhs = 0;
+                auto pi = &test_set._points[c][i];
+                for (auto k = 0; k<training_set._nb_points; k++) {
+                    auto pk = training_set._all_points[k];
+                    lhs += alpha.eval(k)*y.eval(k)*training_set.K(*pi,*pk, kernel, gamma, r, d);
+                }                
+                lhs += b;
+                if (c == 0 && lhs <= 0) {
+                    err++;
+                }
+                else if (c == 1 && lhs > 0) {
+                    err++;
+                }
+            }
         }
     }
     else {
-        w = *SVM->get_var<>("w").get_vals().get();
-        b = SVM->get_var<>("b").eval();
-    }
-    DebugOn("b = " << b << endl);
-    unsigned err = 0;
-    for (auto c = 0; c<test_set._nb_classes; c++) {
-        for (auto i = 0; i<test_set._class_sizes[c]; i++) {
-            double lhs = 0;
-            auto pt = test_set._points[c][i];
-            for (auto j = 0; j<nf; j++) {
-                lhs += pt._features[j]*w[j];
-            }
-            lhs += b;
-            if (c == 0 && lhs <= 0) {
-                err++;
-            }
-            else if (c == 1 && lhs > 0) {
-                err++;
+        auto w = SVM->get_var<>("w");
+        auto b = SVM->get_var<>("b");
+        DebugOn("b = " << b.eval() << endl);
+        for (auto c = 0; c<test_set._nb_classes; c++) {
+            for (auto i = 0; i<test_set._class_sizes[c]; i++) {
+                double lhs = 0;
+                auto pt = test_set._points[c][i];
+                for (auto j = 0; j<nf; j++) {
+                    lhs += pt._features[j]*w.eval(j);
+                }
+                lhs += b.eval();
+                if (c == 0 && lhs <= 0) {
+                    err++;
+                }
+                else if (c == 1 && lhs > 0) {
+                    err++;
+                }
             }
         }
+
     }
     cout << "Number of misclassified = " << err << " out of " << test_set._nb_points << endl;
     cout << "Accuracy = " << 100.*(test_set._nb_points-err)/test_set._nb_points << "%" << endl;

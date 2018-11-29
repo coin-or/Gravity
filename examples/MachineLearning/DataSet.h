@@ -157,7 +157,8 @@ public:
     unsigned                               _nb_features = 0;
     unsigned                               _nb_points = 0; // Total number of points
     DataPoint<type>*                     _ref = nullptr;// Reference point for the comparison function
-    DataPoint<type>**                    _points = nullptr;//Array of arrays sorted per class
+    DataPoint<type>**                    _points = nullptr;//Array of arrays of points sorted per class
+    DataPoint<type>**                     _all_points = nullptr;//Array storing all points
     unsigned*                            _class_sizes = nullptr; //Storing the nb of points in each class
     pair<type,type>**                    _range; //Array storing the range of each feature per class.
     pair<type,type>*                     _all_range; //Array storing the overall range of all features.
@@ -175,10 +176,11 @@ public:
             delete [] _points[i];
             delete [] _range[i];
         }
-        delete []_points;
+        delete [] _points;
         delete [] _class_sizes;
         delete [] _range;
         delete [] _all_range;
+        delete [] _all_points;
     };
     
     // read in an instance (in svmlight format)
@@ -200,7 +202,8 @@ public:
     vector<vector<gravity::param<>>> get_features() const;
     gravity::param<> get_features_matrix() const;/*< Get one features' matrix */
     vector<gravity::param<>> get_features_matrices() const;/*< Get a features' matrix per class */
-    gravity::param<> get_kernel_matrix(const string& kernel_type="linear", double lambda = 0, double r = 0, unsigned d = 0) const;
+    gravity::param<> get_kernel_matrix(const string& kernel_type="linear", double gamma = 0, double r = 0, unsigned d = 0) const;
+    type K(const DataPoint<type>& p1, const DataPoint<type>& p2, const string& kernel_type="linear", double gamma = 0, double r = 0, unsigned d = 0) const;/**< Get the value of K(p1,p2) from kernel matrix of type kernel_type */
     gravity::param<int> get_classes() const;
 };
 

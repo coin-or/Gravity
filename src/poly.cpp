@@ -432,28 +432,28 @@ namespace gravity{
             if (p.second != 1) {
                 switch (p.second) {
                     case 2:
-                        str += "\u00B2";
+                        str += "²";
                         break;
                     case 3:
-                        str += "\u00B3";
+                        str += "³";
                         break;
                     case 4:
-                        str += "\u00B4";
+                        str += "⁴";
                         break;
                     case 5:
-                        str += "\u00B5";
+                        str += "⁵";
                         break;
                     case 6:
-                        str += "\u00B6";
+                        str += "⁶";
                         break;
                     case 7:
-                        str += "\u00B7";
+                        str += "⁷";
                         break;
                     case 8:
-                        str += "\u00B8";
+                        str += "⁸";
                         break;
                     case 9:
-                        str += "\u00B9";
+                        str += "⁹";
                         break;
                     default:
                         str += "^" + to_string(p.second);
