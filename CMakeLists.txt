@@ -11,7 +11,7 @@ option(debug "Turn on debug mode" OFF)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" ON)
+option(Ipopt "Link to IPOPT libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -34,6 +34,8 @@ option(Boost "Link to BOOST libraries" OFF)
 # include QPP (optional)
 option(Qpp "Link to QPP libraries" OFF)
 
+# Find CLP (optional)
+option(Clp "Link to CLP libraries" ON)
 
 
 # Find Ipopt.
@@ -85,6 +87,15 @@ if (Gurobi)
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
 endif()
 
+# Find CLP?
+if (Clp)
+    message(STATUS "Enable CLP")
+    add_definitions(-DUSE_CLP)
+    find_package(CLP)
+    include_directories(${CLP_INCLUDE_DIRS}/)
+    set(LIBS ${LIBS} ${CLP_LIBRARIES})
+endif()
+
 # Find BONMIN?
 if (Bonmin)
     message(STATUS "Enable BONMIN")
@@ -126,8 +137,8 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5.tar.gz
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
-include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
 endif()
+include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
 
 # Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
@@ -144,6 +155,7 @@ execute_process(
     add_definitions(-DUSE_QPP)
     include_directories(${PROJECT_SOURCE_DIR}/third_party/qpp-1.0/include)
 endif()
+
 
 set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
 # Inlude dir
