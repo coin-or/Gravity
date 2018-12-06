@@ -11,7 +11,7 @@ option(debug "Turn on debug mode" OFF)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" OFF)
+option(Ipopt "Link to IPOPT libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
