@@ -6,4 +6,7 @@
 //
 
 
-#include "ClpProgram.hpp"
+#include <gravity/ClpProgram.h>
+
+ClpProgram::ClpProgram(){
+}
