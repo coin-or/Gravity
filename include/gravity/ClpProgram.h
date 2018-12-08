@@ -12,16 +12,17 @@
 
 #include <gravity/model.h>
 #include "ClpSimplex.hpp"
+#include "CoinBuild.hpp"
 
 
 using namespace gravity; 
 
 class ClpProgram: public Program{
   private:
-  ClpModel clp;
+  ClpModel* _clp = new ClpModel();
 
   public:
-  enum solveType {Simplex, Dual};
+  enum SolveType {SOLVE_PRIMAL = 0, SOLVE_DUAL = 1};
     Model* _model;
     int _output;
     ClpProgram();
@@ -30,13 +31,13 @@ class ClpProgram: public Program{
     void update_model();
     void reset_model();
   
-    bool solve(solveType type,bool relax=false, double mipgap = 0.01);
+    bool solve(SolveType type = SOLVE_PRIMAL);
     void prepare_model();    
     void relax_model();
     
-    void fill_in_cplex_vars();
-    void create_cplex_constraints();
-    void set_cplex_objective();
+    void fill_in_clp_vars();
+    void create_clp_constraints();
+    void set_clp_objective();
     
     void print_constraints();
 };

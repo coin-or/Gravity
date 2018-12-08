@@ -47,7 +47,12 @@ namespace {
         "was compiled without Mosek support." << endl;
         exit(1);
     }
-    
+  void clpNotAvailable()
+  {
+    cerr << "Can't use Clp as a solver: this version of Gravity "
+    "was compiled without Clp support." << endl;
+    exit(1);
+  }
 }
 
 
@@ -108,6 +113,13 @@ solver::solver(Model& model, SolverType stype){
         _prog = new BonminProgram(_model);
 #else
         bonminNotAvailable();
+#endif
+    }
+    else if (_stype == Clp){
+      _prog = new ClpProgram(_model);
+#ifdef USE_CLP
+#else
+      clpNotAvailable();
 #endif
     }
 }
@@ -267,6 +279,16 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
     #else
             ipoptNotAvailable();
     #endif
+        }
+        else if (_stype == Clp){
+#ifdef USE_CLP
+          auto clp_prog = (ClpProgram*)(_prog);
+          clp_prog->prepare_model();
+          optimal = clp_prog->solve();
+         
+#else
+          ClpNotAvailable();
+#endif
         }
         else if(_stype==gurobi)
         {
