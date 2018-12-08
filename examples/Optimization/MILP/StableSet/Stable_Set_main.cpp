@@ -23,7 +23,7 @@ int main (int argc, const char * argv[])
     auto Rn = R(n);    
     
     /** Variables **/
-    var<bool> x("x");
+    var<double> x("x");
     model.add_var(x.in(Rn));
     /* Or equivalently */
     /* model.add(x.in(graph.nodes)); (graph nodes are indexed in {0,...,n})*/
@@ -37,8 +37,10 @@ int main (int argc, const char * argv[])
     model.add(c.in(graph.arcs) <= 1);
     
     /** Solver **/
-    solver s(model,cplex);
-    s.run();
+  //solver s(model,cplex);
+  solver s(model,Clp);
+
+  s.run();
     
     return 0;
 };

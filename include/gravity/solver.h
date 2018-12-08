@@ -24,6 +24,9 @@
 #ifdef USE_CPLEX
 #include <gravity/CplexProgram.h>
 #endif
+#ifdef USE_CLP
+#include <gravity/ClpProgram.h>
+#endif
 //#ifdef USE_SDPA
 //#include "SdpaProgram.h"
 //#endif
