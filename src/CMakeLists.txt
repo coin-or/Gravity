@@ -29,6 +29,10 @@ if (NOT Cplex)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexProgram.cpp)
 endif()
 
+if (NOT Clp)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/ClpProgram.cpp)
+endif()
+
 if (NOT Sdpa)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/SdpaProgram.cpp)
 endif()
