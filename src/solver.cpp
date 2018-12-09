@@ -40,6 +40,7 @@ namespace {
         "was compiled without Ipopt support." << endl;
         exit(1);
     }
+  
     
     void mosekNotAvailable()
     {
@@ -47,7 +48,12 @@ namespace {
         "was compiled without Mosek support." << endl;
         exit(1);
     }
-    
+  void ClpNotAvailable()
+  {
+    cerr << "Can't use Clp as a solver: this version of Gravity "
+    "was compiled without Clp support." << endl;
+    exit(1);
+  }
 }
 
 
@@ -91,7 +97,7 @@ solver::solver(Model& model, SolverType stype){
     cplexNotAvailable();
 #endif
     }
-    else if(_stype == Mosek)
+    else if(_stype == mosek)
     {
 #ifdef USE_MOSEK
     _prog = new MosekProgram(_model);
@@ -108,6 +114,14 @@ solver::solver(Model& model, SolverType stype){
         _prog = new BonminProgram(_model);
 #else
         bonminNotAvailable();
+#endif
+    }
+    else if (_stype == clp){
+#ifdef USE_CLP
+      _model->replace_integers();
+      _prog = new ClpProgram(_model);
+#else
+      ClpNotAvailable();
 #endif
     }
 }
@@ -268,6 +282,16 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             ipoptNotAvailable();
     #endif
         }
+        else if (_stype == clp){
+#ifdef USE_CLP
+          auto clp_prog = (ClpProgram*)(_prog);
+          clp_prog->prepare_model();
+          optimal = clp_prog->solve();
+         
+#else
+          ClpNotAvailable();
+#endif
+        }
         else if(_stype==gurobi)
         {
     #ifdef USE_GUROBI
@@ -305,7 +329,7 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             cplexNotAvailable();
     #endif
         }
-        else if(_stype == Mosek)
+        else if(_stype == mosek)
         {
     #ifdef USE_MOSEK
             try{

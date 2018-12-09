@@ -1,6 +1,7 @@
 if(APPLE)
 message("HOME = $ENV{HOME}")
 file(GLOB dirs $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio*)
+
 foreach(d in ${dirs})
 	string(REGEX MATCH "Studio[0-9]+" CPLEX_VERSION "${d}")
 endforeach(d)
@@ -50,10 +51,6 @@ if(CPLEX_FOUND)
     set(CPX_LICENSE_FILE "~/cplex.research.lic")
     set(CPLEX_INCLUDE_DIRS ${CPLEX_INCLUDE_DIR}/.. ${CONCERT_INCLUDE_DIR}/..)
     set(CPLEX_LIBRARIES ${CPLEX_ILO_CPP_LIBRARY} ${CPLEX_CPP_LIBRARY}  ${CONCERT_CPP_LIBRARY})
-    #set(CPLEX_LINKS ${CPLEX_LINK}/ ${CPLEX_LINK2}/)
-    #if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    #        set(CPLEX_LIBRARIES "${CPLEX_LIBRARIES};m;pthread")
-	#endif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif(CPLEX_FOUND)
 
 mark_as_advanced(CPLEX_LIBRARY CPLEX_CPP_LIBRARY CPLEX_INCLUDE_DIR)

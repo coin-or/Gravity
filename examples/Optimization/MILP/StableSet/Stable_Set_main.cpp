@@ -37,8 +37,11 @@ int main (int argc, const char * argv[])
     model.add(c.in(graph.arcs) <= 1);
     
     /** Solver **/
-    solver s(model,cplex);
-    s.run();
+  solver s(model,cplex);
+  /* comment below to solve the continuous relaxation using clp */
+  /* solver s(model,clp); */
+
+  s.run();
     
     return 0;
 };

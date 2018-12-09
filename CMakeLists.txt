@@ -34,6 +34,8 @@ option(Boost "Link to BOOST libraries" OFF)
 # include QPP (optional)
 option(Qpp "Link to QPP libraries" OFF)
 
+# Find CLP (optional)
+option(Clp "Link to CLP libraries" OFF)
 
 
 # Find Ipopt.
@@ -85,6 +87,16 @@ if (Gurobi)
     set(LIBS ${LIBS} ${GUROBI_LIBRARIES})
 endif()
 
+# Find CLP?
+if (Clp)
+    message(STATUS "Enable CLP")
+    add_definitions(-DUSE_CLP)
+    find_package(CLP REQUIRED)
+    include_directories(${CLP_INCLUDE_DIRS}/)
+    set(LIBS ${LIBS} ${CLP_LIBRARIES})
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lCoinUtils -lClp")
+endif()
+
 # Find BONMIN?
 if (Bonmin)
     message(STATUS "Enable BONMIN")
@@ -100,7 +112,6 @@ if (Cplex)
     add_definitions(-DUSE_CPLEX)
     find_package(CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
-    #link_directories(${CPLEX_LINKS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
 endif()
@@ -126,8 +137,8 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5.tar.gz
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
   )
-include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
 endif()
+include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
 
 # Include cpp_option_parser
 include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
@@ -173,7 +184,7 @@ endif()
 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lpthread")
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,'\$ORIGIN/lib'")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
 
 add_subdirectory(src)
 add_subdirectory(examples)
