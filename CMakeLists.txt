@@ -35,7 +35,7 @@ option(Boost "Link to BOOST libraries" OFF)
 option(Qpp "Link to QPP libraries" OFF)
 
 # Find CLP (optional)
-option(Clp "Link to CLP libraries" ON)
+option(Clp "Link to CLP libraries" OFF)
 
 
 # Find Ipopt.
