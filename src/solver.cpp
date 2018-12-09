@@ -97,7 +97,7 @@ solver::solver(Model& model, SolverType stype){
     cplexNotAvailable();
 #endif
     }
-    else if(_stype == Mosek)
+    else if(_stype == mosek)
     {
 #ifdef USE_MOSEK
     _prog = new MosekProgram(_model);
