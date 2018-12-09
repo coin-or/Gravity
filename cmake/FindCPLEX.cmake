@@ -1,7 +1,7 @@
 if(APPLE)
 message("HOME = $ENV{HOME}")
 file(GLOB dirs $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio*)
-set(COINOR_LIB "/Users/guanglei.wgl/coin-Clp/lib")
+
 foreach(d in ${dirs})
 	string(REGEX MATCH "Studio[0-9]+" CPLEX_VERSION "${d}")
 endforeach(d)
