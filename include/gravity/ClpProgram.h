@@ -1,8 +1,8 @@
 //
 //  ClpProgram.hpp
-//  option_parser
+//  
 //
-//  Created by 王光磊 on 2018/12/6.
+//  Created by guanglei Wang on 2018/12/6.
 //
 
 #ifndef ClpProgram_hpp
@@ -10,9 +10,11 @@
 
 #include <stdio.h>
 
-#include <gravity/model.h>
+#ifdef USE_CLP
 #include "ClpSimplex.hpp"
 #include "CoinBuild.hpp"
+#endif
+#include <gravity/model.h>
 
 
 using namespace gravity; 

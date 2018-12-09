@@ -40,6 +40,7 @@ namespace {
         "was compiled without Ipopt support." << endl;
         exit(1);
     }
+  
     
     void mosekNotAvailable()
     {
@@ -47,7 +48,7 @@ namespace {
         "was compiled without Mosek support." << endl;
         exit(1);
     }
-  void clpNotAvailable()
+  void ClpNotAvailable()
   {
     cerr << "Can't use Clp as a solver: this version of Gravity "
     "was compiled without Clp support." << endl;
@@ -116,10 +117,10 @@ solver::solver(Model& model, SolverType stype){
 #endif
     }
     else if (_stype == Clp){
-      _prog = new ClpProgram(_model);
 #ifdef USE_CLP
+      _prog = new ClpProgram(_model);
 #else
-      clpNotAvailable();
+      ClpNotAvailable();
 #endif
     }
 }
