@@ -94,6 +94,7 @@ if (Clp)
     find_package(CLP)
     include_directories(${CLP_INCLUDE_DIRS}/)
     set(LIBS ${LIBS} ${CLP_LIBRARIES})
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lCoinUtils -lClp")
 endif()
 
 # Find BONMIN?
@@ -111,7 +112,6 @@ if (Cplex)
     add_definitions(-DUSE_CPLEX)
     find_package(CPLEX)
     include_directories(${CPLEX_INCLUDE_DIRS})
-    #link_directories(${CPLEX_LINKS})
     set(LIBS ${LIBS} ${CPLEX_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DNDEBUG -DIL_STD")
 endif()
@@ -184,7 +184,7 @@ endif()
 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lpthread")
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,'\$ORIGIN/lib'")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
 
 add_subdirectory(src)
 add_subdirectory(examples)

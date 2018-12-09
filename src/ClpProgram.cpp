@@ -26,6 +26,8 @@ void ClpProgram::prepare_model(){
   fill_in_clp_vars();
   create_clp_constraints();
   set_clp_objective();
+  cout << "# Constraints = " << _clp->numberRows() << endl;
+  cout << "# Vars = " << _clp->numberColumns() << endl;
 }
 
 bool ClpProgram::solve(SolveType type){
