@@ -282,7 +282,7 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
             ipoptNotAvailable();
     #endif
         }
-        else if (_stype == Clp){
+        else if (_stype == clp){
 #ifdef USE_CLP
           auto clp_prog = (ClpProgram*)(_prog);
           clp_prog->prepare_model();
