@@ -39,6 +39,7 @@ int main (int argc, const char * argv[])
     /** Solver **/
   //solver s(model,cplex);
   solver s(model,Clp);
+  //solver s(model,ipopt);
 
   s.run();
     
