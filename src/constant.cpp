@@ -6,17 +6,17 @@
 
 using namespace std;
 using namespace gravity;
-constant<Cpx> conj(const constant<Cpx>& cst){
+constant<Cpx> gravity::conj(const constant<Cpx>& cst){
     constant<Cpx> newc(cst);
     newc.set_val(conj(newc.eval()));
     return newc;
 }
 
-constant<double> real(const constant<Cpx>& cst){
+constant<double> gravity::real(const constant<Cpx>& cst){
     return real(cst.eval());
 }
 
-constant<double> imag(const constant<Cpx>& cst){
+constant<double> gravity::imag(const constant<Cpx>& cst){
     return imag(cst.eval());
 }
 
