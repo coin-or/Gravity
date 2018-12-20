@@ -300,7 +300,7 @@ TEST_CASE("testing acopf"){
     grid.readgrid(fname);
     auto ACOPF = grid.build_ACOPF(ACRECT);
     solver OPF(*ACOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
     auto Mc = ACOPF->build_McCormick();
     Mc->print_symbolic();
     Mc->print();
@@ -319,6 +319,6 @@ TEST_CASE("testing socopf"){
     grid.readgrid(fname);
     auto SOCOPF = grid.build_SCOPF();
     solver OPF(*SOCOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
     CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
 }
