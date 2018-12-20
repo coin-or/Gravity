@@ -12,12 +12,12 @@ before_install:
 - tar xvzf Ipopt-3.12.12.tgz
 - cd Ipopt-3.12.12/
 - cd ThirdParty/Mumps
-- "./get.Mumps"
+- ./get.Mumps
 - cd ../..
-- "./configure --prefix=/usr/local"
+- ./configure -disable-static --prefix=/usr/local
 - make -j5
 - sudo make install
-- cd ../../
+- cd ../
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON
