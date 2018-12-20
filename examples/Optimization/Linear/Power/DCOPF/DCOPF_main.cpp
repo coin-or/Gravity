@@ -26,28 +26,26 @@ int main (int argc, char * argv[])
     string solver_str="ipopt";
     
     /** Create a OptionParser with options */
-    op::OptionParser opt;
-    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
-    opt.add_option("f", "file", "Input file name", fname);
-    opt.add_option("l", "log", "Log level (def. 0)", log_level );
-    opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
+    auto options = readOptions(argc, argv);
+    options.add_option("f", "file", "Input file name", fname);
+    options.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
-    bool correct_parsing = opt.parse_options(argc, argv);
+    bool correct_parsing = options.parse_options(argc, argv);
     
     if(!correct_parsing){
         return EXIT_FAILURE;
     }
     
-    output = op::str2int(opt["l"]);
+    output = op::str2int(options["l"]);
     
-    fname = opt["f"];
-    bool has_help = op::str2bool(opt["h"]);
+    fname = options["f"];
+    bool has_help = op::str2bool(options["h"]);
     if(has_help) {
-        opt.show_help();
+        options.show_help();
         exit(0);
     }
-    solver_str = opt["s"];
+    solver_str = options["s"];
     if (solver_str.compare("gurobi")==0) {
         use_gurobi = true;
     }

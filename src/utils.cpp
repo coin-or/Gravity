@@ -42,9 +42,6 @@ double get_cpu_time() {
 #endif
 
 
-//Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10]
-//if possible the function will split mem into equal chuncks, if not
-//the last chunck will be slightly larger
 
 op::OptionParser readOptions(int argc, char * argv[]){
     string log_level ="0";
@@ -55,6 +52,7 @@ op::OptionParser readOptions(int argc, char * argv[]){
     return opt;
 }
 
+/*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10] if possible the function will split mem into equal chuncks, if not the last chunck will be slightly larger */
 std::vector<int> bounds(int parts, int mem) {
     std::vector<int>bnd;
     int delta = mem / parts;
@@ -69,12 +67,5 @@ std::vector<int> bounds(int parts, int mem) {
         N1 = N2;
     }
     return bnd;
-}
-
-
-gravity::indices time(unsigned p1 ,unsigned p2){
-    gravity::indices res(p1,p2);
-    res._time_extended = true;
-    return res;
 }
 

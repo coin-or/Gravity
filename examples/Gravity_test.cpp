@@ -308,6 +308,7 @@ TEST_CASE("testing acopf"){
 }
 
 TEST_CASE("testing socopf"){
+    auto time_start = get_cpu_time();
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     int output = 0;
     bool relax = false;
@@ -318,5 +319,7 @@ TEST_CASE("testing socopf"){
     auto SOCOPF = grid.build_SCOPF();
     solver OPF(*SOCOPF,ipopt);
     OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    auto time_end = get_cpu_time();
+    DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
     CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
 }
