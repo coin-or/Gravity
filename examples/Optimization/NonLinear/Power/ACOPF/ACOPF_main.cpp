@@ -253,7 +253,7 @@ int main (int argc, char * argv[])
     ACOPF.add(Thermal_Limit_to.in(grid.arcs) <= 0);
     solver OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
