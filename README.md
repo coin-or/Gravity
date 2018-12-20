@@ -8,13 +8,12 @@
 <p align="center">
 <img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
 </p>
+<H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
 
-Mathematical Modeling for Optimization and Machine Learning
------------
-Created by Hassan Hijazi.
+<p align="center"> Created by Hassan Hijazi. </p>
 
-www.allinsights.io/gravity
------------
+<H2 align="center"> www.allinsights.io/gravity </H2>
+
 
 
 ## License
