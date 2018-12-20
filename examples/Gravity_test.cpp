@@ -165,6 +165,12 @@ TEST_CASE("testing complex numbers") {
     auto cx_conj = conj(cx);
     CHECK(real(cx_conj)==real(cx));
     CHECK(imag(cx_conj).eval()==-1*imag(cx).eval());
+    param<Cpx> px("px");
+    px = Cpx(-1,-2);
+    px.print();
+    auto px_conj = conj(px);
+    CHECK(real(px_conj)._is_real);
+    CHECK(imag(px_conj)._is_imag);
 }
 
 TEST_CASE("testing complex functions") {
