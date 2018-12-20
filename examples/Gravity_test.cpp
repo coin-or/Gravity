@@ -301,12 +301,10 @@ TEST_CASE("testing acopf"){
     auto ACOPF = grid.build_ACOPF(ACRECT);
     solver OPF(*ACOPF,ipopt);
     OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
-    auto Mc = ACOPF->build_McCormick();
-    Mc->print_symbolic();
-    Mc->print();
     CHECK(abs(ACOPF->_obj_val-17551.8909275818)<tol);
     CHECK(ACOPF->is_feasible(tol));
     ACOPF->print_solution();
+    auto Mc = ACOPF->build_McCormick();
 }
 
 TEST_CASE("testing socopf"){
