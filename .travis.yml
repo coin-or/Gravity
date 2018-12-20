@@ -38,3 +38,5 @@ script:
 - ../bin/Release/sdpcuts
 - ../bin/Release/svm
 - ../bin/Release/ising
+after_success: 
+-bash <(curl -s https://codecov.io/bash) -t 7a0a32a0-cc52-4460-9ec6-c4950095b532
