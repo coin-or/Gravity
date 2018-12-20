@@ -228,7 +228,7 @@ int main (int argc, char * argv[])
     /* Start Timers */
     solver SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();
-    SVM_solver.run(output,false,tol,1e-3,"ma27");
+    SVM_solver.run(output,false,tol,1e-3,"mumps");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
