@@ -11,7 +11,7 @@ option(debug "Turn on debug mode" OFF)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" ON)
+option(Ipopt "Link to IPOPT libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -35,7 +35,7 @@ option(Boost "Link to BOOST libraries" OFF)
 option(Qpp "Link to QPP libraries" OFF)
 
 # Find CLP (optional)
-option(Clp "Link to CLP libraries" ON)
+option(Clp "Link to CLP libraries" OFF)
 
 
 # Find Ipopt.
