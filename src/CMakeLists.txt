@@ -45,5 +45,8 @@ set(CPP_OPTION_PARSER option_parser)
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${CPP_OPTION_PARSER})
-
-
+set_target_properties(gravity
+PROPERTIES
+    COMPILE_FLAGS "-ftest-coverage -fprofile-arcs"
+    LINK_FLAGS    "-lgcov --coverage"
+)
