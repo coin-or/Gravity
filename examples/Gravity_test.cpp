@@ -302,6 +302,8 @@ TEST_CASE("testing acopf"){
     solver OPF(*ACOPF,ipopt);
     OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
     CHECK(abs(ACOPF->_obj_val-17551.8909275818)<tol);
+    CHECK(ACOPF->is_feasible(tol));
+    ACOPF->print_solution();
 }
 
 TEST_CASE("testing socopf"){
