@@ -141,7 +141,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         /** Solver */
         solver NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
-        NLP.run(log_lev,relax=false,1e-12,1e-6,"ma27",mehrotra);
+        NLP.run(log_lev,relax=false,1e-12,1e-6,"mumps",mehrotra);
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
         obj_val[main_spin] = Ising._obj_val;
