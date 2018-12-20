@@ -155,6 +155,18 @@ TEST_CASE("testing vector dot product"){
     dfdvecz.print_symbolic();
 }
 
+TEST_CASE("testing complex numbers") {
+    indices ids("index_set");
+    ids = {"id1", "id2", "key3", "key4"};
+    var<> iv("x",-2, 5);
+    iv.in(ids);
+    var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
+    constant<Cpx> cx(Cpx(-1,-2));
+    auto cx_conj = conj(cx);
+    CHECK(real(cx_conj)==real(cx));
+    CHECK(imag(cx_conj).eval()==-1*imag(cx).eval());
+}
+
 TEST_CASE("testing complex functions") {
     indices ids("index_set");
     ids = {"id1", "id2", "key3", "key4"};
