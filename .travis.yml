@@ -38,6 +38,7 @@ script:
 - ../bin/Release/sdpcuts
 - ../bin/Release/svm -nb -1 -mu 1e2
 - ../bin/Release/ising
+- cd ../../
 - ./get_code_cov.sh
 after_success: 
 - bash <(curl -s https://codecov.io/bash) -t 7a0a32a0-cc52-4460-9ec6-c4950095b532
