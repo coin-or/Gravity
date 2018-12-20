@@ -6,7 +6,7 @@ compiler:
 os:
 - linux
 before_install:
-- sudo apt-get update && sudo apt-get install liblapack-dev && sudo apt-get install libblas-dev
+- sudo apt-get update 
 - sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
 - wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
 - tar xvzf Ipopt-3.12.12.tgz
