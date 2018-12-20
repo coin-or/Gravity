@@ -15,6 +15,7 @@ before_install:
 - export CC=/usr/bin/gcc-6
 - export CXX=/usr/bin/g++-6
 - sudo apt-get update 
+- sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
 - sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
 - wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
 - tar xvzf Ipopt-3.12.12.tgz
@@ -38,5 +39,7 @@ script:
 - ../bin/Release/sdpcuts
 - ../bin/Release/svm -nb -1 -mu 1e2
 - ../bin/Release/ising
+- ./codecov
+- ./get_code_cov.sh
 after_success: 
 - bash <(curl -s https://codecov.io/bash) -t 7a0a32a0-cc52-4460-9ec6-c4950095b532
