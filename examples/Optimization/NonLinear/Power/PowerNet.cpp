@@ -1925,9 +1925,118 @@ void PowerNet::save_all_sol(const string& fname){
 //}
 
 unique_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
+    
+    auto bus_pairs = get_bus_pairs();
     /** MODEL DECLARATION */
-    unique_ptr<Model> SCOPF(new Model("SCOPF Model"));
-    return SCOPF;
+    unique_ptr<Model> SOCPF(new Model("SCOPF Model"));
+    /** Variables */
+    /* power generation variables */
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
+    SOCPF->add(Pg.in(gens));
+    SOCPF->add(Qg.in(gens));
+    
+    
+    /* power flow variables */
+    var<double> Pf_from("Pf_from", S_max);
+    var<double> Qf_from("Qf_from", S_max);
+    var<double> Pf_to("Pf_to", S_max);
+    var<double> Qf_to("Qf_to", S_max);
+    SOCPF->add(Pf_from.in(arcs));
+    SOCPF->add(Qf_from.in(arcs));
+    SOCPF->add(Pf_to.in(arcs));
+    SOCPF->add(Qf_to.in(arcs));
+    
+    /* Real part of Wij = ViVj */
+    var<double>  R_Wij("R_Wij", wr_min, wr_max);
+    /* Imaginary part of Wij = ViVj */
+    var<double>  Im_Wij("Im_Wij", wi_min, wi_max);
+    /* Magnitude of Wii = Vi^2 */
+    var<double>  Wii("Wii", w_min, w_max);
+    SOCPF->add(Wii.in(nodes));
+    SOCPF->add(R_Wij.in(bus_pairs));
+    SOCPF->add(Im_Wij.in(bus_pairs));
+    
+    /* Initialize variables */
+    R_Wij.initialize_all(1.0);
+    Wii.initialize_all(1.001);
+    
+    /**  Objective */
+    auto obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
+    SOCPF->min(obj.in(gens));
+    
+    /** Constraints */
+    /* Second-order cone constraints */
+    Constraint SOC("SOC");
+    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
+    SOCPF->add(SOC.in(bus_pairs) <= 0);
+    
+    /* Flow conservation */
+    Constraint KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens()) + gs*Wii;
+    SOCPF->add(KCL_P.in(nodes) == 0);
+    
+    Constraint KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens()) - bs*Wii;
+    SOCPF->add(KCL_Q.in(nodes) == 0);
+    
+    /* AC Power Flow */
+    Constraint Flow_P_From("Flow_P_From");
+    Flow_P_From = Pf_from - (g_ff*Wii.from() + g_ft*R_Wij.in_pairs() + b_ft*Im_Wij.in_pairs());
+    SOCPF->add(Flow_P_From.in(arcs) == 0);
+    
+    Constraint Flow_P_To("Flow_P_To");
+    Flow_P_To = Pf_to - (g_tt*Wii.to() + g_tf*R_Wij.in_pairs() - b_tf*Im_Wij.in_pairs());
+    SOCPF->add(Flow_P_To.in(arcs) == 0);
+    
+    Constraint Flow_Q_From("Flow_Q_From");
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs() - b_ff*Wii.from() - b_ft*R_Wij.in_pairs());
+    SOCPF->add(Flow_Q_From.in(arcs) == 0);
+    
+    Constraint Flow_Q_To("Flow_Q_To");
+    Flow_Q_To = Qf_to + (b_tt*Wii.to() + b_tf*R_Wij.in_pairs() + g_tf*Im_Wij.in_pairs());
+    SOCPF->add(Flow_Q_To.in(arcs) == 0);
+    
+    /* Phase Angle Bounds constraints */
+    Constraint PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij;
+    PAD_UB <= tan_th_max*R_Wij;
+    SOCPF->add(PAD_UB.in(bus_pairs));
+    
+    Constraint PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij;
+    PAD_LB >= tan_th_min*R_Wij;
+    SOCPF->add(PAD_LB.in(bus_pairs));
+    
+    /* Thermal Limit Constraints */
+    Constraint Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
+    Thermal_Limit_from <= power(S_max,2);
+    SOCPF->add(Thermal_Limit_from.in(arcs));
+    SOCPF->add(Thermal_Limit_from.in(arcs));
+    
+    
+    Constraint Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
+    Thermal_Limit_to <= power(S_max,2);
+    SOCPF->add(Thermal_Limit_to.in(arcs));
+    SOCPF->add(Thermal_Limit_to.in(arcs));
+    
+    /* Lifted Nonlinear Cuts */
+    Constraint LNC1("LNC1");
+    LNC1 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
+    LNC1 -= v_max.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
+    LNC1 -= v_max.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
+    LNC1 -= v_max.from()*v_max.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
+    SOCPF->add(LNC1.in(bus_pairs) >= 0);
+    
+    Constraint LNC2("LNC2");
+    LNC2 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
+    LNC2 -= v_min.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
+    LNC2 -= v_min.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
+    LNC2 += v_min.from()*v_min.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
+    SOCPF->add(LNC2.in(bus_pairs) >= 0);
+    return SOCPF;
 }
 
 //unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double tol, int max_nb_hours){

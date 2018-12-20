@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gravity/doctest.h>
-
+#include <PowerNet.h>
 
 
 using namespace std;
@@ -270,4 +270,32 @@ TEST_CASE("testing function convexity"){
     fn += expo(p);
     fn.print_symbolic();
     CHECK(fn.is_convex());
+}
+
+TEST_CASE("testing acopf"){
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    bool relax = false;
+    double tol = 1e-6;
+    string mehrotra = "no", log_level="0";
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto ACOPF = grid.build_ACOPF();
+    solver OPF(*ACOPF,ipopt);
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    CHECK(abs(ACOPF->_obj_val-17551.8909275818)<tol);
+}
+
+TEST_CASE("testing socopf"){
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    bool relax = false;
+    double tol = 1e-6;
+    string mehrotra = "no", log_level="0";
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto SOCOPF = grid.build_SCOPF();
+    solver OPF(*SOCOPF,ipopt);
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
 }
