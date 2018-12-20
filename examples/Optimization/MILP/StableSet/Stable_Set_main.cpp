@@ -23,7 +23,7 @@ int main (int argc, const char * argv[])
     auto Rn = R(n);    
     
     /** Variables **/
-    var<double> x("x");
+    var<bool> x("x");
     model.add_var(x.in(Rn));
     /* Or equivalently */
     /* model.add(x.in(graph.nodes)); (graph nodes are indexed in {0,...,n})*/
@@ -37,9 +37,9 @@ int main (int argc, const char * argv[])
     model.add(c.in(graph.arcs) <= 1);
     
     /** Solver **/
-  //solver s(model,cplex);
-  solver s(model,Clp);
-  //solver s(model,ipopt);
+  solver s(model,cplex);
+  /* comment below to solve the continuous relaxation using clp */
+  /* solver s(model,clp); */
 
   s.run();
     
