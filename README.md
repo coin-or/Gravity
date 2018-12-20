@@ -1,5 +1,6 @@
 
 [![Build Status](https://travis-ci.org/coin-or/Gravity.svg?branch=master)](https://travis-ci.org/coin-or/Gravity)
+![Code Coverage](https://codecov.io/gh/coin-or/gravity/branch/master/graph/badge.svg)
 [![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![download](https://img.shields.io/badge/download%20%20-latest-blue.svg)](https://github.com/coin-or/Gravity/releases)
 
