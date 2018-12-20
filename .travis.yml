@@ -33,3 +33,8 @@ script:
 - make -j5
 - ../bin/Release/gravity_test
 - ../bin/Release/acopf
+- ../bin/Release/dcopf
+- ../bin/Release/socopf
+- ../bin/Release/sdpcuts
+- ../bin/Release/svm
+- ../bin/Release/ising
