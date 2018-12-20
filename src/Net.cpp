@@ -643,88 +643,88 @@ indices Net::get_bus_pairs(){
 
 
 
-Net* Net::get_chordal_extension() {
-    Node* n = nullptr;
-    Node* u = nullptr;
-    Node* nn = nullptr;
-    Arc* arc = nullptr;
-    Arc* arc_chordal = nullptr;
-
-    Node* u_chordal = nullptr;
-    Node* nn_chordal = nullptr;
-
-    string name="";
-    string name_chordal="";
-    Net* chordal_extension = clone();
-    Net* graph_clone = clone_undirected();
-    int nb = 0;
-
-    /** cliques with less than 1 nodes are useless for us.*/
-    while (graph_clone->nodes.size() > 1) {
-        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
-        // last element has the minimum fill-in.
-        n = graph_clone->nodes.back();         
-        Debug(n->_name << endl);
-        Debug(_clone->nodes.size() << endl);
-        vector<Node*> bag_copy;
-        vector<Node*> bag;
-        Debug("new bag_copy = { ");
-
-        for (auto nn: n->get_neighbours()) {
-            bag_copy.push_back(nn);
-            bag.push_back(get_node(nn->_name));
-            Debug(nn->_name << ", ");
-        }
-
-        graph_clone->remove_end_node();
-        bag_copy.push_back(n);
-        bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.begin(), bag.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-
-        // update graph_graph and construct chordal extension.
-        for (int i = 0; i < bag_copy.size() - 1; i++) {
-            u = bag_copy.at(i);
-            u_chordal = chordal_extension->get_node(u->_name);
-            for (int j = i+1; j<bag_copy.size(); j++) {
-                nn = bag_copy.at(j);
-                nn_chordal=chordal_extension->get_node(nn->_name);
-                if (u->is_connected(nn)) {
-                    continue;
-                }
-                name = to_string((int) graph_clone->arcs.size()+1);
-                name_chordal = to_string((int)chordal_extension->arcs.size()+1);
-
-                arc = new Arc(name);
-                arc_chordal = new Arc(name_chordal);
-
-                arc->_id = arcs.size();
-                arc->_src = u;
-                arc->_dest = nn;
-                arc->connect();
-                graph_clone->add_undirected_arc(arc);
-
-                arc_chordal->_id = chordal_extension->arcs.size();
-                arc_chordal->_src = u_chordal;
-                arc_chordal->_dest = nn_chordal;
-                arc_chordal->connect();
-                chordal_extension->add_undirected_arc(arc_chordal);
-            }
-        }
-        _bags_copy.push_back(bag_copy);
-        _bags.push_back(bag);
-        if (bag_copy.size()==3) {
-            nb++;
-        }
-        delete n;
-    }
-    // sort the bags by its size (descending order)
-    sort(_bags.begin(), _bags.end(), bag_compare);
-    printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
-
-    delete graph_clone;
-    return chordal_extension;
-}
+//Net* Net::get_chordal_extension() {
+//    Node* n = nullptr;
+//    Node* u = nullptr;
+//    Node* nn = nullptr;
+//    Arc* arc = nullptr;
+//    Arc* arc_chordal = nullptr;
+//
+//    Node* u_chordal = nullptr;
+//    Node* nn_chordal = nullptr;
+//
+//    string name="";
+//    string name_chordal="";
+//    Net* chordal_extension = clone();
+//    Net* graph_clone = clone_undirected();
+//    int nb = 0;
+//
+//    /** cliques with less than 1 nodes are useless for us.*/
+//    while (graph_clone->nodes.size() > 1) {
+//        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+//        // last element has the minimum fill-in.
+//        n = graph_clone->nodes.back();
+//        Debug(n->_name << endl);
+//        Debug(_clone->nodes.size() << endl);
+//        vector<Node*> bag_copy;
+//        vector<Node*> bag;
+//        Debug("new bag_copy = { ");
+//
+//        for (auto nn: n->get_neighbours()) {
+//            bag_copy.push_back(nn);
+//            bag.push_back(get_node(nn->_name));
+//            Debug(nn->_name << ", ");
+//        }
+//
+//        graph_clone->remove_end_node();
+//        bag_copy.push_back(n);
+//        bag.push_back(get_node(n->_name)); // node in this graph
+//        sort(bag_copy.begin(), bag_copy.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+//        sort(bag.begin(), bag.end(),[](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+//
+//        // update graph_graph and construct chordal extension.
+//        for (int i = 0; i < bag_copy.size() - 1; i++) {
+//            u = bag_copy.at(i);
+//            u_chordal = chordal_extension->get_node(u->_name);
+//            for (int j = i+1; j<bag_copy.size(); j++) {
+//                nn = bag_copy.at(j);
+//                nn_chordal=chordal_extension->get_node(nn->_name);
+//                if (u->is_connected(nn)) {
+//                    continue;
+//                }
+//                name = to_string((int) graph_clone->arcs.size()+1);
+//                name_chordal = to_string((int)chordal_extension->arcs.size()+1);
+//
+//                arc = new Arc(name);
+//                arc_chordal = new Arc(name_chordal);
+//
+//                arc->_id = arcs.size();
+//                arc->_src = u;
+//                arc->_dest = nn;
+//                arc->connect();
+//                graph_clone->add_undirected_arc(arc);
+//
+//                arc_chordal->_id = chordal_extension->arcs.size();
+//                arc_chordal->_src = u_chordal;
+//                arc_chordal->_dest = nn_chordal;
+//                arc_chordal->connect();
+//                chordal_extension->add_undirected_arc(arc_chordal);
+//            }
+//        }
+//        _bags_copy.push_back(bag_copy);
+//        _bags.push_back(bag);
+//        if (bag_copy.size()==3) {
+//            nb++;
+//        }
+//        delete n;
+//    }
+//    // sort the bags by its size (descending order)
+//    sort(_bags.begin(), _bags.end(), bag_compare);
+//    printf("With greedy fill-in algirithm, the chordal graph added  %lu edges \n", (chordal_extension->arcs.size() - arcs.size()));
+//
+//    delete graph_clone;
+//    return chordal_extension;
+//}
 
 // get cliques from the tree decomposition
 // Two methods
@@ -905,15 +905,15 @@ Net* Net::get_clique_tree(){
 //}
 
 
-std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
-    vector<gravity::index_pair*> res;
-    string ni, nj;
-    for(int i = 0; i < nodes.size()-1; i++) {
-        for(int j = i+1; j < nodes.size(); j++) {
-            ni = nodes[i]->_name;
-            nj = nodes[j]->_name;
-            res.push_back(new index_pair(index_(ni), index_(nj), 1));
-        }
-    }
-    return res;
-}
+//std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
+//    vector<gravity::index_pair*> res;
+//    string ni, nj;
+//    for(int i = 0; i < nodes.size()-1; i++) {
+//        for(int j = i+1; j < nodes.size(); j++) {
+//            ni = nodes[i]->_name;
+//            nj = nodes[j]->_name;
+//            res.push_back(new index_pair(index_(ni), index_(nj), 1));
+//        }
+//    }
+//    return res;
+//}
