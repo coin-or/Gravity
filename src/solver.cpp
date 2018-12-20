@@ -219,11 +219,11 @@ int solver::run(int print_level, bool relax, double tol, double mipgap, const st
     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
     //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
     //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
-                iapp->Options()->SetNumericValue("ma57_pre_alloc", 10);
+//                iapp->Options()->SetNumericValue("ma57_pre_alloc", 10);
 //            iapp->Options()->SetIntegerValue("ma57_small_pivot_flag", 1);
-            iapp->Options()->SetNumericValue("ma27_liw_init_factor", 20);
-            iapp->Options()->SetNumericValue("ma27_la_init_factor", 20);
-            iapp->Options()->SetNumericValue("ma27_meminc_factor", 3);
+//            iapp->Options()->SetNumericValue("ma27_liw_init_factor", 20);
+//            iapp->Options()->SetNumericValue("ma27_la_init_factor", 20);
+//            iapp->Options()->SetNumericValue("ma27_meminc_factor", 3);
 //            iapp->Options()->SetStringValue("ma57_automatic_scaling", "yes");
 //                            iapp->Options()->SetStringValue("derivative_test", "second-order");
 //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);

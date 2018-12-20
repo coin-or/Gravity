@@ -256,7 +256,7 @@ int main (int argc, char * argv[]) {
     /* Solver selection */
     solver SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
-    SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "mumps", mehrotra = "no");
+    SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "ma97", mehrotra = "no");
     SDP.print();
   double gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
     double solver_time_end = get_wall_time();
