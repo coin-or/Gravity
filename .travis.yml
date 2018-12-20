@@ -24,3 +24,4 @@ before_install:
 script:
 - make -j5
 - ../bin/Release/gravity_test
+- ../bin/Release/acopf
