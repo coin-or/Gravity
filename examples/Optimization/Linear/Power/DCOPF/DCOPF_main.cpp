@@ -138,7 +138,7 @@ int main (int argc, char * argv[])
     else {
         solver DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
-        DCOPF_IPT.run(output, relax = false, tol = 1e-6, 0.01, "ma27", mehrotra = "no");
+        DCOPF_IPT.run(output, relax = false, tol = 1e-6, 0.01, "mumps", mehrotra = "no");
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
