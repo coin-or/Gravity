@@ -298,9 +298,12 @@ TEST_CASE("testing acopf"){
     string mehrotra = "no", log_level="0";
     PowerNet grid;
     grid.readgrid(fname);
-    auto ACOPF = grid.build_ACOPF();
+    auto ACOPF = grid.build_ACOPF(ACRECT);
     solver OPF(*ACOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27", mehrotra = "no");
+    auto Mc = ACOPF->build_McCormick();
+    Mc->print_symbolic();
+    Mc->print();
     CHECK(abs(ACOPF->_obj_val-17551.8909275818)<tol);
     CHECK(ACOPF->is_feasible(tol));
     ACOPF->print_solution();
@@ -316,6 +319,6 @@ TEST_CASE("testing socopf"){
     grid.readgrid(fname);
     auto SOCOPF = grid.build_SCOPF();
     solver OPF(*SOCOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27", mehrotra = "no");
     CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
 }
