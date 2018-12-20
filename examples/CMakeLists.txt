@@ -23,7 +23,7 @@ file(GLOB SVM_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/
 file(GLOB QUANTUM_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MINLP/Quantum/*.cpp)
 file(GLOB NEURALNET_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/Classification/NeuralNet/*.cpp)
 
-add_executable(gravity_test ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
+add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
 add_executable(ising ${ISING_SOURCES}) 
 #add_executable(quantum ${QUANTUM_SOURCES})
 add_executable(stable_set ${STABLE_S_SOURCES})
