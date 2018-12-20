@@ -48,5 +48,5 @@ target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIB
 set_target_properties(gravity
 PROPERTIES
     COMPILE_FLAGS "-ftest-coverage -fprofile-arcs"
-    LINK_FLAGS    "-lgcov --coverage"
+    LINK_FLAGS    "-lgcov --coverage -fprofile-arcs"
 )
