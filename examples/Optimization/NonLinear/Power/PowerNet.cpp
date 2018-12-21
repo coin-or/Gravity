@@ -4840,7 +4840,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     bool relax;
     solver OPF(*ACOPF,ipopt);
     auto mipgap = 1e-6;
-    OPF.run(output, relax = false, tol, mipgap, "ma27");
+    OPF.run(output, relax = false, tol, mipgap, "mumps");
     return ACOPF->_obj_val;
 }
 
