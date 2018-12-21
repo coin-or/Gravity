@@ -149,7 +149,7 @@ int main (int argc, char * argv[])
     return 0;
     solver OPF(CPXOPF,ipopt);
     auto solver_time_start = get_wall_time();
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "ma27");
+    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps");
     auto solver_time_end = get_wall_time();
     auto total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;

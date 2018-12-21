@@ -131,7 +131,7 @@ solver::~solver(){
 }
 void run_models(const std::vector<shared_ptr<Model>>& models, int start, int end, SolverType stype, double tol){
     for (auto i = start; i<end; i++) {
-        solver(*(models.at(i)),stype).run(5, false, tol, 0.01, "ma27");
+        solver(*(models.at(i)),stype).run(5, false, tol, 0.01, "mumps");
         models.at(i)->print_solution(false);
     }
 }
