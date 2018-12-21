@@ -39,6 +39,7 @@ script:
 - ../bin/Release/sdpcuts
 - ../bin/Release/svm -nb -1 -mu 1e2
 - ../bin/Release/ising
+- ../bin/Release/stable_set
 - cd ../
 - ./get_code_cov.sh
 after_success: 
