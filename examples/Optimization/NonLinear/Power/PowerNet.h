@@ -260,7 +260,7 @@ public:
     void update_status(unique_ptr<Model> model);
     
     void fix_investment();
-    unique_ptr<Model> build_ACOPF(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
+    shared_ptr<Model> build_ACOPF(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
     unique_ptr<Model> build_ACOPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
     
     unique_ptr<Model> build_SOCP_OPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
@@ -276,7 +276,7 @@ public:
     unique_ptr<Model> build_fixed_ACOPF_N_1(PowerModelType model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
     unique_ptr<Model> build_ROMDST(PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
-    unique_ptr<Model> build_SCOPF(PowerModelType model=LDISTF, int output=5, double tol=1e-6);
+    shared_ptr<Model> build_SCOPF(PowerModelType model=LDISTF, int output=5, double tol=1e-6);
     shared_ptr<Model> build_ROMDST_contingency(const string& name, PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
     shared_ptr<Model> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
     shared_ptr<Model> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);

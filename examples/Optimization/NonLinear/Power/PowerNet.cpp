@@ -1924,11 +1924,11 @@ void PowerNet::save_all_sol(const string& fname){
 //    PVt_opt = indices(_all_PV_gens,T);
 //}
 
-unique_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
+shared_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
     
     auto bus_pairs = get_bus_pairs();
     /** MODEL DECLARATION */
-    unique_ptr<Model> SOCPF(new Model("SCOPF Model"));
+    shared_ptr<Model> SOCPF(new Model("SCOPF Model"));
     /** Variables */
     /* power generation variables */
     var<double> Pg("Pg", pg_min, pg_max);
@@ -4370,7 +4370,7 @@ unique_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double t
 //    return ACOPF;
 //}
 
-unique_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
+shared_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
         bool polar = (pmt==ACPOL);
         if (polar) {
             Debug("Using polar model\n");
@@ -4378,7 +4378,7 @@ unique_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double t
         else {
             Debug("Using rectangular model\n");
         }
-        unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
+        shared_ptr<Model> ACOPF(new Model("AC-OPF Model"));
         /** Variables */
         /* Power generation variables */
         var<double> Pg("Pg", pg_min, pg_max);

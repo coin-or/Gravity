@@ -137,7 +137,7 @@ void run_models(const std::vector<shared_ptr<Model>>& models, int start, int end
 }
 
 
-void run_parallel(const std::vector<shared_ptr<Model>>& models, SolverType stype, double tol, unsigned nr_threads){
+void gravity::run_parallel(const std::vector<shared_ptr<Model>>& models, SolverType stype, double tol, unsigned nr_threads){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     /* Split models into nr_threads parts */

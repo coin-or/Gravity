@@ -57,8 +57,8 @@ namespace gravity {
         
     };
     
-    
+    void run_parallel(const vector<shared_ptr<gravity::Model>>& models, gravity::SolverType stype, double tol, unsigned nr_threads); /** < Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
+
 }
 
-void run_parallel(const vector<shared_ptr<gravity::Model>>& models, gravity::SolverType stype, double tol, unsigned nr_threads); /** < Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
 #endif /* defined(__Gravity____Solver__) */
