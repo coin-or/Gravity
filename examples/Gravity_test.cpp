@@ -292,19 +292,21 @@ TEST_CASE("testing function convexity"){
 
 TEST_CASE("testing acopf"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    int output = 0;
-    bool relax = false;
+    unsigned nb_threads = 2;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
-    PowerNet grid;
-    grid.readgrid(fname);
-    auto ACOPF = grid.build_ACOPF(ACRECT);
-    solver OPF(*ACOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
-    CHECK(abs(ACOPF->_obj_val-17551.8909275818)<tol);
-    CHECK(ACOPF->is_feasible(tol));
-    ACOPF->print_solution();
-    auto Mc = ACOPF->build_McCormick();
+    PowerNet grid1,grid2;
+    grid1.readgrid(fname);
+    auto ACOPF1 = grid1.build_ACOPF(ACRECT);
+    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
+    auto ACOPF2 = grid1.build_ACOPF(ACPOL);
+    auto models = {ACOPF1, ACOPF2};
+    /* run in parallel */
+    run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
+    CHECK(abs(ACOPF1->_obj_val-17551.8909275818)<tol);
+    CHECK(ACOPF1->is_feasible(tol));
+    ACOPF1->print_solution();
+    auto Mc = ACOPF1->build_McCormick();
 }
 
 TEST_CASE("testing socopf"){
@@ -318,7 +320,7 @@ TEST_CASE("testing socopf"){
     grid.readgrid(fname);
     auto SOCOPF = grid.build_SCOPF();
     solver OPF(*SOCOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps", mehrotra = "no");
+    OPF.run(output, relax = false, tol = 1e-6);
     auto time_end = get_cpu_time();
     DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
     CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
