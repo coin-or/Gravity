@@ -733,20 +733,20 @@ indices Net::get_bus_pairs(){
 // One need to execute either get_tree_decomposition or get_chordal_extension first, then run get_clique_tree.
 
 // use _bags instead of bag_copy
-void Net::get_cliquebags (bool print) {
-    for (unsigned i = 0; i < _bags.size(); i++) {
-        for (unsigned j = i+1; j < _bags.size();) {
-            if (std::includes(_bags[i].begin(),_bags[i].end(),
-                              _bags[j].begin(), _bags[j].end()))
-            {
-                _bags.erase(_bags.begin()+j);
-            }
-            else
-                j++;
-        }
-    }
-    cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
-}
+//void Net::get_cliquebags (bool print) {
+//    for (unsigned i = 0; i < _bags.size(); i++) {
+//        for (unsigned j = i+1; j < _bags.size();) {
+//            if (std::includes(_bags[i].begin(),_bags[i].end(),
+//                              _bags[j].begin(), _bags[j].end()))
+//            {
+//                _bags.erase(_bags.begin()+j);
+//            }
+//            else
+//                j++;
+//        }
+//    }
+//    cout << "Number of maximal cliques of the chordal extension = " << _bags.size() << endl <<endl;
+//}
 
 /* Destructors */
 Net::~Net() {
@@ -775,107 +775,107 @@ Net::~Net() {
     }
 }
 
-Net* Net::get_clique_tree(){
-    Net* cliquetree = new Net();
-    Node* node = nullptr;
-    Arc*  a = nullptr;
-    string name;
-    get_cliquebags(true);
-#ifdef USE_BOOST
-    /** Note that we also need the edge information of the clique tree **/
-    /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
-    typedef boost::adjacency_list <boost::vecS,
-    boost::vecS,
-    boost::undirectedS,
-    boost::no_property,
-    boost::property < boost::edge_weight_t, int >> Graph;
-    typedef boost::graph_traits <Graph>::edge_descriptor Edge;
-    //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
-    
-    // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
-    typedef std::pair<int, int> E;
-    std::vector<E> edges;
-    std::vector<int> weights;
-    int nb_cliques = this->_bags.size();
-    for (int i = 0; i < nb_cliques; i++) {
-        DebugOn("bag " << i << " has " << this->_bags[i].size() << " nodes." <<endl);
-        sort(this->_bags[i].begin(), this->_bags[i].end());
-        for (int j = i +1; j < nb_cliques; j++) {
-            vector<Node*> v3;
-            sort(this->_bags[j].begin(), this->_bags[j].end());
-            set_intersection(this->_bags[i].begin(), this->_bags[i].end(), this->_bags[j].begin(), this->_bags[j].end(), back_inserter(v3));
-            if (v3.size() > 0) {
-                edges.push_back(E(i, j));
-                weights.push_back(-v3.size());
-            }
-        }
-    }
-    //size_t num_edges = edges.size();
-    
-#if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
-    Graph g(num_nodes);
-    boost::property_map<Graph, edge_weight_t>::type weightmap = get(edge_weight, g);
-    for (std::size_t j = 0; j < num_edges; ++j) {
-        Edge e;
-        bool inserted;
-        boost::tie(e, inserted) = boost::add_edge(edges[j].first, edges[j].second, g);
-        boost::weightmap[e] = weights[j];
-    }
-#else
-    Graph g(edges.begin(), edges.end(), weights.begin(), nb_cliques);
-#endif
-    boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
-    std::vector < Edge > spanning_tree;
-    boost::kruskal_minimum_spanning_tree(g, std::back_inserter(spanning_tree));
-    
-    DebugOn("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
-    
-    //////////CLIQUE TREE /////////////////////////////
-    for (int i = 0; i < nb_cliques; i++) {
-        node= new Node(to_string(i), i);
-        cliquetree->add_node(node);
-    }
-    
-    for (std::vector < Edge >::iterator ei = spanning_tree.begin();
-         ei != spanning_tree.end(); ++ei) {
-        int u = source(*ei, g);
-        int v = target(*ei, g);
-        DebugOn(u << " <--> " << v
-                << " with weight of " << -weight[*ei]
-                << endl);
-        name = (int) cliquetree->arcs.size();
-        a = new Arc(name);
-        a->_id = cliquetree->arcs.size();
-        
-        // intersection
-        vector<Node*> v3;
-        sort(this->_bags[u].begin(), this->_bags[u].end());
-        sort(this->_bags[v].begin(), this->_bags[v].end());
-        set_intersection(this->_bags[u].begin(), this->_bags[u].end(),
-                         this->_bags[v].begin(), this->_bags[v].end(),
-                         back_inserter(v3));
-        a->_src = cliquetree->get_node(to_string(u));
-        a->_dest = cliquetree->get_node(to_string(v));
-        a->_weight = -weight[*ei];
-        a->_intersection = v3;
-        cliquetree->add_arc(a);
-        a->connect();
-        
-        for (int i = 0; i < v3.size(); i++){
-                auto  node = v3.at(i);
-            for (int j = i+1; j < v3.size(); j++){
-                auto arc = get_arc(node, v3.at(j)); 
-                if (arc != nullptr){
-                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), arc->_active)); 
-                }
-             //   else
-               //     a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
-            }
-        }
-    }
-#endif
-    return cliquetree;
-}
+//Net* Net::get_clique_tree(){
+//    Net* cliquetree = new Net();
+//    Node* node = nullptr;
+//    Arc*  a = nullptr;
+//    string name;
+//    get_cliquebags(true);
+//#ifdef USE_BOOST
+//    /** Note that we also need the edge information of the clique tree **/
+//    /** boost graph library or implement the expanded version of MCS algorithm by Blair and Peyton */
+//    typedef boost::adjacency_list <boost::vecS,
+//    boost::vecS,
+//    boost::undirectedS,
+//    boost::no_property,
+//    boost::property < boost::edge_weight_t, int >> Graph;
+//    typedef boost::graph_traits <Graph>::edge_descriptor Edge;
+//    //typedef boost::graph_traits <Graph>::vertex_descriptor Vertex;
+//
+//    // BUILD THE INTERSECTION GRAPH OF THE CLIQUES
+//    typedef std::pair<int, int> E;
+//    std::vector<E> edges;
+//    std::vector<int> weights;
+//    int nb_cliques = this->_bags.size();
+//    for (int i = 0; i < nb_cliques; i++) {
+//        DebugOn("bag " << i << " has " << this->_bags[i].size() << " nodes." <<endl);
+//        sort(this->_bags[i].begin(), this->_bags[i].end());
+//        for (int j = i +1; j < nb_cliques; j++) {
+//            vector<Node*> v3;
+//            sort(this->_bags[j].begin(), this->_bags[j].end());
+//            set_intersection(this->_bags[i].begin(), this->_bags[i].end(), this->_bags[j].begin(), this->_bags[j].end(), back_inserter(v3));
+//            if (v3.size() > 0) {
+//                edges.push_back(E(i, j));
+//                weights.push_back(-v3.size());
+//            }
+//        }
+//    }
+//    //size_t num_edges = edges.size();
+//
+//#if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
+//    Graph g(num_nodes);
+//    boost::property_map<Graph, edge_weight_t>::type weightmap = get(edge_weight, g);
+//    for (std::size_t j = 0; j < num_edges; ++j) {
+//        Edge e;
+//        bool inserted;
+//        boost::tie(e, inserted) = boost::add_edge(edges[j].first, edges[j].second, g);
+//        boost::weightmap[e] = weights[j];
+//    }
+//#else
+//    Graph g(edges.begin(), edges.end(), weights.begin(), nb_cliques);
+//#endif
+//    boost::property_map < Graph, boost::edge_weight_t >::type weight = get(boost::edge_weight, g);
+//    std::vector < Edge > spanning_tree;
+//    boost::kruskal_minimum_spanning_tree(g, std::back_inserter(spanning_tree));
+//
+//    DebugOn("Print the total " << spanning_tree.size() << " edges in the clique tree:" << endl);
+//
+//    //////////CLIQUE TREE /////////////////////////////
+//    for (int i = 0; i < nb_cliques; i++) {
+//        node= new Node(to_string(i), i);
+//        cliquetree->add_node(node);
+//    }
+//
+//    for (std::vector < Edge >::iterator ei = spanning_tree.begin();
+//         ei != spanning_tree.end(); ++ei) {
+//        int u = source(*ei, g);
+//        int v = target(*ei, g);
+//        DebugOn(u << " <--> " << v
+//                << " with weight of " << -weight[*ei]
+//                << endl);
+//        name = (int) cliquetree->arcs.size();
+//        a = new Arc(name);
+//        a->_id = cliquetree->arcs.size();
+//
+//        // intersection
+//        vector<Node*> v3;
+//        sort(this->_bags[u].begin(), this->_bags[u].end());
+//        sort(this->_bags[v].begin(), this->_bags[v].end());
+//        set_intersection(this->_bags[u].begin(), this->_bags[u].end(),
+//                         this->_bags[v].begin(), this->_bags[v].end(),
+//                         back_inserter(v3));
+//        a->_src = cliquetree->get_node(to_string(u));
+//        a->_dest = cliquetree->get_node(to_string(v));
+//        a->_weight = -weight[*ei];
+//        a->_intersection = v3;
+//        cliquetree->add_arc(a);
+//        a->connect();
+//
+//        for (int i = 0; i < v3.size(); i++){
+//                auto  node = v3.at(i);
+//            for (int j = i+1; j < v3.size(); j++){
+//                auto arc = get_arc(node, v3.at(j));
+//                if (arc != nullptr){
+//                    a->_intersection_clique.push_back(new index_pair(index_(arc->_src->_name), index_(arc->_dest->_name), arc->_active));
+//                }
+//             //   else
+//               //     a->_intersection_clique.push_back(new index_pair(index_(node->_name), index_(v3.at(j)->_name), true));
+//            }
+//        }
+//    }
+//#endif
+//    return cliquetree;
+//}
 
 
 //void Net::chol_decompose(bool print){
