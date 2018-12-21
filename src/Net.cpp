@@ -373,7 +373,7 @@ void Net::read_adjacency_matrix(const string& fname) {
     FILE *fp = fopen(fname.c_str(),"r");
     if(fp == NULL)
     {
-            clog << "Can’t open input file " << fname;
+            cout << "Can’t open input file " << fname;
             exit(1);
     }
     max_line_len = 1024;
