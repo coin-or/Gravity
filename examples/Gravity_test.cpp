@@ -290,6 +290,15 @@ TEST_CASE("testing function convexity"){
     CHECK(fn.is_convex());
 }
 
+TEST_CASE("testing nonlinear expressions"){
+    var<> x1("x1", -1, 1), x2("x2", 0, 3), x3("x3");
+    Constraint cstr("cycle");
+    cstr = cos(x1*x2);
+    CHECK(cstr.get_nb_vars()==2);
+    cstr += sin(x2*x3) + x1*expo(x2*x3) + log(x2);
+    CHECK(cstr.get_nb_vars()==3);
+}
+
 TEST_CASE("testing monomials"){
     var<> x1("x1"), x2("x2"), x3("x3");
     Constraint cstr("cycle");

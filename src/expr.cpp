@@ -345,22 +345,22 @@ namespace gravity{
         }
         return str;
     }
-    vector<shared_ptr<param_>> uexpr::get_nl_vars() const{
-        vector<shared_ptr<param_>> res;
-        if (_son->is_function()) {
-            auto vars = ((func_*)_son.get())->get_vars();
-            for (auto &pairs: vars){
-                res.push_back(pairs.second.first);
-            }
-        }
-        else if(_son->is_uexpr()) {
-            return ((uexpr*)_son.get())->get_nl_vars();
-        }
-        else if (_son->is_bexpr()){
-            return ((bexpr*)_son.get())->get_nl_vars();
-        }
-        return res;
-    }
+//    vector<shared_ptr<param_>> uexpr::get_nl_vars() const{
+//        vector<shared_ptr<param_>> res;
+//        if (_son->is_function()) {
+//            auto vars = ((func_*)_son.get())->get_vars();
+//            for (auto &pairs: vars){
+//                res.push_back(pairs.second.first);
+//            }
+//        }
+//        else if(_son->is_uexpr()) {
+//            return ((uexpr*)_son.get())->get_nl_vars();
+//        }
+//        else if (_son->is_bexpr()){
+//            return ((bexpr*)_son.get())->get_nl_vars();
+//        }
+//        return res;
+//    }
     
     func_ expr::get_derivative(const param_ &v) const{
         if(is_uexpr()){
@@ -400,36 +400,36 @@ namespace gravity{
         }
         return func_();
     }
-    vector<shared_ptr<param_>> bexpr::get_nl_vars() const{
-        vector<shared_ptr<param_>> res;
-        if (_lson->is_function()) {
-            auto vars = ((func_*)_lson.get())->get_vars();
-            for (auto &pairs: vars){
-                res.push_back(pairs.second.first);
-            }
-        }
-        else if(_lson->is_uexpr()) {
-            res = ((uexpr*)_lson.get())->get_nl_vars();
-        }
-        else if (_lson->is_bexpr()){
-            res = ((bexpr*)_lson.get())->get_nl_vars();
-        }
-        if (_rson->is_function()) {
-            auto vars = ((func_*)_rson.get())->get_vars();
-            for (auto &pairs: vars){
-                res.push_back(pairs.second.first);
-            }
-        }
-        else if(_rson->is_uexpr()) {
-            auto vars = ((uexpr*)_rson.get())->get_nl_vars();
-            res.insert(res.end(), vars.begin(), vars.end() );
-        }
-        else if (_rson->is_bexpr()){
-            auto vars = ((bexpr*)_rson.get())->get_nl_vars();
-            res.insert(res.end(), vars.begin(), vars.end() );
-        }
-        return res;
-    }
+//    vector<shared_ptr<param_>> bexpr::get_nl_vars() const{
+//        vector<shared_ptr<param_>> res;
+//        if (_lson->is_function()) {
+//            auto vars = ((func_*)_lson.get())->get_vars();
+//            for (auto &pairs: vars){
+//                res.push_back(pairs.second.first);
+//            }
+//        }
+//        else if(_lson->is_uexpr()) {
+//            res = ((uexpr*)_lson.get())->get_nl_vars();
+//        }
+//        else if (_lson->is_bexpr()){
+//            res = ((bexpr*)_lson.get())->get_nl_vars();
+//        }
+//        if (_rson->is_function()) {
+//            auto vars = ((func_*)_rson.get())->get_vars();
+//            for (auto &pairs: vars){
+//                res.push_back(pairs.second.first);
+//            }
+//        }
+//        else if(_rson->is_uexpr()) {
+//            auto vars = ((uexpr*)_rson.get())->get_nl_vars();
+//            res.insert(res.end(), vars.begin(), vars.end() );
+//        }
+//        else if (_rson->is_bexpr()){
+//            auto vars = ((bexpr*)_rson.get())->get_nl_vars();
+//            res.insert(res.end(), vars.begin(), vars.end() );
+//        }
+//        return res;
+//    }
     
     func_ bexpr::get_derivative(const param_ &v) const{
         switch (_otype) {
