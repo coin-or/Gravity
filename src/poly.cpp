@@ -22,98 +22,98 @@ namespace gravity{
     };
 
 
-//    lterm& lterm::operator=(const lterm &l){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = copy(*l._coef);
-//        _p = (param_*)copy(*l._p);
-//        _sign = l._sign;
-//        return *this;
-//    }
-//
-//    lterm& lterm::operator=(lterm&& l){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = l._coef;
-//        l._coef = nullptr;
-//        _p = l._p;
-//        l._p = nullptr;
-//        _sign = l._sign;
-//        return *this;
-//    }
-//
-//    qterm& qterm::operator=(const qterm &q){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = copy(*q._coef);
-//        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
-//        _sign = q._sign;
-//        _c_p1_transposed = q._c_p1_transposed;
-//        return *this;
-//    }
-//
-//
-//    qterm& qterm::operator=(qterm&& q){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = q._coef;
-//        q._coef = nullptr;
-//        _p = q._p;
-//        q._p = nullptr;
-//        _sign = q._sign;
-//        _c_p1_transposed = q._c_p1_transposed;
-//        return *this;
-//    }
-//
-//
-//
-//    pterm& pterm::operator=(const pterm &p){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_l) {
-//            delete _l;
-//        }
-//        _coef = copy(*p._coef);
-//        _l = new list<pair<param_*, int>>();
-//        for (auto &pair : *p._l) {
-//            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
-//        }
-//        _sign = p._sign;
-//        return *this;
-//    }
-//
-//
-//    pterm& pterm::operator=(pterm&& p){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_l) {
-//            delete _l;
-//        }
-//        _coef = p._coef;
-//        p._coef = nullptr;
-//        _l = p._l;
-//        p._l = nullptr;
-//        _sign = p._sign;
-//        return *this;
-//    }
+    lterm& lterm::operator=(const lterm &l){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_p) {
+            delete _p;
+        }
+        _coef = copy(*l._coef);
+        _p = (param_*)copy(*l._p);
+        _sign = l._sign;
+        return *this;
+    }
+
+    lterm& lterm::operator=(lterm&& l){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_p) {
+            delete _p;
+        }
+        _coef = l._coef;
+        l._coef = nullptr;
+        _p = l._p;
+        l._p = nullptr;
+        _sign = l._sign;
+        return *this;
+    }
+
+    qterm& qterm::operator=(const qterm &q){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_p) {
+            delete _p;
+        }
+        _coef = copy(*q._coef);
+        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
+        _sign = q._sign;
+        _c_p1_transposed = q._c_p1_transposed;
+        return *this;
+    }
+
+
+    qterm& qterm::operator=(qterm&& q){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_p) {
+            delete _p;
+        }
+        _coef = q._coef;
+        q._coef = nullptr;
+        _p = q._p;
+        q._p = nullptr;
+        _sign = q._sign;
+        _c_p1_transposed = q._c_p1_transposed;
+        return *this;
+    }
+
+
+
+    pterm& pterm::operator=(const pterm &p){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_l) {
+            delete _l;
+        }
+        _coef = copy(*p._coef);
+        _l = new list<pair<param_*, int>>();
+        for (auto &pair : *p._l) {
+            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
+        }
+        _sign = p._sign;
+        return *this;
+    }
+
+
+    pterm& pterm::operator=(pterm&& p){
+        if (_coef) {
+            delete _coef;
+        }
+        if (_l) {
+            delete _l;
+        }
+        _coef = p._coef;
+        p._coef = nullptr;
+        _l = p._l;
+        p._l = nullptr;
+        _sign = p._sign;
+        return *this;
+    }
 
     
     double lterm::eval(size_t i) const{
