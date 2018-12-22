@@ -45,13 +45,13 @@ namespace gravity {
         
         lterm(){};
         
-        lterm(lterm&& t){
-            *this = move(t);
-        };
-        
-        lterm(const lterm& t){
-            *this = t;
-        };
+//        lterm(lterm&& t){
+//            *this = move(t);
+//        };
+//
+//        lterm(const lterm& t){
+//            *this = t;
+//        };
         
         
         lterm(param_* p):lterm(true,p){
@@ -99,8 +99,8 @@ namespace gravity {
         bool operator==(const lterm& l) const;
         bool operator!=(const lterm& l) const;
         
-        lterm& operator=(const lterm& l);
-        lterm& operator=(lterm&& l);
+//        lterm& operator=(const lterm& l);
+//        lterm& operator=(lterm&& l);
         
         string to_str(size_t ind) const;
         string to_str(size_t ind, size_t inst) const;
@@ -122,14 +122,14 @@ namespace gravity {
             _p = nullptr;
         }
         
-        qterm(qterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _p = t._p;
-            t._p = nullptr;
-            _sign = t._sign;
-            _c_p1_transposed = t._c_p1_transposed;
-        };
+//        qterm(qterm&& t){
+//            _coef = t._coef;
+//            t._coef = nullptr;
+//            _p = t._p;
+//            t._p = nullptr;
+//            _sign = t._sign;
+//            _c_p1_transposed = t._c_p1_transposed;
+//        };
         
         
         qterm(param_* p1, param_* p2):qterm(true, p1, p2){};
@@ -205,8 +205,8 @@ namespace gravity {
         bool operator==(const qterm& l) const;
         bool operator!=(const qterm& l) const;
         
-        qterm& operator=(const qterm& l);
-        qterm& operator=(qterm&& l);
+//        qterm& operator=(const qterm& l);
+//        qterm& operator=(qterm&& l);
         
         string to_str(size_t ind) const;
         string to_str(size_t ind, size_t inst) const;
@@ -242,13 +242,13 @@ namespace gravity {
         };
         
         
-        pterm(pterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _l = t._l;
-            t._l = nullptr;
-            _sign = t._sign;
-        };
+//        pterm(pterm&& t){
+//            _coef = t._coef;
+//            t._coef = nullptr;
+//            _l = t._l;
+//            t._l = nullptr;
+//            _sign = t._sign;
+//        };
         
         pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
             param_* p1 = nullptr;
@@ -305,8 +305,8 @@ namespace gravity {
         bool operator==(const pterm& l) const;
         bool operator!=(const pterm& l) const;
         
-        pterm& operator=(const pterm& l);
-        pterm& operator=(pterm&& l);
+//        pterm& operator=(const pterm& l);
+//        pterm& operator=(pterm&& l);
         
         string to_str(size_t ind) const;
         string to_str(size_t ind, size_t inst) const;

@@ -290,6 +290,13 @@ TEST_CASE("testing function convexity"){
     CHECK(fn.is_convex());
 }
 
+TEST_CASE("testing monomials"){
+    var<> x1("x1"), x2("x2"), x3("x3");
+    Constraint cstr("cycle");
+    cstr = x1*x2 + x2*x3 + x1*x3;
+    auto monoms = cstr.get_monomials(3);
+}
+
 TEST_CASE("testing acopf"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     unsigned nb_threads = 2;
