@@ -162,9 +162,8 @@ int main (int argc, char * argv[]) {
         }
         else {
             SDP.add(SDP3 >= 0);
+            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
-        DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
-        
     }
     /* Second-order cone constraints */
     Constraint SOC("SOC");
