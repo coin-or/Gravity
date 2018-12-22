@@ -22,98 +22,98 @@ namespace gravity{
     };
 
 
-    lterm& lterm::operator=(const lterm &l){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = copy(*l._coef);
-        _p = (param_*)copy(*l._p);
-        _sign = l._sign;
-        return *this;
-    }
-
-    lterm& lterm::operator=(lterm&& l){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = l._coef;
-        l._coef = nullptr;
-        _p = l._p;
-        l._p = nullptr;
-        _sign = l._sign;
-        return *this;
-    }
-
-    qterm& qterm::operator=(const qterm &q){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = copy(*q._coef);
-        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
-        _sign = q._sign;
-        _c_p1_transposed = q._c_p1_transposed;
-        return *this;
-    }
-
-
-    qterm& qterm::operator=(qterm&& q){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = q._coef;
-        q._coef = nullptr;
-        _p = q._p;
-        q._p = nullptr;
-        _sign = q._sign;
-        _c_p1_transposed = q._c_p1_transposed;
-        return *this;
-    }
-
-
-
-    pterm& pterm::operator=(const pterm &p){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_l) {
-            delete _l;
-        }
-        _coef = copy(*p._coef);
-        _l = new list<pair<param_*, int>>();
-        for (auto &pair : *p._l) {
-            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
-        }
-        _sign = p._sign;
-        return *this;
-    }
-
-
-    pterm& pterm::operator=(pterm&& p){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_l) {
-            delete _l;
-        }
-        _coef = p._coef;
-        p._coef = nullptr;
-        _l = p._l;
-        p._l = nullptr;
-        _sign = p._sign;
-        return *this;
-    }
+//    lterm& lterm::operator=(const lterm &l){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = copy(*l._coef);
+//        _p = (param_*)copy(*l._p);
+//        _sign = l._sign;
+//        return *this;
+//    }
+//
+//    lterm& lterm::operator=(lterm&& l){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = l._coef;
+//        l._coef = nullptr;
+//        _p = l._p;
+//        l._p = nullptr;
+//        _sign = l._sign;
+//        return *this;
+//    }
+//
+//    qterm& qterm::operator=(const qterm &q){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = copy(*q._coef);
+//        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
+//        _sign = q._sign;
+//        _c_p1_transposed = q._c_p1_transposed;
+//        return *this;
+//    }
+//
+//
+//    qterm& qterm::operator=(qterm&& q){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = q._coef;
+//        q._coef = nullptr;
+//        _p = q._p;
+//        q._p = nullptr;
+//        _sign = q._sign;
+//        _c_p1_transposed = q._c_p1_transposed;
+//        return *this;
+//    }
+//
+//
+//
+//    pterm& pterm::operator=(const pterm &p){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_l) {
+//            delete _l;
+//        }
+//        _coef = copy(*p._coef);
+//        _l = new list<pair<param_*, int>>();
+//        for (auto &pair : *p._l) {
+//            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
+//        }
+//        _sign = p._sign;
+//        return *this;
+//    }
+//
+//
+//    pterm& pterm::operator=(pterm&& p){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_l) {
+//            delete _l;
+//        }
+//        _coef = p._coef;
+//        p._coef = nullptr;
+//        _l = p._l;
+//        p._l = nullptr;
+//        _sign = p._sign;
+//        return *this;
+//    }
 
     
     double lterm::eval(size_t i) const{
@@ -347,28 +347,28 @@ namespace gravity{
             if (p.second != 1) {
                 switch (p.second) {
                     case 2:
-                        str += "\u00B2";
+                        str += "²";
                         break;
                     case 3:
-                        str += "\u00B3";
+                        str += "³";
                         break;
                     case 4:
-                        str += "\u00B4";
+                        str += "⁴";
                         break;
                     case 5:
-                        str += "\u00B5";
+                        str += "⁵";
                         break;
                     case 6:
-                        str += "\u00B6";
+                        str += "⁶";
                         break;
                     case 7:
-                        str += "\u00B7";
+                        str += "⁷";
                         break;
                     case 8:
-                        str += "\u00B8";
+                        str += "⁸";
                         break;
                     case 9:
-                        str += "\u00B9";
+                        str += "⁹";
                         break;
                     default:
                         str += "^" + to_string(p.second);
