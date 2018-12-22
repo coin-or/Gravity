@@ -323,6 +323,10 @@ TEST_CASE("testing acopf"){
     CHECK(ACOPF1->is_feasible(tol));
     ACOPF1->print_solution();
     auto Mc = ACOPF1->build_McCormick();
+    auto clone = grid1.clone();
+    CHECK(clone->arcs.size()==grid1.arcs.size());
+    clone->remove_arc(clone->arcs.at(0));
+    CHECK(clone->arcs.size()==grid1.arcs.size()-1);
 }
 
 TEST_CASE("testing socopf"){

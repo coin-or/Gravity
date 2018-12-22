@@ -37,6 +37,7 @@ script:
 - ../bin/Release/dcopf
 - ../bin/Release/socopf
 - ../bin/Release/sdpcuts
+- ../bin/Release/sdpcuts -lz yes
 - ../bin/Release/svm -nb -1 -mu 1e2
 - ../bin/Release/ising
 - ../bin/Release/stable_set

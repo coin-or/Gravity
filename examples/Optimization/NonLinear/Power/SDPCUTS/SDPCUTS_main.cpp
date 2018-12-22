@@ -40,7 +40,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = yes", lazy);
+    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
 
