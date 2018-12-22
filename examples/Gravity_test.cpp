@@ -294,7 +294,7 @@ TEST_CASE("testing monomials"){
     var<> x1("x1"), x2("x2"), x3("x3");
     Constraint cstr("cycle");
     cstr = x1*x2 + x2*x3 + x1*x3;
-    auto monoms = cstr.get_monomials(3);
+    auto monoms = cstr.get_monomials(9);
 }
 
 TEST_CASE("testing acopf"){
