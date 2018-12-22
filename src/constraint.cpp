@@ -48,6 +48,9 @@ size_t Constraint::get_nb_instances() const{
     if (!*_all_lazy) {
         return _dim[0];
     }
+    if(_lazy.size()==0){
+        return 0;
+    }
     for (size_t i = 0; i<_dim[0]; i++) {
         if (!_lazy[i]) {
             nb++;
