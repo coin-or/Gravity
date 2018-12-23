@@ -22,18 +22,18 @@ namespace gravity{
     };
 
 
-    lterm& lterm::operator=(const lterm &l){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = copy(*l._coef);
-        _p = (param_*)copy(*l._p);
-        _sign = l._sign;
-        return *this;
-    }
+//    lterm& lterm::operator=(const lterm &l){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = copy(*l._coef);
+//        _p = (param_*)copy(*l._p);
+//        _sign = l._sign;
+//        return *this;
+//    }
 
     lterm& lterm::operator=(lterm&& l){
         if (_coef) {
@@ -50,19 +50,19 @@ namespace gravity{
         return *this;
     }
 
-    qterm& qterm::operator=(const qterm &q){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_p) {
-            delete _p;
-        }
-        _coef = copy(*q._coef);
-        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
-        _sign = q._sign;
-        _c_p1_transposed = q._c_p1_transposed;
-        return *this;
-    }
+//    qterm& qterm::operator=(const qterm &q){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_p) {
+//            delete _p;
+//        }
+//        _coef = copy(*q._coef);
+//        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
+//        _sign = q._sign;
+//        _c_p1_transposed = q._c_p1_transposed;
+//        return *this;
+//    }
 
 
     qterm& qterm::operator=(qterm&& q){
@@ -83,21 +83,21 @@ namespace gravity{
 
 
 
-    pterm& pterm::operator=(const pterm &p){
-        if (_coef) {
-            delete _coef;
-        }
-        if (_l) {
-            delete _l;
-        }
-        _coef = copy(*p._coef);
-        _l = new list<pair<param_*, int>>();
-        for (auto &pair : *p._l) {
-            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
-        }
-        _sign = p._sign;
-        return *this;
-    }
+//    pterm& pterm::operator=(const pterm &p){
+//        if (_coef) {
+//            delete _coef;
+//        }
+//        if (_l) {
+//            delete _l;
+//        }
+//        _coef = copy(*p._coef);
+//        _l = new list<pair<param_*, int>>();
+//        for (auto &pair : *p._l) {
+//            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
+//        }
+//        _sign = p._sign;
+//        return *this;
+//    }
 
 
     pterm& pterm::operator=(pterm&& p){
@@ -464,9 +464,9 @@ namespace gravity{
         return str;
     }
 
-    void pterm::print(size_t ind) const{
-        cout << this->to_str(ind);
-    }
+//    void pterm::print(size_t ind) const{
+//        cout << this->to_str(ind);
+//    }
 
     string qterm::to_str(size_t ind) const {
         string str;
@@ -625,9 +625,9 @@ namespace gravity{
     }
 
 
-    void qterm::print(size_t ind) const {
-        cout << this->to_str(ind);
-    }
+//    void qterm::print(size_t ind) const {
+//        cout << this->to_str(ind);
+//    }
 
 
     string lterm::to_str(size_t ind) const{
@@ -684,9 +684,9 @@ namespace gravity{
     }
 
 
-    void lterm::print(size_t ind) const{
-        cout << this->to_str(ind);
-    }
+//    void lterm::print(size_t ind) const{
+//        cout << this->to_str(ind);
+//    }
 
     string lterm::to_str(size_t ind, size_t inst) const{
         string str;
