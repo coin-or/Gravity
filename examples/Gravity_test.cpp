@@ -31,6 +31,7 @@ TEST_CASE("testing constants") {
     c0 = 3.5;
     CHECK(c0==3.5);
     CHECK(c0.is_positive());
+    CHECK(!c0.is_negative());
     constant<Cpx> cx0;
     cx0 = Cpx(-1,1);
     CHECK(cx0.is_complex());
