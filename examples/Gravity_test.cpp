@@ -41,6 +41,10 @@ TEST_CASE("testing constants") {
     auto cx2 = cx0 + cx1;
     CHECK(cx2.is_complex());
     CHECK(cx2.is_negative());
+    auto mag0 = sqrmag(cx2);
+    CHECK(abs(mag0.eval()-5)<1e-12);
+    auto ang0 = angle(cx2);
+    ang0.print();
     cx2.print();
 }
 
