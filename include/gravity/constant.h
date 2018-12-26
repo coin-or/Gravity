@@ -30,7 +30,7 @@ namespace gravity {
      @return a string with the specified precision.
      */
     template<class T, class = typename enable_if<is_arithmetic<T>::value>::type>
-    std::string to_string_with_precision(const T a_value, const int n)
+    string to_string_with_precision(const T a_value, const int n)
     {
         std::ostringstream out;
         if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::lowest()){
@@ -48,11 +48,7 @@ namespace gravity {
      @param[in] n number of decimals in transformation.
      @return a string with the specified precision.
      */
-    std::string to_string_with_precision(const Cpx& a_value, const int n){
-        std::ostringstream out;
-        out << std::setprecision(n) << a_value;
-        return out.str();
-    }
+    string to_string_with_precision(const Cpx& a_value, const int n);
     
     /** Backbone class for constant */
     class constant_{
@@ -462,10 +458,21 @@ namespace gravity {
         }
         
     };
-    
+    /**
+     Returns the conjugate of cst.
+     @param[in] cst complex number.
+     @return the conjugate of cst.
+     */
     constant<Cpx> conj(const constant<Cpx>& cst);
     constant<double> real(const constant<Cpx>& cst);
     constant<double> imag(const constant<Cpx>& cst);
+    /**
+     Returns the square magnitude of cst.
+     @param[in] cst complex number.
+     @return the square magnitude of cst.
+     */
+    constant<double> sqrmag(const constant<Cpx>& cst);
+    constant<double> angle(const constant<Cpx>& cst);
 
 }
 
