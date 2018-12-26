@@ -20,8 +20,5 @@ constant<double> gravity::imag(const constant<Cpx>& cst){
     return imag(cst.eval());
 }
 
-string gravity::to_string_with_precision(const Cpx& val, const int n) {
-    std::ostringstream out;
-    out << std::setprecision(n) << val;
-    return out.str();
-}
+
+
