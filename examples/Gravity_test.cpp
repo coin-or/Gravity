@@ -25,7 +25,7 @@ using namespace std;
 using namespace gravity;
 
 
-TEST_CASE("testing constants") {
+TEST_CASE("Testing constants") {
     constant<> c0;
     CHECK(c0.is_double());
     c0 = 3.5;
@@ -52,6 +52,8 @@ TEST_CASE("testing constants") {
     CHECK(cx3.eval().imag()==-1*cx1.eval().imag());
     CHECK(real(cx3) == cx3.eval().real());
     CHECK(imag(cx3) == cx3.eval().imag());
+    CHECK(cx3.get_dim() == 1);
+    CHECK(cx3.is_number());
 }
 
 //TEST_CASE("testing param copy operator") {
