@@ -39,13 +39,19 @@ TEST_CASE("testing constants") {
     constant<Cpx> cx1;
     cx1 = Cpx(-1,-2);
     auto cx2 = cx0 + cx1;
+    cx2.print();
     CHECK(cx2.is_complex());
     CHECK(cx2.is_negative());
     auto mag0 = sqrmag(cx2);
-    CHECK(abs(mag0.eval()-5)<1e-12);
+    CHECK(abs(mag0.eval()-5)<1e-8);
     auto ang0 = angle(cx2);
     ang0.print();
-    cx2.print();
+    CHECK(abs(ang0.eval()-(-2.677945045))<1e-8);
+    auto cx3 = conj(cx1);
+    CHECK(cx3.eval().real()==cx1.eval().real());
+    CHECK(cx3.eval().imag()==-1*cx1.eval().imag());
+    CHECK(real(cx3) == cx3.eval().real());
+    CHECK(imag(cx3) == cx3.eval().imag());
 }
 
 //TEST_CASE("testing param copy operator") {
