@@ -27,4 +27,3 @@ comment:
 
 ignore:
   - "examples/*" 
-  - "include/gravity/*"
