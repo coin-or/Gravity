@@ -54,6 +54,7 @@ namespace gravity {
     class constant_{
     protected:
         CType                           _type; /**< Constant type: { binary_c, short_c, integer_c, float_c, double_c, long_c, complex_c, par_c, uexp_c, bexp_c, var_c, func_c}*/
+        void set_type(CType type){ _type = type;}
         
     public:
         bool                            _is_transposed = false; /**< True if the constant is transposed */
@@ -62,7 +63,7 @@ namespace gravity {
         
         virtual ~constant_(){};
         CType get_type() const { return _type;}
-        void set_type(CType type){ _type = type;}
+        
         
         /** Querries */
         bool is_binary() const{
