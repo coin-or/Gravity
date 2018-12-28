@@ -14,7 +14,7 @@
 //#include <gravity/Net.h>
 #include <gravity/model.h>
 #include <gravity/solver.h>
-#include <gravity/constant.h>
+#include <gravity/param.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <gravity/doctest.h>
@@ -63,85 +63,103 @@ TEST_CASE("Testing constants") {
     CHECK(cx3.is_number());
 }
 
-//TEST_CASE("testing param copy operator") {
-//    param<int> ip("ip");
-//    ip.print();
-//    ip.add_val(2);
-//    ip.add_val(3);
-//    ip.print();
-//    param<int> ip2(ip);
-//    ip2.print();
-//    CHECK(ip==ip2);
-//}
+TEST_CASE("Testing parameters") {
+    param<> c0("c0");
+    CHECK(c0.is_double());
+    c0 = 3.5;
+    CHECK(c0.is_positive());
+    CHECK(!c0.is_negative());
+    param<Cpx> cx0("p0");
+    cx0 = Cpx(-1,1);
+    CHECK(cx0.is_complex());
+    param<Cpx> cx1("p1");
+    cx1 = Cpx(-1,-2);
+    auto mag0 = sqrmag(cx1);
+    auto ang0 = ang(cx1);
+    mag0.print();
+    ang0.print();
+    auto cx3 = conj(cx1);
+    CHECK(cx3.eval().real()==cx1.eval().real());
+    CHECK(cx3.get_dim() == 1);
+}
+
+TEST_CASE("testing param copy operator") {
+    param<int> ip("ip");
+    ip.print();
+    ip.add_val(2);
+    ip.add_val(3);
+    ip.print();
+    param<int> ip2(ip);
+    ip2.print();
+    CHECK(ip==ip2);
+}
 //
-//TEST_CASE("testing param indexing, add_val() and set_val() functions") {
-//    param<> ip("ip");
-//    ip.print();
-//    ip.add_val(2);
-//    ip.add_val(-1.3);
-//    ip.print();
-//    ip.set_val(0, 1.5);
-//    ip.print();
-//    CHECK(ip.eval(0)==1.5);
-//    indices ids("index_set");
-//    ids = {"id1", "id2", "key3"};
-//    param<> dp("dp");
-//    dp.in(ids);
-//    dp.print();
-//    dp("id1") = 1.5;
-//    dp("id2") = -231.5;
-//    dp.print();
-//    CHECK(dp.eval("id1")==1.5);
-//    CHECK(dp.eval("id2")==-231.5);
-//    CHECK(dp.eval("key3")==0);
-//    REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
-//    auto ndp = dp.in(ids.exclude("id2"));
-//    ndp.print();
-//    CHECK(ndp.get_dim()==2);
-//
-//}
-//TEST_CASE("testing matrix params") {
-//    param<> mat("mat");
-//    mat.set_size(3,3);
-//    mat.set_val(1, 2, 2.3);
-//    mat.print();
-//    CHECK(mat.eval(1,2)==2.3);
-//    CHECK(mat(1,2).eval()==2.3);
-//    auto tr_mat = mat.tr();
-//    tr_mat.print();
-//    CHECK(tr_mat.eval(2,1)==2.3);
-//    CHECK(tr_mat(2,1).eval()==2.3);
-//    /* Complex matrices */
-//    param<Cpx> Cmat("Cmat");
-//    Cmat.set_size(3,3);
-//    Cpx cval = Cpx(-1,2);
-//    Cmat.set_val(0, 1, cval);
-//    Cmat.print();
-//    CHECK(Cmat.eval(0,1)==cval);
-//    CHECK(Cmat(0,1).eval()==cval);
-//}
-//
-//TEST_CASE("testing param sign functions") {
-//
-//
-//    param<int> ip("ip");
-//    ip.print();
-//    ip.add_val(2);
-//    ip.add_val(3);
-//    ip.print();
-//    CHECK(ip.is_non_negative());
-//    CHECK(ip.is_positive());
-//    CHECK(!ip.is_negative());
-//    CHECK(!ip.is_non_positive());
-//    param<> dp("dp");
-//    dp.add_val(0);
-//    dp.add_val(-3);
-//    dp.print();
-//    CHECK(!dp.is_positive());
-//    CHECK(!dp.is_non_negative());
-//    CHECK(!dp.is_negative());
-//    CHECK(dp.is_non_positive());
-//}
+TEST_CASE("testing param indexing, add_val() and set_val() functions") {
+    param<> ip("ip");
+    ip.print();
+    ip.add_val(2);
+    ip.add_val(-1.3);
+    ip.print();
+    ip.set_val(0, 1.5);
+    ip.print();
+    CHECK(ip.eval(0)==1.5);
+    indices ids("index_set");
+    ids = {"id1", "id2", "key3"};
+    param<> dp("dp");
+    dp.in(ids);
+    dp.print();
+    dp("id1") = 1.5;
+    dp("id2") = -231.5;
+    dp.print();
+    CHECK(dp.eval("id1")==1.5);
+    CHECK(dp.eval("id2")==-231.5);
+    CHECK(dp.eval("key3")==0);
+    REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
+    auto ndp = dp.in(ids.exclude("id2"));
+    ndp.print();
+    CHECK(ndp.get_dim()==2);
+}
+
+TEST_CASE("testing matrix params") {
+    param<> mat("mat");
+    mat.set_size(3,3);
+    mat.set_val(1, 2, 2.3);
+    mat.print();
+    CHECK(mat.eval(1,2)==2.3);
+    CHECK(mat(1,2).eval()==2.3);
+    auto tr_mat = mat.tr();
+    tr_mat.print();
+    CHECK(tr_mat.eval(2,1)==2.3);
+    CHECK(tr_mat(2,1).eval()==2.3);
+    /* Complex matrices */
+    param<Cpx> Cmat("Cmat");
+    Cmat.set_size(3,3);
+    Cpx cval = Cpx(-1,2);
+    Cmat.set_val(0, 1, cval);
+    Cmat.print();
+    CHECK(Cmat.eval(0,1)==cval);
+    CHECK(Cmat(0,1).eval()==cval);
+}
+
+TEST_CASE("testing param sign functions") {
+    param<int> ip("ip");
+    ip.print();
+    ip.add_val(2);
+    ip.add_val(3);
+    ip.print();
+    CHECK(ip.is_non_negative());
+    CHECK(ip.is_positive());
+    CHECK(!ip.is_negative());
+    CHECK(!ip.is_non_positive());
+    param<> dp("dp");
+    dp.add_val(0);
+    dp.add_val(-3);
+    dp.print();
+    CHECK(!dp.is_positive());
+    CHECK(!dp.is_non_negative());
+    CHECK(!dp.is_negative());
+    CHECK(dp.is_non_positive());
+}
 //
 //TEST_CASE("testing variables indexing") {
 //    indices ids("index_set");

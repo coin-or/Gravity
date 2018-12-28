@@ -217,8 +217,6 @@ namespace gravity {
         bool is_non_negative() const; /**< Returns true if constant is non negative */
     };
 
-    template<typename type>
-    class param;
 
     /** Polymorphic class constant, can store an arithmetic or a complex number.*/
     template<typename type = double>
@@ -274,9 +272,6 @@ namespace gravity {
             _val = val;
         };
         
-
-
-        ~constant(){};
         
         constant tr(){
             auto newc(*this);
