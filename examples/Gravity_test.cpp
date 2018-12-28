@@ -45,7 +45,7 @@ TEST_CASE("Testing constants") {
     auto mag0 = sqrmag(cx2);
     CHECK(abs(mag0.eval()-5)<1e-8);
     auto ang0 = angle(cx2);
-    ang0.print();
+    ang0.println();
     CHECK(abs(ang0.eval()-(-2.677945045))<1e-8);
     auto cx3 = conj(cx1);
     CHECK(cx3.eval().real()==cx1.eval().real());
@@ -53,6 +53,13 @@ TEST_CASE("Testing constants") {
     CHECK(real(cx3) == cx3.eval().real());
     CHECK(imag(cx3) == cx3.eval().imag());
     CHECK(cx3.get_dim() == 1);
+    try{
+        cx3.get_dim(2);
+    }
+    catch(invalid_argument& arg){
+        cout << "Error successfully caught: "<< endl;
+        cout << arg.what() << endl;
+    }
     CHECK(cx3.is_number());
 }
 
