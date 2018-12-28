@@ -27,3 +27,4 @@ comment:
 
 ignore:
   - "examples/*" 
+  - "include/gravity/doctest.h" 
