@@ -43,11 +43,15 @@ namespace gravity {
 
         NType                                          _intype; /**< internal storage type **/
 
+        void set_type(NType type) {
+            _intype = type;
+        }
+
     public:
 
-        string                                         _name;
+        string                                         _name = "noname";
         shared_ptr<size_t>                             _id = make_shared<size_t>(0); /**< index of current param/var */
-        shared_ptr<size_t>                             _vec_id = nullptr; /**< index of the corresponding vector (for Cplex). **/
+        shared_ptr<size_t>                             _vec_id = make_shared<size_t>(0);; /**< index of the corresponding vector (for Cplex). **/
         shared_ptr<indices>                            _indices = nullptr; /*< If indexed, point to the indexing set */
         bool                                           _is_relaxed = false; /*< Is this an integer parameter/variable that has been relaxed? */
         bool                                           _new = true; /**< Will become false once this parameter/variable is added to a program. Useful for iterative model solving. */
@@ -80,16 +84,18 @@ namespace gravity {
             return *_vec_id;
         };
 
-        size_t get_id_inst(size_t inst = 0) const {
-            assert(!is_matrix());
+        size_t get_id_inst(size_t inst = 0) const {            
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
-                    throw invalid_argument("get_id_inst out of range");
+                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
             }
             auto dim = get_dim();
-            return min(dim-1, inst);
+            if(inst > dim-1){
+                throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+            }
+            return inst;
         };
 
         size_t get_id_inst(size_t inst1, size_t inst2) const {
@@ -103,41 +109,15 @@ namespace gravity {
 //            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
         };
 
-        void copy(const param_& p) {
-            _id = p._id;
-            _vec_id = p._vec_id;
-            _name = p._name;
-            _is_transposed = p._is_transposed;
-            _is_vector = p._is_vector;
-            _is_angle = p._is_angle;
-            _is_sqrmag = p._is_sqrmag;
-            _is_conjugate = p._is_conjugate;
-            _is_real = p._is_real;
-            _is_imag = p._is_imag;
-            _indices = p._indices;
-            _dim[0] = p._dim[0];
-            _dim[1] = p._dim[1];
-        }
 
         string get_name(bool in_func = false, bool exclude_indexing = true) const{
-            if(in_func){/*< true if this param/var is wraped in a function */
-                auto name = _name;
-                if(_indices && exclude_indexing){
-                    return name.substr(0, name.find_last_of("."));
-                }
-                return name;
-            }
             string name = _name;
             if(_indices && exclude_indexing){
                 name = name.substr(0, name.find_last_of("."));
             }
-//            if (_is_vector) {
-//                name = "[" + name + "]";
-//            }
-            if (_is_transposed) {
+            if (!in_func && _is_transposed) {
                 name += "\u1D40";
             }
-
             return name;
         };
 
@@ -244,9 +224,6 @@ namespace gravity {
             throw invalid_argument("Calling get_ids() on a non-indexed param/var.");
         }
 
-        void set_type(NType type) {
-            _intype = type;
-        }
 
         /** Querries */
 
@@ -280,21 +257,12 @@ namespace gravity {
 
         Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
         Sign get_sign(size_t idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
-        pair<double,double>* get_range() const;
+        
 
         /** Operators */
         bool operator==(const param_& p) const {
             return (_id==p._id && _type==p._type && _intype==p._intype && get_name(false,false)==p.get_name(false,false));
         }
-//        size_t get_nb_instances() const {
-//            if (is_indexed()) {
-//                if (_indices->_ids->size()>1) {
-//                    throw invalid_argument("get_nb_instances should be called with index here\n");
-//                }
-//                return _indices->_ids->at(0).size();
-//            }
-//            return get_dim();
-//        }
 
         size_t get_dim() const{
             return constant_::get_dim();
@@ -304,39 +272,35 @@ namespace gravity {
             if (is_indexed() && _indices->_ids->size()>i) {
                 return _indices->_ids->at(i).size();
             }
-            else if(is_matrix() && i==1){
-                return _dim[1];
-            }
-            return _dim[0];
+            return constant_::get_dim(i);
         }
 
-//        size_t get_nb_instances(size_t inst) const {
-//            if (is_indexed() && _indices->_ids->size()>inst) {
-//                return _indices->_ids->at(inst).size();
-//            }
-//            return 1;
-//        }
     };
 
 
-    /** A parameter can be a bool, a short, an int, a float or a double*/
+    /** A parameter can be a bool, a short, an int, a float, a double, a long double or a complex<double>. */
     template<typename type = double>
     class param: public param_ {
 
     public:
 
-        shared_ptr<vector<type>>                _val; /**< stored values **/
+        shared_ptr<vector<type>>                _val; /**< vector of values **/
         shared_ptr<pair<type,type>>             _range; /**< (Min,Max) values in vals **/
 
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         param() {
             update_type();
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
 
-        ~param() {
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        param(){
+            update_type();
+            _val = make_shared<vector<type>>();
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
-
 
         param (const param& p) {
             *this = p;
@@ -409,13 +373,6 @@ namespace gravity {
             return _val;
         }
 
-        void set_type(CType t) {
-            _type = t;
-        }
-
-        void set_intype(NType t) {
-            _intype = t;
-        }
 
         void update_type() {
             _type = par_c;
@@ -443,20 +400,16 @@ namespace gravity {
                 _intype = long_;
                 return;
             }
-            if(typeid(type)==typeid(complex<double>)) {
+            if(typeid(type)==typeid(Cpx)) {
                 _intype = complex_;
                 return;
             }
-            throw bad_alloc();
+            throw invalid_argument("Unsupported numerical parameter type");
         }
 
 
-        param(const string& s) {
+        param(const string& s): param(){
             _name = s;
-            _vec_id = make_shared<size_t>(0);
-            update_type();
-            _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
 
         NType get_intype() const {
@@ -495,10 +448,6 @@ namespace gravity {
             return _val->at(param_::_indices->_keys_map->at(key));
         }
 
-        type eval(const index_pair& idp) const{
-            return _val->at(param_::_indices->_keys_map->at(idp._name));
-        }
-
         type eval(size_t i, size_t j) const {
 
             if (is_indexed() && _indices->_ids->size()>1) {
@@ -532,11 +481,13 @@ namespace gravity {
         }
 
         void   set_size(size_t s1, size_t s2) {
-            _is_vector = true;
             _dim[0] = s1;
             _dim[1] = s2;
             auto dim = _dim[0]*_dim[1];
             _val->resize(dim);
+            if (is_matrix()) {
+                _is_vector = true;
+            }
         };
 
         void   set_size(size_t s) {
@@ -546,6 +497,9 @@ namespace gravity {
 
 
         void add_val(type val) {
+            if(is_matrix()){
+                throw invalid_argument("Cannot call param::add_val(type val) on matrix");
+            }
             _val->push_back(val);
             update_range(val);
             _dim[0] = _val->size();
@@ -562,6 +516,9 @@ namespace gravity {
         }
 
         void add_val(size_t i, type val) {
+            if(is_matrix()){
+                throw invalid_argument("Cannot call param::add_val(type val) on matrix");
+            }
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
             _val->at(i) = val;
@@ -648,11 +605,17 @@ namespace gravity {
         }
 
         void set_val(type val) {
-            for (auto &v: *_val) {
-                v = val;
+            if(is_indexed()){
+                for(auto &idx: _indices->_ids->at(0)){
+                    _val->at(idx) = val;
+                }
             }
-            _range->first = val;
-            _range->second = val;
+            else {
+                for (auto &v: *_val) {
+                    v = val;
+                }
+            }
+            update_range(val);
         }
 
         template<typename T=type,
@@ -670,7 +633,7 @@ namespace gravity {
         }
 
 
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign_cpx() const{
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign() const{
             if (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)) {
                 return zero_;
             }
@@ -689,7 +652,8 @@ namespace gravity {
             return unknown_;
         }
 
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> Sign get_all_sign() const {
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign() const {
             if (_range->first == 0 && _range->second == 0) {
                 return zero_;
             }
@@ -714,9 +678,9 @@ namespace gravity {
             return (_range->first == 1 && _range->second == 1);
         }
 
-//        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
-//            return (_range->first == 0 && _range->second == 0);
-//        }
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
+            return (_range->first == 0 && _range->second == 0);
+        }
 
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
             return (_range->second <= 0   && _range->first <= 0);
@@ -751,9 +715,9 @@ namespace gravity {
         }
 
 
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM){
             for (size_t k=0; k<SM.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
+                for (Eigen::SparseMatrix<Cpx,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
                     set_val(2*it.row(), 2*it.col(), it.value().real());
                     set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
                     set_val(2*it.row()+1, 2*it.col(), it.value().imag());
@@ -844,25 +808,11 @@ namespace gravity {
         }
 #endif
 
-        void set_val_all(type v) {
-            if(is_indexed()){
-                for(auto &idx: _indices->_ids->at(0)){
-                    _val->at(idx) = v;
-                }
-            }
-            else {
-                for (size_t i = 0; i<_val->size(); i++) {
-                    _val->at(i) = v;
-                }
-            }
-            _range->first = v;
-            _range->second = v;
-        }
 
 
         param& operator=(type v) {
             if(is_indexed()){
-                set_val_all(v);
+                set_val(v);
             }
             else {
                 add_val(v);
@@ -1323,8 +1273,9 @@ namespace gravity {
                 return _val->at(0);
             }
         }
-        void update_range(const complex<double>& val);
-//        void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM);
+        
+        void update_range(const Cpx& val);
+//        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
 
     };
 
@@ -1337,7 +1288,7 @@ namespace gravity {
     template<typename type>
     param<type> diag(const param<type>& p){
         param<type> res("diag("+p._name+")");
-        if(p.i_matrix()){
+        if(p.is_matrix()){
             res.set_size(min(p._dim[0], p._dim[1]));
             for (auto i = 0; i<res._dim[0]; i++) {
                 res.set_val(i,p.eval(i,i));
