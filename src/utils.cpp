@@ -5,7 +5,6 @@
 
 using namespace std;
 using namespace gravity;
-
 double get_wall_time() {
     LARGE_INTEGER time,freq;
     if (!QueryPerformanceFrequency(&freq)) {
@@ -42,6 +41,21 @@ double get_cpu_time() {
 #endif
 
 
+int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
+{
+    size_t  pos = 0;
+    int     cnt = 0;
+    
+    while( cnt != nth )
+    {
+        pos+=1;
+        pos = str.find(findMe, pos);
+        if ( pos == std::string::npos )
+            return -1;
+        cnt++;
+    }
+    return pos;
+}
 
 op::OptionParser readOptions(int argc, char * argv[]){
     string log_level ="0";

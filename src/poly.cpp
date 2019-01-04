@@ -1,121 +1,97 @@
-////
-////  poly.cpp
-////  Gravity
-////
-////  Created by Hijazi, Hassan on 25 Oct 18.
-////
-////
-//#include <cmath>
-//#include <gravity/poly.h>
-//#include <gravity/func.h>
 //
-//using namespace std;
-//namespace gravity{        
+//  poly.cpp
+//  Gravity
 //
-//    lterm::lterm(bool sign, constant_* coef, param_* p){
-//        _coef = coef;
-//        _p = p;
-//        _sign = sign;
-//        if (coef->_is_transposed && p->_is_transposed) {
-//            throw invalid_argument("in lterm(bool sign, constant_* coef, param_* p), both coef and p are transposed!\n");
-//        }
-//    };
+//  Created by Hijazi, Hassan on 25 Oct 18.
 //
 //
-////    lterm& lterm::operator=(const lterm &l){
-////        if (_coef) {
-////            delete _coef;
-////        }
-////        if (_p) {
-////            delete _p;
-////        }
-////        _coef = copy(*l._coef);
-////        _p = (param_*)copy(*l._p);
-////        _sign = l._sign;
-////        return *this;
-////    }
-//
-//    lterm& lterm::operator=(lterm&& l){
+#include <cmath>
+#include <gravity/poly.h>
+#include <gravity/func.h>
+
+using namespace std;
+namespace gravity{
+
+    lterm::lterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p){
+        _coef = coef;
+        _p = p;
+        _sign = sign;
+        if (coef->_is_transposed && p->_is_transposed) {
+            throw invalid_argument("in lterm(bool sign, constant_* coef, param_* p), both coef and p are transposed!\n");
+        }
+    };
+
+
+//    lterm& lterm::operator=(const lterm &l){
 //        if (_coef) {
 //            delete _coef;
 //        }
 //        if (_p) {
 //            delete _p;
 //        }
-//        _coef = l._coef;
-//        l._coef = nullptr;
-//        _p = l._p;
-//        l._p = nullptr;
+//        _coef = copy(*l._coef);
+//        _p = (param_*)copy(*l._p);
 //        _sign = l._sign;
 //        return *this;
 //    }
-//
-////    qterm& qterm::operator=(const qterm &q){
-////        if (_coef) {
-////            delete _coef;
-////        }
-////        if (_p) {
-////            delete _p;
-////        }
-////        _coef = copy(*q._coef);
-////        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
-////        _sign = q._sign;
-////        _c_p1_transposed = q._c_p1_transposed;
-////        return *this;
-////    }
-//
-//
-//    qterm& qterm::operator=(qterm&& q){
+
+    lterm& lterm::operator=(lterm&& l){
+        _coef = move(l._coef);
+        _p = move(l._p);
+        _sign = l._sign;
+        return *this;
+    }
+
+//    qterm& qterm::operator=(const qterm &q){
 //        if (_coef) {
 //            delete _coef;
 //        }
 //        if (_p) {
 //            delete _p;
 //        }
-//        _coef = q._coef;
-//        q._coef = nullptr;
-//        _p = q._p;
-//        q._p = nullptr;
+//        _coef = copy(*q._coef);
+//        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
 //        _sign = q._sign;
-//        _c_p1_transposed = q._c_p1_transposed;
+//        _coef_p1_transposed = q._coef_p1_transposed;
 //        return *this;
 //    }
-//
-//
-//
-////    pterm& pterm::operator=(const pterm &p){
-////        if (_coef) {
-////            delete _coef;
-////        }
-////        if (_l) {
-////            delete _l;
-////        }
-////        _coef = copy(*p._coef);
-////        _l = new list<pair<param_*, int>>();
-////        for (auto &pair : *p._l) {
-////            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
-////        }
-////        _sign = p._sign;
-////        return *this;
-////    }
-//
-//
-//    pterm& pterm::operator=(pterm&& p){
+
+
+    qterm& qterm::operator=(qterm&& q){
+        _coef = move(q._coef);
+        _p = move(q._p);
+        _sign = q._sign;
+        _coef_p1_transposed = q._coef_p1_transposed;
+        return *this;
+    }
+
+
+
+//    pterm& pterm::operator=(const pterm &p){
 //        if (_coef) {
 //            delete _coef;
 //        }
 //        if (_l) {
 //            delete _l;
 //        }
-//        _coef = p._coef;
-//        p._coef = nullptr;
-//        _l = p._l;
-//        p._l = nullptr;
+//        _coef = copy(*p._coef);
+//        _l = new list<pair<param_*, int>>();
+//        for (auto &pair : *p._l) {
+//            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
+//        }
 //        _sign = p._sign;
 //        return *this;
 //    }
-//
-//    
+
+
+    pterm& pterm::operator=(pterm&& p){
+        _coef = move(p._coef);
+        _l = move(p._l);
+        _sign = p._sign;
+        return *this;
+    }
+
+    
 //    double lterm::eval(size_t i) const{
 //        double res = 0;
 ////        if (_p->is_indexed() && _p->_indices->size()>1 && _p->_ids->at(i).size()==0) {
@@ -158,7 +134,7 @@
 //                return -1*t_eval(_coef,i,j) * t_eval(_p,j);
 //            }
 //        }
-//        
+//
 //        if (!_coef->is_matrix() && !_coef->_is_transposed && _p->is_matrix()) {//vect * matrix
 //            if(_sign) {
 //                return t_eval(_coef,i) * t_eval(_p,i,j);
@@ -185,7 +161,7 @@
 //
 //    double qterm::eval(size_t i) const{
 //        double res = 0;
-//        if (_c_p1_transposed) { // qterm = (coef*p1)^T*p2
+//        if (_coef_p1_transposed) { // qterm = (coef*p1)^T*p2
 //            assert(_p->first->_dim[1]==1 && _coef->_dim[0]==_p->second->_dim[0]);
 //            for (auto i = 0; i<_p->first->_dim[0]; i++) {
 //                for (auto j = 0; j<_p->first->_dim[0]; j++) {
@@ -196,7 +172,7 @@
 //                res *= -1;
 //            }
 //            return res;
-//            
+//
 //        }
 //        if (_p->first->is_matrix() && !_p->second->is_matrix() && !_p->second->_is_transposed) {//matrix * vect
 //            for (size_t j = 0; j<_p->second->_dim[0]; j++) {
@@ -283,7 +259,7 @@
 //            for (auto &pair: *_l) {
 //                res *= pow(t_eval(pair.first,i,j), pair.second);
 //            }
-//            
+//
 //            res *= t_eval(_coef,i,j);
 //        }
 //        if (!_sign) {
@@ -293,12 +269,12 @@
 //    }
 //
 //
-//        
+//
 //    string pterm::to_str(size_t ind) const{
 //        string str;
 //        constant_* c_new = _coef;
 //        if (c_new->is_number()){
-//            string v = poly_to_str(c_new);
+//            string v = c_new->to_str();
 //            if (_sign) {
 //                if (v=="-1") {
 //                    str += " - ";
@@ -339,7 +315,7 @@
 //                str += " + ";
 //            }
 //            str += "(";
-//            str += poly_to_str(c_new);
+//            str += c_new->to_str();
 //            str += ")";
 //        }
 //        for (auto& p: *_l) {
@@ -378,412 +354,412 @@
 //        }
 //        return str;
 //    }
-//    
-//    string pterm::to_str(size_t ind, size_t inst) const{
-//        string str;
-//        constant_* c_new = _coef;
-//        if (c_new->is_number()){
-//            string v = poly_to_str(c_new);
-//            if (_sign) {
-//                if (v=="-1") {
-//                    str += " - ";
-//                }
-//                else if (ind>0) {
-//                    str += " + ";
-//                    if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                else if(v!="1") {
-//                    str += v;
-//                }
-//            }
-//            if(!_sign) {
-//                if (v == "-1" && ind>0) {
-//                    str += " + ";
-//                }
-//                else if (v.front()=='-'){
-//                    if (ind > 0) {
-//                        str += " + ";
-//                    }
-//                    str += v.substr(1);
-//                }
-//                else if (v=="1"){
-//                    str += " - ";
-//                }
-//                else if(v!="-1"){
-//                    str += " - " + v;
-//                }
-//            }
-//        }
-//        else{
-//            if (!_sign) {
-//                str += " - ";
-//            }
-//            if(ind > 0 && _sign) {
-//                str += " + ";
-//            }
-//            str += "(";
-//            str += poly_to_str(c_new, inst);
-//            str += ")";
-//        }
-//        for (auto& p: *_l) {
-//            str += poly_to_str(p.first, inst);
-//            if (p.second != 1) {
-//                switch (p.second) {
-//                    case 2:
-//                        str += "²";
-//                        break;
-//                    case 3:
-//                        str += "³";
-//                        break;
-//                    case 4:
-//                        str += "⁴";
-//                        break;
-//                    case 5:
-//                        str += "⁵";
-//                        break;
-//                    case 6:
-//                        str += "⁶";
-//                        break;
-//                    case 7:
-//                        str += "⁷";
-//                        break;
-//                    case 8:
-//                        str += "⁸";
-//                        break;
-//                    case 9:
-//                        str += "⁹";
-//                        break;
-//                    default:
-//                        str += "^" + to_string(p.second);
-//                        break;
-//                }
-//            }
-//        }
-//        return str;
+    
+    string pterm::to_str(size_t ind, size_t inst) const{
+        string str;
+        auto c_new = _coef;
+        if (c_new->is_number()){
+            string v = c_new->to_str(inst);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += c_new->to_str(inst);
+            str += ")";
+        }
+        for (auto& p: *_l) {
+            str += p.first->to_str(inst);
+            if (p.second != 1) {
+                switch (p.second) {
+                    case 2:
+                        str += "²";
+                        break;
+                    case 3:
+                        str += "³";
+                        break;
+                    case 4:
+                        str += "⁴";
+                        break;
+                    case 5:
+                        str += "⁵";
+                        break;
+                    case 6:
+                        str += "⁶";
+                        break;
+                    case 7:
+                        str += "⁷";
+                        break;
+                    case 8:
+                        str += "⁸";
+                        break;
+                    case 9:
+                        str += "⁹";
+                        break;
+                    default:
+                        str += "^" + to_string(p.second);
+                        break;
+                }
+            }
+        }
+        return str;
+    }
+
+//    void pterm::print(size_t ind) const{
+//        cout << this->to_str(ind);
 //    }
-//
-////    void pterm::print(size_t ind) const{
-////        cout << this->to_str(ind);
-////    }
-//
-//    string qterm::to_str(size_t ind) const {
-//        string str;
-//        constant_* c_new = _coef;
-//        param_* p_new1 = (param_*)_p->first;
-//        param_* p_new2 = (param_*)_p->second;
-//        if (c_new->is_number()){
-//            string v = poly_to_str(c_new);
-//            if (_sign) {
-//                if (v=="-1") {
-//                    str += " - ";
-//                }
-//                else if (ind>0) {
-//                    str += " + ";
-//                    if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                else if(v!="1") {
-//                    str += v;
-//                }
-//            }
-//            if(!_sign) {
-//                if (v == "-1" && ind>0) {
-//                    str += " + ";
-//                }
-//                else if (v.front()=='-'){
-//                    if (ind > 0) {
-//                        str += " + ";
-//                    }
-//                    str += v.substr(1);
-//                }
-//                else if (v=="1"){
-//                    str += " - ";
-//                }
-//                else if(v!="-1"){
-//                    str += " - " + v;
-//                }
-//            }
-//        }
-//        else{
-//            if (!_sign) {
-//                str += " - ";
-//            }
-//            if(ind > 0 && _sign) {
-//                str += " + ";
-//            }
-//            if(_c_p1_transposed){
-//                str += "(";
-//            }
-//            str += "(";
-//            str += poly_to_str(c_new);
-//            str += ")";
-//        }
-//        str += poly_to_str(p_new1);
-//        if(_c_p1_transposed){
-//            str += ")\u1D40";
-//        }
-//        else if (p_new1==p_new2) {
-//            str += "²";
-//            return str;
-//        }
-////            str += ".";
-//        str += poly_to_str(p_new2);
-//        return str;
+
+    string qterm::to_str(size_t ind) const {
+        string str;
+        auto c_new = _coef;
+        auto p_new1 = _p->first;
+        auto p_new2 = _p->second;
+        if (c_new->is_number()){
+            string v = c_new->to_str();
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            if(_coef_p1_transposed){
+                str += "(";
+            }
+            str += "(";
+            str += c_new->to_str();
+            str += ")";
+        }
+        str += p_new1->to_str();
+        if(_coef_p1_transposed){
+            str += ")\u1D40";
+        }
+        else if (p_new1==p_new2) {
+            str += "²";
+            return str;
+        }
+//            str += ".";
+        str += p_new2->to_str();
+        return str;
+    }
+    
+    string qterm::to_str(size_t ind, size_t inst) const {
+        string str;
+        auto c_new = _coef;
+        auto p_new1 = _p->first;
+        auto p_new2 = _p->second;
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new1->get_dim(inst);
+        }
+        for (unsigned idx = 0; idx <dim; idx++) {
+            if (c_new->is_number()){
+                string v;
+                if (c_new->_is_transposed) {
+                    v = c_new->to_str(idx);
+                }
+                else{
+                    v = c_new->to_str(inst);
+                }
+                
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else if (idx>0 || ind>0) {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                    else if(v!="1") {
+                        str += v;
+                    }
+                }
+                if(!_sign) {
+                    if (v == "-1" && (idx>0 || ind>0)) {
+                        str += " + ";
+                    }
+                    else if (v.front()=='-'){
+                        if (ind > 0) {
+                            str += " + ";
+                        }
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
+                }
+            }
+            else{
+                if (!_sign) {
+                    str += " - ";
+                }
+                if((ind > 0 || idx >0) && _sign) {
+                    str += " + ";
+                }
+                str += "(";
+                if (c_new->_is_transposed) {
+                    str += c_new->to_str(idx);
+                }
+                else{
+                    str += c_new->to_str(inst);
+                }
+                str += ")";
+            }
+            if (c_new->_is_transposed) {
+                str += p_new1->to_str(idx);
+            }
+            else{
+                str += p_new1->to_str(inst);
+            }
+        
+            if (p_new1==p_new2) {
+                str += "²";
+            }
+            else {
+                str += "*";
+                if (c_new->_is_transposed) {
+                    str += p_new2->to_str(idx);
+                }
+                else{
+                    str += p_new2->to_str(inst);
+                }
+            }
+        }
+        return str;
+    }
+
+
+//    void qterm::print(size_t ind) const {
+//        cout << this->to_str(ind);
 //    }
-//    
-//    string qterm::to_str(size_t ind, size_t inst) const {
-//        string str;
-//        constant_* c_new = _coef;
-//        param_* p_new1 = (param_*)_p->first;
-//        param_* p_new2 = (param_*)_p->second;
-//        unsigned dim = 1;
-//        if (c_new->_is_transposed) {
-//            dim = p_new1->get_dim(inst);
-//        }
-//        for (unsigned idx = 0; idx <dim; idx++) {
-//            if (c_new->is_number()){
-//                string v;
-//                if (c_new->_is_transposed) {
-//                    v = poly_to_str(c_new,idx);
-//                }
-//                else{
-//                    v = poly_to_str(c_new,inst);
-//                }
-//                
-//                if (_sign) {
-//                    if (v=="-1") {
-//                        str += " - ";
-//                    }
-//                    else if (idx>0 || ind>0) {
-//                        str += " + ";
-//                        if(v!="1") {
-//                            str += v;
-//                        }
-//                    }
-//                    else if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                if(!_sign) {
-//                    if (v == "-1" && (idx>0 || ind>0)) {
-//                        str += " + ";
-//                    }
-//                    else if (v.front()=='-'){
-//                        if (ind > 0) {
-//                            str += " + ";
-//                        }
-//                        str += v.substr(1);
-//                    }
-//                    else if (v=="1"){
-//                        str += " - ";
-//                    }
-//                    else if(v!="-1"){
-//                        str += " - " + v;
-//                    }
-//                }
-//            }
-//            else{
-//                if (!_sign) {
-//                    str += " - ";
-//                }
-//                if((ind > 0 || idx >0) && _sign) {
-//                    str += " + ";
-//                }
-//                str += "(";
-//                if (c_new->_is_transposed) {
-//                    str += poly_to_str(c_new, idx);
-//                }
-//                else{
-//                    str += poly_to_str(c_new, inst);
-//                }
-//                str += ")";
-//            }
-//            if (c_new->_is_transposed) {
-//                str += poly_to_str(p_new1, idx);
-//            }
-//            else{
-//                str += poly_to_str(p_new1, inst);
-//            }
-//        
-//            if (p_new1==p_new2) {
-//                str += "²";
-//            }
-//            else {
-//                str += "*";
-//                if (c_new->_is_transposed) {
-//                    str += poly_to_str(p_new2, idx);
-//                }
-//                else{
-//                    str += poly_to_str(p_new2, inst);
-//                }
-//            }
-//        }
-//        return str;
+
+
+    string lterm::to_str(size_t ind) const{
+        string str;
+        auto c_new = _coef;
+        auto p_new = _p;
+        if (c_new->is_number()){
+            string v = c_new->to_str();
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += c_new->to_str();
+            str += ")";
+        }
+        str += p_new->to_str();
+        return str;
+    }
+
+
+//    void lterm::print(size_t ind) const{
+//        cout << this->to_str(ind);
 //    }
-//
-//
-////    void qterm::print(size_t ind) const {
-////        cout << this->to_str(ind);
-////    }
-//
-//
-//    string lterm::to_str(size_t ind) const{
-//        string str;
-//        constant_* c_new = _coef;
-//        param_* p_new = (param_*)_p;
-//        if (c_new->is_number()){
-//            string v = poly_to_str(c_new);
-//            if (_sign) {
-//                if (v=="-1") {
-//                    str += " - ";
-//                }
-//                else if (ind>0) {
-//                    str += " + ";
-//                    if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                else if(v!="1") {
-//                    str += v;
-//                }
-//            }
-//            if(!_sign) {
-//                if (v == "-1" && ind>0) {
-//                    str += " + ";
-//                }
-//                else if (v.front()=='-'){
-//                    if (ind > 0) {
-//                        str += " + ";
-//                    }
-//                    str += v.substr(1);
-//                }
-//                else if (v=="1"){
-//                    str += " - ";
-//                }
-//                else if(v!="-1"){
-//                    str += " - " + v;
-//                }
-//            }
-//        }
-//        else{
-//            if (!_sign) {
-//                str += " - ";
-//            }
-//            if(ind > 0 && _sign) {
-//                str += " + ";
-//            }
-//            str += "(";
-//            str += poly_to_str(c_new);
-//            str += ")";
-//        }
-//        str += poly_to_str(p_new);
-//        return str;
-//    }
-//
-//
-////    void lterm::print(size_t ind) const{
-////        cout << this->to_str(ind);
-////    }
-//
-//    string lterm::to_str(size_t ind, size_t inst) const{
-//        string str;
-//        constant_* c_new = _coef;
-//        param_* p_new = (param_*)_p;        
-//        unsigned dim = 1;
-//        if (c_new->_is_transposed) {
-//            dim = p_new->get_dim(inst);
-//        }
-//        for (unsigned idx = 0; idx <dim; idx++) {
-//            if (c_new->constant_::is_number()){
-//                string v;
-//                v = poly_to_str(c_new);
-//                if (_sign) {
-//                    if (v=="-1") {
-//                        str += " - ";
-//                    }
-//                    else if (idx>0 || ind>0) {
-//                        str += " + ";
-//                        if(v!="1") {
-//                            str += v;
-//                        }
-//                    }
-//                    else if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                if(!_sign) {
-//                    if (v == "-1" && (idx>0 || ind>0)) {
-//                        str += " + ";
-//                    }
-//                    else if (v.front()=='-'){
-//                        if (ind > 0 || idx >0) {
-//                            str += " + ";
-//                        }
-//                        str += v.substr(1);
-//                    }
-//                    else if (v=="1"){
-//                        str += " - ";
-//                    }
-//                    else if(v!="-1"){
-//                        str += " - " + v;
-//                    }
-//                }
-//            }
-//            else{
-//                
-//                if (!_sign) {
-//                    str += " - ";
-//                }
-//                if((ind > 0 || idx >0) && _sign) {
-//                    str += " + ";
-//                }
-//                if (!c_new->is_function() || !((func_*)c_new)->is_unit_instance()) {
-//                    str += "(";
-//                    if (c_new->is_matrix()) {
-//                        if (c_new->is_function() && !((func_*)(c_new))->is_constant()){
-//                            str += ((func_*)(c_new))->to_str(inst);
-//                        }
-//                        else {
-//                            str += "[\n";
-//                            for (size_t i = 0; i<c_new->_dim[0]; i++) {
-//                                for (size_t j = 0; j<c_new->_dim[1]; j++) {
-//                                    str += poly_to_str(c_new, i, j)+ " ";
-//                                }
-//                                str += "\n";
-//                            }
-//                            str += "\n] * ";
-//                        }
-//                    }
-//                    else if (c_new->_is_transposed) {
-//                        str += poly_to_str(c_new, inst, idx);
-//                    }
-//                    else{
-//                        str += poly_to_str(c_new, inst);
-//                    }
-//                    str += ")";
-//                }
-//            }
-//            if (p_new->is_matrix()) {
-//                str += "[\n";
-//                for (size_t i = 0; i<c_new->_dim[0]; i++) {
-//                    for (size_t j = 0; j<c_new->_dim[1]; j++) {
-//                        str += poly_to_str(p_new, i, j)+ " ";
-//                    }
-//                    str += "\n";
-//                }
-//                str += "\n]";
-//            }
-//            else if (c_new->_is_transposed || (p_new->is_indexed() && p_new->_indices->_ids->size()>1)) {
-//                str += poly_to_str(p_new, inst, idx);
-//            }
-//            else{
-//                str += poly_to_str(p_new, inst);
-//            }
-//        }
-//        return str;
-//    }
-//
-//}
+
+    string lterm::to_str(size_t ind, size_t inst) const{
+        string str;
+        auto c_new = _coef;
+        auto p_new = _p;
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new->get_dim(inst);
+        }
+        for (unsigned idx = 0; idx <dim; idx++) {
+            if (c_new->constant_::is_number()){
+                string v;
+                v = c_new->to_str();
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else if (idx>0 || ind>0) {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                    else if(v!="1") {
+                        str += v;
+                    }
+                }
+                if(!_sign) {
+                    if (v == "-1" && (idx>0 || ind>0)) {
+                        str += " + ";
+                    }
+                    else if (v.front()=='-'){
+                        if (ind > 0 || idx >0) {
+                            str += " + ";
+                        }
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
+                }
+            }
+            else{
+                
+                if (!_sign) {
+                    str += " - ";
+                }
+                if((ind > 0 || idx >0) && _sign) {
+                    str += " + ";
+                }
+                if (!c_new->is_function() || !(c_new->is_unit())) {
+                    str += "(";
+                    if (c_new->is_matrix()) {
+                        if (c_new->is_function() && !(c_new)->is_constant()){
+                            str += c_new->to_str(inst);
+                        }
+                        else {
+                            str += "[\n";
+                            for (size_t i = 0; i<c_new->_dim[0]; i++) {
+                                for (size_t j = 0; j<c_new->_dim[1]; j++) {
+                                    str += c_new->to_str(i, j)+ " ";
+                                }
+                                str += "\n";
+                            }
+                            str += "\n] * ";
+                        }
+                    }
+                    else if (c_new->_is_transposed) {
+                        str += c_new->to_str(inst, idx);
+                    }
+                    else{
+                        str += c_new->to_str(inst);
+                    }
+                    str += ")";
+                }
+            }
+            if (p_new->is_matrix()) {
+                str += "[\n";
+                for (size_t i = 0; i<c_new->_dim[0]; i++) {
+                    for (size_t j = 0; j<c_new->_dim[1]; j++) {
+                        str += p_new->to_str(i, j)+ " ";
+                    }
+                    str += "\n";
+                }
+                str += "\n]";
+            }
+            else if (c_new->_is_transposed || (p_new->is_indexed() && p_new->_indices->_ids->size()>1)) {
+                str += p_new->to_str(inst, idx);
+            }
+            else{
+                str += p_new->to_str(inst);
+            }
+        }
+        return str;
+    }
+
+}

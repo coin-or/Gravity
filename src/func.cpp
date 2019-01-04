@@ -1,16 +1,17 @@
-////
-////  func.cpp
-////  Gravity
-////
-////  Created by Hijazi, Hassan on 24/10/16.
-////
-////
-//#include <cmath>
-//#include <gravity/func.h>
+//
+//  func.cpp
+//  Gravity
+//
+//  Created by Hijazi, Hassan on 24/10/16.
 //
 //
-//using namespace std;
-//namespace gravity{
+#include <cmath>
+#include <gravity/func.h>
+//
+//
+using namespace std;
+namespace gravity{
+    
 //
 //    bool is_indexed(const constant_* c){
 //        if (c->is_var() || c->is_param()) {
@@ -633,27 +634,14 @@
 //
 //
 //
-//    func_::func_(){
-//        _to_str = "noname";
-//        constant_::set_type(func_c);
-//        _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//        _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//        _cst = new constant<double>(0);
-//        _lterms = new map<string, lterm>();
-//        _qterms = new map<string, qterm>();
-//        _pterms = new map<string, pterm>();
-//        _expr = nullptr;
-//        _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-//        _DAG = new map<string, expr*>();
-//        _queue = new deque<shared_ptr<expr>>();
-//        _all_sign = zero_;
-//        _all_convexity = linear_;
-//        _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-//        _sign = nullptr;
-//        _convexity = nullptr;
-//        _range = nullptr;
-//        _evaluated = true;
-//    };
+    func_::func_(){
+        _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+        _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+        _lterms = make_shared<map<string, lterm>>();
+        _qterms = make_shared<map<string, qterm>>();
+        _pterms = make_shared<map<string, pterm>>();
+        _dfdx = make_shared<map<string,shared_ptr<func_>>>();
+    };
 //
 //
 //
@@ -1734,182 +1722,10 @@
 //    //        }
 //    //    }
 //
-//    void func_::allocate_mem(){
-//        _val->resize(get_dim());
-//        for (auto &pair:*_lterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                ((func_*)coef)->allocate_mem();
-//            }
-//        }
-//        for (auto &pair:*_qterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                ((func_*)coef)->allocate_mem();
-//            }
-//        }
-//        for (auto &pair:*_pterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                ((func_*)coef)->allocate_mem();
-//            }
-//        }
-//        if(_cst->is_function()){
-//            ((func_*)_cst)->allocate_mem();
-//        }
-//        if (_expr) {
-//            _expr->allocate_mem();
-//        }
-//    }
+//    
 //
-//    void func_::propagate_dim(size_t d){
-//        if (is_matrix()) {
-//            return;
-//        }
-//        if(_is_transposed){
-//            _dim[1] = d;
-//        }
-//        else {
-//            _dim[0] = d;
-//        }
-//        for (auto &pair:*_lterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                ((func_*)coef)->propagate_dim(d);
-//            }
-//        }
-//        for (auto &pair:*_qterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                ((func_*)coef)->propagate_dim(d);
-//            }
-//        }
-//        for (auto &pair:*_pterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                //                if(coef->_is_transposed){
-//                //                    ((func_*)(coef))->_dim[0] = _indices->size();
-//                //                }
-//                ((func_*)coef)->propagate_dim(d);
-//            }
-//        }
-//        if(_cst->is_function()){
-//            ((func_*)_cst)->propagate_dim(d);
-//        }
-//        if (_expr) {
-//            _expr->propagate_dim(d);
-//        }
-//    }
-//
-//    // TODO revisit embed
-//    void func_::embed(shared_ptr<expr> e){
-//        //        e->_is_vector = _is_vector;
-//        //        e->_is_transposed = _is_transposed;
-//        //        e->_is_matrix = _is_matrix;
-//        //        e->_dim[0] = _dim[0];
-//        //        e->_dim[1] = _dim[1];
-//        switch (e->get_type()) {
-//            case uexp_c:{
-//                auto ue = dynamic_pointer_cast<uexpr>(e);
-//                //                if (_dim[0] < ue->_son->_dim[0]) {
-//                //                    _dim[0] = ue->_son->_dim[0];
-//                //                    _dim[1] = ue->_son->_dim[1];
-//                //                }
-//                //                if (ue->_son->_dim[0] < _dim[0]) {
-//                //                    ue->_son->_dim[0] = _dim[0];
-//                //                    ue->_son->_dim[1] = _dim[1];
-//                //                }
-//                auto f = (func_*)(ue->_son.get());
-//                embed(*f);
-//                break;
-//            }
-//            case bexp_c:{
-//                auto be = dynamic_pointer_cast<bexpr>(e);
-//                auto fl = (func_*)(be->_lson.get());
-//                auto fr = (func_*)(be->_rson.get());
-//                //                if (_dim[0] < fl->_dim[0]  && !fl->_is_vector && !fr->_is_vector) {
-//                //                    _dim[0] = fl->_dim[0];
-//                //                    _dim[1] = fl->_dim[1];
-//                //                }
-//                //                if (fl->_dim[0] < _dim[0] && !fl->_is_vector && !fr->_is_vector) {
-//                //                    fl->_dim[0] = _dim[0];
-//                //                    fl->_dim[1] = _dim[1];
-//                //                }
-//                embed(*fl);
-//                //
-//                //                if (_dim[0] < fr->_dim[0]  && !fl->_is_vector && !fr->_is_vector) {
-//                //                    _dim[0] = fr->_dim[0];
-//                //                    _dim[1] = fr->_dim[1];
-//                //                }
-//                //                if (fr->_dim[0] < _dim[0] && !fl->_is_vector && !fr->_is_vector) {
-//                //                    fr->_dim[0] = _dim[0];
-//                //                    fr->_dim[1] = _dim[1];
-//                //                }
-//                embed(*fr);
-//                //                if (be->_otype==product_) {
-//                //                    if ((be->_lson->_is_matrix || be->_lson->_is_vector) && (be->_rson->_is_matrix || be->_rson->_is_vector)) {
-//                //                        if (be->_lson->_is_matrix) {
-//                //                            _dim[0] = be->_lson->get_dim(0);
-//                //                            if (be->_rson->_is_matrix) {//Matrix product
-//                //                                _dim[1] = _dim[0];
-//                //                                _is_matrix = true;
-//                //                            }
-//                //                            else if (be->_rson->_is_transposed){
-//                //                                _dim[1] = be->_lson->_dim[1];
-//                //                                _is_matrix = true;
-//                //                            }
-//                //                            else {
-//                //                                _is_matrix = false;
-//                //                            }
-//                //                            _is_vector = true;
-//                //                            _is_transposed = false;
-//                //                        }
-//                //                        else {//be->_lson is a vector
-//                //                            if (be->_lson->_is_transposed) {
-//                //                                if (!be->_rson->_is_transposed && !be->_rson->_is_matrix) {//if be->_rson is not transposed and is a vector, we have a scalar product
-//                //
-//                //                                    _dim[0] = 1;
-//                //                                    _is_vector = false;
-//                //                                    _is_matrix = false;
-//                //                                    _is_transposed = false;
-//                //                                }
-//                //                                else {//be->_rson is either transposed or a matrix at this stage
-//                //
-//                //                                        _dim[0] = be->_lson->_dim[0];
-//                //                                        _is_transposed = true;
-//                //                                        _is_vector = true;
-//                //                                        _is_matrix = false;
-//                //                                }
-//                //                            }
-//                //                            else {//be->_lson is a column vector
-//                //                                if (!be->_rson->_is_matrix) {//if be->_rson is not a matrix, the result is component wise vector product
-//                //
-//                //                                    _dim[0] = be->_lson->_dim[0];
-//                //                                    _is_vector = true;
-//                //                                    _is_matrix = false;
-//                //                                    _is_transposed = false;
-//                //                                }
-//                //                                else {//be->_rson a matrix
-//                //                                    _dim[0] = be->_rson->_dim[0];
-//                //                                    _dim[1] = be->_rson->_dim[1];
-//                //                                    _is_transposed = be->_rson->_is_transposed;
-//                //                                    _is_matrix = true;
-//                //                                }
-//                //                            }
-//                //
-//                //                        }
-//                ////                        _is_matrix = be->_lson->_is_matrix && be->_rson->_is_matrix;
-//                //                    }
-//                ////                    _nb_instances = get_dim();
-//                ////                    _val->resize(_nb_instances);
-//            }
-//                //                break;
-//            default:
-//                break;
-//        }
-//    }
-//
-//
+    
+
 //    void func_::embed(func_& f){// Merge variables and params with f, make it point to vars/params in this.
 //        //        if (!f._is_transposed) {
 //        //            f._nb_instances = max(f._nb_instances, _nb_instances);
@@ -2104,53 +1920,39 @@
 //        _nnz_j = 0;
 //    };
 //
-//    //void func_::reverse_sign(){ /*<< Reverse the sign of all terms in the function */
-//    //    for (auto &pair: *_lterms) {
-//    //        pair.second.reverse_sign();
-//    //    }
-//    //    for (auto &pair: *_qterms) {
-//    //        pair.second.reverse_sign();
-//    //    }
-//    //    ::reverse_sign(_cst);
-//    //    reverse_convexity();
-//    //    if (_sign==neg_) {
-//    //        _sign=pos_;
-//    //    }
-//    //    else if (_sign==pos_) {
-//    //        _sign=neg_;
-//    //    }
-//    //    else if(_sign==non_neg_) {
-//    //        _sign=non_pos_;
-//    //    }
-//    //    else if(_sign==non_pos_) {
-//    //        _sign=non_neg_;
-//    //    }
-//    //}
-//
-//    void func_::reverse_convexity(){
-//        if (_all_convexity==convex_) {
-//            _all_convexity=concave_;
-//        }
-//        else if (_all_convexity==concave_) {
-//            _all_convexity=convex_;
-//        }
-//    }
-//
-//    void func_::reverse_sign(){
-//        reverse_convexity();
-//        if (_all_sign==pos_) {
-//            _all_sign = neg_;
-//        }
-//        else if (_all_sign==neg_) {
-//            _all_sign = pos_;
-//        }
-//        else if (_all_sign== non_neg_){
-//            _all_sign = non_pos_;
-//        }
-//        else if (_all_sign== non_pos_){
-//            _all_sign = non_neg_;
-//        }
-//    }
+    /**
+     Reverse the sign of all terms in the function, also reverses convexity.
+     */
+    void func_::reverse_sign(){
+        _cst->reverse_sign();
+        for (auto &pair: *_lterms) {
+            pair.second.reverse_sign();
+        }
+        for (auto &pair: *_qterms) {
+            pair.second.reverse_sign();
+        }
+        for (auto &pair: *_pterms) {
+            pair.second.reverse_sign();
+        }
+        if(_expr){
+            _expr->reverse_sign();
+        }
+        reverse_convexity();
+    }
+    
+    /**
+     Reverse the convexity property of the current function
+     */
+    void func_::reverse_convexity(){
+        if (_all_convexity==convex_) {
+            _all_convexity=concave_;
+        }
+        else if (_all_convexity==concave_) {
+            _all_convexity=convex_;
+        }
+    }
+
+
 //
 //    void func_::update_sign(const constant_& c){
 //        Sign sign = c.get_all_sign();
@@ -4520,7 +4322,7 @@
 //        return res;
 //    }
 //
-//    string func_::to_str() const{
+//    string func_::to_str() const{ return string();};
 //        string str;
 //        int ind = 0;
 //        string sign = " + ";
@@ -4761,50 +4563,48 @@
 //    void func_::update_to_str(bool input){
 //        _to_str = to_str();
 //    }
-//
-//    size_t func_::get_nb_vars() const{
-//        //        return _nb_vars;
-//        size_t n = 0;
-//        for (auto &p: *_vars) {
-//            if (p.second.first->_is_vector) {
-//                n += p.second.first->get_dim();
-//            }
-//            else {
-//                n += 1;
-//            }
-//        }
-//        return n;
-//    }
-//
-//
-//
-//    constant_* func_::get_cst() {
-//        return _cst;
-//    }
-//
-//
-//    shared_ptr<param_> func_::get_var(string name){
-//        if (_vars->empty()) {
-//            return nullptr;
-//        }
-//        auto pair_it = _vars->find(name);
-//        if (pair_it==_vars->end()) {
-//            return nullptr;
-//        }
-//        else {
-//            return get<1>(*pair_it).first;
-//        }
-//    }
-//
-//    shared_ptr<param_> func_::get_param(string name){
-//        auto pair_it = _params->find(name);
-//        if (pair_it==_params->end()) {
-//            return nullptr;
-//        }
-//        else {
-//            return get<1>(*pair_it).first;
-//        }
-//    }
+
+
+    /**
+     Returns a pointer to the constant part of the function.
+     @return a pointer to the constant part of the function.
+     */
+    shared_ptr<constant_> func_::get_cst() const{
+        return _cst;
+    }
+
+    /**
+     Returns a pointer to the variable matching the name provided.
+     @param[in] name variable name.
+     @return a pointer to the variable matching the name provided.
+     */
+    shared_ptr<param_> func_::get_var(string name) const{
+        if (_vars->empty()) {
+            return nullptr;
+        }
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
+            return nullptr;
+        }
+        else {
+            return get<1>(*pair_it).first;
+        }
+    }
+
+    /**
+     Returns a pointer to the parameter matching the name provided.
+     @param[in] name variable name.
+     @return a pointer to the parameter matching the name provided.
+     */
+    shared_ptr<param_> func_::get_param(string name) const{
+        auto pair_it = _params->find(name);
+        if (pair_it==_params->end()) {
+            return nullptr;
+        }
+        else {
+            return get<1>(*pair_it).first;
+        }
+    }
 //
 //    void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
 //        if (_vars->count(v->get_name(false,false))!=0) {
@@ -4862,143 +4662,130 @@
 //
 //
 //
-//    int func_::nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
-//        auto pair_it = _vars->find(name);
-//        if (pair_it==_vars->end()) {
-//            return 0;
-//        }
-//        else {
-//            return get<1>(*pair_it).second;
-//        }
-//    }
-//
-//    int func_::nb_occ_param(string name) const{/**< Returns the number of occurences the parameter has in this function. */
-//        auto pair_it = _params->find(name);
-//        if (pair_it==_params->end()) {
-//            return 0;
-//        }
-//        else {
-//            return get<1>(*pair_it).second;
-//        }
-//    }
-//
-//    void func_::incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
-//        auto pair_it = _vars->find(str);
-//        if (pair_it==_vars->end()) {
-//            throw invalid_argument("Non-existing variable in function!\n");
-//        }
-//        else {
-//            get<1>(*pair_it).second++;
-//        }
-//    }
-//
-//    void func_::incr_occ_param(string str){/**< Increases the number of occurences the parameter has in this function. */
-//        auto pair_it = _params->find(str);
-//        if (pair_it==_params->end()) {
-//            throw invalid_argument("Non-existing variable in function!\n");
-//        }
-//        else {
-//            get<1>(*pair_it).second++;
-//        }
-//    }
-//
-//    void func_::decr_occ_var(string str, int nb){/**< Decreases the number of occurences the variable has in this function by nb. */
-//        auto pair_it = _vars->find(str);
-//        if (pair_it==_vars->end()) {
-//            return;
-//        }
-//        else {
-//            get<1>(*pair_it).second-=nb;
-//            if (get<1>(*pair_it).second==0) {
-//                _vars->erase(pair_it);
-//            }
-//        }
-//    }
-//
-//    void func_::decr_occ_param(string str, int nb){/**< Decreases the number of occurences the parameter has in this function by nb. */
-//        auto pair_it = _params->find(str);
-//        if (pair_it==_params->end()) {
-//            return;
-//        }
-//        else {
-//            get<1>(*pair_it).second -= nb;
-//            if (get<1>(*pair_it).second==0) {
-//                _params->erase(pair_it);
-//            }
-//        }
-//    }
-//
-//
-//    bool func_::is_convex() const{
-//        return (_all_convexity==convex_ || _all_convexity==linear_);
-//    }
-//
-//    bool func_::is_concave() const{
-//        return (_all_convexity==concave_ || _all_convexity==linear_);
-//    }
-//
-//
-//    bool func_::is_convex(size_t idx) const{
-//        return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
-//    };
-//
-//    bool func_::is_concave(size_t idx) const{
-//        return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
-//    };
-//
-//
+    unsigned func_::nb_occ_var(string name) const{/**< Returns the number of occurences the variable has in this function. */
+        auto pair_it = _vars->find(name);
+        if (pair_it==_vars->end()) {
+            return 0;
+        }
+        else {
+            return get<1>(*pair_it).second;
+        }
+    }
+
+    unsigned func_::nb_occ_param(string name) const{/**< Returns the number of occurences the parameter has in this function. */
+        auto pair_it = _params->find(name);
+        if (pair_it==_params->end()) {
+            return 0;
+        }
+        else {
+            return get<1>(*pair_it).second;
+        }
+    }
+
+    void func_::incr_occ_var(string str){/**< Increases the number of occurences the variable has in this function. */
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
+            throw invalid_argument("Non-existing variable in function!\n");
+        }
+        else {
+            get<1>(*pair_it).second++;
+        }
+    }
+
+    void func_::incr_occ_param(string str){/**< Increases the number of occurences the parameter has in this function. */
+        auto pair_it = _params->find(str);
+        if (pair_it==_params->end()) {
+            throw invalid_argument("Non-existing variable in function!\n");
+        }
+        else {
+            get<1>(*pair_it).second++;
+        }
+    }
+
+    void func_::decr_occ_var(string str, int nb){/**< Decreases the number of occurences the variable has in this function by nb. */
+        auto pair_it = _vars->find(str);
+        if (pair_it==_vars->end()) {
+            return;
+        }
+        else {
+            get<1>(*pair_it).second-=nb;
+            if (get<1>(*pair_it).second==0) {
+                _vars->erase(pair_it);
+            }
+        }
+    }
+
+    void func_::decr_occ_param(string str, int nb){/**< Decreases the number of occurences the parameter has in this function by nb. */
+        auto pair_it = _params->find(str);
+        if (pair_it==_params->end()) {
+            return;
+        }
+        else {
+            get<1>(*pair_it).second -= nb;
+            if (get<1>(*pair_it).second==0) {
+                _params->erase(pair_it);
+            }
+        }
+    }
+
+
+    bool func_::is_convex() const{
+        return (_all_convexity==convex_ || _all_convexity==linear_);
+    }
+
+    bool func_::is_concave() const{
+        return (_all_convexity==concave_ || _all_convexity==linear_);
+    }
+
+
+    bool func_::is_convex(size_t idx) const{
+        return (_convexity->at(idx)==convex_ || _convexity->at(idx)==linear_);
+    };
+
+    bool func_::is_concave(size_t idx) const{
+        return (_convexity->at(idx)==concave_ || _convexity->at(idx)==linear_);
+    };
+
+
 //    bool func_::is_number() const{
 //        return (_vars->empty() && _params->empty());
 //    }
+
+    bool func_::is_constant() const{
+        //        return (_ftype==const_);
+        return (_vars->empty());
+    }
+
+    bool func_::is_linear() const{
+        return (_ftype==lin_);
+    };
+
+    bool func_::is_quadratic() const{
+        return (_ftype==quad_);
+    };
+
+    bool func_::is_polynomial() const{
+        return (_ftype==pol_);
+    };
+
+    bool func_::is_nonlinear() const{
+        return (_ftype==nlin_);
+    };
+
+    bool func_::is_complex() const{
+        for(auto &it: *_vars){
+            if (it.second.first->is_complex()) {
+                return true;
+            }
+        }
+        for(auto &it: *_params){
+            if (it.second.first->is_complex()) {
+                return true;
+            }
+        }
+        return false;
+    };
 //
-//    bool func_::is_constant() const{
-//        //        return (_ftype==const_);
-//        return (_vars->empty());
-//    }
-//
-//    bool func_::is_linear() const{
-//        return (_ftype==lin_);
-//    };
-//
-//    bool func_::is_quadratic() const{
-//        return (_ftype==quad_);
-//    };
-//
-//    bool func_::is_polynomial() const{
-//        return (_ftype==pol_);
-//    };
-//
-//    bool func_::is_nonlinear() const{
-//        return (_ftype==nlin_);
-//    };
-//
-//    bool func_::is_complex() const{
-//        for(auto &it: *_vars){
-//            if (it.second.first->is_complex()) {
-//                return true;
-//            }
-//        }
-//        for(auto &it: *_params){
-//            if (it.second.first->is_complex()) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    };
-//
-//    bool func_::is_unit() const{/*<< A function is one if it is constant and equals one*/
-//        if (is_number() && !_is_transposed && !_is_vector && t_eval(this)==1){
-//            return true;
-//        }
-//        return false;
-//    }
-//
-//    bool func_::is_unit_instance() const{/*<< If every instance is one*/
-//        if (is_number() && t_eval(this)==1){
-//            return true;
-//        }
-//        return false;
-//    }
 //
 //    bool func_::is_zero() const{/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
 //        if(is_number() && !_is_vector && !_is_transposed && t_eval(this)==0){
@@ -5019,7 +4806,8 @@
 //        return _is_transposed;
 //    }
 //
-//    FType func_::get_ftype() const { return _ftype;}
+    FType func_::get_ftype() const { return _ftype;}
+    NType func_::get_return_type() const { return _return_type;};
 //
 //
 //    qterm* func_::get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
@@ -5181,23 +4969,142 @@
 //
 //
 //
-//    Convexity func_::get_convexity(const qterm& q) {
-//        if(q._p->first == q._p->second){
-//            if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
-//                return convex_;
-//            }
-//            if (q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-//                return concave_;
-//            }
-//            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-//                return convex_;
-//            }
-//            if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
-//                return concave_;
-//            }
-//        }
-//        // At this stage, we know that q._p->first !=q._p->second
-//        // Checking if the product can be factorized
+    
+    /**
+     Relax and replace integer variables with continuous ones provided in argument vars.
+     @param[in] vars set with continuous variables replacements.
+     */
+    void func_::relax(const map<size_t, shared_ptr<param_>>& vars){
+        auto new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+        bool has_int = false;
+        for (auto &v_p:*_vars) {
+            auto old_var = v_p.second.first;
+            auto nb_occ = v_p.second.second;
+            auto new_var = vars.at(old_var->get_vec_id())->pcopy();
+            new_var->shallow_copy(*old_var);
+            (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,nb_occ);
+            if (new_var->is_binary() || new_var->is_short() || new_var->is_integer()) {
+                has_int = true;
+                new_var->_is_relaxed = true;
+            }
+        }
+        if (!has_int) {
+            return;
+        }
+        
+        for (auto &lt:get_lterms()) {
+            lt.second._p = new_vars->at(lt.second._p->get_name(false,false)).first;
+        }
+        for (auto &lt:get_qterms()) {
+            lt.second._p->first = new_vars->at(lt.second._p->first->get_name(false,false)).first;
+            lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first;
+        }
+        for (auto &lt:get_pterms()) {
+            for (auto &v_p:*lt.second._l) {
+                v_p.first = new_vars->at(v_p.first->get_name(false,false)).first;
+            }
+        }
+        if (_expr) {
+            if (_expr->is_uexpr()) {
+                auto ue = static_pointer_cast<uexpr>(_expr);
+                ue->_son->relax(vars);
+            }
+            else {
+                auto be = static_pointer_cast<bexpr>(_expr);
+                be->_lson->relax(vars);
+                be->_rson->relax(vars);
+            }
+        }
+        _vars = new_vars;
+    }
+    
+    /**
+     Index the function and its variables/parameters using nodes of a graph
+     @param[in] vec vector of nodes
+     @return current function
+     */
+    func_& func_::in(const vector<Node*>& vec){
+        _nb_vars = 0;
+        string key;
+        auto iter = _vars->begin();
+        while (iter!=_vars->end()) {
+            auto pair = (*iter++);
+            auto v = pair.second.first;
+            if(!v->_indices){
+                v->index_in(vec);
+            }
+            else if(v->_indices->_type==in_arcs_){
+                v->index_in_arcs(vec);
+            }
+            else if(v->_indices->_type==out_arcs_){
+                v->index_out_arcs(vec);
+            }
+            else if(v->_indices->_type==in_gens_){
+                v->index_in_aux(vec,"gens");
+            }
+            if (!v->_is_vector) {// i.e., it is not transposed
+                _nb_vars++;
+            }
+            else {
+                _nb_vars += v->get_dim();
+            }
+        }
+        iter = _params->begin();
+        while (iter!=_params->end()) {
+            auto pair = (*iter++);
+            auto p = pair.second.first;
+            if(!p->_indices){
+                p->index_in(vec);
+            }
+            else if(p->_indices->_type==in_arcs_){
+                p->index_in_arcs(vec);
+            }
+            else if(p->_indices->_type==out_arcs_){
+                p->index_out_arcs(vec);
+            }
+            else if(p->_indices->_type==in_gens_){
+                p->index_in_aux(vec,"gens");
+            }
+        }
+        return *this;
+    }
+    
+    /**
+     Index the function and its variables/parameters using the indices in ids
+     @param[in] ids indices
+     @return current function
+     */
+    func_& func_::in(const indices& ids) {
+        _nb_vars = 0;
+        string key;
+        auto iter = _vars->begin();
+        while (iter!=_vars->end()) {
+            auto pair = (*iter++);
+            auto v = pair.second.first;
+            v->index_in(ids);
+            if (!v->_is_vector) {// i.e., it is not transposed
+                _nb_vars++;
+            }
+            else {
+                _nb_vars += v->get_dim();
+            }
+        }
+        iter = _params->begin();
+        while (iter!=_params->end()) {
+            auto pair = (*iter++);
+            auto p = pair.second.first;
+            p->index_in(ids);
+        }
+        return *this;
+    }
+    
+    Convexity func_::get_convexity(const qterm& q) {
+        auto conv = q.get_convexity();
+        if(_all_convexity==conv){/* If both convex or concave */
+            return conv;
+        }
+        // At this stage, we know that q._p->first !=q._p->second
+        // Checking if the product can be factorized
 //        auto sqr1 = get_square(q._p->first);
 //        auto sqr2 = get_square(q._p->second);
 //        if (sqr1 && sqr2){
@@ -5215,8 +5122,8 @@
 //                return undet_;
 //            }
 //        }
-//        return undet_;
-//    }
+        return undet_;
+    }
 //
 //    template<typename type>
 //    func_ power(const param<type>& v, unsigned p){
@@ -5745,4 +5652,5 @@
 //        return newf;
 //    }
 //
-//}
+    
+}
