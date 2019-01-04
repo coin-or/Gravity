@@ -33,6 +33,9 @@ double get_wall_time();
 double get_cpu_time();
 
 
+int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
+
+
 op::OptionParser readOptions(int argc, char * argv[]);
 
 

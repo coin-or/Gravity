@@ -306,14 +306,25 @@ namespace gravity{
             }
         }
         
+        bool operator==(const indices& cpy) const{
+            if (_name != cpy._name || _type != cpy._type || _time_extended!=cpy._time_extended || _time_pos != cpy._time_pos || *_dim!=*cpy._dim || _excluded_keys != cpy._excluded_keys || *_keys_map != *cpy._keys_map) return false;
+            if(_ids==cpy._ids) return true; /* accounts for both being nullptr */
+            if((_ids && !cpy._ids) || (cpy._ids && !_ids) || (*_ids != *cpy._ids)) return false;
+            return true;
+        }
+        
+        bool operator!=(const indices& cpy) const{
+            return !(*this==cpy);
+        }
+        
         
         indices& operator=(const indices& cpy){
             _name = cpy._name;
             _type = cpy._type;
-            _keys_map = cpy._keys_map;
+            _keys_map = make_shared<map<string,size_t>>(*cpy._keys_map);
+            _keys = make_shared<vector<string>>(*cpy._keys);
+            _dim = make_shared<vector<size_t>>(*cpy._dim);
             _excluded_keys = cpy._excluded_keys;
-            _keys = cpy._keys;
-            _dim = cpy._dim;
             if(cpy._ids){
                 _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
             }
@@ -511,6 +522,24 @@ namespace gravity{
         }
         bool is_indexed() const{
             return (_ids!=nullptr);
+        }
+        
+        void remove_excluded(){
+            _ids = nullptr;
+            map<string,size_t> new_keys_map;
+            for(auto &key_id: _excluded_keys){
+                auto key = _keys->at(key_id);
+                _keys_map->erase(key);
+            }
+            _keys->clear();
+            _keys->resize(_keys_map->size());
+            size_t idx = 0;
+            for(auto &key_id: *_keys_map){
+                _keys->at(idx) = key_id.first;
+                new_keys_map[key_id.first] = idx++;
+            }
+            *_keys_map = new_keys_map;
+            _excluded_keys.clear();
         }
         
         void reindex(){

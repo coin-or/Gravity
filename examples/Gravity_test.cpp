@@ -14,7 +14,7 @@
 //#include <gravity/Net.h>
 #include <gravity/model.h>
 #include <gravity/solver.h>
-#include <gravity/param.h>
+#include <gravity/func.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <gravity/doctest.h>
@@ -25,7 +25,7 @@ using namespace std;
 using namespace gravity;
 
 
-TEST_CASE("Testing constants") {
+TEST_CASE("testing constants") {
     constant<> c0;
     CHECK(c0.is_double());
     c0 = 3.5;
@@ -63,7 +63,7 @@ TEST_CASE("Testing constants") {
     CHECK(cx3.is_number());
 }
 
-TEST_CASE("Testing parameters") {
+TEST_CASE("testing parameters") {
     param<> c0("c0");
     CHECK(c0.is_double());
     c0 = 3.5;
@@ -161,17 +161,38 @@ TEST_CASE("testing param sign functions") {
     CHECK(dp.is_non_positive());
 }
 //
-//TEST_CASE("testing variables indexing") {
-//    indices ids("index_set");
-//    ids = {"id1", "id2", "key3"};
-//    var<> iv("iv",-2, 5);
-//    iv.in(ids);
-//    iv.print();
-//    var<Cpx> cv("cv", Cpx(0,-1),Cpx(1,1));
-//    cv.in(ids.exclude("id2"));
-//    cv.print();
-//    CHECK(cv.get_dim()==2);
-//}
+TEST_CASE("testing variables indexing") {
+    indices ids("index_set");
+    ids = {"id1", "id2", "key3"};
+    var<> iv("iv",-2, 5);
+    iv.in(ids);
+    iv.print();
+    param<Cpx> lb("lb"), ub("ub");
+    lb = Cpx(0,-1);
+    ub = Cpx(1,1);
+    var<Cpx> cv("cv", lb, ub);
+    cv.in(ids.exclude("id2"));
+    cv.print();
+    CHECK(cv.get_dim()==2);
+    var<Cpx> cv1("cv", Cpx(0,-1),Cpx(1,1));
+    cv1.in(ids.exclude("id2"));
+    cv1.print();
+    CHECK(cv1.get_dim()==2);
+    CHECK(cv==cv1);
+    CHECK(cv.get_indices()!=ids);
+}
+
+TEST_CASE("testing shared pointers") {
+    param<Cpx> cx0("p0");
+    cx0 = Cpx(-1,1);
+    shared_ptr<constant_> ct = make_shared<param<Cpx>>(cx0);
+    auto cp = cx0.copy();
+    auto dc1 = static_pointer_cast<param<Cpx>>(ct);
+    dc1->print();
+    auto dc2 = static_pointer_cast<param<Cpx>>(cp);
+    dc2->print();
+}
+
 //TEST_CASE("testing vector dot product"){
 //    var<> z("z",-1,1);
 //    z.in(R(4));

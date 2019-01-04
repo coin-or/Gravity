@@ -1,143 +1,258 @@
-////
-////  func.h
-////  Gravity
-////
-////  Created by Hijazi, Hassan on 21/10/16.
-////
-////
 //
-//#ifndef func_h
-//#define func_h
+//  func.h
+//  Gravity
+//
+//  Created by Hijazi, Hassan on 21/10/16.
 //
 //
-//#include <gravity/expr.h>
-//#include <gravity/poly.h>
-//#include <gravity/Auxiliary.h>
-//#include <stdio.h>
-//#include <map>
-//#include <iterator>
-//#include <queue>
-//#include <list>
-//#include <limits>
-//#include <set>
+
+#ifndef func_h
+#define func_h
+
+
+#include <gravity/expr.h>
+#include <gravity/poly.h>
+#include <gravity/var.h>
+#include <gravity/Auxiliary.h>
+#include <stdio.h>
+#include <map>
+#include <iterator>
+#include <queue>
+#include <list>
+#include <limits>
+#include <set>
 //
-//using namespace std;
-//
-//namespace gravity {
+using namespace std;
+
+namespace gravity {
 //
 //    
 //    
-//    /** Backbone class for function */
-//    class func_ : public param_{
-//    private:
-//        
-//        func_* compute_derivative(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
-//        
-//    protected:
-//        
-//        FType                                  _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
-//        NType                                  _return_type = double_; /**< Return type, e.g., bool, integer, complex... >>**/
-//
-//        map<string, pair<shared_ptr<param_>, unsigned>>*       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
-//        map<string, pair<shared_ptr<param_>, unsigned>>*       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
-//                
-//        constant_*                             _cst = nullptr;/**< Constant part of the function */
-//        map<string, lterm>*                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
-//        map<string, qterm>*                    _qterms = nullptr; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
-//        map<string, pterm>*                    _pterms = nullptr; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
-//        shared_ptr<expr>                       _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
+    /** Backbone class for function */
+    class func_ {
+    private:
+        shared_ptr<func_> compute_derivative(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+        
+    protected:
+        FType                                                             _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
+        NType                                                             _return_type = double_; /**< Return type, e.g., bool, integer, complex... >>**/
+
+        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>>       _params = nullptr;/**< Set of parameters in current function, stored as a map <parameter name, <paramter pointer, number of times it appears in function>>**/
+        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>>       _vars = nullptr;/**< Set of variables in current function, stored as a map <variable name, <variable pointer, number of times it appears in function>>**/
+        
+        shared_ptr<constant_>                                             _cst = nullptr;/**< Constant part of the function */
+        shared_ptr<map<string, lterm>>                                    _lterms = nullptr; /**< Set of linear terms, stored as a map <string describing term, term>. */
+        shared_ptr<map<string, qterm>>                                    _qterms = nullptr; /**< Set of quadratic terms, stored as a map <string describing term, term>.  */
+        shared_ptr<map<string, pterm>>                                    _pterms = nullptr; /**< Set of polynomial terms, stored as a map <string describing term, term>.  */
+        shared_ptr<expr>                                                  _expr = nullptr; /**< Nonlinear part of the function, this points to the root node in _DAG */
 //        map<string, expr*>*                    _DAG = nullptr; /**< Map of experssions stored in the expression tree (a Directed Acyclic Graph) */
-//        deque<shared_ptr<expr>>*               _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the bottom of the queue)*/
-//        Convexity                              _all_convexity = linear_; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
-//        Sign                                   _all_sign = zero_; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
+//        deque<shared_ptr<expr>>*               _queue = nullptr; /**< A queue storing the expression tree from the leaves to the root (the root is stored at the end of the queue)*/
+        Convexity                                                         _all_convexity = linear_; /**< If all instances of this function have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
+        Sign                                                              _all_sign = zero_; /**< If all instances of this function have the same sign, it stores it here, otherwise it stores unknown. >>**/
+
+        shared_ptr<vector<Convexity>>                                     _convexity = nullptr; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
+        shared_ptr<vector<Sign>>                                          _sign = nullptr; /**< vector storing the sign of return value if known. >>**/
+        shared_ptr<map<size_t, set<size_t>>>                              _hess_link = nullptr; /**< Set of variables linked to one another in the hessian, stored by variable ids  */
+        shared_ptr<map<string,shared_ptr<func_>>>                         _dfdx = nullptr;/**< A map storing the derivatives indexed by variables' names */
+
+        bool                                                              _is_constraint = false;
+        bool                                                              _is_hessian = false;
+        bool                                                              _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
+        bool                                                              _evaluated = true;/**< If the function has already been evaluated, useful for constant funcs */
+        string                                                            _to_str = "noname";/**< A string representation of the expression */
+
+        size_t                                                            _nb_vars = 0; /**< Number of variables */
+        
+        size_t                                                            _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
+        size_t                                                            _nnz_h = 0; /**< Number of nonzeros in the Hessian **/
+        
+    public:
+        func_();
+        
+        func_(const func_& f){
+            *this = f;
+        }
+        
+        func_(func_&& f){
+            *this = move(f);
+        }
+        
+        func_& operator=(const func_& f){
+            return *this;
+        }
+        
+        func_& operator=(func_&& f){
+            return *this;
+        }
+        /** Accessors */
+        FType get_ftype() const;
+        NType get_return_type() const;
+
+        map<size_t, set<size_t>>& get_hess_link() { return *_hess_link;};
+        map<string, pair<shared_ptr<param_>, unsigned>>& get_vars() { return *_vars;};
+        map<string, pair<shared_ptr<param_>, unsigned>>& get_params() { return *_params;};
+
+        /** true/false statements */
+        bool has_var(const param_& v) const;
+        bool has_var(const string& name) const;
+        bool is_convex() const;
+        bool is_concave() const;
+        bool is_convex(size_t idx) const;
+        bool is_concave(size_t idx) const;
+        bool is_constant() const;
+        bool is_linear() const;
+        bool is_quadratic() const;
+        bool is_polynomial() const;
+        bool is_nonlinear() const;
+        bool is_complex() const;
+        bool is_transposed() const;
+        
+
+        
+        /** Modifiers */
+        void set_first_derivative(const param_& v, func_&& f){
+            DebugOff(f.to_str()<<endl);
+            (*_dfdx)[v._name] = make_shared<func_>(move(f));
+        }
+
+        void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
+            DebugOff(f.to_str()<<endl);
+            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
+        }
+
+        unsigned nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
+        
+        unsigned nb_occ_param(string name) const;/**< Returns the number of occurences the parameter has in this function. */
+        
+        void incr_occ_var(string str);/**< Increases the number of occurences the variable has in this function. */
+        
+        void incr_occ_param(string str);/**< Increases the number of occurences the parameter has in this function. */
+        
+        void decr_occ_var(string str, int nb=1);/**< Decreases the number of occurences the variable has in this function by nb. */
+        
+        void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
+        
+        
+        map<string, lterm>& get_lterms() const{
+            return *_lterms;
+        }
+
+        map<string, qterm>& get_qterms() const{
+            return *_qterms;
+        }
+
+        map<string, pterm>& get_pterms() const{
+            return *_pterms;
+        }
+
+        shared_ptr<expr> get_expr() const{
+            return _expr;
+        }
+
+        shared_ptr<map<string,shared_ptr<func_>>> get_dfdx() const{
+            return _dfdx;
+        };
+
+        shared_ptr<func_> get_stored_derivative(const string& vid) const; /**< Returns the stored derivative with respect to variable v. */
+
+        func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
+
+        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
+
+
+        void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
+
+        
+        /**
+         Returns a vector of monomials of degree d using the variables in the current function
+         @param[in] d degree of monomials
+         @return a vector of monomials of degree d using the variables in the current function
+         */
+        vector<pterm> get_monomials(unsigned d);
+        
+        
+        qterm* get_square(shared_ptr<param_> p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+        
+        /**
+         Returns the convexity of current function if quadratic term q was to be added.
+         @param[in] q quadratic term to be added.
+         @return convexity of function if q was to be added.
+         */
+        Convexity get_convexity(const qterm& q);
+        
+        /**
+         Index the function and its variables/parameters using nodes of a graph
+         @param[in] vec vector of nodes
+         @return current function
+         */
+        func_& in(const vector<Node*>& vec);
+        
+        /**
+         Index the function and its variables/parameters using the indices in ids
+         @param[in] ids indices
+         @return current function
+         */
+        func_& in(const indices& ids);
+        
+        /**
+         Relax and replace integer variables with continuous ones provided in argument vars.
+         @param[in] vars set with continuous variables replacements.
+         */
+        void relax(const map<size_t, shared_ptr<param_>>& vars);
+        
+        /**
+         Returns the number of variables per-instance.
+         @param[in] instance number.
+         @return number of variables per-instance.
+         */
+        size_t get_nb_vars(unsigned inst = 0) const{
+            size_t n = 0;
+            for (auto &vp:*_vars) {
+                if(vp.second.first->_is_vector){
+                    n += vp.second.first->get_dim(inst);
+                }
+                else {
+                    n += 1;
+                }
+            }
+            return n;
+        };
+        
+        /**
+         Returns a pointer to the constant part of the function.
+         @return a pointer to the constant part of the function.
+         */
+        shared_ptr<constant_> get_cst() const;
+
+        /**
+         Returns a pointer to the variable matching the name provided.
+         @param[in] name variable name.
+         @return a pointer to the variable matching the name provided.
+         */
+        shared_ptr<param_> get_var(string name) const;
+
+        /**
+         Returns a pointer to the parameter matching the name provided.
+         @param[in] name variable name.
+         @return a pointer to the parameter matching the name provided.
+         */
+        shared_ptr<param_> get_param(string name) const;
+
+        void add_var(shared_ptr<param_> v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+
+        /**
+         Reverse the sign of all terms in the function
+         */
+        void reverse_sign();
+
+        /**
+         Reverse the convexity property of the current function
+         */
+        void reverse_convexity();
+
+    };
+
 //
-//        vector<Convexity>*                     _convexity = nullptr; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
-//        vector<Sign>*                          _sign = nullptr; /**< vector storing the sign of return value if known. >>**/
-//        map<size_t, set<size_t>>           _hess_link; /**< Set of variables linked to one another in the hessian, indexed by variable ids  */
-//        
-//        size_t                                 _nb_vars = 0; /**< Number of variables */
-//                                                                   
-//        size_t                                 _nnz_j = 0; /**< Number of nonzeros in the Jacobian **/
-//        size_t                                 _nnz_h = 0; /**< Number of nonzeros in the Hessian **/
-//        
-//    public:
-//        shared_ptr<map<string,shared_ptr<func_>>>      _dfdx = nullptr;/**< A map storing the first derivatives of f per variable name*/
-//        
-//        bool                                   _is_constraint = false;
-//        bool                                   _is_hessian = false;
-//        bool                                   _embedded = false; /**< If the function is embedded in
-//                                                                   a mathematical model or in another function, this is used for memory management. >>**/
-//        bool                                   _evaluated = true;/**< If the function has already been evaluated, useful for constant funcs */
-//        string                                 _to_str = "noname";
-//        
-//
-//        virtual ~func_();
-//
-//        map<size_t, set<size_t>>& get_hess_link() { return _hess_link;};
-//        map<string, pair<shared_ptr<param_>, unsigned>>& get_vars() { return *_vars;};
-//        map<string, pair<shared_ptr<param_>, unsigned>>& get_params() { return *_params;};
-//        
-//        param_* get_var(size_t vec_id) const;
-//        bool has_var(const param_& v) const;
-//        bool has_var(const string& name) const;
-//        
-//        void reset_val();
-//        void relax(const map<size_t, param_*>& vars){
-//            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            bool has_int = false;
-//            for (auto &v_p:*_vars) {
-//                if (v_p.second.first->is_integer() || v_p.second.first->is_binary()) {
-//                    has_int = true;
-//                    shared_ptr<param_> new_var = shared_ptr<param_>((param_*)gravity::copy(*vars.at(v_p.second.first->get_vec_id())));
-//                    new_var->copy(*v_p.second.first);
-//                    new_var->_is_relaxed = true;
-//                    (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,v_p.second.second);
-//                }
-//                else{
-//                    shared_ptr<param_> new_var = shared_ptr<param_>((param_*)gravity::copy(*v_p.second.first));
-//                    (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,v_p.second.second);
-//                }
-//            }
-//            if (!has_int) {
-//                delete new_vars;
-//                return;
-//            }
-//            
-//                for (auto &lt:get_lterms()) {
-////                    if (lt.second._p->is_integer() || lt.second._p->is_binary()) {
-//                        lt.second._p = new_vars->at(lt.second._p->get_name(false,false)).first.get();
-////                    }
-//                }
-//                for (auto &lt:get_qterms()) {
-////                    if (lt.second._p->first->is_integer() || lt.second._p->first->is_binary()) {
-//                        lt.second._p->first = new_vars->at(lt.second._p->first->get_name(false,false)).first.get();
-////                    }
-////                    if (lt.second._p->second->is_integer() || lt.second._p->second->is_binary()) {
-//                        lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first.get();
-////                    }
-//                }
-//                for (auto &lt:get_pterms()) {
-//                    for (auto &v_p:*lt.second._l) {
-////                        if (v_p.first->is_integer() || v_p.first->is_binary()) {
-//                            v_p.first = new_vars->at(v_p.first->get_name(false,false)).first.get();
-////                        }
-//                    }
-//                }
-//            if (_expr) {
-//                if (_expr->is_uexpr()) {
-//                    auto ue = (uexpr*)_expr.get();
-//                    ue->_son->relax(vars);
-//                }
-//                else {
-//                    auto be = (bexpr*)_expr.get();
-//                    be->_lson->relax(vars);
-//                    be->_rson->relax(vars);
-//                }
-//            }
-//            delete _vars;
-//            _vars = new_vars;
-//        }
-//        
 //        bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
 //        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
 //        bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
@@ -168,471 +283,12 @@
 //
 //            }
 //        }
-//        void set_first_derivative(const param_& v, func_&& f){
-//            DebugOff(f.to_str()<<endl);
-//            (*_dfdx)[v._name] = make_shared<func_>(move(f));
-//        }
+
 //        
-//        void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
-//            DebugOff(f.to_str()<<endl);
-//            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
-//        }
+//
+
 //        
-//        
-//        Convexity get_convexity(const qterm& q);
-//        
-//        
-////        func_& in(const node_pairs& np) {
-////            return this->in(np._keys);
-////        }
-//        
-//        
-//        func_& in(const indices& ids) {
-//            _nb_vars = 0;
-////            _nb_instances = 1;
-//            string key;
-//            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            auto new_params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            auto iter = _vars->begin();
-//            while (iter!=_vars->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((var<bool>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((var<short>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((var<int>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((var<float>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((var<double>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((var<long double>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case complex_:{
-//                        auto vv = ((var<Cpx>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-//                if (!v->_is_vector) {// i.e., it is not transposed
-//                    _nb_vars++;
-//                }
-//                else {
-//                    _nb_vars += v->get_dim();
-//                }
-//            }
-//            iter = _params->begin();
-//            while (iter!=_params->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((param<bool>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((param<short>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((param<int>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((param<float>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((param<double>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((param<long double>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    case complex_:{
-//                        auto vv = ((param<Cpx>*)v.get());
-//                        if(v->_indices->_type==in_pairs_){
-//                            *vv = vv->in_pairs(ids);
-//                        }
-//                        else {
-//                            *vv = vv->in(ids);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-//            }
-//            delete _vars;
-//            _vars = new_vars;
-//            delete _params;
-//            _params = new_params;
-//            return *this;
-//        }
-//        
-//        func_& in(const vector<Node*>& vec) {
-//            _nb_vars = 0;
-//            string key;
-//            auto new_vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            auto new_params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            auto iter = _vars->begin();
-//            while (iter!=_vars->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((var<bool>*)v.get());
-//                        if(!v->_indices){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((var<short>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((var<int>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((var<float>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((var<double>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((var<long double>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case complex_:{
-//                        auto vv = ((var<Cpx>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                (*new_vars)[v->_name] = make_pair<>(v,pair.second.second);
-//                if (!v->_is_vector) {// i.e., it is not transposed
-//                    _nb_vars++;
-//                }
-//                else {
-//                    _nb_vars += v->get_dim();
-//                }
-//            }
-//            iter = _params->begin();
-//            while (iter!=_params->end()) {
-//                auto pair = (*iter++);
-//                auto v = pair.second.first;
-//                switch (v->get_intype()) {
-//                    case binary_:{
-//                        auto vv = ((param<bool>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto vv = ((param<short>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto vv = ((param<int>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case float_:{
-//                        auto vv = ((param<float>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto vv = ((param<double>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto vv = ((param<long double>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    case complex_:{
-//                        auto vv = ((param<Cpx>*)v.get());
-//                        if(v->_indices->_type==unindexed_){
-//                            *vv = vv->in(vec);
-//                        }
-//                        else if(v->_indices->_type==in_arcs_){
-//                            *vv = vv->in_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==out_arcs_){
-//                            *vv = vv->out_arcs(vec);
-//                        }
-//                        else if(v->_indices->_type==in_gens_){
-//                            *vv = vv->in_aux(vec,"gens");
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//                (*new_params)[v->_name] = make_pair<>(v,pair.second.second);
-//            }
-//            delete _vars;
-//            _vars = new_vars;
-//            delete _params;
-//            _params = new_params;
-//            return *this;
-//        }
-//        
-//        
-//        void eval_matrix();
-//        void eval_vector();
-//        
-//        
+//
 //        void insert(const lterm& term);
 //        
 //        void insert(const qterm& term);
@@ -640,20 +296,7 @@
 //        void insert(const pterm& term);
 //        
 //        void update_to_str(bool input = false);
-//        size_t get_nb_vars() const;
-//        
-//        size_t get_nb_vars(unsigned inst) const{
-//            unsigned n = 0;
-//            for (auto &vp:*_vars) {
-//                if(vp.second.first->_is_vector){
-//                    n += vp.second.first->get_dim(inst);
-//                }
-//                else {
-//                    n += 1;
-//                }
-//            }
-//            return n;
-//        };
+
 //        
 //        
 //        size_t get_nb_instances() const {
@@ -662,14 +305,7 @@
 ////            return max((size_t)1,constant_::get_nb_instances());
 ////        }
 //        
-//        constant_* get_cst();
-//        
-//        shared_ptr<param_> get_var(string name);
-//        
-//        shared_ptr<param_> get_param(string name);
-//        
-//        void add_var(shared_ptr<param_> v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
-//        
+//
 //        
 //        void add_param(shared_ptr<param_> p, int nb = 1);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
 //        
@@ -679,143 +315,13 @@
 //        
 //        void delete_param(const string& vid);
 //        
-//
-////        void update_nb_instances(const lterm& term){
-////            if ((term._coef->_is_matrix || term._coef->_is_vector) && (term._p->_is_matrix || term._p->_is_vector)) {
-////                if (term._coef->_is_matrix) {
-////                    if (term._coef->_is_transposed) {//TODO check matrix dims match
-////                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
-////                    }
-////                    else {
-////                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
-////                    }
-////                    _dim[0] = _nb_instances;
-////                    if (term._p->_is_matrix) {//Matrix product
-////                        _dim[1] = _nb_instances;
-////                    }
-//////                    else {
-//////                        _dim[1] = 1;
-//////                    }
-////                    _is_vector = true;
-////                    _is_matrix = false;
-////                }
-////                else {//_coef is a transposed vector
-////                    if (!term._p->_is_transposed && !term._p->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
-////                        _dim[0] = 1;
-////                        _nb_instances = 1;//TODO seems not correct
-////                        _is_vector = false;
-////                        _is_matrix = false;
-////                    }
-////                    else {//_p is either transposed or a matrix at this stage
-////                        _dim[0] = term._coef->_dim[0];
-////                        _nb_instances = _dim[0];//TODO check nb_instances vs dim
-////                        _is_transposed = true;
-////                        _is_vector = true;
-////                        _is_matrix = false;
-////                    }
-////                }
-////                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;//TODO not always true
-////            }
-////            else {
-////                _nb_instances = max(_nb_instances, term._p->get_nb_instances(0));
-////            }
-//////            _val->resize(_nb_instances);
-////        }
-//        
-////        void update_nb_instances(const qterm& term){
-////            if ((term._p->first->_is_matrix || term._p->first->_is_vector) && (term._p->second->_is_matrix || term._p->second->_is_vector)) {
-////                if (term._p->first->_is_matrix) {
-////                    if (term._p->first->_is_transposed) {//TODO check matrix dims match
-////                        _nb_instances = max(_nb_instances, term._coef->get_dim(1));
-////                    }
-////                    else {
-////                        _nb_instances = max(_nb_instances, term._coef->get_dim(0));
-////                    }
-////                    _dim[0] = _nb_instances;
-////                    if (term._p->second->_is_matrix) {//Matrix product
-////                        _dim[1] = _nb_instances;
-////                    }
-////                    else {
-////                        _dim[1] = 1;
-////                    }
-////                    _is_vector = true;
-////                    _is_matrix = false;
-////                }
-////                else {//_coef is a transposed vector
-////                    if (!term._p->second->_is_transposed && !term._p->second->_is_matrix) {//_coef is a transposed vector at this stage, if _p is not transposed, we have a scalar product
-////                        _dim[0] = 1;
-////                        _nb_instances = 1;
-////                        _is_vector = false;
-////                        _is_matrix = false;
-////                    }
-////                    else {//_p is either transposed or a matrix at this stage
-////                        _dim[0] = term._coef->_dim[0];
-////                        _nb_instances = _dim[0];
-////                        _is_transposed = true;
-////                        _is_vector = true;
-////                        _is_matrix = false;
-////                    }
-////                }
-//////                _is_matrix = term._coef->_is_matrix && term._p->_is_matrix;
-////            }
-////            else {
-////                _nb_instances = max(_nb_instances, term._p->first->get_nb_instances());
-////                _dim[0] = max(_dim[0], term._p->first->get_nb_instances());
-////            }
-//////            _val->resize(_nb_instances);
-////        }
-//
-////        void update_nb_instances(const pterm& term){
-////                _nb_instances = max(_nb_instances, term._l->begin()->first->get_nb_instances());
-////                _dim[0] = max(_dim[0], term._l->begin()->first->get_nb_instances());
-////
-////        }
-//        
-//        int nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
-//        
-//        int nb_occ_param(string name) const;/**< Returns the number of occurences the parameter has in this function. */
-//        
-//        void incr_occ_var(string str);/**< Increases the number of occurences the variable has in this function. */
-//        
-//        void incr_occ_param(string str);/**< Increases the number of occurences the parameter has in this function. */
-//        
-//        void decr_occ_var(string str, int nb=1);/**< Decreases the number of occurences the variable has in this function by nb. */
-//
-//        void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
-//        
-//        
-//        pair<size_t,func_*> operator[](size_t i);
+
 //        void replace(param_* v, func_& f);/**<  Replace v with function f everywhere it appears */
-//        void reindex(param_* v);/**<  Reindex function according to v's indexing */
-//        bool is_convex() const;
-//        bool is_concave() const;
-//        bool is_convex(size_t idx) const;
-//        bool is_concave(size_t idx) const;
-//        bool is_number() const;
-//        bool is_constant() const;
-//        bool is_linear() const;
-//        bool is_quadratic() const;
-//        bool is_polynomial() const;
-//        bool is_nonlinear() const;
-//        bool is_complex() const;
-//        bool is_zero() const;/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */
-//        bool is_unit() const;
-//        bool is_unit_instance() const;
-//        bool is_transposed() const;
-//        FType get_ftype() const;
-//        void embed(func_& f);
-//        void embed(shared_ptr<expr> e);
-//        void propagate_dim(size_t);/*<< Propagates dimension to sub-functions */
-//        void allocate_mem();/*<< allocates memory for the _val vector */
-//        void update_nb_ind();/*<< Update number of indices */
-//        
+//
 //        
 //        void reset();
 //        
-//        void reverse_sign(); /*<< Reverse the sign of all terms in the function */
-//        
-//        void reverse_convexity();
-//        
+//
 ////        void untranspose_derivatives(){
 ////            for (auto &fp:*_dfdx) {
 ////                auto df = fp.second;
@@ -827,9 +333,8 @@
 ////        }
 //        
 //        
-//        
-//        func_& operator=(const func_& f);
-//        
+//
+//
 //        func_& operator=(func_&& f);
 //        
 //        bool operator==(const func_& f) const;
@@ -876,7 +381,7 @@
 //            return *this /= constant<T>(c);
 //        };
 //        
-//        qterm* get_square(param_* p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+//
 //      
 //        func_ get_outer_app(); /**< Returns an outer-approximation of the function using the current value of the variables **/
 //        
@@ -908,37 +413,7 @@
 //        bool is_soc();
 //        bool is_rotated_soc();
 //        
-//        map<string, lterm>& get_lterms() const{
-//            return *_lterms;
-//        }
-//        
-//        map<string, qterm>& get_qterms() const{
-//            return *_qterms;
-//        }
-//        
-//        map<string, pterm>& get_pterms() const{
-//            return *_pterms;
-//        }
-//        
-//        shared_ptr<expr> get_expr() const{
-//            return _expr;
-//        }
-//        
-//        shared_ptr<map<string,shared_ptr<func_>>> get_dfdx() const{
-//            return _dfdx;
-//        };
-//        
-//        shared_ptr<func_> get_stored_derivative(const string& vid) const; /**< Returns the stored derivative with respect to variable v. */
-//        
-//        func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
-//        
-//        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
-//        
-//        
-//        void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
-//        
-//        vector<pterm> get_monomials(unsigned d);
-//        
+//
 //        void update_sign();
 //        
 //        string to_str() const;
@@ -947,16 +422,16 @@
 //        void print(size_t index);
 //        void print();
 //    };
-//    
-//    template<typename type = double>
-//    class func: public func_, public var<type>{
-//    public:
+//
+    template<typename type = double>
+    class func: public func_, public var<type>{
+    public:
 //        pair<type, type>*                      _all_range = nullptr; /**< Range of the return value considering all instances of the current function. >>**/
 //        vector<pair<type, type>>*              _range = nullptr; /**< Bounds of the return value per-instance. >>**/
 //        
 //
 //
-//        func(){
+        func(){};
 //            constant_::set_type(func_c);
 //            _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
 //            _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
@@ -978,8 +453,81 @@
 //            *this = constant<type>(c);
 //        };
 //        
-//        func(const constant_& c);
-//        
+        func(const constant_& c){};
+        
+        Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
+            return param<type>::get_all_sign();
+        };
+        Sign get_sign(size_t idx = 0) const{ /**< returns the sign of one instance of the current parameter/variable. **/
+            return param<type>::get_sign(idx);
+        }
+        
+        template<typename... Args>
+        func in(const indices& vec1, Args&&... args) {
+            func<type> res(*this);
+            res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));
+            return res;
+        }
+        
+        string to_str() const {
+            return string();
+        }
+        string to_str(int prec) const {
+            return param<type>::to_str(prec);
+        }
+        
+        string to_str(size_t index, int prec = 10) const {
+            return param<type>::to_str(index, prec);
+        }
+        
+        void propagate_dim(size_t d){
+            if (param<type>::is_matrix()) {
+                return;
+            }
+            if(param<type>::_is_transposed){
+                param<type>::_dim[1] = d;
+            }
+            else {
+                param<type>::_dim[0] = d;
+            }
+            for (auto &pair:*_lterms) {
+                auto coef = pair.second._coef;
+                coef->propagate_dim(d);
+            }
+            for (auto &pair:*_qterms) {
+                auto coef = pair.second._coef;
+                coef->propagate_dim(d);
+            }
+            for (auto &pair:*_pterms) {
+                auto coef = pair.second._coef;
+                coef->propagate_dim(d);
+            }
+            _cst->propagate_dim(d);
+            if (_expr) {
+                _expr->propagate_dim(d);
+            }
+        }
+        
+        void allocate_mem(){
+            var<type>::_val->resize(var<type>::get_dim());
+            for (auto &pair:*_lterms) {
+                auto coef = pair.second._coef;
+                coef->allocate_mem();
+            }
+            for (auto &pair:*_qterms) {
+                auto coef = pair.second._coef;
+                coef->allocate_mem();
+            }
+            for (auto &pair:*_pterms) {
+                auto coef = pair.second._coef;
+                coef->allocate_mem();
+            }
+            _cst->allocate_mem();
+            if (_expr) {
+                _expr->allocate_mem();
+            }
+        }
+//
 //        func(constant_&& c):func(){
 //            if(c.is_function()){
 //                auto f = (func_*)&c;
@@ -1655,8 +1203,6 @@
 //            _val = move(f._val);
 //            _indices = move(f._indices);
 //        }
-//        
-//        func_::func_(const func_& f){
 //            //        _evaluated = f._evaluated;
 //            _to_str = f._to_str;
 //            set_type(func_c);
@@ -1751,7 +1297,7 @@
 //            return f;
 //        }
 //
-//    };
+    };
 //
 //
 //
@@ -2828,9 +2374,9 @@
 //    func_ sqrmag(const func_& f);
 //    func_ real(const func_& f);
 //    func_ imag(const func_& f);
-//}
-//
-//
-//
-//#endif /* func_h */
-//
+}
+
+
+
+#endif /* func_h */
+

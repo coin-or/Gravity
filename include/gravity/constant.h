@@ -23,6 +23,7 @@ using namespace std;
 
 namespace gravity {
 
+    class param_;
     /**
      Transform a scalar to a string with user-specified precision.
      @param[in] a_value number to be transformed.
@@ -137,13 +138,35 @@ namespace gravity {
             return (_type==func_c);
         };
         
+        virtual Sign get_all_sign() const {return unknown_;};
+        virtual Sign get_sign(size_t idx=0) const{return unknown_;};
+        /** Memory allocation */
+        virtual void allocate_mem(){};/*<< allocates memory for current and all sub-functions */
         
+        /** Dimension propagation */
+        virtual void propagate_dim(size_t){};/*<< Set dimensions to current and all sub-functions */
+        
+        virtual void reverse_sign(){};/*<< reverses the sign of current object */
         virtual size_t get_dim(size_t i) const {
             if (i>1) {
                 throw invalid_argument("In function: size_t constant_::get_dim(size_t i) const, i is out of range!\n");
             }
             return _dim[i];
         }
+        
+        /**
+         Returns a copy of the current object, detecting the right class, i.e., param, var, func...
+         @return a shared pointer with a copy of the current object
+         */
+        virtual shared_ptr<constant_> copy(){return make_shared<constant_>(*this);};
+        
+        virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
+        
+        virtual string to_str() const{return string();};
+        virtual string to_str(int prec) const{return string();};
+        virtual string to_str(size_t idx, int prec) const{return string();};
+        virtual string to_str(size_t idx1, size_t idx2, int prec) const{return string();};
+        
         
         size_t get_dim() const {
             size_t dim = _dim[0];
@@ -207,14 +230,14 @@ namespace gravity {
             return false;
         }
         
-        
-        bool is_zero() const; /**< Returns true if constant equals 0 */
-        bool is_unit() const; /**< Returns true if constant equals 1 */
-        bool is_neg_unit() const; /**< Returns true if constant equals -1 */
-        bool is_positive() const; /**< Returns true if constant is positive */
-        bool is_negative() const; /**< Returns true if constant is negative */
-        bool is_non_positive() const; /**< Returns true if constant is non positive */
-        bool is_non_negative() const; /**< Returns true if constant is non negative */
+        virtual bool is_constant() const{return false;};
+        virtual bool is_zero() const{return false;}; /**< Returns true if constant equals 0 */
+        virtual bool is_unit() const{return false;}; /**< Returns true if constant equals 1 */
+        virtual bool is_neg_unit() const{return false;}; /**< Returns true if constant equals -1 */
+        virtual bool is_positive() const{return false;}; /**< Returns true if constant is positive */
+        virtual bool is_negative() const{return false;}; /**< Returns true if constant is negative */
+        virtual bool is_non_positive() const{return false;}; /**< Returns true if constant is non positive */
+        virtual bool is_non_negative() const{return false;}; /**< Returns true if constant is non negative */
     };
 
 
@@ -259,6 +282,8 @@ namespace gravity {
             throw invalid_argument("Unknown constant type.");
         }
         
+        ~constant(){};
+        
         constant(const constant& c){ /**< Copy constructor */
             _type = c._type;
             _val = c._val;
@@ -284,6 +309,10 @@ namespace gravity {
         
         void set_val(type val) {
             _val = val;
+        }
+        
+        void reverse_sign(){
+            _val *= -1;
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_sign() const{
@@ -318,7 +347,6 @@ namespace gravity {
             }
             return unknown_;
         }
-        
         
         
         
