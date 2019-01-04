@@ -26,7 +26,7 @@
 #ifdef USE_QPP
     #include "qpp.h"
 #endif
-#include <eigen/Sparse>
+#include <Eigen/Sparse>
 
 using namespace std;
 
@@ -84,7 +84,7 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
-        virtual shared_ptr<param_> pcopy(){return make_shared<param_>(*this);};
+        virtual shared_ptr<param_> pcopy(){return nullptr;};
 
         void set_id(size_t idx) {
             *_id = idx;

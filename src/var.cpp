@@ -311,7 +311,7 @@ template<typename type> bool var<type>::operator!=(const var& v) const {
 }
 
 /* Output */
-template<typename type> string var<type>::to_str(bool bounds, int prec) const {
+template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) const {
     string str = param<type>::to_str(false, prec);
     if (!bounds) {
         return str;
@@ -345,7 +345,7 @@ template<typename type> string var<type>::to_str(bool bounds, int prec) const {
 }
     
 template<typename type> void var<type>::print(bool bounds, int prec) const {
-    cout << to_str(bounds,prec);
+    cout << to_str_bounds(bounds,prec);
 }
     
 var<Cpx> conj(const var<Cpx>& v){

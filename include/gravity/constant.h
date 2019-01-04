@@ -158,7 +158,7 @@ namespace gravity {
          Returns a copy of the current object, detecting the right class, i.e., param, var, func...
          @return a shared pointer with a copy of the current object
          */
-        virtual shared_ptr<constant_> copy(){return make_shared<constant_>(*this);};
+        virtual shared_ptr<constant_> copy(){return nullptr;};
         
         virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
         

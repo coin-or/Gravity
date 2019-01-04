@@ -363,7 +363,7 @@ namespace gravity {
         }
         
         /* Output */
-        string to_str(bool bounds=true, int prec = 10) const;
+        string to_str_bounds(bool bounds=true, int prec = 10) const;
         void print(bool bounds=true, int prec = 10) const;
         
     };
