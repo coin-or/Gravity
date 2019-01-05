@@ -29,7 +29,7 @@ namespace gravity {
 //    
 //    
     /** Backbone class for function */
-    class func_ {
+    class func_ : virtual public constant_{
     private:
         shared_ptr<func_> compute_derivative(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
         
@@ -67,23 +67,7 @@ namespace gravity {
         size_t                                                            _nnz_h = 0; /**< Number of nonzeros in the Hessian **/
         
     public:
-        func_();
-        
-        func_(const func_& f){
-            *this = f;
-        }
-        
-        func_(func_&& f){
-            *this = move(f);
-        }
-        
-        func_& operator=(const func_& f){
-            return *this;
-        }
-        
-        func_& operator=(func_&& f){
-            return *this;
-        }
+
         /** Accessors */
         FType get_ftype() const;
         NType get_return_type() const;
@@ -106,10 +90,40 @@ namespace gravity {
         bool is_nonlinear() const;
         bool is_complex() const;
         bool is_transposed() const;
+        bool is_number() const{
+            return (_vars->empty() && _params->empty());
+        }
         
+        
+        /* Virtual functions */
+        
+        virtual shared_ptr<func_> fcopy() const{return nullptr;};
+        
+        /* Modifiers */
+        
+        /**
+         Mark f as embeded and merge variables and parameters with f (by calling merge_vars(func_&& f). If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+         @param[in] f function to merge variables and parameters with.
+         */
+        void embed(func_& f);
+        /**
+         Merge variables and parameters with expression e. If a variable x in e exists in the current funtion, x will now point to the same variable appearing in the current function.
+         @param[in] e expression to merge variables and parameters with.
+         */
+        void embed(shared_ptr<expr> e);
+        
+        /**
+         Subfuntion of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+         @param[in] f function to merge variables and parameters with.
+         */
+        void merge_vars(func_& f);
+        
+        /**
+         Copy and embed derivatives of f.
+         @param[in] f function to copy derivatives from.
+         */
+        void copy_derivatives(const func_& f);
 
-        
-        /** Modifiers */
         void set_first_derivative(const param_& v, func_&& f){
             DebugOff(f.to_str()<<endl);
             (*_dfdx)[v._name] = make_shared<func_>(move(f));
@@ -218,6 +232,8 @@ namespace gravity {
             return n;
         };
         
+        void update_vars();
+        
         /**
          Returns a pointer to the constant part of the function.
          @return a pointer to the constant part of the function.
@@ -239,6 +255,8 @@ namespace gravity {
         shared_ptr<param_> get_param(string name) const;
 
         void add_var(shared_ptr<param_> v, int nb = 1);/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+
+        void add_param(shared_ptr<param_> v, int nb = 1);/**< Inserts the parameter in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
 
         /**
          Reverse the sign of all terms in the function
@@ -431,7 +449,14 @@ namespace gravity {
 //        
 //
 //
-        func(){};
+        func(){
+            constant_::set_type(func_c);
+            _lterms = make_shared<map<string, lterm>>();
+            _qterms = make_shared<map<string, qterm>>();
+            _pterms = make_shared<map<string, pterm>>();
+            _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+        };
 //            constant_::set_type(func_c);
 //            _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
 //            _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
@@ -452,9 +477,7 @@ namespace gravity {
 //        func(const type& c){
 //            *this = constant<type>(c);
 //        };
-//        
-        func(const constant_& c){};
-        
+//
         Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
             return param<type>::get_all_sign();
         };
@@ -470,16 +493,18 @@ namespace gravity {
         }
         
         string to_str() const {
-            return string();
-        }
-        string to_str(int prec) const {
-            return param<type>::to_str(prec);
+            return to_str(0, 3);
         }
         
-        string to_str(size_t index, int prec = 10) const {
+        string to_str(size_t index, int prec) const {
             return param<type>::to_str(index, prec);
         }
         
+        string to_str(size_t index1, size_t index2, int prec) const {
+            return param<type>::to_str(index1, index2, prec);
+        }
+        
+
         void propagate_dim(size_t d){
             if (param<type>::is_matrix()) {
                 return;
@@ -831,95 +856,28 @@ namespace gravity {
 //        }
 //        
 //        
-//        
-//        func_::func_(const constant_& c){
-//            set_type(func_c);
-//            _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _cst = nullptr;
-//            _lterms = new map<string, lterm>();
-//            _qterms = new map<string, qterm>();
-//            _pterms = new map<string, pterm>();
-//            _expr = nullptr;
-//            _DAG = new map<string, expr*>();
-//            _queue = new deque<shared_ptr<expr>>();
-//            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-//            _all_sign = zero_;
-//            _all_convexity = linear_;
-//            _all_range = nullptr;
-//            _sign = nullptr;
-//            _convexity = nullptr;
-//            _range = nullptr;
-//            _is_transposed = c._is_transposed;
-//            _is_vector = c._is_vector;
-//            //        _is_matrix = c._is_matrix;
-//            switch (c.get_type()) {
-//                case binary_c: {
-//                    _cst = new constant<bool>(*(constant<bool>*)(&c));
-//                    _all_sign = ((constant<bool>*)_cst)->get_sign();
-//                    _all_range = new pair<double,double>(0,1);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<bool>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case short_c: {
-//                    _cst = new constant<short>(*(constant<short>*)(&c));
-//                    _all_sign = ((constant<short>*)_cst)->get_sign();
-//                    auto val = ((constant<short>*)(&c))->eval();
-//                    _all_range = new pair<double,double>(val,val);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<short>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case integer_c: {
-//                    _cst = new constant<int>(*(constant<int>*)(&c));
-//                    _all_sign = ((constant<int>*)_cst)->get_sign();
-//                    auto val = ((constant<int>*)(&c))->eval();
-//                    _all_range = new pair<double,double>(val,val);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<int>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case float_c: {
-//                    _cst = new constant<float>(*(constant<float>*)(&c));
-//                    _all_sign = ((constant<float>*)_cst)->get_sign();
-//                    auto val = ((constant<float>*)(&c))->eval();
-//                    _all_range = new pair<double,double>(val,val);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<float>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case double_c: {
-//                    _cst = new constant<double>(*(constant<double>*)(&c));
-//                    _all_sign = ((constant<double>*)_cst)->get_sign();
-//                    auto val = ((constant<double>*)(&c))->eval();
-//                    _all_range = new pair<double,double>(val,val);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<double>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case long_c: {
-//                    _cst = new constant<long double>(*(constant<long double>*)(&c));
-//                    _all_sign = ((constant<long double>*)_cst)->get_sign();
-//                    auto val = ((constant<long double>*)(&c))->eval();
-//                    _all_range = new pair<double,double>(val,val);
-//                    _val = make_shared<vector<double>>();
-//                    _val->push_back(((constant<long double>*)(&c))->eval());
-//                    _evaluated = true;
-//                    break;
-//                }
-//                case complex_c: {
-//                    _cst = new constant<Cpx>(*(constant<Cpx>*)(&c));
-//                    _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-//                    _val = make_shared<vector<double>>();
-//                    break;
-//                }
-//                    
+//
+        func(const constant<type>& c):func(){
+            *this = c;
+        }
+        
+        func(const param<type>& c):func(){
+            *this = c;
+        }
+        
+        func& operator=(const constant<type>& c){
+            _cst = c.copy();
+            _all_sign = _cst->get_sign();
+            param<type>::operator=(c.eval());
+            _evaluated = true;
+            return *this;
+        }
+        
+        func& operator=(const param<type>& c){
+            param<type>::operator=(c);            
+            return *this;
+        }
+                    
 //                case par_c:{
 //                    auto p_c2 =     shared_ptr<param_>((param_*)copy(c));
 //                    //                p_c2->untranspose();//TODO what is this doing here?
@@ -1149,147 +1107,95 @@ namespace gravity {
 //            _dim[0] = c._dim[0];
 //            _dim[1] = c._dim[1];
 //        }
-//        
-//        func_::func_(func_&& f){
-//            //        _evaluated = f._evaluated;
-//            _to_str = f._to_str;
-//            set_type(func_c);
-//            _ftype = f._ftype;
-//            _return_type = f._return_type;
-//            _all_convexity = f._all_convexity;
-//            _all_sign = f._all_sign;
-//            _all_range = f._all_range;
-//            f._all_range = nullptr;
-//            _lterms = f._lterms;
-//            f._lterms = nullptr;
-//            _qterms = f._qterms;
-//            f._qterms = nullptr;
-//            _pterms = f._pterms;
-//            f._pterms = nullptr;
-//            _expr = move(f._expr);
-//            _DAG = f._DAG;
-//            f._DAG = nullptr;
-//            _queue = f._queue;
-//            f._queue = nullptr;
-//            _vars = f._vars;
-//            f._vars = nullptr;
-//            _params = f._params;
-//            f._params = nullptr;
-//            _cst = f._cst;
-//            f._cst = nullptr;
-//            _range = f._range;
-//            f._range = nullptr;
-//            _convexity = f._convexity;
-//            f._convexity = nullptr;
-//            _sign = f._sign;
-//            f._sign = nullptr;
-//            _is_transposed = f._is_transposed;
-//            _is_vector = f._is_vector;
-//            //        _is_matrix = f._is_matrix;
-//            _is_constraint = f._is_constraint;
-//            _is_hessian = f._is_hessian;
-//            _dim[0] = f._dim[0];
-//            _dim[1] = f._dim[1];
-//            _embedded = f._embedded;
-//            if (is_constant()) {
-//                _evaluated = f._evaluated;
-//            }
-//            _dfdx = move(f._dfdx);
-//            _nnz_j = f._nnz_j;
-//            _nnz_h = f._nnz_h;
-//            _hess_link = f._hess_link;
-//            //        _nb_instances = f._nb_instances;
-//            _nb_vars = f._nb_vars;
-//            _val = move(f._val);
-//            _indices = move(f._indices);
-//        }
-//            //        _evaluated = f._evaluated;
-//            _to_str = f._to_str;
-//            set_type(func_c);
-//            _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _lterms = new map<string, lterm>();
-//            _qterms = new map<string, qterm>();
-//            _pterms = new map<string, pterm>();
-//            _expr = nullptr;
-//            _DAG = new map<string, expr*>();
-//            _queue  = new deque<shared_ptr<expr>>();
-//            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-//            _ftype = f._ftype;
-//            _return_type = f._return_type;
-//            _all_convexity = f._all_convexity;
-//            _all_sign = f._all_sign;
-//            _is_transposed = f._is_transposed;
-//            _is_vector = f._is_vector;
-//            //        _is_matrix = f._is_matrix;
-//            _is_constraint = f._is_constraint;
-//            _is_hessian = f._is_hessian;
-//            _embedded = f._embedded;
-//            if (is_constant()) {
-//                _evaluated = f._evaluated;
-//            }
-//            _cst = copy(*f._cst);
-//            if (_cst->is_function()) {
-//                embed(*(func_*)_cst);
-//            }
-//            _all_range = new pair<double,double>(f._all_range->first, f._all_range->second);
-//            _sign = nullptr;
-//            _convexity = nullptr;
-//            _range = nullptr;
-//            
-//            if(f._sign){
-//                _sign = new vector<Sign>();
-//                *_sign = *f._sign;
-//            }
-//            if (f._convexity) {
-//                _convexity = new vector<Convexity>();
-//                *_convexity = *f._convexity;
-//            }
-//            if (f._range) {
-//                _range= new vector<pair<double,double>>();
-//                *_range = *f._range;// Make sure this creates new pointers inside each pair, otherwise use below.
-//                //        for (auto &elem: *f._range) {
-//                //            _range->push_back(make_pair<>(copy(elem.first), copy(elem.second)));
-//                //        }
-//            }
-//            
-//            for (auto &pair:*f._lterms) {
-//                insert(pair.second);
-//            }
-//            for (auto &pair:*f._qterms) {
-//                insert(pair.second);
-//            }
-//            for (auto &pair:*f._pterms) {
-//                insert(pair.second);
-//            }
-//            if (f._val) {
-//                _val = make_shared<vector<double>>(*f._val);
-//            }
-//            if (f._expr) {
-//                if (f._expr->is_uexpr()) {
-//                    _expr = make_shared<uexpr>(*(uexpr*)(f._expr.get()));
-//                }
-//                else {
-//                    _expr = make_shared<bexpr>(*(bexpr*)(f._expr.get()));
-//                }
-//                embed(_expr);
-//                //            _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                _queue->push_back(_expr);
-//            }
-//            for (auto &df:*f._dfdx) {
-//                (*_dfdx)[df.first] = make_shared<func_>(*df.second);
-//            }
-//            _nnz_j = f._nnz_j;
-//            _nnz_h = f._nnz_h;
-//            _hess_link = f._hess_link;
-//            //        _nb_instances = f._nb_instances;
-//            _nb_vars = f._nb_vars;
-//            if (f._indices) {
-//                _indices = f._indices;
-//            }
-//            _dim[0] = f._dim[0];
-//            _dim[1] = f._dim[1];
-//        }
+
+        func(func&& f){
+            *this = move(f);
+        }
+        
+        func(const func& f){
+            *this = f;
+        }
+        
+        shared_ptr<func_> fcopy() const{return make_shared<func>(*this);};
+        
+        func& operator=(const func& f){
+            constant_::_type = f._type;
+            _ftype = f._ftype;
+            _return_type = f._return_type;
+            _to_str = f._to_str;
+            _all_convexity = f._all_convexity;
+            _all_sign = f._all_sign;
+            _cst = f._cst->copy();
+            _lterms = make_shared<map<string, lterm>>(*f._lterms);
+            _qterms = make_shared<map<string, qterm>>(*f._qterms);
+            _pterms = make_shared<map<string, pterm>>(*f._pterms);
+            if(f._expr){
+                _expr = make_shared<expr>(*f._expr);
+            }
+            _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            merge_vars(*this);// Update vars and params
+            if(f._indices){
+                param_::_indices = make_shared<indices>(*f._indices);
+            }
+            param<type>::_range = make_shared<pair<type,type>>(*f._range);
+            param<type>::_val = make_shared<vector<type>>(*f._val);
+            *_convexity = *f._convexity;
+            _sign = f._sign;
+            constant_::_is_transposed = f._is_transposed;
+            constant_::_is_vector = f._is_vector;
+            _is_constraint = f._is_constraint;
+            _is_hessian = f._is_hessian;
+            constant_::_dim[0] = f._dim[0];
+            constant_::_dim[1] = f._dim[1];
+            _embedded = f._embedded;
+            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
+            copy_derivatives(f);
+            if(f._hess_link){
+                _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
+            }
+            _nnz_j = f._nnz_j;
+            _nnz_h = f._nnz_h;
+            _hess_link = f._hess_link;
+            _nb_vars = f._nb_vars;
+            return *this;
+        }
+        
+        func& operator=(func&& f){
+            constant_::_type = f._type;
+            _ftype = f._ftype;
+            _to_str = f._to_str;
+            _return_type = f._return_type;
+            _all_convexity = f._all_convexity;
+            _all_sign = f._all_sign;
+            _lterms = move(f._lterms);
+            _qterms = move(f._qterms);
+            _pterms = move(f._pterms);
+            _expr = move(f._expr);
+            _vars = move(f._vars);
+            _params = move(f._params);
+            _cst = move(f._cst);
+            param_::_indices = move(f._indices);
+            param<type>::_range = move(f._range);
+            param<type>::_val = move(f._val);
+            _convexity = move(f._convexity);
+            _sign = f._sign;
+            f._sign = nullptr;
+            constant_::_is_transposed = f._is_transposed;
+            constant_::_is_vector = f._is_vector;
+            _is_constraint = f._is_constraint;
+            _is_hessian = f._is_hessian;
+            constant_::_dim[0] = f._dim[0];
+            constant_::_dim[1] = f._dim[1];
+            _embedded = f._embedded;
+            _dfdx = move(f._dfdx);
+            _nnz_j = f._nnz_j;
+            _nnz_h = f._nnz_h;
+            _hess_link = f._hess_link;
+            _nb_vars = f._nb_vars;
+            return *this;
+        }
+
 //        
 //        func_ tr() const {
 //            auto f = func_(*this);
@@ -1298,20 +1204,6 @@ namespace gravity {
 //        }
 //
     };
-//
-//
-//
-//    bool is_indexed(const constant_* c);
-//
-//    size_t get_poly_id(const constant_* c);
-//
-//    size_t get_poly_id_inst(const constant_* c, unsigned inst = 0);
-//
-////    double poly_eval(const constant_* c, size_t i=0);
-////    double poly_eval(const constant_* c, size_t i, size_t j);
-//
-//
-//    void poly_print(const constant_* c);
 //
 //
 //
@@ -2259,18 +2151,17 @@ namespace gravity {
 //    }
 //
 //
-//    func_ cos(const constant_& c);
+//    func cos(const constant_& c);
 //
-//    func_ sin(const constant_& c);
+//    func sin(const constant_& c);
 //
 //
-//    func_ sqrt(const constant_& c);
+//    func sqrt(const constant_& c);
 //
-//    func_ expo(const constant_& c);
+//    func expo(const constant_& c);
 //
-//    func_ log(const constant_& c);
-//
-//    func_ log(constant_&& c);
+//    func log(const constant_& c);
+
 //
 //
 //    //template<typename other_type> bexpr operator+(const other_type& c1, const expr& c2){

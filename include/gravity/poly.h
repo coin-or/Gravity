@@ -101,6 +101,10 @@ namespace gravity {
         
         qterm(){}
         
+        qterm(const qterm& t){
+            *this = t;
+        };
+        
         qterm(qterm&& t){
             *this = move(t);
         };
@@ -218,6 +222,9 @@ namespace gravity {
             _sign = sign;
         };
         
+        pterm(const pterm& t){
+            *this = t;
+        };
         
         pterm(pterm&& t){
             *this = move(t);

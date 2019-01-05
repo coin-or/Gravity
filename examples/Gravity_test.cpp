@@ -187,9 +187,9 @@ TEST_CASE("testing shared pointers") {
     cx0 = Cpx(-1,1);
     shared_ptr<constant_> ct = make_shared<param<Cpx>>(cx0);
     auto cp = cx0.copy();
-    auto dc1 = static_pointer_cast<param<Cpx>>(ct);
+    auto dc1 = dynamic_pointer_cast<param<Cpx>>(ct);
     dc1->print();
-    auto dc2 = static_pointer_cast<param<Cpx>>(cp);
+    auto dc2 = dynamic_pointer_cast<param<Cpx>>(cp);
     dc2->print();
 }
 

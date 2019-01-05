@@ -22,18 +22,12 @@ namespace gravity{
     };
 
 
-//    lterm& lterm::operator=(const lterm &l){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = copy(*l._coef);
-//        _p = (param_*)copy(*l._p);
-//        _sign = l._sign;
-//        return *this;
-//    }
+    lterm& lterm::operator=(const lterm &l){
+        _coef = l._coef->copy();
+        _p = l._p->pcopy();
+        _sign = l._sign;
+        return *this;
+    }
 
     lterm& lterm::operator=(lterm&& l){
         _coef = move(l._coef);
@@ -42,19 +36,13 @@ namespace gravity{
         return *this;
     }
 
-//    qterm& qterm::operator=(const qterm &q){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_p) {
-//            delete _p;
-//        }
-//        _coef = copy(*q._coef);
-//        _p = new pair<param_*, param_*>(make_pair<>((param_*)copy(*q._p->first), (param_*)copy(*q._p->second)));
-//        _sign = q._sign;
-//        _coef_p1_transposed = q._coef_p1_transposed;
-//        return *this;
-//    }
+    qterm& qterm::operator=(const qterm &q){
+        _coef = q._coef->copy();
+        _p = make_shared<pair<shared_ptr<param_>,shared_ptr<param_>>>(make_pair<>(q._p->first->pcopy(), q._p->second->pcopy()));
+        _sign = q._sign;
+        _coef_p1_transposed = q._coef_p1_transposed;
+        return *this;
+    }
 
 
     qterm& qterm::operator=(qterm&& q){
@@ -67,21 +55,15 @@ namespace gravity{
 
 
 
-//    pterm& pterm::operator=(const pterm &p){
-//        if (_coef) {
-//            delete _coef;
-//        }
-//        if (_l) {
-//            delete _l;
-//        }
-//        _coef = copy(*p._coef);
-//        _l = new list<pair<param_*, int>>();
-//        for (auto &pair : *p._l) {
-//            _l->push_back(make_pair<>((param_*)copy(*pair.first), pair.second));
-//        }
-//        _sign = p._sign;
-//        return *this;
-//    }
+    pterm& pterm::operator=(const pterm &p){
+        _coef = p._coef->copy();
+        _l = make_shared<list<pair<shared_ptr<param_>, int>>>();
+        for (auto &pair : *p._l) {
+            _l->push_back(make_pair<>(pair.first->pcopy(), pair.second));
+        }
+        _sign = p._sign;
+        return *this;
+    }
 
 
     pterm& pterm::operator=(pterm&& p){

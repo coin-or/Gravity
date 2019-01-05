@@ -634,14 +634,6 @@ namespace gravity{
 //
 //
 //
-    func_::func_(){
-        _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        _lterms = make_shared<map<string, lterm>>();
-        _qterms = make_shared<map<string, qterm>>();
-        _pterms = make_shared<map<string, pterm>>();
-        _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-    };
 //
 //
 //
@@ -1724,154 +1716,184 @@ namespace gravity{
 //
 //    
 //
-    
+    /**
+     Subfuntion of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+     @param[in] f function to merge variables and parameters with.
+     */
+    void func_::merge_vars(func_& f){
+        for (auto &pair:*f._lterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                embed(*dynamic_pointer_cast<func_>(coef));
+            }
+            auto p = pair.second._p;
+            if (p->is_var()) {
+                auto pname = p->get_name(false,false);
+                auto it = _vars->find(pname);
+                if (it==_vars->end()) {
+                    add_var(f.get_var(pname));
+                }
+                else{
+                    pair.second._p = it->second.first;
+                    it->second.second++;
+                }
+            }
+            else {
+                auto pname = p->get_name(false,false);
+                auto it = _params->find(pname);
+                if (it==_params->end()) {
+                    add_param(f.get_param(pname));
+                }
+                else{
+                    pair.second._p = it->second.first;
+                    it->second.second++;
+                }
+            }
+        }
+        for (auto &pair:*f._qterms) {
+            auto coef = pair.second._coef;
+            if (coef->is_function()){
+                embed(*dynamic_pointer_cast<func_>(coef));
+            }
+            auto p1 = pair.second._p->first;
+            auto p2 = pair.second._p->second;
+            if (p1->is_var()) {
+                auto it1 = _vars->find(p1->get_name(false,false));
+                if (it1==_vars->end()) {
+                    add_var(f.get_var(p1->get_name(false,false)));
+                }
+                else{
+                    pair.second._p->first = it1->second.first;
+                    it1->second.second++;
+                }
+                auto it2 = _vars->find(p2->get_name(false,false));
+                if (it2==_vars->end()) {
+                    add_var(f.get_var(p2->get_name(false,false)));
+                }
+                else{
+                    pair.second._p->second = it2->second.first;
+                    it2->second.second++;
+                }
+            }
+            else {
+                auto it1 = _params->find(p1->get_name(false,false));
+                if (it1==_params->end()) {
+                    add_param(f.get_param(p1->get_name(false,false)));
+                }
+                else{
+                    pair.second._p->first = it1->second.first;
+                    it1->second.second++;
+                }
+                auto it2 = _params->find(p2->get_name(false,false));
+                if (it2==_params->end()) {
+                    add_param(f.get_param(p2->get_name(false,false)));
+                }
+                else{
+                    pair.second._p->second = it2->second.first;
+                    it2->second.second++;
+                }
+            }
+        }
+        for (auto &pair:*f._pterms) {
+            auto coef = pair.second._coef;
+            if(coef->is_function()){
+                embed(*dynamic_pointer_cast<func_>(coef));
+            }
+            auto list = pair.second._l;
+            for (auto &ppi: *list) {
+                auto p = ppi.first;
+                if (p->is_var()) {
+                    auto it = _vars->find(p->get_name(false,false));
+                    if (it==_vars->end()) {
+                        add_var(f.get_var(p->get_name(false,false)));
+                    }
+                    else{
+                        ppi.first = it->second.first;
+                        it->second.second++;
+                    }
+                }
+                else {
+                    auto it = _params->find(p->get_name(false,false));
+                    if (it==_params->end()) {
+                        add_param(f.get_param(p->get_name(false,false)));
+                    }
+                    else{
+                        ppi.first = it->second.first;
+                        it->second.second++;
+                    }
+                }
+            }
+        }
+        if (f._expr) {
+            embed(f._expr);
+        }
+        if(f._cst->is_function()){
+            embed(*dynamic_pointer_cast<func_>(f._cst));
+        }
+        
+        auto old_vars = *f._vars;
+        for (auto &vp: old_vars) {
+            auto vv = (*_vars)[vp.first].first;
+            auto vv_f = (*f._vars)[vp.first].first;
+            if (vv != vv_f) {
+                //                delete vv_f;
+                f._vars->erase(vp.first);
+                f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
+            }
+        }
+        auto old_params = *f._params;
+        for (auto &pp: old_params) {
+            auto p = (*_params)[pp.first].first;
+            auto p_f = (*f._params)[pp.first].first;
+            if (p != p_f) {
+                //                delete p_f;
+                f._params->erase(pp.first);
+                f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
+            }
+        }
+    }
 
-//    void func_::embed(func_& f){// Merge variables and params with f, make it point to vars/params in this.
-//        //        if (!f._is_transposed) {
-//        //            f._nb_instances = max(f._nb_instances, _nb_instances);
-//        //            f._val->resize(max(f._val->size(),_nb_instances));
-//        //        }
-//        f._embedded = true;
-//        param_* p = nullptr;
-//        param_* p1 = nullptr;
-//        param_* p2 = nullptr;
-//        for (auto &pair:*f._lterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                embed(*(func_*)coef);
-//            }
-//            p = pair.second._p;
-//            if (p->is_var()) {
-//                auto it = _vars->find(p->get_name(false,false));
-//                if (it==_vars->end()) {
-//                    add_var(f.get_var(p->get_name(false,false)));
-//                }
-//                else{
-//                    p = (it->second.first).get();
-//                    pair.second._p = p;
-//                    it->second.second++;
-//                }
-//            }
-//            else {
-//                auto it = _params->find(p->get_name(false,false));
-//                if (it==_params->end()) {
-//                    add_param(f.get_param(p->get_name(false,false)));
-//                }
-//                else{
-//                    p = it->second.first.get();
-//                    pair.second._p = p;
-//                    it->second.second++;
-//                }
-//            }
-//        }
-//        for (auto &pair:*f._qterms) {
-//            auto coef = pair.second._coef;
-//            if (coef->is_function()){
-//                embed(*(func_*)coef);
-//            }
-//            p1 = pair.second._p->first;
-//            p2 = pair.second._p->second;
-//            if (p1->is_var()) {
-//                auto it1 = _vars->find(p1->get_name(false,false));
-//                if (it1==_vars->end()) {
-//                    add_var(f.get_var(p1->get_name(false,false)));
-//                }
-//                else{
-//                    p1 = it1->second.first.get();
-//                    pair.second._p->first = p1;
-//                    it1->second.second++;
-//                }
-//                auto it2 = _vars->find(p2->get_name(false,false));
-//                if (it2==_vars->end()) {
-//                    add_var(f.get_var(p2->get_name(false,false)));
-//                }
-//                else{
-//                    p2 = it2->second.first.get();
-//                    pair.second._p->second = p2;
-//                    it2->second.second++;
-//                }
-//            }
-//            else {
-//                auto it1 = _params->find(p1->get_name(false,false));
-//                if (it1==_params->end()) {
-//                    add_param(f.get_param(p1->get_name(false,false)));
-//                }
-//                else{
-//                    p1 = it1->second.first.get();
-//                    pair.second._p->first = p1;
-//                    it1->second.second++;
-//                }
-//                auto it2 = _params->find(p2->get_name(false,false));
-//                if (it2==_params->end()) {
-//                    add_param(f.get_param(p2->get_name(false,false)));
-//                }
-//                else{
-//                    p2 = it2->second.first.get();
-//                    pair.second._p->second = p2;
-//                    it2->second.second++;
-//                }
-//            }
-//        }
-//        for (auto &pair:*f._pterms) {
-//            auto coef = pair.second._coef;
-//            if(coef->is_function()){
-//                embed(*(func_*)coef);
-//            }
-//            auto list = pair.second._l;
-//            for (auto &ppi: *list) {
-//                p = ppi.first;
-//                if (p->is_var()) {
-//                    auto it = _vars->find(p->get_name(false,false));
-//                    if (it==_vars->end()) {
-//                        add_var(f.get_var(p->get_name(false,false)));
-//                    }
-//                    else{
-//                        p = it->second.first.get();
-//                        ppi.first = p;
-//                        it->second.second++;
-//                    }
-//                }
-//                else {
-//                    auto it = _params->find(p->get_name(false,false));
-//                    if (it==_params->end()) {
-//                        add_param(f.get_param(p->get_name(false,false)));
-//                    }
-//                    else{
-//                        p = it->second.first.get();
-//                        ppi.first = p;
-//                        it->second.second++;
-//                    }
-//                }
-//            }
-//        }
-//        if (f._expr) {
-//            embed(f._expr);
-//        }
-//        if(f._cst->is_function()){
-//            embed(*(func_*)f._cst);
-//        }
-//
-//        auto old_vars = *f._vars;
-//        for (auto &vp: old_vars) {
-//            auto vv = (*_vars)[vp.first].first;
-//            auto vv_f = (*f._vars)[vp.first].first;
-//            if (vv != vv_f) {
-//                //                delete vv_f;
-//                f._vars->erase(vp.first);
-//                f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
-//            }
-//        }
-//        auto old_params = *f._params;
-//        for (auto &pp: old_params) {
-//            auto p = (*_params)[pp.first].first;
-//            auto p_f = (*f._params)[pp.first].first;
-//            if (p != p_f) {
-//                //                delete p_f;
-//                f._params->erase(pp.first);
-//                f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
-//            }
-//        }
-//    }
+    void func_::embed(func_& f){
+        f._embedded = true;
+        merge_vars(f);
+    }
+    
+    void func_::embed(shared_ptr<expr> e){
+        switch (e->get_type()) {
+            case uexp_c:{
+                auto ue = static_pointer_cast<uexpr>(e);
+                if (ue->_son->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(ue->_son));
+                }
+                break;
+            }
+            case bexp_c:{
+                auto be = static_pointer_cast<bexpr>(e);
+                if (be->_lson->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(be->_lson));
+                }
+                if (be->_rson->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(be->_rson));
+                }
+            }
+            default:
+                break;
+        }
+    }
+    
+    /**
+     Copy and embed derivatives of f.
+     @param[in] f function to copy derivatives from.
+     */
+    void func_::copy_derivatives(const func_& f){
+        if (f._dfdx) {
+            for (auto &pair:*f._dfdx) {
+                auto df = pair.second->fcopy();
+                embed(*df);
+                (*_dfdx)[pair.first] = df;
+            }
+        }
+    }
 //
 //    void func_::reset(){
 //        _to_str = "noname";
@@ -4606,40 +4628,34 @@ namespace gravity{
         }
     }
 //
-//    void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
-//        if (_vars->count(v->get_name(false,false))!=0) {
-//            throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
-//        }
-//        _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
-//        if (!_val) {
-//            _val = make_shared<vector<double>>();
-//        }
-//        if (v->_is_vector) {// i.e., it appears in a sum
-//            if (v->is_matrix()) {
-//                if (v->_is_transposed) {
-//                    _nb_vars += v->get_dim(0);
-//                }
-//                _nb_vars += v->get_dim(1);
-//            }
-//            else {
-//                _nb_vars += v->get_dim();
-//            }
-//        }
-//        else {
-//            _nb_vars++;
-//        }
-//    }
-//
-//
-//    void func_::add_param(shared_ptr<param_> p, int nb){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
-//        if (_params->count(p->get_name(false,false))!=0) {
-//            throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
-//        }
-//        if (!_val) {
-//            _val = make_shared<vector<double>>();
-//        }
-//        _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
-//    }
+    void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
+        if (_vars->count(v->get_name(false,false))!=0) {
+            throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
+        }
+        _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
+        if (v->_is_vector) {// i.e., it appears in a sum
+            if (v->is_matrix()) {
+                if (v->_is_transposed) {
+                    _nb_vars += v->get_dim(0);
+                }
+                _nb_vars += v->get_dim(1);
+            }
+            else {
+                _nb_vars += v->get_dim();
+            }
+        }
+        else {
+            _nb_vars++;
+        }
+    }
+
+
+    void func_::add_param(shared_ptr<param_> p, int nb){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
+        if (_params->count(p->get_name(false,false))!=0) {
+            throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
+        }
+        _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
+    }
 //
 //
 //

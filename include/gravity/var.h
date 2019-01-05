@@ -43,66 +43,69 @@ namespace gravity {
         /* Constructors */
         //@{
         /** Unbounded variable constructor */
-        var();
+        var(){};
         ~var() {};
-        var(const string& name);
-        var(const string& name, Sign s);
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        var(const string& name){
+            constant_::set_type(var_c);
+            this->_name = name;
+            _lb = make_shared<func<type>>(constant<type>(numeric_limits<type>::lowest()));
+            _ub = make_shared<func<type>>(constant<type>(numeric_limits<type>::max()));
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        var(const string& name){
+            constant_::set_type(var_c);
+            this->_name = name;
+            _lb = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+            _ub = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
+        }
+        
+//        var(const string& name, Sign s);
         var(const var<type>& v);
         var(var<type>&& v);
         //@}
         
-        shared_ptr<param_> pcopy(){return make_shared<var>(*this);};
+        shared_ptr<param_> pcopy() const{return make_shared<var>(*this);};
         
-        shared_ptr<constant_> copy(){return make_shared<var>(*this);};
+        shared_ptr<constant_> copy() const{return make_shared<var>(*this);};
         
         //@{
-        /** Bounded complex variable constructor */
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> var(const string& name, const T& lb, const T& ub):param<T>(name){
-            param<T>::set_type(var_c);
-            _lb = make_shared<func<type>>(constant<T>(lb));
-            _ub = make_shared<func<type>>(constant<T>(ub));
-            param<T>::_range->first = lb;
-            param<T>::_range->second = ub;
-        }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> var(const string& name, T&& lb, T&& ub):param<T>(name){
-            param<T>::set_type(var_c);
-            _lb = make_shared<func<type>>(constant<T>(move(lb)));
-            _ub = make_shared<func<type>>(constant<T>(move(ub)));
-            param<T>::_range->first = lb;
-            param<T>::_range->second = ub;
-        }
         
-        var(const string& name, type lb, type ub):var(name){
+        var(const string& name, type lb, type ub){
+            this->_name = name;
+            constant_::set_type(var_c);
             _lb = make_shared<func<type>>(constant<type>(lb));
             _ub = make_shared<func<type>>(constant<type>(ub));
             param<type>::_range->first = lb;
             param<type>::_range->second = ub;
         };
         
-        var(const string& name, const param<type>& lb, const param<type>& ub):var(name){
-            _lb = make_shared<func<type>>(lb);
-            _ub = make_shared<func<type>>(ub);
-            param<type>::_range->first = lb._range->first;
-            param<type>::_range->second = ub._range->second;
-        };
         
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type>
-        var(const string& name, const param<T>& sb):var(name) {
+        var(const string& name, const param<T>& sb){
+            this->_name = name;
+            constant_::set_type(var_c);
             _lb = make_shared<func<type>>(-1*sb);
             _ub = make_shared<func<type>>(sb);
             param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
             param<type>::_range->second = sb._range->second;
         }
         
-        var(const string& name, const func<type>& lb, const func<type>& ub):var(name){
-            _lb = make_shared<func<type>>(move(lb));
-            _ub = make_shared<func<type>>(move(ub));
-        };
-        
-        var(const string& name, func<type>&& lb, func<type>&& ub):var(name) {
+        var(const string& name, const func<type>& lb, const func<type>& ub){
+            this->_name = name;
+            constant_::set_type(var_c);
             _lb = make_shared<func<type>>(lb);
             _ub = make_shared<func<type>>(ub);
+        };
+        
+        var(const string& name, func<type>&& lb, func<type>&& ub){
+            this->_name = name;
+            constant_::set_type(var_c);
+            _lb = make_shared<func<type>>(move(lb));
+            _ub = make_shared<func<type>>(move(ub));
         };
         
         //@}

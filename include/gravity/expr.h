@@ -34,7 +34,6 @@ namespace gravity {
         void propagate_dim(size_t);/*<< Propagates number of indices */
         void allocate_mem();
         void reverse_sign(){ _coef *= -1; };
-//        void reset_val();
     };
 
 
@@ -55,7 +54,6 @@ namespace gravity {
         
         ~uexpr(){};
         
-//        void reset_val();
         
         void reset(){
             _son = nullptr;
@@ -113,7 +111,6 @@ namespace gravity {
         
         ~bexpr(){}
         
-//        void reset_val();
         
         void reset(){
             _otype = id_;
