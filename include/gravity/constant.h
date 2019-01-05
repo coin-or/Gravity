@@ -158,10 +158,9 @@ namespace gravity {
          Returns a copy of the current object, detecting the right class, i.e., param, var, func...
          @return a shared pointer with a copy of the current object
          */
-        virtual shared_ptr<constant_> copy(){return nullptr;};
+        virtual shared_ptr<constant_> copy() const{return nullptr;};
         
         virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
-        
         virtual string to_str() const{return string();};
         virtual string to_str(int prec) const{return string();};
         virtual string to_str(size_t idx, int prec) const{return string();};
@@ -284,15 +283,19 @@ namespace gravity {
         
         ~constant(){};
         
-        constant(const constant& c){ /**< Copy constructor */
+        
+        constant& operator=(const constant& c) {
             _type = c._type;
             _val = c._val;
-            _is_transposed = c._is_transposed;
-            _is_vector = c._is_vector;
-            _dim[0] = c._dim[0];
-            _dim[1] = c._dim[1];
+            return *this;
+        }
+            
+        constant(const constant& c){ /**< Copy constructor */
+            *this = c;
         };
 
+        shared_ptr<constant_> copy() const{return make_shared<constant>(*this);};
+        
         constant(type val):constant(){
             _val = val;
         };

@@ -37,7 +37,7 @@ using namespace std;
 namespace gravity {    
     
     /** Backbone class for parameter */
-    class param_: public constant_ {
+    class param_: virtual public constant_ {
 
     protected:
 
@@ -84,7 +84,7 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
-        virtual shared_ptr<param_> pcopy(){return nullptr;};
+        virtual shared_ptr<param_> pcopy() const{return nullptr;};
 
         void set_id(size_t idx) {
             *_id = idx;
@@ -500,9 +500,9 @@ namespace gravity {
             _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
         
-        shared_ptr<param_> pcopy(){return make_shared<param>(*this);};
+        shared_ptr<param_> pcopy() const{return make_shared<param>(*this);};
 
-        shared_ptr<constant_> copy(){return make_shared<param>(*this);};
+        shared_ptr<constant_> copy()const{return make_shared<param>(*this);};
         
         ~param(){};
         
@@ -1420,6 +1420,10 @@ namespace gravity {
             }
         }
 
+        string to_str() const{
+            return string();
+        }
+        
         string to_str(size_t index, int prec) const {
             if (is_indexed()) {
                 return to_string_with_precision(eval(index), prec);
@@ -1437,7 +1441,7 @@ namespace gravity {
             cout << to_str(i,j,prec);
         }
 
-        string to_str(bool vals, int prec = 10) const {
+        string to_str_vals(bool vals, int prec = 10) const {
             string str = get_name();
             auto name = str.substr(0, str.find_last_of("."));
             str = name;
@@ -1472,7 +1476,7 @@ namespace gravity {
         }
 
         void print(bool vals=true, int prec = 10) const {
-            cout << this->to_str(vals, prec);
+            cout << this->to_str_vals(vals, prec);
         }
 
 

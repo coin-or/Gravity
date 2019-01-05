@@ -12,44 +12,22 @@ namespace gravity {
 
     
     
-template<typename type> var<type>::var():param<type>() {
-    constant_::set_type(var_c);
-};
-
-template<typename type> var<type>::var(const string& name):param<type>(name) {
-    constant_::set_type(var_c);
-    if (this->is_binary()) {
-        _lb = make_shared<func<type>>(constant<>(0));
-        _ub = make_shared<func<type>>(constant<>(1));
-    }
-    else if(numeric_limits<type>::is_specialized){
-        _lb = make_shared<func<type>>(constant<type>(numeric_limits<type>::lowest()));
-        _ub = make_shared<func<type>>(constant<type>(numeric_limits<type>::max()));
-    }
-    else if(this->is_complex()){
-        _lb = make_shared<func<type>>(constant<Cpx>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
-        _ub = make_shared<func<type>>(constant<Cpx>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
-    }
-    else{
-        throw invalid_argument("unsupported numerical type");
-    }
-};
     
-template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
-    constant_::set_type(var_c);
-    _lb = make_shared<func<type>>();
-    _ub = make_shared<func<type>>();
-    if (s==non_neg_ || s==pos_) {
-        if(numeric_limits<type>::is_specialized){
-            add_lb_only(0);
-        }
-    }
-    else if (s==non_pos_ || s==neg_) {
-        if(numeric_limits<type>::is_specialized){
-            add_ub_only(0);
-        }
-    }
-};
+//template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
+//    constant_::set_type(var_c);
+//    _lb = make_shared<func<type>>();
+//    _ub = make_shared<func<type>>();
+//    if (s==non_neg_ || s==pos_) {
+//        if(numeric_limits<type>::is_specialized){
+//            add_lb_only(0);
+//        }
+//    }
+//    else if (s==non_pos_ || s==neg_) {
+//        if(numeric_limits<type>::is_specialized){
+//            add_ub_only(0);
+//        }
+//    }
+//};
 
 template<typename type> var<type>::var(const var<type>& v){
     *this = v;
@@ -312,12 +290,12 @@ template<typename type> bool var<type>::operator!=(const var& v) const {
 
 /* Output */
 template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) const {
-    string str = param<type>::to_str(false, prec);
+    string str = param<type>::to_str_vals(false, prec);
     if (!bounds) {
         return str;
     }
     if(_lb->is_number() && _ub->is_number()){
-        str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"];\n";
+        str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"]^" + to_string(this->get_dim()) + "\n";
         return str;
     }
     str += " : ";
@@ -329,14 +307,14 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) c
             }
             auto idx = this->get_id_inst(i);
             str += "(" + this->_indices->_keys->at(idx) + ") ∈ ";
-            str += " [" + _lb->to_str(i) + "," + _ub->to_str(i) + "]\n";
+            str += " [" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "]\n";
             str += " \n";
         }
     }
     else {
         for (size_t idx = 0; idx < this->_dim[0]; idx++) {
             str += "["+to_string(idx) + "] = ";
-            str += " [" + _lb->to_str(idx) + "," + _ub->to_str(idx) + "]\n";
+            str += " [" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "]\n";
             str += " \n";
         }
     }
