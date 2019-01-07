@@ -59,7 +59,7 @@ namespace gravity {
         bool                                                              _is_hessian = false;
         bool                                                              _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
         bool                                                              _evaluated = true;/**< If the function has already been evaluated, useful for constant funcs */
-        string                                                            _to_str = "noname";/**< A string representation of the expression */
+        string                                                            _to_str = "";/**< A string representation of the expression */
 
         size_t                                                            _nb_vars = 0; /**< Number of variables */
         
@@ -83,12 +83,10 @@ namespace gravity {
         bool is_concave() const;
         bool is_convex(size_t idx) const;
         bool is_concave(size_t idx) const;
-        bool is_constant() const;
         bool is_linear() const;
         bool is_quadratic() const;
         bool is_polynomial() const;
         bool is_nonlinear() const;
-        bool is_complex() const;
         bool is_transposed() const;
         bool is_number() const{
             return (_vars->empty() && _params->empty());
@@ -232,7 +230,7 @@ namespace gravity {
             return n;
         };
         
-        void update_vars();
+        void update_vars(){merge_vars(*this);};
         
         /**
          Returns a pointer to the constant part of the function.
@@ -267,7 +265,20 @@ namespace gravity {
          Reverse the convexity property of the current function
          */
         void reverse_convexity();
+        
+        
+        
+        bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
+        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        
+        void insert(const lterm& term);
 
+        void insert(const qterm& term);
+
+        void insert(const pterm& term);
+
+        void update_sign(const constant_& c);
     };
 
 //
@@ -307,12 +318,7 @@ namespace gravity {
 
 //        
 //
-//        void insert(const lterm& term);
-//        
-//        void insert(const qterm& term);
-//        
-//        void insert(const pterm& term);
-//        
+//
 //        void update_to_str(bool input = false);
 
 //        
@@ -412,8 +418,8 @@ namespace gravity {
 //
 //        
 //        
-//        void update_sign(const constant_& c);
-//        
+    
+//
 //        void update_sign(const lterm& l);
 //        
 //        void update_sign(const qterm& q);
@@ -450,7 +456,9 @@ namespace gravity {
 //
 //
         func(){
-            constant_::set_type(func_c);
+            _cst = make_shared<constant<type>>();
+            _return_type = this->_intype;
+            constant_::set_type(func_c);            
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
             _pterms = make_shared<map<string, pterm>>();
@@ -478,6 +486,11 @@ namespace gravity {
 //            *this = constant<type>(c);
 //        };
 //
+        
+        bool is_constant() const{
+            return (_vars->empty());
+        }
+        
         Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
             return param<type>::get_all_sign();
         };
@@ -857,24 +870,43 @@ namespace gravity {
 //        
 //        
 //
-        func(const constant<type>& c):func(){
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func(T2 c):func(){
+            *this = constant<T2>(c);
+        }
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func(const constant<T2>& c):func(){
+            *this = c;
+        }
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func(const param<T2>& c):func(){
             *this = c;
         }
         
-        func(const param<type>& c):func(){
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func(const var<T2>& c):func(){
             *this = c;
         }
         
-        func& operator=(const constant<type>& c){
-            _cst = c.copy();
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator=(const constant<T2>& c){
+            reset();
+            static_pointer_cast<constant<type>>(_cst)->set_val(c.eval());
             _all_sign = _cst->get_sign();
             param<type>::operator=(c.eval());
             _evaluated = true;
             return *this;
         }
         
-        func& operator=(const param<type>& c){
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator=(const param<T2>& c){
             param<type>::operator=(c);            
+            return *this;
+        }
+        
+        func& operator=(const var<type>& c){
+            var<type>::operator=(c);
             return *this;
         }
                     
@@ -1196,6 +1228,74 @@ namespace gravity {
             return *this;
         }
 
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        func& operator+=(const func<T2>& f){
+            if (f.is_zero()) {
+                return *this;
+            }
+            _evaluated = false;
+            if (!is_constant() && f.is_constant()) {
+//                _cst = add(_cst, f);
+                if (_cst->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(_cst));
+                }
+                update_sign(f);
+                return *this;
+            }
+//            if (!f._cst->is_zero()) {
+//                _cst = add(_cst, *f._cst);
+//                if (_cst->is_function()) {
+//                    embed(*dynamic_pointer_cast<func_>(_cst));
+//                }
+//            }
+//            for (auto &pair:*f._lterms) {
+//                this->insert(pair.second);
+//            }
+//            for (auto &pair:*f._qterms) {
+//                this->insert(pair.second);
+//            }
+//            for (auto &pair:*f._pterms) {
+//                this->insert(pair.second);
+//            }
+//            if (_expr && f._expr) {
+//                _expr = make_shared<bexpr>(bexpr(plus_, make_shared<expr>(*_expr), make_shared<_expr>(*f.get_expr())));
+//                embed(_expr);
+//            }
+//            else if (!_expr && f._expr) {
+//                if (f->_expr->is_uexpr()) {
+//                    _expr = make_shared<uexpr>(*static_pointer_cast<uexpr>(f->_expr));
+//                }
+//                else {
+//                    _expr = make_shared<bexpr>(*static_pointer_cast<bexpr>(f->_expr));
+//                }
+//                embed(_expr);
+//                if (!_vars->empty()) {
+//                    _ftype = nlin_;
+//                }
+//            }
+//            update_vars();
+//            update_sign(*f);
+//            if (_all_convexity==linear_ && f._all_convexity==convex_) {
+//                _all_convexity = convex_;
+//            }
+//            else if (_all_convexity==linear_ && f._all_convexity==concave_) {
+//                _all_convexity = concave_;
+//            }
+//            else if (_all_convexity==convex_ && f._all_convexity==convex_) {
+//                _all_convexity = convex_;
+//            }
+//            else if (_all_convexity==concave_ && f._all_convexity==concave_) {
+//                _all_convexity = concave_;
+//            }
+//            else if (_all_convexity==convex_ && (f._all_convexity==convex_ || f._all_convexity==undet_)) {
+//                _all_convexity = undet_;
+//            }
+//            else if (_all_convexity==concave_ && (f._all_convexity==concave_ || f._all_convexity==undet_)) {
+//                _all_convexity = undet_;
+//            }
+//            update_convexity();
+            return *this;
+        }
 //        
 //        func_ tr() const {
 //            auto f = func_(*this);
@@ -1203,7 +1303,135 @@ namespace gravity {
 //            return f;
 //        }
 //
+        /** Reset all fields to default values */
+        void reset(){
+            _to_str = "";
+//            *this->_all_range = param<type>()->_all_range;
+            this->_lb = nullptr;
+            this->_ub = nullptr;
+            _vars->clear();
+            _params->clear();
+            if(_dfdx){
+                _dfdx->clear();
+            }
+            if(_hess_link){
+                _hess_link->clear();
+            }
+            _convexity = nullptr;
+            _sign = nullptr;
+            _expr = nullptr;
+            _ftype = const_;
+            _all_convexity = linear_;
+            _all_sign = zero_;
+            _is_transposed = false;
+            _is_vector = false;
+            _evaluated = true;
+            _embedded = false;
+            _dim[0] = 1;
+            _dim[1] = 1;
+            this->_val->clear();
+            _lterms->clear();
+            _qterms->clear();
+            _pterms->clear();
+            *_cst = constant<type>();
+            _nb_vars = 0;
+            _nnz_h = 0;
+            _nnz_j = 0;
+        };
+
+        
     };
+    
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const func<T1>& f1, const func<T2>& f2){
+        return func<T1>(f1)+= f2;
+    }
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const func<T1>& f1, const func<T2>& f2){
+        return func<T2>(f1)+= f2;
+    }
+    
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator*(const param<T1>& p, const var<T2>& v){
+        func<T1> res;
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dot_dim(p,v);
+        res.insert(true,p,v);
+        return res;
+    }
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(const param<T1>& p, const var<T2>& v){
+        func<T2> res;
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dot_dim(p,v);
+        res.insert(true,p,v);
+        return res;
+    }
+
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const param<T1>& p, const var<T2>& v){
+        func<T1> res;
+        auto newv = v.pcopy();
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dim(p,v);
+        res.insert(lterm(newv));
+        return res;
+    }
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const param<T1>& p, const var<T2>& v){
+        func<T2> res;
+        auto newv = v.pcopy();
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dim(p,v);
+        res.insert(lterm(newv));
+        return res;
+    }
+
+        // Transform var<T2> to param<T2> and check type.
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const param<T1>& p, const var<T2>& v){
+        func<T1> res;
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dim(p,v);
+        res.insert(false,constant<>(1),v);
+        return res;
+    }
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const param<T1>& p, const var<T2>& v){
+        func<T2> res;
+        auto newp = p.pcopy();
+        res.add_param(newp);
+        res.update_dim(p,v);
+        res.insert(false,constant<>(1),v);
+        return res;
+    }
+    
+    
+    
+//
+//    template<typename T1,typename T2>
+//    func<T1> operator+(const func<T1>& c1, const func<T2>& c2){
+//        func<T1> res;
+//        return res;
+//    }
+//
+//    template<typename T1,typename T2>
+//    func<T1> operator+(const param<T1>& c1, const var<T2>& c2){
+//        func<T1> res;
+//        return res;
+//    }
 //
 //
 //

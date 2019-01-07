@@ -1976,18 +1976,18 @@ namespace gravity{
 
 
 //
-//    void func_::update_sign(const constant_& c){
-//        Sign sign = c.get_all_sign();
-//        if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && sign!=non_neg_ && sign!=pos_)) {
-//            _all_sign = unknown_;
-//        }
-//        else if((_all_sign==non_pos_ || _all_sign==neg_) && sign!=non_pos_ && sign!=neg_){
-//            _all_sign = unknown_;
-//        }
-//        else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
-//            _all_sign = sign;
-//        }
-//    }
+    void func_::update_sign(const constant_& c){
+        Sign sign = c.get_all_sign();
+        if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && (sign==neg_ || sign==non_pos_))) {
+            _all_sign = unknown_;
+        }
+        else if((_all_sign==non_pos_ || _all_sign==neg_) && (sign==pos_ || sign==non_neg_)){
+            _all_sign = unknown_;
+        }
+        else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
+            _all_sign = sign;
+        }
+    }
 //
 //    void func_::update_dim(const lterm& l){
 //        //        assert(_dim[0] <= l._p->_dim[0] && _dim[1] <= l._p->_dim[1]);
@@ -2089,78 +2089,73 @@ namespace gravity{
 //        }
 //    }
 //
-//    bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-//        shared_ptr<param_> p_new;
-//        auto pname = p.get_name(false,false);
-//
-//        auto pair_it = _lterms->find(pname);
-//        if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
-//            throw invalid_argument("param and var with same name: " + p.get_name(false,false));
-//        }
-//        if (_ftype == const_ && p.is_var()) {
-//            _ftype = lin_;
-//        }
-//
-//        if (pair_it == _lterms->end()) {
-//            auto c_new = copy(coef);
-//            if (c_new->is_function()) {
-//                embed(*(func_*)c_new);
-//            }
-//            if (p.is_var()) {
-//                p_new = get_var(pname);
-//                if (!p_new) {
-//                    p_new = shared_ptr<param_>((param_*)copy(p));
-//                    add_var(p_new);
-//                }
-//                else {
-//                    incr_occ_var(pname);
-//                }
-//            }
-//            else {
-//                p_new = get_param(pname);
-//                if (!p_new) {
-//                    p_new = shared_ptr<param_>((param_*)copy(p));
-//                    add_param(p_new);
-//                }
-//                else {
-//                    incr_occ_param(pname);
-//                }
-//            }
-//            lterm l(sign, c_new, p_new.get());
-//            update_sign(l);
-//            update_dim(l);
-//            //            update_nb_instances(l);
-//            _lterms->insert(make_pair<>(pname, move(l)));
-//            return true;
-//        }
-//        else {
-//            if (pair_it->second._sign == sign) {
+    bool func_::insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+        shared_ptr<param_> p_new;
+        auto pname = p.get_name(false,false);
+        auto pair_it = _lterms->find(pname);
+        if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
+            throw invalid_argument("param and var with same name: " + pname);
+        }
+        if (_ftype == const_ && p.is_var()) {
+            _ftype = lin_;
+        }
+
+        if (pair_it == _lterms->end()) {
+            auto c_new = coef.copy();
+            if (c_new->is_function()) {
+                embed(*dynamic_pointer_cast<func_>(c_new));
+            }
+            if (p.is_var()) {
+                p_new = get_var(pname);
+                if (!p_new) {
+                    p_new = p.pcopy();
+                    add_var(p_new);
+                }
+                else {
+                    incr_occ_var(pname);
+                }
+            }
+            else {
+                p_new = get_param(pname);
+                if (!p_new) {
+                    p_new = p.pcopy();
+                    add_param(p_new);
+                }
+                else {
+                    incr_occ_param(pname);
+                }
+            }
+            _lterms->insert(make_pair<>(pname, lterm(sign, c_new, p_new)));
+            return true;
+        }
+        else {
+            if (pair_it->second._sign == sign) {
 //                pair_it->second._coef = add(pair_it->second._coef, coef);
-//            }
-//            else{
+            }
+            else{
 //                pair_it->second._coef = substract(pair_it->second._coef, coef);
-//            }
-//            if (pair_it->second._coef->is_zero()) {
-//                if (p.is_var()) {
-//                    decr_occ_var(pname);
-//                }
-//                else{
-//                    decr_occ_param(pname);
-//                }
-//                _lterms->erase(pair_it);
-//                //update_sign();
-//            }
+            }
+            if (pair_it->second._coef->is_zero()) {
+                if (p.is_var()) {
+                    decr_occ_var(pname);
+                }
+                else{
+                    decr_occ_param(pname);
+                }
+                _lterms->erase(pair_it);
+                //update_sign();
+            }
 //            else {
 //                update_sign(pair_it->second);
 //            }
-//            return false;
-//        }
-//    };
-//
-//    void func_::insert(const lterm& term){
-//        insert(term._sign, *term._coef, *term._p);
-//        //        _val->resize(_nb_instances);
-//    }
+            return false;
+        }
+    };
+
+    void func_::insert(const lterm& term){
+        insert(term._sign, *term._coef, *term._p);
+        //        _val->resize(_nb_instances);
+    }
 //
 //    bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
 //        auto ps1 = p1.get_name(false,false);
@@ -4767,10 +4762,7 @@ namespace gravity{
 //        return (_vars->empty() && _params->empty());
 //    }
 
-    bool func_::is_constant() const{
-        //        return (_ftype==const_);
-        return (_vars->empty());
-    }
+    
 
     bool func_::is_linear() const{
         return (_ftype==lin_);
@@ -4788,19 +4780,19 @@ namespace gravity{
         return (_ftype==nlin_);
     };
 
-    bool func_::is_complex() const{
-        for(auto &it: *_vars){
-            if (it.second.first->is_complex()) {
-                return true;
-            }
-        }
-        for(auto &it: *_params){
-            if (it.second.first->is_complex()) {
-                return true;
-            }
-        }
-        return false;
-    };
+//    bool func_::is_complex() const{
+//        for(auto &it: *_vars){
+//            if (it.second.first->is_complex()) {
+//                return true;
+//            }
+//        }
+//        for(auto &it: *_params){
+//            if (it.second.first->is_complex()) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    };
 //
 //
 //    bool func_::is_zero() const{/*<< A function is zero if it is constant and equals zero or if it is a sum of zero valued parameters */

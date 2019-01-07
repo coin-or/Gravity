@@ -181,12 +181,11 @@ namespace gravity{
     }
     uexpr& uexpr::operator=(const uexpr& exp){
         _type = uexp_c;
-        _son = make_shared<constant_>(*exp._son);
+        _son = exp._son->copy();
         _otype = exp._otype;
         _to_str = exp._to_str;
         _coef = exp._coef;
         _is_vector = exp._is_vector;
-//        _is_matrix = exp._is_matrix;
         _is_transposed = exp._is_transposed;
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;
@@ -655,13 +654,12 @@ namespace gravity{
     
     bexpr& bexpr::operator=(const bexpr& exp){
         _type = bexp_c;
-        _lson = make_shared<constant_>(*exp._lson);
-        _rson = make_shared<constant_>(*exp._rson);
+        _lson = exp._lson->copy();
+        _rson = exp._rson->copy();
         _otype = exp._otype;
         _to_str = exp._to_str;
         _coef = exp._coef;
         _is_vector = exp._is_vector;
-//        _is_matrix = exp._is_matrix;
         _is_transposed = exp._is_transposed;
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;

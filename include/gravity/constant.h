@@ -226,9 +226,25 @@ namespace gravity {
                 _is_transposed = false;/* The result of a product with a vector/matrix is not transposed */
                 return true;
             }
+            _dim[0] = max(_dim[0], c1._dim[0]);
+            _dim[0] = max(_dim[0], c2._dim[0]);
             return false;
         }
         
+        /**
+         Update the dimensions of current object.
+         @param[in] p1 first element in list.
+         @param[in] ps remaining elements in list.
+         */
+        template<typename... Args>
+        void update_dim(const constant_& p1, Args&&... ps){
+            _dim[0] = max(_dim[0], p1._dim[0]);
+            auto list = {forward<const constant_&>(ps)...};
+            for(auto &p: list){
+                _dim[0] = max(_dim[0], p._dim[0]);
+            }
+        }
+            
         virtual bool is_constant() const{return false;};
         virtual bool is_zero() const{return false;}; /**< Returns true if constant equals 0 */
         virtual bool is_unit() const{return false;}; /**< Returns true if constant equals 1 */
