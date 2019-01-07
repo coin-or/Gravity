@@ -234,7 +234,14 @@ namespace gravity{
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
         }
-        
+      
+      indices(int name){
+        _name = to_string(name);
+        _keys_map = make_shared<map<string,size_t>>();
+        _keys = make_shared<vector<string>>();
+        _dim = make_shared<vector<size_t>>();
+      }
+      
         indices(){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
@@ -482,7 +489,7 @@ namespace gravity{
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
-            vecs = {forward<Args>(args)...};
+          vecs = {forward<Args>(args)...};
             vecs.push_front(vec1);
             *this = indices(vecs);
         }

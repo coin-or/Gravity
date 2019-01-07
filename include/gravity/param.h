@@ -1310,7 +1310,8 @@ namespace gravity {
         
         type getvalue() const {
             if (_indices) {
-                return (_val->at(_indices->last()));
+              //return (_val->at(_indices->last()));
+              return (_val->at(_indices->size()-1));
             }
             else {
                 return _val->at(0);

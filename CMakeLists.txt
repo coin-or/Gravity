@@ -37,6 +37,11 @@ option(Qpp "Link to QPP libraries" OFF)
 # Find CLP (optional)
 option(Clp "Link to CLP libraries" OFF)
 
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/armadillo.tar.xz
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
+  )
+
 
 # Find Ipopt.
 if (Ipopt)
@@ -124,6 +129,15 @@ if (Boost)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
+
+# Include Armadillo
+find_package(ARMADILLO)
+#include_directories(${ARMADILLO_ROOT_DIR}/include)
+include_directories(${ARMADILLO_ROOT_DIR})
+set(LIBS ${LIBS} armadillo)
+#set(LIBS ${LIBS} ${ARMADILLO_LIBRARY})
+add_subdirectory(${ARMADILLO_ROOT_DIR})
+
 # Include Eigen
 
 set(UNZIPPED OFF CACHE BOOL "Already unzipped")
