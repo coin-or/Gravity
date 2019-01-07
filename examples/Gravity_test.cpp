@@ -182,36 +182,53 @@ TEST_CASE("testing variables indexing") {
     CHECK(cv.get_indices()!=ids);
 }
 
-TEST_CASE("testing shared pointers") {
-    param<Cpx> cx0("p0");
-    cx0 = Cpx(-1,1);
-    shared_ptr<constant_> ct = make_shared<param<Cpx>>(cx0);
-    auto cp = cx0.copy();
-    auto dc1 = dynamic_pointer_cast<param<Cpx>>(ct);
-    dc1->print();
-    auto dc2 = dynamic_pointer_cast<param<Cpx>>(cp);
-    dc2->print();
-}
 
-//TEST_CASE("testing vector dot product"){
-//    var<> z("z",-1,1);
-//    z.in(R(4));
-//    param<> a("a");
-//    a.set_size(3);
-//    a.set_val(0, 1);
-//    a.set_val(1, -1);
-//    a.set_val(2, 2);
-//    param<> b("b");
-//    b=5;
-//    CHECK(b.get_dim()==1);
-//    CHECK(b.eval(0)==5);
-//    b=-1;
-//    b=2;
-//    CHECK(b.get_dim()==3);
-//    CHECK(b.eval(1)==-1);
-//    b.set_val(1, 3);
-//    CHECK(b.eval(1)==3);
-//    z.in(R(3));
+
+TEST_CASE("testing vector dot product"){
+    param<> a("a");
+    a.set_size(3);
+    a.set_val(0, 1);
+    a.set_val(1, -1);
+    a.set_val(2, 2);
+    param<int> b("b");
+    b=5;
+    CHECK(b.get_dim()==1);
+    CHECK(b.is_integer());
+    CHECK(b.eval(0)==5);
+    b=-1;
+    b=2;
+    CHECK(b.get_dim()==3);
+    CHECK(b.eval(1)==-1);
+    b.set_val(1, 3);
+    CHECK(b.eval(1)==3);
+    var<> z("z",-1,1);
+    z.in(R(4));
+    CHECK(z.get_dim()==4);
+    z.print();
+    z.in(R(3));
+    CHECK(z.get_dim()==3);
+    z.print();
+    param<Cpx> cp("cp");
+    cp = Cpx(-1,-1);
+    auto lin = cp+z;
+    CHECK(lin.is_complex());
+    CHECK(lin.is_linear());
+    auto lin2 = cp*z;
+    auto lin3 = b*z;
+    CHECK(lin3.is_double());
+    CHECK(lin3.get_dim()==3);
+    var<Cpx> y("y");
+    y.in(C(5));
+    auto lin4 = b - y;
+    CHECK(lin4.is_complex());
+    CHECK(lin4.get_dim()==5);
+    auto lin5 = lin4 + lin3;
+    CHECK(lin5.is_complex());
+    CHECK(lin5.get_dim()==5);
+    CHECK(lin5.get_nb_vars()==2);
+    cp.print();
+//    lin.print();
+}
 //    auto lin = (a+expo(b)).tr()*z;
 //    lin.print_symbolic();
 //    CHECK(lin.is_linear());
@@ -233,23 +250,23 @@ TEST_CASE("testing shared pointers") {
 //    dfdvecz.print_symbolic();
 //}
 //
-//TEST_CASE("testing complex numbers") {
-//    indices ids("index_set");
-//    ids = {"id1", "id2", "key3", "key4"};
-//    var<> iv("x",-2, 5);
-//    iv.in(ids);
-//    var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
-//    constant<Cpx> cx(Cpx(-1,-2));
-//    auto cx_conj = conj(cx);
-//    CHECK(real(cx_conj)==real(cx));
-//    CHECK(imag(cx_conj).eval()==-1*imag(cx).eval());
-//    param<Cpx> px("px");
-//    px = Cpx(-1,-2);
-//    px.print();
-//    auto px_conj = conj(px);
-//    CHECK(real(px_conj)._is_real);
-//    CHECK(imag(px_conj)._is_imag);
-//}
+TEST_CASE("testing complex numbers") {
+    indices ids("index_set");
+    ids = {"id1", "id2", "key3", "key4"};
+    var<> iv("x",-2, 5);
+    iv.in(ids);
+    var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
+    constant<Cpx> cx(Cpx(-1,-2));
+    auto cx_conj = conj(cx);
+    CHECK(real(cx_conj)==real(cx));
+    CHECK(imag(cx_conj).eval()==-1*imag(cx).eval());
+    param<Cpx> px("px");
+    px = Cpx(-1,-2);
+    px.print();
+    auto px_conj = conj(px);
+    CHECK(real(px_conj)._is_real);
+    CHECK(imag(px_conj)._is_imag);
+}
 //
 //TEST_CASE("testing complex functions") {
 //    indices ids("index_set");

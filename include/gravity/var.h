@@ -74,14 +74,14 @@ namespace gravity {
         //@{
         
         
-        var(const string& name, type lb, type ub){
-            this->_name = name;
-            constant_::set_type(var_c);
-            _lb = make_shared<func<type>>(constant<type>(lb));
-            _ub = make_shared<func<type>>(constant<type>(ub));
-            param<type>::_range->first = lb;
-            param<type>::_range->second = ub;
-        };
+//        var(const string& name, type lb, type ub){
+//            this->_name = name;
+//            constant_::set_type(var_c);
+//            _lb = make_shared<func<type>>(constant<type>(lb));
+//            _ub = make_shared<func<type>>(constant<type>(ub));
+//            param<type>::_range->first = lb;
+//            param<type>::_range->second = ub;
+//        };
         
         
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type>
