@@ -233,10 +233,10 @@ namespace gravity {
             var<type> res(*this);
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));
             if(!indexed && !res._lb->is_number()){
-                (res._lb->in(*res._indices));
+                (res._lb->index_in(*res._indices));
             }
             if(!indexed && !res._ub->is_number()){
-                (res._ub->in(*res._indices));
+                (res._ub->index_in(*res._indices));
             }
             return res;
         }

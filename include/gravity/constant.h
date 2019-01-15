@@ -53,11 +53,10 @@ namespace gravity {
     
     /** Backbone class for constant */
     class constant_{
-    protected:
+    public:
         CType                           _type; /**< Constant type: { binary_c, short_c, integer_c, float_c, double_c, long_c, complex_c, par_c, uexp_c, bexp_c, var_c, func_c}*/
         void set_type(CType type){ _type = type;}
-        
-    public:
+
         bool                            _is_transposed = false; /**< True if the constant is transposed */
         bool                            _is_vector = false; /**< True if the constant is a vector or matrix */
         size_t                          _dim[2] = {1,1}; /*< dimension of current object */
@@ -137,7 +136,7 @@ namespace gravity {
         bool is_function() const{
             return (_type==func_c);
         };
-        
+                
         virtual Sign get_all_sign() const {return unknown_;};
         virtual Sign get_sign(size_t idx=0) const{return unknown_;};
         /** Memory allocation */
@@ -239,9 +238,9 @@ namespace gravity {
         template<typename... Args>
         void update_dim(const constant_& p1, Args&&... ps){
             _dim[0] = max(_dim[0], p1._dim[0]);
-            auto list = {forward<const constant_&>(ps)...};
+            list<constant_*> list = {forward<constant_*>((constant_*)&ps)...};
             for(auto &p: list){
-                _dim[0] = max(_dim[0], p._dim[0]);
+                _dim[0] = max(_dim[0], p->_dim[0]);
             }
         }
             

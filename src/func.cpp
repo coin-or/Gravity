@@ -2157,211 +2157,204 @@ namespace gravity{
         //        _val->resize(_nb_instances);
     }
 //
-//    bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-//        auto ps1 = p1.get_name(false,false);
-//        auto ps2 = p2.get_name(false,false);
-//        auto qname = ps1+","+ps2;
-//        auto pair_it = _qterms->find(qname);
-//        shared_ptr<param_> p_new1;
-//        shared_ptr<param_> p_new2;
-//
-//        if (_ftype <= lin_ && p1.is_var()) {
-//            _ftype = quad_;
-//        }
-//
-//        if (pair_it == _qterms->end()) {
-//            if (p1.is_var()) {
-//                p_new1 = get_var(ps1);
-//                if (!p_new1) {
-//                    p_new1 = shared_ptr<param_>((param_*)copy(p1));
-//                    add_var(p_new1);
-//                }
-//                else {
-//                    incr_occ_var(ps1);
-//                }
-//            }
-//            else {
-//                p_new1 = get_param(ps1);
-//                if (!p_new1) {
-//                    p_new1 = shared_ptr<param_>((param_*)copy(p1));
-//                    add_param(p_new1);
-//                }
-//                else {
-//                    incr_occ_param(ps1);
-//                }
-//
-//            }
-//            if (p2.is_var()) {
-//                p_new2 = get_var(ps2);
-//                if (!p_new2) {
-//                    p_new2 = shared_ptr<param_>((param_*)copy(p2));
-//                    add_var(p_new2);
-//                }
-//                else {
-//                    incr_occ_var(ps2);
-//                }
-//            }
-//            else {
-//                p_new2 = get_param(ps2);
-//                if (!p_new2) {
-//                    p_new2 = shared_ptr<param_>((param_*)copy(p2));
-//                    add_param(p_new2);
-//                }
-//                else {
-//                    incr_occ_param(ps2);
-//                }
-//            }
-//            auto c_new = copy(coef);
-//            if (c_new->is_function()) {
-//                embed(*(func_*)c_new);
-//            }
-//            qterm q(sign, c_new, p_new1.get(), p_new2.get());
-//            q._c_p1_transposed = c_p1_transposed;
-//            update_sign(q);
-//            update_convexity(q);
-//            update_dim(q);
-//            //            update_nb_instances(q);
-//            _qterms->insert(make_pair<>(qname, move(q)));
+    bool func_::insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        auto ps1 = p1.get_name(false,false);
+        auto ps2 = p2.get_name(false,false);
+        auto qname = ps1+","+ps2;
+        auto pair_it = _qterms->find(qname);
+        shared_ptr<param_> p_new1;
+        shared_ptr<param_> p_new2;
+
+        if (_ftype <= lin_ && p1.is_var()) {
+            _ftype = quad_;
+        }
+
+        if (pair_it == _qterms->end()) {
+            if (p1.is_var()) {
+                p_new1 = get_var(ps1);
+                if (!p_new1) {
+                    p_new1 = p1.pcopy();
+                    add_var(p_new1);
+                }
+                else {
+                    incr_occ_var(ps1);
+                }
+            }
+            else {
+                p_new1 = get_param(ps1);
+                if (!p_new1) {
+                    p_new1 = p1.pcopy();
+                    add_param(p_new1);
+                }
+                else {
+                    incr_occ_param(ps1);
+                }
+
+            }
+            if (p2.is_var()) {
+                p_new2 = get_var(ps2);
+                if (!p_new2) {
+                    p_new2 = p2.pcopy();
+                    add_var(p_new2);
+                }
+                else {
+                    incr_occ_var(ps2);
+                }
+            }
+            else {
+                p_new2 = get_param(ps2);
+                if (!p_new2) {
+                    p_new2 = p2.pcopy();
+                    add_param(p_new2);
+                }
+                else {
+                    incr_occ_param(ps2);
+                }
+            }
+            auto c_new = coef.copy();
+            if (c_new->is_function()) {
+                embed(*dynamic_pointer_cast<func_>(c_new));
+            }
+            _qterms->insert(make_pair<>(qname, qterm(sign, c_new, p_new1, p_new2)));
 //            update_convexity();
-//            return true;
-//        }
-//        else {
-//            if (pair_it->second._sign == sign) {
+            return true;
+        }
+        else {
+            if (pair_it->second._sign == sign) {
 //                pair_it->second._coef = add(pair_it->second._coef, coef);
-//            }
-//            else{
+            }
+            else{
 //                pair_it->second._coef = substract(pair_it->second._coef, coef);
-//            }
-//            if (pair_it->second._coef->is_zero()) {
-//                if (p1.is_var()) {
-//                    decr_occ_var(ps1);
-//                }
-//                else {
-//                    decr_occ_param(ps1);
-//                }
-//                if (p2.is_var()) {
-//                    decr_occ_var(ps2);
-//                }
-//                else {
-//                    decr_occ_param(ps2);
-//                }
-//                _qterms->erase(pair_it);
+            }
+            if (pair_it->second._coef->is_zero()) {
+                if (p1.is_var()) {
+                    decr_occ_var(ps1);
+                }
+                else {
+                    decr_occ_param(ps1);
+                }
+                if (p2.is_var()) {
+                    decr_occ_var(ps2);
+                }
+                else {
+                    decr_occ_param(ps2);
+                }
+                _qterms->erase(pair_it);
 //                update_sign();
 //                update_convexity();
-//            }
+            }
 //            else {
 //                update_sign(pair_it->second);
 //                update_convexity(pair_it->second);
 //            }
-//            return false;
-//        }
-//    };
-//
-//    void func_::insert(const qterm& term){
-//        insert(term._sign, *term._coef, *term._p->first, *term._p->second, term._c_p1_transposed);
-//    }
-//
-//
-//    bool func_::insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
-//        _all_convexity = undet_;
-//        string name;
-//        string s;
-//        bool newv = true;
-//        //        int i = 0;
-//        for (auto &pair:l) {
-//            name += pair.first->get_name(false,false);
-//            name += "^"+to_string(pair.second);
-//            name += ",";
-//        }
-//        auto pair_it = _pterms->find(name);
-//        param_* p = l.begin()->first;
-//        shared_ptr<param_> pnew;
-//        if (_ftype <= quad_ && p->is_var()) {
-//            _ftype = pol_;
-//        }
-//        if (pair_it == _pterms->end()) {
-//            auto newl = new list<pair<param_*, int>>();
-//            //            i = 1;
-//            for (auto &pair:l) {
-//                p = pair.first;
-//                s = p->get_name(false,false);
-//                if (p->is_var()) {
-//                    pnew = get_var(s);
-//                    if (!pnew) {
-//                        pnew = shared_ptr<param_>((param_*)copy(*p));
-//                        add_var(pnew,pair.second);
-//                    }
-//                    else {
-//                        incr_occ_var(s);
-//                    }
-//                }
-//                else {
-//                    pnew = get_param(s);
-//                    if (!pnew) {
-//                        pnew = shared_ptr<param_>((param_*)copy(*p));
-//                        add_param(pnew);
-//                    }
-//                    else {
-//                        incr_occ_param(s);
-//                    }
-//                }
-//                newv = true;
-//                for (auto& p_it:*newl) {
-//                    if (p_it.first->get_name(false,false)==s) {
-//                        p_it.second++;
-//                        newv = false;
-//                        break;
-//                    }
-//                }
-//                if (newv) {
-//                    newl->push_back(make_pair<>(pnew.get(), pair.second));
-//                }
-//            }
-//            auto c_new = copy(coef);
-//            if (c_new->is_function()) {
-//                embed(*(func_*)c_new);
-//            }
-//            pterm p(sign, c_new, newl);
+            return false;
+        }
+    };
+
+    void func_::insert(const qterm& term){
+        insert(term._sign, *term._coef, *term._p->first, *term._p->second, term._coef_p1_transposed);
+    }
+
+
+    bool func_::insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        _all_convexity = undet_;
+        string name;
+        string s;
+        bool newv = true;
+        //        int i = 0;
+        for (auto &pair:l) {
+            name += pair.first->get_name(false,false);
+            name += "^"+to_string(pair.second);
+            name += ",";
+        }
+        auto pair_it = _pterms->find(name);
+        auto p = l.begin()->first;
+        shared_ptr<param_> pnew;
+        if (_ftype <= quad_ && p->is_var()) {
+            _ftype = pol_;
+        }
+        if (pair_it == _pterms->end()) {
+            auto newl = make_shared<list<pair<shared_ptr<param_>, int>>>();
+            //            i = 1;
+            for (auto &pair:l) {
+                p = pair.first;
+                s = p->get_name(false,false);
+                if (p->is_var()) {
+                    pnew = get_var(s);
+                    if (!pnew) {
+                        pnew = p->pcopy();
+                        add_var(pnew,pair.second);
+                    }
+                    else {
+                        incr_occ_var(s);
+                    }
+                }
+                else {
+                    pnew = get_param(s);
+                    if (!pnew) {
+                        pnew = p->pcopy();
+                        add_param(pnew);
+                    }
+                    else {
+                        incr_occ_param(s);
+                    }
+                }
+                newv = true;
+                for (auto& p_it:*newl) {
+                    if (p_it.first->get_name(false,false)==s) {
+                        p_it.second++;
+                        newv = false;
+                        break;
+                    }
+                }
+                if (newv) {
+                    newl->push_back(make_pair<>(pnew, pair.second));
+                }
+            }
+            auto c_new = coef.copy();
+            if (c_new->is_function()) {
+                embed(*dynamic_pointer_cast<func_>(c_new));
+            }
+            pterm p(sign, c_new, newl);
 //            update_sign(p);
-//            _dim[0] = max(_dim[0], l.begin()->first->_dim[0]);
-//            //            update_nb_instances(p);
-//            _pterms->insert(make_pair<>(name, move(p)));
-//            return true;
-//        }
-//        else {
-//            if (pair_it->second._sign == sign) {
+            _dim[0] = max(_dim[0], l.begin()->first->_dim[0]);
+            _pterms->insert(make_pair<>(name, move(p)));
+            return true;
+        }
+        else {
+            if (pair_it->second._sign == sign) {
 //                pair_it->second._coef = add(pair_it->second._coef, coef);
-//            }
-//            else{
+            }
+            else{
 //                pair_it->second._coef = substract(pair_it->second._coef, coef);
-//            }
-//
-//            if (pair_it->second._coef->is_zero()) {
-//                for (auto& it:*pair_it->second._l) {
-//                    p = it.first;
-//                    s = p->get_name(false,false);
-//                    if (p->is_var()) {
-//                        decr_occ_var(s,it.second);
-//                    }
-//                    else {
-//                        decr_occ_param(s,it.second);
-//                    }
-//                }
-//                _pterms->erase(pair_it);
+            }
+
+            if (pair_it->second._coef->is_zero()) {
+                for (auto& it:*pair_it->second._l) {
+                    p = it.first;
+                    s = p->get_name(false,false);
+                    if (p->is_var()) {
+                        decr_occ_var(s,it.second);
+                    }
+                    else {
+                        decr_occ_param(s,it.second);
+                    }
+                }
+                _pterms->erase(pair_it);
 //                update_sign();
 //                update_convexity();
-//            }
+            }
 //            else {
 //                update_sign(pair_it->second);
 //            }
-//            return false;
-//        }
-//
-//    }
-//
-//    void func_::insert(const pterm& term){
-//        insert(term._sign, *term._coef, *term._l);
-//    }
+            return false;
+        }
+
+    }
+
+    void func_::insert(const pterm& term){
+        insert(term._sign, *term._coef, *term._l);
+    }
 //
 //    //    void func_::insert(expr& e){
 //    //    //    insert(term._sign, *term._coef, *term._l);
@@ -4446,81 +4439,7 @@ namespace gravity{
 //            cout << endl;
 //    }
 //
-//    string func_::to_str(size_t index) const{
-//        string str;
-//        if (is_constant() && ! is_matrix() && !is_complex()) {
-//            if (is_number()) {
-//                str += poly_to_str(_cst);
-//            }
-//            //            else if (_ids && _indices->size()>1) {
-//            //                str += to_string(_val->at(_ids->at(0).at(index)));
-//            //            }
-//            else {
-//                str += to_string_with_precision(_val->at(index),10);
-//            }
-//            return str;
-//        }
-//
-//        int ind = 0;
-//        string sign = " + ";
-//        //        for (int inst = 0; inst < _nb_instances ; inst++) {
-//        ind = 0;
-//        for (auto &pair:*_pterms) {
-//            str += pair.second.to_str(ind++, index);
-//        }
-//        if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
-//            str += " + ";
-//        }
-//        ind = 0;
-//        for (auto &pair:*_qterms) {
-//            str += pair.second.to_str(ind++, index);
-//        }
-//        if (!_qterms->empty() && !_lterms->empty()) {
-//            str += " + ";
-//        }
-//        ind = 0;
-//        for (auto &pair:*_lterms) {
-//            str += pair.second.to_str(ind++, index);
-//            if (str.length()==0) {
-//                ind--;
-//            }
-//        }
-//        if (_cst->is_number()) {
-//            auto val = poly_to_str(_cst);
-//            if (val.front()=='-') {
-//                str += " - " + val.substr(1);
-//            }
-//            else if (val != "0"){
-//                if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
-//                    str += " + ";
-//                }
-//                str += val;
-//            }
-//        }
-//        else {
-//            if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
-//                str += " + ";
-//            }
-//            str += "(";
-//            str += poly_to_str(_cst, index);
-//            str += ")";
-//        }
-//        if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
-//            str += " + ";
-//        }
-//        if (_expr) {
-//            str += _expr->to_str(index);
-//        }
-//        if (_is_vector && (is_number() || _vars->size()>1 || _params->size()>1)) {
-//            str = "[" + str +"]";
-//        }
-//        if (_is_transposed && (is_number() || _vars->size()>1 || _params->size()>1)) {
-//            str += "\u1D40";
-//        }
-//        //            str += "\n";
-//        //        }
-//        return str;
-//    }
+    
 //
 //    void func_::print(size_t index) {
 //        cout << to_str(index);
@@ -4627,6 +4546,7 @@ namespace gravity{
         if (_vars->count(v->get_name(false,false))!=0) {
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
+        update_dim(*v);
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
         if (v->_is_vector) {// i.e., it appears in a sum
             if (v->is_matrix()) {
@@ -4649,6 +4569,7 @@ namespace gravity{
         if (_params->count(p->get_name(false,false))!=0) {
             throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
         }
+        update_dim(*p);
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
 //
@@ -5377,32 +5298,29 @@ namespace gravity{
 //        return false;
 //    }
 //
-//    void func_::update_convexity(){
-//        if (!_pterms->empty()) {
-//            _all_convexity = undet_;
-//            return;
-//        }
-//        if (_qterms->empty() && !_expr) {
-//            _all_convexity = linear_;
-//            return;
-//        }
-//        if (!_qterms->empty() && !_expr) {
-//            //            if(is_soc() || is_rotated_soc()){
-//            //                return;
-//            //            }
-//            _all_convexity = get_convexity(_qterms->begin()->second);
-//            for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-//                Convexity conv = get_convexity(pair_it->second);
-//                if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
-//                    _all_convexity = undet_;
-//                    return;
-//                }
-//                else {
-//                    _all_convexity = conv;
-//                }
-//            }
-//        }
-//    }
+    void func_::update_convexity(){
+        if (!_pterms->empty()) {
+            _all_convexity = undet_;
+            return;
+        }
+        if (_qterms->empty() && !_expr) {
+            _all_convexity = linear_;
+            return;
+        }
+        if (!_qterms->empty() && !_expr) {
+            _all_convexity = get_convexity(_qterms->begin()->second);
+            for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+                Convexity conv = get_convexity(pair_it->second);
+                if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+                    _all_convexity = undet_;
+                    return;
+                }
+                else {
+                    _all_convexity = conv;
+                }
+            }
+        }
+    }
 //
 //
 //    string poly_to_str(const constant_* c, size_t inst){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */

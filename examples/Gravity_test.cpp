@@ -168,7 +168,9 @@ TEST_CASE("testing variables indexing") {
     iv.in(ids);
     iv.print();
     param<Cpx> lb("lb"), ub("ub");
+    lb.in(ids);
     lb = Cpx(0,-1);
+    ub.in(ids);
     ub = Cpx(1,1);
     var<Cpx> cv("cv", lb, ub);
     cv.in(ids.exclude("id2"));
@@ -201,6 +203,7 @@ TEST_CASE("testing vector dot product"){
     CHECK(b.eval(1)==-1);
     b.set_val(1, 3);
     CHECK(b.eval(1)==3);
+    b.print();
     var<> z("z",-1,1);
     z.in(R(4));
     CHECK(z.get_dim()==4);
