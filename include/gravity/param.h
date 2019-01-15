@@ -37,7 +37,7 @@ using namespace std;
 namespace gravity {    
     
     /** Backbone class for parameter */
-    class param_: virtual public constant_ {
+    class param_: public constant_ {
 
     protected:
 
@@ -482,8 +482,8 @@ namespace gravity {
 
     public:
 
-        shared_ptr<vector<type>>                _val; /**< vector of values **/
-        shared_ptr<pair<type,type>>             _range; /**< (Min,Max) values in vals **/
+        shared_ptr<vector<type>>                _val = nullptr; /**< vector of values **/
+        shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
 
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -505,11 +505,15 @@ namespace gravity {
         shared_ptr<constant_> copy()const{return make_shared<param>(*this);};
         
         ~param(){};
-        
-        param (const param& p) {
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        param (const param<T2>& p) {
             *this = p;
         }
 
+        param (const param& p) {
+            *this = p;
+        }
+        
         param (param&& p) {
             *this = move(p);
         }
@@ -521,6 +525,38 @@ namespace gravity {
             _vec_id = p._vec_id;
             _val = p._val;
             _range = p._range;
+            _name = p._name;
+            _is_transposed = p._is_transposed;
+            _is_vector = p._is_vector;
+            _new = p._new;
+            _is_relaxed = p._is_relaxed;
+            _is_angle = p._is_angle;
+            _is_sqrmag = p._is_sqrmag;
+            _is_conjugate = p._is_conjugate;
+            _is_real = p._is_real;
+            _is_imag = p._is_imag;
+            if(p._indices){
+                _indices = make_shared<indices>(*p._indices);
+            }
+            _dim[0] = p._dim[0];
+            _dim[1] = p._dim[1];
+            return *this;
+        }
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        param& operator=(const param<T2>& p) {
+            _type = p.get_type();
+            _intype = p.get_intype();
+            _id = p._id;
+            _vec_id = p._vec_id;
+            _val = make_shared<vector<type>>();
+            _val->resize(p._val->size());
+            for(auto i = 0; i<p._val->size();i++){
+                _val->at(i) = p._val->at(i);
+            }
+            _range = make_shared<pair<type,type>>();
+            _range->first = p._range->first;
+            _range->second = p._range->second;
             _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
@@ -860,6 +896,10 @@ namespace gravity {
         }
 
 
+//        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+//        shared_ptr<constant_> add(shared_ptr<param<T2>> c1){
+//            
+//        }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign() const{
             if (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)) {
@@ -902,14 +942,22 @@ namespace gravity {
 
 
 
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
             return (_range->first == 1 && _range->second == 1);
         }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
+            return (_range->first == Cpx(1,1) && _range->second == Cpx(1,1));
+        }
 
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
             return (_range->first == 0 && _range->second == 0);
         }
 
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero() const{
+            return (_range->first == Cpx(0,0) && _range->second == Cpx(0,0));
+        }
+        
         bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
             auto sgn = get_all_sign();
             return (sgn==non_pos_ || sgn==zero_ || sgn==neg_);
@@ -1048,7 +1096,7 @@ namespace gravity {
 
 
         param& operator=(type v) {
-            if(is_indexed()){
+            if(_indices){
                 set_val(v);
             }
             else {

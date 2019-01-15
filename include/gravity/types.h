@@ -540,6 +540,8 @@ namespace gravity{
             }
             *_keys_map = new_keys_map;
             _excluded_keys.clear();
+            _dim->resize(1);
+            _dim->at(0) = _keys->size();
         }
         
         void reindex(){
