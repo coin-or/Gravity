@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <variant>
 #include <forward_list>
 #include <assert.h>
 #include <string>
@@ -14,6 +15,7 @@
 #include <complex>
 #include <memory>
 #include <typeinfo>
+#include <typeindex>
 #include <limits>
 #include <gravity/types.h>
 #include <gravity/utils.h>
@@ -369,6 +371,32 @@ namespace gravity {
         
         
         /** Operators */
+        
+        bool is_zero() const { return zero_val();};
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool zero_val() const{
+            return (_val == Cpx(0,0));
+        }
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool zero_val() const{
+            return (_val == 0);
+        }
+        
+        
+        bool is_unit() const{
+            return unit_val();
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool unit_val() const{
+            return (_val == Cpx(1,1));
+        }
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool unit_val() const{
+            return (_val == 1);
+        }
+        
         bool is_negative() const {
             return get_sign()==neg_;
         }

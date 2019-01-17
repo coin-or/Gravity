@@ -4395,49 +4395,53 @@ namespace gravity{
 //    }
 //
 //
-//    void func_::print_symbolic(bool endline, bool display_input){
-//        string str;
-//        if (display_input) {
-//            if (is_constant()) {
-//                cout << " (Constant) : ";
-//            }
-//            else if (is_complex()) {
-//                cout << " (Complex) : ";
-//            }
-//            else if (is_linear()) {
-//                cout << " (Linear) : ";
-//            }
-//            else if (is_convex()) {
-//                cout << " (Convex) : ";
-//            }
-//            else if (is_concave()){
-//                cout << " (Concave) : ";
-//            }
-//            else {
-//                cout << " (Unknown) : ";
-//            }
-//            if (!_embedded && !is_constant()) {
-//                str += "f(";
-//                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
-//                    //                    if (!pair_it->second.first->_is_vector) {
-//                    str += pair_it->second.first->get_name(false,false);
-//                    //                    str += pair_it->second.first->get_name(false,false)+"[";
-//                    //                    str += to_string(pair_it->second.first->get_id_inst())+"]";
-//                    if (next(pair_it) != _vars->end()) {
-//                        str += ",";
-//                    }
-//                    //                }
-//                    pair_it++;
-//                }
-//                str += ") = ";
-//            }
-//        }
-//        str += to_str();
-//        _to_str = str;
-//        cout << this->_to_str;
-//        if (endline)
-//            cout << endl;
-//    }
+    void func_::print_symbolic(bool endline, bool display_input){
+        string str;
+        if (display_input) {
+            if (is_constant()) {
+                cout << " (Constant";
+            }
+            else if (is_linear()) {
+                cout << " (Linear";
+            }
+            else if (is_convex()) {
+                cout << " (Convex";
+            }
+            else if (is_concave()){
+                cout << " (Concave";
+            }
+            else {
+                cout << " (Unknown";
+            }
+            if (is_complex()) {
+                cout << " Complex) : ";
+            }
+            else {
+                cout << ") : ";
+            }
+            if (!_embedded && !is_constant()) {
+                str += "f(";
+                for (auto pair_it = _vars->begin(); pair_it != _vars->end();) {
+                    str += pair_it->second.first->get_name(false,false);
+                    if (next(pair_it) != _vars->end()) {
+                        str += ",";
+                    }
+                    pair_it++;
+                }
+                str += ") = ";
+            }
+        }
+        str += to_str();
+        _to_str = str;
+        cout << this->_to_str;
+        if (endline)
+            cout << endl;
+    }
+
+    
+
+    
+    
 //
     
 //

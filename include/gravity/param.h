@@ -130,7 +130,7 @@ namespace gravity {
         };
 
 
-        string get_name(bool in_func = false, bool exclude_indexing = true) const{
+        string get_name(bool in_func, bool exclude_indexing) const{
             string name = _name;
             if(_indices && exclude_indexing){
                 name = name.substr(0, name.find_last_of("."));
@@ -1178,10 +1178,10 @@ namespace gravity {
         template<typename... Args>
         param in(const indices& vec1, Args&&... args) {
             auto ids = indices(vec1,args...);
-            if(!_indices || _indices->empty() || ids._ids){/**< No need to add each key individually */
-                if(!ids._excluded_keys.empty()){
-                    ids.remove_excluded();
-                }
+            if(!ids._excluded_keys.empty()){
+                ids.remove_excluded();
+            }
+            if(!_indices || _indices->empty()){/**< No need to add each key individually */
                 _indices = make_shared<indices>(ids);
                 auto dim = _indices->size();
                 _val->resize(dim);
@@ -1469,7 +1469,7 @@ namespace gravity {
         }
 
         string to_str() const{
-            return string();
+            return get_name(false,false);
         }
         
         string to_str(size_t index, int prec) const {
@@ -1488,9 +1488,32 @@ namespace gravity {
         void print(size_t i, size_t j, int prec = 10) const {
             cout << to_str(i,j,prec);
         }
+        
+        size_t get_id_inst(unsigned inst = 0) const {
+            if (is_indexed()) {
+                if(_indices->_ids->at(0).size() <= inst){
+                    throw invalid_argument("get_id_inst out of range");
+                }
+                return _indices->_ids->at(0).at(inst);
+            }
+            return inst;
+        };
+        
+        size_t get_id_inst(unsigned inst1, unsigned inst2) const {
+            if (is_indexed()) {
+                if (_indices->_ids->size()==1) {
+                    if(_indices->_ids->at(0).size() <= inst2){
+                        throw invalid_argument("get_id_inst out of range");
+                    }
+                    return _indices->_ids->at(0).at(inst2);
+                }
+                return _indices->_ids->at(inst1).at(inst2);
+            }
+            return inst2;
+        };
 
         string to_str_vals(bool vals, int prec = 10) const {
-            string str = get_name();
+            string str = get_name(false,true);
             auto name = str.substr(0, str.find_last_of("."));
             str = name;
             if (vals) {
@@ -1507,9 +1530,17 @@ namespace gravity {
                     return str;
                 }
                 if(_indices) {
-                    for (size_t i = 0; i < _dim[0]; i++) {
-                        str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
-                        str += " \n";
+                    if (is_indexed()) {
+                        for (size_t i = 0; i < _dim[0]; i++) {
+                            str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
+                            str += " \n";
+                        }
+                    }
+                    else {
+                        for (size_t i = 0; i < _dim[0]; i++) {
+                            str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
+                            str += " \n";
+                        }
                     }
                 }
                 else {
