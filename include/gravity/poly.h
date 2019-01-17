@@ -42,15 +42,15 @@ namespace gravity {
         };
         
         
-        lterm(shared_ptr<param_> p):lterm(true,p){
-        };
-        
-        
-        lterm(bool sign, shared_ptr<param_> p){
-            _coef = make_shared<constant<double>>(1);
-            _p = p;
-            _sign = sign;
-        };
+//        lterm(shared_ptr<param_> p):lterm(true,p){
+//        };
+//        
+//        
+//        lterm(bool sign, shared_ptr<param_> p){
+//            _coef = make_shared<constant<double>>(1);
+//            _p = p;
+//            _sign = sign;
+//        };
         
         lterm(shared_ptr<constant_> coef, shared_ptr<param_> p):lterm(true,coef,p){};
         

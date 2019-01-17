@@ -26,6 +26,7 @@ using namespace std;
 namespace gravity {
 
     class param_;
+    class func_;
     /**
      Transform a scalar to a string with user-specified precision.
      @param[in] a_value number to be transformed.
@@ -543,6 +544,16 @@ namespace gravity {
      */
     constant<double> sqrmag(const constant<Cpx>& cst);
     constant<double> angle(const constant<Cpx>& cst);
+
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    constant<T> unit(){
+        return constant<T>(1);
+    }
+    
+    template<class T, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+    constant<T> unit(){
+        return constant<T>(Cpx(1,0));
+    }
 
 }
 
