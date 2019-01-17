@@ -252,96 +252,86 @@ namespace gravity{
 //
 //
 //
-//    string pterm::to_str(size_t ind) const{
-//        string str;
-//        constant_* c_new = _coef;
-//        if (c_new->is_number()){
-//            string v = c_new->to_str();
-//            if (_sign) {
-//                if (v=="-1") {
-//                    str += " - ";
-//                }
-//                else if (ind>0) {
-//                    str += " + ";
-//                    if(v!="1") {
-//                        str += v;
-//                    }
-//                }
-//                else if(v!="1") {
-//                    str += v;
-//                }
-//            }
-//            if(!_sign) {
-//                if (v == "-1" && ind>0) {
-//                    str += " + ";
-//                }
-//                else if (v.front()=='-'){
-//                    if (ind > 0) {
-//                        str += " + ";
-//                    }
-//                    str += v.substr(1);
-//                }
-//                else if (v=="1"){
-//                    str += " - ";
-//                }
-//                else if(v!="-1"){
-//                    str += " - " + v;
-//                }
-//            }
-//        }
-//        else{
-//            if (!_sign) {
-//                str += " - ";
-//            }
-//            if(ind > 0 && _sign) {
-//                str += " + ";
-//            }
-//            str += "(";
-//            str += c_new->to_str();
-//            str += ")";
-//        }
-//        for (auto& p: *_l) {
-//            str += poly_to_str(p.first);
-//            if (p.second != 1) {
-//                switch (p.second) {
-//                    case 2:
-//                        str += "²";
-//                        break;
-//                    case 3:
-//                        str += "³";
-//                        break;
-//                    case 4:
-//                        str += "⁴";
-//                        break;
-//                    case 5:
-//                        str += "⁵";
-//                        break;
-//                    case 6:
-//                        str += "⁶";
-//                        break;
-//                    case 7:
-//                        str += "⁷";
-//                        break;
-//                    case 8:
-//                        str += "⁸";
-//                        break;
-//                    case 9:
-//                        str += "⁹";
-//                        break;
-//                    default:
-//                        str += "^" + to_string(p.second);
-//                        break;
-//                }
-//            }
-//        }
-//        return str;
-//    }
-    
-    string pterm::to_str(size_t ind, size_t inst) const{
+    string pterm::to_str() const{
         string str;
         auto c_new = _coef;
         if (c_new->is_number()){
-            string v = c_new->to_str(inst);
+            string v = c_new->to_str();
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1") {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(_sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += c_new->to_str();
+            str += ")";
+        }
+        for (auto& p: *_l) {
+            str += p.first->get_name(true,true);
+            if (p.second != 1) {
+                switch (p.second) {
+                    case 2:
+                        str += "²";
+                        break;
+                    case 3:
+                        str += "³";
+                        break;
+                    case 4:
+                        str += "⁴";
+                        break;
+                    case 5:
+                        str += "⁵";
+                        break;
+                    case 6:
+                        str += "⁶";
+                        break;
+                    case 7:
+                        str += "⁷";
+                        break;
+                    case 8:
+                        str += "⁸";
+                        break;
+                    case 9:
+                        str += "⁹";
+                        break;
+                    default:
+                        str += "^" + to_string(p.second);
+                        break;
+                }
+            }
+        }
+        return str;
+    }
+    string pterm::to_str(size_t ind, int prec) const{
+        string str;
+        auto c_new = _coef;
+        if (c_new->is_number()){
+            string v = c_new->to_str(prec);
             if (_sign) {
                 if (v=="-1") {
                     str += " - ";
@@ -382,11 +372,96 @@ namespace gravity{
                 str += " + ";
             }
             str += "(";
-            str += c_new->to_str(inst);
+            str += c_new->to_str(ind,prec);
             str += ")";
         }
         for (auto& p: *_l) {
-            str += p.first->to_str(inst);
+            str += p.first->get_name(ind);
+            if (p.second != 1) {
+                switch (p.second) {
+                    case 2:
+                        str += "²";
+                        break;
+                    case 3:
+                        str += "³";
+                        break;
+                    case 4:
+                        str += "⁴";
+                        break;
+                    case 5:
+                        str += "⁵";
+                        break;
+                    case 6:
+                        str += "⁶";
+                        break;
+                    case 7:
+                        str += "⁷";
+                        break;
+                    case 8:
+                        str += "⁸";
+                        break;
+                    case 9:
+                        str += "⁹";
+                        break;
+                    default:
+                        str += "^" + to_string(p.second);
+                        break;
+                }
+            }
+        }
+        return str;
+    }
+    
+    string pterm::to_str(size_t ind, size_t inst, int prec) const{
+        string str;
+        auto c_new = _coef;
+        if (c_new->is_number()){
+            string v = c_new->to_str(inst,prec);
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if (ind>0) {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1" && ind>0) {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    if (ind > 0) {
+                        str += " + ";
+                    }
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(ind > 0 && _sign) {
+                str += " + ";
+            }
+            str += "(";
+            str += c_new->to_str(inst,prec);
+            str += ")";
+        }
+        for (auto& p: *_l) {
+            str += p.first->get_name(inst);
             if (p.second != 1) {
                 switch (p.second) {
                     case 2:
@@ -426,13 +501,69 @@ namespace gravity{
 //        cout << this->to_str(ind);
 //    }
 
-    string qterm::to_str(size_t ind) const {
+    string qterm::to_str() const {
         string str;
         auto c_new = _coef;
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         if (c_new->is_number()){
             string v = c_new->to_str();
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else if(v!="1") {
+                    str += v;
+                }
+            }
+            if(!_sign) {
+                if (v == "-1") {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+        }
+        else{
+            if (!_sign) {
+                str += " - ";
+            }
+            if(_sign) {
+                str += " + ";
+            }
+            if(_coef_p1_transposed){
+                str += "(";
+            }
+            str += "(";
+            str += c_new->to_str();
+            str += ")";
+        }
+        str += p_new1->get_name(true,true);
+        if(_coef_p1_transposed){
+            str += ")\u1D40";
+        }
+        else if (p_new1==p_new2) {
+            str += "²";
+            return str;
+        }
+        str += p_new2->get_name(true,true);
+        return str;
+    }
+    
+    string qterm::to_str(size_t ind, int prec) const {
+        string str;
+        auto c_new = _coef;
+        auto p_new1 = _p->first;
+        auto p_new2 = _p->second;
+        if (c_new->is_number()){
+            string v = c_new->to_str(prec);
             if (_sign) {
                 if (v=="-1") {
                     str += " - ";
@@ -476,10 +607,10 @@ namespace gravity{
                 str += "(";
             }
             str += "(";
-            str += c_new->to_str();
+            str += c_new->to_str(prec);
             str += ")";
         }
-        str += p_new1->to_str();
+        str += p_new1->get_name(ind);
         if(_coef_p1_transposed){
             str += ")\u1D40";
         }
@@ -488,11 +619,11 @@ namespace gravity{
             return str;
         }
 //            str += ".";
-        str += p_new2->to_str();
+        str += p_new2->get_name(ind);
         return str;
     }
     
-    string qterm::to_str(size_t ind, size_t inst) const {
+    string qterm::to_str(size_t ind, size_t inst, int prec) const {
         string str;
         auto c_new = _coef;
         auto p_new1 = _p->first;
@@ -501,14 +632,14 @@ namespace gravity{
         if (c_new->_is_transposed) {
             dim = p_new1->get_dim(inst);
         }
-        for (unsigned idx = 0; idx <dim; idx++) {
+        for (auto idx = 0; idx <dim; idx++) {
             if (c_new->is_number()){
                 string v;
                 if (c_new->_is_transposed) {
-                    v = c_new->to_str(idx);
+                    v = c_new->to_str(idx,prec);
                 }
                 else{
-                    v = c_new->to_str(inst);
+                    v = c_new->to_str(inst,prec);
                 }
                 
                 if (_sign) {
@@ -572,10 +703,10 @@ namespace gravity{
             else {
                 str += "*";
                 if (c_new->_is_transposed) {
-                    str += p_new2->to_str(idx);
+                    str += p_new2->get_name(idx);
                 }
                 else{
-                    str += p_new2->to_str(inst);
+                    str += p_new2->get_name(inst);
                 }
             }
         }
@@ -587,8 +718,7 @@ namespace gravity{
 //        cout << this->to_str(ind);
 //    }
 
-
-    string lterm::to_str(size_t ind) const{
+    string lterm::to_str() const{
         string str;
         auto c_new = _coef;
         auto p_new = _p;
@@ -598,24 +728,15 @@ namespace gravity{
                 if (v=="-1") {
                     str += " - ";
                 }
-                else if (ind>0) {
-                    str += " + ";
-                    if(v!="1") {
-                        str += v;
-                    }
-                }
                 else if(v!="1") {
                     str += v;
                 }
             }
             if(!_sign) {
-                if (v == "-1" && ind>0) {
+                if (v == "-1") {
                     str += " + ";
                 }
                 else if (v.front()=='-'){
-                    if (ind > 0) {
-                        str += " + ";
-                    }
                     str += v.substr(1);
                 }
                 else if (v=="1"){
@@ -630,14 +751,97 @@ namespace gravity{
             if (!_sign) {
                 str += " - ";
             }
-            if(ind > 0 && _sign) {
+            if(_sign) {
                 str += " + ";
             }
             str += "(";
             str += c_new->to_str();
             str += ")";
         }
-        str += p_new->to_str();
+        str += p_new->get_name(true,true);
+        return str;
+    }
+
+    string lterm::to_str(size_t ind, int prec) const{
+        string str;
+        auto c_new = _coef;
+        auto p_new = _p;
+        unsigned dim = 1;
+        if (c_new->_is_transposed) {
+            dim = p_new->get_dim();
+            for (auto inst = 0; inst <dim; inst++) {
+                string v;
+                if (c_new->is_number()){
+                    v = c_new->to_str(prec);
+                }
+                else {
+                    v += c_new->to_str(inst,prec);
+                }
+                if (_sign) {
+                    if (v=="-1") {
+                        str += " - ";
+                    }
+                    else {
+                        str += " + ";
+                        if(v!="1") {
+                            str += v;
+                        }
+                    }
+                }
+                if(!_sign) {
+                    if (v == "-1") {
+                        str += " + ";
+                    }
+                    else if (v.front()=='-'){
+                        str += " + ";
+                        str += v.substr(1);
+                    }
+                    else if (v=="1"){
+                        str += " - ";
+                    }
+                    else if(v!="-1"){
+                        str += " - " + v;
+                    }
+                }
+                str += p_new->get_name(inst);
+            }
+        }
+        else{
+            string v;
+            if (c_new->is_number()){
+                v = c_new->to_str(prec);
+            }
+            else {
+                v += c_new->to_str(ind,prec);
+            }
+            if (_sign) {
+                if (v=="-1") {
+                    str += " - ";
+                }
+                else {
+                    str += " + ";
+                    if(v!="1") {
+                        str += v;
+                    }
+                }
+            }
+            if(!_sign) {
+                if (v == "-1") {
+                    str += " + ";
+                }
+                else if (v.front()=='-'){
+                    str += " + ";
+                    str += v.substr(1);
+                }
+                else if (v=="1"){
+                    str += " - ";
+                }
+                else if(v!="-1"){
+                    str += " - " + v;
+                }
+            }
+            str += p_new->get_name(ind);
+        }
         return str;
     }
 
@@ -646,7 +850,7 @@ namespace gravity{
 //        cout << this->to_str(ind);
 //    }
 
-    string lterm::to_str(size_t ind, size_t inst) const{
+    string lterm::to_str(size_t ind, size_t inst, int prec) const{
         string str;
         auto c_new = _coef;
         auto p_new = _p;
@@ -657,7 +861,7 @@ namespace gravity{
         for (unsigned idx = 0; idx <dim; idx++) {
             if (c_new->constant_::is_number()){
                 string v;
-                v = c_new->to_str();
+                v = c_new->to_str(prec);
                 if (_sign) {
                     if (v=="-1") {
                         str += " - ";
@@ -738,7 +942,7 @@ namespace gravity{
                 str += p_new->to_str(inst, idx);
             }
             else{
-                str += p_new->to_str(inst);
+                str += p_new->get_name(ind);
             }
         }
         return str;

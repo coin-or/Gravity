@@ -84,8 +84,9 @@ namespace gravity {
         lterm& operator=(const lterm& l);
         lterm& operator=(lterm&& l);
         
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
     };
 
@@ -191,9 +192,10 @@ namespace gravity {
         
         qterm& operator=(const qterm& l);
         qterm& operator=(qterm&& l);
-        
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
     };
 
@@ -279,8 +281,9 @@ namespace gravity {
         pterm& operator=(const pterm& l);
         pterm& operator=(pterm&& l);
         
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
         
     };

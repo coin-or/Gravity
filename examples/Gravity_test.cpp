@@ -24,6 +24,15 @@
 using namespace std;
 using namespace gravity;
 
+    
+TEST_CASE("testing static_cast") {
+    param<int> p("p");
+    p = 1;
+    p.print();
+    shared_ptr<constant_> ptr = make_shared<param<int>>(p);
+    auto px = static_pointer_cast<param<int>>(ptr);
+    px->print();
+}
 
 TEST_CASE("testing constants") {
     constant<> c0;
@@ -199,7 +208,9 @@ TEST_CASE("testing vector dot product"){
     CHECK(b.eval(0)==5);
     b=-1;
     b=2;
-    CHECK(b.get_dim()==3);
+    b=-5;
+    b=4;
+    CHECK(b.get_dim()==5);
     CHECK(b.eval(1)==-1);
     b.set_val(1, 3);
     CHECK(b.eval(1)==3);
@@ -217,20 +228,20 @@ TEST_CASE("testing vector dot product"){
     CHECK(lin.is_complex());
     CHECK(lin.is_linear());
     auto lin2 = cp*z;
-    auto lin3 = b*z;
+    auto lin3 = a.tr()*z;
     CHECK(lin3.is_double());
-    CHECK(lin3.get_dim()==3);
+    CHECK(lin3.get_dim()==1);
     var<Cpx> y("y");
     y.in(C(5));
-    auto lin4 = b - y;
+    auto lin4 = b + b*y;
     CHECK(lin4.is_complex());
     CHECK(lin4.get_dim()==5);
     auto lin5 = lin4 + lin3;
     CHECK(lin5.is_complex());
     CHECK(lin5.get_dim()==5);
     CHECK(lin5.get_nb_vars()==2);
-    cp.print();
-//    lin.print();
+    lin5.print_symbolic();
+    lin5.print();
 }
 //    auto lin = (a+expo(b)).tr()*z;
 //    lin.print_symbolic();
