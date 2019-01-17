@@ -568,24 +568,17 @@ namespace gravity{
                 if (v=="-1") {
                     str += " - ";
                 }
-                else if (ind>0) {
-                    str += " + ";
-                    if(v!="1") {
-                        str += v;
-                    }
-                }
-                else if(v!="1") {
+                str += " + ";
+                if(v!="1") {
                     str += v;
                 }
             }
             if(!_sign) {
-                if (v == "-1" && ind>0) {
+                if (v == "-1") {
                     str += " + ";
                 }
                 else if (v.front()=='-'){
-                    if (ind > 0) {
-                        str += " + ";
-                    }
+                    str += " + ";
                     str += v.substr(1);
                 }
                 else if (v=="1"){
@@ -600,15 +593,13 @@ namespace gravity{
             if (!_sign) {
                 str += " - ";
             }
-            if(ind > 0 && _sign) {
+            if(_sign) {
                 str += " + ";
             }
             if(_coef_p1_transposed){
                 str += "(";
             }
-            str += "(";
-            str += c_new->to_str(prec);
-            str += ")";
+            str += c_new->to_str(ind,prec);
         }
         str += p_new1->get_name(ind);
         if(_coef_p1_transposed){

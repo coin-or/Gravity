@@ -545,8 +545,7 @@ namespace gravity {
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         param& operator=(const param<T2>& p) {
-            _type = p.get_type();
-            _intype = p.get_intype();
+            update_type();
             _id = p._id;
             _vec_id = p._vec_id;
             _val = make_shared<vector<type>>();

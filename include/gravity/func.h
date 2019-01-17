@@ -297,10 +297,6 @@ namespace gravity {
 
         void add_param(shared_ptr<param_> v, int nb = 1);/**< Inserts the parameter in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
 
-        /**
-         Reverse the sign of all terms in the function
-         */
-        void reverse_sign();
 
         /**
          Reverse the convexity property of the current function
@@ -327,22 +323,12 @@ namespace gravity {
         
         string to_str() const {
             string str;
-            int ind = 0;
-            string sign = " + ";
             for (auto &pair:*_pterms) {
                 str += pair.second.to_str();
             }
-            if (!_pterms->empty() && (!_qterms->empty() || !_lterms->empty())) {
-                str += " + ";
-            }
-            ind = 0;
             for (auto &pair:*_qterms) {
                 str += pair.second.to_str();
             }
-            if (!_qterms->empty() && !_lterms->empty()) {
-                str += " + ";
-            }
-            ind = 0;
             for (auto &pair:*_lterms) {
                 str += pair.second.to_str();
             }
@@ -353,26 +339,23 @@ namespace gravity {
                         str += " - " + val.substr(1);
                     }
                     else if (val != "0"){
-                        if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
-                            str += " + ";
-                        }
+                        str += " + ";
                         str += val;
                     }
                 }
                 else {
-                    if (!_pterms->empty() || !_qterms->empty() || !_lterms->empty()) {
-                        str += " + ";
-                    }
+                    str += " + ";
                     str += "(";
                     str += _cst->to_str();
                     str += ")";
                 }
             }
-            if (_expr && (!_pterms->empty() || !_qterms->empty() || !_lterms->empty() || !_cst->is_zero())) {
-                str += " + ";
-            }
             if (_expr) {
+                str += " + ";
                 str += _expr->to_str();
+            }
+            if (str.size() > 2 && str.at(1)=='+') {
+                str = str.substr(2);
             }
             if (_is_vector && (is_number() || _vars->size()>1 || _params->size()>1)) {
                 str = "[" + str +"]";
@@ -383,9 +366,6 @@ namespace gravity {
             if(str.size()==0){
                 str = "0";
             }
-            if (str.size() > 2 && str.at(1)=='+') {
-                str = str.substr(2);
-            }
             return str;
         }
         
@@ -395,7 +375,7 @@ namespace gravity {
 //
 //        bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
 //        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-//        bool insert(bool sign, const constant_& coef, const list<pair<param_*, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+//        bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
 //       
 //        
 //        void transpose(){
@@ -653,6 +633,74 @@ namespace gravity {
             return (_vars->empty());
         }
         
+        /**
+         Reverse the sign of all terms in the function, also reverses convexity.
+         */
+        void reverse_sign(){
+            _cst->reverse_sign();
+            for (auto &pair: *_lterms) {
+                pair.second.reverse_sign();
+            }
+            for (auto &pair: *_qterms) {
+                pair.second.reverse_sign();
+            }
+            for (auto &pair: *_pterms) {
+                pair.second.reverse_sign();
+            }
+            if(_expr){
+                _expr->reverse_sign();
+            }
+            if(_evaluated){
+                for (auto i = 0; i<_val->size(); i++) {
+                    _val->at(i) = -1.*eval(i);
+                }
+            }
+            reverse_convexity();
+        }
+        
+//        shared_ptr<constant_> multiply(const func_& f){
+//
+//            //        switch (f.get_return_type()) {
+//            //            case binary_: {
+//            //                auto newf = static_cast<func<bool>>(f);
+//            //                newf *= *this;
+//            //                return make_shared<func<bool>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case short_: {
+//            //                auto vv = static_pointer_cast<var<short>>(c1);
+//            //                return make_shared<func<short>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case integer_: {
+//            //                auto vv = static_pointer_cast<var<int>>(c1);
+//            //                return make_shared<func<int>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case float_: {
+//            //                auto vv = static_pointer_cast<var<float>>(c1);
+//            //                return make_shared<func<float>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case double_: {
+//            //                auto vv = static_pointer_cast<var<double>>(c1);
+//            //                return make_shared<func<double>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case long_: {
+//            //                auto vv = static_pointer_cast<var<long double>>(c1);
+//            //                return make_shared<func<long double>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            case complex_: {
+//            //                auto vv = static_pointer_cast<var<Cpx>>(c1);
+//            //                return make_shared<func<Cpx>>(vv*c2);
+//            //                break;
+//            //            }
+//            //            default:
+//            //                break;
+//        }
+        
 //        Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
 //            return get_all_sign();
 //        };
@@ -801,25 +849,25 @@ namespace gravity {
         void print(){
             string str;
             if (is_constant()) {
-                cout << " (Constant";
+                str += " (Constant";
             }
             else if (is_linear()) {
-                cout << " (Linear";
+                str += " (Linear";
             }
             else if (is_convex()) {
-                cout << " (Convex";
+                str += " (Convex";
             }
             else if (is_concave()){
-                cout << " (Concave";
+                str += " (Concave";
             }
             else {
-                cout << " (Unknown";
+                str += " (Unknown";
             }
             if (is_complex()) {
-                cout << " Complex) : ";
+                str += " Complex) : ";
             }
             else {
-                cout << ") : ";
+                str += ") : ";
             }
             if (!_embedded && !is_constant()) {
                 str += "f(";
@@ -1203,18 +1251,57 @@ namespace gravity {
 //        
 //        
 //
+        
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        shared_ptr<constant_> prod_coef(shared_ptr<constant_> coef, const func<T2>& f){
+        shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
+            if (coef->is_function()) {
+                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                f_cst *= func<type>(c);
+                return f_cst.copy();
+            }
+            else if(coef->is_param()) {
+                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto new_cst = p_cst * c;
+                return new_cst.copy();
+            }
+            else if(coef->is_number()) {
+                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto new_cst = p_cst * c;
+                return new_cst.copy();
+            }
+        }
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const param<T2>& p){
+            if (coef->is_function()) {
+                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                f_cst *= func<type>(p);
+                return f_cst.copy();
+            }
+            else if(coef->is_param()) {
+                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto new_cst = p_cst * p;
+                return new_cst.copy();
+            }
+            else if(coef->is_number()) {
+                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto new_cst = p_cst * p;
+                return new_cst.copy();
+            }
+        }
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
                 auto f_cst = *static_pointer_cast<func<type>>(coef);
                 f_cst *= func<type>(f);
                 embed(f_cst);
-                return make_shared<constant_>(move(f_cst));
+                return f_cst.copy();
             }
             else if(coef->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(coef);
-                auto new_cst = f * p_cst;
-                return make_shared<func<type>>(move(new_cst));
+                auto new_cst = p_cst * f;
+                return new_cst.copy();
             }
             else if(coef->is_number()) {
                 auto p_cst = func<type>(*static_pointer_cast<constant<type>>(coef));
@@ -1222,60 +1309,6 @@ namespace gravity {
             }
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        void prod_cst(const constant<T2>& f){
-            if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
-                f_cst *= func<type>(f);
-                *_cst = f_cst;
-            }
-            else if(_cst->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(_cst);
-                auto new_cst = f * p_cst;
-                _cst = make_shared<func<type>>(move(new_cst));
-            }
-            else if(_cst->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(_cst);
-                auto new_cst = f * p_cst;
-                *_cst = new_cst;
-            }
-        }
-        
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        void prod_cst(const param<T2>& f){
-            if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
-                f_cst *= func<T2>(f);
-                embed(f_cst);
-            }
-            else if(_cst->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(_cst);
-                auto new_cst = f * p_cst;
-                _cst = make_shared<func<type>>(move(new_cst));
-            }
-            else if(_cst->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(_cst);
-                auto new_cst = f * p_cst;
-                _cst = make_shared<func<type>>(move(new_cst));
-            }
-        }
-        
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        void prod_cst(const func<T2>& f){
-            if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
-                f_cst *= f;
-                embed(f_cst);
-            }
-            else if(_cst->is_param()) {
-                auto p_cst = func<type>(*static_pointer_cast<param<type>>(_cst));
-                _cst = make_shared<func<type>>(p_cst *= f);
-            }
-            else if(_cst->is_number()) {
-                auto p_cst = func<type>(*static_pointer_cast<constant<type>>(_cst));
-                _cst = make_shared<func<type>>(p_cst *= f);
-            }
-        }
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const constant<T2>& f){
@@ -1334,6 +1367,15 @@ namespace gravity {
             }
         }
         
+        func(const uexpr& ue){
+            _expr = make_shared<uexpr>(ue);
+            embed(_expr);
+        };
+        
+        func(const bexpr& be){
+            _expr = make_shared<bexpr>(be);
+            embed(_expr);
+        };
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(T2 c):func(){
@@ -1374,7 +1416,7 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator=(const param<T2>& c){
             reset();
-            insert(lterm(c.pcopy()));
+            insert(true,unit<type>(),c);
             _val->clear();
             _val->resize(c._val->size());
             for(auto i = 0; i< c._val->size(); i++){
@@ -2054,19 +2096,19 @@ namespace gravity {
         }
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        func& operator*=(const func<T2>& c){
+        func& operator*=(const func<T2>& f){
             if (is_zero()) {
                 return *this;
             }
-            if (c.is_zero()) {
+            if (f.is_zero()) {
                 reset();
                 return *this;
             }
             if (is_unit()) {
-                *this = func(c);
+                *this = func(f);
                 return *this;
             }
-            if (c.is_unit()) {
+            if (f.is_unit()) {
                 return *this;
             }
     
@@ -2075,34 +2117,34 @@ namespace gravity {
 //                return *this *= constant<T2>(c.eval());
 //            }
             /* Case where the current function is not constant and the other operand is */
-            if(!is_constant() && c.is_constant()) {
+            if(!is_constant() && f.is_constant()) {
                 bool transp = false;
-                auto fc = c;
-                if(is_linear() && _is_transposed){// Situation where f^T * c is transformed into (c^T*f)^T
+                auto fc = f;
+                if(is_linear() && _is_transposed){// Situation where (*this)^T * f is transformed into (f^T*(*this))^T
                     fc.transpose();
                     this->transpose();
                     transp = true;
                 }
                 if (!_cst->is_zero()) {
-                    fc.prod_cst(c);
+                     _cst = multiply(_cst,fc);
                 }
                 for (auto &pair:*_lterms) {
-                    pair.second._coef = prod_coef(pair.second._coef, fc);
+                    pair.second._coef = multiply(pair.second._coef, fc);
                 }
                 for (auto &pair:*_qterms) {
-                    pair.second._coef = prod_coef(pair.second._coef, fc);
+                    pair.second._coef = multiply(pair.second._coef, fc);
                 }
                 for (auto &pair:*_pterms) {
-                    pair.second._coef = prod_coef(pair.second._coef, fc);
+                    pair.second._coef = multiply(pair.second._coef, fc);
                 }
                 if (_expr) {
-                    _expr = make_shared<bexpr>(bexpr(product_, make_shared<expr>((*_expr)), make_shared<func<T2>>(c)));
+                    _expr = make_shared<bexpr>(bexpr(product_, make_shared<expr>((*_expr)), make_shared<func<T2>>(fc)));
                     embed(_expr);
                 }
-                if (c.is_negative()) {
+                if (fc.is_negative()) {
                     reverse_sign();
                 }
-                if (c.get_all_sign()==unknown_) {
+                if (fc.get_all_sign()==unknown_) {
                     _all_sign = unknown_;
                     if (!_qterms->empty()) {
                         _all_convexity = undet_;
@@ -2112,365 +2154,396 @@ namespace gravity {
                 if(transp){
                     this->transpose();
                 }
-                update_dot_dim(c);
+                update_dot_dim(fc);
                 return *this;
             }
             /* Case where the current function is constant and the other operand is not. */
-//            if (is_constant() && (c.is_var() || (c.is_function() && !((func_*)&c)->is_constant()))) {
-//                func_ f(c);
-//                if (!f._cst->is_zero()) {
-//                    if (f._cst->is_function()) {
-//                        auto fc = (func_*)f._cst;
-//                        *fc = (*this)* (*fc);
-//                        f.embed(*fc);
-//                    }
-//                    else {
-//                        f._cst = multiply(f._cst, *this);
-//                    }
-//                }
-//                for (auto &pair:*f._lterms) {
-//                    if (pair.second._coef->is_function()) {
-//                        auto fc = (func_*)pair.second._coef;
-//                        *fc = (*this)* (*fc);
-//                        f.embed(*fc);
-//                    }
-//                    else {
-//                        pair.second._coef = multiply(pair.second._coef, *this);
-//                    }
-//                    if (pair.second._coef->_is_transposed) {
-//                        pair.second._p->_is_vector = true;
-//                        if (!pair.second._coef->is_number() && pair.second._coef->_dim[1]!=pair.second._p->_dim[0]) {
-//                            DebugOn("vector dot product with mismatching dimensions, check your param/var dimensions");
-//                        }
-//                    }
-//                    //                f.update_nb_instances(pair.second);
-//
-//                }
-//                for (auto &pair:*f._qterms) {
-//                    if (pair.second._coef->is_function()) {
-//                        auto fc = (func_*)pair.second._coef;
-//                        *fc = (*this)* (*fc);
-//                        f.embed(*fc);
-//                    }
-//                    else {
-//                        pair.second._coef = multiply(pair.second._coef, *this);
-//                    }
-//                    if (pair.second._coef->_is_transposed) {
-//                        pair.second._p->first->_is_vector = true;
-//                        pair.second._p->second->_is_vector = true;
-//                        if (!pair.second._coef->is_number() && pair.second._coef->_dim[1]!=pair.second._p->first->_dim[0]) {
-//                            DebugOn("vector dot product with mismatching dimensions, check your param/var dimensions");
-//                        }
-//
-//                    }
-//                    //                update_nb_instances(pair.second);
-//                }
-//                for (auto &pair:*f._pterms) {
-//                    if (pair.second._coef->is_function()) {
-//                        auto fc = (func_*)pair.second._coef;
-//                        *fc = (*this)* (*fc);
-//                        f.embed(*fc);
-//                    }
-//                    else {
-//                        pair.second._coef = multiply(pair.second._coef, *this);
-//                    }
-//                    //                update_nb_instances(pair.second); // TODO
-//                }
-//                if (f._expr) {
-//                    if (this->is_number()) {
-//                        f._expr->_coef *= t_eval(this);
-//                    }
-//                    else {
-//                        f._expr = make_shared<bexpr>(bexpr(product_, make_shared<func_>(*this), make_shared<func_>((*f._expr))));
-//                        f.embed(f._expr);
-//                        //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                        f._queue->push_back(f._expr);
-//                    }
-//                }
-//                if (this->is_negative()) {
-//                    f.reverse_sign();
-//                }
-//                if (this->get_all_sign()==unknown_) {
-//                    f._all_sign = unknown_;
-//                    if (!f._qterms->empty()) {
-//                        f._all_convexity = undet_;
-//                    }
-//                }
-//                f._evaluated = false;
-//                if(update_dot(c)){
-//                    f._dim[0] = _dim[0];
-//                    f._dim[1] = _dim[1];
-//                }
-//                return *this = move(f);
-//            }
-//            if (c.is_param() || c.is_var()) {
-//    //            if (c.is_matrix() || is_matrix()) {
-//    //                *this = func_(bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c)));
-//    //            }
-//    //            else {
-//                if(_is_transposed && !c._is_vector){
-//                    auto new_c = copy(c);
-//                    auto new_p = (param_*)new_c;
-//                    new_p->_is_vector = true;
-//                    new_p->_name = "["+new_p->_name+"]";
-//                    func_ f(*new_p);
-//                    *this *= f;
-//                    delete new_c;
-//                }
-//                else {
-//                    func_ f(c);
-//                    *this *= f;
-//                }
-//    //            }
-//                _evaluated = false;
-//                return *this;
-//            }
-//            if (_expr || (c.is_function() && ((func_*)&c)->_expr)) {
-//                auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                *this = func_(be);
-//                _evaluated = false;
-//                return *this;
-//            }
-//            /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
-//            if (c.is_function()) {
-//                func_* f = (func_*)&c;
-//                constant_* coef;
-//                vector<bool>* is_sum = nullptr;
-//                func_ res;
-//                for (auto& t1: *_pterms) {
-//                    if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
-//                        auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                        *this = func_(be);
-//                        _evaluated = false;
-//                        return *this;
-//                    }
-//                    for (auto& t2: *f->_pterms) {
-//                        is_sum = nullptr;
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        auto newl(*t1.second._l);
-//                        for (auto& it: *t2.second._l) {
-//                            newl.push_back(make_pair<>(it.first, it.second));
-//                        }
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_qterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        auto newl(*t1.second._l);
-//                        newl.push_back(make_pair<>((t2.second._p->first), 1));
-//                        newl.push_back(make_pair<>((t2.second._p->second), 1));
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_lterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        auto newl(*t1.second._l);
-//                        newl.push_back(make_pair<>((t2.second._p), 1));
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    if (!f->_cst->is_zero()) {
-//                        auto newl(*t1.second._l);
-//                        coef = copy(*f->_cst);
-//                        coef = multiply(coef, *t1.second._coef);
-//                        res.insert(t1.second._sign, *coef, newl);
-//                        delete coef;
-//                    }
-//                }
-//
-//                for (auto& t1: *_qterms) {
-//                    if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
-//                        auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                        *this = func_(be);
-//                        _evaluated = false;
-//                        return *this;
-//                    }
-//                    for (auto& t2: *f->_pterms) {
-//                        is_sum = nullptr;
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        auto newl(*t2.second._l);
-//                        newl.push_front(make_pair<>(t1.second._p->first, 1));
-//                        newl.push_front(make_pair<>(t1.second._p->second, 1));
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_qterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        list<pair<param_*, int>> newl;
-//                        newl.push_back(make_pair<>(t1.second._p->first, 1));
-//                        newl.push_back(make_pair<>(t1.second._p->second, 1));
-//                        newl.push_back(make_pair<>(t2.second._p->first, 1));
-//                        newl.push_back(make_pair<>(t2.second._p->second, 1));
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_lterms) {
-//                        is_sum = nullptr;
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        list<pair<param_*, int>> newl;
-//                        newl.push_back(make_pair<>(t1.second._p->first, 1));
-//                        newl.push_back(make_pair<>(t1.second._p->second, 1));
-//                        newl.push_back(make_pair<>(t2.second._p, 1));
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    if (!f->_cst->is_zero()) {
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *f->_cst);
-//                        res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
-//                        delete coef;
-//                    }
-//
-//                }
-//                for (auto& t1: *_lterms) {
-//    //                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
-//    //                    auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//    //                    *this = func_(be);
-//    //                    _evaluated = false;
-//    //                    return *this;
-//    //                }
-//                    for (auto& t2: *f->_pterms) {
-//                        is_sum = nullptr;
-//                        if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        auto newl(*t2.second._l);
-//                        newl.push_front(make_pair<>((t1.second._p), 1));
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_qterms) {
-//                        if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        list<pair<param_*, int>> newl;
-//                        newl.push_back(make_pair<>(t1.second._p, 1));
-//                        newl.push_back(make_pair<>(t2.second._p->first, 1));
-//                        newl.push_back(make_pair<>(t2.second._p->second, 1));
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_lterms) {
-//    //                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//    //                        auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//    //                        *this = func_(be);
-//    //                        _evaluated = false;
-//    //                        return *this;
-//    //                    }
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
-//                        delete coef;
-//                    }
-//                    if (!f->_cst->is_zero()) {
-//                        coef = copy(*t1.second._coef);
-//                        coef = multiply(coef, *f->_cst);
-//                        res.insert(t1.second._sign, *coef, *t1.second._p);
-//                        delete coef;
-//                    }
-//                }
-//                if (!_cst->is_zero()) {
-//                    for (auto& t2: *f->_pterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*_cst);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(t2.second._sign, *coef, *t2.second._l);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_qterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*_cst);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
-//                        delete coef;
-//                    }
-//                    for (auto& t2: *f->_lterms) {
-//                        if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-//                            auto be = bexpr(product_, make_shared<func_>(*this), make_shared<func_>(c));
-//                            *this = func_(be);
-//                            _evaluated = false;
-//                            return *this;
-//                        }
-//                        coef = copy(*_cst);
-//                        coef = multiply(coef, *t2.second._coef);
-//                        res.insert(t2.second._sign, *coef, *t2.second._p);
-//                        delete coef;
-//                    }
-//                    if (!f->_cst->is_zero()) {
-//                        coef = copy(*_cst);
-//                        coef = multiply(coef, *f->_cst);
-//                        delete res._cst;
-//                        res._cst = coef;
-//                        if (_cst->is_function()) {
-//                            embed(*(func_*)_cst);
-//                        }
-//                    }
-//                }
-//                res.update_dot_dim(*this, c);
-//                *this = move(res);
-//            }
+            if (is_constant() && !f.is_constant()) {
+                return func<type>(f) *= *this;
+            }
+
+            /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
+            func res;
+            for (auto& t1: *_pterms) {
+                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
+                    auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                    *this = func(be);
+                    _evaluated = false;
+                    return *this;
+                }
+                for (auto& t2: *f._pterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    auto newl(*t1.second._l);
+                    for (auto& it: *t2.second._l) {// TODO check if same l
+                        newl.push_back(make_pair<>(it.first, it.second));
+                    }
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._qterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    auto newl(*t1.second._l);
+                    newl.push_back(make_pair<>((t2.second._p->first), 1));
+                    newl.push_back(make_pair<>((t2.second._p->second), 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._lterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    auto newl(*t1.second._l);
+                    newl.push_back(make_pair<>((t2.second._p), 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                if (!f._cst->is_zero()) {
+                    auto newl(*t1.second._l);
+                    if (f._cst->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(t1.second._sign, *coef, newl);
+                    }
+                    else if(f._cst->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, newl);
+                    }
+                    else if(f._cst->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, newl);
+                    }
+                }
+            }
+            for (auto& t1: *_qterms) {
+                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
+                    auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                    *this = func(be);
+                    _evaluated = false;
+                    return *this;
+                }
+                for (auto& t2: *f._pterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                    }
+                    auto newl(*t2.second._l);
+                    newl.push_front(make_pair<>(t1.second._p->first, 1));
+                    newl.push_front(make_pair<>(t1.second._p->second, 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._qterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                    }
+                    list<pair<shared_ptr<param_>, int>> newl;
+                    newl.push_back(make_pair<>(t1.second._p->first, 1));
+                    newl.push_back(make_pair<>(t1.second._p->second, 1));
+                    newl.push_back(make_pair<>(t2.second._p->first, 1));
+                    newl.push_back(make_pair<>(t2.second._p->second, 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._lterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                    }
+                    list<pair<shared_ptr<param_>, int>> newl;
+                    newl.push_back(make_pair<>(t1.second._p->first, 1));
+                    newl.push_back(make_pair<>(t1.second._p->second, 1));
+                    newl.push_back(make_pair<>(t2.second._p, 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }                    }
+                if (!f._cst->is_zero()) {
+                    if (f._cst->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
+                    }
+                    else if(f._cst->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
+                    }
+                    else if(f._cst->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
+                    }
+                }
+            }
+            for (auto& t1: *_lterms) {
+                for (auto& t2: *f._pterms) {
+                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                    }
+                    auto newl(*t2.second._l);
+                    newl.push_front(make_pair<>((t1.second._p), 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._qterms) {
+                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                    }
+                    list<pair<shared_ptr<param_>, int>> newl;
+                    newl.push_back(make_pair<>(t1.second._p, 1));
+                    newl.push_back(make_pair<>(t2.second._p->first, 1));
+                    newl.push_back(make_pair<>(t2.second._p->second, 1));
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
+                    }
+                }
+                for (auto& t2: *f._lterms) {
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
+                    }
+                }
+                if (!f._cst->is_zero()) {
+                    if (f._cst->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, f_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p);
+                    }
+                    else if(f._cst->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p);
+                    }
+                    else if(f._cst->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto coef = multiply(t1.second._coef, p_cst);
+                        res.insert(t1.second._sign, *coef, *t1.second._p);
+                    }
+                }
+            }
+            if (!_cst->is_zero()) {
+                for (auto& t2: *f._pterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, f_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._l);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._l);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._l);
+                    }
+                }
+                for (auto& t2: *f._qterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, f_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
+                    }
+                }
+                for (auto& t2: *f._lterms) {
+                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+                        auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                        *this = func(be);
+                        _evaluated = false;
+                        return *this;
+                    }
+                    if (t2.second._coef->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, f_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p);
+                    }
+                    else if(t2.second._coef->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p);
+                    }
+                    else if(t2.second._coef->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto coef = multiply(_cst, p_cst);
+                        res.insert(t2.second._sign, *coef, *t2.second._p);
+                    }
+                }
+                if (!f._cst->is_zero()) {
+                    if (f._cst->is_function()) {
+                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        res._cst = multiply(f._cst, f_cst);
+                    }
+                    else if(f._cst->is_param()) {
+                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        res._cst = multiply(f._cst, p_cst);
+                    }
+                    else if(f._cst->is_number()) {
+                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        res._cst = multiply(f._cst, p_cst);
+                    }
+                }
+            }
+            res.update_dot_dim(*this, f);
+            res.update_convexity();
+            *this = move(res);
             _evaluated = false;
             return *this;
         }
@@ -2481,6 +2554,7 @@ namespace gravity {
                 return *this;
             }
             _evaluated = false;
+            update_dim(f);
             if (is_constant() && !f.is_constant()) {
                 func res(f);
                 res += *this;
@@ -2635,18 +2709,15 @@ namespace gravity {
     
     template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p1, const param<T2>& p2){
-        if(p1.is_function() || p2.is_function()){
-            
-        }
         func<T1> res;
         if(p1.is_param() && p2.is_var()){
             res.insert(true,p1,p2);
         }
         else if(p2.is_param() && p1.is_var()){
-            res.insert(true,p2,p1);
+            res.insert(true,param<T1>(p2),p1);
         }
         else {//Both vars or both params
-            res.insert(true,constant<double>(1),p1,p2);
+            res.insert(true,unit<T1>(),p1,p2);
         }
         res.update_dot_dim(p1,p2);
         return res;
@@ -2656,13 +2727,13 @@ namespace gravity {
     func<T2> operator*(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
         if(p1.is_param() && p2.is_var()){
-            res.insert(true,p1,p2);
+            res.insert(true,param<T2>(p1),p2);
         }
         else if(p2.is_param() && p1.is_var()){
             res.insert(true,p2,p1);
         }
         else {//Both vars or both params
-            res.insert(true,constant<double>(1),p1,p2);
+            res.insert(true,unit<T2>(),p1,p2);
         }
         res.update_dot_dim(p1,p2);
         return res;
@@ -2671,68 +2742,56 @@ namespace gravity {
     template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
-        auto newp1 = p1.pcopy();
-        auto newp2 = p2.pcopy();
         res.update_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
-            res.insert(lterm(newp2));
+            res.insert(true,unit<T1>(),p2);
             res.add_cst(p1);
         }
         else if(p2.is_param() && p1.is_var()){
-            res.insert(lterm(newp1));
-            res.add_cst(p2);
+            res.insert(true,unit<T1>(),p1);
+            res.add_cst(param<T1>(p2));
         }
         else {//Both vars or both params
-            res.insert(lterm(newp1));
-            res.insert(lterm(newp2));
+            res.insert(true,unit<T1>(),p1);
+            res.insert(true,unit<T1>(),p2);
         }
         return res;
     }
         
     template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator+(const param<T1>& p1, const param<T2>& p2){
-        if(p1.is_function() || p2.is_function()){
-            return func<T2>(p2) += func<T1>(p1);
-        }
         func<T2> res;
-        auto newp1 = p1.pcopy();
-        auto newp2 = p2.pcopy();
         res.update_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
-            res.insert(lterm(newp2));
-            res.add_cst(p1);
+            res.insert(true,unit<T2>(),p2);
+            res.add_cst(param<T2>(p1));
         }
         else if(p2.is_param() && p1.is_var()){
-            res.insert(lterm(newp1));
+            res.insert(true,unit<T2>(),p1);
             res.add_cst(p2);
         }
         else {//Both vars or both params
-            res.insert(lterm(newp1));
-            res.insert(lterm(newp2));
+            res.insert(true,unit<T2>(),p1);
+            res.insert(true,unit<T2>(),p2);
         }
         return res;
     }
     
     template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p1, const param<T2>& p2){
-        if(p1.is_function() || p2.is_function()){
-            return func<T1>(p1) -= p2;
-        }
         func<T1> res;
-        auto newp1 = p1.pcopy();
-        auto newp2 = p2.pcopy();
         res.update_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
-            res.insert(lterm(false,newp2));
+            res.insert(false,unit<T1>(),p2);
             res.add_cst(p1);
         }
         else if(p2.is_param() && p1.is_var()){
-            res.insert(lterm(newp1));
-            res.add_cst(-1*p2);
+            res.insert(true,unit<T1>(),p1);
+            res.add_cst(-1*param<T1>(p2));
         }
         else {//Both vars or both params
-            res.insert(lterm(newp1));
-            res.insert(lterm(false,newp2));
+            res.insert(true,unit<T1>(),p1);
+            res.insert(false,unit<T1>(),p2);
         }
         return res;
     }
@@ -2740,20 +2799,18 @@ namespace gravity {
     template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
-        auto newp1 = p1.pcopy();
-        auto newp2 = p2.pcopy();
         res.update_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
-            res.insert(lterm(false,newp2));
-            res.add_cst(p1);
+            res.insert(false,unit<T2>(),p2);
+            res.add_cst(param<T2>(p1));
         }
         else if(p2.is_param() && p1.is_var()){
-            res.insert(lterm(newp1));
+            res.insert(true,unit<T2>(),p1);
             res.add_cst(-1*p2);
         }
         else {//Both vars or both params
-            res.insert(lterm(newp1));
-            res.insert(lterm(false,newp2));
+            res.insert(true,unit<T2>(),p1);
+            res.insert(false,unit<T2>(),p2);
         }
         return res;
     }
@@ -2943,6 +3000,38 @@ namespace gravity {
     func<T2> operator+(const func<T1>& f, const param<T2>& v){
         func<T2> res(v);
         res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const func<T1>& f, const param<T2>& v){
+        func<T1> res(v);
+        res.reverse_sign();
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const func<T1>& f, const param<T2>& v){
+        func<T2> res(v);
+        res.reverse_sign();
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const param<T1>& p, const func<T2>& f){
+        func<T1> res(f);
+        res.reverse_sign();
+        res += p;
+        return res;
+    }
+    
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const param<T1>& p, const func<T2>& f){
+        func<T2> res(f);
+        res.reverse_sign();
+        res += p;
         return res;
     }
     
@@ -3489,126 +3578,9 @@ namespace gravity {
 //
 //
 //
-    template<typename T> shared_ptr<constant_> multiply(shared_ptr<constant_> c1, const func<T>& c2){ /**< multiplies c1 with c2, returns the result **/
-        switch (c1->get_type()) {
-            case binary_c: {
-                auto val = (static_pointer_cast<constant<bool>>(c1))->eval();
-                if (val==true) {
-                    return make_shared<func<T>>(c2);
-                }
-                break;
-            }
-            case short_c: {
-                auto val = (static_pointer_cast<constant<short>>(c1))->eval();
-                if (val==0) {
-                    return c1;
-                }
-                if (val==1) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<short>>(val * c2);
-                break;
-            }
-            case integer_c: {
-                auto val = (static_pointer_cast<constant<int>>(c1))->eval();
-                if (val==0) {
-                    return c1;
-                }
-                if (val==1) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<int>>(val * c2);
-                break;
-            }
-            case float_c: {
-                auto val = (static_pointer_cast<constant<float>>(c1))->eval();
-                if (val==0) {
-                    return c1;
-                }
-                if (val==1) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<float>>(val * c2);
-                break;
-            }
-            case double_c: {
-                auto val = (static_pointer_cast<constant<double>>(c1))->eval();
-                if (val==0) {
-                    return c1;
-                }
-                if (val==1) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<double>>(val * c2);
-                break;
-            }
-            case long_c: {
-                auto val = (static_pointer_cast<constant<long double>>(c1))->eval();
-                if (val==0) {
-                    return c1;
-                }
-                if (val==1) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<long double>>(val * c2);
-                break;
-            }
-            case complex_c: {
-                auto val = (static_pointer_cast<constant<Cpx>>(c1))->eval();
-                if (val==Cpx(0,0)) {
-                    return c1;
-                }
-                if (val==Cpx(1,1)) {
-                    return make_shared<func<T>>(c2);
-                }
-                return make_shared<func<Cpx>>(val * c2);
-                break;
-            }
-            case var_c: {
-                auto v = static_pointer_cast<param_>(c1);
-                switch (v->get_intype()) {
-                    case binary_: {
-                        auto vv = static_pointer_cast<var<bool>>(c1);
-                        return make_shared<func<bool>>(vv*c2);
-                        break;
-                    }
-                    case short_: {
-                        auto vv = static_pointer_cast<var<short>>(c1);
-                        return make_shared<func<short>>(vv*c2);
-                        break;
-                    }
-                    case integer_: {
-                        auto vv = static_pointer_cast<var<int>>(c1);
-                        return make_shared<func<int>>(vv*c2);
-                        break;
-                    }
-                    case float_: {
-                        auto vv = static_pointer_cast<var<float>>(c1);
-                        return make_shared<func<float>>(vv*c2);
-                        break;
-                    }
-                    case double_: {
-                        auto vv = static_pointer_cast<var<double>>(c1);
-                        return make_shared<func<double>>(vv*c2);
-                        break;
-                    }
-                    case long_: {
-                        auto vv = static_pointer_cast<var<long double>>(c1);
-                        return make_shared<func<long double>>(vv*c2);
-                        break;
-                    }
-                    case complex_: {
-                        auto vv = static_pointer_cast<var<Cpx>>(c1);
-                        return make_shared<func<Cpx>>(vv*c2);
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-        }
-        return nullptr;
-    }
+    
+    
+    
 //                    case integer_c: {
 //                        auto val = (static_pointer_cast<constant<int>>(c1))->eval();
 //                        if (val==0) {

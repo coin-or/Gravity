@@ -1942,25 +1942,7 @@ namespace gravity{
 //        _nnz_j = 0;
 //    };
 //
-    /**
-     Reverse the sign of all terms in the function, also reverses convexity.
-     */
-    void func_::reverse_sign(){
-        _cst->reverse_sign();
-        for (auto &pair: *_lterms) {
-            pair.second.reverse_sign();
-        }
-        for (auto &pair: *_qterms) {
-            pair.second.reverse_sign();
-        }
-        for (auto &pair: *_pterms) {
-            pair.second.reverse_sign();
-        }
-        if(_expr){
-            _expr->reverse_sign();
-        }
-        reverse_convexity();
-    }
+    
     
     /**
      Reverse the convexity property of the current function
@@ -5033,7 +5015,7 @@ namespace gravity{
     
     Convexity func_::get_convexity(const qterm& q) {
         auto conv = q.get_convexity();
-        if(_all_convexity==conv){/* If both convex or concave */
+        if(is_convex()){/* If both convex or concave */
             return conv;
         }
         // At this stage, we know that q._p->first !=q._p->second
