@@ -5,7 +5,10 @@ project(Gravity)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 # Debug mode
-option(debug "Turn on debug mode" OFF)
+option(Debug "Turn on debug mode" OFF)
+
+# Coverage
+option(Cov "Turn on coverage" OFF)
 
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
@@ -177,14 +180,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Release)
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 set(CMAKE_BUILD_TYPE "Release")
-if (debug)
+if (Debug)
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Debug)
 endif()
 
+if(Cov)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fprofile-arcs -lgcov")
+endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lpthread  -fprofile-arcs -ftest-coverage")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'" -fprofile-arcs -lgcov)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
+
+if(UNIX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
+endif()
+
 
 add_subdirectory(src)
 add_subdirectory(examples)
