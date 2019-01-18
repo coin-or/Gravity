@@ -1269,6 +1269,7 @@ namespace gravity {
                 auto new_cst = p_cst * c;
                 return new_cst.copy();
             }
+            return nullptr;
         }
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -1288,6 +1289,7 @@ namespace gravity {
                 auto new_cst = p_cst * p;
                 return new_cst.copy();
             }
+            return nullptr;
         }
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -1307,6 +1309,7 @@ namespace gravity {
                 auto p_cst = func<type>(*static_pointer_cast<constant<type>>(coef));
                 return make_shared<func<type>>(p_cst *= f);
             }
+            return nullptr;
         }
         
         
@@ -2627,7 +2630,9 @@ namespace gravity {
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator-=(const func<T2>& f){
-            return *this += -1*f;
+            auto res = f;
+            res.reverse_sign();
+            return *this += res;
         }
 //        
 //        func_ tr() const {
@@ -2685,16 +2690,16 @@ namespace gravity {
     func<T2> operator+(const func<T1>& f1, const func<T2>& f2){
         return func<T2>(f1)+= f2;
     }
-//
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-//    func<T1> operator-(const func<T1>& f1, const func<T2>& f2){
-//        return func<T1>(f1)+= f2;
-//    }
-//
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-//    func<T2> operator-(const func<T1>& f1, const func<T2>& f2){
-//        return func<T2>(f1)+= f2;
-//    }
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const func<T1>& f1, const func<T2>& f2){
+        return func<T1>(f1)-= f2;
+    }
+
+    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const func<T1>& f1, const func<T2>& f2){
+        return func<T2>(f1)-= f2;
+    }
 //
 //    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
 //    func<T1> operator*(const func<T1>& f1, const func<T2>& f2){

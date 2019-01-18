@@ -25,14 +25,6 @@ using namespace std;
 using namespace gravity;
 
     
-TEST_CASE("testing static_cast") {
-    param<int> p("p");
-    p = 1;
-    p.print();
-    shared_ptr<constant_> ptr = make_shared<param<int>>(p);
-    auto px = static_pointer_cast<param<int>>(ptr);
-    px->print();
-}
 
 TEST_CASE("testing constants") {
     constant<> c0;
@@ -238,7 +230,7 @@ TEST_CASE("testing vector dot product"){
     lin4.print();
     CHECK(lin4.is_complex());
     CHECK(lin4.get_dim()==5);
-    auto lin5 = lin4 + lin3;
+    auto lin5 = lin4 - lin3;
     CHECK(lin5.is_complex());
     CHECK(lin5.get_dim()==5);
     CHECK(lin5.get_nb_vars()==2);
