@@ -1865,6 +1865,30 @@ namespace gravity{
                 if (ue->_son->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(ue->_son));
                 }
+                else if (ue->_son->is_param() || ue->_son->is_var() ){
+                    auto p = dynamic_pointer_cast<param_>(ue->_son);
+                    auto name = p->get_name(false,false);
+                    if (p->is_var()) {
+                        auto pnew = get_var(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_var(pnew,1);
+                        }
+                        else {
+                            ue->_son = pnew;
+                        }
+                    }
+                    else {
+                        auto pnew = get_param(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_param(pnew);
+                        }
+                        else {
+                            ue->_son = pnew;
+                        }
+                    }
+                }
                 break;
             }
             case bexp_c:{
@@ -1872,8 +1896,56 @@ namespace gravity{
                 if (be->_lson->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(be->_lson));
                 }
+                else if (be->_lson->is_param() || be->_lson->is_var() ){
+                    auto p = dynamic_pointer_cast<param_>(be->_lson);
+                    auto name = p->get_name(false,false);
+                    if (p->is_var()) {
+                        auto pnew = get_var(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_var(pnew,1);
+                        }
+                        else {
+                            be->_lson = pnew;
+                        }
+                    }
+                    else {
+                        auto pnew = get_param(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_param(pnew);
+                        }
+                        else {
+                            be->_lson = pnew;
+                        }
+                    }
+                }
                 if (be->_rson->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(be->_rson));
+                }
+                else if (be->_rson->is_param() || be->_rson->is_var() ){
+                    auto p = dynamic_pointer_cast<param_>(be->_rson);
+                    auto name = p->get_name(false,false);
+                    if (p->is_var()) {
+                        auto pnew = get_var(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_var(pnew,1);
+                        }
+                        else {
+                            be->_rson = pnew;
+                        }
+                    }
+                    else {
+                        auto pnew = get_param(name);
+                        if (!pnew) {
+                            pnew = p;
+                            add_param(pnew);
+                        }
+                        else {
+                            be->_rson = pnew;
+                        }
+                    }
                 }
             }
             default:
@@ -1958,7 +2030,7 @@ namespace gravity{
 
 
 //
-    void func_::update_sign(const constant_& c){
+    void func_::update_sign_add(const constant_& c){
         Sign sign = c.get_all_sign();
         if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && (sign==neg_ || sign==non_pos_))) {
             _all_sign = unknown_;
@@ -1968,6 +2040,25 @@ namespace gravity{
         }
         else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
             _all_sign = sign;
+        }
+    }
+    
+    void func_::update_sign_multiply(const constant_& c){
+        Sign sign = c.get_all_sign();
+        if (sign==unknown_) {
+            _all_sign = unknown_;
+        }
+        else if(_all_sign==pos_ && (sign==neg_ || sign==non_pos_)){
+            _all_sign = sign;
+        }
+        else if(_all_sign==non_neg_ && (sign==neg_ || sign==non_pos_)){
+            _all_sign = non_pos_;
+        }
+        else if(_all_sign==neg_ && sign==neg_){
+            _all_sign = pos_;
+        }
+        else if(_all_sign==neg_ && sign==non_pos_){
+            _all_sign = non_neg_;
         }
     }
 //

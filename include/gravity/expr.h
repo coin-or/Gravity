@@ -80,7 +80,7 @@ namespace gravity {
             return unknown_;// TO UPDATE
         }
         
-        string to_str() const{return string();};
+        string to_str() const;
         string to_str(int prec) const;
         string to_str(size_t, int prec) const;
         void print(bool endline = true) const;
@@ -154,7 +154,7 @@ namespace gravity {
         
         bool is_inner_product() const;
                 
-        string to_str() const{return string();};
+        string to_str() const;
         string to_str(int prec) const;
         string to_str(size_t, int prec) const;
         void print(size_t inst) const{

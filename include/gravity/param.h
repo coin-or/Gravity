@@ -507,7 +507,7 @@ namespace gravity {
         ~param(){};
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         param (const param<T2>& p) {
-            *this = p;
+            *this = p;            
         }
 
         param (const param& p) {

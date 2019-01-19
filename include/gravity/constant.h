@@ -264,8 +264,19 @@ namespace gravity {
         type        _val;/**< value of current constant */
     public:
         
+        template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T zero(){
+            return (T)(0);
+        }
+        
+        template<class T, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        T zero(){
+            return Cpx(0,0);
+        }
+        
         /** Constructors */
         constant(){
+            _val = zero<type>();
             if(typeid(type)==typeid(bool)){
                 set_type(binary_c);
                 return;
@@ -523,6 +534,10 @@ namespace gravity {
             cout << to_str(prec) << endl;
         }
         
+        string to_str() const{
+            return to_string_with_precision(_val,3);
+        }
+        
         string to_str(int prec = 10) const{
             return to_string_with_precision(_val,prec);
         }
@@ -552,6 +567,16 @@ namespace gravity {
     template<class T, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
     constant<T> unit(){
         return constant<T>(Cpx(1,0));
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    constant<T> zero(){
+        return constant<T>(0);
+    }
+    
+    template<class T, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+    constant<T> zero(){
+        return constant<T>(Cpx(0,0));
     }
 
 }
