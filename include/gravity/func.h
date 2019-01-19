@@ -315,7 +315,8 @@ namespace gravity {
 
         void insert(const pterm& term);
 
-        void update_sign(const constant_& c);
+        void update_sign_add(const constant_& c);
+        void update_sign_multiply(const constant_& c);
         
         void update_convexity();
         
@@ -564,7 +565,6 @@ namespace gravity {
         func(){
             update_type();
             update_range();
-            constant_::set_type(func_c);
             _cst = make_shared<constant<type>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
@@ -597,7 +597,7 @@ namespace gravity {
 //        };
 //
         void update_type() {
-            _type = par_c;
+            _type = func_c;
             if(typeid(type)==typeid(bool)) {
                 _return_type = binary_;
                 return;
@@ -656,8 +656,23 @@ namespace gravity {
                 }
             }
             reverse_convexity();
+            reverse_all_sign();
         }
         
+        void reverse_all_sign(){
+            if(_all_sign==neg_){
+                _all_sign=pos_;
+            }
+            else if(_all_sign==pos_){
+                _all_sign=neg_;
+            }
+            else if(_all_sign==non_pos_){
+                _all_sign=non_neg_;
+            }
+            else if(_all_sign==non_neg_){
+                _all_sign=non_pos_;
+            }
+        }
 //        shared_ptr<constant_> multiply(const func_& f){
 //
 //            //        switch (f.get_return_type()) {
@@ -668,32 +683,32 @@ namespace gravity {
 //            //                break;
 //            //            }
 //            //            case short_: {
-//            //                auto vv = static_pointer_cast<var<short>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<short>>(c1);
 //            //                return make_shared<func<short>>(vv*c2);
 //            //                break;
 //            //            }
 //            //            case integer_: {
-//            //                auto vv = static_pointer_cast<var<int>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<int>>(c1);
 //            //                return make_shared<func<int>>(vv*c2);
 //            //                break;
 //            //            }
 //            //            case float_: {
-//            //                auto vv = static_pointer_cast<var<float>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<float>>(c1);
 //            //                return make_shared<func<float>>(vv*c2);
 //            //                break;
 //            //            }
 //            //            case double_: {
-//            //                auto vv = static_pointer_cast<var<double>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<double>>(c1);
 //            //                return make_shared<func<double>>(vv*c2);
 //            //                break;
 //            //            }
 //            //            case long_: {
-//            //                auto vv = static_pointer_cast<var<long double>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<long double>>(c1);
 //            //                return make_shared<func<long double>>(vv*c2);
 //            //                break;
 //            //            }
 //            //            case complex_: {
-//            //                auto vv = static_pointer_cast<var<Cpx>>(c1);
+//            //                auto vv = dynamic_pointer_cast<var<Cpx>>(c1);
 //            //                return make_shared<func<Cpx>>(vv*c2);
 //            //                break;
 //            //            }
@@ -1255,17 +1270,17 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
                 f_cst *= func<type>(c);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
                 auto new_cst = p_cst * c;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *dynamic_pointer_cast<constant<type>>(coef);
                 auto new_cst = p_cst * c;
                 return new_cst.copy();
             }
@@ -1275,17 +1290,17 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const param<T2>& p){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
                 f_cst *= func<type>(p);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
                 auto new_cst = p_cst * p;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *dynamic_pointer_cast<constant<type>>(coef);
                 auto new_cst = p_cst * p;
                 return new_cst.copy();
             }
@@ -1295,18 +1310,18 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
                 f_cst *= func<type>(f);
                 embed(f_cst);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
                 auto new_cst = p_cst * f;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = func<type>(*static_pointer_cast<constant<type>>(coef));
+                auto p_cst = func<type>(*dynamic_pointer_cast<constant<type>>(coef));
                 return make_shared<func<type>>(p_cst *= f);
             }
             return nullptr;
@@ -1316,17 +1331,17 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const constant<T2>& f){
             if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
                 f_cst += func<type>(f);
                 embed(f_cst);
             }
             else if(_cst->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
                 auto new_cst = f + p_cst;
                 _cst = make_shared<func<type>>(move(new_cst));
             }
             else if(_cst->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<constant<type>>(_cst);
                 auto new_cst = f + p_cst;
                 *_cst = new_cst;
             }
@@ -1335,17 +1350,17 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const param<T2>& f){
             if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
                 func<type>(f_cst) += func<T2>(f);
                 embed(f_cst);
             }
             else if(_cst->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
                 auto new_cst = f + p_cst;
                 _cst = make_shared<func<type>>(move(new_cst));
             }
             else if(_cst->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<constant<type>>(_cst);
                 auto new_cst = f + p_cst;
                 _cst = make_shared<func<type>>(move(new_cst));
             }
@@ -1354,30 +1369,38 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const func<T2>& f){
             if (_cst->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(_cst);
+                auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
                 f_cst += f;
                 embed(f_cst);
             }
             else if(_cst->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
                 auto new_cst = f + func<type>(p_cst);
                 _cst = make_shared<func<type>>(move(new_cst));
             }
             else if(_cst->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(_cst);
+                auto p_cst = *dynamic_pointer_cast<constant<type>>(_cst);
                 auto new_cst = f + func<type>(p_cst);
                 _cst = make_shared<func<type>>(move(new_cst));
             }
         }
         
-        func(const uexpr& ue){
+        func(const uexpr& ue):func(){
             _expr = make_shared<uexpr>(ue);
             embed(_expr);
+            if (!is_constant()) {
+                _ftype = nlin_;
+            }
+            _evaluated = false;
         };
         
-        func(const bexpr& be){
+        func(const bexpr& be):func(){
             _expr = make_shared<bexpr>(be);
             embed(_expr);
+            if (!is_constant()) {
+                _ftype = nlin_;
+            }
+            _evaluated = false;
         };
         
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -1399,7 +1422,7 @@ namespace gravity {
             *this = c;
         }
         
-        template<class T2, class = typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type>
+        template<class T2, class = typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type>
         func(const func<T2>& f): func(){
             *this = f;
         }
@@ -1407,7 +1430,7 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator=(const constant<T2>& c){
             reset();
-            static_pointer_cast<constant<type>>(_cst)->set_val(c.eval());
+            dynamic_pointer_cast<constant<type>>(_cst)->set_val(c.eval());
             _all_sign = _cst->get_sign();
             _val->resize(1);
             _val->at(0) = c.eval();
@@ -1421,13 +1444,7 @@ namespace gravity {
             reset();
             insert(true,unit<type>(),c);
             _val->clear();
-            _val->resize(c._val->size());
-            for(auto i = 0; i< c._val->size(); i++){
-                _val->at(i) = c._val->at(i);
-            }
-            _range->first = c._range->first;
-            _range->second = c._range->second;
-            _evaluated = true;
+            _evaluated = false;
             return *this;
         }
         
@@ -1675,8 +1692,7 @@ namespace gravity {
         
         shared_ptr<constant_> copy()const{return make_shared<func>(*this);};
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        void deep_copy(const func<T2>& f){
+        void deep_copy(const func& f){
             constant_::_type = f._type;
             _ftype = f._ftype;
             _return_type = f._return_type;
@@ -1701,10 +1717,21 @@ namespace gravity {
                 this->insert(pair.second);
             }
             if(f._expr){
-                _expr = make_shared<expr>(*f._expr);
+                if (f._expr->is_uexpr()) {
+                    _expr = make_shared<uexpr>(*static_pointer_cast<uexpr>(f._expr));
+                }
+                else {
+                    _expr = make_shared<bexpr>(*static_pointer_cast<bexpr>(f._expr));
+                }
+            }
+            else {
+                _expr = nullptr;
             }
             if(f._indices){
                 _indices = make_shared<indices>(*f._indices);
+            }
+            else {
+                _indices = nullptr;
             }
             _range->first = f._range->first;
             _range->second = f._range->second;
@@ -1726,6 +1753,119 @@ namespace gravity {
             copy_derivatives(f);
             if(f._hess_link){
                 _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
+            }
+            else {
+                _hess_link = nullptr;
+            }
+            _nnz_j = f._nnz_j;
+            _nnz_h = f._nnz_h;
+            _hess_link = f._hess_link;
+            _nb_vars = f._nb_vars;
+        }
+        
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        void deep_copy(const func<T2>& f){
+            _to_str = f._to_str;
+            _all_convexity = f._all_convexity;
+            _all_sign = f._all_sign;
+            *_cst = *f._cst;
+            _val = make_shared<vector<type>>();
+            _range = make_shared<pair<type,type>>();
+            _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            _lterms = make_shared<map<string, lterm>>();
+            _qterms = make_shared<map<string, qterm>>();
+            _pterms = make_shared<map<string, pterm>>();
+            for (auto &pair:*f._lterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
+            }
+            for (auto &pair:*f._qterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
+            }
+            for (auto &pair:*f._pterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
+            }
+            if(f._expr){
+                if (f._expr->is_uexpr()) {
+                    _expr = make_shared<uexpr>(*static_pointer_cast<uexpr>(f._expr));
+                }
+                else {
+                    _expr = make_shared<bexpr>(*static_pointer_cast<bexpr>(f._expr));
+                }
+
+            }
+            else {
+                _expr = nullptr;
+            }
+            if(f._indices){
+                _indices = make_shared<indices>(*f._indices);
+            }
+            else {
+                _indices = nullptr;
+            }
+            _range->first = f._range->first;
+            _range->second = f._range->second;
+            _val->clear();
+            _val->resize(f._val->size());
+            for(auto i = 0; i< f._val->size(); i++){
+                _val->at(i) = f._val->at(i);
+            }
+            *_convexity = *f._convexity;
+            _sign = f._sign;
+            constant_::_is_transposed = f._is_transposed;
+            constant_::_is_vector = f._is_vector;
+            _is_constraint = f._is_constraint;
+            _is_hessian = f._is_hessian;
+            constant_::_dim[0] = f._dim[0];
+            constant_::_dim[1] = f._dim[1];
+            _embedded = f._embedded;
+            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
+            copy_derivatives(f);
+            if(f._hess_link){
+                _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
+            }
+            else {
+                _hess_link = nullptr;
             }
             _nnz_j = f._nnz_j;
             _nnz_h = f._nnz_h;
@@ -2015,10 +2155,7 @@ namespace gravity {
             return _val->back();
         }
         
-        type eval(size_t i) const {
-            if(is_matrix()){
-                throw invalid_argument("eval() should be called with double index here\n");
-            }
+        type get_val(size_t i) const{
             auto idx = get_id_inst(i);
             if (is_indexed()) {
                 if (_indices->_ids->size()>1) {
@@ -2035,6 +2172,46 @@ namespace gravity {
             return _val->at(idx);
         }
         
+        type eval(size_t i) const {
+            if(is_matrix()){
+                throw invalid_argument("eval() should be called with double index here\n");
+            }
+            if (is_constant() && _evaluated) {
+                return _val->at(i);
+            }
+            type res = zero<type>().eval();
+            res += eval_cst(i);
+            res += eval_lterms(i);
+            res += eval_qterms(i);
+            res += eval_pterms(i);
+            res += eval_expr(i);
+            return res;
+        }
+        
+        type eval_cst(size_t i) const {
+            type res = zero<type>().eval();
+            return res;
+        }
+        
+        type eval_lterms(size_t i) const {
+            type res = zero<type>().eval();
+            return res;
+        }
+        
+        type eval_qterms(size_t i) const {
+            type res = zero<type>().eval();
+            return res;
+        }
+        
+        type eval_pterms(size_t i) const {
+            type res = zero<type>().eval();
+            return res;
+        }
+        
+        type eval_expr(size_t i) const {
+            type res = zero<type>().eval();
+            return res;
+        }
         
         type eval(const string& key) const{
             return _val->at(_indices->_keys_map->at(key));
@@ -2141,18 +2318,13 @@ namespace gravity {
                     pair.second._coef = multiply(pair.second._coef, fc);
                 }
                 if (_expr) {
-                    _expr = make_shared<bexpr>(bexpr(product_, make_shared<expr>((*_expr)), make_shared<func<T2>>(fc)));
+                    _expr = make_shared<bexpr>(bexpr(product_, _expr, make_shared<func<T2>>(fc)));
                     embed(_expr);
                 }
-                if (fc.is_negative()) {
-                    reverse_sign();
-                }
-                if (fc.get_all_sign()==unknown_) {
-                    _all_sign = unknown_;
-                    if (!_qterms->empty()) {
+                if (fc.get_all_sign()==unknown_ && !_qterms->empty()) {
                         _all_convexity = undet_;
-                    }
                 }
+                update_sign_multiply(fc);
                 _evaluated = false;
                 if(transp){
                     this->transpose();
@@ -2162,7 +2334,77 @@ namespace gravity {
             }
             /* Case where the current function is constant and the other operand is not. */
             if (is_constant() && !f.is_constant()) {
-                return func<type>(f) *= *this;
+                auto cpy = this->copy();
+                update_dot_dim(f);
+                update_sign_multiply(f);
+                auto res = f;
+                res._dim[0] = _dim[0];
+                res._dim[1] = _dim[1];
+                res._all_sign = _all_sign;
+                if (!res._cst->is_zero()) {
+                    if (res._cst->is_function()) {
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(res._cst);
+                        res._cst = multiply(cpy,f_cst);
+                    }
+                    else if(res._cst->is_param()) {
+                        auto f_cst = *dynamic_pointer_cast<param<T2>>(res._cst);
+                        res._cst = multiply(cpy,f_cst);
+                    }
+                    else if(res._cst->is_number()) {
+                        auto f_cst = *dynamic_pointer_cast<constant<T2>>(res._cst);
+                        res._cst = multiply(cpy,f_cst);
+                    }
+                    
+                }
+                for (auto &pair:*res._lterms) {
+                    if (pair.second._coef->is_function()) {
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_param()) {
+                        auto f_cst = *dynamic_pointer_cast<param<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_number()) {
+                        auto f_cst = *dynamic_pointer_cast<constant<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                }
+                for (auto &pair:*res._qterms) {
+                    if (pair.second._coef->is_function()) {
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_param()) {
+                        auto f_cst = *dynamic_pointer_cast<param<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_number()) {
+                        auto f_cst = *dynamic_pointer_cast<constant<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                }
+                for (auto &pair:*res._pterms) {
+                    if (pair.second._coef->is_function()) {
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_param()) {
+                        auto f_cst = *dynamic_pointer_cast<param<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                    else if(pair.second._coef->is_number()) {
+                        auto f_cst = *dynamic_pointer_cast<constant<T2>>(pair.second._coef);
+                        pair.second._coef = multiply(cpy,f_cst);
+                    }
+                }
+                if (res._expr) {
+                    res._expr = make_shared<bexpr>(bexpr(product_, make_shared<func<type>>(*this), res._expr));
+                    res.embed(res._expr);
+                }
+                *this = res;
+                _evaluated = false;
+                return *this;
             }
 
             /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
@@ -2186,17 +2428,17 @@ namespace gravity {
                         newl.push_back(make_pair<>(it.first, it.second));
                     }
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2212,17 +2454,17 @@ namespace gravity {
                     newl.push_back(make_pair<>((t2.second._p->first), 1));
                     newl.push_back(make_pair<>((t2.second._p->second), 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2237,17 +2479,17 @@ namespace gravity {
                     auto newl(*t1.second._l);
                     newl.push_back(make_pair<>((t2.second._p), 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2255,17 +2497,17 @@ namespace gravity {
                 if (!f._cst->is_zero()) {
                     auto newl(*t1.second._l);
                     if (f._cst->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(t1.second._sign, *coef, newl);
                     }
                     else if(f._cst->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, newl);
                     }
                     else if(f._cst->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, newl);
                     }
@@ -2288,17 +2530,17 @@ namespace gravity {
                     newl.push_front(make_pair<>(t1.second._p->first, 1));
                     newl.push_front(make_pair<>(t1.second._p->second, 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2315,17 +2557,17 @@ namespace gravity {
                     newl.push_back(make_pair<>(t2.second._p->first, 1));
                     newl.push_back(make_pair<>(t2.second._p->second, 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2341,33 +2583,33 @@ namespace gravity {
                     newl.push_back(make_pair<>(t1.second._p->second, 1));
                     newl.push_back(make_pair<>(t2.second._p, 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }                    }
                 if (!f._cst->is_zero()) {
                     if (f._cst->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
                     }
                     else if(f._cst->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
                     }
                     else if(f._cst->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p->first, *t1.second._p->second);
                     }
@@ -2383,17 +2625,17 @@ namespace gravity {
                     auto newl(*t2.second._l);
                     newl.push_front(make_pair<>((t1.second._p), 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
@@ -2409,51 +2651,51 @@ namespace gravity {
                     newl.push_back(make_pair<>(t2.second._p->first, 1));
                     newl.push_back(make_pair<>(t2.second._p->second, 1));
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, newl);
                     }
                 }
                 for (auto& t2: *f._lterms) {
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(!(t1.second._sign^t2.second._sign), *coef, *t1.second._p, *t2.second._p, _is_transposed);
                     }
                 }
                 if (!f._cst->is_zero()) {
                     if (f._cst->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, f_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p);
                     }
                     else if(f._cst->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p);
                     }
                     else if(f._cst->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(f._cst);
                         auto coef = multiply(t1.second._coef, p_cst);
                         res.insert(t1.second._sign, *coef, *t1.second._p);
                     }
@@ -2468,17 +2710,17 @@ namespace gravity {
                         return *this;
                     }
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._l);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._l);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._l);
                     }
@@ -2491,17 +2733,17 @@ namespace gravity {
                         return *this;
                     }
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p->first, *t2.second._p->second);
                     }
@@ -2514,38 +2756,39 @@ namespace gravity {
                         return *this;
                     }
                     if (t2.second._coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p);
                     }
                     else if(t2.second._coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p);
                     }
                     else if(t2.second._coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(t2.second._coef);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, p_cst);
                         res.insert(t2.second._sign, *coef, *t2.second._p);
                     }
                 }
                 if (!f._cst->is_zero()) {
                     if (f._cst->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
+                        auto f_cst = *dynamic_pointer_cast<func<T2>>(f._cst);
                         res._cst = multiply(f._cst, f_cst);
                     }
                     else if(f._cst->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<param<T2>>(f._cst);
                         res._cst = multiply(f._cst, p_cst);
                     }
                     else if(f._cst->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
+                        auto p_cst = *dynamic_pointer_cast<constant<T2>>(f._cst);
                         res._cst = multiply(f._cst, p_cst);
                     }
                 }
             }
             res.update_dot_dim(*this, f);
             res.update_convexity();
+            res.update_sign_multiply(*this);
             *this = move(res);
             _evaluated = false;
             return *this;
@@ -2565,24 +2808,24 @@ namespace gravity {
             }
             if (!is_constant() && f.is_constant()) {
                 this->add_cst(f);
-                update_sign(f);
+                update_sign_add(f);
                 return *this;
             }
             if (!f.get_cst()->is_zero()) {
                 if (f.get_cst()->is_number()) {
-                    auto f_cst = static_pointer_cast<constant<T2>>(f.get_cst());
+                    auto f_cst = dynamic_pointer_cast<constant<T2>>(f.get_cst());
                     add_cst(*f_cst);
                 }
                 else if (f.get_cst()->is_param()) {
-                    auto f_cst = static_pointer_cast<param<T2>>(f.get_cst());
+                    auto f_cst = dynamic_pointer_cast<param<T2>>(f.get_cst());
                     add_cst(*f_cst);
                 }
                 else {
-                    auto f_cst = static_pointer_cast<func<T2>>(f.get_cst());
+                    auto f_cst = dynamic_pointer_cast<func<T2>>(f.get_cst());
                     add_cst(*f_cst);
                 }
                 if (_cst->is_function()) {
-                    embed(*static_pointer_cast<func_>(_cst));
+                    embed(*dynamic_pointer_cast<func_>(_cst));
                 }
             }
             for (auto &pair:f.get_lterms()) {
@@ -2597,33 +2840,33 @@ namespace gravity {
             if (_expr && f.get_expr()) {
                 shared_ptr<expr> e1,e2;
                 if (_expr->is_uexpr()) {
-                    e1 = make_shared<uexpr>(*static_pointer_cast<uexpr>(_expr));
+                    e1 = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(_expr));
                 }
                 else {
-                    e1 = make_shared<bexpr>(*static_pointer_cast<bexpr>(_expr));
+                    e1 = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(_expr));
                 }
                 if (f.get_expr()->is_uexpr()) {
-                    e2 = make_shared<uexpr>(*static_pointer_cast<uexpr>(f.get_expr()));
+                    e2 = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(f.get_expr()));
                 }
                 else {
-                    e2 = make_shared<bexpr>(*static_pointer_cast<bexpr>(f.get_expr()));
+                    e2 = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(f.get_expr()));
                 }
                 _expr = make_shared<bexpr>(bexpr(plus_, e1, e2));
                 embed(_expr);
             }
             else if (!_expr && f.get_expr()) {
                 if (f.get_expr()->is_uexpr()) {
-                    _expr = make_shared<uexpr>(*static_pointer_cast<uexpr>(f.get_expr()));
+                    _expr = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(f.get_expr()));
                 }
                 else {
-                    _expr = make_shared<bexpr>(*static_pointer_cast<bexpr>(f.get_expr()));
+                    _expr = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(f.get_expr()));
                 }
                 embed(_expr);
                 if (!_vars->empty()) {
                     _ftype = nlin_;
                 }
             }
-            update_sign(f);
+            update_sign_add(f);
             update_convexity();
             return *this;
         }
@@ -2677,6 +2920,11 @@ namespace gravity {
             _nnz_j = 0;
         };
 
+        func tr() const {
+            auto f = *this;
+            f.transpose();
+            return f;
+        }
         
     };
     
@@ -2875,6 +3123,7 @@ namespace gravity {
         res.set_val((T2)p1.eval()/res.eval());
         return res;
     }
+    
         
     template<class T1>
     constant<T1> log(const constant<T1>& p1){
@@ -2915,6 +3164,48 @@ namespace gravity {
     constant<T1> tan(const constant<T1>& p1){
         constant<T1> res(p1);
         res.set_val(tan(res.eval()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> log(const param<T1>& p1){
+        func<T1> res(uexpr(log_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> exp(const param<T1>& p1){
+        func<T1> res(uexpr(exp_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> sqrt(const param<T1>& p1){
+        func<T1> res(uexpr(sqrt_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> cos(const param<T1>& p1){
+        func<T1> res(uexpr(cos_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> sin(const param<T1>& p1){
+        func<T1> res(uexpr(sin_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> tan(const param<T1>& p1){
+        func<T1> res(uexpr(tan_, p1.copy()));
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> ReLU(const param<T1>& p1){
+        func<T1> res(uexpr(relu_, p1.copy()));
         return res;
     }
         
@@ -3056,15 +3347,15 @@ namespace gravity {
     
     template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const func<T1>& f, const param<T2>& v){
-        func<T1> res(v);
-        res *= f;
+        func<T1> res(f);
+        res *= func<T1>(v);
         return res;
     }
     
     template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const func<T1>& f, const param<T2>& v){
-        func<T2> res(v);
-        res *= f;
+        func<T2> res(f);
+        res *= func<T2>(v);
         return res;
     }
         
@@ -3587,7 +3878,7 @@ namespace gravity {
     
     
 //                    case integer_c: {
-//                        auto val = (static_pointer_cast<constant<int>>(c1))->eval();
+//                        auto val = (dynamic_pointer_cast<constant<int>>(c1))->eval();
 //                        if (val==0) {
 //                            return c1;
 //                        }
@@ -3598,7 +3889,7 @@ namespace gravity {
 //                        break;
 //                    }
 //                    case float_c: {
-//                        auto val = (static_pointer_cast<constant<float>>(c1))->eval();
+//                        auto val = (dynamic_pointer_cast<constant<float>>(c1))->eval();
 //                        if (val==0) {
 //                            return c1;
 //                        }
@@ -3609,7 +3900,7 @@ namespace gravity {
 //                        break;
 //                    }
 //                    case double_c: {
-//                        auto val = (static_pointer_cast<constant<double>>(c1))->eval();
+//                        auto val = (dynamic_pointer_cast<constant<double>>(c1))->eval();
 //                        if (val==0) {
 //                            return c1;
 //                        }
@@ -3620,7 +3911,7 @@ namespace gravity {
 //                        break;
 //                    }
 //                    case long_c: {
-//                        auto val = (static_pointer_cast<constant<long double>>(c1))->eval();
+//                        auto val = (dynamic_pointer_cast<constant<long double>>(c1))->eval();
 //                        if (val==0) {
 //                            return c1;
 //                        }
@@ -3631,7 +3922,7 @@ namespace gravity {
 //                        break;
 //                    }
 //                    case complex_c: {
-//                        auto val = (static_pointer_cast<constant<Cpx>>(c1))->eval();
+//                        auto val = (dynamic_pointer_cast<constant<Cpx>>(c1))->eval();
 //                        if (val==Cpx(0,0)) {
 //                            return c1;
 //                        }

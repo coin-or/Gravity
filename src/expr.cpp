@@ -196,6 +196,55 @@ namespace gravity{
 //    }
     
     
+    string uexpr::to_str() const{
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string_with_precision(_coef,3);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        switch (_otype) {
+            case log_:
+                str += "log(";
+                str += _son->to_str();
+                str += ")";
+                break;
+                
+            case exp_:
+                str += "exp(";
+                str += _son->to_str();
+                str += ")";
+                break;
+                
+            case cos_:
+                str += "cos(";
+                str += _son->to_str();
+                str += ")";
+                break;
+                
+            case sin_:
+                str += "sin(";
+                str += _son->to_str();
+                str += ")";
+                break;
+                
+            case sqrt_:
+                str += "sqrt(";
+                str += _son->to_str();
+                str += ")";
+                break;
+            default:
+                break;
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
 
         
     string uexpr::to_str(int prec) const{
@@ -420,6 +469,56 @@ namespace gravity{
 //        }
 //        return func_();
 //    }
+    
+    string bexpr::to_str() const{
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string_with_precision(_coef, 3);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+            str += "(";
+            str+= _lson->to_str();
+            str += ")";
+        }
+        else
+            str+= _lson->to_str();
+        
+        if (_otype==plus_) {
+            str+= " + ";
+        }
+        if (_otype==minus_) {
+            str+= " - ";
+        }
+        if (_otype==product_) {
+            str+= " * ";
+        }
+        if (_otype==div_) {
+            str+= "/";
+        }
+        
+        if (_otype==power_) {
+            str+= "^";
+        }
+        
+        if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+            str+= _rson->to_str();
+        }
+        else {
+            str+= "(";
+            str+= _rson->to_str();
+            str+= ")";
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
     
     string bexpr::to_str(int prec) const{
         string str;

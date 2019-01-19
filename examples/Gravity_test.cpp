@@ -236,12 +236,12 @@ TEST_CASE("testing vector dot product"){
     CHECK(lin5.get_nb_vars()==2);
     lin5.print_symbolic();
     lin5.print();
+    CHECK(lin5.to_str()==" (b)y² - ([a]ᵀ)z + (b)");
+    auto lin6 = (a+exp(b)).tr()*z;
+    lin6.print_symbolic();
+    CHECK(lin6.is_linear());
+    lin6.print();
 }
-//    auto lin = (a+expo(b)).tr()*z;
-//    lin.print_symbolic();
-//    CHECK(lin.is_linear());
-//    CHECK(lin.get_nb_instances()==1);
-//    lin.print();
 //    auto df = lin.get_dfdx(z);
 //    CHECK(df.is_constant());
 //    CHECK(df.get_dim()==3);

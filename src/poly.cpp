@@ -716,24 +716,24 @@ namespace gravity{
         if (c_new->is_number()){
             string v = c_new->to_str();
             if (_sign) {
-                if (v=="-1") {
+                if (v=="-1" || v=="(-1,0)") {
                     str += " - ";
                 }
-                else if(v!="1") {
+                else if(v!="1" && v!="(1,0)") {
                     str += v;
                 }
             }
             if(!_sign) {
-                if (v == "-1") {
+                if (v == "-1" || v=="(-1,0)") {
                     str += " + ";
                 }
                 else if (v.front()=='-'){
                     str += v.substr(1);
                 }
-                else if (v=="1"){
+                else if (v=="1" || v=="(1,0)"){
                     str += " - ";
                 }
-                else if(v!="-1"){
+                else {
                     str += " - " + v;
                 }
             }
@@ -769,28 +769,28 @@ namespace gravity{
                     v += c_new->to_str(inst,prec);
                 }
                 if (_sign) {
-                    if (v=="-1") {
+                    if (v=="-1" || v=="(-1,0)") {
                         str += " - ";
                     }
                     else {
                         str += " + ";
-                        if(v!="1") {
+                        if(v!="1" && v!="(1,0)") {
                             str += v;
                         }
                     }
                 }
                 if(!_sign) {
-                    if (v == "-1") {
+                    if (v == "-1" || v=="(-1,0)") {
                         str += " + ";
                     }
                     else if (v.front()=='-'){
                         str += " + ";
                         str += v.substr(1);
                     }
-                    else if (v=="1"){
+                    else if (v=="1" || v=="(1,0)"){
                         str += " - ";
                     }
-                    else if(v!="-1"){
+                    else {
                         str += " - " + v;
                     }
                 }
@@ -806,28 +806,28 @@ namespace gravity{
                 v += c_new->to_str(ind,prec);
             }
             if (_sign) {
-                if (v=="-1") {
+                if (v=="-1" || v=="(-1,0)") {
                     str += " - ";
                 }
                 else {
                     str += " + ";
-                    if(v!="1") {
+                    if(v!="1" && v!="(1,0)") {
                         str += v;
                     }
                 }
             }
             if(!_sign) {
-                if (v == "-1") {
+                if (v == "-1" || v=="(-1,0)") {
                     str += " + ";
                 }
                 else if (v.front()=='-'){
                     str += " + ";
                     str += v.substr(1);
                 }
-                else if (v=="1"){
+                else if (v=="1" || v=="(1,0)"){
                     str += " - ";
                 }
-                else if(v!="-1"){
+                else {
                     str += " - " + v;
                 }
             }
