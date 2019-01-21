@@ -1761,6 +1761,7 @@ namespace gravity {
             _nnz_h = f._nnz_h;
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
+            _evaluated = f._evaluated;
         }
         
         
@@ -1871,6 +1872,7 @@ namespace gravity {
             _nnz_h = f._nnz_h;
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
+            _evaluated = f._evaluated;
         }
         
         func& operator=(const func& f){
@@ -1916,6 +1918,7 @@ namespace gravity {
             _nnz_h = f._nnz_h;
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
+            _evaluated = f._evaluated;
             return *this;
         }
         
