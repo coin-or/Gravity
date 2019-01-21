@@ -1,7 +1,18 @@
+#include(ExternalProject)
+
 include_directories(${PROJECT_INCLUDE_DIR})
 
-
-
+#message(STATUS "Adding Option Parser")
+#ExternalProject_Add(opt_parser
+#        SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser
+#        BUILD_IN_SOURCE 1
+#        BUILD_COMMAND cmake .
+#        INSTALL_COMMAND make
+#)
+#ExternalProject_Get_Property(opt_parser install_dir)
+#add_library(option_parser STATIC IMPORTED)
+#set_property(TARGET option_parser PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser/liboption_parser.a)
+#add_dependencies(option_parser opt_parser)
 
 
 # add the automatically determined parts of the RPATH
