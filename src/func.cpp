@@ -5106,7 +5106,7 @@ namespace gravity{
     
     Convexity func_::get_convexity(const qterm& q) {
         auto conv = q.get_convexity();
-        if(is_convex()){/* If both convex or concave */
+        if(_all_convexity==linear_ || conv==_all_convexity){
             return conv;
         }
         // At this stage, we know that q._p->first !=q._p->second

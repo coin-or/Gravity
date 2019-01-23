@@ -2151,7 +2151,9 @@ namespace gravity {
             return unknown_;
         }
         
-        type eval() const {
+        
+        
+        type get_val() const {
             if (is_indexed()) {
                 return _val->at(_indices->_ids->at(0).back());
             }
@@ -2192,12 +2194,307 @@ namespace gravity {
         }
         
         type eval_cst(size_t i) const {
+            return eval_coef(_cst, i);
+        }
+        
+        type eval(shared_ptr<func_> f, size_t i) const {
             type res = zero<type>().eval();
+            switch (f->get_return_type()) {
+                case binary_:
+                    return static_pointer_cast<func<bool>>(f)->eval(i);
+                    break;
+                case short_:
+                    return static_pointer_cast<func<short>>(f)->eval(i);
+                    break;
+                case integer_:
+                    return static_pointer_cast<func<int>>(f)->eval(i);
+                    break;
+                case float_:
+                    return static_pointer_cast<func<float>>(f)->eval(i);
+                    break;
+                case double_:
+                    return static_pointer_cast<func<double>>(f)->eval(i);
+                    break;
+                case long_:
+                    return static_pointer_cast<func<long double>>(f)->eval(i);
+                    break;
+                case complex_:
+                    return static_pointer_cast<func<Cpx>>(f)->eval(i);
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        type eval(shared_ptr<func_> f, size_t i, size_t j) const {
+            type res = zero<type>().eval();
+            switch (f->get_return_type()) {
+                case binary_:
+                    return static_pointer_cast<func<bool>>(f)->eval(i,j);
+                    break;
+                case short_:
+                    return static_pointer_cast<func<short>>(f)->eval(i,j);
+                    break;
+                case integer_:
+                    return static_pointer_cast<func<int>>(f)->eval(i,j);
+                    break;
+                case float_:
+                    return static_pointer_cast<func<float>>(f)->eval(i,j);
+                    break;
+                case double_:
+                    return static_pointer_cast<func<double>>(f)->eval(i,j);
+                    break;
+                case long_:
+                    return static_pointer_cast<func<long double>>(f)->eval(i,j);
+                    break;
+                case complex_:
+                    return static_pointer_cast<func<Cpx>>(f)->eval(i,j);
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T eval(shared_ptr<param_> p, size_t i) const {
+            T res = zero<type>().eval();
+            switch (p->get_intype()) {
+                case binary_:
+                    return static_pointer_cast<param<bool>>(p)->eval(i);
+                    break;
+                case short_:
+                    return static_pointer_cast<param<short>>(p)->eval(i);
+                    break;
+                case integer_:
+                    return static_pointer_cast<param<int>>(p)->eval(i);
+                    break;
+                case float_:
+                    return static_pointer_cast<param<float>>(p)->eval(i);
+                    break;
+                case double_:
+                    return static_pointer_cast<param<double>>(p)->eval(i);
+                    break;
+                case long_:
+                    return static_pointer_cast<param<long double>>(p)->eval(i);
+                    break;
+                default:
+                    return res;
+                    break;
+            }
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        T eval(shared_ptr<param_> p, size_t i) const {
+            T res = zero<type>().eval();
+            switch (p->get_intype()) {
+                case binary_:
+                    return static_pointer_cast<param<bool>>(p)->eval(i);
+                    break;
+                case short_:
+                    return static_pointer_cast<param<short>>(p)->eval(i);
+                    break;
+                case integer_:
+                    return static_pointer_cast<param<int>>(p)->eval(i);
+                    break;
+                case float_:
+                    return static_pointer_cast<param<float>>(p)->eval(i);
+                    break;
+                case double_:
+                    return static_pointer_cast<param<double>>(p)->eval(i);
+                    break;
+                case long_:
+                    return static_pointer_cast<param<long double>>(p)->eval(i);
+                    break;
+                case complex_:
+                    return static_pointer_cast<param<Cpx>>(p)->eval(i);
+                    break;
+                default:
+                    return res;
+                    break;
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T eval(shared_ptr<param_> p, size_t i, size_t j) const {
+            T res = zero<type>().eval();
+            switch (p->get_intype()) {
+                case binary_:
+                    return static_pointer_cast<param<bool>>(p)->eval(i,j);
+                    break;
+                case short_:
+                    return static_pointer_cast<param<short>>(p)->eval(i,j);
+                    break;
+                case integer_:
+                    return static_pointer_cast<param<int>>(p)->eval(i,j);
+                    break;
+                case float_:
+                    return static_pointer_cast<param<float>>(p)->eval(i,j);
+                    break;
+                case double_:
+                    return static_pointer_cast<param<double>>(p)->eval(i,j);
+                    break;
+                case long_:
+                    return static_pointer_cast<param<long double>>(p)->eval(i,j);
+                    break;
+                default:
+                    return res;
+                    break;
+            }
+        }
+        
+        type eval(shared_ptr<constant_> p, size_t i, size_t j) const {
+            return eval(p);
+        }
+        
+        type eval(shared_ptr<constant_> p, size_t i) const {
+            return eval(p);
+        }
+        
+        type eval(shared_ptr<constant_> p) const {
+            type res = zero<type>().eval();
+            switch (p->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(p)->eval();
+                    break;
+                case short_c:
+                    return static_pointer_cast<constant<short>>(p)->eval();
+                    break;
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(p)->eval();
+                    break;
+                case float_c:
+                    return static_pointer_cast<constant<float>>(p)->eval();
+                    break;
+                case double_c:
+                    return static_pointer_cast<constant<double>>(p)->eval();
+                    break;
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(p)->eval();
+                    break;
+                case complex_c:
+                    return static_pointer_cast<constant<Cpx>>(p)->eval();
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        type eval_coef(shared_ptr<constant_> coef, size_t i) const {
+            if (coef->is_function()) {
+                auto f_cst = dynamic_pointer_cast<func<type>>(coef);
+                return f_cst->eval(i);
+            }
+            else if(coef->is_param()) {
+                auto p_cst = dynamic_pointer_cast<param<type>>(coef);
+                return p_cst->eval(i);
+            }
+            else if(coef->is_number()) {
+                auto p_cst = dynamic_pointer_cast<constant<type>>(coef);
+                return p_cst->eval();
+            }
+            throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
+        }
+        
+        type eval_coef(shared_ptr<constant_> coef, size_t i, size_t j) const {
+            if (coef->is_function()) {
+                auto f_cst = dynamic_pointer_cast<func<type>>(coef);
+                return f_cst->eval(i,j);
+            }
+            else if(coef->is_param()) {
+                auto p_cst = dynamic_pointer_cast<param<type>>(coef);
+                return p_cst->eval(i,j);
+            }
+            else if(coef->is_number()) {
+                auto p_cst = dynamic_pointer_cast<constant<type>>(coef);
+                return p_cst->eval();
+            }
+            throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
+        }
+        
+        type eval_lterm(const lterm& lt, size_t i) const{
+            type res = zero<type>().eval();
+            if ((lt._coef->_is_transposed || lt._coef->is_matrix() || (lt._p->is_indexed() && lt._p->_indices->_ids->size()>1)) && !lt._p->is_matrix()) {
+                auto dim = lt._p->get_dim(i);
+                if (lt._sign) {
+                    for (size_t j = 0; j<dim; j++) {
+                        res += eval_coef(lt._coef,i,j) * eval(lt._p,i,j);
+                    }
+                }
+                else {
+                    for (size_t j = 0; j<dim; j++) {
+                        res -= eval_coef(lt._coef,i,j) * eval(lt._p,i,j);
+                    }
+                }
+            }
+            else {
+                if (lt._sign) {
+                    res += eval_coef(lt._coef,i) * eval(lt._p, i);
+                }
+                else {
+                    res -= eval_coef(lt._coef,i) * eval(lt._p, i);
+                }
+            }
             return res;
         }
         
+        type eval_lterm(const lterm& lt, size_t i, size_t j) const{
+            type res = zero<type>().eval();
+            if (lt._coef->is_matrix() && lt._p->is_matrix()) {
+                //matrix product
+                if(lt._sign){
+                    for (size_t col = 0; col<lt._coef->_dim[1]; col++) {
+                        res += eval_coef(lt._coef, i,col) * eval(lt._p,col,j);
+                    }
+                }
+                else {
+                    for (size_t col = 0; col<lt._coef->_dim[1]; col++) {
+                        res -= eval_coef(lt._coef, i,col) * eval(lt._p,col,j);
+                    }
+                }
+                return res;
+            }
+            if (lt._coef->is_matrix() && !lt._p->is_matrix() && lt._p->_is_transposed) {//matrix * transposed vect
+                if(lt._sign){
+                    return eval_coef(lt._coef, i,j) * eval(lt._p,j);
+                }
+                else {
+                    return res -= eval_coef(lt._coef, i,j) * eval(lt._p,j);
+                }
+            }
+            
+            if (!lt._coef->is_matrix() && !lt._coef->_is_transposed && lt._p->is_matrix()) {//vect * matrix
+                if(lt._sign) {
+                    return eval_coef(lt._coef, i) * eval(lt._p,i,j);
+                }
+                else {
+                    return res -= eval_coef(lt._coef, i) * eval(lt._p,i,j);
+                }
+            }
+            if (lt._coef->is_matrix() && lt._p->_is_vector) {//matrix*vect
+                if(lt._sign) {
+                    return eval_coef(lt._coef, i,j) * eval(lt._p,i);
+                }
+                else {
+                    return res -= eval_coef(lt._coef, i,j) * eval(lt._p,i);
+                }
+            }
+            if(lt._sign) {
+                return eval_coef(lt._coef, i,j) * eval(lt._p,i,j);
+            }
+            else {
+                return res -= eval_coef(lt._coef, i,j) * eval(lt._p,i,j);
+            }
+        }
+
+        
+        
         type eval_lterms(size_t i) const {
             type res = zero<type>().eval();
+            auto it = _lterms->begin();
+            while(it!=_lterms->end()){
+                res += eval_lterm(it->second,i);
+                it++;
+            }
             return res;
         }
         
@@ -2831,14 +3128,53 @@ namespace gravity {
                     embed(*dynamic_pointer_cast<func_>(_cst));
                 }
             }
-            for (auto &pair:f.get_lterms()) {
-                this->insert(pair.second);
+            for (auto &pair:*f._lterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
             }
-            for (auto &pair:f.get_qterms()) {
-                this->insert(pair.second);
+            for (auto &pair:*f._qterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
             }
-            for (auto &pair:f.get_pterms()) {
-                this->insert(pair.second);
+            for (auto &pair:*f._pterms) {
+                auto term = pair.second;
+                if (term._coef->is_function()) {
+                    auto coef = *dynamic_pointer_cast<func<T2>>(term._coef);
+                    term._coef = func(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *dynamic_pointer_cast<param<T2>>(term._coef);
+                    term._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *dynamic_pointer_cast<constant<T2>>(term._coef);
+                    term._coef = constant<type>(coef.eval()).copy();
+                }
+                this->insert(term);
             }
             if (_expr && f.get_expr()) {
                 shared_ptr<expr> e1,e2;

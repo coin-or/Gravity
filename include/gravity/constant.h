@@ -150,6 +150,7 @@ namespace gravity {
         virtual void reverse_sign(){};/*<< reverses the sign of current object */
         virtual size_t get_dim(size_t i) const {
             if (i>1) {
+                return _dim[0];
                 throw invalid_argument("In function: size_t constant_::get_dim(size_t i) const, i is out of range!\n");
             }
             return _dim[i];
