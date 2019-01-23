@@ -1444,6 +1444,8 @@ namespace gravity {
             reset();
             insert(true,unit<type>(),c);
             _val->clear();
+            _range->first = c._range->first;
+            _range->second = c._range->second;
             _evaluated = false;
             return *this;
         }
