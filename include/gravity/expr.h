@@ -80,10 +80,10 @@ namespace gravity {
             return unknown_;// TO UPDATE
         }
         
-        string to_str() const;
-        string to_str(int prec) const;
-        string to_str(size_t, int prec) const;
-        void print(bool endline = true) const;
+        string to_str() ;
+        string to_str(int prec) ;
+        string to_str(size_t, int prec) ;
+        void print(bool endline = true) ;
 //        func_ get_derivative(const param_ &v) const;
         vector<shared_ptr<param_>> get_nl_vars() const;
     };
@@ -154,14 +154,14 @@ namespace gravity {
         
         bool is_inner_product() const;
                 
-        string to_str() const;
-        string to_str(int prec) const;
-        string to_str(size_t, int prec) const;
-        void print(size_t inst) const{
+        string to_str() ;
+        string to_str(int prec) ;
+        string to_str(size_t, int prec) ;
+        void print(size_t inst) {
             cout << to_str(inst) << endl;
         }
         
-        void print() const;
+        void print() ;
         
         void print_tree() const;
         

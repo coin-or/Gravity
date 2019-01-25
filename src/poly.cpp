@@ -40,7 +40,7 @@ namespace gravity{
         _coef = q._coef->copy();
         _p = make_shared<pair<shared_ptr<param_>,shared_ptr<param_>>>(make_pair<>(q._p->first->pcopy(), q._p->second->pcopy()));
         _sign = q._sign;
-        _coef_p1_transposed = q._coef_p1_transposed;
+        _coef_p1_tr = q._coef_p1_tr;
         return *this;
     }
 
@@ -49,7 +49,7 @@ namespace gravity{
         _coef = move(q._coef);
         _p = move(q._p);
         _sign = q._sign;
-        _coef_p1_transposed = q._coef_p1_transposed;
+        _coef_p1_tr = q._coef_p1_tr;
         return *this;
     }
 
@@ -143,7 +143,7 @@ namespace gravity{
 //
 //    double qterm::eval(size_t i) const{
 //        double res = 0;
-//        if (_coef_p1_transposed) { // qterm = (coef*p1)^T*p2
+//        if (_coef_p1_tr) { // qterm = (coef*p1)^T*p2
 //            assert(_p->first->_dim[1]==1 && _coef->_dim[0]==_p->second->_dim[0]);
 //            for (auto i = 0; i<_p->first->_dim[0]; i++) {
 //                for (auto j = 0; j<_p->first->_dim[0]; j++) {
@@ -538,7 +538,7 @@ namespace gravity{
             if(_sign) {
                 str += " + ";
             }
-            if(_coef_p1_transposed){
+            if(_coef_p1_tr){
                 str += "(";
             }
             str += "(";
@@ -546,7 +546,7 @@ namespace gravity{
             str += ")";
         }
         str += p_new1->get_name(true,true);
-        if(_coef_p1_transposed){
+        if(_coef_p1_tr){
             str += ")\u1D40";
         }
         else if (p_new1==p_new2) {
@@ -596,13 +596,13 @@ namespace gravity{
             if(_sign) {
                 str += " + ";
             }
-            if(_coef_p1_transposed){
+            if(_coef_p1_tr){
                 str += "(";
             }
             str += c_new->to_str(ind,prec);
         }
         str += p_new1->get_name(ind);
-        if(_coef_p1_transposed){
+        if(_coef_p1_tr){
             str += ")\u1D40";
         }
         else if (p_new1==p_new2) {
@@ -719,8 +719,8 @@ namespace gravity{
                 if (v=="-1" || v=="(-1,0)") {
                     str += " - ";
                 }
-                else if(v!="1" && v!="(1,0)") {
-                    str += v;
+                else if(v=="1" || v=="(1,0)") {
+                    str += " + ";
                 }
             }
             if(!_sign) {

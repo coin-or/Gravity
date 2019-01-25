@@ -19,12 +19,60 @@
 #include <stdlib.h>
 #include <gravity/doctest.h>
 //#include <PowerNet.h>
+//#include <variant>
 
 
 using namespace std;
 using namespace gravity;
 
-    
+//
+//TEST_CASE("testing variants") {
+//    class type{
+//    public:
+//        variant<bool, short, int, float, double> val;
+//    };
+//    class cst{
+//    public:
+//        type _val;
+//        cst& operator=(double v){
+//            _val.val = v;
+//            return *this;
+//        }
+//
+//        cst& operator=(int v){
+//            _val.val = v;
+//            return *this;
+//        }
+//    };
+//
+//    cst c;
+//    c = 1.2;
+//    cst c2;
+//    c2 = 3;
+//    cout << "c = " << get<double>(c._val.val) << endl;
+//    cout << "c2 = " << get<int>(c2._val.val) << endl;
+//    cout << "c2 = " << get<int>(c2._val.val) << endl;
+//
+//
+////    v = true; // v contains bool
+////    w = 1.;
+////    int pos = v.index();
+//////    auto alt = variant_alternative<0,bool>(v);
+////    cout << "type of v = " << typeid(get<int>(v)).name() << endl;
+////    cout << "type of w = " << typeid(w).name() << endl;
+////    cout << "type of v = " << typeid(v).name() << endl;
+//}
+//
+//TEST_CASE("testing something") {
+//    constant<int> ic;
+//    constant<bool> bc;
+//    shared_ptr<constant_> icp = make_shared<constant<int>>(ic);
+//    shared_ptr<constant_> bcp = make_shared<constant<bool>>(bc);
+//    cout << "type of ic = " << typeid(ic).name() << endl;
+//    cout << "type of icp = " << typeid(*icp.get()).name() << endl;
+//    cout << "type of bc = " << typeid(bc).name() << endl;
+//    cout << "type of bcp = " << typeid(*bcp.get()).name() << endl;
+//}
 
 TEST_CASE("testing constants") {
     constant<> c0;
@@ -229,18 +277,28 @@ TEST_CASE("testing vector dot product"){
     auto lin4 = b*y*y;
     lin4.print();
     CHECK(lin4.is_complex());
+    CHECK(lin4.is_convex());
     CHECK(lin4.get_dim()==5);
     auto lin5 = lin4 - lin3;
     CHECK(lin5.is_complex());
     CHECK(lin5.get_dim()==5);
     CHECK(lin5.get_nb_vars()==2);
+    CHECK(lin5.is_convex());
     lin5.print_symbolic();
     lin5.print();
-    CHECK(lin5.to_str()==" (b)y² - ([a]ᵀ)z + (b)");
+    CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)z + (b)");
     auto lin6 = (a+exp(b)).tr()*z;
     lin6.print_symbolic();
     CHECK(lin6.is_linear());
     lin6.print();
+    param<Cpx> cpx("cpx");
+    cpx = Cpx(1,1);
+    cpx = Cpx(2,2);
+    cpx = Cpx(3,1);
+    auto cpx_f = 2*exp(cpx)*z;
+    cpx_f.print_symbolic();
+    CHECK(cpx_f.to_str()=="((2,0) * exp(cpx))z");
+    cpx_f.print();
 }
 //    auto df = lin.get_dfdx(z);
 //    CHECK(df.is_constant());
@@ -276,21 +334,22 @@ TEST_CASE("testing complex numbers") {
     CHECK(imag(px_conj)._is_imag);
 }
 //
-//TEST_CASE("testing complex functions") {
-//    indices ids("index_set");
-//    ids = {"id1", "id2", "key3", "key4"};
-//    var<> iv("x",-2, 5);
-//    iv.in(ids);
-//    var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
-//    cv.in(ids);
-//    auto f = 2*iv;
-//    f.print_symbolic();
-//    CHECK(f.is_linear());
-//    CHECK(f.is_convex());
-//    f+= power(iv,2);
-//    f.print_symbolic();
-//    CHECK(f.is_quadratic());
-//    CHECK(f.is_convex());
+TEST_CASE("testing complex functions") {
+    indices ids("index_set");
+    ids = {"id1", "id2", "key3", "key4"};
+    var<> iv("x",-2, 5);
+    iv.in(ids);
+    var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
+    cv.in(ids);
+    auto f = 2*iv;
+    f.print_symbolic();
+    CHECK(f.is_linear());
+    CHECK(f.is_convex());
+    f+= pow(iv,2);
+    f.print_symbolic();
+    f.print();
+    CHECK(f.is_quadratic());
+    CHECK(f.is_convex());
 //    auto dfx = f.get_dfdx(iv);
 //    dfx.print();
 //    CHECK(dfx.is_linear());
@@ -316,7 +375,7 @@ TEST_CASE("testing complex numbers") {
 //    f.in(ids.exclude("id2"));
 //    CHECK(f.get_nb_vars()==2);
 //    CHECK(f.get_nb_instances()==3);
-//}
+}
 //
 //
 //TEST_CASE("testing complex matrix product") {

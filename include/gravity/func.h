@@ -303,17 +303,285 @@ namespace gravity {
          */
         void reverse_convexity();
         
+        virtual bool insert(const constant_& coef, const param_& p){
+            return insert(true, coef, p);
+        }
         
         
-        bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
-        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-        bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
         
-        void insert(const lterm& term);
+        virtual bool insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
+            shared_ptr<param_> p_new;
+            auto pname = p.get_name(false,false);
+            auto pair_it = _lterms->find(pname);
+            if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
+                throw invalid_argument("param and var with same name: " + pname);
+            }
+            if (_ftype == const_ && p.is_var()) {
+                _ftype = lin_;
+            }
+            
+            if (pair_it == _lterms->end()) {
+                auto c_new = coef.copy();
+                if (c_new->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(c_new));
+                }
+                if (p.is_var()) {
+                    p_new = get_var(pname);
+                    if (!p_new) {
+                        p_new = p.pcopy();
+                        add_var(p_new);
+                    }
+                    else {
+                        incr_occ_var(pname);
+                    }
+                }
+                else {
+                    p_new = get_param(pname);
+                    if (!p_new) {
+                        p_new = p.pcopy();
+                        add_param(p_new);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
+                _lterms->insert(make_pair<>(pname, lterm(sign, c_new, p_new)));
+                return true;
+            }
+            else {
+                if (pair_it->second._sign == sign) {//TODO
+                    //                pair_it->second._coef = add(pair_it->second._coef, coef);
+                }
+                else{
+                    //                pair_it->second._coef = substract(pair_it->second._coef, coef);
+                }
+                if (pair_it->second._coef->is_zero()) {
+                    if (p.is_var()) {
+                        decr_occ_var(pname);
+                    }
+                    else{
+                        decr_occ_param(pname);
+                    }
+                    _lterms->erase(pair_it);
+                    //update_sign();
+                }
+                //            else {
+                //                update_sign(pair_it->second);
+                //            }
+                return false;
+            }
+        };/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
+        virtual bool insert(const constant_& coef, const param_& p1, const param_& p2, bool coef_p1_tr=false){
+            return insert(true, coef, p1, p2, coef_p1_tr);
+        };
+        
+        virtual bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false){/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+            auto ps1 = p1.get_name(false,false);
+            auto ps2 = p2.get_name(false,false);
+            auto qname = ps1+","+ps2;
+            auto pair_it = _qterms->find(qname);
+            shared_ptr<param_> p_new1;
+            shared_ptr<param_> p_new2;
+            
+            if (_ftype <= lin_ && p1.is_var()) {
+                _ftype = quad_;
+            }
+            
+            if (pair_it == _qterms->end()) {
+                if (p1.is_var()) {
+                    p_new1 = get_var(ps1);
+                    if (!p_new1) {
+                        p_new1 = p1.pcopy();
+                        add_var(p_new1);
+                    }
+                    else {
+                        incr_occ_var(ps1);
+                    }
+                }
+                else {
+                    p_new1 = get_param(ps1);
+                    if (!p_new1) {
+                        p_new1 = p1.pcopy();
+                        add_param(p_new1);
+                    }
+                    else {
+                        incr_occ_param(ps1);
+                    }
+                    
+                }
+                if (p2.is_var()) {
+                    p_new2 = get_var(ps2);
+                    if (!p_new2) {
+                        p_new2 = p2.pcopy();
+                        add_var(p_new2);
+                    }
+                    else {
+                        incr_occ_var(ps2);
+                    }
+                }
+                else {
+                    p_new2 = get_param(ps2);
+                    if (!p_new2) {
+                        p_new2 = p2.pcopy();
+                        add_param(p_new2);
+                    }
+                    else {
+                        incr_occ_param(ps2);
+                    }
+                }
+                auto c_new = coef.copy();
+                if (c_new->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(c_new));
+                }
+                _qterms->insert(make_pair<>(qname, qterm(sign, c_new, p_new1, p_new2)));
+                //            update_convexity();
+                return true;
+            }
+            else {
+                if (pair_it->second._sign == sign) {
+                    //                pair_it->second._coef = add(pair_it->second._coef, coef);
+                }
+                else{
+                    //                pair_it->second._coef = substract(pair_it->second._coef, coef);
+                }
+                if (pair_it->second._coef->is_zero()) {
+                    if (p1.is_var()) {
+                        decr_occ_var(ps1);
+                    }
+                    else {
+                        decr_occ_param(ps1);
+                    }
+                    if (p2.is_var()) {
+                        decr_occ_var(ps2);
+                    }
+                    else {
+                        decr_occ_param(ps2);
+                    }
+                    _qterms->erase(pair_it);
+                    //                update_sign();
+                    //                update_convexity();
+                }
+                //            else {
+                //                update_sign(pair_it->second);
+                //                update_convexity(pair_it->second);
+                //            }
+                return false;
+            }
+        };/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
+        
+        virtual bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l){/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+            _all_convexity = undet_;
+            string name;
+            string s;
+            bool newv = true;
+            //        int i = 0;
+            for (auto &pair:l) {
+                name += pair.first->get_name(false,false);
+                name += "^"+to_string(pair.second);
+                name += ",";
+            }
+            auto pair_it = _pterms->find(name);
+            auto p = l.begin()->first;
+            shared_ptr<param_> pnew;
+            if (_ftype <= quad_ && p->is_var()) {
+                _ftype = pol_;
+            }
+            if (pair_it == _pterms->end()) {
+                auto newl = make_shared<list<pair<shared_ptr<param_>, int>>>();
+                //            i = 1;
+                for (auto &pair:l) {
+                    p = pair.first;
+                    s = p->get_name(false,false);
+                    if (p->is_var()) {
+                        pnew = get_var(s);
+                        if (!pnew) {
+                            pnew = p->pcopy();
+                            add_var(pnew,pair.second);
+                        }
+                        else {
+                            incr_occ_var(s);
+                        }
+                    }
+                    else {
+                        pnew = get_param(s);
+                        if (!pnew) {
+                            pnew = p->pcopy();
+                            add_param(pnew);
+                        }
+                        else {
+                            incr_occ_param(s);
+                        }
+                    }
+                    newv = true;
+                    for (auto& p_it:*newl) {
+                        if (p_it.first->get_name(false,false)==s) {
+                            p_it.second++;
+                            newv = false;
+                            break;
+                        }
+                    }
+                    if (newv) {
+                        newl->push_back(make_pair<>(pnew, pair.second));
+                    }
+                }
+                auto c_new = coef.copy();
+                if (c_new->is_function()) {
+                    embed(*dynamic_pointer_cast<func_>(c_new));
+                }
+                pterm p(sign, c_new, newl);
+                //            update_sign(p);
+                _dim[0] = max(_dim[0], l.begin()->first->_dim[0]);
+                _pterms->insert(make_pair<>(name, move(p)));
+                return true;
+            }
+            else {
+                if (pair_it->second._sign == sign) {
+                    //                pair_it->second._coef = add(pair_it->second._coef, coef);
+                }
+                else{
+                    //                pair_it->second._coef = substract(pair_it->second._coef, coef);
+                }
+                
+                if (pair_it->second._coef->is_zero()) {
+                    for (auto& it:*pair_it->second._l) {
+                        p = it.first;
+                        s = p->get_name(false,false);
+                        if (p->is_var()) {
+                            decr_occ_var(s,it.second);
+                        }
+                        else {
+                            decr_occ_param(s,it.second);
+                        }
+                    }
+                    _pterms->erase(pair_it);
+                    //                update_sign();
+                    //                update_convexity();
+                }
+                //            else {
+                //                update_sign(pair_it->second);
+                //            }
+                return false;
+            }
+            
+        };/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        
+        virtual bool insert(const constant_& coef, const param_& p, int exp){
+            return insert(true, coef, p, exp);
+        };
+        
+        virtual bool insert(bool sign, const constant_& coef, const param_& p, int exp){
+            list<pair<shared_ptr<param_>, int>> l;
+            l.push_back(make_pair<>(p.pcopy(), exp));
+            return insert(sign, coef, l);
+        };/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
+        
+        virtual bool insert(const lterm& term){return insert(term._sign, *term._coef, *term._p);};
 
-        void insert(const qterm& term);
+        virtual bool insert(const qterm& term){
+            return insert(term._sign, *term._coef, *term._p->first, *term._p->second, term._coef_p1_tr);
+        };
 
-        void insert(const pterm& term);
+        virtual bool insert(const pterm& term){return insert(term._sign, *term._coef, *term._l);};
 
         void update_sign_add(const constant_& c);
         void update_sign_multiply(const constant_& c);
@@ -322,7 +590,7 @@ namespace gravity {
         
         void update_sign();
         
-        string to_str() const {
+        string to_str() {
             string str;
             for (auto &pair:*_pterms) {
                 str += pair.second.to_str();
@@ -356,7 +624,7 @@ namespace gravity {
                 str += _expr->to_str();
             }
             if (str.size() > 2 && str.at(1)=='+') {
-                str = str.substr(2);
+                str = str.substr(3);
             }
             if (_is_vector && (is_number() || _vars->size()>1 || _params->size()>1)) {
                 str = "[" + str +"]";
@@ -485,15 +753,15 @@ namespace gravity {
 //            return *this += constant<T>(c);
 //        };
 //        
-//        template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator-=(T c){
+//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator-=(T c){
 //            return *this -= constant<T>(c);
 //        };
 //        
-//        template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator*=(T c){
+//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator*=(T c){
 //            return *this *= constant<T>(c);
 //        };
 //        
-//        template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_& operator/=(T c){
+//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator/=(T c){
 //            return *this /= constant<T>(c);
 //        };
 //        
@@ -547,7 +815,7 @@ namespace gravity {
         shared_ptr<vector<pair<type,type>>>     _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this func **/
 
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void update_range(){
             _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
@@ -632,6 +900,19 @@ namespace gravity {
         bool is_constant() const{
             return (_vars->empty());
         }
+        
+        using func_::insert;
+        bool insert(const param_& p){
+            return insert(true, unit<type>(), p);
+        }
+        
+        bool insert(const param_& p1, const param_& p2, bool coef_p1_tr=false){
+            return insert(true, unit<type>(), p1, p2, coef_p1_tr);
+        };
+        
+        bool insert(const param_& p2, int exp){
+            return insert(true, unit<type>(), p2, exp);
+        };
         
         /**
          Reverse the sign of all terms in the function, also reverses convexity.
@@ -809,19 +1090,19 @@ namespace gravity {
             }
         }
         
-        void print(size_t index, int prec = 10) const {
+        void print(size_t index, int prec = 10) {
             cout << to_str(index,prec);
         }
         
-        void print(size_t i, size_t j, int prec = 10) const {
+        void print(size_t i, size_t j, int prec = 10) {
             cout << to_str(i,j,prec);
         }
         
-        string to_str() const{
+        string to_str() {
             return func_::to_str();
         }
         
-        string to_str(size_t index, int prec) const {
+        string to_str(size_t index, int prec) {
             if (is_constant()) {
                 return to_string_with_precision(eval(index),prec);
             }
@@ -850,7 +1131,7 @@ namespace gravity {
                 str += _expr->to_str(index, prec);
             }
             if (str.size() > 2 && str.at(1)=='+') {
-                str = str.substr(2);
+                str = str.substr(3);
             }
             if (_is_vector && (is_number() || _vars->size()>1 || _params->size()>1)) {
                 str = "[" + str +"]";
@@ -903,13 +1184,13 @@ namespace gravity {
                 if (inst>0) {
                     str.insert(str.end(), space_size, ' ');
                 }
-                str += to_str(inst,3);
+                str += to_str(inst,5);
                 str += "\n";
             }
             str += "\n";
             cout << str;
         }
-        string to_str(size_t index1, size_t index2, int prec) const {
+        string to_str(size_t index1, size_t index2, int prec) {
             return string();
         }
         
@@ -1134,7 +1415,7 @@ namespace gravity {
 //                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                                //                            if (ue->_son->is_constant()) {
 //                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+//                                //                                    _val->at(inst) = ue->_coef*sin(ue->_son->eval(inst));
 //                                //                                }
 //                                //                                _evaluated = true;
 //                                //                            }
@@ -1146,7 +1427,7 @@ namespace gravity {
 //                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                                //                            if (ue->_son->is_constant()) {
 //                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+//                                //                                    _val->at(inst) = ue->_coef*cos(ue->_son->eval(inst));
 //                                //                                }
 //                                //                            }
 //                                //                            _evaluated = true;
@@ -1158,7 +1439,7 @@ namespace gravity {
 //                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                                //                            if (ue->_son->is_constant()) {
 //                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+//                                //                                    _val->at(inst) = ue->_coef*sqrt(ue->_son->eval(inst));
 //                                //                                }
 //                                //                            }
 //                                //                            _evaluated = true;
@@ -1170,7 +1451,7 @@ namespace gravity {
 //                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                                //                            if (ue->_son->is_constant()) {
 //                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+//                                //                                    _val->at(inst) = ue->_coef*exp(ue->_son->eval(inst));
 //                                //                                }
 //                                //                            }
 //                                //                            _evaluated = true;
@@ -1182,7 +1463,7 @@ namespace gravity {
 //                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                                //                            if (ue->_son->is_constant()) {
 //                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+//                                //                                    _val->at(inst) = ue->_coef*log(ue->_son->eval(inst));
 //                                //                                }
 //                                //                            }
 //                                //                            _evaluated = true;
@@ -1267,7 +1548,7 @@ namespace gravity {
 //        
 //
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
@@ -1276,6 +1557,9 @@ namespace gravity {
             }
             else if(coef->is_param()) {
                 auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
+                if(c.is_unit()){
+                    return p_cst.pcopy();
+                }
                 auto new_cst = p_cst * c;
                 return new_cst.copy();
             }
@@ -1287,7 +1571,7 @@ namespace gravity {
             return nullptr;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const param<T2>& p){
             if (coef->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
@@ -1307,7 +1591,7 @@ namespace gravity {
             return nullptr;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
@@ -1328,7 +1612,7 @@ namespace gravity {
         }
         
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const constant<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
@@ -1347,7 +1631,7 @@ namespace gravity {
             }
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const param<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
@@ -1366,7 +1650,7 @@ namespace gravity {
             }
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         void add_cst(const func<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
@@ -1403,31 +1687,31 @@ namespace gravity {
             _evaluated = false;
         };
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(T2 c):func(){
             *this = constant<T2>(c);
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(const constant<T2>& c):func(){
             *this = c;
         }
-        template<class T2, class = typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type>
+        template<class T2, class = typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type>
         func(const param<T2>& c):func(){
             *this = c;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(const var<T2>& c):func(){
             *this = c;
         }
         
-        template<class T2, class = typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type>
+        template<class T2, class = typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type>
         func(const func<T2>& f): func(){
             *this = f;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator=(const constant<T2>& c){
             reset();
             dynamic_pointer_cast<constant<type>>(_cst)->set_val(c.eval());
@@ -1439,7 +1723,7 @@ namespace gravity {
             return *this;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator=(const param<T2>& c){
             reset();
             insert(true,unit<type>(),c);
@@ -1517,7 +1801,7 @@ namespace gravity {
 //                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                            //                            if (ue->_son->is_constant()) {
 //                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*std::sin(ue->_son->eval(inst));
+//                            //                                    _val->at(inst) = ue->_coef*sin(ue->_son->eval(inst));
 //                            //                                }
 //                            //                                _evaluated = true;
 //                            //                            }
@@ -1529,7 +1813,7 @@ namespace gravity {
 //                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                            //                            if (ue->_son->is_constant()) {
 //                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*std::cos(ue->_son->eval(inst));
+//                            //                                    _val->at(inst) = ue->_coef*cos(ue->_son->eval(inst));
 //                            //                                }
 //                            //                            }
 //                            //                            _evaluated = true;
@@ -1541,7 +1825,7 @@ namespace gravity {
 //                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                            //                            if (ue->_son->is_constant()) {
 //                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*std::sqrt(ue->_son->eval(inst));
+//                            //                                    _val->at(inst) = ue->_coef*sqrt(ue->_son->eval(inst));
 //                            //                                }
 //                            //                            }
 //                            //                            _evaluated = true;
@@ -1553,7 +1837,7 @@ namespace gravity {
 //                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                            //                            if (ue->_son->is_constant()) {
 //                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*std::exp(ue->_son->eval(inst));
+//                            //                                    _val->at(inst) = ue->_coef*exp(ue->_son->eval(inst));
 //                            //                                }
 //                            //                            }
 //                            //                            _evaluated = true;
@@ -1565,7 +1849,7 @@ namespace gravity {
 //                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
 //                            //                            if (ue->_son->is_constant()) {
 //                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*std::log(ue->_son->eval(inst));
+//                            //                                    _val->at(inst) = ue->_coef*log(ue->_son->eval(inst));
 //                            //                                }
 //                            //                            }
 //                            //                            _evaluated = true;
@@ -1725,6 +2009,7 @@ namespace gravity {
                 else {
                     _expr = make_shared<bexpr>(*static_pointer_cast<bexpr>(f._expr));
                 }
+                embed(_expr);
             }
             else {
                 _expr = nullptr;
@@ -1767,7 +2052,7 @@ namespace gravity {
         }
         
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         void deep_copy(const func<T2>& f){
             _to_str = f._to_str;
             _all_convexity = f._all_convexity;
@@ -1882,7 +2167,7 @@ namespace gravity {
             return  *this;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator=(const func<T2>& f){
             deep_copy(f);
             return  *this;
@@ -2076,7 +2361,7 @@ namespace gravity {
         }
         
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_sign(size_t idx) const{
+        typename enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_sign(size_t idx) const{
             if (_val->at(idx)==0) {
                 return zero_;
             }
@@ -2109,7 +2394,7 @@ namespace gravity {
         }
         
         
-        //        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        //        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         //        shared_ptr<constant_> add(shared_ptr<param<T2>> c1){
         //
         //        }
@@ -2134,7 +2419,7 @@ namespace gravity {
         }
         
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign() const {
+        typename enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign() const {
             if (_range->first == 0 && _range->second == 0) {
                 return zero_;
             }
@@ -2179,11 +2464,14 @@ namespace gravity {
             return _val->at(idx);
         }
         
-        type eval(size_t i) const {
+        type eval(size_t i) {
             if(is_matrix()){
                 throw invalid_argument("eval() should be called with double index here\n");
             }
             if (is_constant() && _evaluated) {
+                if (is_number()){
+                    return _val->at(0);
+                }
                 return _val->at(i);
             }
             type res = zero<type>().eval();
@@ -2191,197 +2479,373 @@ namespace gravity {
             res += eval_lterms(i);
             res += eval_qterms(i);
             res += eval_pterms(i);
-            res += eval_expr(i);
+            if(_expr)
+                res += eval_expr(_expr,i);
             return res;
         }
         
-        type eval_cst(size_t i) const {
+        type eval_cst(size_t i) {
             return eval_coef(_cst, i);
         }
         
-        type eval(shared_ptr<func_> f, size_t i) const {
-            type res = zero<type>().eval();
-            switch (f->get_return_type()) {
-                case binary_:
-                    return static_pointer_cast<func<bool>>(f)->eval(i);
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        type eval(shared_ptr<constant_> c, size_t i) {
+            switch (c->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(c)->eval();
                     break;
-                case short_:
-                    return static_pointer_cast<func<short>>(f)->eval(i);
+                case short_c:
+                    return static_pointer_cast<constant<short>>(c)->eval();
                     break;
-                case integer_:
-                    return static_pointer_cast<func<int>>(f)->eval(i);
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(c)->eval();
                     break;
-                case float_:
-                    return static_pointer_cast<func<float>>(f)->eval(i);
+                case float_c:
+                    return static_pointer_cast<constant<float>>(c)->eval();
                     break;
-                case double_:
-                    return static_pointer_cast<func<double>>(f)->eval(i);
+                case double_c:
+                    return static_pointer_cast<constant<double>>(c)->eval();
                     break;
-                case long_:
-                    return static_pointer_cast<func<long double>>(f)->eval(i);
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                case complex_:
-                    return static_pointer_cast<func<Cpx>>(f)->eval(i);
+                case func_c:{
+                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                    switch (f->get_return_type()) {
+                        case binary_:
+                            return static_pointer_cast<func<bool>>(f)->eval(i);
+                            break;
+                        case short_:
+                            return static_pointer_cast<func<short>>(f)->eval(i);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<func<int>>(f)->eval(i);
+                            break;
+                        case float_:
+                            return static_pointer_cast<func<float>>(f)->eval(i);
+                            break;
+                        case double_:
+                            return static_pointer_cast<func<double>>(f)->eval(i);
+                            break;
+                        case long_:
+                            return static_pointer_cast<func<long double>>(f)->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
                     break;
-                default:
+                }
+                case uexp_c:{
+                    return eval(static_pointer_cast<uexpr>(c),i);
                     break;
+                }
+                case bexp_c:{
+                    return eval(static_pointer_cast<bexpr>(c),i);
+                    break;
+                }
+                default:{
+                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return static_pointer_cast<param<bool>>(p)->eval(i);
+                            break;
+                        case short_:
+                            return static_pointer_cast<param<short>>(p)->eval(i);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<param<int>>(p)->eval(i);
+                            break;
+                        case float_:
+                            return static_pointer_cast<param<float>>(p)->eval(i);
+                            break;
+                        case double_:
+                            return static_pointer_cast<param<double>>(p)->eval(i);
+                            break;
+                        case long_:
+                            return static_pointer_cast<param<long double>>(p)->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
             }
+            throw invalid_argument("Unsupported type");
         }
         
-        type eval(shared_ptr<func_> f, size_t i, size_t j) const {
-            type res = zero<type>().eval();
-            switch (f->get_return_type()) {
-                case binary_:
-                    return static_pointer_cast<func<bool>>(f)->eval(i,j);
-                    break;
-                case short_:
-                    return static_pointer_cast<func<short>>(f)->eval(i,j);
-                    break;
-                case integer_:
-                    return static_pointer_cast<func<int>>(f)->eval(i,j);
-                    break;
-                case float_:
-                    return static_pointer_cast<func<float>>(f)->eval(i,j);
-                    break;
-                case double_:
-                    return static_pointer_cast<func<double>>(f)->eval(i,j);
-                    break;
-                case long_:
-                    return static_pointer_cast<func<long double>>(f)->eval(i,j);
-                    break;
-                case complex_:
-                    return static_pointer_cast<func<Cpx>>(f)->eval(i,j);
-                    break;
-                default:
-                    break;
-            }
-        }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T eval(shared_ptr<param_> p, size_t i) const {
-            T res = zero<type>().eval();
-            switch (p->get_intype()) {
-                case binary_:
-                    return static_pointer_cast<param<bool>>(p)->eval(i);
+        type eval(shared_ptr<constant_> c, size_t i, size_t j) {
+            switch (c->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(c)->eval();
                     break;
-                case short_:
-                    return static_pointer_cast<param<short>>(p)->eval(i);
+                case short_c:
+                    return static_pointer_cast<constant<short>>(c)->eval();
                     break;
-                case integer_:
-                    return static_pointer_cast<param<int>>(p)->eval(i);
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(c)->eval();
                     break;
-                case float_:
-                    return static_pointer_cast<param<float>>(p)->eval(i);
+                case float_c:
+                    return static_pointer_cast<constant<float>>(c)->eval();
                     break;
-                case double_:
-                    return static_pointer_cast<param<double>>(p)->eval(i);
+                case double_c:
+                    return static_pointer_cast<constant<double>>(c)->eval();
                     break;
-                case long_:
-                    return static_pointer_cast<param<long double>>(p)->eval(i);
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                default:
-                    return res;
+                case func_c:{
+                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                    switch (f->get_return_type()) {
+                        case binary_:
+                            return static_pointer_cast<func<bool>>(f)->eval(i,j);
+                            break;
+                        case short_:
+                            return static_pointer_cast<func<short>>(f)->eval(i,j);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<func<int>>(f)->eval(i,j);
+                            break;
+                        case float_:
+                            return static_pointer_cast<func<float>>(f)->eval(i,j);
+                            break;
+                        case double_:
+                            return static_pointer_cast<func<double>>(f)->eval(i,j);
+                            break;
+                        case long_:
+                            return static_pointer_cast<func<long double>>(f)->eval(i,j);
+                            break;
+                        default:
+                            break;
+                    }
                     break;
+                }
+                case uexp_c:{
+                    return eval(static_pointer_cast<uexpr>(c),i,j);
+                    break;
+                }
+                case bexp_c:{
+                    return eval(static_pointer_cast<bexpr>(c),i,j);
+                    break;
+                }
+                default:{
+                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return static_pointer_cast<param<bool>>(p)->eval(i,j);
+                            break;
+                        case short_:
+                            return static_pointer_cast<param<short>>(p)->eval(i,j);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<param<int>>(p)->eval(i,j);
+                            break;
+                        case float_:
+                            return static_pointer_cast<param<float>>(p)->eval(i,j);
+                            break;
+                        case double_:
+                            return static_pointer_cast<param<double>>(p)->eval(i,j);
+                            break;
+                        case long_:
+                            return static_pointer_cast<param<long double>>(p)->eval(i,j);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+            }
+            throw invalid_argument("Unsupported type");
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        type eval(shared_ptr<constant_> c, size_t i) {
+            switch (c->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(c)->eval();
+                    break;
+                case short_c:
+                    return static_pointer_cast<constant<short>>(c)->eval();
+                    break;
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(c)->eval();
+                    break;
+                case float_c:
+                    return static_pointer_cast<constant<float>>(c)->eval();
+                    break;
+                case double_c:
+                    return static_pointer_cast<constant<double>>(c)->eval();
+                    break;
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(c)->eval();
+                    break;
+                case complex_c:
+                    return static_pointer_cast<constant<Cpx>>(c)->eval();
+                    break;
+                case func_c:{
+                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                    switch (f->get_return_type()) {
+                        case binary_:
+                            return static_pointer_cast<func<bool>>(f)->eval(i);
+                            break;
+                        case short_:
+                            return static_pointer_cast<func<short>>(f)->eval(i);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<func<int>>(f)->eval(i);
+                            break;
+                        case float_:
+                            return static_pointer_cast<func<float>>(f)->eval(i);
+                            break;
+                        case double_:
+                            return static_pointer_cast<func<double>>(f)->eval(i);
+                            break;
+                        case long_:
+                            return static_pointer_cast<func<long double>>(f)->eval(i);
+                            break;
+                        case complex_:
+                            return static_pointer_cast<func<Cpx>>(f)->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+                case uexp_c:{
+                    return eval(static_pointer_cast<uexpr>(c),i);
+                    break;
+                }
+                case bexp_c:{
+                    return eval(static_pointer_cast<bexpr>(c),i);
+                    break;
+                }
+                default:{
+                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return static_pointer_cast<param<bool>>(p)->eval(i);
+                            break;
+                        case short_:
+                            return static_pointer_cast<param<short>>(p)->eval(i);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<param<int>>(p)->eval(i);
+                            break;
+                        case float_:
+                            return static_pointer_cast<param<float>>(p)->eval(i);
+                            break;
+                        case double_:
+                            return static_pointer_cast<param<double>>(p)->eval(i);
+                            break;
+                        case long_:
+                            return static_pointer_cast<param<long double>>(p)->eval(i);
+                            break;
+                        case complex_:
+                            return static_pointer_cast<param<Cpx>>(p)->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
             }
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        T eval(shared_ptr<param_> p, size_t i) const {
-            T res = zero<type>().eval();
-            switch (p->get_intype()) {
-                case binary_:
-                    return static_pointer_cast<param<bool>>(p)->eval(i);
-                    break;
-                case short_:
-                    return static_pointer_cast<param<short>>(p)->eval(i);
-                    break;
-                case integer_:
-                    return static_pointer_cast<param<int>>(p)->eval(i);
-                    break;
-                case float_:
-                    return static_pointer_cast<param<float>>(p)->eval(i);
-                    break;
-                case double_:
-                    return static_pointer_cast<param<double>>(p)->eval(i);
-                    break;
-                case long_:
-                    return static_pointer_cast<param<long double>>(p)->eval(i);
-                    break;
-                case complex_:
-                    return static_pointer_cast<param<Cpx>>(p)->eval(i);
-                    break;
-                default:
-                    return res;
-                    break;
-            }
-        }
-        
-        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T eval(shared_ptr<param_> p, size_t i, size_t j) const {
-            T res = zero<type>().eval();
-            switch (p->get_intype()) {
-                case binary_:
-                    return static_pointer_cast<param<bool>>(p)->eval(i,j);
-                    break;
-                case short_:
-                    return static_pointer_cast<param<short>>(p)->eval(i,j);
-                    break;
-                case integer_:
-                    return static_pointer_cast<param<int>>(p)->eval(i,j);
-                    break;
-                case float_:
-                    return static_pointer_cast<param<float>>(p)->eval(i,j);
-                    break;
-                case double_:
-                    return static_pointer_cast<param<double>>(p)->eval(i,j);
-                    break;
-                case long_:
-                    return static_pointer_cast<param<long double>>(p)->eval(i,j);
-                    break;
-                default:
-                    return res;
-                    break;
-            }
-        }
-        
-        type eval(shared_ptr<constant_> p, size_t i, size_t j) const {
-            return eval(p);
-        }
-        
-        type eval(shared_ptr<constant_> p, size_t i) const {
-            return eval(p);
-        }
-        
-        type eval(shared_ptr<constant_> p) const {
-            type res = zero<type>().eval();
-            switch (p->get_type()) {
+        type eval(shared_ptr<constant_> c, size_t i, size_t j) {
+            switch (c->get_type()) {
                 case binary_c:
-                    return static_pointer_cast<constant<bool>>(p)->eval();
+                    return static_pointer_cast<constant<bool>>(c)->eval();
                     break;
                 case short_c:
-                    return static_pointer_cast<constant<short>>(p)->eval();
+                    return static_pointer_cast<constant<short>>(c)->eval();
                     break;
                 case integer_c:
-                    return static_pointer_cast<constant<int>>(p)->eval();
+                    return static_pointer_cast<constant<int>>(c)->eval();
                     break;
                 case float_c:
-                    return static_pointer_cast<constant<float>>(p)->eval();
+                    return static_pointer_cast<constant<float>>(c)->eval();
                     break;
                 case double_c:
-                    return static_pointer_cast<constant<double>>(p)->eval();
+                    return static_pointer_cast<constant<double>>(c)->eval();
                     break;
                 case long_c:
-                    return static_pointer_cast<constant<long double>>(p)->eval();
+                    return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
                 case complex_c:
-                    return static_pointer_cast<constant<Cpx>>(p)->eval();
+                    return static_pointer_cast<constant<Cpx>>(c)->eval();
                     break;
-                default:
+                case func_c:{
+                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                    switch (f->get_return_type()) {
+                        case binary_:
+                            return static_pointer_cast<func<bool>>(f)->eval(i,j);
+                            break;
+                        case short_:
+                            return static_pointer_cast<func<short>>(f)->eval(i,j);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<func<int>>(f)->eval(i,j);
+                            break;
+                        case float_:
+                            return static_pointer_cast<func<float>>(f)->eval(i,j);
+                            break;
+                        case double_:
+                            return static_pointer_cast<func<double>>(f)->eval(i,j);
+                            break;
+                        case long_:
+                            return static_pointer_cast<func<long double>>(f)->eval(i,j);
+                            break;
+                        case complex_:
+                            return static_pointer_cast<func<Cpx>>(f)->eval(i,j);
+                            break;
+                        default:
+                            break;
+                    }
                     break;
+                }
+                case uexp_c:{
+                    return eval(static_pointer_cast<uexpr>(c),i,j);
+                    break;
+                }
+                case bexp_c:{
+                    return eval(static_pointer_cast<bexpr>(c),i,j);
+                    break;
+                }
+                default:{
+                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return static_pointer_cast<param<bool>>(p)->eval(i,j);
+                            break;
+                        case short_:
+                            return static_pointer_cast<param<short>>(p)->eval(i,j);
+                            break;
+                        case integer_:
+                            return static_pointer_cast<param<int>>(p)->eval(i,j);
+                            break;
+                        case float_:
+                            return static_pointer_cast<param<float>>(p)->eval(i,j);
+                            break;
+                        case double_:
+                            return static_pointer_cast<param<double>>(p)->eval(i,j);
+                            break;
+                        case long_:
+                            return static_pointer_cast<param<long double>>(p)->eval(i,j);
+                            break;
+                        case complex_:
+                            return static_pointer_cast<param<Cpx>>(p)->eval(i,j);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
             }
         }
         
-        type eval_coef(shared_ptr<constant_> coef, size_t i) const {
+        type eval_coef(shared_ptr<constant_> coef, size_t i) {
             if (coef->is_function()) {
                 auto f_cst = dynamic_pointer_cast<func<type>>(coef);
                 return f_cst->eval(i);
@@ -2397,7 +2861,7 @@ namespace gravity {
             throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
         }
         
-        type eval_coef(shared_ptr<constant_> coef, size_t i, size_t j) const {
+        type eval_coef(shared_ptr<constant_> coef, size_t i, size_t j) {
             if (coef->is_function()) {
                 auto f_cst = dynamic_pointer_cast<func<type>>(coef);
                 return f_cst->eval(i,j);
@@ -2413,7 +2877,7 @@ namespace gravity {
             throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
         }
         
-        type eval_lterm(const lterm& lt, size_t i) const{
+        type eval_lterm(const lterm& lt, size_t i){
             type res = zero<type>().eval();
             if ((lt._coef->_is_transposed || lt._coef->is_matrix() || (lt._p->is_indexed() && lt._p->_indices->_ids->size()>1)) && !lt._p->is_matrix()) {
                 auto dim = lt._p->get_dim(i);
@@ -2439,7 +2903,7 @@ namespace gravity {
             return res;
         }
         
-        type eval_lterm(const lterm& lt, size_t i, size_t j) const{
+        type eval_lterm(const lterm& lt, size_t i, size_t j){
             type res = zero<type>().eval();
             if (lt._coef->is_matrix() && lt._p->is_matrix()) {
                 //matrix product
@@ -2489,8 +2953,115 @@ namespace gravity {
         }
 
         
+        type eval_qterm(const qterm& qt, size_t i){
+            type res = zero<type>().eval();
+            if (qt._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                assert(qt._p->first->_dim[1]==1 && qt._coef->_dim[0]==qt._p->second->_dim[0]);
+                for (auto i = 0; i<qt._p->first->_dim[0]; i++) {
+                    for (auto j = 0; j<qt._p->first->_dim[0]; j++) {
+                        res += eval_coef(qt._coef,i,j) * eval(qt._p->first,i) * eval(qt._p->second,j);
+                    }
+                }
+                if (!_sign) {
+                    res *= -1;
+                }
+                return res;
+                
+            }
+            if (qt._p->first->is_matrix() && !qt._p->second->is_matrix() && !qt._p->second->_is_transposed) {//matrix * vect
+                for (size_t j = 0; j<qt._p->second->_dim[0]; j++) {
+                    res += eval(qt._p->first,i,j) * eval(qt._p->second,j);
+                }
+                res *= eval_coef(qt._coef,i);
+            }
+            else if (!qt._p->first->is_matrix() && qt._p->first->_is_transposed && qt._p->second->is_matrix() ) {//transposed vect * matrix
+                for (size_t j = 0; j<qt._p->first->_dim[0]; j++) {
+                    res += eval(qt._p->first,j) * eval(qt._p->second,j,i);
+                }
+                res *= eval_coef(qt._coef,i);
+            }
+            else if (!qt._p->first->is_matrix() && qt._p->first->_is_transposed && !qt._p->second->is_matrix() && i==0) {//transposed vect * vec, a dot product of two vectors
+                for (size_t j = 0; j<qt._p->first->_dim[1]; j++) {
+                    res += eval(qt._p->first,j) * eval(qt._p->second,j);
+                }
+                res *= eval_coef(qt._coef,i);
+            }
+            else if (!qt._coef->is_matrix() && qt._coef->_is_transposed && !qt._p->first->is_matrix()) {//transposed vect * vec, a dot product of two vectors
+                for (size_t j = 0; j<qt._p->first->_dim[0]; j++) {
+                    res += eval_coef(qt._coef,j) * eval(qt._p->first,j) * eval(qt._p->second,j);
+                }
+            }
+            else {
+                res = eval_coef(qt._coef,i) * eval(qt._p->first,i) * eval(qt._p->second,i);
+            }
+            if (!_sign) {
+                res *= -1;
+            }
+            return res;
+        }
         
-        type eval_lterms(size_t i) const {
+        type eval_qterm(const qterm& qt, size_t i, size_t j){
+            type res = zero<type>().eval();
+            if (qt._p->first->is_matrix() && qt._p->second->is_matrix()) {
+                //matrix product
+                for (size_t col = 0; col<qt._p->first->_dim[1]; col++) {
+                    res += eval(qt._p->first,i,col) * eval(qt._p->second,col,j);
+                }
+                res *= eval_coef(qt._coef,i);
+            }
+            else if (qt._p->first->is_matrix() && !qt._p->second->is_matrix() && qt._p->second->_is_transposed) {//matrix * transposed vect
+                res = eval_coef(qt._coef,i) * eval(qt._p->first,i,j) * eval(qt._p->second,j);
+            }
+            else if (!qt._p->first->is_matrix() && !qt._p->first->_is_transposed && qt._p->second->is_matrix() ) {//vect * matrix
+                res = eval_coef(qt._coef,i) * eval(qt._p->first,i) * eval(qt._p->second,i,j);
+            }
+            else {
+                throw invalid_argument("eval(i,j) on non-matrix function");
+            }
+            if (!_sign) {
+                res *= -1;
+            }
+            return res;
+        }
+        
+        type eval_pterm(const pterm& pt, size_t i){
+            type res = zero<type>().eval();
+            if (pt._coef->_is_transposed) {
+                throw invalid_argument("Unspported operation\n");
+            }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
+            else {
+                res += 1;
+                for (auto &pair: *pt._l) {
+                    res *= pow(eval(pair.first, i), pair.second);
+                }
+                res *= eval_coef(pt._coef,i);
+            }
+            if (!_sign) {
+                res *= -1;
+            }
+            return res;
+        }
+        
+        type eval_pterm(const pterm& pt, size_t i, size_t j){
+            type res = zero<type>().eval();
+            if (pt._coef->_is_transposed) {
+                throw invalid_argument("Unspported operation\n");
+            }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
+            else {
+                res += 1;
+                for (auto &pair: *pt._l) {
+                    res *= pow(eval(pair.first,i,j), pair.second);
+                }
+                
+                res *= eval_coef(pt._coef,i,j);
+            }
+            if (!_sign) {
+                res *= -1;
+            }
+            return res;
+        }
+        
+        type eval_lterms(size_t i) {
             type res = zero<type>().eval();
             auto it = _lterms->begin();
             while(it!=_lterms->end()){
@@ -2500,26 +3071,255 @@ namespace gravity {
             return res;
         }
         
-        type eval_qterms(size_t i) const {
+        type eval_qterms(size_t i) {
             type res = zero<type>().eval();
+            auto it = _qterms->begin();
+            while(it!=_qterms->end()){
+                res += eval_qterm(it->second,i);
+                it++;
+            }
             return res;
         }
         
-        type eval_pterms(size_t i) const {
+        type eval_pterms(size_t i) {
             type res = zero<type>().eval();
+            auto it = _pterms->begin();
+            while(it!=_pterms->end()){
+                res += eval_pterm(it->second,i);
+                it++;
+            }
             return res;
         }
         
-        type eval_expr(size_t i) const {
-            type res = zero<type>().eval();
-            return res;
+        bool is_evaluated() const{
+            return _evaluated;
         }
         
-        type eval(const string& key) const{
+        void evaluate(bool v){
+            _evaluated = v;
+        }
+        
+        type eval_expr(shared_ptr<expr> exp, size_t i) {
+            if (exp->is_uexpr()) {
+                return eval_uexpr(static_pointer_cast<uexpr>(exp),i);
+            }
+            return eval_bexpr(static_pointer_cast<bexpr>(exp),i);
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T eval_uexpr(shared_ptr<uexpr> exp, size_t i) {
+            if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {//TODO what if son is matrix?
+                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
+                    eval(exp->_son,inst);
+                }
+                exp->_son->evaluated(true);
+            }
+            T res = eval(exp->_son,i);
+            switch (exp->_otype) {
+                case cos_:
+                    return exp->_coef*std::cos(res);
+                    break;
+                case sin_:
+                    return exp->_coef*std::sin(res);
+                    break;
+                case sqrt_:
+                    return exp->_coef*std::sqrt(res);
+                    break;
+                case log_:
+                    return exp->_coef*std::log(res);
+                    break;
+                case exp_:
+                    return exp->_coef*std::exp(res);
+                    break;
+                case relu_:{
+                    if(res < 0)
+                        res = 0;
+                    return exp->_coef*res;
+                }
+                    break;
+                default:
+                    throw invalid_argument("Unsupported unary operator");
+                    break;
+            }
+        }
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        Cpx eval_uexpr(shared_ptr<uexpr> exp, size_t i) {
+            if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {//TODO what if son is matrix?
+                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
+                    eval(exp->_son,inst);
+                }
+                exp->_son->evaluated(true);
+            }
+            Cpx res = eval(exp->_son,i);
+            switch (exp->_otype) {
+                case cos_:
+                    return exp->_coef*std::cos(res);
+                    break;
+                case sin_:
+                    return exp->_coef*std::sin(res);
+                    break;
+                case sqrt_:
+                    return exp->_coef*std::sqrt(res);
+                    break;
+                case log_:
+                    return exp->_coef*std::log(res);
+                    break;
+                case exp_:
+                    return exp->_coef*std::exp(res);
+                    break;
+                case relu_:{
+                    if(res.real() < 0)
+                        res.real(0);
+                    if(res.imag() < 0)
+                        res.imag(0);
+                    return exp->_coef*res;
+                }
+                    break;
+                default:
+                    throw invalid_argument("Unsupported unary operator");
+                    break;
+            }
+        }
+                       
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        T  eval_bexpr(shared_ptr<bexpr> exp, size_t i){
+            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
+                    eval(exp->_lson,inst);
+                }
+                exp->_lson->evaluated(true);
+            }
+            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
+                    eval(exp->_rson,inst);
+                }
+                exp->_rson->evaluated(true);
+            }
+            T lval = eval(exp->_lson,i);
+            T rval = eval(exp->_rson,i);
+            switch (exp->_otype) {
+                case plus_:
+                    return exp->_coef*(lval + rval);
+                    break;
+                case minus_:
+                    return exp->_coef*(lval - rval);
+                    break;
+                case product_:
+                    return exp->_coef*(lval*rval);
+                    break;
+                case div_:
+                    return exp->_coef*(lval/rval);
+                    break;
+                default:
+                    throw invalid_argument("Unsupported binary operator");
+                    break;
+            }
+            
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T  eval_bexpr(shared_ptr<bexpr> exp, size_t i){
+            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
+                    eval(exp->_lson,inst);
+                }
+                exp->_lson->evaluated(true);
+            }
+            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
+                    eval(exp->_rson,inst);
+                }
+                exp->_rson->evaluated(true);
+            }
+            T lval = eval(exp->_lson,i);
+            T rval = eval(exp->_rson,i);
+            switch (exp->_otype) {
+                case plus_:
+                    return exp->_coef*(lval + rval);
+                    break;
+                case minus_:
+                    return exp->_coef*(lval - rval);
+                    break;
+                case product_:
+                    return exp->_coef*(lval*rval);
+                    break;
+                case div_:
+                    return exp->_coef*(lval/rval);
+                    break;
+                case power_:
+                    return exp->_coef*(powl(lval,rval));
+                    break;
+                default:
+                    throw invalid_argument("Unsupported binary operator");
+                    break;
+            }
+            
+        }
+            
+//            double uexpr::eval(size_t i, size_t j) const{
+//                if (!is_matrix()) {
+//                    return eval(j);//TODO what if son is transposed
+//                }
+//                if (_son->is_constant() && !_son->_evaluated) {
+//                    unsigned index = 0;
+//                    if (_son->is_matrix()) {
+//                        for (unsigned row = 0; row<_son->_dim[0]; row++) {
+//                            for (unsigned col = 0; col<_son->_dim[1]; col++) {
+//                                if (_is_transposed) {
+//                                    index = _son->_dim[0]*col + row;
+//                                }
+//                                else {
+//                                    index = _son->_dim[1]*row + col;
+//                                }
+//
+//                                _son->_val->at(index) = _son->eval(row,col);
+//                            }
+//                        }
+//                    }
+//                    else {
+//                        for (size_t row = 0; row<_son->_dim[0]; row++) {
+//                            _son->_val->at(index) = _son->eval(index);
+//                        }
+//                    }
+//                    _son->_evaluated = true;
+//                }
+//                double val = 0;
+//                if (_son->is_number()) {
+//                    val = _son->_val->at(0);
+//                }
+//                else {
+//                    val = _son->get_val(i,j);
+//                }
+//                switch (_otype) {
+//                    case cos_:
+//                        return _coef*cos(val);
+//                        break;
+//                    case sin_:
+//                        return _coef*sin(val);
+//                        break;
+//                    case sqrt_:
+//                        return _coef*sqrt(val);
+//                        break;
+//                    case log_:
+//                        return _coef*log(val);
+//                        break;
+//                    case exp_:
+//                        return _coef*exp(val);
+//                        break;
+//                    default:
+//                        throw invalid_argument("Unsupported unary operator");
+//                        break;
+//                }
+//
+//            }
+//            return res;
+//        }
+        
+        type eval(const string& key) {
             return _val->at(_indices->_keys_map->at(key));
         }
         
-        type eval(size_t i, size_t j) const {
+        type eval(size_t i, size_t j) {
             
             if (is_indexed() && _indices->_ids->size()>1) {
                 if (_indices->_ids->at(i).at(j) >= _val->size()) {
@@ -2542,7 +3342,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
-            return (_range->first == Cpx(1,1) && _range->second == Cpx(1,1));
+            return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
         
         bool is_zero() const { return zero_range();};
@@ -2552,7 +3352,7 @@ namespace gravity {
         }
         
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool zero_range() const{
+        typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool zero_range() const{
             return (_range->first == 0 && _range->second == 0);
         }
         
@@ -2577,7 +3377,7 @@ namespace gravity {
             return (get_all_sign()==neg_);
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator*=(const func<T2>& f){
             if (is_zero()) {
                 return *this;
@@ -2705,6 +3505,12 @@ namespace gravity {
                     res.embed(res._expr);
                 }
                 *this = res;
+                _evaluated = false;
+                return *this;
+            }
+            if (_expr || (f._expr)) {
+                auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
+                *this = func(be);
                 _evaluated = false;
                 return *this;
             }
@@ -3096,7 +3902,7 @@ namespace gravity {
             return *this;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator+=(const func<T2>& f){
             if (f.is_zero()) {
                 return *this;
@@ -3212,7 +4018,7 @@ namespace gravity {
             return *this;
         }
         
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator-=(const func<T2>& f){
             auto res = f;
             res.reverse_sign();
@@ -3270,38 +4076,38 @@ namespace gravity {
     };
     
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const func<T1>& f1, const func<T2>& f2){
         return func<T1>(f1)+= f2;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const func<T1>& f1, const func<T2>& f2){
         return func<T2>(f1)+= f2;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const func<T1>& f1, const func<T2>& f2){
         return func<T1>(f1)-= f2;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const func<T1>& f1, const func<T2>& f2){
         return func<T2>(f1)-= f2;
     }
 //
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-//    func<T1> operator*(const func<T1>& f1, const func<T2>& f2){
-//        return func<T1>(f1)+= f2;
-//    }
-//
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-//    func<T2> operator*(const func<T1>& f1, const func<T2>& f2){
-//        return func<T2>(f1)+= f2;
-//    }
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator*(const func<T1>& f1, const func<T2>& f2){
+        return func<T1>(f1)*= f2;
+    }
+
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(const func<T1>& f1, const func<T2>& f2){
+        return func<T2>(f1)*= f2;
+    }
     
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
         if(p1.is_param() && p2.is_var()){
@@ -3317,7 +4123,7 @@ namespace gravity {
         return res;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
         if(p1.is_param() && p2.is_var()){
@@ -3333,7 +4139,7 @@ namespace gravity {
         return res;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
         res.update_dim(p1,p2);
@@ -3352,7 +4158,7 @@ namespace gravity {
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator+(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
         res.update_dim(p1,p2);
@@ -3371,7 +4177,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
         res.update_dim(p1,p2);
@@ -3390,7 +4196,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
         res.update_dim(p1,p2);
@@ -3409,56 +4215,56 @@ namespace gravity {
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator+(const constant<T1>& p1, const constant<T2>& p2){
         constant<T1> res(p1);
         res.set_val(res.eval()+p2.eval());
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     constant<T2> operator+(const constant<T1>& p1, const constant<T2>& p2){
         constant<T2> res(p2);
         res.set_val(res.eval()+(T2)p1.eval());
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator-(const constant<T1>& p1, const constant<T2>& p2){
         constant<T1> res(p1);
         res.set_val(res.eval()-p2.eval());
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     constant<T2> operator-(const constant<T1>& p1, const constant<T2>& p2){
         constant<T2> res(p2);
         res.set_val((T2)p1.eval() - res.eval());
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator*(const constant<T1>& p1, const constant<T2>& p2){
         constant<T1> res(p1);
         res.set_val(res.eval()*p2.eval());
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     constant<T2> operator*(const constant<T1>& p1, const constant<T2>& p2){
         constant<T2> res(p2);
         res.set_val((T2)p1.eval() * res.eval());
         return res;
     }
 
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     constant<T1> operator/(const constant<T1>& p1, const constant<T2>& p2){
         constant<T1> res(p1);
         res.set_val(res.eval()/p2.eval());
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     constant<T2> operator/(const constant<T1>& p1, const constant<T2>& p2){
         constant<T2> res(p2);
         res.set_val((T2)p1.eval()/res.eval());
@@ -3509,6 +4315,13 @@ namespace gravity {
     }
     
     template<class T1>
+    constant<T1> pow(const constant<T1>& p1, int exp){
+        constant<T1> res(p1);
+        res.set_val(std::pow(res.eval(),exp));
+        return res;
+    }
+    
+    template<class T1>
     func<T1> log(const param<T1>& p1){
         func<T1> res(uexpr(log_, p1.copy()));
         return res;
@@ -3549,8 +4362,33 @@ namespace gravity {
         func<T1> res(uexpr(relu_, p1.copy()));
         return res;
     }
+    
+    template<class T1>
+    func<T1> pow(const param<T1>& p1, int exp){
+        if(exp<0){
+//            return 1/pow(p1,-exp);
+        }
+        if(exp==0){
+            return func<T1>(p1);
+        }
+        if(exp==1){
+            func<T1> res;
+            res.insert(p1);
+        }
+        if(exp==2){
+            func<T1> res;
+            res.insert(p1,p1);
+            res.update_convexity();
+            return res;
+        }
+        else {
+            func<T1> res;
+            res.insert(p1,exp);
+            return res;
+        }
+    }
         
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+//    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
 //    func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
 //        func<T1> res;
 //        auto newp1 = p1.pcopy();
@@ -3561,7 +4399,7 @@ namespace gravity {
 //        return res;
 //    }
 //
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+//    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
 //    func<T1> operator+(const param<T1>& p, const var<T2>& v){
 //        func<T1> res;
 //        res.add_cst(p);
@@ -3572,7 +4410,7 @@ namespace gravity {
 //        return res;
 //    }
 //
-//    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+//    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
 //    func<T2> operator+(const param<T1>& p, const var<T2>& v){
 //        func<T2> res;
 //        auto newv = v.pcopy();
@@ -3583,14 +4421,14 @@ namespace gravity {
 //        return res;
 //    }
 //
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const constant<T1>& p, const param<T2>& v){
         func<T1> res(v);
         res.add_cst(p);
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const constant<T1>& p, const param<T2>& v){
         func<T2> res(v);
         res.add_cst(p);
@@ -3598,49 +4436,49 @@ namespace gravity {
     }
 
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& v, const constant<T2>& p){
         func<T1> res(v);
         res.add_cst(p);
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const param<T1>& v, const constant<T2>& p){
         func<T2> res(v);
         res.add_cst(p);
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& v, const func<T2>& f){
         func<T1> res(v);
         res += f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const param<T1>& v, const func<T2>& f){
         func<T2> res(v);
         res += f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const func<T1>& f, const param<T2>& v){
         func<T1> res(v);
         res += f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator+(const func<T1>& f, const param<T2>& v){
         func<T2> res(v);
         res += f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const func<T1>& f, const param<T2>& v){
         func<T1> res(v);
         res.reverse_sign();
@@ -3648,7 +4486,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const func<T1>& f, const param<T2>& v){
         func<T2> res(v);
         res.reverse_sign();
@@ -3656,7 +4494,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p, const func<T2>& f){
         func<T1> res(f);
         res.reverse_sign();
@@ -3664,7 +4502,7 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p, const func<T2>& f){
         func<T2> res(f);
         res.reverse_sign();
@@ -3672,42 +4510,42 @@ namespace gravity {
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& v, const func<T2>& f){
         func<T1> res(v);
         res *= f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& v, const func<T2>& f){
         func<T2> res(v);
         res *= f;
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const func<T1>& f, const param<T2>& v){
         func<T1> res(f);
         res *= func<T1>(v);
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const func<T1>& f, const param<T2>& v){
         func<T2> res(f);
         res *= func<T2>(v);
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const constant<T1>& p, const param<T2>& v){
         func<T1> res(v);
         res.add_cst(p);
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const constant<T1>& c, const param<T2>& p){
         func<T2> res(p);
         res.add_cst(c);
@@ -3715,14 +4553,14 @@ namespace gravity {
     }
     
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p, const constant<T2>& c){
         func<T1> res(p);
         res.add_cst(c);
         return res;
     }
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p, const constant<T2>& c){
         func<T2> res(p);
         res.add_cst(c);
@@ -3730,14 +4568,14 @@ namespace gravity {
     }
     
         
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(T1 p, const param<T2>& v){
         func<T1> res(v);
         res.add_cst(constant<T1>(p));
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(T1 p, const param<T2>& v){
         func<T2> res(v);
         res.add_cst(constant<T1>(p));
@@ -3745,18 +4583,41 @@ namespace gravity {
     }
     
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& v, T2 p){
         func<T1> res(v);
         res.add_cst(constant<T2>(p));
         return res;
     }
     
-    template<class T1,class T2, typename std::enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& v, T2 p){
         func<T2> res(v);
         res.add_cst(p);
         return res;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator*(T1 p, const func<T2>& f){
+        return func<T1>(p) * f;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(T1 p, const func<T2>& f){
+        func<T2> res(p);
+        return res*= f;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator*(const func<T1>& f, T2 p){
+        return f * func<T1>(p);
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator*(const func<T1>& f, T2 p){
+        return f * func<T2>(p);
     }
         // Transform var<T2> to param<T2> and check type.
     
@@ -3782,64 +4643,64 @@ namespace gravity {
 ////    func_ operator+(func_&& f, const constant_& c);
 //    //func_ operator+(const constant_& c, func_&& f);
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
 //        return f += c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
 //        return f += c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(func_&& f, T c){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(func_&& f, T c){
 //        return f -= c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(T c, func_&& f){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(T c, func_&& f){
 //        return (f *= -1) += c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(func_&& f, T c){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(func_&& f, T c){
 //        return f *= c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(T c, func_&& f){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(T c, func_&& f){
 //        return f *= c;
 //    };
 //
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(func_&& f, T c){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(func_&& f, T c){
 //        return f /= c;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(const constant_& c1, T c2){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(const constant_& c1, T c2){
 //        return func_(c1) += c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
 //        return func_(c1) += c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(const constant_& c1, T c2){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(const constant_& c1, T c2){
 //        return func_(c1) -= c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator-(T c2, const constant_& c1){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(T c2, const constant_& c1){
 //        return (func_(c1) *= -1) += c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(const constant_& c1, T c2){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(const constant_& c1, T c2){
 //        return func_(c1) *= c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator*(T c2, const constant_& c1){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(T c2, const constant_& c1){
 //        return func_(c1) *= c2;
 //    };
 //
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(const constant_& c1, T c2){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(const constant_& c1, T c2){
 //        return func_(c1) *= 1/c2;
 //    };
 //    
-//    template<class T, class = typename enable_if<std::is_arithmetic<T>::value>::type> func_ operator/(T c2, const constant_& c1){
+//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(T c2, const constant_& c1){
 //        return func_(c2) /= c1;
 //    };
 //
