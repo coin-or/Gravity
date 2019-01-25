@@ -98,7 +98,7 @@ namespace gravity {
         shared_ptr<constant_>                                        _coef = nullptr;
         shared_ptr<pair<shared_ptr<param_>,shared_ptr<param_>>>      _p = nullptr;
         bool                                                         _sign = true; /**< True if +, false if - */
-        bool                                                         _coef_p1_transposed = false; /**< True if the qterm is (coef*p1)^T*p2 */
+        bool                                                         _coef_p1_tr = false; /**< True if the qterm is (coef*p1)^T*p2 */
         
         qterm(){}
         
@@ -111,12 +111,12 @@ namespace gravity {
         };
         
         
-        qterm(shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, p1, p2){};
+//        qterm(shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, p1, p2){};
         
         
         qterm(shared_ptr<constant_> coef, shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, coef, p1, p2){};
         
-        qterm(bool sign, shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, make_shared<constant<double>>(1), p1, p2){};
+//        qterm(bool sign, shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, unit<type>(), p1, p2){};
         
         qterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p1, shared_ptr<param_> p2){
             _coef = coef;

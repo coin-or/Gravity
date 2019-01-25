@@ -146,7 +146,8 @@ namespace gravity {
         
         /** Dimension propagation */
         virtual void propagate_dim(size_t){};/*<< Set dimensions to current and all sub-functions */
-        
+        virtual bool is_evaluated() const{return false;};
+        virtual void evaluated(bool val){};
         virtual void reverse_sign(){};/*<< reverses the sign of current object */
         virtual size_t get_dim(size_t i) const {
             if (i>1) {
@@ -163,10 +164,10 @@ namespace gravity {
         virtual shared_ptr<constant_> copy() const{return nullptr;};
         
         virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
-        virtual string to_str() const{return string();};
-        virtual string to_str(int prec) const{return string();};
-        virtual string to_str(size_t idx, int prec) const{return string();};
-        virtual string to_str(size_t idx1, size_t idx2, int prec) const{return string();};
+        virtual string to_str() {return string();};
+        virtual string to_str(int prec) {return string();};
+        virtual string to_str(size_t idx, int prec) {return string();};
+        virtual string to_str(size_t idx1, size_t idx2, int prec) {return string();};
         
         
         size_t get_dim() const {
@@ -413,6 +414,14 @@ namespace gravity {
             return get_sign()==neg_;
         }
         
+        bool is_non_negative() const {
+            return (get_sign()==zero_||get_sign()==pos_||get_sign()==non_neg_);
+        }
+        
+        bool is_non_positive() const {
+            return (get_sign()==zero_||get_sign()==neg_||get_sign()==non_pos_);
+        }
+        
         bool is_positive() const {
             return get_sign()==pos_;
         }
@@ -527,19 +536,19 @@ namespace gravity {
 
         
         /** Output */
-        void print(int prec = 10) const{
+        void print(int prec = 10) {
             cout << to_str(prec);
         }
         
-        void println(int prec = 10) const{
+        void println(int prec = 10) {
             cout << to_str(prec) << endl;
         }
         
-        string to_str() const{
-            return to_string_with_precision(_val,3);
+        string to_str() {
+            return to_string_with_precision(_val,5);
         }
         
-        string to_str(int prec = 10) const{
+        string to_str(int prec = 10) {
             return to_string_with_precision(_val,prec);
         }
         

@@ -62,7 +62,7 @@ namespace gravity{
 
     bool uexpr::operator==(const uexpr &c)const{
 //        return (_otype == c._otype && equals(_son,c._son));
-        return (this->to_str().compare(c.to_str())==0);
+        return (this->_to_str.compare(c._to_str)==0);
     }
 
 
@@ -111,7 +111,7 @@ namespace gravity{
     }
 
 
-    void bexpr::print() const {
+    void bexpr::print() {
         cout << _to_str;
     //    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
     //        cout << "(";
@@ -196,7 +196,7 @@ namespace gravity{
 //    }
     
     
-    string uexpr::to_str() const{
+    string uexpr::to_str(){
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {
@@ -247,7 +247,7 @@ namespace gravity{
     }
 
         
-    string uexpr::to_str(int prec) const{
+    string uexpr::to_str(int prec){
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {
@@ -297,7 +297,7 @@ namespace gravity{
         return str;
     }
     
-    string uexpr::to_str(size_t inst, int prec) const{
+    string uexpr::to_str(size_t inst, int prec) {
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {
@@ -470,7 +470,7 @@ namespace gravity{
 //        return func_();
 //    }
     
-    string bexpr::to_str() const{
+    string bexpr::to_str() {
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {
@@ -520,7 +520,7 @@ namespace gravity{
         return str;
     }
     
-    string bexpr::to_str(int prec) const{
+    string bexpr::to_str(int prec) {
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {
@@ -570,7 +570,7 @@ namespace gravity{
         return str;
     }
     
-    string bexpr::to_str(size_t inst,int prec) const{
+    string bexpr::to_str(size_t inst,int prec) {
         string str;
         if (_coef!=1) {
             if (_coef!=-1) {

@@ -174,7 +174,7 @@ namespace gravity {
                 name += "["+_indices->_keys->at(rev_idx)+"]";
             }
             else if(_indices){
-                name += "["+to_string(get_id_inst(inst))+"]";
+                name += "["+_indices->_keys->at(inst)+"]";
             }
             else {
                 name += "["+to_string(inst)+"]";
@@ -946,7 +946,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
-            return (_range->first == Cpx(1,1) && _range->second == Cpx(1,1));
+            return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
 
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
@@ -1455,7 +1455,7 @@ namespace gravity {
 
         /** Output */
 
-        string to_str(size_t index1, size_t index2, int prec) const {
+        string to_str(size_t index1, size_t index2, int prec) {
             if (is_matrix()){
                 return to_string_with_precision(eval(index1,index2),prec);
             }
@@ -1467,11 +1467,11 @@ namespace gravity {
             }
         }
 
-        string to_str() const{
+        string to_str(){
             return get_name(false,false);
         }
         
-        string to_str(size_t index, int prec) const {
+        string to_str(size_t index, int prec) {
             if (is_indexed()) {
                 return to_string_with_precision(eval(index), prec);
             }
@@ -1480,11 +1480,11 @@ namespace gravity {
             }
         }
 
-        void print(size_t index, int prec = 10) const {
+        void print(size_t index, int prec = 10)  {
             cout << to_str(index,prec);
         }
 
-        void print(size_t i, size_t j, int prec = 10) const {
+        void print(size_t i, size_t j, int prec = 10) {
             cout << to_str(i,j,prec);
         }
         
