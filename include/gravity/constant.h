@@ -138,7 +138,8 @@ namespace gravity {
         bool is_function() const{
             return (_type==func_c);
         };
-                
+        
+        
         virtual Sign get_all_sign() const {return unknown_;};
         virtual Sign get_sign(size_t idx=0) const{return unknown_;};
         /** Memory allocation */
@@ -191,6 +192,8 @@ namespace gravity {
             _dim[1] = temp;
         }
         
+        
+        
         /**
          Update the dimensions of current object after it is multiplied with c2.
          @param[in] c2 object multiplying this.
@@ -208,7 +211,7 @@ namespace gravity {
          */
         bool update_dot_dim(const constant_& c1, const constant_& c2){
             if(c1._is_vector || c2._is_vector){/* If both c1 and c2 are scalars, no need to update dimensions */
-                if(c1.is_matrix() && (!c2._is_vector || (c2._is_vector && !c2._is_transposed))){/* If multiplying a scalar/column vector with a matrix */
+                if(c1.is_matrix() && (!c2._is_vector || (!c2.is_matrix() && !c2._is_transposed))){/* If multiplying a matrix with a scalar/column */
                     _dim[0] = c2._dim[0];
                     _dim[1] = c2._dim[1];
                     _is_vector = true;
@@ -348,7 +351,13 @@ namespace gravity {
             _val *= -1;
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_sign() const{
+        Sign get_all_sign() const {return get_sign();};
+        
+        Sign get_sign(size_t idx = 0) const{
+            return get_sign_();
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_sign_() const{
             if (_val == Cpx(0,0)) {
                 return zero_;
             }
@@ -368,7 +377,7 @@ namespace gravity {
         }
         
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_sign() const{
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_sign_() const{
             if (_val==0) {
                 return zero_;
             }
@@ -402,7 +411,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool unit_val() const{
-            return (_val == Cpx(1,1));
+            return (_val == Cpx(1,0));
         }
         
         template<typename T=type,

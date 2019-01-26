@@ -346,6 +346,7 @@ TEST_CASE("testing complex functions") {
     CHECK(f.is_linear());
     CHECK(f.is_convex());
     f+= pow(iv,2);
+    f+=2;
     f.print_symbolic();
     f.print();
     CHECK(f.is_quadratic());
@@ -378,79 +379,82 @@ TEST_CASE("testing complex functions") {
 }
 //
 //
-//TEST_CASE("testing complex matrix product") {
-//    var<Cpx> X("X", Cpx(0,-1),Cpx(1,1));
-//    X.in(C(5,5));
-//    param<Cpx> A("A");
-//    A.set_size(3, 5);
-//    A.set_val(0,0,Cpx(-1,1));
-//    A.set_val(1,0,Cpx(2,1));
-//    A.set_val(2,1,Cpx(-1,-1));
-//    A.set_val(1,1,Cpx(1,1));
-//    auto f = A*X;
-//    f.print_symbolic();
-//    CHECK(f.is_linear());
-//    CHECK(f.is_convex());
-//    CHECK(f.get_dim()==15);
-//    var<Cpx> Y("Y", Cpx(0,-1),Cpx(1,1));
-//    Y.in(C(5,5));
-//    f+= X*Y;
-//    f.print_symbolic();
-//    CHECK(f.is_quadratic());
-//    CHECK(!f.is_convex());
-//    CHECK(f.is_complex());
-//    CHECK(f.get_nb_vars()==50);
-//}
+TEST_CASE("testing complex matrix product") {
+    var<Cpx> X("X", Cpx(0,-1),Cpx(1,1));
+    X.in(C(5,5));
+    param<Cpx> A("A");
+    A.set_size(3, 5);
+    A.set_val(0,0,Cpx(-1,1));
+    A.set_val(1,0,Cpx(2,1));
+    A.set_val(2,1,Cpx(-1,-1));
+    A.set_val(1,1,Cpx(1,1));
+    auto f = A*X;
+    f.print_symbolic();
+    CHECK(f.is_linear());
+    CHECK(f.is_convex());
+    CHECK(f.get_dim()==15);
+    var<Cpx> Y("Y", Cpx(0,-1),Cpx(1,1));
+    Y.in(C(5,5));
+    f+= X*Y;
+    f.print_symbolic();
+    f += X;
+    f.print_symbolic();
+    CHECK(f.is_quadratic());
+    CHECK(!f.is_convex());
+    CHECK(f.is_complex());
+    CHECK(f.get_nb_vars()==50);
+    CHECK(f.to_str()=="[XY + (A + (1,0))X]");
+}
 //
-//TEST_CASE("testing function convexity"){
-//    var<> dp("dp",0.5,10.);
-//    var<int> ip("ip",-1,1);
-//    auto exp = log(dp) + sqrt(ip);
-//    exp.print_symbolic();
-//    CHECK(exp.is_concave());
-//    var<> p("p");
-//    var<> q("q");
-//    auto cc = p*p + q*q;
-//    cc.print_symbolic();
-//    CHECK(cc.is_convex());
-//    auto cc1 = cc * -1;
-//    cc1.print_symbolic();
-//    CHECK(cc1.is_concave());
-//    cc1 += 2*p*q;
-//    cc1.print_symbolic();
+TEST_CASE("testing function convexity"){
+    var<> dp("dp",0.5,10.);
+    var<int> ip("ip",-1,1);
+    auto expr = log(dp) + sqrt(ip);
+    expr.print_symbolic();
+    CHECK(expr.is_concave());
+    var<> p("p",0,1);
+    var<> q("q");
+    auto cc = p*p + q*q;
+    cc.print_symbolic();
+    CHECK(cc.is_convex());
+    auto cc1 = cc * -1;
+    cc1.print_symbolic();
+    CHECK(cc1.is_concave());
+    cc1 += 2*p*q;
+    cc1.print_symbolic();
 //    CHECK(cc1.is_rotated_soc());
-//    param<int> aa("aa");
-//    aa = -1;
-//    aa = -3;
-//    auto ff = (aa)*p*p;
-//    ff.print_symbolic();
-//    CHECK(ff.is_concave());
-//    ff *= aa;
-//    ff.print_symbolic();
-//    CHECK(ff.is_convex());
-//    ff *= -1;
-//    ff.print_symbolic();
-//    CHECK(ff.is_concave());
-//    ff *= aa;
-//    ff.print_symbolic();
-//    CHECK(ff.is_convex());
-//    ff += aa*(ip + dp)*q*q;
-//    ff.print_symbolic();
-//    CHECK(!ff.is_convex());
-//    CHECK(!ff.is_concave());
-//    CHECK(ff.is_polynomial());
-//    CHECK(ff.get_nb_vars()==4);
-//    param<> b("b");
-//    b = 1;
-//    auto fn = p*p + q*q;
-//    fn.print_symbolic();
+    param<int> aa("aa");
+    aa = -1;
+    aa = -3;
+    auto ff = (aa)*p*p;
+    ff.print_symbolic();
+    CHECK(ff.is_concave());
+    ff *= aa;
+    ff.print_symbolic();
+    CHECK(ff.is_convex());
+    ff *= -1;
+    ff.print_symbolic();
+    CHECK(ff.is_concave());
+    ff *= aa;
+    ff.print_symbolic();
+    CHECK(ff.is_convex());
+    ff += aa*(ip + dp)*q*q;
+    ff.print_symbolic();
+    CHECK(!ff.is_convex());
+    CHECK(!ff.is_concave());
+    CHECK(ff.is_polynomial());
+    CHECK(ff.get_nb_vars()==4);
+    param<> b("b");
+    b = 1;
+    auto fn = p*p + q*q;
+    fn.print_symbolic();
+    CHECK(fn.is_convex());
+    fn -= 2*p*q;
+    fn.print_symbolic();
+    fn += exp(p);
+    fn.print_symbolic();
 //    CHECK(fn.is_convex());
-//    fn -= 2*p*q;
-//    fn.print_symbolic();
-//    fn += expo(p);
-//    fn.print_symbolic();
-//    CHECK(fn.is_convex());
-//}
+}
 //
 //TEST_CASE("testing nonlinear expressions"){
 //    var<> x1("x1", -1, 1), x2("x2", 0, 3), x3("x3");

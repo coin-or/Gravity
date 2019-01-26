@@ -275,7 +275,7 @@ namespace gravity {
             return (_intype==complex_);
         };
 
-        Sign get_all_sign() const{return unknown_;}; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
+//        Sign get_all_sign() const{return unknown_;}; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
 //        virtual Sign get_sign(size_t idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
         
 
@@ -899,8 +899,11 @@ namespace gravity {
 //        shared_ptr<constant_> add(shared_ptr<param<T2>> c1){
 //            
 //        }
+        Sign get_all_sign() const{
+            return get_all_sign_();
+        }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign() const{
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign_() const{
             if (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)) {
                 return zero_;
             }
@@ -920,7 +923,7 @@ namespace gravity {
         }
 
         template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign() const {
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign_() const {
             if (_range->first == 0 && _range->second == 0) {
                 return zero_;
             }
@@ -940,20 +943,28 @@ namespace gravity {
         }
 
 
-
-        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
+        bool is_unit() const{
+            return is_unit_();
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit_() const { /**< Returns true if all values of this paramter are 1 **/
             return (_range->first == 1 && _range->second == 1);
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit_() const{
             return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
 
-        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
+
+        bool is_zero() const{
+            return is_zero_();
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
             return (_range->first == 0 && _range->second == 0);
         }
 
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero() const{
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
             return (_range->first == Cpx(0,0) && _range->second == Cpx(0,0));
         }
         

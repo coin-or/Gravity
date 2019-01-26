@@ -179,6 +179,9 @@ namespace gravity{
             be->_rson->propagate_dim(d);
         }
     }
+    
+    
+    
     uexpr& uexpr::operator=(const uexpr& exp){
         _type = uexp_c;
         _son = exp._son->copy();

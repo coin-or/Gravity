@@ -69,6 +69,7 @@ namespace gravity {
         
         /** Operators */
         
+        shared_ptr<constant_> copy()const{return make_shared<uexpr>(*this);};
         
         bool operator==(const uexpr &c)const;
         
@@ -141,6 +142,7 @@ namespace gravity {
             return _otype;
         };
         
+        shared_ptr<constant_> copy()const{return make_shared<bexpr>(*this);};
         
         bool operator==(const bexpr &c)const;
         
