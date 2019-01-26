@@ -1865,6 +1865,9 @@ namespace gravity{
                 if (ue->_son->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(ue->_son));
                 }
+                else if(ue->_son->is_expr()){
+                    embed(dynamic_pointer_cast<expr>(ue->_son));
+                }
                 else if (ue->_son->is_param() || ue->_son->is_var() ){
                     auto p = dynamic_pointer_cast<param_>(ue->_son);
                     auto name = p->get_name(false,false);
@@ -1896,6 +1899,9 @@ namespace gravity{
                 if (be->_lson->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(be->_lson));
                 }
+                else if(be->_lson->is_expr()){
+                    embed(dynamic_pointer_cast<expr>(be->_lson));
+                }
                 else if (be->_lson->is_param() || be->_lson->is_var() ){
                     auto p = dynamic_pointer_cast<param_>(be->_lson);
                     auto name = p->get_name(false,false);
@@ -1922,6 +1928,9 @@ namespace gravity{
                 }
                 if (be->_rson->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(be->_rson));
+                }
+                else if(be->_rson->is_expr()){
+                    embed(dynamic_pointer_cast<expr>(be->_rson));
                 }
                 else if (be->_rson->is_param() || be->_rson->is_var() ){
                     auto p = dynamic_pointer_cast<param_>(be->_rson);
@@ -2028,38 +2037,15 @@ namespace gravity{
         }
     }
 
+    
 
 //
     void func_::update_sign_add(const constant_& c){
-        Sign sign = c.get_all_sign();
-        if (sign==unknown_ || ((_all_sign==non_neg_ || _all_sign==pos_) && (sign==neg_ || sign==non_pos_))) {
-            _all_sign = unknown_;
-        }
-        else if((_all_sign==non_pos_ || _all_sign==neg_) && (sign==pos_ || sign==non_neg_)){
-            _all_sign = unknown_;
-        }
-        else if(_all_sign==zero_ || _all_sign==pos_ || _all_sign==neg_){// take weaker sign
-            _all_sign = sign;
-        }
+        _all_sign = sign_add(_all_sign, c.get_all_sign());
     }
     
     void func_::update_sign_multiply(const constant_& c){
-        Sign sign = c.get_all_sign();
-        if (sign==unknown_) {
-            _all_sign = unknown_;
-        }
-        else if(_all_sign==pos_ && (sign==neg_ || sign==non_pos_)){
-            _all_sign = sign;
-        }
-        else if(_all_sign==non_neg_ && (sign==neg_ || sign==non_pos_)){
-            _all_sign = non_pos_;
-        }
-        else if(_all_sign==neg_ && sign==neg_){
-            _all_sign = pos_;
-        }
-        else if(_all_sign==neg_ && sign==non_pos_){
-            _all_sign = non_neg_;
-        }
+        _all_sign = sign_product(_all_sign, c.get_all_sign());
     }
 //
 //    void func_::update_dim(const lterm& l){
@@ -4852,6 +4838,7 @@ namespace gravity{
     }
     
     Convexity func_::get_convexity(const qterm& q) {
+        return q.get_convexity();
         auto conv = q.get_convexity();
         if(_all_convexity==linear_ || conv==_all_convexity){
             return conv;

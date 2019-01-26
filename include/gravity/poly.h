@@ -84,6 +84,8 @@ namespace gravity {
         lterm& operator=(const lterm& l);
         lterm& operator=(lterm&& l);
         
+        string print_transposed(int prec) const;
+        string print_transposed(size_t idx, int prec) const;
         string to_str() const;
         string to_str(size_t ind, int prec) const;
         string to_str(size_t ind, size_t inst, int prec) const;
@@ -280,7 +282,9 @@ namespace gravity {
         
         pterm& operator=(const pterm& l);
         pterm& operator=(pterm&& l);
-        
+        string print_poly_vars() const;
+        string print_poly_vars(size_t ind) const;
+        string print_poly_vars(size_t ind1, size_t ind2) const;
         string to_str() const;
         string to_str(size_t ind, int prec) const;
         string to_str(size_t ind, size_t inst, int prec) const;

@@ -65,6 +65,50 @@ op::OptionParser readOptions(int argc, char * argv[]){
     
     return opt;
 }
+using namespace gravity;
+Sign reverse(Sign s) {
+    if(s==unknown_){
+        return unknown_;
+    }
+    return Sign(-1*s);
+}
+
+Sign sign_add(Sign s1, Sign s2){
+    if (s1==unknown_ || s2==unknown_) {
+        return unknown_;
+    }
+    else if((s1==non_neg_ || s1==pos_) && (s2==neg_ || s2==non_pos_)){
+        return unknown_;
+    }
+    else if((s1==non_pos_ || s1==neg_) && (s2==pos_ || s2==non_neg_)){
+        return unknown_;
+    }
+    else if(s1==zero_ || s1==pos_ || s1==neg_){// take weaker sign
+        return s2;
+    }
+    else{
+        return s1;
+    }
+}
+
+Sign sign_product(Sign s1, Sign s2){
+    if (s1==unknown_ || s2==unknown_) {
+        return unknown_;
+    }
+    else if(s1==pos_ && (s2==neg_ || s2==non_pos_)){
+        return s2;
+    }
+    else if(s1==non_neg_ && (s2==neg_ || s2==non_pos_)){
+        return non_pos_;
+    }
+    else if(s1==neg_ && s2==neg_){
+        return pos_;
+    }
+    else if(s1==neg_ && s2==non_pos_){
+        return non_neg_;
+    }
+    return s1;
+}
 
 /*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10] if possible the function will split mem into equal chuncks, if not the last chunck will be slightly larger */
 std::vector<int> bounds(int parts, int mem) {

@@ -46,6 +46,12 @@ op::OptionParser readOptions(int argc, char * argv[]);
 std::vector<int> bounds(int parts, int mem);
 
 
+gravity::Sign reverse(gravity::Sign s);
+
+gravity::Sign sign_add(gravity::Sign s1, gravity::Sign s2);
+
+gravity::Sign sign_product(gravity::Sign s1, gravity::Sign s2);
+
 gravity::indices time(unsigned p1 ,unsigned p2);
 
 template<typename... Args>

@@ -111,9 +111,48 @@ namespace gravity {
         //@}
         
         
-        Sign get_all_sign() const{ /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
-            return param<type>::get_all_sign();
-        };
+        Sign get_all_sign() const{
+            return get_all_sign_();
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign_() const{
+            if (_lb->is_zero() && _ub->is_zero()) {
+                return zero_;
+            }
+            if ((_ub->_range->second.real() < 0 && _ub->_range->second.imag() < 0)) {
+                return neg_;
+            }
+            if ((_lb->_range->first.real() > 0 && _lb->_range->first.imag() > 0)) {
+                return pos_;
+            }
+            if (_lb->is_zero()) {
+                return non_pos_;
+            }
+            if (_ub->is_zero()) {
+                return non_neg_;
+            }
+            return unknown_;
+        }
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign_() const {
+            if (_lb->is_zero() && _ub->is_zero()) {
+                return zero_;
+            }
+            if (_ub->_range->second < 0) {
+                return neg_;
+            }
+            if (_lb->_range->first > 0) {
+                return pos_;
+            }
+            if (_ub->is_zero()) {
+                return non_pos_;
+            }
+            if (_lb->is_zero()) {
+                return non_neg_;
+            }
+            return unknown_;
+        }
         
         Sign get_sign(size_t idx = 0) const{ /**< returns the sign of one instance of the current parameter/variable. **/
             return param<type>::get_sign(idx);
