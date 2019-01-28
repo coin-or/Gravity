@@ -60,4 +60,14 @@ gravity::indices time(std::string idx1, Args&&... args) {
     res._time_extended = true;
     return res;
 }
+
+
+bool operator <(const Cpx& lhs, const Cpx& rhs);
+
+bool operator >(const Cpx& lhs, const Cpx& rhs);
+
+bool operator <=(const Cpx& lhs, const Cpx& rhs);
+
+bool operator >=(const Cpx& lhs, const Cpx& rhs);
+
 #endif

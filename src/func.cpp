@@ -3715,59 +3715,59 @@ namespace gravity{
 //        }
 //    };
 //
-//    /* Build Compositions of positive integer n given k positive integers. All credits go to Dr. Martin von Gagern */
-//    vector<vector<int>> build_compositions(int k, int n) {
-//        int pos = 0, last = n - 1;
-//        vector<vector<int>> res;
-//        vector<int> a;
-//        a.resize(n);
-//        a[0] = k;
-//        res.push_back(a);
-//        while (true) {
-//            if (pos != last) {
-//                --a[pos];
-//                ++pos;
-//                a[pos] = 1;
-//            }
-//            else {
-//                if (a[last] == k)
-//                    return res;
-//                for (--pos; a[pos] == 0; --pos);
-//                --a[pos];
-//                int tmp = 1 + a[last];
-//                ++pos;
-//                a[last] = 0;
-//                a[pos] = tmp;
-//            }
-//            res.push_back(a);
-//        }
-//    }
-//
-//    /* Build all monomials of degree d in dimension n (size of vars) */
-//    vector<pterm> func_::get_monomials(unsigned d){
-//        vector<pterm> res;
-//        int n = _vars->size();
-//        auto comp = build_compositions(d, n);
-//        auto m = comp.size();
-//        res.resize(m);
-//        for (auto i = 0; i<m; i++) {
-//            auto l = new list<pair<param_*, int>>();
-//            auto row = comp[i];
-//            auto v_it = _vars->begin();
-//            for (auto j = 0; j<n; j++) {
-//                auto exp = row[j];
-//                auto v = v_it->second.first;
-//                if (exp>0) {
-//                    l->push_back(make_pair<>(v.get(), exp));
-//                }
-//                v_it++;
-//            }
-//            res[i] = pterm(true,new constant<>(1), l);
-//            cout << res[i].to_str(0, 1) << " | ";
-//        }
-//        cout << endl;
-//        return res;
-//    }
+    /* Build Compositions of positive integer n given k positive integers. All credits go to Dr. Martin von Gagern */
+    vector<vector<int>> build_compositions(int k, int n) {
+        int pos = 0, last = n - 1;
+        vector<vector<int>> res;
+        vector<int> a;
+        a.resize(n);
+        a[0] = k;
+        res.push_back(a);
+        while (true) {
+            if (pos != last) {
+                --a[pos];
+                ++pos;
+                a[pos] = 1;
+            }
+            else {
+                if (a[last] == k)
+                    return res;
+                for (--pos; a[pos] == 0; --pos);
+                --a[pos];
+                int tmp = 1 + a[last];
+                ++pos;
+                a[last] = 0;
+                a[pos] = tmp;
+            }
+            res.push_back(a);
+        }
+    }
+
+    /* Build all monomials of degree d in dimension n (size of vars) */
+    vector<pterm> func_::get_monomials(unsigned d){
+        vector<pterm> res;
+        int n = _vars->size();
+        auto comp = build_compositions(d, n);
+        auto m = comp.size();
+        res.resize(m);
+        for (auto i = 0; i<m; i++) {
+            auto l = make_shared<list<pair<shared_ptr<param_>, int>>>();
+            auto row = comp[i];
+            auto v_it = _vars->begin();
+            for (auto j = 0; j<n; j++) {
+                auto exp = row[j];
+                auto v = v_it->second.first;
+                if (exp>0) {
+                    l->push_back(make_pair<>(v, exp));
+                }
+                v_it++;
+            }
+            res[i] = pterm(true, make_shared<constant<>>(1), l);
+            cout << res[i].to_str(0, 1) << " | ";
+        }
+        cout << endl;
+        return res;
+    }
 //
 //
 //
@@ -5109,7 +5109,10 @@ namespace gravity{
 //        return false;
 //    }
 //
-    void func_::update_convexity(){
+    void func_::update_quad_convexity(){
+        if(is_unitary()){
+            //TODO check second derivative
+        }
         if (!_pterms->empty()) {
             _all_convexity = undet_;
             return;

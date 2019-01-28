@@ -747,10 +747,10 @@ namespace gravity{
             }
         }
         else {
-            _dim[0] = max(_dim[0], _lson->_dim[0]);
-            _dim[0] = max(_dim[0], _rson->_dim[0]);
-            _dim[1] = max(_dim[1], _lson->_dim[1]);
-            _dim[1] = max(_dim[1], _rson->_dim[1]);
+            _dim[0] = std::max(_dim[0], _lson->_dim[0]);
+            _dim[0] = std::max(_dim[0], _rson->_dim[0]);
+            _dim[1] = std::max(_dim[1], _lson->_dim[1]);
+            _dim[1] = std::max(_dim[1], _rson->_dim[1]);
         }
     };
     

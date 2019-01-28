@@ -1,10 +1,11 @@
 #include <gravity/utils.h>
 #include <gravity/types.h>
+using namespace std;
+using namespace gravity;
+
 #ifdef _WIN32
 #include <Windows.h>
 
-using namespace std;
-using namespace gravity;
 double get_wall_time() {
     LARGE_INTEGER time,freq;
     if (!QueryPerformanceFrequency(&freq)) {
@@ -65,7 +66,24 @@ op::OptionParser readOptions(int argc, char * argv[]){
     
     return opt;
 }
-using namespace gravity;
+
+bool operator <(const Cpx& lhs, const Cpx& rhs){
+    return lhs.real()<rhs.real() && lhs.imag()<rhs.imag();
+}
+
+bool operator >(const Cpx& lhs, const Cpx& rhs){
+    return lhs.real()>rhs.real() && lhs.imag()>rhs.imag();
+}
+
+bool operator <=(const Cpx& lhs, const Cpx& rhs){
+    return lhs.real()<=rhs.real() && lhs.imag()<=rhs.imag();
+}
+
+bool operator >=(const Cpx& lhs, const Cpx& rhs){
+    return lhs.real()>=rhs.real() && lhs.imag()>=rhs.imag();
+}
+
+
 Sign reverse(Sign s) {
     if(s==unknown_){
         return unknown_;

@@ -9,12 +9,15 @@
 #define Gravity___Type_h
 #include <memory>
 #include <list>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <map>
 #include <set>
 #include <assert.h>
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <complex>      // std::complex
 
 namespace gravity{
 #define EPS 0.00001
@@ -47,7 +50,7 @@ namespace gravity{
     typedef enum { const_, lin_, quad_, pol_, nlin_ } FType;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { lin_m, quad_m, pol_m, nlin_m } MType;  /* Model type: Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { minimize, maximize } ObjectiveType;
-    typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_, tan_, relu_} OperatorType;  /* Operation type in the expression tree */
+    typedef enum { id_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_, tan_, relu_} OperatorType;  /* Operation type in the expression tree */
     
     typedef enum { R_, R_p_, C_} SpaceType;  /* Real, Positive Reals, Complex */
     
@@ -61,6 +64,8 @@ namespace gravity{
     
     
     using namespace std;
+    
+    static double pi = 4.*atan(1.);
     
     class space{
     public:

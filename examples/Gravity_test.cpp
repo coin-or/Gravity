@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <functional>
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
@@ -341,12 +342,16 @@ TEST_CASE("testing complex functions") {
     iv.in(ids);
     var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
     cv.in(ids);
-    auto f = 2*iv;
+    auto f = 2*iv + 2;
     f.print_symbolic();
     CHECK(f.is_linear());
     CHECK(f.is_convex());
     f+= pow(iv,2);
     f+=2;
+    CHECK(f.to_str()=="x² + 2x + 4");
+    f.print_symbolic();
+    f.print();
+    f -= 2*iv;
     f.print_symbolic();
     f.print();
     CHECK(f.is_quadratic());
@@ -408,10 +413,13 @@ TEST_CASE("testing complex matrix product") {
 //
 TEST_CASE("testing function convexity"){
     var<> dp("dp",0.5,10.);
-    var<int> ip("ip",-1,1);
+    var<int> ip("ip",3,4);
     auto expr = log(dp) + sqrt(ip);
     expr.print_symbolic();
     CHECK(expr.is_concave());
+    CHECK(expr._range->first==log(0.5)+(int)sqrt(3));
+    CHECK(expr._range->second==log(10)+(int)sqrt(4));
+    CHECK(expr.is_positive());
     var<> p("p",0,1);
     var<> q("q");
     auto cc = p*p + q*q;
@@ -420,8 +428,9 @@ TEST_CASE("testing function convexity"){
     auto cc1 = cc * -1;
     cc1.print_symbolic();
     CHECK(cc1.is_concave());
-    cc1 += 2*p*q;
+    cc1 += expr;
     cc1.print_symbolic();
+    CHECK(cc1.is_concave());
 //    CHECK(cc1.is_rotated_soc());
     param<int> aa("aa");
     aa = -1;
@@ -449,28 +458,34 @@ TEST_CASE("testing function convexity"){
     auto fn = p*p + q*q;
     fn.print_symbolic();
     CHECK(fn.is_convex());
-    fn -= 2*p*q;
-    fn.print_symbolic();
+//    fn -= 2*p*q;
+//    fn.print_symbolic();
     fn += exp(p);
     fn.print_symbolic();
-//    CHECK(fn.is_convex());
+    CHECK(fn.is_convex());
 }
 //
-//TEST_CASE("testing nonlinear expressions"){
-//    var<> x1("x1", -1, 1), x2("x2", 0, 3), x3("x3");
+TEST_CASE("testing nonlinear expressions"){
+    var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3");
+    x1.in(R(1));
+    x2.in(R(1));
+    x3.in(R(1));
 //    Constraint cstr("cycle");
-//    cstr = cos(x1*x2);
-//    CHECK(cstr.get_nb_vars()==2);
-//    cstr += sin(x2*x3) + x1*expo(x2*x3) + log(x2);
-//    CHECK(cstr.get_nb_vars()==3);
-//}
+    auto cstr = cos(x1*x2);
+    CHECK(cstr.get_nb_vars()==2);
+    cstr += sin(x2*x3) + x1*exp(x2*x3) + log(x2);
+    CHECK(cstr.get_nb_vars()==3);
+    cstr.print_symbolic();
+    cstr.print();
+}
 //
-//TEST_CASE("testing monomials"){
-//    var<> x1("x1"), x2("x2"), x3("x3");
-//    Constraint cstr("cycle");
-//    cstr = x1*x2 + x2*x3 + x1*x3;
-//    auto monoms = cstr.get_monomials(9);
-//}
+TEST_CASE("testing monomials"){
+    var<> x1("x1"), x2("x2"), x3("x3");
+    auto cstr = x1*x2 + x2*x3 + x1*x3;
+    auto monoms = cstr.get_monomials(5);
+    double ang = -2*pi;
+    cout << "modulus(ang,3pi/2) = " << fmod(ang,3.*pi/2.)<< endl;
+}
 //
 //TEST_CASE("testing acopf"){
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
