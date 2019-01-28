@@ -597,7 +597,9 @@ namespace gravity {
     constant<T> zero(){
         return constant<T>(Cpx(0,0));
     }
-
+    
 }
+
+
 
 #endif //GRAVITY_CONSTANT_H

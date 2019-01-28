@@ -119,6 +119,10 @@ namespace gravity {
             return (_vars->empty() && _params->empty());
         }
         
+        bool is_unitary() const{
+            return (_vars->size()==1);
+        }
+        
         bool has_square() const {
             for (auto &qt: *_qterms) {
                 if (qt.second._p->first==qt.second._p->second) {
@@ -485,7 +489,7 @@ namespace gravity {
                 }
                 pterm p(sign, c_new, newl);
                 //            update_sign(p);
-                _dim[0] = max(_dim[0], l.begin()->first->_dim[0]);
+                _dim[0] = std::max(_dim[0], l.begin()->first->_dim[0]);
                 _pterms->insert(make_pair<>(name, move(p)));
                 return true;
             }
@@ -540,7 +544,7 @@ namespace gravity {
         void update_sign_add(const constant_& c);
         void update_sign_multiply(const constant_& c);
         
-        void update_convexity();
+        void update_quad_convexity();
         
         void update_sign();
         
@@ -595,172 +599,7 @@ namespace gravity {
         void print_symbolic(bool endline = true, bool display_input = true);
     };
 
-//
-//        bool insert(bool sign, const constant_& coef, const param_& p);/**< Adds coef*p to the function. Returns true if added new term, false if only updated coef of p */
-//        bool insert(bool sign, const constant_& coef, const param_& p1, const param_& p2, bool c_p1_transposed=false);/**< Adds coef*p1*p2 to the function. Returns true if added new term, false if only updated coef of p1*p2 */
-//        bool insert(bool sign, const constant_& coef, const list<pair<shared_ptr<param_>, int>>& l);/**< Adds polynomial term to the function. Returns true if added new term, false if only updated corresponding coef */
-//       
-//        
-//        void transpose(){
-//            this->constant_::transpose();
-//            if(_expr){
-//                _expr->transpose();
-//            }
-//            if(_vars->size()==1 && _params->size()==0){ // If function is a variable.
-//                auto vars_cpy = *_vars;
-//                for (auto &vp:*_vars) {
-//                    vp.second.first->transpose();
-//                    vars_cpy.erase(vp.first);
-//                    vars_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
-//                }
-//                *_vars = move(vars_cpy);
-//            }
-//            else if(_vars->size()==0 && _params->size()==1){ // If function is a parameter.
-//                auto params_cpy = *_params;
-//                for (auto &vp:*_params) {
-//                    vp.second.first->transpose();
-//                    params_cpy.erase(vp.first);
-//                    params_cpy[vp.second.first->get_name(false,false)]= make_pair<>(vp.second.first, vp.second.second);
-//                }
-//                *_params = move(params_cpy);
-//
-//            }
-//        }
-
-//        
-//
-
-//        
-//
-//
-//        void update_to_str(bool input = false);
-
-//        
-//        
-//        size_t get_nb_instances() const {
-//            return _dim[0];
-//        }
-////            return max((size_t)1,constant_::get_nb_instances());
-////        }
-//        
-//
-//        
-//        void add_param(shared_ptr<param_> p, int nb = 1);/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
-//        
-//        
-//        
-//        void delete_var(const string& vid);
-//        
-//        void delete_param(const string& vid);
-//        
-
-//        void replace(param_* v, func_& f);/**<  Replace v with function f everywhere it appears */
-//
-//        
-//        void reset();
-//        
-//
-////        void untranspose_derivatives(){
-////            for (auto &fp:*_dfdx) {
-////                auto df = fp.second;
-////                df->transpose();
-////                df->_nb_instances = max(df->_nb_instances, _nb_instances);
-//////                df->_val->resize(max(df->_val->size(),_nb_instances));
-////                df->untranspose_derivatives();
-////            }
-////        }
-//        
-//        
-//
-//
-//        func_& operator=(func_&& f);
-//        
-//        bool operator==(const func_& f) const;
-//        
-//        bool operator!=(const func_& f) const;
-//        
-//
-//        func_& operator+=(const constant_& f);
-//        func_& operator-=(const constant_& f);
-//        func_& operator*=(const constant_& f);
-//        func_& operator/=(const constant_& f);
-//        
-//        
-//        friend func_ cos(const constant_& c);
-//        friend func_ cos(constant_&& c);
-//        
-//        friend func_ sin(const constant_& c);
-//        friend func_ sin(constant_&& c);
-//        
-//        
-//        friend func_ sqrt(const constant_& c);
-//        friend func_ sqrt(constant_&& c);
-//        
-//        friend func_ expo(const constant_& c);
-//        friend func_ expo(constant_&& c);
-//        
-//        friend func_ log(const constant_& c);
-//        friend func_ log(constant_&& c);
-//
-//        
-//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator+=(T c){
-//            return *this += constant<T>(c);
-//        };
-//        
-//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator-=(T c){
-//            return *this -= constant<T>(c);
-//        };
-//        
-//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator*=(T c){
-//            return *this *= constant<T>(c);
-//        };
-//        
-//        template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_& operator/=(T c){
-//            return *this /= constant<T>(c);
-//        };
-//        
-//
-//      
-//        func_ get_outer_app(); /**< Returns an outer-approximation of the function using the current value of the variables **/
-//        
-//        Sign get_all_sign() const;
-//        pair<double, double>* get_all_range() const;
-//        Sign get_sign(size_t idx=0) const;
-//        Sign get_all_sign(const lterm& l);
-//        Sign get_all_sign(const qterm& l);
-//        Sign get_all_sign(const pterm& l);
-//
-//        
-//        
     
-//
-//        void update_sign(const lterm& l);
-//        
-//        void update_sign(const qterm& q);
-//        
-//        void update_sign(const pterm& q);
-//        
-//        void update_convexity(const qterm& q);
-//        
-    
-//
-//        void update_dim(const lterm& l);
-//        
-//        void update_dim(const qterm& q);
-//        
-//        bool is_soc();
-    
-//
-//
-//        void update_sign();
-//        
-//        string to_str() const;
-//        string to_str(size_t inst) const;
-    
-//        void print(size_t index);
-//        void print();
-//    };
-//
     template<typename type = double>
     class func: public func_{
     public:
@@ -779,10 +618,6 @@ namespace gravity {
             _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
         
-        void update_range(type t) {
-            _range->first = t;
-            _range->second = t;
-        }
         
         func(){
             update_type();
@@ -797,27 +632,6 @@ namespace gravity {
         };
         
         
-//            constant_::set_type(func_c);
-//            _params = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _vars = new map<string, pair<shared_ptr<param_>, unsigned>>();
-//            _cst = new constant<type>();
-//            _lterms = new map<string, lterm>();
-//            _qterms = new map<string, qterm>();
-//            _pterms = new map<string, pterm>();
-//            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-//            _DAG = new map<string, expr*>();
-//            _queue = new deque<shared_ptr<expr>>();
-//            _all_range = new pair<type,type>(numeric_limits<type>::lowest(),numeric_limits<type>::max());
-//            _sign = nullptr;
-//            _convexity = nullptr;
-//            _range = nullptr;
-//            _evaluated = true;
-//        };
-//        
-//        func(const type& c){
-//            *this = constant<type>(c);
-//        };
-//
         void update_type() {
             _type = func_c;
             if(typeid(type)==typeid(bool)) {
@@ -850,6 +664,7 @@ namespace gravity {
             }
             throw invalid_argument("Unsupported numerical function type");
         }
+        
         
         bool is_constant() const{
             return (_vars->empty());
@@ -1031,6 +846,13 @@ namespace gravity {
             }
             reverse_convexity();
             reverse_all_sign();
+            reverse_range();
+        }
+        
+        void reverse_range(){
+            auto temp = _range->first;
+            _range->first = _range->second;
+            _range->second = temp;
         }
         
         void reverse_all_sign(){
@@ -1335,311 +1157,7 @@ namespace gravity {
                 _expr->allocate_mem();
             }
         }
-//
-//        func(constant_&& c):func(){
-//            if(c.is_function()){
-//                auto f = (func_*)&c;
-//                switch (f->get_type()) {
-//                    case binary_:
-//                        *this = move(*(func<bool>*)f);
-//                        break;
-//                    case short_:
-//                        *this = move(*(func<short>*)f);
-//                        break;
-//                    case integer_:
-//                        *this = move(*(func<int>*)f);
-//                        break;
-//                    case float_:
-//                        *this = move(*(func<float>*)f);
-//                        break;
-//                    case double_:
-//                        *this = move(*(func<double>*)f);
-//                        break;
-//                    case long_:
-//                        *this = move(*(func<long double>*)f);
-//                        break;
-//                    case complex_:
-//                        *this = move(*(func<Cpx>*)f);
-//                        break;
-//                    default:
-//                        throw invalid_argument("unsupported numerical type");
-//                        break;
-//                }
-//            }
-//            else {
-//                _dim[0] = c._dim[0];
-//                _dim[1] = c._dim[1];
-//                switch (c.get_type()) {
-//                    case binary_c: {
-//                        _cst = new constant<bool>(move(*(constant<bool>*)(&c)));
-//                        _all_sign = ((constant<bool>*)_cst)->get_sign();
-//                        auto val = ((constant<bool>*)_cst)->eval();
-//                        _all_range = new pair<bool,bool>(val,val);
-//                        _val = make_shared<vector<bool>>();
-//                        _val->push_back(val);
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case short_c: {
-//                        _cst = new constant<short>(move(*(constant<short>*)(&c)));
-//                        _all_sign = ((constant<short>*)_cst)->get_sign();
-//                        auto val = ((constant<short>*)(&c))->eval();
-//                        _all_range = new pair<short,short>(val,val);
-//                        _val = make_shared<vector<short>>();
-//                        _val->push_back(val);
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case integer_c: {
-//                        _cst = new constant<int>(move(*(constant<int>*)(&c)));
-//                        _all_sign = ((constant<int>*)_cst)->get_sign();
-//                        auto val = ((constant<int>*)(&c))->eval();
-//                        _all_range = new pair<int,int>(val,val);
-//                        _val = make_shared<vector<int>>();
-//                        _val->push_back(((constant<int>*)(&c))->eval());
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case float_c: {
-//                        _cst = new constant<float>(move(*(constant<float>*)(&c)));
-//                        _all_sign = ((constant<float>*)_cst)->get_sign();
-//                        auto val = ((constant<float>*)(&c))->eval();
-//                        _all_range = new pair<float,float>(val,val);
-//                        _val = make_shared<vector<float>>();
-//                        _val->push_back(val);
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case double_c: {
-//                        _cst = new constant<double>(move(*(constant<double>*)(&c)));
-//                        _all_sign = ((constant<double>*)_cst)->get_sign();
-//                        auto val = ((constant<double>*)(&c))->eval();
-//                        _all_range = new pair<double,double>(val,val);
-//                        _val = make_shared<vector<double>>();
-//                        _val->push_back(val);
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case long_c: {
-//                        _cst = new constant<long double>(move(*(constant<long double>*)(&c)));
-//                        _all_sign = ((constant<long double>*)_cst)->get_sign();
-//                        auto val = ((constant<long double>*)(&c))->eval();
-//                        _all_range = new pair<long double,long double>(val,val);
-//                        _val = make_shared<vector<long double>>();
-//                        _val->push_back(((constant<long double>*)(&c))->eval());
-//                        _evaluated = true;
-//                        break;
-//                    }
-//                    case complex_c: {
-//                        _cst = new constant<Cpx>(*(constant<Cpx>*)(&c));
-//                        _all_sign = g
-//                        _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-//                        auto val = ((constant<Cpx>*)(&c))->eval();
-//                        _val = make_shared<vector<Cpx>>();
-//                        _val->push_back(val);
-//                        break;
-//                    }
-//                    case par_c:{
-//                        auto p_c2 =     shared_ptr<param_>((param_*)copy(move(c)));
-//                        //                    p_c2->untranspose();
-//                        _lterms->insert(make_pair<>(p_c2->get_name(false,false), p_c2.get()));
-//                        add_param(p_c2);
-//                        _cst = new constant<double>(0);
-//                        _all_sign = p_c2->get_all_sign();
-//                        _all_range = p_c2->get_range();
-//                        _is_transposed = c._is_transposed;
-//                        _is_vector = c._is_vector;
-//                        //                    _is_matrix = c._is_matrix;
-//                        _dim[0] = c._dim[0];
-//                        _dim[1] = c._dim[1];
-//                        //                    _nb_instances = c._dim[0];
-//                        //                    _indices = p_c2->_indices;
-//                        _evaluated = false;
-//                        break;
-//                    }
-//                    case var_c:{
-//                        auto p_c2 = shared_ptr<param_>((param_*)copy(move(c)));
-//                        _lterms->insert(make_pair<>(p_c2->get_name(false,false), p_c2.get()));
-//                        add_var(p_c2);
-//                        _ftype = lin_;
-//                        _is_transposed = c._is_transposed;
-//                        _is_vector = c._is_vector;
-//                        //                    _is_matrix = c._is_matrix;
-//                        _dim[0] = c._dim[0];
-//                        _dim[1] = c._dim[1];
-//                        //                    _nb_instances = c._dim[0];
-//                        //                    _val->resize(_nb_instances);
-//                        _cst = new constant<double>(0);
-//                        _all_sign = p_c2->get_all_sign();
-//                        _all_range = p_c2->get_range();
-//                        _is_transposed = p_c2->_is_transposed;
-//                        _is_vector = p_c2->_is_vector;
-//                        //                    _is_matrix = p_c2->_is_matrix;
-//                        _dim[0] = p_c2->_dim[0];
-//                        _dim[1] = p_c2->_dim[1];
-//                        //                    if (p_c2->_indices) {
-//                        //                        _indices = p_c2->_indices;
-//                        //                    }
-//                        
-//                        break;
-//                    }
-//                    case uexp_c: {
-//                        auto ue = (uexpr*)(&c);
-//                        auto f = ue->_son;
-//                        for (auto &pair:*f->_vars) {
-//                            auto p = pair.second.first;
-//                            auto it = _vars->find(p->get_name(false,false));
-//                            if (it==_vars->end()) {
-//                                add_var(p,pair.second.second);
-//                            }
-//                        }
-//                        for (auto &pair:*f->_params) {
-//                            auto p = pair.second.first;
-//                            auto it = _params->find(p->get_name(false,false));
-//                            if (it==_params->end()) {
-//                                add_param(p,pair.second.second);
-//                            }
-//                        }
-//                        switch (ue->_otype) {
-//                            case sin_:
-//                                _all_range = new pair<double,double>(-1*ue->_coef,ue->_coef); // TODO UPDATE
-//                                _all_sign = unknown_;
-//                                _all_convexity = undet_;
-//                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                                //                            if (ue->_son->is_constant()) {
-//                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*sin(ue->_son->eval(inst));
-//                                //                                }
-//                                //                                _evaluated = true;
-//                                //                            }
-//                                break;
-//                            case cos_:
-//                                _all_range = new pair<double,double>(-1*ue->_coef,ue->_coef); // TODO UPDATE
-//                                _all_sign = unknown_;
-//                                _all_convexity = undet_;
-//                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                                //                            if (ue->_son->is_constant()) {
-//                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*cos(ue->_son->eval(inst));
-//                                //                                }
-//                                //                            }
-//                                //                            _evaluated = true;
-//                                break;
-//                            case sqrt_:
-//                                _all_range = new pair<double,double>(0,numeric_limits<double>::max()); // TO UPDATE
-//                                _all_sign = non_neg_;
-//                                _all_convexity = undet_;
-//                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                                //                            if (ue->_son->is_constant()) {
-//                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*sqrt(ue->_son->eval(inst));
-//                                //                                }
-//                                //                            }
-//                                //                            _evaluated = true;
-//                                break;
-//                            case exp_:
-//                                _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TO UPDATE
-//                                _all_sign = pos_;
-//                                _all_convexity = undet_;
-//                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                                //                            if (ue->_son->is_constant()) {
-//                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*exp(ue->_son->eval(inst));
-//                                //                                }
-//                                //                            }
-//                                //                            _evaluated = true;
-//                                break;
-//                            case log_:
-//                                _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TO
-//                                _all_sign = unknown_;
-//                                _all_convexity = undet_;
-//                                //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                                //                            if (ue->_son->is_constant()) {
-//                                //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                                //                                    _val->at(inst) = ue->_coef*log(ue->_son->eval(inst));
-//                                //                                }
-//                                //                            }
-//                                //                            _evaluated = true;
-//                                break;
-//                            default:
-//                                break;
-//                        }
-//                        _cst = new constant<double>(0);
-//                        _expr = make_shared<uexpr>(move(*ue));
-//                        _is_transposed = c._is_transposed;
-//                        _is_vector = c._is_vector;
-//                        //                    _is_matrix = c._is_matrix;
-//                        _dim[0] = c._dim[0];
-//                        _dim[1] = c._dim[1];
-//                        //                    _nb_instances = c._dim[0];
-//                        embed(_expr);
-//                        if (!_vars->empty()) {
-//                            _ftype = nlin_;
-//                        }
-//                        //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                        _queue->push_back(_expr);
-//                        //sign and convexity
-//                        break;
-//                    }
-//                    case bexp_c: {
-//                        auto be = (bexpr*)&c;
-//                        auto f = be->_lson;
-//                        for (auto &pair:*f->_vars) {
-//                            auto p = pair.second.first;
-//                            auto it = _vars->find(p->get_name(false,false));
-//                            if (it==_vars->end()) {
-//                                add_var(p,pair.second.second);
-//                            }
-//                        }
-//                        for (auto &pair:*f->_params) {
-//                            auto p = pair.second.first;
-//                            auto it = _params->find(p->get_name(false,false));
-//                            if (it==_params->end()) {
-//                                add_param(p,pair.second.second);
-//                            }
-//                        }
-//                        f = be->_rson;
-//                        for (auto &pair:*f->_vars) {
-//                            auto p = pair.second.first;
-//                            auto it = _vars->find(p->get_name(false,false));
-//                            if (it==_vars->end()) {
-//                                add_var(p,pair.second.second);
-//                            }
-//                        }
-//                        for (auto &pair:*f->_params) {
-//                            auto p = pair.second.first;
-//                            auto it = _params->find(p->get_name(false,false));
-//                            if (it==_params->end()) {
-//                                add_param(p,pair.second.second);
-//                            }
-//                        }
-//                        _cst = new constant<double>(0);
-//                        _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TODO update
-//                        _all_sign = be->get_all_sign();
-//                        _all_convexity = undet_;// TODO update
-//                        _is_transposed = c._is_transposed;
-//                        _is_vector = c._is_vector;
-//                        //                    _is_matrix = c._is_matrix;
-//                        _dim[0] = c._dim[0];
-//                        _dim[1] = c._dim[1];
-//                        //                    _nb_instances = c._dim[0];
-//                        _expr = make_shared<bexpr>(move(*be));
-//                        embed(_expr);
-//                        if (!_vars->empty()) {
-//                            _ftype = nlin_;
-//                        }
-//                        //                    _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                        _queue->push_back(_expr);
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                }
-//            }
-//        }
-//        
-//        
-//
+
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
@@ -1832,7 +1350,7 @@ namespace gravity {
             if (_cst->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
                 f_cst += func<type>(f);
-                embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
             else if(_cst->is_param()) {
                 auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
@@ -1850,18 +1368,21 @@ namespace gravity {
         void add_cst(const param<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
-                func<type>(f_cst) += func<T2>(f);
+                f_cst += func<type>(f);
                 embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));                
             }
             else if(_cst->is_param()) {
                 auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
-                auto new_cst = f + p_cst;
-                _cst = make_shared<func<type>>(move(new_cst));
+                auto f_cst = f + p_cst;
+                embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
             else if(_cst->is_number()) {
                 auto p_cst = *dynamic_pointer_cast<constant<type>>(_cst);
-                auto new_cst = f + p_cst;
-                _cst = make_shared<func<type>>(move(new_cst));
+                auto f_cst = f + p_cst;
+                embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
         }
         
@@ -1871,16 +1392,19 @@ namespace gravity {
                 auto f_cst = *dynamic_pointer_cast<func<type>>(_cst);
                 f_cst += f;
                 embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
             else if(_cst->is_param()) {
                 auto p_cst = *dynamic_pointer_cast<param<type>>(_cst);
-                auto new_cst = f + func<type>(p_cst);
-                _cst = make_shared<func<type>>(move(new_cst));
+                auto f_cst = f + func<type>(p_cst);
+                embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
             else if(_cst->is_number()) {
                 auto p_cst = *dynamic_pointer_cast<constant<type>>(_cst);
-                auto new_cst = f + func<type>(p_cst);
-                _cst = make_shared<func<type>>(move(new_cst));
+                auto f_cst = f + func<type>(p_cst);
+                embed(f_cst);
+                _cst = make_shared<func<type>>(move(f_cst));
             }
         }
         
@@ -1951,235 +1475,7 @@ namespace gravity {
             return *this;
         }
         
-//                case par_c:{
-//                    auto p_c2 =     shared_ptr<param_>((param_*)copy(c));
-//                    //                p_c2->untranspose();//TODO what is this doing here?
-//                    _lterms->insert(make_pair<>(p_c2->get_name(false,false), p_c2.get()));
-//                    add_param(p_c2);
-//                    _cst = new constant<double>(0);
-//                    _all_sign = p_c2->get_all_sign();
-//                    _all_range = p_c2->get_range();
-//                    _is_transposed = c._is_transposed;
-//                    _is_vector = c._is_vector;
-//                    //                _is_matrix = c._is_matrix;
-//                    _dim[0] = c._dim[0];
-//                    _dim[1] = c._dim[1];
-//                    //                _nb_instances = c._dim[0];
-//                    //                _indices = p_c2->_indices;
-//                    //                _val->resize(_nb_instances);
-//                    //                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                    //                    _val->at(inst) = eval(p_c2.get(), inst);
-//                    //                }
-//                    _evaluated = false;
-//                    break;
-//                }
-//                case var_c:{
-//                    auto p_c2 = shared_ptr<param_>((param_*)copy(c));
-//                    //                p_c2->untranspose();
-//                    _lterms->insert(make_pair<>(p_c2->get_name(false,false), p_c2.get()));
-//                    add_var(p_c2);
-//                    _ftype = lin_;
-//                    _is_transposed = c._is_transposed;
-//                    _is_vector = c._is_vector;
-//                    //                _is_matrix = c._is_matrix;
-//                    _dim[0] = c._dim[0];
-//                    _dim[1] = c._dim[1];
-//                    //                _nb_instances = c._dim[0];
-//                    //                _val->resize(_nb_instances);
-//                    _cst = new constant<double>(0);
-//                    _all_sign = p_c2->get_all_sign();
-//                    _all_range = p_c2->get_range();
-//                    //                _indices = p_c2->_indices;
-//                    break;
-//                }
-//                case uexp_c: {
-//                    _cst = new constant<double>(0);
-//                    auto ue = (uexpr*)(&c);
-//                    auto f = ue->_son;
-//                    for (auto &pair:*f->_vars) {
-//                        auto p = pair.second.first;
-//                        auto it = _vars->find(p->get_name(false,false));
-//                        if (it==_vars->end()) {
-//                            add_var(p,pair.second.second);
-//                        }
-//                    }
-//                    for (auto &pair:*f->_params) {
-//                        auto p = pair.second.first;
-//                        auto it = _params->find(p->get_name(false,false));
-//                        if (it==_params->end()) {
-//                            add_param(p,pair.second.second);
-//                        }
-//                    }
-//                    switch (ue->_otype) {
-//                        case sin_:
-//                            _all_range = new pair<double,double>(-1*ue->_coef,ue->_coef); // TO UPDATE
-//                            _all_sign = unknown_;
-//                            _all_convexity = undet_;// TODO update
-//                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                            //                            if (ue->_son->is_constant()) {
-//                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*sin(ue->_son->eval(inst));
-//                            //                                }
-//                            //                                _evaluated = true;
-//                            //                            }
-//                            break;
-//                        case cos_:
-//                            _all_range = new pair<double,double>(-1*ue->_coef,ue->_coef); // TODO UPDATE
-//                            _all_sign = unknown_;
-//                            _all_convexity = undet_;// TODO update
-//                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                            //                            if (ue->_son->is_constant()) {
-//                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*cos(ue->_son->eval(inst));
-//                            //                                }
-//                            //                            }
-//                            //                            _evaluated = true;
-//                            break;
-//                        case sqrt_:
-//                            _all_range = new pair<double,double>(0,numeric_limits<double>::max()); // TO UPDATE
-//                            _all_sign = non_neg_;
-//                            _all_convexity = undet_;// TODO update
-//                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                            //                            if (ue->_son->is_constant()) {
-//                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*sqrt(ue->_son->eval(inst));
-//                            //                                }
-//                            //                            }
-//                            //                            _evaluated = true;
-//                            break;
-//                        case exp_:
-//                            _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TO UPDATE
-//                            _all_sign = pos_;
-//                            _all_convexity = undet_;// TODO update
-//                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                            //                            if (ue->_son->is_constant()) {
-//                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*exp(ue->_son->eval(inst));
-//                            //                                }
-//                            //                            }
-//                            //                            _evaluated = true;
-//                            break;
-//                        case log_:
-//                            _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TO
-//                            _all_sign = unknown_;
-//                            _all_convexity = undet_;// TODO update
-//                            //                            _val->resize(max(_val->size(),ue->_son->_nb_instances));
-//                            //                            if (ue->_son->is_constant()) {
-//                            //                                for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                            //                                    _val->at(inst) = ue->_coef*log(ue->_son->eval(inst));
-//                            //                                }
-//                            //                            }
-//                            //                            _evaluated = true;
-//                            break;
-//                        default:
-//                            break;
-//                    }
-//                    _expr = make_shared<uexpr>(*ue);
-//                    embed(_expr);
-//                    _is_transposed = c._is_transposed;
-//                    _is_vector = c._is_vector;
-//                    //                _is_matrix = c._is_matrix;
-//                    _dim[0] = c._dim[0];
-//                    _dim[1] = c._dim[1];
-//                    //                _nb_instances = c._dim[0];
-//                    if (!_vars->empty()) {
-//                        _ftype = nlin_;
-//                    }
-//                    //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                    _queue->push_back(_expr);
-//                    //sign and convexity
-//                    break;
-//                }
-//                case bexp_c: {
-//                    auto be = (bexpr*)&c;
-//                    auto f = be->_lson;
-//                    for (auto &pair:*f->_vars) {
-//                        auto p = pair.second.first;
-//                        auto it = _vars->find(p->get_name(false,false));
-//                        if (it==_vars->end()) {
-//                            add_var(p,pair.second.second);
-//                        }
-//                    }
-//                    for (auto &pair:*f->_params) {
-//                        auto p = pair.second.first;
-//                        auto it = _params->find(p->get_name(false,false));
-//                        if (it==_params->end()) {
-//                            add_param(p,pair.second.second);
-//                        }
-//                    }
-//                    f = be->_rson;
-//                    for (auto &pair:*f->_vars) {
-//                        auto p = pair.second.first;
-//                        auto it = _vars->find(p->get_name(false,false));
-//                        if (it==_vars->end()) {
-//                            add_var(p,pair.second.second);
-//                        }
-//                    }
-//                    for (auto &pair:*f->_params) {
-//                        auto p = pair.second.first;
-//                        auto it = _params->find(p->get_name(false,false));
-//                        if (it==_params->end()) {
-//                            add_param(p,pair.second.second);
-//                        }
-//                    }
-//                    _cst = new constant<double>(0);
-//                    _expr = make_shared<bexpr>(*be);
-//                    _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max()); // TO UPDATE
-//                    _all_sign = be->get_all_sign();
-//                    _all_convexity = undet_;// TODO update
-//                    if (!_val) {
-//                        _val = make_shared<vector<double>>();
-//                    }
-//                    //                if (be->_lson->is_constant() && be->_rson->is_constant()) {
-//                    //                    _val->resize(max(_val->size(),max(be->_lson->_nb_instances,be->_rson->_nb_instances)));
-//                    //                    switch (be->_otype) {
-//                    //                        case plus_:
-//                    //                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                    //                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) + be->_rson->eval(inst));
-//                    //                            }
-//                    //                            break;
-//                    //                        case minus_:
-//                    //                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                    //                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) - be->_rson->eval(inst));
-//                    //                            }
-//                    //                            break;
-//                    //                        case product_:
-//                    //                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                    //                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) * be->_rson->eval(inst));
-//                    //                            }
-//                    //                            break;
-//                    //                        case div_:
-//                    //                            for (unsigned inst = 0; inst < _val->size(); inst++) {
-//                    //                                _val->at(inst) = be->_coef*(be->_lson->eval(inst) / be->_rson->eval(inst));
-//                    //                            }
-//                    //                            break;
-//                    //                        default:
-//                    //                            break;
-//                    //                    }
-//                    //                }
-//                    embed(_expr);
-//                    _is_transposed = c._is_transposed;
-//                    _is_vector = c._is_vector;
-//                    //                _is_matrix = c._is_matrix;
-//                    _dim[0] = c._dim[0];
-//                    _dim[1] = c._dim[1];
-//                    //                _nb_instances = c._dim[0];
-//                    if (!_vars->empty()) {
-//                        _ftype = nlin_;
-//                    }
-//                    //                _DAG->insert(make_pair<>(_expr->get_str(), _expr));
-//                    _queue->push_back(_expr);
-//                    break;
-//                }
-//                case func_c: {
-//                    *this = *(func_*)&c;
-//                }
-//                default:
-//                    break;
-//            }
-//            _dim[0] = c._dim[0];
-//            _dim[1] = c._dim[1];
-//        }
+
 
         func(func&& f){
             *this = move(f);
@@ -2476,11 +1772,11 @@ namespace gravity {
         }
         
         
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void update_range(T val) {
-            if (val < _range->first) {
+        void update_range(type val) {
+            if (val <= _range->first) {
                 _range->first = val;
             }
-            if (val > _range->second) {
+            if (val >= _range->second) {
                 _range->second = val;
             }
         }
@@ -2731,11 +2027,11 @@ namespace gravity {
                     break;
                 }
                 case uexp_c:{
-                    return eval(static_pointer_cast<uexpr>(c),i);
+                    return eval_uexpr(static_pointer_cast<uexpr>(c),i);
                     break;
                 }
                 case bexp_c:{
-                    return eval(static_pointer_cast<bexpr>(c),i);
+                    return eval_bexpr(static_pointer_cast<bexpr>(c),i);
                     break;
                 }
                 default:{
@@ -2817,11 +2113,11 @@ namespace gravity {
                     break;
                 }
                 case uexp_c:{
-                    return eval(static_pointer_cast<uexpr>(c),i,j);
+                    return eval_uexpr(static_pointer_cast<uexpr>(c),i,j);
                     break;
                 }
                 case bexp_c:{
-                    return eval(static_pointer_cast<bexpr>(c),i,j);
+                    return eval_bexpr(static_pointer_cast<bexpr>(c),i,j);
                     break;
                 }
                 default:{
@@ -3303,12 +2599,6 @@ namespace gravity {
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         T eval_uexpr(shared_ptr<uexpr> exp, size_t i) {
-            if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {//TODO what if son is matrix?
-                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
-                    eval(exp->_son,inst);
-                }
-                exp->_son->evaluated(true);
-            }
             T res = eval(exp->_son,i);
             switch (exp->_otype) {
                 case cos_:
@@ -3339,12 +2629,6 @@ namespace gravity {
         }
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         Cpx eval_uexpr(shared_ptr<uexpr> exp, size_t i) {
-            if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {//TODO what if son is matrix?
-                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
-                    eval(exp->_son,inst);
-                }
-                exp->_son->evaluated(true);
-            }
             Cpx res = eval(exp->_son,i);
             switch (exp->_otype) {
                 case cos_:
@@ -3378,18 +2662,6 @@ namespace gravity {
                        
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         T  eval_bexpr(shared_ptr<bexpr> exp, size_t i){
-            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
-                    eval(exp->_lson,inst);
-                }
-                exp->_lson->evaluated(true);
-            }
-            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
-                    eval(exp->_rson,inst);
-                }
-                exp->_rson->evaluated(true);
-            }
             T lval = eval(exp->_lson,i);
             T rval = eval(exp->_rson,i);
             switch (exp->_otype) {
@@ -3450,65 +2722,146 @@ namespace gravity {
             }
             
         }
+        
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T eval_uexpr(shared_ptr<uexpr> exp, size_t i, size_t j) {
+            T res = eval(exp->_son,i,j);
+            switch (exp->_otype) {
+                case cos_:
+                    return exp->_coef*std::cos(res);
+                    break;
+                case sin_:
+                    return exp->_coef*std::sin(res);
+                    break;
+                case sqrt_:
+                    return exp->_coef*std::sqrt(res);
+                    break;
+                case log_:
+                    return exp->_coef*std::log(res);
+                    break;
+                case exp_:
+                    return exp->_coef*std::exp(res);
+                    break;
+                case relu_:{
+                    if(res < 0)
+                        res = 0;
+                    return exp->_coef*res;
+                }
+                    break;
+                default:
+                    throw invalid_argument("Unsupported unary operator");
+                    break;
+            }
+        }
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        Cpx eval_uexpr(shared_ptr<uexpr> exp, size_t i, size_t j) {
+            Cpx res = eval(exp->_son,i,j);
+            switch (exp->_otype) {
+                case cos_:
+                    return exp->_coef*std::cos(res);
+                    break;
+                case sin_:
+                    return exp->_coef*std::sin(res);
+                    break;
+                case sqrt_:
+                    return exp->_coef*std::sqrt(res);
+                    break;
+                case log_:
+                    return exp->_coef*std::log(res);
+                    break;
+                case exp_:
+                    return exp->_coef*std::exp(res);
+                    break;
+                case relu_:{
+                    if(res.real() < 0)
+                        res.real(0);
+                    if(res.imag() < 0)
+                        res.imag(0);
+                    return exp->_coef*res;
+                }
+                    break;
+                default:
+                    throw invalid_argument("Unsupported unary operator");
+                    break;
+            }
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        T  eval_bexpr(shared_ptr<bexpr> exp, size_t i, size_t j){
+            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
+                    eval(exp->_lson,inst);
+                }
+                exp->_lson->evaluated(true);
+            }
+            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
+                    eval(exp->_rson,inst);
+                }
+                exp->_rson->evaluated(true);
+            }
+            T lval = eval(exp->_lson,i,j);
+            T rval = eval(exp->_rson,i,j);
+            switch (exp->_otype) {
+                case plus_:
+                    return exp->_coef*(lval + rval);
+                    break;
+                case minus_:
+                    return exp->_coef*(lval - rval);
+                    break;
+                case product_:
+                    return exp->_coef*(lval*rval);
+                    break;
+                case div_:
+                    return exp->_coef*(lval/rval);
+                    break;
+                default:
+                    throw invalid_argument("Unsupported binary operator");
+                    break;
+            }
             
-//            double uexpr::eval(size_t i, size_t j) const{
-//                if (!is_matrix()) {
-//                    return eval(j);//TODO what if son is transposed
-//                }
-//                if (_son->is_constant() && !_son->_evaluated) {
-//                    unsigned index = 0;
-//                    if (_son->is_matrix()) {
-//                        for (unsigned row = 0; row<_son->_dim[0]; row++) {
-//                            for (unsigned col = 0; col<_son->_dim[1]; col++) {
-//                                if (_is_transposed) {
-//                                    index = _son->_dim[0]*col + row;
-//                                }
-//                                else {
-//                                    index = _son->_dim[1]*row + col;
-//                                }
-//
-//                                _son->_val->at(index) = _son->eval(row,col);
-//                            }
-//                        }
-//                    }
-//                    else {
-//                        for (size_t row = 0; row<_son->_dim[0]; row++) {
-//                            _son->_val->at(index) = _son->eval(index);
-//                        }
-//                    }
-//                    _son->_evaluated = true;
-//                }
-//                double val = 0;
-//                if (_son->is_number()) {
-//                    val = _son->_val->at(0);
-//                }
-//                else {
-//                    val = _son->get_val(i,j);
-//                }
-//                switch (_otype) {
-//                    case cos_:
-//                        return _coef*cos(val);
-//                        break;
-//                    case sin_:
-//                        return _coef*sin(val);
-//                        break;
-//                    case sqrt_:
-//                        return _coef*sqrt(val);
-//                        break;
-//                    case log_:
-//                        return _coef*log(val);
-//                        break;
-//                    case exp_:
-//                        return _coef*exp(val);
-//                        break;
-//                    default:
-//                        throw invalid_argument("Unsupported unary operator");
-//                        break;
-//                }
-//
-//            }
-//            return res;
-//        }
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        T  eval_bexpr(shared_ptr<bexpr> exp, size_t i, size_t j){
+            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
+                    eval(exp->_lson,inst);
+                }
+                exp->_lson->evaluated(true);
+            }
+            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
+                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
+                    eval(exp->_rson,inst);
+                }
+                exp->_rson->evaluated(true);
+            }
+            T lval = eval(exp->_lson,i,j);
+            T rval = eval(exp->_rson,i,j);
+            switch (exp->_otype) {
+                case plus_:
+                    return exp->_coef*(lval + rval);
+                    break;
+                case minus_:
+                    return exp->_coef*(lval - rval);
+                    break;
+                case product_:
+                    return exp->_coef*(lval*rval);
+                    break;
+                case div_:
+                    return exp->_coef*(lval/rval);
+                    break;
+                case power_:
+                    return exp->_coef*(powl(lval,rval));
+                    break;
+                default:
+                    throw invalid_argument("Unsupported binary operator");
+                    break;
+            }
+            
+        }
+        
         
         type eval(const string& key) {
             return _val->at(_indices->_keys_map->at(key));
@@ -3636,7 +2989,9 @@ namespace gravity {
                         _all_convexity = undet_;
                 }
                 update_sign_multiply(fc);
-                update_convexity();
+                if(f.is_non_positive()){
+                    reverse_convexity();
+                }
                 _evaluated = false;
                 if(transp){
                     this->transpose();
@@ -3653,6 +3008,9 @@ namespace gravity {
                 res._dim[0] = _dim[0];
                 res._dim[1] = _dim[1];
                 res._all_sign = _all_sign;
+                if(is_non_positive()){
+                    res.reverse_convexity();
+                }
                 if (!res._cst->is_zero()) {
                     if (res._cst->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<T2>>(res._cst);
@@ -3718,10 +3076,12 @@ namespace gravity {
                 _evaluated = false;
                 return *this;
             }
+            //Both functions are non-constants at this stage
             if (_expr || (f._expr)) {
                 auto be = bexpr(product_, make_shared<func>(*this), make_shared<func<T2>>(f));
                 *this = func(be);
                 _evaluated = false;
+                _all_convexity = undet_;
                 return *this;
             }
 
@@ -4105,7 +3465,8 @@ namespace gravity {
                 }
             }
             res.update_dot_dim(*this, f);
-            res.update_convexity();
+            if(res.is_quadratic()){res.update_quad_convexity();}
+            else {_all_convexity = undet_;}
             res._all_sign = sign_product(_all_sign, f.get_all_sign());
             *this = move(res);
             _evaluated = false;
@@ -4239,7 +3600,14 @@ namespace gravity {
                 }
             }
             update_sign_add(f);
-            update_convexity();
+            if(is_quadratic()){
+                update_quad_convexity();
+            }
+            else if(_all_convexity!=f._all_convexity){
+                _all_convexity = undet_;
+            }
+            _range->first += f._range->first;
+            _range->second += f._range->second;
             return *this;
         }
         
@@ -4373,7 +3741,7 @@ namespace gravity {
         else {
             res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
         }
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
 
@@ -4402,7 +3770,7 @@ namespace gravity {
         else {
             res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
         }
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
 
@@ -4423,7 +3791,7 @@ namespace gravity {
             res.insert(true,unit<T1>(),p2);
         }
         res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
         
@@ -4444,7 +3812,7 @@ namespace gravity {
             res.insert(true,unit<T2>(),p2);
         }
         res._all_sign = sign_add(p1.get_all_sign(), p2.get_all_sign());
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
     
@@ -4465,7 +3833,7 @@ namespace gravity {
             res.insert(false,unit<T1>(),p2);
         }
         res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
     
@@ -4488,7 +3856,7 @@ namespace gravity {
             res.insert(false,unit<T2>(),p2);
         }
         res._all_sign = sign_add(p1.get_all_sign(), reverse(p2.get_all_sign()));
-        res.update_convexity();
+        if(res.is_quadratic()){res.update_quad_convexity();}
         return res;
     }
         
@@ -4598,106 +3966,562 @@ namespace gravity {
         return res;
     }
     
-    template<class T1>
-    func<T1> log(const param<T1>& p1){
-        func<T1> res(uexpr(log_, p1.copy()));
+    /**
+     Return the sign and curvature of unitary operator op on given range.
+     @param[in] op Mathematical unitary operator, e.g., cos, sin, log, etc...
+     @param[in] range, range of values we're interested in.
+     @return a pair<Convexity,Sign> charachterizing the sign and the curvature of the operator op in the given range
+     */
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    pair<Convexity,Sign> get_sign_curvature(OperatorType op, pair<T,T> range){
+        pair<Convexity,Sign> res = {undet_,unknown_};
+        switch(op){
+            case id_:{// f(x) = x
+                res.first = linear_;
+                if(range.first>=0){
+                    res.second = non_neg_;
+                }
+                if(range.first>0){
+                    res.second = pos_;
+                }
+                if(range.second<=0){
+                    res.second = non_pos_;
+                }
+                if(range.first<0){
+                    res.second = neg_;
+                }
+                return res;
+            }
+            case cos_:
+                return cos_sign_curvature(range);
+            case sin_:{
+                range.first += pi/2.;
+                range.second += pi/2.;
+                return cos_sign_curvature(range);
+            }
+            case log_:{
+                res.first = concave_;
+                if(range->first>=1){
+                    res.second = non_neg_;
+                    if(range->first>1){
+                        res.second = pos_;
+                    }
+                }
+                if(range->second<=1){
+                    res.second = non_pos_;
+                    if(range->second<1){
+                        res.second = neg_;
+                    }
+                }
+                return res;
+            }
+            case exp_:{
+                return {convex_,pos_};
+            }
+            case sqrt_:{
+                res.first = concave_;
+                res.second = non_neg_;
+                if(range.first > 0){
+                    res.second = pos_;
+                }
+                return res;
+            }
+            case tan_:{
+                if(range.first>=0){
+                    res.first = convex_;
+                    res.second = non_neg_;
+                }
+                if(range.first>0){
+                    res.first = convex_;
+                    res.second = pos_;
+                }
+                if(range.second<=0){
+                    res.first = concave_;
+                    res.second = non_pos_;
+                }
+                if(range.second<0){
+                    res.first = concave_;
+                    res.second = neg_;
+                }
+                return res;
+            }
+            case relu_:{
+                res.first = convex_;
+                res.second = non_neg_;
+                if(range.first > 0){
+                    res.second = pos_;
+                }
+                return res;
+            }
+            default:
+                break;
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> log(const param<T>& p1){
+        if(!p1.is_positive()){
+            throw invalid_argument("Calling log() with a non-positive argument");
+        }
+        func<T> res(uexpr(log_, p1.copy()));
+        if(p1._range->first>=1){
+            res._all_sign = non_neg_;
+            if(p1._range->first>1){
+                res._all_sign = pos_;
+            }
+        }
+        if(p1._range->second<=1){
+            res._all_sign = non_pos_;
+            if(p1._range->second<1){
+                res._all_sign = neg_;
+            }
+        }
+        if (p1.is_var()) {
+            res._all_convexity = concave_;
+        }
+        res._range->first = std::log(p1._range->first);
+        res._range->second = std::log(p1._range->second);
         return res;
     }
     
     template<class T1>
     func<T1> exp(const param<T1>& p1){
         func<T1> res(uexpr(exp_, p1.copy()));
+        res._all_sign = pos_;
+        if (p1.is_var()) {
+            res._all_convexity = convex_;
+        }
+        res._range->first = std::exp(p1._range->first);
+        res._range->second = std::exp(p1._range->second);
         return res;
     }
     
     template<class T1>
     func<T1> sqrt(const param<T1>& p1){
+        if(!p1.is_non_negative()){
+            throw invalid_argument("Calling sqrt() with a negative argument");
+        }
         func<T1> res(uexpr(sqrt_, p1.copy()));
+        res._all_sign = non_neg_;
+        if(p1.is_positive()){
+            res._all_sign = pos_;
+        }
+        if (p1.is_var()) {
+            res._all_convexity = concave_;
+        }
+        res._range->first = std::sqrt(p1._range->first);
+        res._range->second = std::sqrt(p1._range->second);
         return res;
     }
     
-    template<class T1>
-    func<T1> cos(const param<T1>& p1){
-        func<T1> res(uexpr(cos_, p1.copy()));
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    pair<Convexity,Sign> cos_sign_curvature(const pair<T,T>& range){
+        pair<Convexity,Sign> res = {undet_,zero_};
+        auto lb = fmod(range.first,(2*pi));
+        auto ub = fmod(range.second,(2*pi));
+        if(ub<= -3*pi/2){
+            res.first = concave_;
+            res.second = non_neg_;
+            if(ub< -3*pi/2){
+                res.second = pos_;
+            }
+        }
+        if(lb>=-3*pi/2 && ub<= -pi/2){
+            res.first = convex_;
+            res.second = non_pos_;
+            if(lb>-3*pi/2 && ub<-pi/2){
+                res.second = neg_;
+            }
+        }
+        if(lb>=-pi/2 && ub<= pi/2){
+            res.first = concave_;
+            res.second = non_neg_;
+            if(lb>-pi/2 && ub<pi/2){
+                res.second = pos_;
+            }
+        }
+        if(lb>=pi/2 && ub<= 3*pi/2){
+            res.first = convex_;
+            res.second = non_pos_;
+            if(lb>pi/2 && ub<3*pi/2){
+                res.second = neg_;
+            }
+        }
+        if(lb >= 3*pi/2){
+            res.first = concave_;
+            res.second = non_neg_;
+            if(lb > 3*pi/2){
+                res.second = pos_;
+            }
+        }
         return res;
     }
     
-    template<class T1>
-    func<T1> sin(const param<T1>& p1){
-        func<T1> res(uexpr(sin_, p1.copy()));
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> cos(const param<T>& p1){
+        func<T> res(uexpr(cos_, p1.copy()));//TODO update ranges and convexity
+        auto conv_sign = cos_sign_curvature(*p1._range);
+        if (p1.is_var()) {
+            res._all_convexity = conv_sign.first;
+        }
+        res._all_sign = conv_sign.second;
+        res._range->first = min(cos(p1._range->first),cos(p1._range->second));
+        res._range->second = max(cos(p1._range->first),cos(p1._range->second));
+        if(p1._range->first <0 && p1._range->second >0){
+            res._range->second = 1;
+        }
+        if((p1._range->first <-pi && p1._range->second >-pi) || (p1._range->first <pi && p1._range->second >pi)){
+            res._range->first = -1;
+        }
         return res;
     }
     
-    template<class T1>
-    func<T1> tan(const param<T1>& p1){
-        func<T1> res(uexpr(tan_, p1.copy()));
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> sin(const param<T>& p1){
+        func<T> res(uexpr(sin_, p1.copy()));
+        auto shifted_range = *p1._range;
+        shifted_range.first += pi/2.;
+        shifted_range.second += pi/2.;
+        auto conv_sign = cos_sign_curvature(shifted_range);
+        if (p1.is_var()) {
+            res._all_convexity = conv_sign.first;
+        }
+        res._all_sign = conv_sign.second;
+        res._range->first = min(sin(p1._range->first),sin(p1._range->second));
+        res._range->second = max(sin(p1._range->first),sin(p1._range->second));
+        if(shifted_range.first <0 && shifted_range.second >0){
+            res._range->second = 1;
+        }
+        if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+            res._range->first = -1;
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> tan(const param<T>& p1){
+        auto centered_range = *p1._range;
+        centered_range.first %= 2*pi;
+        centered_range.second %= 2*pi;
+        if(centered_range.first<=-pi/2 || centered_range.second>=pi/2){
+            throw invalid_argument("Calling tan() with discontinuous domain");
+        }
+        func<T> res(uexpr(tan_, p1.copy()));
+        if(centered_range.first>=0){
+            if (p1.is_var()) {
+                res._all_convexity = convex_;
+            }
+            res._all_sign = non_neg_;
+            if(centered_range.first>0){
+                res._all_sign = pos_;
+            }
+        }
+        if(centered_range.second<=0){
+            if (p1.is_var()) {
+                res._all_convexity = concave_;
+            }
+            res._all_sign = non_pos_;
+            if(centered_range.first>0){
+                res._all_sign = neg_;
+            }
+        }
+        res._range->first = tan(p1._range->first);
+        res._range->second = tan(p1._range->second);
         return res;
     }
     
     template<class T1>
     func<T1> ReLU(const param<T1>& p1){
         func<T1> res(uexpr(relu_, p1.copy()));
+        if (p1.is_var()) {
+            res._all_convexity = convex_;
+        }
+        res._all_sign = non_neg_;
+        if(p1.is_positive()){
+            res._all_sign = pos_;
+        }
+        res._range->first = max(zero<T1>(),p1._range->first);
+        res._range->second = max(zero<T1>(),p1._range->second);
+        return res;
+    }
+    
+    template<class T>
+    func<T> pow(const param<T>& p1, int exp){
+        if(exp<0){
+            func<T> res;
+            if(!p1.is_negative() && !p1.is_positive()){
+                throw invalid_argument("Calling pow() with a negative exponent on an argument that  can be zero");
+            }
+            res.insert(p1,exp);
+            return res;
+        }
+        if(exp==0){
+            return func<T>();
+        }
+        if(exp==1){
+            return func<T>(p1);
+        }
+        if(exp==2){
+            return p1*p1;
+        }
+        else {
+            func<T> res;
+            res.insert(p1,exp);
+            res._range->first = min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            res._range->second = max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            if(exp%2==0) {
+                res._all_sign = non_neg_;
+                if(p1.is_positive()){
+                    res._all_sign = pos_;
+                }
+                if(p1._range->first <0 && p1._range->second >0){
+                    res._range->first = 0;
+                }
+            }
+            else {
+                res._all_sign = p1.get_all_sign();
+            }
+            if (p1.is_var()) {
+                if(exp%2==0) {
+                    res._all_convexity = convex_;
+                }
+                else if(p1.is_non_negative()){
+                    res._all_convexity = convex_;
+                }
+                else if(p1.is_non_positive()){
+                    res._all_convexity = concave_;
+                }
+                else {
+                    res._all_convexity = undet_;
+                }
+            }
+            return res;
+        }
+    }
+    
+    
+    template<class T1>
+    func<T1> log(const func<T1>& f){
+        func<T1> res(uexpr(log_, f.copy()));
+        if(f._range->first>=1){
+            res._all_sign = non_neg_;
+            if(f._range->first>1){
+                res._all_sign = pos_;
+            }
+        }
+        if(f._range->second<=1){
+            res._all_sign = non_pos_;
+            if(f._range->second<1){
+                res._all_sign = neg_;
+            }
+        }
+        if (f.is_linear()) {
+            res._all_convexity = concave_;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._range->first = log(f._range->first);
+        res._range->second = log(f._range->second);
         return res;
     }
     
     template<class T1>
-    func<T1> pow(const param<T1>& p1, int exp){
+    func<T1> exp(const func<T1>& f){
+        func<T1> res(uexpr(exp_, f.copy()));
+        res._all_sign = pos_;
+        if (f.is_linear()) {
+            res._all_convexity = convex_;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._range->first = std::exp(f._range->first);
+        res._range->second = std::exp(f._range->second);
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> sqrt(const func<T1>& f){
+        if(!f.is_non_negative()){
+            throw invalid_argument("Calling sqrt() with a potentially negative argument");
+        }
+        func<T1> res(uexpr(sqrt_, f.copy()));
+        res._all_sign = non_neg_;
+        if(f.is_positive()){
+            res._all_sign = pos_;
+        }
+        if (f.is_linear()) {
+            res._all_convexity = convex_;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._range->first = sqrt(f._range->first);
+        res._range->second = sqrt(f._range->second);
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> cos(const func<T>& f){
+        func<T> res(uexpr(cos_, f.copy()));
+        auto conv_sign = cos_sign_curvature(*f._range);
+        if (f.is_linear()) {
+            res._all_convexity = conv_sign.first;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = conv_sign.second;
+        res._range->first = min(std::cos(f._range->first),std::cos(f._range->second));
+        res._range->second = max(std::cos(f._range->first),std::cos(f._range->second));
+        if(f._range->first <0 && f._range->second >0){
+            res._range->second = 1;
+        }
+        if((f._range->first <-pi && f._range->second >-pi) || (f._range->first <pi && f._range->second >pi)){
+            res._range->first = -1;
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> sin(const func<T>& f){
+        func<T> res(uexpr(sin_, f.copy()));
+        auto shifted_range = *f._range;
+        shifted_range.first += pi/2.;
+        shifted_range.second += pi/2.;
+        auto conv_sign = cos_sign_curvature(shifted_range);
+        if (f.is_linear()) {
+            res._all_convexity = conv_sign.first;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = conv_sign.second;
+        res._range->first = min(std::sin(f._range->first),std::sin(f._range->second));
+        res._range->second = max(std::sin(f._range->first),std::sin(f._range->second));
+        if(shifted_range.first <0 && shifted_range.second >0){
+            res._range->second = 1;
+        }
+        if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+            res._range->first = -1;
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> tan(const func<T>& f){
+        func<T> res(uexpr(tan_, f.copy()));
+        auto centered_range = *f._range;
+        centered_range.first %= 2*pi;
+        centered_range.second %= 2*pi;
+        if(centered_range.first<=-pi/2 || centered_range.second>=pi/2){
+            throw invalid_argument("Calling tan(const func<T1>& f) with discontinuous domain");
+        }
+        if(centered_range.first>=0){
+            if (f.is_linear()) {
+                res._all_convexity = convex_;
+            }
+            else if(!f.is_constant()){
+                res._all_convexity = undet_;
+            }
+            res._all_sign = non_neg_;
+            if(centered_range.first>0){
+                res._all_sign = pos_;
+            }
+        }
+        if(centered_range.second<=0){
+            if (f.is_linear()) {
+                res._all_convexity = concave_;
+            }
+            else if(!f.is_constant()){
+                res._all_convexity = undet_;
+            }
+            res._all_sign = non_pos_;
+            if(centered_range.first>0){
+                res._all_sign = neg_;
+            }
+        }
+        res._range->first = tan(f._range->first);
+        res._range->second = tan(f._range->second);
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> ReLU(const func<T1>& f){
+        func<T1> res(uexpr(relu_, f.copy()));
+        if (f.is_linear()) {
+            res._all_convexity = convex_;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = non_neg_;
+        if(f.is_positive()){
+            res._all_sign = pos_;
+        }
+        res._range->first = max(zero<T1>(),f._range->first);
+        res._range->second = max(zero<T1>(),f._range->second);
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> pow(const func<T>& f, int exp){
         if(exp<0){
-//            return 1/pow(p1,-exp);
+            return func<T>(bexpr(power_, f.copy(), make_shared<constant<int>>(exp)));
         }
         if(exp==0){
-            return func<T1>(p1);
+            return func<T>();
         }
         if(exp==1){
-            func<T1> res;
-            res.insert(p1);
+            return f;
         }
         if(exp==2){
-            func<T1> res;
-            res.insert(p1,p1);
-            res.update_convexity();
-            return res;
+            return f*f;
         }
         else {
-            func<T1> res;
-            res.insert(p1,exp);
+            func<T> res(f);
+            for (int i = 1; i < exp; i++) {
+                res *= f;
+            }
+            res._range->first = min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+            res._range->second = max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+            if(exp%2==0) {
+                res._all_sign = non_neg_;
+                if(f.is_positive()){
+                    res._all_sign = pos_;
+                }
+                if(f._range->first <0 && f._range->second >0){
+                    res._range->first = 0;
+                }
+            }
+            else {
+                res._all_sign = f.get_all_sign();
+            }
+            if (f.is_linear()) {
+                if(exp%2==0) {
+                    res._all_convexity = convex_;
+                }
+                else if(f.is_non_negative()){
+                    res._all_convexity = convex_;
+                }
+                else if(f.is_non_positive()){
+                    res._all_convexity = concave_;
+                }
+                else {
+                    res._all_convexity = undet_;
+                }
+            }
+            else if(!f.is_constant()){
+                res._all_convexity = undet_;
+            }
             return res;
         }
     }
-        
-//    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
-//    func<T1> operator+(const var<T1>& p1, const var<T2>& p2){
-//        func<T1> res;
-//        auto newp1 = p1.pcopy();
-//        auto newp2 = p2.pcopy();
-//        res.update_dim(p1,p2);
-//        res.insert(lterm(newp1));
-//        res.insert(lterm(newp2));
-//        return res;
-//    }
-//
-//    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-//    func<T1> operator+(const param<T1>& p, const var<T2>& v){
-//        func<T1> res;
-//        res.add_cst(p);
-//        auto newv = v.pcopy();
-//        auto newp = p.pcopy();
-//        res.update_dim(p,v);
-//        res.insert(lterm(newv));
-//        return res;
-//    }
-//
-//    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-//    func<T2> operator+(const param<T1>& p, const var<T2>& v){
-//        func<T2> res;
-//        auto newv = v.pcopy();
-//        auto newp = p.pcopy();
-//        res.add_param(newp);
-//        res.update_dim(p,v);
-//        res.insert(lterm(newv));
-//        return res;
-//    }
-//
+    
+    
+
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const constant<T1>& p, const param<T2>& v){
         func<T1> res(v);
@@ -4786,6 +4610,121 @@ namespace gravity {
     func<T2> operator+(const func<T1>& f, const param<T2>& v){
         func<T2> res(v);
         res += f;
+        return res;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const constant<T1>& v, const func<T2>& f){
+        func<T1> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const constant<T1>& v, const func<T2>& f){
+        func<T2> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const func<T1>& f, const constant<T2>& v){
+        func<T1> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const func<T1>& f, const constant<T2>& v){
+        func<T2> res(v);
+        res += f;
+        return res;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(T1 v, const func<T2>& f){
+        func<T1> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(T1 v, const func<T2>& f){
+        func<T2> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const func<T1>& f, T2 v){
+        func<T1> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const func<T1>& f, T2 v){
+        func<T2> res(v);
+        res += f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const constant<T1>& v, const func<T2>& f){
+        func<T1> res(v);
+        res -= f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const constant<T1>& v, const func<T2>& f){
+        func<T2> res(v);
+        res -= f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const func<T1>& f, const constant<T2>& v){
+        func<T1> res(f);
+        res -= v;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const func<T1>& f, const constant<T2>& v){
+        func<T2> res(f);
+        res -= f;
+        return res;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(T1 v, const func<T2>& f){
+        func<T1> res(v);
+        res -= f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(T1 v, const func<T2>& f){
+        func<T2> res(v);
+        res -= f;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const func<T1>& f, T2 v){
+        func<T1> res(f);
+        res -= v;
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const func<T1>& f, T2 v){
+        func<T2> res(f);
+        res -= f;
         return res;
     }
     
@@ -4922,1037 +4861,7 @@ namespace gravity {
     func<T2> operator*(const func<T1>& f, T2 p){
         return f * func<T2>(p);
     }
-        // Transform var<T2> to param<T2> and check type.
-    
-    
-    
-    
-//
-//    template<typename T1,typename T2>
-//    func<T1> operator+(const func<T1>& c1, const func<T2>& c2){
-//        func<T1> res;
-//        return res;
-//    }
-//
-//    template<typename T1,typename T2>
-//    func<T1> operator+(const param<T1>& c1, const var<T2>& c2){
-//        func<T1> res;
-//        return res;
-//    }
-//
-//
-//
-//    func_ operator+(const constant_& c1, const constant_& c2);
-////    func_ operator+(func_&& f, const constant_& c);
-//    //func_ operator+(const constant_& c, func_&& f);
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(func_&& f, T c){
-//        return f += c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(T c, func_&& f){
-//        return f += c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(func_&& f, T c){
-//        return f -= c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(T c, func_&& f){
-//        return (f *= -1) += c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(func_&& f, T c){
-//        return f *= c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(T c, func_&& f){
-//        return f *= c;
-//    };
-//
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(func_&& f, T c){
-//        return f /= c;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(const constant_& c1, T c2){
-//        return func_(c1) += c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator+(T c2, const constant_& c1){
-//        return func_(c1) += c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(const constant_& c1, T c2){
-//        return func_(c1) -= c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator-(T c2, const constant_& c1){
-//        return (func_(c1) *= -1) += c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(const constant_& c1, T c2){
-//        return func_(c1) *= c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator*(T c2, const constant_& c1){
-//        return func_(c1) *= c2;
-//    };
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(const constant_& c1, T c2){
-//        return func_(c1) *= 1/c2;
-//    };
-//    
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> func_ operator/(T c2, const constant_& c1){
-//        return func_(c2) /= c1;
-//    };
-//
-//    func_ operator*(const constant_& c1, const constant_& c2);
-//
-//
-//
-//    func_ operator-(const constant_& c1, const constant_& c2);
-//
-//    func_ operator/(const constant_& c1, const constant_& c2);
-//
-//
-//
-//        
-//
-        
-//    shared_ptr<constant_> add(shared_ptr<constant_> c1, shared_ptr<constant_> c2); /**< adds c2 to c1, and returns the result **/
-//    //
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* add(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                if (c2.is_binary() ) {
-//                    *(constant<bool>*)c1 += c2.eval();
-//                }
-//                else {
-//                    bool val = ((constant<bool>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                if (c2.get_type() <= short_c) {
-//                    *((constant<short>*)c1) += c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<short>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                break;
-//            }
-//            case integer_c: {
-//                if (c2.get_type() <= integer_c) {
-//                    *((constant<int>*)c1) += c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<int>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                break;
-//            }
-//            case float_c: {
-//                if (c2.get_type() <= float_c) {
-//                    *((constant<float>*)c1) += c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<float>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                break;
-//            }
-//            case double_c: {
-//                if (c2.get_type() <= double_c) {
-//                    *((constant<double>*)c1) += c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                break;
-//            }
-//            case long_c: {
-//                if (c2.get_type() <= long_c) {
-//                    *((constant<long double>*)c1) += c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<long double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() + val);
-//                }
-//                break;
-//            }
-//            case complex_c: {
-//                auto f = new func_(*c1);
-//                *f += c2;
-//                c1 =(constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case par_c:{            
-//                auto f = new func_(*c1);
-//                *f += c2;
-//                c1 =(constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case var_c:{
-//                auto f = new func_(*c1);
-//                *f += c2;
-//                c1 =(constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//    //        case uexp_c: {
-//    //            auto res = new bexpr(*(uexpr*)c1 + c2);
-//    //            delete c1;
-//    //            c1 = (constant_*)res;
-//    //            return c1;
-//    //            break;
-//    //        }
-//    //        case bexp_c: {
-//    //            auto res = new bexpr(*(bexpr*)c1 + c2);
-//    //            delete c1;
-//    //            c1 = (constant_*)res;
-//    //            return c1;
-//    //            break;
-//    //        }
-//            case func_c: {
-//    //            auto res = new func_((*(func_*)c1) + c2);
-//    //            delete c1;
-//    //            return c1 = (constant_*)res;
-//                (*(func_*)c1) += c2;
-//                return c1;
-//                break;
-//            }
-//                
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//    //constant_* add(constant_* c1, const func_& f);
-//
-//    template<class T> constant_* add(constant_* c1, const param<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                auto val = ((constant<bool>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                auto val = ((constant<short>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case integer_c: {
-//                auto val = ((constant<int>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case float_c: {
-//                auto val = ((constant<float>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case double_c: {
-//                auto val = ((constant<double>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case long_c: {
-//                auto val = ((constant<long double>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case complex_c: {
-//                auto val = *((constant<Cpx>*)c1);
-//                delete c1;
-//                auto f = new func_(c2);
-//                *f += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case par_c:{
-//                auto res = new func_(*c1);
-//                delete c1;
-//                res->insert(true, constant<double>(1), c2);
-//                return c1 = res;
-//                break;
-//            }
-//            case var_c:{
-//                auto res = new func_(*c1);
-//                delete c1;
-//                if (c2.is_var()) {
-//                    res->insert(true, constant<double>(1), c2);
-//                }
-//                else {
-//                    auto cst = res->get_cst();
-//                    cst = add(cst, c2);
-//                }
-//                return c1 = res;
-//                break;
-//            }
-//
-//    //        case uexp_c: {
-//    //            auto res = new bexpr(*(uexpr*)c1 + c2);
-//    //            delete c1;
-//    //            c1 = (constant_*)res;
-//    //            return c1;
-//    //            break;
-//    //        }
-//    //        case bexp_c: {
-//    //            auto res = new bexpr(*(bexpr*)c1 + c2);
-//    //            delete c1;
-//    //            c1 = (constant_*)res;
-//    //            return c1;
-//    //            break;
-//    //        }
-//            case func_c: {
-//    //            auto res = new func_(*c1);
-//    //            delete c1;
-//    //            *res += c2;
-//    //            return c1 = (constant_*)res;
-//                (*(func_*)c1) += c2;
-//                return c1;
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//    constant_* substract(constant_* c1, const constant_& c2);
-//
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* substract(constant_* c1, const param<T>& c2){ /**< Substracts c2 from c1, updates its type and returns the result **/
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                auto val = ((constant<bool>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                auto val = ((constant<short>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case integer_c: {
-//                auto val = ((constant<int>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case float_c: {
-//                auto val = ((constant<float>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case double_c: {
-//                auto val = ((constant<double>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case long_c: {
-//                auto val = ((constant<long double>*)c1)->eval();
-//                delete c1;
-//                auto f = new func_(c2);
-//                (*f *= -1) += val;
-//                c1 = (constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case complex_c:{
-//                auto newcst = (*(constant<Cpx>*)c1);
-//                delete c1;
-//                auto res = new func_(c2);
-//                *res *= -1;
-//                auto cst = res->get_cst();
-//                cst = add(cst, c2);
-//                return c1 = res;
-//                break;
-//            }
-//            case par_c:{
-//                auto res = new func_(*c1);
-//                delete c1;
-//                res->insert(false, constant<double>(1), c2);
-//                return c1 = res;
-//                break;
-//            }
-//            case var_c:{
-//                auto res = new func_(*c1);
-//                delete c1;
-//                if (c2.is_var()) {
-//                    res->insert(false, constant<double>(1), c2);
-//                }
-//                else {
-//                    auto cst = res->get_cst();
-//                    cst = substract(cst, c2);
-//                }
-//                return c1 = res;
-//                break;
-//            }
-//
-//            case uexp_c: {
-//                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case func_c: {
-//    //            auto res = new func_(*c1);
-//    //            delete c1;
-//    //            *res -= c2;
-//    //            return c1 = res;
-//                (*(func_*)c1) -= c2;
-//                return c1;
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//
-//
-    
-    
-    
-//                    case integer_c: {
-//                        auto val = (dynamic_pointer_cast<constant<int>>(c1))->eval();
-//                        if (val==0) {
-//                            return c1;
-//                        }
-//                        if (val==1) {
-//                            return make_shared<param<T>>(c2);
-//                        }
-//                        return make_shared<func<int>>(val * c2);
-//                        break;
-//                    }
-//                    case float_c: {
-//                        auto val = (dynamic_pointer_cast<constant<float>>(c1))->eval();
-//                        if (val==0) {
-//                            return c1;
-//                        }
-//                        if (val==1) {
-//                            return make_shared<param<T>>(c2);
-//                        }
-//                        return make_shared<func<float>>(val * c2);
-//                        break;
-//                    }
-//                    case double_c: {
-//                        auto val = (dynamic_pointer_cast<constant<double>>(c1))->eval();
-//                        if (val==0) {
-//                            return c1;
-//                        }
-//                        if (val==1) {
-//                            return make_shared<param<T>>(c2);
-//                        }
-//                        return make_shared<func<double>>(val * c2);
-//                        break;
-//                    }
-//                    case long_c: {
-//                        auto val = (dynamic_pointer_cast<constant<long double>>(c1))->eval();
-//                        if (val==0) {
-//                            return c1;
-//                        }
-//                        if (val==1) {
-//                            return make_shared<param<T>>(c2);
-//                        }
-//                        return make_shared<func<long double>>(val * c2);
-//                        break;
-//                    }
-//                    case complex_c: {
-//                        auto val = (dynamic_pointer_cast<constant<Cpx>>(c1))->eval();
-//                        if (val==Cpx(0,0)) {
-//                            return c1;
-//                        }
-//                        if (val==Cpx(1,1)) {
-//                            return make_shared<param<T>>(c2);
-//                        }
-//                        return make_shared<func<Cpx>>(val * c2);
-//                        break;
-//                    }
-//                break;
-//            }
-//            case var_c:{
-//                auto f = new func_(*c1);
-//                delete c1;
-//                *f *= c2;
-//                c1 =(constant_*)(f);
-////                c1->update_dot_dim(c2);
-//                return c1;
-//                break;
-//            }
-//            case par_c:{
-//                auto f = new func_(*c1);
-//                delete c1;
-//                *f *= c2;
-//                c1 =(constant_*)(f);
-////                c1->update_dot_dim(c2);
-//                return c1;
-//                break;
-//            }
-//            case uexp_c: {
-//                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-////                c1->update_dot_dim(c2);
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-////                c1->update_dot_dim(c2);
-//                return c1;
-//                break;
-//            }
-//            case func_c: {
-//    //            auto res = new func_(*c1);
-//    //            delete c1;
-//    //            *res *= c2;
-//    //            return c1 = res;
-//                (*(func_*)c1) *= c2;
-////                c1->update_dot_dim(c2);
-//                return c1;
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//
-//
-//
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* substract(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                if (c2.is_binary() ) {
-//                    *(constant<bool>*)c1 -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<bool>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                if (c2.get_type() <= short_c) {
-//                    *((constant<short>*)c1) -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<short>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                break;
-//            }
-//            case integer_c: {
-//                if (c2.get_type() <= integer_c) {
-//                    *((constant<int>*)c1) -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<int>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                break;
-//            }
-//            case float_c: {
-//                if (c2.get_type() <= float_c) {
-//                    *((constant<float>*)c1) -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<float>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                break;
-//            }
-//            case double_c: {
-//                if (c2.get_type() <= double_c) {
-//                    *((constant<double>*)c1) -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                break;
-//            }
-//            case long_c: {
-//                if (c2.get_type() <= long_c) {
-//                    *((constant<long double>*)c1) -= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<long double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(val - c2.eval());
-//                }
-//                break;
-//            }
-//            case complex_c: {
-//                (*(constant<Cpx>*)c1) -= c2.eval();
-//                break;
-//            }
-//            case par_c:{
-//                auto f = new func_(*c1);
-//                *f -= c2;
-//                c1 =(constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case var_c:{
-//                auto f = new func_(*c1);
-//                *f -= c2;
-//                c1 =(constant_*)(f);
-//                return c1;
-//                break;
-//            }
-//            case uexp_c: {
-//                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(minus_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case func_c: {
-//    //            auto res = new func_(*(func_*)c1 - c2);
-//    //            delete c1;
-//    //            return c1 = (constant_*)res;
-//                (*(func_*)c1) -= c2;
-//                return c1;
-//                break;
-//            }        default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//    constant_* multiply(constant_* c1, const constant_& c2);
-//    constant_* divide(constant_* c1, const constant_& c2);
-//
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* multiply(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                if (c2.is_binary() ) {
-//                    *(constant<bool>*)c1 *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<bool>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                if (c2.get_type() <= short_c) {
-//                    *((constant<short>*)c1) *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<short>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                break;
-//            }
-//            case integer_c: {
-//                if (c2.get_type() <= integer_c) {
-//                    *((constant<int>*)c1) *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<int>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                break;
-//            }
-//            case float_c: {
-//                if (c2.get_type() <= float_c) {
-//                    *((constant<float>*)c1) *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<float>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                break;
-//            }
-//            case double_c: {
-//                if (c2.get_type() <= double_c) {
-//                    *((constant<double>*)c1) *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                break;
-//            }
-//            case long_c: {
-//                if (c2.get_type() <= long_c) {
-//                    *((constant<long double>*)c1) *= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<long double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() * val);
-//                }
-//                break;
-//            }
-//            case complex_c: {
-//                (*(constant<Cpx>*)c1) *= c2.eval();
-//                break;
-//            }
-//            case par_c:{
-//                auto pc1 = (param_*)(c1);
-//                auto l = new func_(*pc1);
-//                *l *= c2;
-//                c1 =(constant_*)(l);
-//                return c1;
-//                break;
-//            }
-//            case uexp_c: {
-//                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(product_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case func_c: {
-//                (*(func_*)c1) *= c2;
-//                return c1;
-//                break;
-//            }
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//    template<class T, class = typename enable_if<is_arithmetic<T>::value>::type> constant_* divide(constant_* c1, const constant<T>& c2){ /**< adds c2 to c1, updates its type and returns the result **/
-//        if (c2.eval()==0) {
-//            throw invalid_argument("dividing by zero!\n");
-//        }
-//        switch (c1->get_type()) {
-//            case binary_c: {
-//                if (c2.is_binary() ) {
-//                    *(constant<bool>*)c1 /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<bool>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                return c1;
-//                break;
-//            }
-//            case short_c: {
-//                if (c2.get_type() <= short_c) {
-//                    *((constant<short>*)c1) /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<short>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                break;
-//            }
-//            case integer_c: {
-//                if (c2.get_type() <= integer_c) {
-//                    *((constant<int>*)c1) /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<int>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                break;
-//            }
-//            case float_c: {
-//                if (c2.get_type() <= float_c) {
-//                    *((constant<float>*)c1) /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<float>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                break;
-//            }
-//            case double_c: {
-//                if (c2.get_type() <= double_c) {
-//                    *((constant<double>*)c1) /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                break;
-//            }
-//            case long_c: {
-//                if (c2.get_type() <= long_c) {
-//                    *((constant<long double>*)c1) /= c2.eval();
-//                }
-//                else {
-//                    auto val = ((constant<long double>*)c1)->eval();
-//                    delete c1;
-//                    c1 = new constant<T>(c2.eval() / val);
-//                }
-//                break;
-//            }
-//            case complex_c: {
-//                (*(constant<Cpx>*)c1) /= c2.eval();
-//                break;
-//            }
-//            case par_c:{
-//                auto pc1 = (param_*)(c1);
-//                auto l = new func_(*pc1);
-//                *l /= c2;
-//                c1 =(constant_*)(l);
-//                return c1;
-//                break;
-//            }
-//            case uexp_c: {
-//                auto res = new bexpr(div_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case bexp_c: {
-//                auto res = new bexpr(div_, make_shared<func_>(func_(*c1)), make_shared<func_>(func_(c2)));
-//                delete c1;
-//                c1 = (constant_*)res;
-//                return c1;
-//                break;
-//            }
-//            case func_c: {
-//                switch (((func_*)c1)->get_ftype()) {
-//                    case lin_: {
-//                        cerr << "Unsupported yet;\n";
-//                        //                    auto res = new func_(*(func_*)c1 * 1/c2);
-//                        //                    delete c1;
-//                        //                    return c1 = res;
-//                        break;
-//                    }
-//                    default:
-//                        cerr << "Unsupported yet;\n";
-//                        break;
-//                }
-//            }
-//            default:
-//                break;
-//        }
-//        return c1;
-//    }
-//
-//
-//    func cos(const constant_& c);
-//
-//    func sin(const constant_& c);
-//
-//
-//    func sqrt(const constant_& c);
-//
-//    func expo(const constant_& c);
-//
-//    func log(const constant_& c);
 
-//
-//
-//    //template<typename other_type> bexpr operator+(const other_type& c1, const expr& c2){
-//    //    bexpr res;
-//    //    res._otype = plus_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " + " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //template<typename other_type> bexpr operator+(const expr& c1, const other_type& c2){
-//    //    bexpr res;
-//    //    res._otype = plus_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " + " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //
-//    //template<typename other_type> bexpr operator-(const other_type& c1, const expr& c2){
-//    //    bexpr res;
-//    //    res._otype = minus_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " - " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //template<typename other_type> bexpr operator-(const expr& c1, const other_type& c2){
-//    //    bexpr res;
-//    //    res._otype = minus_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " - " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //
-//    //template<typename other_type> bexpr operator*(const other_type& c1, const expr& c2){
-//    //    bexpr res;
-//    //    res._otype = product_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " * " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //template<typename other_type> bexpr operator*(const expr& c1, const other_type& c2){
-//    //    bexpr res;
-//    //    res._otype = product_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " * " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //
-//    //
-//    //
-//    //template<typename other_type> bexpr operator/(const other_type& c1, const expr& c2){
-//    //    bexpr res;
-//    //    res._otype = div_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " / " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//    //template<typename other_type> bexpr operator/(const expr& c1, const other_type& c2){
-//    //    bexpr res;
-//    //    res._otype = div_;
-//    //    res._lson = copy((constant_*)&c1);
-//    //    res._rson =  copy((constant_*)&c2);
-//    //    res._to_str = ::to_str(res._lson) + " / " + ::to_str(res._rson);
-//    //    return res;
-//    //}
-//
-//    template<typename type>
-//    func_ power(const param<type>& v, unsigned p);
-//    
-//    func_ power(const func_& f, unsigned p);
-//
-//    template<typename type>
-//    func_ sum(const param<type>& p);
-//    
-//    template<typename type1, typename type2>
-//    func_ product(const param<type1>& p, const param<type2>& v);
-//    
-//    template<typename type>
-//    func_ product(const param<type>& p1, const func_& f);
-//    
-//    func_ product(const func_& f1, const func_& f2);
-//
-//    template<typename type>
-//    func_ innerproduct(const param<type>& p1, const param<type>& p2);
-//    
-//    func_ get_poly_derivative(constant_* c, const param_ &v); /*< Get the derivative of c with respect to v) */
-//    
-//    func_ conj(const func_& f);
-//    func_ ang(const func_& f);
-//    func_ sqrmag(const func_& f);
-//    func_ real(const func_& f);
-//    func_ imag(const func_& f);
-    
-    
-    
 }
 
 

@@ -83,22 +83,14 @@ namespace gravity {
 //            param<type>::_range->second = ub;
 //        };
         
-        
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type>
-        var(const string& name, const param<T>& sb){
-            this->_name = name;
-            constant_::set_type(var_c);
-            _lb = make_shared<func<type>>(-1*sb);
-            _ub = make_shared<func<type>>(sb);
-            param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
-            param<type>::_range->second = sb._range->second;
-        }
-        
         var(const string& name, const func<type>& lb, const func<type>& ub){
             this->_name = name;
             constant_::set_type(var_c);
             _lb = make_shared<func<type>>(lb);
             _ub = make_shared<func<type>>(ub);
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
+
         };
         
         var(const string& name, func<type>&& lb, func<type>&& ub){
@@ -106,6 +98,8 @@ namespace gravity {
             constant_::set_type(var_c);
             _lb = make_shared<func<type>>(move(lb));
             _ub = make_shared<func<type>>(move(ub));
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
         };
         
         //@}
@@ -405,6 +399,17 @@ namespace gravity {
         }
         
         /* Output */
+        string to_str(size_t index1, size_t index2, int prec) {
+            return this->get_name(index1,index2);
+        }
+        
+        string to_str(){
+            return this->get_name(false,false);
+        }
+        
+        string to_str(size_t index, int prec) {
+            return this->get_name(index);
+        }
         string to_str_bounds(bool bounds=true, int prec = 10) const;
         void print(bool bounds=true, int prec = 10) const;
         
