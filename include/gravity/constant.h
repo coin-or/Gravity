@@ -334,7 +334,7 @@ namespace gravity {
         };
         
         
-        constant tr(){
+        constant tr() const{
             auto newc(*this);
             newc.transpose();
             return newc;
