@@ -84,6 +84,29 @@ bool operator >=(const Cpx& lhs, const Cpx& rhs){
 }
 
 
+Cpx min (const Cpx& a, const Cpx& b){
+    Cpx res(a);
+    if (res.real()>b.real()) {
+        res.real(b.real());
+    }
+    if (res.imag()>b.imag()) {
+        res.imag(b.imag());
+    }
+    return res;
+}
+
+Cpx max (const Cpx& a, const Cpx& b)
+{
+    Cpx res(a);
+    if (res.real()<b.real()) {
+        res.real(b.real());
+    }
+    if (res.imag()<b.imag()) {
+        res.imag(b.imag());
+    }
+    return res;
+}
+
 Sign reverse(Sign s) {
     if(s==unknown_){
         return unknown_;

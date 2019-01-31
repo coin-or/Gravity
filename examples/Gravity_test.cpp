@@ -164,6 +164,8 @@ TEST_CASE("testing param indexing, add_val() and set_val() functions") {
     CHECK(dp.eval("id1")==1.5);
     CHECK(dp.eval("id2")==-231.5);
     CHECK(dp.eval("key3")==0);
+    CHECK(dp._range->first==-231.5);
+    CHECK(dp._range->second==1.5);
     REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
     auto ndp = dp.in(ids.exclude("id2"));
     ndp.print();
@@ -266,6 +268,8 @@ TEST_CASE("testing vector dot product"){
     param<Cpx> cp("cp");
     cp = Cpx(-1,-1);
     auto lin = cp+z;
+    CHECK(lin._range->first==Cpx(-2,-1));
+    CHECK(lin._range->second==Cpx(0,-1));
     CHECK(lin.is_complex());
     CHECK(lin.is_linear());
     auto lin2 = cp*z;
@@ -346,12 +350,20 @@ TEST_CASE("testing complex functions") {
     f.print_symbolic();
     CHECK(f.is_linear());
     CHECK(f.is_convex());
+    CHECK(f._range->first==-2);
+    CHECK(f._range->second==12);
     f+= pow(iv,2);
+    CHECK(f._range->first==2);
+    CHECK(f._range->second==37);
     f+=2;
+    CHECK(f._range->first==4);
+    CHECK(f._range->second==39);
     CHECK(f.to_str()=="x² + 2x + 4");
     f.print_symbolic();
     f.print();
     f -= 2*iv;
+    CHECK(f._range->first==-6);
+    CHECK(f._range->second==43);
     f.print_symbolic();
     f.print();
     CHECK(f.is_quadratic());
@@ -421,7 +433,7 @@ TEST_CASE("testing function convexity"){
     CHECK(expr._range->second==log(10)+(int)sqrt(4));
     CHECK(expr.is_positive());
     var<> p("p",0,1);
-    var<> q("q");
+    var<> q("q",-0.5, 0.5);
     auto cc = p*p + q*q;
     cc.print_symbolic();
     CHECK(cc.is_convex());
@@ -448,6 +460,8 @@ TEST_CASE("testing function convexity"){
     ff.print_symbolic();
     CHECK(ff.is_convex());
     ff += aa*(ip + dp)*q*q;
+    CHECK(ff._range->first==-10.5);
+    CHECK(ff._range->second==37.5);
     ff.print_symbolic();
     CHECK(!ff.is_convex());
     CHECK(!ff.is_concave());
@@ -475,6 +489,8 @@ TEST_CASE("testing nonlinear expressions"){
     CHECK(cstr.get_nb_vars()==2);
     cstr += sin(x2*x3) + x1*exp(x2*x3) + log(x2);
     CHECK(cstr.get_nb_vars()==3);
+    CHECK(cstr.is_nonlinear());
+    CHECK(cstr.get_dim()==1);
     cstr.print_symbolic();
     cstr.print();
 }
@@ -483,8 +499,6 @@ TEST_CASE("testing monomials"){
     var<> x1("x1"), x2("x2"), x3("x3");
     auto cstr = x1*x2 + x2*x3 + x1*x3;
     auto monoms = cstr.get_monomials(5);
-    double ang = -2*pi;
-    cout << "modulus(ang,3pi/2) = " << fmod(ang,3.*pi/2.)<< endl;
 }
 //
 //TEST_CASE("testing acopf"){
