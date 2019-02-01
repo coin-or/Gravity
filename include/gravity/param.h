@@ -210,10 +210,10 @@ namespace gravity {
                 name += "["+_indices->_keys->at(_indices->_ids->at(inst1).at(inst2))+"]";
             }
             else if(_indices){
-                name += "["+_indices->_keys->at(inst2)+"]";
+                name += "["+_indices->_keys->at(inst1)+","+_indices->_keys->at(inst2)+"]";
             }
             else{
-                name += "["+to_string(inst2)+"]";
+                name += "["+to_string(inst1)+","+to_string(inst2)+"]";
             }
             return name;
         };

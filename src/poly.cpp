@@ -556,7 +556,7 @@ namespace gravity{
             str += print_transposed(ind1, prec);
         }
         else {
-            str += clean_print(_sign,c_new->to_str(ind1,ind2));
+            str += clean_print(_sign,c_new->to_str(ind1,ind2,prec));
         }
         str += p_new->get_name(ind1,ind2);
         return str;

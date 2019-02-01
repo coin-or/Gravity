@@ -4356,7 +4356,7 @@ namespace gravity{
         if (_vars->count(v->get_name(false,false))!=0) {
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
-        update_dim(*v);
+//        update_dim(*v);
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
         if (v->_is_vector) {// i.e., it appears in a sum
             if (v->is_matrix()) {
