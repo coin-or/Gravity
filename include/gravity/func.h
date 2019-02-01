@@ -393,6 +393,9 @@ namespace gravity {
                     embed(*dynamic_pointer_cast<func_>(c_new));
                 }
                 _qterms->insert(make_pair<>(qname, qterm(sign, c_new, p_new1, p_new2)));
+                if(p_new1->is_var()){
+                    _evaluated = false;
+                }
                 //            update_convexity();
                 return true;
             }
@@ -491,6 +494,9 @@ namespace gravity {
                 //            update_sign(p);
                 _dim[0] = std::max(_dim[0], l.begin()->first->_dim[0]);
                 _pterms->insert(make_pair<>(name, move(p)));
+                if(pnew->is_var()){
+                    _evaluated = false;
+                }
                 return true;
             }
             else {
@@ -733,6 +739,9 @@ namespace gravity {
                     }
                 }
                 _lterms->insert(make_pair<>(pname, lterm(sign, c_new, p_new)));
+                if(p_new->is_var()){
+                    _evaluated = false;
+                }
                 return true;
             }
             else {
@@ -1125,6 +1134,20 @@ namespace gravity {
             return str;
         }
         
+        size_t get_max_cell_size(){
+            auto max_size = 0;
+            for (size_t i = 0; i<_dim[0]; i++) {
+                for (size_t j = 0; j<_dim[1]; j++) {
+                    eval(i,j);
+                    auto cell = to_str(i,j,5);
+                    if(max_size < cell.size()){
+                        max_size = cell.size();
+                    }
+                }
+            }
+            return max_size;
+        }
+        
         void print(){
             string str;
             if (is_constant()) {
@@ -1162,19 +1185,79 @@ namespace gravity {
             auto space_size = str.size();
             auto nb_inst = _dim[0];
             allocate_mem();
-            for (size_t inst = 0; inst<nb_inst; inst++) {
-                eval(inst);
-                if (inst>0) {
-                    str.insert(str.end(), space_size, ' ');
+            if (is_matrix()) {
+                auto max_cell_size = get_max_cell_size();
+                for (size_t i = 0; i<_dim[0]; i++) {
+                    if (i>0) {
+                        str.insert(str.end(), space_size, ' ');
+                    }
+                    str += "|";
+                    for (size_t j = 0; j<_dim[1]; j++) {
+                        auto cell = to_str(i,j,5);
+                        auto cell_size = cell.size();
+                        cell.insert(0, floor((max_cell_size - cell_size)/2.), ' ');
+                        cell.append(ceil((max_cell_size - cell_size)/2.), ' ');
+                        str += cell;
+                        if(j!=_dim[1]-1){
+                            str += " ";
+                        }
+                    }
+                    str += "|\n";
                 }
-                str += to_str(inst,5);
-                str += "\n";
+            }
+            else {
+                for (size_t inst = 0; inst<nb_inst; inst++) {
+                    eval(inst);
+                    if (inst>0) {
+                        str.insert(str.end(), space_size, ' ');
+                    }
+                    str += to_str(inst,5);
+                    str += "\n";
+                }
             }
             str += "\n";
             cout << str;
         }
+        
+        
         string to_str(size_t index1, size_t index2, int prec) {
-            return string();
+            if (is_constant()) {
+                return to_string_with_precision(eval(index1,index2),prec);
+            }
+            string str;
+            for (auto &pair:*_pterms) {
+                str += pair.second.to_str(index1,index2, prec);
+            }
+            for (auto &pair:*_qterms) {
+                str += pair.second.to_str(index1,index2, prec);
+            }
+            for (auto &pair:*_lterms) {
+                str += pair.second.to_str(index1,index2, prec);
+            }
+            if(!_cst->is_zero()){
+                auto val = _cst->to_str(index1,index2, prec);
+                if (val.front()=='-') {
+                    str += " - " + val.substr(1);
+                }
+                else {
+                    str += " + ";
+                    str += val;
+                }
+            }
+            if (_expr) {
+                str += " + ";
+                str += _expr->to_str(index1,index2, prec);
+            }
+            if (str.size() > 2 && str.at(1)=='+') {
+                str = str.substr(3);
+            }
+            if (_is_vector && (is_number() || _vars->size()>1 || _params->size()>1)) {
+                str = "[" + str +"]";
+            }
+            if (_is_transposed && (is_number() || _vars->size()>1 || _params->size()>1)) {
+                str += "\u1D40";
+            }
+            return str;
         }
         
 
