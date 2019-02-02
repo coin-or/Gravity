@@ -96,6 +96,7 @@ namespace gravity {
             return (_type==complex_c);
         };
 
+        virtual bool func_is_number() const{return false;};
         
         virtual bool is_number() const{
             return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=func_c);

@@ -489,14 +489,15 @@ TEST_CASE("testing nonlinear expressions"){
     x1.in(R(1));
     x2.in(R(1));
     x3.in(R(1));
-    auto cstr = cos(x1*x2);
-    CHECK(cstr.get_nb_vars()==2);
-    cstr += sin(x2*x3) + x1*exp(x2*x3) + log(x2);
+//    auto cstr = cos(x1*x2);
+//    CHECK(cstr.get_nb_vars()==2);
+    auto cstr = x1*exp(x2*x3);
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_nonlinear());
     CHECK(cstr.get_dim()==1);
     cstr.print_symbolic();
-    cstr.print();
+    auto dfdx2 = cstr.get_derivative(x2);
+    dfdx2.print_symbolic();
 }
 
 TEST_CASE("testing monomials"){
