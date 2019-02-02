@@ -13,17 +13,6 @@ using namespace std;
 namespace gravity{
 
 
-//    void expr::reset_val(){
-//        if (is_uexpr()) {
-//            return ((uexpr*)this)->reset_val();
-//        }
-//        else {
-//            return ((bexpr*)this)->reset_val();
-//        }
-//
-//    }
-    
-    
     
 
     uexpr::uexpr(const uexpr& exp){
@@ -53,7 +42,6 @@ namespace gravity{
         _to_str = exp._to_str;
         _coef = exp._coef;
         _is_vector = exp._is_vector;
-//        _is_matrix = exp._is_matrix;
         _is_transposed = exp._is_transposed;
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;
@@ -97,7 +85,6 @@ namespace gravity{
         _to_str = exp._to_str;
         _coef = exp._coef;
         _is_vector = exp._is_vector;
-//        _is_matrix = exp._is_matrix;
         _is_transposed = exp._is_transposed;
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;
@@ -112,42 +99,7 @@ namespace gravity{
 
 
     void bexpr::print() {
-        cout << _to_str;
-    //    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
-    //        cout << "(";
-    //        poly_print(_lson);
-    //        cout << ")";
-    //    }
-    //    else
-    //        poly_print(_lson);
-    //
-    //    if (_otype==plus_) {
-    //        cout << " + ";
-    //    }
-    //    if (_otype==minus_) {
-    //        cout << " - ";
-    //    }
-    //    if (_otype==product_) {
-    //        cout << " * ";
-    //    }
-    //    if (_otype==div_) {
-    //        cout << "/";
-    //    }
-    //
-    //    if (_otype==power_) {
-    //        cout << "^";
-    //    }
-    //
-    //    if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
-    //        poly_print(_rson);
-    //    }
-    //    else {
-    //        cout << "(";
-    //        poly_print(_rson);
-    //        cout << ")";
-    //    }
-//        if(endline)
-            cout << endl;
+        cout << _to_str << endl;
     }
     
     void expr::allocate_mem(){
@@ -193,10 +145,6 @@ namespace gravity{
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;
     }
-    
-//    void uexpr::reset_val(){
-//        _son->reset_val();
-//    }
     
     
     string uexpr::to_str(){
@@ -339,6 +287,56 @@ namespace gravity{
             case sqrt_:
                 str += "sqrt(";
                 str += _son->to_str(inst,prec);
+                str += ")";
+                break;
+            default:
+                break;
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
+    
+    string uexpr::to_str(size_t inst1, size_t inst2, int prec) {
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string_with_precision(_coef,prec);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        switch (_otype) {
+            case log_:
+                str += "log(";
+                str += _son->to_str(inst1,inst2,prec);
+                str += ")";
+                break;
+                
+            case exp_:
+                str += "exp(";
+                str += _son->to_str(inst1,inst2,prec);
+                str += ")";
+                break;
+                
+            case cos_:
+                str += "cos(";
+                str += _son->to_str(inst1,inst2,prec);
+                str += ")";
+                break;
+                
+            case sin_:
+                str += "sin(";
+                str += _son->to_str(inst1,inst2,prec);
+                str += ")";
+                break;
+                
+            case sqrt_:
+                str += "sqrt(";
+                str += _son->to_str(inst1,inst2,prec);
                 str += ")";
                 break;
             default:
@@ -622,109 +620,62 @@ namespace gravity{
         }
         return str;
     }
-//    void bexpr::reset_val(){
-//        _lson->reset_val();
-//        _rson->reset_val();
-//    }
+    
+    string bexpr::to_str(size_t inst1,size_t inst2,int prec) {
+        string str;
+        if (_coef!=1) {
+            if (_coef!=-1) {
+                str+= to_string_with_precision(_coef, prec);
+            }
+            else {
+                str+= "-";
+            }
+            str+="(";
+        }
+        if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+            str += "(";
+            str+= _lson->to_str(inst1,inst2,prec);
+            str += ")";
+        }
+        else
+            str+= _lson->to_str(inst1,inst2,prec);
+        
+        if (_otype==plus_) {
+            str+= " + ";
+        }
+        if (_otype==minus_) {
+            str+= " - ";
+        }
+        if (_otype==product_) {
+            str+= " * ";
+        }
+        if (_otype==div_) {
+            str+= "/";
+        }
+        
+        if (_otype==power_) {
+            str+= "^";
+        }
+        
+        if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+            str+= _rson->to_str(inst1,inst2,prec);
+        }
+        else {
+            str+= "(";
+            str+= _rson->to_str(inst1,inst2,prec);
+            str+= ")";
+        }
+        if (_coef!=1) {
+            str += ")";
+        }
+        return str;
+    }
     
     bool bexpr::is_inner_product() const{
         return _otype==product_ && (_lson->get_dim(1)==_rson->get_dim(0) || (_lson->_is_transposed && _lson->get_dim(0)==_rson->get_dim(0)));
     }
     
-//    double uexpr::eval(size_t i) const{
-//        if (_son->is_constant() && !_son->_evaluated) {//TODO what if son is matrix?
-//            for (unsigned inst = 0; inst < _son->_val->size(); inst++) {
-//                _son->_val->at(inst) = _son->eval(inst);
-//            }
-//            _son->_evaluated = true;
-//        }
-//        double val = 0;
-//        if (_son->is_number()) {
-//            val = _son->_val->at(0);
-//        }
-//        else {
-//            val = _son->get_val(i);
-//        }
-//        switch (_otype) {
-//            case cos_:
-//                return _coef*std::cos(val);
-//                break;
-//            case sin_:
-//                return _coef*std::sin(val);
-//                break;
-//            case sqrt_:
-//                return _coef*std::sqrt(val);
-//                break;
-//            case log_:
-//                return _coef*std::log(val);
-//                break;
-//            case exp_:
-//                return _coef*std::exp(val);
-//                break;
-//            default:
-//                throw invalid_argument("Unsupported unary operator");
-//                break;
-//        }
-//
-//    }
-//
-//    double uexpr::eval(size_t i, size_t j) const{
-//        if (!is_matrix()) {
-//            return eval(j);//TODO what if son is transposed
-//        }
-//        if (_son->is_constant() && !_son->_evaluated) {
-//            unsigned index = 0;
-//            if (_son->is_matrix()) {
-//                for (unsigned row = 0; row<_son->_dim[0]; row++) {
-//                    for (unsigned col = 0; col<_son->_dim[1]; col++) {
-//                        if (_is_transposed) {
-//                            index = _son->_dim[0]*col + row;
-//                        }
-//                        else {
-//                            index = _son->_dim[1]*row + col;
-//                        }
-//
-//                        _son->_val->at(index) = _son->eval(row,col);
-//                    }
-//                }
-//            }
-//            else {
-//                for (size_t row = 0; row<_son->_dim[0]; row++) {
-//                    _son->_val->at(index) = _son->eval(index);
-//                }
-//            }
-//            _son->_evaluated = true;
-//        }
-//        double val = 0;
-//        if (_son->is_number()) {
-//            val = _son->_val->at(0);
-//        }
-//        else {
-//            val = _son->get_val(i,j);
-//        }
-//        switch (_otype) {
-//            case cos_:
-//                return _coef*std::cos(val);
-//                break;
-//            case sin_:
-//                return _coef*std::sin(val);
-//                break;
-//            case sqrt_:
-//                return _coef*std::sqrt(val);
-//                break;
-//            case log_:
-//                return _coef*std::log(val);
-//                break;
-//            case exp_:
-//                return _coef*std::exp(val);
-//                break;
-//            default:
-//                throw invalid_argument("Unsupported unary operator");
-//                break;
-//        }
-//
-//    }
-    
+
     bexpr::bexpr(OperatorType otype, shared_ptr<constant_> lson, shared_ptr<constant_> rson){
         _otype = otype;
         _lson = lson;
@@ -766,149 +717,4 @@ namespace gravity{
         _dim[0] = exp._dim[0]; _dim[1] = exp._dim[1];
         return *this;
     }
-    
-    
-    
-//    double  bexpr::eval(size_t i, size_t j) const{
-//
-//        switch (_otype) {
-//            case plus_:
-//                return _coef*(_lson->get_val(i,j) + _rson->get_val(i,j));
-//                break;
-//            case minus_:
-//                return _coef*(_lson->get_val(i,j) - _rson->get_val(i,j));
-//                break;
-//            case product_:{
-//                double res = 0;
-//                if (_lson->is_matrix() && _rson->is_matrix()) {
-//                    //matrix product
-//                    for (unsigned col = 0; col<_lson->_dim[1]; col++) {
-//                        res += _lson->get_val(i,col) * _rson->get_val(col,j);
-//                    }
-//                    return _coef*res;
-//                }
-//                if (_lson->is_matrix() && !_rson->is_matrix() && _rson->_is_transposed) {//matrix * transposed vect
-//                    return _coef*(_lson->get_val(i,j) * _rson->get_val(j));
-//                }
-//                if (!_lson->is_matrix() && !_lson->_is_transposed && _rson->is_matrix() ) {//vect * matrix
-//                    return _coef*(_lson->get_val(i) * _rson->get_val(i,j));//TODO i ot j?
-//                }
-//                if (_lson->is_matrix() && _rson->_is_vector && _rson->_is_transposed) {//matrix * vector
-//                    return _coef*(_lson->get_val(i,j) * _rson->get_val(j));
-//                }
-//                throw invalid_argument("eval(i,j) on non matrix function");
-//                break;
-//            }
-//            case div_:
-//                return _coef*(_lson->get_val(i,j)/_rson->get_val(i,j));
-//                break;
-//            case power_:
-//                return _coef*(powl(_lson->get_val(i,j),_rson->get_val(i,j)));
-//                break;
-//            default:
-//                throw invalid_argument("Unsupported binary operator");
-//                break;
-//        }
-//
-//    }
-//    double  bexpr::eval(size_t i) const{
-//        //        if (_lson->is_constant() && !_lson->_evaluated) {
-//        //            _lson->_val->resize(_lson->get_dim());//TODO what if son is a matrix?
-//        ////            _lson->_val = make_shared<vector<double>>();
-//        ////            if (_lson->_is_transposed) {
-//        ////                _lson->_val->resize(_lson->_dim[0]);
-//        ////            }
-//        //            for (unsigned inst = 0; inst < _lson->_val->size(); inst++) {
-//        //                _lson->_val->at(inst) = _lson->eval(inst);
-//        //            }
-//        //            _lson->_evaluated = true;
-//        //        }
-//        //        if (_rson->is_constant() && !_rson->_evaluated) {
-//        //            _rson->_val->resize(_rson->get_dim());
-//        ////            _rson->_val = make_shared<vector<double>>();
-//        ////            _rson->_val->resize(_rson->get_dim());
-//        ////            if (_rson->_is_transposed) {
-//        ////                _rson->_val->resize(_rson->_dim[0]);
-//        ////            }
-//        //            for (unsigned inst = 0; inst < _rson->_val->size(); inst++) {
-//        //                _rson->_val->at(inst) = _rson->eval(inst);
-//        //            }
-//        //            _rson->_evaluated = true;
-//        //        }
-//        double lval = 0, rval = 0;
-//        if (_lson->is_number()) {
-//            if (_lson->_val->size()==0) {
-//                lval = _lson->eval(0);
-//            }
-//            else {
-//                lval = _lson->_val->at(0);
-//            }
-//        }
-//        else if(!_lson->_is_vector){
-//            if (_lson->_val->size()<=i) {
-//                lval = _lson->eval(i);
-//            }
-//            else {
-//                lval = _lson->get_val(i);
-//            }
-//        }
-//        if (_rson->is_number()) {
-//            if (_rson->_val->size()==0) {
-//                rval = _rson->eval(0);
-//            }
-//            else {
-//                rval = _rson->_val->at(0);
-//            }
-//        }
-//        else if(!_rson->_is_vector){
-//            if (_rson->_val->size()<=i) {
-//                rval = _rson->eval(i);
-//            }
-//            else {
-//                rval = _rson->get_val(i);
-//            }
-//        }
-//        switch (_otype) {
-//            case plus_:
-//                return _coef*(lval + rval);
-//                break;
-//            case minus_:
-//                return _coef*(lval - rval);
-//                break;
-//            case product_:
-//                if (_lson->is_matrix() && !_rson->is_matrix() && !_rson->_is_transposed) {//matrix * vect
-//                    double res = 0;
-//                    for (size_t j = 0; j<_rson->_dim[0]; j++) {
-//                        res += _lson->get_val(i,j) * _rson->get_val(j);
-//                    }
-//                    return _coef*(res);
-//                }
-//                if (!_lson->is_matrix() && _lson->_is_transposed && _rson->is_matrix() ) {//transposed vect * matrix
-//                    double res = 0;
-//                    for (size_t j = 0; j<_lson->_dim[0]; j++) {
-//                        res += _lson->get_val(j) * _rson->get_val(j,i);
-//                    }
-//                    return _coef*(res);
-//                }
-//                if (!_lson->is_matrix() && _lson->_is_transposed && !_rson->is_matrix() && i==0) {//transposed vect * vec, a dot product of two vectors
-//                    double res = 0;
-//                    for (size_t j = 0; j<_lson->_dim[1]; j++) {
-//                        res += _lson->get_val(j) * _rson->get_val(j);
-//                    }
-//                    return _coef*(res);
-//                }
-//                return _coef*(lval*rval);
-//                break;
-//            case div_:
-//                return _coef*(lval/rval);
-//                break;
-//            case power_:
-//                return _coef*(powl(lval,rval));
-//                break;
-//            default:
-//                throw invalid_argument("Unsupported binary operator");
-//                break;
-//        }
-//
-//    }
 }

@@ -261,14 +261,6 @@ TEST_CASE("testing vector dot product"){
     lin6.print_symbolic();
     CHECK(lin6.is_linear());
     lin6.print();
-    param<Cpx> cpx("cpx");
-    cpx = Cpx(1,1);
-    cpx = Cpx(2,2);
-    cpx = Cpx(3,1);
-    auto cpx_f = 2*exp(cpx)*z;
-    cpx_f.print_symbolic();
-    CHECK(cpx_f.to_str()=="((2,0) * exp(cpx))z");
-    cpx_f.print();
 }
 //    auto df = lin.get_dfdx(z);
 //    CHECK(df.is_constant());
@@ -305,12 +297,22 @@ TEST_CASE("testing complex numbers") {
 }
 
 TEST_CASE("testing complex functions") {
+    var<> z("z",-1,1);
+    z.in(R(3));
+    param<Cpx> cpx("cpx");
+    cpx = Cpx(1,1);
+    cpx = Cpx(2,2);
+    cpx = Cpx(3,1);
+    auto cpx_f = 2*exp(cpx)*z;
+    cpx_f.print_symbolic();
+    CHECK(cpx_f.to_str()=="((2,0) * exp(cpx))z");
+    cpx_f.print();
+}
+TEST_CASE("testing range propagation") {
     indices ids("index_set");
     ids = {"id1", "id2", "key3", "key4"};
     var<> x("x",-2, 5);
     x.in(ids);
-    var<Cpx> cx("cx", Cpx(0,-1),Cpx(1,1));
-    cx.in(ids);
     auto f = 2*x + 2;
     f.print_symbolic();
     CHECK(f.is_linear());
@@ -318,16 +320,16 @@ TEST_CASE("testing complex functions") {
     CHECK(f._range->first==-2);
     CHECK(f._range->second==12);
     f+= pow(x,2);
-    CHECK(f._range->first==2);
+    CHECK(f._range->first==-2);
     CHECK(f._range->second==37);
     f+=2;
-    CHECK(f._range->first==4);
+    CHECK(f._range->first==0);
     CHECK(f._range->second==39);
     CHECK(f.to_str()=="x² + 2x + 4");
     f.print_symbolic();
     f.print();
     f -= 2*x;
-    CHECK(f._range->first==-6);
+    CHECK(f._range->first==-10);
     CHECK(f._range->second==43);
     f.print_symbolic();
     f.print();
@@ -360,6 +362,38 @@ TEST_CASE("testing complex functions") {
 //    CHECK(f.get_nb_instances()==3);
 }
 
+TEST_CASE("testing polynomial functions") {
+    param<int> a("a");
+    a.set_size(3);
+    a.set_val(0, 1);
+    a.set_val(1, -1);
+    a.set_val(2, 2);
+    param<int> b("b");
+    b=5;
+    b=0;
+    b=2;
+    var<> x("x",-1,1);
+    x.in(R(3));
+    var<> y("y",-1,1);
+    y.in(R(3));
+    var<> z("z",-1,1);
+    z.in(R(3));
+    auto poly = pow(x,2)*pow(y,3)*pow(z,4) + b*pow(y,2)*pow(z,3);
+    CHECK(poly.to_str()=="x²y³z⁴ + (b)y²z³");
+    poly.print_symbolic();
+    poly.print();
+    poly += a*x;
+    poly.print_symbolic();
+    poly.print();
+    auto dfdx = poly.get_derivative(x);
+    CHECK(dfdx.to_str()=="2xy³z⁴ + a");
+    dfdx.print_symbolic();
+    dfdx.print();
+    auto dfd2x = dfdx.get_derivative(x);
+    CHECK(dfd2x.to_str()=="2y³z⁴");
+    dfd2x.print_symbolic();
+    dfd2x.print();
+}
 
 TEST_CASE("testing complex matrix product") {
     var<Cpx> X("X", Cpx(0,-1),Cpx(1,1));
@@ -392,6 +426,9 @@ TEST_CASE("testing complex matrix product") {
     f2.print();
     CHECK(!f2.is_convex());
     CHECK(f2.get_dim()==25);
+    auto f3 = exp(A*X);
+    f3.print_symbolic();
+    f3.print();
 }
 
 TEST_CASE("testing function convexity"){
