@@ -115,7 +115,7 @@ namespace gravity {
         bool is_polynomial() const;
         bool is_nonlinear() const;
         bool is_transposed() const;
-        bool is_number() const{
+        bool func_is_number() const{
             return (_vars->empty() && _params->empty());
         }
         
@@ -572,7 +572,7 @@ namespace gravity {
                 str += pair.second.to_str();
             }
             if(!_cst->is_zero()){
-                if (_cst->is_number()) {
+                if (_cst->is_number() || _cst->func_is_number()) {
                     auto val = _cst->to_str();
                     if (val.front()=='-') {
                         str += " - " + val.substr(1);
@@ -644,16 +644,14 @@ namespace gravity {
         shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
         shared_ptr<vector<pair<type,type>>>     _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this func **/
 
-        template<typename T=type,
-        typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void update_range(){
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+            _range = make_shared<pair<type,type>>(make_pair<>(zero<type>().eval(), zero<type>().eval()));
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        void update_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
-        }
+//        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+//        void update_range() {
+//            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+//        }
         
         
         func(){
@@ -708,24 +706,24 @@ namespace gravity {
         }
         
         template<class T, typename enable_if<is_convertible<T, type>::value && sizeof(T) <= sizeof(type)>::type* = nullptr>
-        func get_derivative(shared_ptr<constant_> exp, const var<T>& v) const{
+        func get_derivative(shared_ptr<constant_> ex, const var<T>& v) const{
             auto name = v.get_name(false,false);
-            if(exp->is_var()){
-                auto vv = static_pointer_cast<param_>(exp);
+            if(ex->is_var()){
+                auto vv = static_pointer_cast<param_>(ex);
                 if(vv->get_name(false,false)==name){
                     return unit<type>();
                 }
             }
-            else if(exp->is_function()){
-                auto f = static_pointer_cast<func>(exp);
+            else if(ex->is_function()){
+                auto f = static_pointer_cast<func>(ex);
                 return f->get_derivative(v);
             }
-            else if(exp->is_uexpr()){
+            else if(ex->is_uexpr()){
                 func son;
-                auto uexp = static_pointer_cast<uexpr>(exp);
+                auto uexp = static_pointer_cast<uexpr>(ex);
                 if (uexp->_son->is_function()) {
                     auto f = dynamic_pointer_cast<func>(uexp->_son);
-                    son = move(*f);
+                    son = (*f);
                 }
                 else if(uexp->_son->is_var()) {
                     auto vv = dynamic_pointer_cast<param_>(uexp->_son);
@@ -752,7 +750,7 @@ namespace gravity {
                         return uexp->_coef*get_derivative(uexp->_son,v)/(2.*sqrt(son));
                         break;
                     case exp_:{
-                        return uexp->_coef*get_derivative(uexp->_son,v)*son;
+                        return uexp->_coef*get_derivative(uexp->_son,v)*exp(son);
                         break;
                     }
                     case log_:
@@ -763,13 +761,128 @@ namespace gravity {
                         break;
                 }
             }
+            else if(ex->is_bexpr()){
+                func lson, rson;
+                auto bexp = static_pointer_cast<bexpr>(ex);
+                if (bexp->_lson->is_function()) {
+                    auto f = dynamic_pointer_cast<func>(bexp->_lson);
+                    lson = *f;
+                }
+                else if(bexp->_lson->is_var()) {
+                    auto vv = dynamic_pointer_cast<param_>(bexp->_lson);
+                    if(vv->get_name(false,false)==name){
+                        lson = v;
+                    }
+                }
+                else {
+                    return func();
+                }
+                if (bexp->_rson->is_function()) {
+                    auto f = dynamic_pointer_cast<func>(bexp->_rson);
+                    rson = *f;
+                }
+                else if(bexp->_rson->is_var()) {
+                    auto vv = dynamic_pointer_cast<param_>(bexp->_rson);
+                    if(vv->get_name(false,false)==name){
+                        rson = v;
+                    }
+                }
+                else {
+                    return func();
+                }
+                switch (bexp->_otype) {
+                    case plus_:
+                        return bexp->_coef*(lson.get_derivative(v) + rson.get_derivative(v));
+                        break;
+                    case minus_:
+                        return bexp->_coef*(lson.get_derivative(v) - rson.get_derivative(v));
+                        break;
+                    case product_:{
+                        return bexp->_coef*(lson.get_derivative(v)*(rson) + (lson)*rson.get_derivative(v));
+                        // f'g + fg'
+                        break;
+                    }
+                    case div_:
+                        return bexp->_coef*((lson.get_derivative(v)*(rson) - (lson)*rson.get_derivative(v))/(rson*rson));
+                        // (f'g - fg')/g^2
+                        break;
+                    case power_:
+                        if (!rson.is_number()) {
+                            throw invalid_argument("Function in exponent not supported yet.\n");
+                        }
+                        //                auto exponent = poly_eval(_rson);
+                        //                return (exponent*get_poly_derivative(_lson,v)*power(*_lson, exponent-1));// nf'f^n-1
+                        break;
+                    default:
+                        throw invalid_argument("unsupported operation");
+                        break;
+                }
+            }
             return func();
         }
         
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        pair<type,type> get_range(shared_ptr<param_> p) const{
+            switch (p->get_intype()) {
+                case binary_:
+                    return *static_pointer_cast<param<bool>>(p)->_range;
+                    break;
+                case short_:
+                    return *static_pointer_cast<param<short>>(p)->_range;
+                    break;
+                case integer_:
+                    return *static_pointer_cast<param<int>>(p)->_range;
+                    break;
+                case float_:
+                    return *static_pointer_cast<param<float>>(p)->_range;
+                    break;
+                case double_:
+                    return *static_pointer_cast<param<double>>(p)->_range;
+                    break;
+                case long_:
+                    return *static_pointer_cast<param<long double>>(p)->_range;
+                    break;
+                default:
+                    break;
+            }
+            return pair<type,type>();
+        };
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        pair<type,type> get_range(shared_ptr<param_> p) const{
+            switch (p->get_intype()) {
+                case binary_:
+                    return *static_pointer_cast<param<bool>>(p)->_range;
+                    break;
+                case short_:
+                    return *static_pointer_cast<param<short>>(p)->_range;
+                    break;
+                case integer_:
+                    return *static_pointer_cast<param<int>>(p)->_range;
+                    break;
+                case float_:
+                    return *static_pointer_cast<param<float>>(p)->_range;
+                    break;
+                case double_:
+                    return *static_pointer_cast<param<double>>(p)->_range;
+                    break;
+                case long_:
+                    return *static_pointer_cast<param<long double>>(p)->_range;
+                    break;
+                case complex_:
+                    return *static_pointer_cast<param<Cpx>>(p)->_range;
+                    break;
+                default:
+                    break;
+            }
+            return pair<type,type>();
+        };
         
         template<class T, typename enable_if<is_convertible<T, type>::value && sizeof(T) <= sizeof(type)>::type* = nullptr>
         func get_derivative(const var<T>& v) const{
             func res;
+            shared_ptr<pair<type,type>> term_range;
             if(!has_var(v)){
                 return res;
             }
@@ -806,18 +919,32 @@ namespace gravity {
                     }
                     if (coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->second);
                     }
                     else if(coef->is_param()) {
                         auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
                     }
                     else if(coef->is_number()) {
                         auto p_cst = *dynamic_pointer_cast<constant<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
                     }
                     if (lt.second._coef->_is_vector || lt.second._coef->is_matrix()) {
                         res._is_vector = true;
+                    }
+                    if(lt.second._sign){
+                        res._range->first += term_range->first;
+                        res._range->second += term_range->second;
+                    }
+                    else {
+                        res._range->first -= term_range->first;
+                        res._range->second -= term_range->second;
                     }
                 }
                 if (lt.second._p->second->get_name(false,false) == name) {
@@ -827,50 +954,67 @@ namespace gravity {
                     }
                     if (coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->first);
                     }
                     else if(coef->is_param()) {
                         auto p_cst = *dynamic_pointer_cast<param<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
                     }
                     else if(coef->is_number()) {
                         auto p_cst = *dynamic_pointer_cast<constant<type>>(coef);
+                        auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
+                        term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
                     }
                     if (lt.second._coef->_is_vector || lt.second._coef->is_matrix()) {
                         res._is_vector = true;
                     }
+                    if(lt.second._sign){
+                        res._range->first += term_range->first;
+                        res._range->second += term_range->second;
+                    }
+                    else {
+                        res._range->first -= term_range->first;
+                        res._range->second -= term_range->second;
+                    }
                 }
             }
+            //Do range update here too
             int expo = 0;
             for (auto &lt: *_pterms) {
                 bool has_v = false;
-                auto newl(*lt.second._l);
-                auto it = newl.begin();
-                while(it!=newl.end()){
+                shared_ptr<list<pair<shared_ptr<param_>, int>>> newl = make_shared<list<pair<shared_ptr<param_>,int>>>();
+                auto it = lt.second._l->begin();
+                while(it!=lt.second._l->end()){
                     auto v = it->first;
                     if (v->get_name(false,false) == name) {
                         has_v = true;
                         expo = it->second;
-                        it->second--;
-                        if(it->second==0){
-                            newl.erase(it);
+                        if(expo!=1){
+                            newl->push_back(make_pair<>(v, expo-1));
                         }
+                    }
+                    else {
+                        newl->push_back(*it);
                     }
                     it++;
                 }
                 if(has_v){
                     if (lt.second._coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*f_cst, newl);
+                        res.insert(lt.second._sign, expo*f_cst, *newl);
                     }
                     else if(lt.second._coef->is_param()) {
                         auto p_cst = *dynamic_pointer_cast<param<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*p_cst, newl);
+                        res.insert(lt.second._sign, expo*p_cst, *newl);
                     }
                     else if(lt.second._coef->is_number()) {
                         auto p_cst = *dynamic_pointer_cast<constant<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*p_cst, newl);
+                        res.insert(lt.second._sign, expo*p_cst, *newl);
                     }
                 }
             }
@@ -2126,12 +2270,12 @@ namespace gravity {
         
         
         void update_range(type val) {
-            if (val <= _range->first) {
+//            if (val <= _range->first) {
                 _range->first = val;
-            }
-            if (val >= _range->second) {
+//            }
+//            if (val >= _range->second) {
                 _range->second = val;
-            }
+//            }
         }
         
         void add_val(size_t i, type val) {
@@ -2313,7 +2457,7 @@ namespace gravity {
                 throw invalid_argument("eval() should be called with double index here\n");
             }
             if (is_constant() && _evaluated) {
-                if (is_number()){
+                if (func_is_number()){
                     return _val->at(0);
                 }
                 return _val->at(i);
@@ -3476,7 +3620,7 @@ namespace gravity {
                     }
                     else {
                         res._expr = make_shared<bexpr>(bexpr(product_, make_shared<func<type>>(*this), make_shared<func>(*static_pointer_cast<bexpr>(res._expr))));
-                    }                    
+                    }
                     res.embed(res._expr);
                 }
                 *this = res;
@@ -3486,7 +3630,13 @@ namespace gravity {
             //Both functions are non-constants at this stage
             if (_expr || (f._expr)) {
                 auto be = bexpr(product_, make_shared<func>(*this), make_shared<func>(f));
-                *this = func(be);
+                auto res = func(be);
+                res._range = get_product_range(_range,f._range);
+                if(_is_transposed){
+                    res._range->first *= _dim[0];
+                    res._range->second *= _dim[0];
+                }
+                *this = move(res);
                 _evaluated = false;
                 _all_convexity = undet_;
                 return *this;
@@ -3985,54 +4135,54 @@ namespace gravity {
                 this->insert(term);
             }
             if (_expr && f.get_expr()) {
-                shared_ptr<expr> e1,e2;
+                func f1,f2;
                 if (_expr->is_uexpr()) {
-                    e1 = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(_expr));
+                    f1 = func(*dynamic_pointer_cast<uexpr>(_expr));
                 }
                 else {
-                    e1 = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(_expr));
+                    f1 = func(*dynamic_pointer_cast<bexpr>(_expr));
                 }
                 if (f.get_expr()->is_uexpr()) {
-                    auto ue = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(f.get_expr()));
-                    if (ue->_son->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(ue->_son);
-                        ue->_son = make_shared<func>(*f);
+                    auto ue = *dynamic_pointer_cast<uexpr>(f.get_expr());
+                    if (ue._son->is_function()) {
+                        auto son = dynamic_pointer_cast<func<T2>>(ue._son);
+                        ue._son = make_shared<func>(*son);
                     }
-                    e2 = ue;
+                    f2 = func(ue);
                 }
                 else {
-                    auto bexp = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(f.get_expr()));
-                    if (bexp->_lson->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(bexp->_lson);
-                        bexp->_lson = make_shared<func>(*f);
+                    auto bexp = *dynamic_pointer_cast<bexpr>(f.get_expr());
+                    if (bexp._lson->is_function()) {
+                        auto f = dynamic_pointer_cast<func<T2>>(bexp._lson);
+                        bexp._lson = make_shared<func>(*f);
                     }
-                    if (bexp->_rson->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(bexp->_rson);
-                        bexp->_rson = make_shared<func>(*f);
+                    if (bexp._rson->is_function()) {
+                        auto f = dynamic_pointer_cast<func<T2>>(bexp._rson);
+                        bexp._rson = make_shared<func>(*f);
                     }
-                    e2 = bexp;
+                    f2 = func(bexp);
                 }
-                _expr = make_shared<bexpr>(bexpr(plus_, e1, e2));
+                _expr = make_shared<bexpr>(bexpr(plus_, f1.copy(), f2.copy()));
                 embed(_expr);
             }
             else if (!_expr && f.get_expr()) {
                 if (f.get_expr()->is_uexpr()) {
-                    auto ue = make_shared<uexpr>(*dynamic_pointer_cast<uexpr>(f.get_expr()));
-                    if (ue->_son->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(ue->_son);
-                        ue->_son = make_shared<func>(*f);
+                    auto ue = *dynamic_pointer_cast<uexpr>(f.get_expr());
+                    if (ue._son->is_function()) {
+                        auto son = dynamic_pointer_cast<func<T2>>(ue._son);
+                        ue._son = make_shared<func>(*son);
                     }
-                    _expr = ue;
+                    _expr = make_shared<uexpr>(ue);
                 }
                 else {
                     auto bexp = make_shared<bexpr>(*dynamic_pointer_cast<bexpr>(f.get_expr()));
                     if (bexp->_lson->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(bexp->_lson);
-                        bexp->_lson = make_shared<func>(*f);
+                        auto son = dynamic_pointer_cast<func<T2>>(bexp->_lson);
+                        bexp->_lson = make_shared<func>(*son);
                     }
                     if (bexp->_rson->is_function()) {
-                        auto f = dynamic_pointer_cast<func<T2>>(bexp->_rson);
-                        bexp->_rson = make_shared<func>(*f);
+                        auto son = dynamic_pointer_cast<func<T2>>(bexp->_rson);
+                        bexp->_rson = make_shared<func>(*son);
                     }
                     _expr = bexp;
                 }
@@ -4228,9 +4378,7 @@ namespace gravity {
             res._range = get_product_range(p1._range,p2._range);
             res._all_sign = sign_product(p1.get_all_sign(), p2.get_all_sign());
         }
-        if(res.is_quadratic()){res.update_quad_convexity();
-            
-        }
+        if(res.is_quadratic()){res.update_quad_convexity();}
         if(p1._is_transposed){
             res._range->first *= p1._dim[0];
             res._range->second *= p1._dim[0];
