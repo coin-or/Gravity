@@ -2721,7 +2721,7 @@ namespace gravity{
 //        }
 //        switch (c->get_type()) {
 //            case par_c:{
-//                return ((param_*)(c))->get_name(true,false);
+//                return ((param_*)(c))->get_name(false,false);
 //                break;
 //            }
 //            case uexp_c: {
@@ -2733,7 +2733,7 @@ namespace gravity{
 //                break;
 //            }
 //            case var_c: {
-//                return ((param_*)(c))->get_name(true,false);
+//                return ((param_*)(c))->get_name(false,false);
 //                break;
 //            }
 //            case func_c: {
@@ -2781,7 +2781,7 @@ namespace gravity{
 //                break;
 //            }
 //            case par_c:{
-//                return ((param_*)(c))->get_name(true,false);
+//                return ((param_*)(c))->get_name(false,false);
 //                break;
 //            }
 //            case uexp_c: {
@@ -2793,7 +2793,7 @@ namespace gravity{
 //                break;
 //            }
 //            case var_c: {
-//                return ((param_*)(c))->get_name(true,false);
+//                return ((param_*)(c))->get_name(false,false);
 //                break;
 //            }
 //            case func_c: {
@@ -3809,18 +3809,18 @@ namespace gravity{
 //        //        print();
 //    }
 //
-//    param_* func_::get_var(size_t vid) const{
-//        for (auto &v_p:*_vars) {
-//            if (*v_p.second.first->_vec_id == vid) {
-//                return v_p.second.first.get();
-//            }
-//        }
-//        return nullptr;
-//    }
+    shared_ptr<param_> func_::get_var(size_t vid) const{
+        for (auto &v_p:*_vars) {
+            if (*v_p.second.first->_vec_id == vid) {
+                return v_p.second.first;
+            }
+        }
+        return nullptr;
+    }
 //
-//    bool func_::has_var(const param_& v) const{
-//        return get_var(*v._vec_id)!=nullptr;
-//    }
+    bool func_::has_var(const param_& v) const{
+        return get_var(v.get_name(true, false))!=nullptr;
+    }
 //
 //
 //    bool func_::has_var(const string& name) const{
@@ -4324,7 +4324,7 @@ namespace gravity{
      @param[in] name variable name.
      @return a pointer to the variable matching the name provided.
      */
-    shared_ptr<param_> func_::get_var(string name) const{
+    shared_ptr<param_> func_::get_var(const string& name) const{
         if (_vars->empty()) {
             return nullptr;
         }

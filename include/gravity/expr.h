@@ -84,6 +84,7 @@ namespace gravity {
         string to_str() ;
         string to_str(int prec) ;
         string to_str(size_t, int prec) ;
+        string to_str(size_t, size_t, int prec) ;
         void print(bool endline = true) ;
 //        func_ get_derivative(const param_ &v) const;
         vector<shared_ptr<param_>> get_nl_vars() const;
@@ -159,6 +160,7 @@ namespace gravity {
         string to_str() ;
         string to_str(int prec) ;
         string to_str(size_t, int prec) ;
+        string to_str(size_t, size_t, int prec) ;
         void print(size_t inst) {
             cout << to_str(inst) << endl;
         }
