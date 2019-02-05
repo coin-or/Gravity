@@ -489,15 +489,15 @@ namespace gravity {
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         param() {
             update_type();
+            init_range();
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         param(){
             update_type();
+            init_range();
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
         }
         
         shared_ptr<param_> pcopy() const{return make_shared<param>(*this);};
@@ -711,6 +711,20 @@ namespace gravity {
 
 
         /* Modifiers */
+        
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+        }
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+        }
+
+        
         void    set_size(vector<size_t> dims){
             if (dims.size()==1) {
                 set_size(dims[0]);
@@ -776,10 +790,23 @@ namespace gravity {
                 throw invalid_argument("In Function set_val(size_t i, size_t j, type val), i or j are out of bounds");
             }
             if (_is_transposed) {
-                _val->at(_dim[0]*j+i) = val;
+                if(_val->at(_dim[0]*j+i)==_range->first ||  _val->at(_dim[0]*j+i)==_range->second || val<_range->first || val>_range->second){
+                    _val->at(_dim[0]*j+i) = val;
+                    reset_range();
+                }
+                else {
+                    _val->at(_dim[0]*j+i) = val;
+                }
             }
-            _val->at(_dim[1]*i+j) = val;
-            update_range(val);
+           else {
+                if(_val->at(_dim[1]*i+j)==_range->first ||  _val->at(_dim[1]*i+j)==_range->second || val<_range->first || val>_range->second){
+                    _val->at(_dim[1]*i+j) = val;
+                    reset_range();
+                }
+                else {
+                    _val->at(_dim[1]*i+j) = val;
+                }
+           }
         }
 
 
@@ -789,8 +816,13 @@ namespace gravity {
             if (it == _indices->_keys_map->end()){
                 throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key");
             }
-            _val->at(it->second) = val;
-            update_range(val);
+            if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
+                _val->at(it->second) = val;
+                reset_range();
+            }
+            else {
+                _val->at(it->second) = val;
+            }
             return it->second;
         }
 
@@ -812,7 +844,9 @@ namespace gravity {
             else {
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
                 _val->at(pp.first->second) = val;
-                update_range(val);
+                if(val==_range->first || val==_range->second){
+                    reset_range();
+                }
                 return pp.first->second;
             }
         }
@@ -838,27 +872,44 @@ namespace gravity {
                 if (_val->size()<=_indices->_ids->at(0).at(i)){
                     throw invalid_argument("Param set_val(size_t i, type val) out of range");
                 }
+                if(_val->at(_indices->_ids->at(0).at(i))==_range->first ||  _val->at(_indices->_ids->at(0).at(i))==_range->second || val<_range->first || val>_range->second){
+                    reset_range();
+                }
                 _val->at(_indices->_ids->at(0).at(i)) = val;
             }
             if (_val->size()<=i){
                 throw invalid_argument("Param set_val(size_t i, type val) out of range");
             }
-            _val->at(i) = val;
-            update_range(val);
+            if(_val->at(i)==_range->first ||  _val->at(i)==_range->second || val<_range->first || val>_range->second){
+                _val->at(i) = val;
+                reset_range();
+            }
+            else{
+                _val->at(i) = val;
+            }
         }
 
         void set_val(type val) {
             if(is_indexed()){
+                update_range(val);
+                bool reset = false;
                 for(auto &idx: _indices->_ids->at(0)){
+                    if(_val->at(idx)==_range->first ||  _val->at(idx)==_range->second){
+                        reset = true;
+                    }
                     _val->at(idx) = val;
+                }
+                if(reset){
+                    reset_range();
                 }
             }
             else {
                 for (auto i = 0; i<_val->size() ;i++) {
                     _val->at(i) = val;
                 }
+                _range->first = val;
+                _range->second = val;
             }
-            update_range(val);
         }
 
         template<typename T=type,
@@ -913,10 +964,10 @@ namespace gravity {
             if ((_range->second.real() > 0 && _range->second.imag() > 0)) {
                 return pos_;
             }
-            if (_range->second == Cpx(0,0)) {
+            if (_range->second <= Cpx(0,0)) {
                 return non_pos_;
             }
-            if (_range->first == Cpx(0,0)) {
+            if (_range->first >= Cpx(0,0)) {
                 return non_neg_;
             }
             return unknown_;
@@ -1579,6 +1630,20 @@ namespace gravity {
         }
         
         void update_range(const Cpx& val);
+        /**
+         Recompute range based on stored values.
+         */
+        void reset_range(){
+            init_range();
+            for (auto v:*_val) {
+                if(_range->first > v){
+                    _range->first = v;
+                }
+                if(_range->second  < v){
+                    _range->second = v;
+                }
+            }
+        }
 //        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
 
     };
