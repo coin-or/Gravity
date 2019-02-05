@@ -616,8 +616,8 @@ namespace gravity {
         shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
         shared_ptr<pair<T1,T1>> cast_range1 = make_shared<pair<T1,T1>>(make_pair<>((T1)range1->first,(T1)range1->second));
         auto min1 = min(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        auto max1 = max(cast_range1->second*range2->second, cast_range1->second*range2->second);
-        auto min2 = min(cast_range1->second*range2->second, cast_range1->first*range2->second);
+        auto max1 = max(cast_range1->second*range2->second, cast_range1->second*range2->first);
+        auto min2 = min(cast_range1->second*range2->second, cast_range1->second*range2->first);
         auto max2 = max(cast_range1->first*range2->first, cast_range1->first*range2->second);
         res->first = min(min1,min2);
         res->second = max(max1,max2);
@@ -703,6 +703,15 @@ namespace gravity {
         
         bool is_constant() const{
             return (_vars->empty());
+        }
+        
+        
+        /** Operators */
+        bool operator==(const func& p) const {
+            if (_type!=p._type || _return_type!=p._return_type || _dim[0]!=p._dim[0] || _dim[1]!=p._dim[1] || _to_str!=p._to_str) return false;
+            if(_indices==p._indices) return true; /* accounts for both being nullptr */
+            if((_indices && !p._indices) || (p._indices && !_indices) || (*_indices != *p._indices)) return false;
+            return true;
         }
         
         template<class T, typename enable_if<is_convertible<T, type>::value && sizeof(T) <= sizeof(type)>::type* = nullptr>
@@ -821,6 +830,41 @@ namespace gravity {
             return func();
         }
         
+        pair<type,type> get_range(shared_ptr<list<pair<shared_ptr<param_>, int>>> pterm) const{
+            pair<type,type> res = {unit<type>().eval(),unit<type>().eval()};
+            auto it = pterm->begin();
+            while(it!=pterm->end()){
+                auto it2 = next(it);
+                auto range1 = get_range(*it);
+                if(it2!=pterm->end()){
+                    auto range2 = get_range(*it2);
+                    auto prod = get_product_range(make_shared<pair<type,type>>(range1), make_shared<pair<type,type>>(range2));
+                    res = *get_product_range(make_shared<pair<type,type>>(res),prod);
+                    advance(it,2);
+                }
+                else {
+                    res = *get_product_range(make_shared<pair<type,type>>(res),make_shared<pair<type,type>>(range1));
+                    it++;
+                }
+            }
+            return res;
+        }
+        
+        pair<type,type> get_range(const pair<shared_ptr<param_>, int>& p) const{
+            auto range = get_range(p.first);
+            pair<type,type> res;
+            res.first=pow(range.first,p.second);
+            res.second=pow(range.second,p.second);
+            if(p.second%2==0){
+                res.first=zero<type>().eval();
+                if(p.first->is_positive()|| p.first->is_negative()){
+                    res.first=pow(range.first,p.second);
+                }
+            }
+            return res;
+        }
+        
+        
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         pair<type,type> get_range(shared_ptr<param_> p) const{
@@ -917,6 +961,9 @@ namespace gravity {
                     if ((coef->_is_vector && coef->_is_transposed)) {
                         coef->transpose();//TODO is this needed?
                     }
+                    else {
+                        res.update_dim(v);
+                    }
                     if (coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
@@ -952,6 +999,9 @@ namespace gravity {
                     if ((coef->_is_vector && coef->_is_transposed)) {
                         coef->transpose();//TODO is this needed?
                     }
+                    else {
+                        res.update_dim(v);
+                    }
                     if (coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(coef);
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
@@ -983,19 +1033,19 @@ namespace gravity {
                     }
                 }
             }
-            //Do range update here too
             int expo = 0;
             for (auto &lt: *_pterms) {
                 bool has_v = false;
                 shared_ptr<list<pair<shared_ptr<param_>, int>>> newl = make_shared<list<pair<shared_ptr<param_>,int>>>();
                 auto it = lt.second._l->begin();
                 while(it!=lt.second._l->end()){
-                    auto v = it->first;
-                    if (v->get_name(false,false) == name) {
+                    auto vv = it->first;
+                    if (vv->get_name(false,false) == name) {
                         has_v = true;
                         expo = it->second;
                         if(expo!=1){
-                            newl->push_back(make_pair<>(v, expo-1));
+                            newl->push_back(make_pair<>(vv, expo-1));
+                            res.update_dim(*vv);
                         }
                     }
                     else {
@@ -1004,17 +1054,32 @@ namespace gravity {
                     it++;
                 }
                 if(has_v){
+                    auto pterm_range = get_range(newl);
+                    pterm_range.first *= expo;
+                    pterm_range.second *= expo;
                     if (lt.second._coef->is_function()) {
                         auto f_cst = *dynamic_pointer_cast<func<type>>(lt.second._coef);
                         res.insert(lt.second._sign, expo*f_cst, *newl);
+                        pterm_range = *get_product_range(make_shared<pair<type,type>>(pterm_range), f_cst._range);
                     }
                     else if(lt.second._coef->is_param()) {
                         auto p_cst = *dynamic_pointer_cast<param<type>>(lt.second._coef);
                         res.insert(lt.second._sign, expo*p_cst, *newl);
+                        pterm_range = *get_product_range(make_shared<pair<type,type>>(pterm_range), p_cst._range);
                     }
                     else if(lt.second._coef->is_number()) {
                         auto p_cst = *dynamic_pointer_cast<constant<type>>(lt.second._coef);
                         res.insert(lt.second._sign, expo*p_cst, *newl);
+                        pterm_range.first = min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                        pterm_range.second = max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                    }
+                    if(lt.second._sign){
+                        res._range->first += pterm_range.first;
+                        res._range->second += pterm_range.second;
+                    }
+                    else {
+                        res._range->first -= pterm_range.first;
+                        res._range->second -= pterm_range.second;
                     }
                 }
             }
@@ -3644,7 +3709,24 @@ namespace gravity {
 
             /* Case where the multiplication invlolves multiplying variables/parameters together, i.e., they are both parametric or both include variables  */
             func res;
-            res._range = get_product_range(_range,f._range);
+//            if(_to_str==f._to_str){
+            if(false){
+                auto signp = get_all_sign();
+                if(signp==neg_ || signp==pos_){
+                    res._all_sign = pos_;
+                }
+                else {
+                    res._all_sign = non_neg_;
+                }
+                res._range->first=zero<type>().eval();
+                if(is_positive()|| is_negative()){
+                    res._range->first=_range->first*_range->first;
+                }
+                res._range->second=_range->second*_range->second;
+            }
+            else {
+                res._range = get_product_range(_range,f._range);
+            }
             if(_is_transposed){
                 res._range->first *= _dim[0];
                 res._range->second *= _dim[0];
@@ -4871,7 +4953,7 @@ namespace gravity {
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> cos(const param<T>& p1){
-        func<T> res(uexpr(cos_, p1.copy()));//TODO update ranges and convexity
+        func<T> res(uexpr(cos_, p1.copy()));
         auto conv_sign = cos_sign_curvature(*p1._range);
         if (p1.is_var()) {
             res._all_convexity = conv_sign.first;
