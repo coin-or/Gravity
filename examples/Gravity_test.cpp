@@ -109,10 +109,14 @@ TEST_CASE("testing param indexing, add_val() and set_val() functions") {
     ip.print();
     ip.add_val(2);
     ip.add_val(-1.3);
+    CHECK(ip._range->first==-1.3);
+    CHECK(ip._range->second==2);
     ip.print();
-    ip.set_val(0, 1.5);
+    ip.set_val(1, 1.5);
     ip.print();
-    CHECK(ip.eval(0)==1.5);
+    CHECK(ip.eval(1)==1.5);
+    CHECK(ip._range->first==1.5);
+    CHECK(ip._range->second==2);
     indices ids("index_set");
     ids = {"id1", "id2", "key3"};
     param<> dp("dp");
