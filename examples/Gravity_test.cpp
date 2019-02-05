@@ -312,6 +312,26 @@ TEST_CASE("testing complex functions") {
     CHECK(cpx_f.to_str()=="((2,0) * exp(cpx))z");
     cpx_f.print();
 }
+
+TEST_CASE("testing ReLU") {
+    var<> A("A",-1,1), B("B",-1,1);
+    A.in(R(4));
+    B.in(R(1));
+    param<> X("X");
+    X.in(R(4));
+    X(0) = 0.2;
+    X(1) = 0.3;
+    X(2) = 0.4;
+    X(3) = -0.2;
+    auto f = ReLU(A.tr()*X + B);
+    f.print_symbolic();
+    f.print();
+    auto dfdA = f.get_derivative(B);
+    dfdA.print_symbolic();
+    CHECK(dfdA.to_str()=="UnitStep(B + (Xᵀ)[A])");
+    dfdA.print();
+}
+
 TEST_CASE("testing range propagation") {
     indices ids("index_set");
     ids = {"id1", "id2", "key3", "key4"};
@@ -498,13 +518,12 @@ TEST_CASE("testing nonlinear expressions"){
     x1.in(R(1));
     x2.in(R(1));
     x3.in(R(1));
-//    auto cstr = cos(x1*x2);
-//    CHECK(cstr.get_nb_vars()==2);
     auto cstr = x1*exp(x2*x3);
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_nonlinear());
     CHECK(cstr.get_dim()==1);
     cstr.print_symbolic();
+    cstr.print();
     auto dfdx2 = cstr.get_derivative(x2);
     dfdx2.print_symbolic();
 }

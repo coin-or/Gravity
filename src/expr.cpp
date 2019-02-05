@@ -13,7 +13,29 @@ using namespace std;
 namespace gravity{
 
 
-    
+    string operator_str(OperatorType ot){
+        switch (ot) {
+            case log_:
+                return "log";
+            case exp_:
+                return "exp";
+            case cos_:
+                return "cos";
+            case sin_:
+                return "sin";
+            case tan_:
+                return "tan";
+            case sqrt_:
+                return "sqrt";
+            case relu_:
+                return "ReLU";
+            case unit_step_:
+                return "UnitStep";
+            default:
+                break;
+        }
+        throw invalid_argument("Unsupported unitary operator");
+    }
 
     uexpr::uexpr(const uexpr& exp){
         *this = exp;
@@ -158,39 +180,7 @@ namespace gravity{
             }
             str+="(";
         }
-        switch (_otype) {
-            case log_:
-                str += "log(";
-                str += _son->to_str();
-                str += ")";
-                break;
-                
-            case exp_:
-                str += "exp(";
-                str += _son->to_str();
-                str += ")";
-                break;
-                
-            case cos_:
-                str += "cos(";
-                str += _son->to_str();
-                str += ")";
-                break;
-                
-            case sin_:
-                str += "sin(";
-                str += _son->to_str();
-                str += ")";
-                break;
-                
-            case sqrt_:
-                str += "sqrt(";
-                str += _son->to_str();
-                str += ")";
-                break;
-            default:
-                break;
-        }
+        str += operator_str(_otype) +"("+_son->to_str()+")";
         if (_coef!=1) {
             str += ")";
         }
@@ -209,39 +199,7 @@ namespace gravity{
             }
             str+="(";
         }
-        switch (_otype) {
-            case log_:
-                str += "log(";
-                str += _son->to_str(prec);
-                str += ")";
-                break;
-                
-            case exp_:
-                str += "exp(";
-                str += _son->to_str(prec);
-                str += ")";
-                break;
-                
-            case cos_:
-                str += "cos(";
-                str += _son->to_str(prec);
-                str += ")";
-                break;
-                
-            case sin_:
-                str += "sin(";
-                str += _son->to_str(prec);
-                str += ")";
-                break;
-                
-            case sqrt_:
-                str += "sqrt(";
-                str += _son->to_str(prec);
-                str += ")";
-                break;
-            default:
-                break;
-        }
+        str += operator_str(_otype) +"("+_son->to_str(prec)+")";
         if (_coef!=1) {
             str += ")";
         }
@@ -259,39 +217,7 @@ namespace gravity{
             }
             str+="(";
         }
-        switch (_otype) {
-            case log_:
-                str += "log(";
-                str += _son->to_str(inst,prec);
-                str += ")";
-                break;
-                
-            case exp_:
-                str += "exp(";
-                str += _son->to_str(inst,prec);
-                str += ")";
-                break;
-                
-            case cos_:
-                str += "cos(";
-                str += _son->to_str(inst,prec);
-                str += ")";
-                break;
-                
-            case sin_:
-                str += "sin(";
-                str += _son->to_str(inst,prec);
-                str += ")";
-                break;
-                
-            case sqrt_:
-                str += "sqrt(";
-                str += _son->to_str(inst,prec);
-                str += ")";
-                break;
-            default:
-                break;
-        }
+        str += operator_str(_otype) +"("+_son->to_str(inst,prec)+")";
         if (_coef!=1) {
             str += ")";
         }
@@ -309,39 +235,7 @@ namespace gravity{
             }
             str+="(";
         }
-        switch (_otype) {
-            case log_:
-                str += "log(";
-                str += _son->to_str(inst1,inst2,prec);
-                str += ")";
-                break;
-                
-            case exp_:
-                str += "exp(";
-                str += _son->to_str(inst1,inst2,prec);
-                str += ")";
-                break;
-                
-            case cos_:
-                str += "cos(";
-                str += _son->to_str(inst1,inst2,prec);
-                str += ")";
-                break;
-                
-            case sin_:
-                str += "sin(";
-                str += _son->to_str(inst1,inst2,prec);
-                str += ")";
-                break;
-                
-            case sqrt_:
-                str += "sqrt(";
-                str += _son->to_str(inst1,inst2,prec);
-                str += ")";
-                break;
-            default:
-                break;
-        }
+        str += operator_str(_otype) +"("+_son->to_str(inst1,inst2,prec)+")";
         if (_coef!=1) {
             str += ")";
         }
