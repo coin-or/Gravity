@@ -765,6 +765,12 @@ namespace gravity {
                     case log_:
                         return uexp->_coef*get_derivative(uexp->_son,v)/son;
                         break;
+                    case relu_:
+                        return uexp->_coef*unit_step(son)*get_derivative(uexp->_son,v);
+                        break;
+                    case unit_step_:
+                        return zero<type>();
+                        break;
                     default:
                         throw invalid_argument("Unsupported unary operation");
                         break;
@@ -1097,8 +1103,20 @@ namespace gravity {
         using func_::insert;
         
         bool insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
-            shared_ptr<param_> p_new;
-            auto pname = p.get_name(false,false);
+            shared_ptr<param_> p_new = p.pcopy();
+            bool transpose = false;
+            string pname;
+            if(p._is_transposed){// Situation where p^T*coef is transformed into coef^T*p
+                if(coef._is_transposed){
+                    throw invalid_argument("In  bool insert(bool sign, const constant_& coef, const param_& p), both coef and p are transposed.");
+                }
+                p_new->transpose();
+                transpose = true;
+                pname = p_new->get_name(false,false);
+            }
+            else {
+                pname = p.get_name(false,false);
+            }
             auto pair_it = _lterms->find(pname);
             if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
                 throw invalid_argument("param and var with same name: " + pname);
@@ -1109,13 +1127,15 @@ namespace gravity {
             
             if (pair_it == _lterms->end()) {
                 auto c_new = coef.copy();
+                if(transpose){
+                    c_new->transpose();
+                }
                 if (c_new->is_function()) {
                     embed(*dynamic_pointer_cast<func_>(c_new));
                 }
                 if (p.is_var()) {
-                    p_new = get_var(pname);
-                    if (!p_new) {
-                        p_new = p.pcopy();
+                    auto p_exist = get_var(pname);
+                    if (!p_exist) {
                         add_var(p_new);
                     }
                     else {
@@ -1123,9 +1143,8 @@ namespace gravity {
                     }
                 }
                 else {
-                    p_new = get_param(pname);
-                    if (!p_new) {
-                        p_new = p.pcopy();
+                    auto p_exist = get_var(pname);
+                    if (!p_exist) {
                         add_param(p_new);
                     }
                     else {
@@ -3183,6 +3202,11 @@ namespace gravity {
                         res = 0;
                     return exp->_coef*res;
                 }
+                case unit_step_:{
+                    if(res <= 0)
+                        return 0;
+                    return exp->_coef*1;
+                }
                     break;
                 default:
                     throw invalid_argument("Unsupported unary operator");
@@ -3214,6 +3238,11 @@ namespace gravity {
                     if(res.imag() < 0)
                         res.imag(0);
                     return exp->_coef*res;
+                }
+                case unit_step_:{
+                    if(res.real() <= 0 || res.imag() <= 0)
+                        return Cpx(0,0);
+                    return exp->_coef*Cpx(1,0);
                 }
                     break;
                 default:
@@ -3310,6 +3339,11 @@ namespace gravity {
                         res = 0;
                     return exp->_coef*res;
                 }
+                case unit_step_:{
+                    if(res <= 0)
+                        return 0;
+                    return exp->_coef*1;
+                }
                     break;
                 default:
                     throw invalid_argument("Unsupported unary operator");
@@ -3342,7 +3376,11 @@ namespace gravity {
                         res.imag(0);
                     return exp->_coef*res;
                 }
-                    break;
+                case unit_step_:{
+                    if(res.real() <= 0 || res.imag() <= 0)
+                        return Cpx(0,0);
+                    return exp->_coef*Cpx(1,0);
+                }
                 default:
                     throw invalid_argument("Unsupported unary operator");
                     break;
@@ -4732,6 +4770,14 @@ namespace gravity {
     }
     
     template<class T1>
+    constant<T1> unit_step(const constant<T1>& p1){
+        if(p1.is_non_positive()){
+            return zero<T1>();
+        }
+        return unit<T1>();
+    }
+    
+    template<class T1>
     constant<T1> cos(const constant<T1>& p1){
         constant<T1> res(p1);
         res.set_val(cos(res.eval()));
@@ -4951,6 +4997,25 @@ namespace gravity {
         return res;
     }
     
+    template<class T1>
+    func<T1> unit_step(const param<T1>& p1){
+        func<T1> res(uexpr(unit_step_, p1.copy()));
+        if(p1.is_non_positive()){
+            res._range->first = zero<T1>().eval();
+            res._range->second = zero<T1>().eval();
+        }
+        else if(p1.is_positive()){
+            res._range->first = unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        else {
+            res._range->first = zero<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        res._all_convexity = undet_;
+        return res;
+    }
+    
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> cos(const param<T>& p1){
         func<T> res(uexpr(cos_, p1.copy()));
@@ -5031,11 +5096,12 @@ namespace gravity {
             res._all_convexity = convex_;
         }
         res._all_sign = non_neg_;
+        res._range->first = zero<T1>().eval();
         if(p1.is_positive()){
             res._all_sign = pos_;
+            res._range->first = p1._range->first;
         }
-        res._range->first = max(zero<T1>(),p1._range->first);
-        res._range->second = max(zero<T1>(),p1._range->second);
+        res._range->second = max(zero<T1>().eval(),p1._range->second);
         return res;
     }
     
@@ -5240,6 +5306,24 @@ namespace gravity {
         res._range->second = tan(f._range->second);
         return res;
     }
+    template<class T1>
+    func<T1> unit_step(const func<T1>& f){
+        func<T1> res(uexpr(unit_step_, f.copy()));
+        if(f.is_non_positive()){
+            res._range->first = zero<T1>().eval();
+            res._range->second = zero<T1>().eval();
+        }
+        else if(f.is_positive()){
+            res._range->first = unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        else {
+            res._range->first = zero<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        res._all_convexity = undet_;
+        return res;
+    }
     
     template<class T1>
     func<T1> ReLU(const func<T1>& f){
@@ -5251,11 +5335,12 @@ namespace gravity {
             res._all_convexity = undet_;
         }
         res._all_sign = non_neg_;
+        res._range->first = zero<T1>().eval();
         if(f.is_positive()){
             res._all_sign = pos_;
+            res._range->first = f._range->first;
         }
-        res._range->first = max(zero<T1>(),f._range->first);
-        res._range->second = max(zero<T1>(),f._range->second);
+        res._range->second = max(zero<T1>().eval(),f._range->second);
         return res;
     }
     
