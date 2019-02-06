@@ -132,11 +132,11 @@ namespace gravity {
         };
 
         Constraint(const Constraint& c){
-            return *this = c;
+            *this = c;
         }
         
         Constraint(Constraint&& c){
-            return *this = move(c);
+            *this = move(c);
         }
             
         Constraint& operator=(const Constraint& c){
