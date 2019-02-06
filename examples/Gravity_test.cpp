@@ -15,7 +15,7 @@
 //#include <gravity/Net.h>
 #include <gravity/model.h>
 #include <gravity/solver.h>
-#include <gravity/func.h>
+#include <gravity/constraint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <gravity/doctest.h>
@@ -511,6 +511,36 @@ TEST_CASE("testing function convexity"){
     fn += exp(p);
     fn.print_symbolic();
     CHECK(fn.is_convex());
+}
+
+TEST_CASE("testing constraints"){
+    var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3",2,4);
+    x1.in(R(2));
+    x2.in(R(2));
+    x3.in(R(2));
+    Constraint<> cstr("cstr");
+    cstr = x1 + exp(x2) - x3;
+    CHECK(cstr.get_nb_vars()==3);
+    CHECK(cstr.is_nonlinear());
+    CHECK(cstr.is_convex());
+    CHECK(cstr.get_dim()==2);
+    CHECK(cstr._range->first==-1+exp(0.1)-4);
+    CHECK(cstr._range->second==1+exp(3)-2);
+    cstr.print_symbolic();
+    cstr.print();
+    auto dfdx2 = cstr.get_derivative(x2);
+    dfdx2.print_symbolic();
+    param<int> a("a");
+    a = -1;
+    a = -4;
+    Constraint<> cstr1("cstr1");
+    cstr1 = x3 - sqrt(x2) + ReLU(x1);
+    cstr1 >= a + 3;
+    cstr1.print_symbolic();
+    cstr1.print();
+    CHECK(cstr1.is_concave());
+    CHECK(cstr1._range->first==2-sqrt(3)-3+1);
+    CHECK(cstr1._range->second==4-sqrt(0.1)+2);
 }
 
 TEST_CASE("testing nonlinear expressions"){

@@ -559,6 +559,17 @@ namespace gravity {
         
         void update_quad_convexity();
         
+        void update_convexity_add(Convexity c){
+            if(_all_convexity==linear_){
+                _all_convexity = c;
+            }
+            else if(c!=linear_){
+                if(_all_convexity!=c){
+                    _all_convexity = undet_;
+                }
+            }
+        }
+        
         
         string to_str() {
             string str;
@@ -1507,7 +1518,7 @@ namespace gravity {
             return func_::to_str();
         }
         
-        string to_str(size_t index, int prec) {
+        string to_str(size_t index, int prec) {            
             if (is_constant()) {
                 return to_string_with_precision(eval(index),prec);
             }
@@ -1561,7 +1572,7 @@ namespace gravity {
             return max_size;
         }
         
-        void print(){
+        void print(int prec = 5){
             string str;
             if (is_constant()) {
                 str += " (Constant";
@@ -1606,7 +1617,7 @@ namespace gravity {
                     }
                     str += "|";
                     for (size_t j = 0; j<_dim[1]; j++) {
-                        auto cell = to_str(i,j,5);
+                        auto cell = to_str(i,j,prec);
                         auto cell_size = cell.size();
                         cell.insert(0, floor((max_cell_size - cell_size)/2.), ' ');
                         cell.append(ceil((max_cell_size - cell_size)/2.), ' ');
@@ -1624,7 +1635,7 @@ namespace gravity {
                     if (inst>0) {
                         str.insert(str.end(), space_size, ' ');
                     }
-                    str += to_str(inst,5);
+                    str += to_str(inst,prec);
                     str += "\n";
                 }
             }
@@ -2035,6 +2046,7 @@ namespace gravity {
         func& operator=(const param<T2>& c){
             reset();
             insert(true,unit<type>(),c);
+            update_dim(c);
             _val->clear();
             _range->first = c._range->first;
             _range->second = c._range->second;
@@ -4315,9 +4327,7 @@ namespace gravity {
             if(is_quadratic()){
                 update_quad_convexity();
             }
-            else if(_all_convexity!=f._all_convexity){
-                _all_convexity = undet_;
-            }
+            update_convexity_add(f._all_convexity);
             _range->first += f._range->first;
             _range->second += f._range->second;
             return *this;
@@ -5398,26 +5408,44 @@ namespace gravity {
         }
     }
     
-    
-
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-    func<T1> operator+(const constant<T1>& p, const param<T2>& v){
-        func<T1> res(v);
-        res.add_cst(p);
-        res._range->first = p.eval()+v._range->first;
-        res._range->second = p.evla()+v._range->second;
-        res.update_all_sign();
-        return res;
+    func<T1> operator-(T1 p, const param<T2>& v){
+        return constant<T1>(p) - v;
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-    func<T2> operator+(const constant<T1>& p, const param<T2>& v){
-        func<T2> res(v);
-        res.add_cst(p);
-        res._range->first = p.eval()+v._range->first;
-        res._range->second = p.eval()+v._range->second;
-        res.update_all_sign();
-        return res;
+    func<T2> operator-(T1 p, const param<T2>& v){
+        return constant<T2>(p) - v;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator-(const param<T1>& v, T2 p){
+        return v - constant<T1>(p);
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator-(const param<T1>& v, T2 p){
+        return v - constant<T2>(p);
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(T1 p, const param<T2>& v){
+        return constant<T1>(p) + v;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(T1 p, const param<T2>& v){
+        return constant<T2>(p) + v;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const param<T1>& v, T2 p){
+        return v + constant<T1>(p);
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const param<T1>& v, T2 p){
+        return v + constant<T2>(p);
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
@@ -5438,27 +5466,6 @@ namespace gravity {
         res.add_cst(p);
         res._range->first = p.eval()-v._range->second;
         res._range->second = p.eval()-v._range->first;
-        res.update_all_sign();
-        return res;
-    }
-
-        
-    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
-    func<T1> operator+(const param<T1>& v, const constant<T2>& p){
-        func<T1> res(v);
-        res.add_cst(p);
-        res._range->first = p.eval()+v._range->first;
-        res._range->second = p.evla()+v._range->second;
-        res.update_all_sign();
-        return res;
-    }
-    
-    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
-    func<T2> operator+(const param<T1>& v, const constant<T2>& p){
-        func<T2> res(v);
-        res.add_cst(p);
-        res._range->first = p.eval()+v._range->first;
-        res._range->second = p.eval()+v._range->second;
         res.update_all_sign();
         return res;
     }
@@ -5486,6 +5493,48 @@ namespace gravity {
         res.update_all_sign();
         return res;
     }
+
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const constant<T1>& p, const param<T2>& v){
+        func<T1> res(v);
+        res.add_cst(p);
+        res._range->first = p.eval()+v._range->first;
+        res._range->second = p.evla()+v._range->second;
+        res.update_all_sign();
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const constant<T1>& p, const param<T2>& v){
+        func<T2> res(v);
+        res.add_cst(p);
+        res._range->first = p.eval()+v._range->first;
+        res._range->second = p.eval()+v._range->second;
+        res.update_all_sign();
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> operator+(const param<T1>& v, const constant<T2>& p){
+        func<T1> res(v);
+        res.add_cst(p);
+        res._range->first = p.eval()+v._range->first;
+        res._range->second = p.evla()+v._range->second;
+        res.update_all_sign();
+        return res;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> operator+(const param<T1>& v, const constant<T2>& p){
+        func<T2> res(v);
+        res.add_cst(p);
+        res._range->first = p.eval()+v._range->first;
+        res._range->second = p.eval()+v._range->second;
+        res.update_all_sign();
+        return res;
+    }
+    
+    
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& v, const func<T2>& f){

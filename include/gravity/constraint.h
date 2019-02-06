@@ -1,120 +1,349 @@
-////
-////  constraint.hpp
-////  Gravity
-////
-////  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
-////
-////
 //
-//#ifndef constraint_hpp
-//#define constraint_hpp
+//  constraint.hpp
+//  Gravity
 //
-//#include <stdio.h>
-//#include <gravity/func.h>
+//  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
 //
-//namespace gravity {
-//    class Constraint_ :public func_{
-//        
-//    public:
-//        size_t                    _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
-//        size_t                      _id = 0;
-//        ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
-//        vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
-//        bool                        _all_active = true;
-//        vector<bool>                _active;
-//        shared_ptr<bool>            _all_lazy;
-//        vector<bool>                _lazy;
-//        bool                        _all_satisfied = true;
-//        vector<bool>                _violated;
 //
-//        
-//        /** Constructors */
-//        //@{
-//        Constraint_();
-//        Constraint_(const Constraint_& c);
-//        Constraint_(std::string name);
-//        Constraint_(std::string name, ConstraintType ctype);
-//        //@}
-//        
-//        
-//        /* Destructor */
-//        ~Constraint_();
-//        
-//        
-//        /* Boolean Requests */
-//        
-//        /* Operators */
-//        Constraint_& operator=(const Constraint_& c);
-//        Constraint_& operator=(Constraint_&& c);
-//        
-//        Constraint_& operator <=(const func_& rhs);
-//        Constraint_& operator >=(const func_& rhs);
-//        Constraint_& operator ==(const func_& rhs);
-//        Constraint_& operator =(const func_& rhs);
-//        
-//        /* Accessors */
-//        size_t get_nb_instances() const;
-//        string get_name() const;
-//        int get_type() const;
-//        bool is_convex() const;
-//        bool is_concave() const;
-//        bool is_ineq() const;
-//        
-//        size_t get_id_inst(size_t ind) const;
-//        
-//        
-//        /* Modifiers */
-//        
-//        void make_lazy() {
-//            *_all_lazy = true;
-//            _lazy.resize(get_dim(),true);
-//        }
-//        
-////
-////
-////        Constraint_& in(const node_pairs& np){
-////            this->func_::in(np);
-////            return *this;
-////        };
-////
-//        Constraint_& in(const vector<Node*>& vec) {
-//            this->func_::in(vec);
-//            return *this;
-//        }
-//        
-//        Constraint_& in(const indices& ids){
-//            if(ids.empty()){
-//                _dim[0] = 0;
-//                return *this;
-//            }
-//            this->func_::in(ids);
-//            return *this;
-//        };
-////
-//        
-//        /* Output */
-//        void print();
-//        void print(size_t);
-//        void print_symbolic();
-//        
-//        
-//    };
-//    
-//    template<typename type = double>
-//    class Constraint: public Constraint_, public func<type>{
-//        void print(){
-//            auto nb_inst = _dim[0];
-//            allocate_mem();
-//            for (size_t inst = 0; inst<nb_inst; inst++) {
-//                if (*_all_lazy && _lazy[inst]) {
-//                    continue;
-//                }
-//                print(inst);
-//            }
-//        }
-//        bool is_active(size_t inst = 0, double tol = 1e-6) const{
-//            return fabs(var<type>::_val->at(inst)) < tol;
-//        }
-//    };
-//}
-//#endif /* constraint_hpp */
+
+#ifndef constraint_hpp
+#define constraint_hpp
+
+#include <stdio.h>
+#include <gravity/func.h>
+
+namespace gravity {
+    class Constraint_{
+        
+    public:
+        size_t                      _id = 0;
+        size_t                      _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
+        ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
+        vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
+        bool                        _all_active = true;
+        vector<bool>                _active;
+        shared_ptr<bool>            _all_lazy;
+        vector<bool>                _lazy;
+        bool                        _all_satisfied = true;
+        vector<bool>                _violated;
+
+        
+        
+        
+        /* Accessors */
+        int get_type() const;
+        bool is_ineq() const{
+            return (_ctype==leq || _ctype==geq);
+        }
+        
+        
+        
+    };
+    
+    template<typename type = double>
+    class Constraint: public Constraint_, public func<type>{
+        
+    public:
+        
+        
+        Constraint():Constraint("noname"){};
+        Constraint(const string& name):Constraint(name, leq){};
+        Constraint(const string& name, ConstraintType ctype){
+            this->_name = name;
+            this->_ctype = ctype;
+            this->_is_constraint = true;
+            this->_all_lazy = make_shared<bool>(false);
+            this->_dim[0] = 1;
+        };
+        
+        Constraint& operator<=(type rhs) {
+            _ctype = leq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator==(type rhs) {
+            _ctype = eq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator>=(type rhs) {
+            _ctype = geq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator<=(const param<type>& rhs) {
+            _ctype = leq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator==(const param<type>& rhs) {
+            _ctype = eq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator>=(const param<type>& rhs) {
+            _ctype = geq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator <=(const func<type>& f){
+            _ctype = leq;
+            (*this) -= f;
+            return *this;
+        };
+        Constraint& operator >=(const func<type>& f){
+            _ctype = geq;
+            (*this) -= f;
+            return *this;
+        };
+        
+        Constraint& operator==(const func<type>& f){
+            _ctype = eq;
+            (*this) -= f;
+            return *this;
+        }
+        
+        /* Modifiers */
+        
+        void make_lazy() {
+            *_all_lazy = true;
+            _lazy.resize(this->get_dim(),true);
+        }
+        
+        
+        Constraint& in(const vector<Node*>& vec) {
+            this->func<type>::in(vec);
+            return *this;
+        }
+        
+        Constraint& in(const indices& ids){
+            if(ids.empty()){
+                this->_dim[0] = 0;
+                return *this;
+            }
+            this->func<type>::in(ids);
+            return *this;
+        };
+
+        Constraint(const Constraint& c){
+            return *this = c;
+        }
+        
+        Constraint(Constraint&& c){
+            return *this = move(c);
+        }
+            
+        Constraint& operator=(const Constraint& c){
+            this->_is_constraint = true;
+            _jac_cstr_idx = c._jac_cstr_idx;
+            _id = c._id;
+            _ctype = c._ctype;
+            _dual = c._dual;
+            _all_active = c._all_active;
+            _active = c._active;
+            _all_lazy = c._all_lazy;
+            _lazy = c._lazy;
+            _all_satisfied = c._all_satisfied;
+            _violated = c._violated;
+            this->func_::operator=(c);
+            return *this;
+        }
+        
+        Constraint& operator=(const func<type>& c){
+            this->_is_constraint = true;
+            this->func<type>::operator=(c);
+            return *this;
+        }
+        
+        Constraint& operator=(Constraint&& c){            
+            this->_is_constraint = true;
+            _jac_cstr_idx = c._jac_cstr_idx;
+            _id = c._id;
+            _ctype = c._ctype;
+            _dual = c._dual;
+            _all_active = c._all_active;
+            _active = c._active;
+            _all_lazy = c._all_lazy;
+            _lazy = c._lazy;
+            _all_satisfied = c._all_satisfied;
+            _violated = c._violated;
+            this->func_::operator=(move(c));
+            return *this;
+        }
+        
+        size_t get_nb_instances() const{
+            size_t nb = 0;
+            if (!*_all_lazy) {
+                return this->_dim[0];
+            }
+            if(_lazy.size()==0){
+                return 0;
+            }
+            for (size_t i = 0; i<this->_dim[0]; i++) {
+                if (!_lazy[i]) {
+                    nb++;
+                }
+            }
+            return nb;
+        }
+        
+        
+        
+        string get_name() const{
+            return this->_name;
+        };
+        
+        size_t get_id_inst(size_t ind) const{
+            if (this->_dim[0]==1) {
+                return 0;
+            }
+            return ind;
+        }
+        bool is_convex() const{
+            return (this->_all_convexity==linear_ || (this->_all_convexity==convex_ &&_ctype==leq) || (this->_all_convexity==concave_ &&_ctype==geq));
+        }
+        
+        bool is_concave() const{
+            return (this->_all_convexity==linear_ || (this->_all_convexity==convex_ &&_ctype==geq) || (this->_all_convexity==concave_ &&_ctype==leq));
+        }
+        
+        /* Output */
+        void print_symbolic(){
+            cout << " " << this->_name;
+            string str;
+            if (this->is_constant()) {
+                str += " (Constant";
+            }
+            else if (this->is_linear()) {
+                str += " (Linear";
+            }
+            else if (is_convex()) {
+                str += " (Convex";
+            }
+            else if (is_concave()){
+                str += " (Concave";
+            }
+            else {
+                str += " (Unknown";
+            }
+            if (this->is_complex()) {
+                str += " Complex) : ";
+            }
+            else {
+                str += ") : ";
+            }
+            cout << str << this->func_::to_str();
+            switch (_ctype) {
+                case leq:
+                    cout << " <= ";
+                    break;
+                case geq:
+                    cout << " >=  ";
+                    break;
+                case eq:
+                    cout << " = ";
+                    break;
+                default:
+                    break;
+            }
+            cout << 0 << ";\n";
+        };
+        
+        void print(int prec = 5){
+            string str;
+            str += " " + this->_name;
+            if (this->is_constant()) {
+                str += " (Constant";
+            }
+            else if (this->is_linear()) {
+                str += " (Linear";
+            }
+            else if (is_convex()) {
+                str += " (Convex";
+            }
+            else if (is_concave()){
+                str += " (Concave";
+            }
+            else {
+                str += " (Unknown";
+            }
+            if (this->is_complex()) {
+                str += " Complex) : ";
+            }
+            else {
+                str += ") : ";
+            }            
+            auto space_size = str.size();
+            auto nb_inst = this->_dim[0];
+            this->allocate_mem();
+            if (this->is_matrix()) {
+                auto max_cell_size = this->get_max_cell_size();
+                for (size_t i = 0; i<this->_dim[0]; i++) {
+                    if (i>0) {
+                        str.insert(str.end(), space_size, ' ');
+                    }
+                    str += "|";
+                    for (size_t j = 0; j<this->_dim[1]; j++) {
+                        auto cell = this->to_str(i,j,prec);
+                        auto cell_size = cell.size();
+                        cell.insert(0, floor((max_cell_size - cell_size)/2.), ' ');
+                        cell.append(ceil((max_cell_size - cell_size)/2.), ' ');
+                        str += cell;
+                        if(j!=this->_dim[1]-1){
+                            str += " ";
+                        }
+                    }
+                    str += "|\n";
+                }
+            }
+            else {
+                for (auto inst = 0; inst<nb_inst; inst++) {
+                    if (*_all_lazy && _lazy[inst]) {
+                        continue;
+                    }
+                    this->eval(inst);
+                    if (inst>0) {
+                        str.insert(str.end(), space_size, ' ');
+                    }
+                    if (this->_dim[0]>1) {
+                        str += this->_name;
+                        if (!this->_indices || this->_indices->empty()) {
+                            str += "[" + to_string(inst) + "]: ";
+                        }
+                        else {
+                            str += "[" + this->_indices->_keys->at(inst) + "]: ";
+                        }
+                    }
+                    str += this->to_str(inst,prec);
+                    switch (_ctype) {
+                        case leq:
+                            str += " <= ";
+                            break;
+                        case geq:
+                            str += " >=  ";
+                            break;
+                        case eq:
+                            str += " = ";
+                            break;
+                        default:
+                            break;
+                    }
+                    str += "0;\n";
+                }
+            }
+            str += "\n";
+            cout << str;
+        }
+        
+        bool is_active(size_t inst = 0, double tol = 1e-6) const{
+            return fabs(this->_val->at(inst)) < tol;
+        }
+    };
+}
+#endif /* constraint_hpp */
