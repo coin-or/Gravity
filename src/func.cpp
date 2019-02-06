@@ -4351,12 +4351,11 @@ namespace gravity{
             return get<1>(*pair_it).first;
         }
     }
-//
+
     void func_::add_var(shared_ptr<param_> v, int nb){/**< Inserts the variable in this function input list. nb represents the number of occurences v has. WARNING: Assumes that v has not been added previousely!*/
         if (_vars->count(v->get_name(false,false))!=0) {
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
-//        update_dim(*v);
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
         if (v->_is_vector) {// i.e., it appears in a sum
             if (v->is_matrix()) {
