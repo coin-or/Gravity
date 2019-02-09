@@ -321,8 +321,13 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) c
     str+= ";\n";
     return str;
 }
+
+template<typename type> void var<type>::print() {
+    cout << to_str_bounds(true,10);
+}
+
     
-template<typename type> void var<type>::print(bool bounds, int prec) const {
+template<typename type> void var<type>::print(bool bounds, int prec) {
     cout << to_str_bounds(bounds,prec);
 }
     

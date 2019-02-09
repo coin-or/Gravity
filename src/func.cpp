@@ -5024,7 +5024,7 @@ namespace gravity{
 //    template func_ product<short>(const param<short>& v1, const func_& f);
 //    template func_ product<bool>(const param<bool>& v1, const func_& f);
 //
-    bool func_::is_rotated_soc(){
+    bool func_::check_rotated_soc(){
         if (_qterms->empty() || !_pterms->empty() || _expr) {
             return false;
         }
@@ -5072,7 +5072,7 @@ namespace gravity{
     }
 
 
-    bool func_::is_soc(){
+    bool func_::check_soc(){
         if (_qterms->empty() || !_pterms->empty() || _expr) {
             return false;
         }

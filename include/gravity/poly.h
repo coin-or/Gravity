@@ -179,10 +179,10 @@ namespace gravity {
                     return concave_;
                 }
                 if (!_sign && _coef->is_non_negative()) {
-                    return convex_;
+                    return concave_;
                 }
                 if (!_sign && _coef->is_non_positive()) {
-                    return concave_;
+                    return convex_;
                 }
             }
             return undet_;

@@ -411,7 +411,8 @@ namespace gravity {
             return this->get_name(index);
         }
         string to_str_bounds(bool bounds=true, int prec = 10) const;
-        void print(bool bounds=true, int prec = 10) const;
+        void print(bool bounds, int prec);
+        void print();
         
     };
     

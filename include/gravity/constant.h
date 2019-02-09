@@ -166,6 +166,7 @@ namespace gravity {
         virtual shared_ptr<constant_> copy() const{return nullptr;};
         
         virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
+        virtual void print(){};
         virtual string to_str() {return string();};
         virtual string to_str(int prec) {return string();};
         virtual string to_str(size_t idx, int prec) {return string();};
@@ -319,6 +320,8 @@ namespace gravity {
         
         
         constant& operator=(const constant& c) {
+            _is_transposed = c._is_transposed;
+            _is_vector = c._is_vector;            
             _type = c._type;
             _val = c._val;
             return *this;
@@ -546,7 +549,11 @@ namespace gravity {
 
         
         /** Output */
-        void print(int prec = 10) {
+        void print(){
+            cout << to_str(10);
+        }
+        
+        void print(int prec) {
             cout << to_str(prec);
         }
         

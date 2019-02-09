@@ -555,7 +555,7 @@ TEST_CASE("testing soc/rotated soc constraints"){
     cstr.print();
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_quadratic());
-    CHECK(cstr.is_rotated_soc());
+    CHECK(cstr.check_rotated_soc());
     CHECK(cstr.get_dim()==2);
     CHECK(cstr._range->first==1.1*(2+log(1))-1);
     CHECK(cstr._range->second==(3+4)*(4+log(4)));
@@ -572,7 +572,7 @@ TEST_CASE("testing soc/rotated soc constraints"){
     cstr2.print();
     CHECK(cstr2.get_nb_vars()==3);
     CHECK(cstr2.is_quadratic());
-    CHECK(cstr2.is_soc());
+    CHECK(cstr2.check_soc());
     CHECK(cstr2.get_dim()==2);
     CHECK(cstr2._range->first==1.1*1.1 + 3*3 - 1);
     CHECK(cstr2._range->second==7*7 + 6*6);
@@ -597,6 +597,22 @@ TEST_CASE("testing monomials"){
     var<> x1("x1"), x2("x2"), x3("x3");
     auto cstr = x1*x2 + x2*x3 + x1*x3;
     auto monoms = cstr.get_monomials(5);
+}
+
+TEST_CASE("testing Model"){
+    Model<> M("MyModel");
+    var<> x("x", 1,2), y("y", 2, 4), z("z", -1, 2);
+    M.add(x.in(R(2)),y.in(R(2)),z.in(R(2)));
+    Constraint<> cstr1("cstr1");
+    cstr1 = pow(x,2) + pow(y,2) - pow(z,2);
+    M.add(cstr1 <= 0);
+    M.max(sum(x));
+    M.print_symbolic();
+    M.print();
+    CHECK(M.is_convex());
+    CHECK(M.get_nb_vars()==6);
+    CHECK(M.get_nb_cons()==2);
+//    M.print();
 }
 
 //TEST_CASE("testing acopf"){
