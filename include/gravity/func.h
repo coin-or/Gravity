@@ -55,6 +55,7 @@ namespace gravity {
         shared_ptr<map<size_t, set<size_t>>>                              _hess_link = nullptr; /**< Set of variables linked to one another in the hessian, stored by variable ids  */
         shared_ptr<map<string,shared_ptr<func_>>>                         _dfdx = nullptr;/**< A map storing the derivatives indexed by variables' names */
 
+        bool                                                              _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                                              _is_constraint = false;
         bool                                                              _is_hessian = false;
         bool                                                              _embedded = false; /**< If the function is embedded in a mathematical model or in another function, this is used for memory management. >>**/
@@ -106,8 +107,17 @@ namespace gravity {
             return (_return_type==complex_);
         };
         virtual bool is_zero() const{ return false;};
-        bool is_convex() const;
-        bool is_concave() const;
+        virtual bool is_convex() const{
+            return (_all_convexity==convex_ || _all_convexity==linear_);
+        }
+        
+        virtual bool is_concave() const{
+            return (_all_convexity==concave_ || _all_convexity==linear_);
+        }
+        
+        bool is_soc();
+        bool is_rotated_soc();
+        
         bool is_convex(size_t idx) const;
         bool is_concave(size_t idx) const;
         bool is_linear() const;
@@ -658,11 +668,6 @@ namespace gravity {
         void update_range(){
             _range = make_shared<pair<type,type>>(make_pair<>(zero<type>().eval(), zero<type>().eval()));
         }
-        
-//        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-//        void update_range() {
-//            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
-//        }
         
         
         func(){
@@ -5499,7 +5504,7 @@ namespace gravity {
         func<T1> res(v);
         res.add_cst(p);
         res._range->first = p.eval()+v._range->first;
-        res._range->second = p.evla()+v._range->second;
+        res._range->second = p.eval()+v._range->second;
         res.update_all_sign();
         return res;
     }
@@ -5519,7 +5524,7 @@ namespace gravity {
         func<T1> res(v);
         res.add_cst(p);
         res._range->first = p.eval()+v._range->first;
-        res._range->second = p.evla()+v._range->second;
+        res._range->second = p.eval()+v._range->second;
         res.update_all_sign();
         return res;
     }

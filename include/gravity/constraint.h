@@ -205,11 +205,16 @@ namespace gravity {
             }
             return ind;
         }
-        bool is_convex() const{
+        
+        bool is_convex(){
+            auto soc = this->is_soc();
+            auto rsoc = this->is_rotated_soc();
             return (this->_all_convexity==linear_ || (this->_all_convexity==convex_ &&_ctype==leq) || (this->_all_convexity==concave_ &&_ctype==geq));
         }
         
-        bool is_concave() const{
+        bool is_concave(){
+            auto soc = this->is_soc();
+            auto rsoc = this->is_rotated_soc();
             return (this->_all_convexity==linear_ || (this->_all_convexity==convex_ &&_ctype==geq) || (this->_all_convexity==concave_ &&_ctype==leq));
         }
         

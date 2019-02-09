@@ -85,6 +85,8 @@ namespace gravity {
         }
 
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
+        
+        virtual void print(bool vals=true, int prec = 10) const{};
 
         void set_id(size_t idx) {
             *_id = idx;
