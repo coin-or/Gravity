@@ -86,7 +86,9 @@ namespace gravity {
 
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         
-        virtual void print(bool vals=true, int prec = 10) const{};
+        virtual void print(){};
+        
+        virtual void print(bool vals, int prec){};
 
         void set_id(size_t idx) {
             *_id = idx;
@@ -1616,8 +1618,12 @@ namespace gravity {
             }
             return str;
         }
+        
+        void print() {
+            cout << this->to_str_vals(true, 10);
+        }
 
-        void print(bool vals=true, int prec = 10) const {
+        void print(bool vals, int prec) {
             cout << this->to_str_vals(vals, prec);
         }
 

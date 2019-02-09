@@ -119,6 +119,9 @@ namespace gravity{
         _type = uexp_c;
     }
 
+    void uexpr::print() {
+        cout << _to_str << endl;
+    }
 
     void bexpr::print() {
         cout << _to_str << endl;

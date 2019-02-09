@@ -115,8 +115,8 @@ namespace gravity {
             return (_all_convexity==concave_ || _all_convexity==linear_);
         }
         
-        bool is_soc();
-        bool is_rotated_soc();
+        bool check_soc();
+        bool check_rotated_soc();
         
         bool is_convex(size_t idx) const;
         bool is_concave(size_t idx) const;
@@ -579,7 +579,10 @@ namespace gravity {
                 }
             }
         }
-        
+        virtual void print(){};
+        virtual void print(int prec){};
+        virtual void print(size_t index, int prec = 10) {};
+        virtual void print(size_t i, size_t j, int prec = 10) {};
         
         string to_str() {
             string str;
@@ -627,6 +630,10 @@ namespace gravity {
                 str = "0";
             }
             return str;
+        }
+        
+        void update_str(){
+            _to_str = to_str();
         }
         
         void print_symbolic(bool endline = true, bool display_input = true);
@@ -1510,6 +1517,9 @@ namespace gravity {
                 }
             }
         }
+        void print() {
+            print(10);
+        }
         
         void print(size_t index, int prec = 10) {
             cout << to_str(index,prec);
@@ -1577,7 +1587,7 @@ namespace gravity {
             return max_size;
         }
         
-        void print(int prec = 5){
+        void print(int prec){
             string str;
             if (is_constant()) {
                 str += " (Constant";
@@ -5856,6 +5866,24 @@ namespace gravity {
         return f * func<T2>(p);
     }
     
+    
+    template<typename type>
+    func<type> sum(const param<type>& p){
+        func<type> res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        return unit<type>().tr()*p.vec();
+    }
+    
+    template<typename type>
+    func<type> sum(const var<type>& p){
+        func<type> res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        return unit<type>().tr()*p.vec();
+    }
 }
 
 
