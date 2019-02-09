@@ -352,11 +352,6 @@ TEST_CASE("testing range propagation") {
     CHECK(f.to_str()=="x² + 2x + 4");
     f.print_symbolic();
     f.print();
-    f -= 2*x;
-    CHECK(f._range->first==-10);
-    CHECK(f._range->second==43);
-    f.print_symbolic();
-    f.print();
     CHECK(f.is_quadratic());
     CHECK(f.is_convex());
     auto dfx = f.get_derivative(x);
@@ -394,9 +389,9 @@ TEST_CASE("testing range propagation") {
 TEST_CASE("testing polynomial functions") {
     param<int> a("a");
     a.set_size(3);
-    a.set_val(0, 1);
-    a.set_val(1, -1);
-    a.set_val(2, 2);
+    a.set_val(0,1);
+    a.set_val(1,-1);
+    a.set_val(2,2);
     param<int> b("b");
     b=5;
     b=0;
@@ -511,6 +506,8 @@ TEST_CASE("testing function convexity"){
     fn += exp(p);
     fn.print_symbolic();
     CHECK(fn.is_convex());
+    auto f2 = pow(p,4);
+    CHECK(f2.is_convex());
 }
 
 TEST_CASE("testing constraints"){
@@ -541,6 +538,44 @@ TEST_CASE("testing constraints"){
     CHECK(cstr1.is_concave());
     CHECK(cstr1._range->first==2-sqrt(3)-3+1);
     CHECK(cstr1._range->second==4-sqrt(0.1)+2);
+}
+
+TEST_CASE("testing soc/rotated soc constraints"){
+    var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3",2,4);
+    x1.in(R(2));
+    x2.in(R(2));
+    x3.in(R(2));
+    param<> a("a");
+    a = 1;
+    a = 4;
+    Constraint<> cstr("cstr");
+    cstr = (x2+a)*(x3+log(a)) - pow(x1,2);
+    cstr >= 0;
+    cstr.print_symbolic();
+    cstr.print();
+    CHECK(cstr.get_nb_vars()==3);
+    CHECK(cstr.is_quadratic());
+    CHECK(cstr.is_rotated_soc());
+    CHECK(cstr.get_dim()==2);
+    CHECK(cstr._range->first==1.1*(2+log(1))-1);
+    CHECK(cstr._range->second==(3+4)*(4+log(4)));
+    auto dfdx2 = cstr.get_derivative(x2);
+    dfdx2.print_symbolic();
+    CHECK(dfdx2.to_str()=="x3 + log(a)");
+    CHECK(dfdx2.is_linear());
+    CHECK(dfdx2._range->first==2+log(1));
+    CHECK(dfdx2._range->second==4+log(4));
+    Constraint<> cstr2("cstr2");
+    cstr2 = pow(x2+a,2) + pow(x3+sqrt(a),2) - pow(x1,2);
+    cstr2 <= 0;
+    cstr2.print_symbolic();
+    cstr2.print();
+    CHECK(cstr2.get_nb_vars()==3);
+    CHECK(cstr2.is_quadratic());
+    CHECK(cstr2.is_soc());
+    CHECK(cstr2.get_dim()==2);
+    CHECK(cstr2._range->first==1.1*1.1 + 3*3 - 1);
+    CHECK(cstr2._range->second==7*7 + 6*6);
 }
 
 TEST_CASE("testing nonlinear expressions"){

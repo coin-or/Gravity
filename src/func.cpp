@@ -4470,13 +4470,7 @@ namespace gravity{
     }
 
 
-    bool func_::is_convex() const{
-        return (_all_convexity==convex_ || _all_convexity==linear_);
-    }
-
-    bool func_::is_concave() const{
-        return (_all_convexity==concave_ || _all_convexity==linear_);
-    }
+    
 
 
     bool func_::is_convex(size_t idx) const{
@@ -5030,84 +5024,85 @@ namespace gravity{
 //    template func_ product<short>(const param<short>& v1, const func_& f);
 //    template func_ product<bool>(const param<bool>& v1, const func_& f);
 //
-//    bool func_::is_rotated_soc(){
-//        if (_qterms->empty() || !_pterms->empty() || _expr) {
-//            return false;
-//        }
-//        unsigned nb_bilinear = 0, nb_quad = 0;
-//        Sign bilinear_sign = unknown_, quadratic_sign = unknown_, var1_sign = unknown_, var2_sign = unknown_;
-//        for (auto &qt_pair: *_qterms) {
-//            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
-//                bilinear_sign = qt_pair.second.get_all_sign();
-//                var1_sign = qt_pair.second._p->first->get_all_sign();
-//                var2_sign = qt_pair.second._p->second->get_all_sign();
-//                if (bilinear_sign==unknown_ || var1_sign==neg_ || var2_sign==neg_) {
-//                    return false;
-//                }
-//                nb_bilinear++;
-//                if (nb_bilinear > 1) {
-//                    return false;
-//                }
-//            }
-//            else{
-//                nb_quad++;
-//                auto sign = qt_pair.second.get_all_sign();
-//                if (quadratic_sign!=unknown_ && quadratic_sign!=sign) {
-//                    return false;
-//                }
-//                if (quadratic_sign!=unknown_ && quadratic_sign==bilinear_sign) {
-//                    return false;
-//                }
-//                else {
-//                    quadratic_sign = sign;
-//                }
-//            }
-//        }
-//        if(nb_quad==0){
-//            return false;
-//        }
-//        if (bilinear_sign==pos_) {
-//            _all_convexity = concave_;
-//            return true;
-//        }
-//        else if(bilinear_sign==neg_) {
-//            _all_convexity = convex_;
-//            return true;
-//        }
-//        return false;
-//    }
-//
-//    bool func_::is_soc(){
-//        if (_qterms->empty() || !_pterms->empty() || _expr) {
-//            return false;
-//        }
-//        unsigned nb_neg = 0, nb_pos = 0;
-//        for (auto &qt_pair: *_qterms) {
-//            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
-//                return false;
-//            }
-//            auto sign = qt_pair.second.get_all_sign();
-//            if (sign==unknown_) {
-//                return false;
-//            }
-//            if (sign==pos_) {
-//                nb_pos++;
-//            }
-//            else if(sign==neg_){
-//                nb_neg++;
-//            }
-//        }
-//        if (nb_neg==1 && nb_pos>1) {
-//            _all_convexity = convex_;
-//            return true;
-//        }
-//        else if (nb_pos==1 && nb_neg>1){
-//            _all_convexity = concave_;
-//            return true;
-//        }
-//        return false;
-//    }
-//
+    bool func_::is_rotated_soc(){
+        if (_qterms->empty() || !_pterms->empty() || _expr) {
+            return false;
+        }
+        unsigned nb_bilinear = 0, nb_quad = 0;
+        Sign bilinear_sign = unknown_, quadratic_sign = unknown_, var1_sign = unknown_, var2_sign = unknown_;
+        for (auto &qt_pair: *_qterms) {
+            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                bilinear_sign = qt_pair.second.get_all_sign();
+                var1_sign = qt_pair.second._p->first->get_all_sign();
+                var2_sign = qt_pair.second._p->second->get_all_sign();
+                if (bilinear_sign==unknown_ || var1_sign==neg_ || var2_sign==neg_) {
+                    return false;
+                }
+                nb_bilinear++;
+                if (nb_bilinear > 1) {
+                    return false;
+                }
+            }
+            else{
+                nb_quad++;
+                auto sign = qt_pair.second.get_all_sign();
+                if (quadratic_sign!=unknown_ && quadratic_sign!=sign) {
+                    return false;
+                }
+                if (quadratic_sign!=unknown_ && quadratic_sign==bilinear_sign) {
+                    return false;
+                }
+                else {
+                    quadratic_sign = sign;
+                }
+            }
+        }
+        if(nb_quad==0){
+            return false;
+        }
+        if (bilinear_sign==pos_) {
+            _all_convexity = concave_;
+            return true;
+        }
+        else if(bilinear_sign==neg_) {
+            _all_convexity = convex_;
+            return true;
+        }
+        return false;
+    }
+
+
+    bool func_::is_soc(){
+        if (_qterms->empty() || !_pterms->empty() || _expr) {
+            return false;
+        }
+        unsigned nb_neg = 0, nb_pos = 0;
+        for (auto &qt_pair: *_qterms) {
+            if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                return false;
+            }
+            auto sign = qt_pair.second.get_all_sign();
+            if (sign==unknown_) {
+                return false;
+            }
+            if (sign==pos_) {
+                nb_pos++;
+            }
+            else if(sign==neg_){
+                nb_neg++;
+            }
+        }
+        if (nb_neg==1 && nb_pos>1) {
+            _all_convexity = convex_;
+            return true;
+        }
+        else if (nb_pos==1 && nb_neg>1){
+            _all_convexity = concave_;
+            return true;
+        }
+        return false;
+    }
+
     void func_::update_quad_convexity(){
         if(is_unitary()){
             //TODO check second derivative
