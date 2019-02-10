@@ -3132,20 +3132,25 @@ namespace gravity {
             cout << "-------------------------" << endl;
         }
         
-        void print_properties() const{
+        size_t print_properties() const{
+            string str = "\n";
             if(is_linear()){
-                cout << "Linear ";
+                str += "Linear ";
             }
             else if(is_convex()){
-                cout << "Convex ";
+                str += "Convex ";
             }
             else if(is_concave()){
-                cout << "Concave ";
+                str += "Concave ";
             }
             else {
-                cout << "Nonconvex ";
+                str += "Nonconvex ";
             }
-            cout << "Model: " << _name << endl;
+            str += "Model: " + _name+"\n";;
+            auto size_header = str.size()-1;
+            str.insert(0,size_header,'-');
+            str.append(size_header,'-');
+            cout << str << endl;
             cout << "Number of variables = " << get_nb_vars() << endl;
             cout << "Number of constraints = " << get_nb_cons() << " (" << get_nb_ineq() << " inequalities, " << get_nb_eq() << " equations)" << endl;
             //    compute_funcs();
@@ -3160,16 +3165,19 @@ namespace gravity {
             else{
                 cout << "Max ";
             }
+            return size_header;
         }
         
         void print(){
-            cout << "-------------------------" << endl;
-            print_properties();
+            auto size_header = print_properties();
             _obj->print();
+            cout << "s.t." << endl;
             for(auto& p: _cons){
                 p.second->print();
             }
-            cout << "-------------------------" << endl;
+            string tail;
+            tail.insert(0,size_header,'-');
+            cout << tail << endl;
         }
         
         //
@@ -3384,10 +3392,10 @@ namespace gravity {
         return make_pair<>(f,minimize);
     };
 
+    template<typename type = double>
     class Program{
     public:
         virtual void update_model(){};
-        virtual ~Program(){};
         string _status;
     };
     
