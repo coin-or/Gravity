@@ -27,7 +27,7 @@ namespace gravity{
 #define Binary bool
 #define Debug(x)
 #define DebugOn(x) cout << x
-#define Warning(x)
+#define Warning(x) cout << x
 #define DebugOff(x)
     
     typedef unsigned int uint; /* Index type */
