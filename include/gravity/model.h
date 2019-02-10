@@ -2880,10 +2880,10 @@ namespace gravity {
                 auto real_var = (var<double>*)get_var_ptr(v_p.first);
                 for (size_t i = 0; i < real_var->get_dim(); i++) {
                     if(round(real_var->_val->at(i))==1){
-                        bin_var._val->at(i) = true;
+                        bin_var->_val->at(i) = true;
                     }
                     else{
-                        bin_var._val->at(i) = false;
+                        bin_var->_val->at(i) = false;
                     }
                 }
             }
