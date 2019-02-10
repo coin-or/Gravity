@@ -341,7 +341,6 @@ namespace gravity {
                     str += "0;\n";
                 }
             }
-            str += "\n";
             cout << str;
         }
         

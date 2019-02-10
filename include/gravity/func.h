@@ -1654,7 +1654,6 @@ namespace gravity {
                     str += "\n";
                 }
             }
-            str += "\n";
             cout << str;
         }
         

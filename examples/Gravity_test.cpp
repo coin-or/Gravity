@@ -607,12 +607,10 @@ TEST_CASE("testing Model"){
     cstr1 = pow(x,2) + pow(y,2) - pow(z,2);
     M.add(cstr1 <= 0);
     M.max(sum(x));
-    M.print_symbolic();
     M.print();
     CHECK(M.is_convex());
     CHECK(M.get_nb_vars()==6);
     CHECK(M.get_nb_cons()==2);
-//    M.print();
 }
 
 //TEST_CASE("testing acopf"){
