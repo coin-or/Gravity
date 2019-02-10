@@ -599,18 +599,39 @@ TEST_CASE("testing monomials"){
     auto monoms = cstr.get_monomials(5);
 }
 
-TEST_CASE("testing Model"){
+TEST_CASE("testing simple model"){
     Model<> M("MyModel");
     var<> x("x", 1,2), y("y", 2, 4), z("z", -1, 2);
     M.add(x.in(R(2)),y.in(R(2)),z.in(R(2)));
     Constraint<> cstr1("cstr1");
     cstr1 = pow(x,2) + pow(y,2) - pow(z,2);
     M.add(cstr1 <= 0);
+    Constraint<> cstr2("cstr2");
+    cstr2 = 1;
+    M.add(cstr2 >= 2);//Check wrong range.
     M.max(sum(x));
     M.print();
     CHECK(M.is_convex());
     CHECK(M.get_nb_vars()==6);
     CHECK(M.get_nb_cons()==2);
+}
+
+TEST_CASE("testing nonlinear Model"){
+    Model<> M("MyModel2");
+    var<> x("x", 1,2), y("y", 2, 4), z("z", -1, 2);
+    M.add(x.in(R(4)),y.in(R(4)),z.in(R(4)));
+    Constraint<> cstr1("cstr1");
+    cstr1 = pow(x,2) + pow(y,2) - pow(z,2);
+    M.add(cstr1 <= 0);
+    param<> a("a");
+    a = 2;a = 3;a = 4;a = 5;
+    Constraint<> cstr2("cstr2");
+    cstr2 = a*x*y*cos(x-z);
+    M.add(cstr2 == 0);
+    M.max(sum(x));
+    M.print();
+    CHECK(M.get_nb_vars()==12);
+    CHECK(M.get_nb_cons()==8);
 }
 
 //TEST_CASE("testing acopf"){
