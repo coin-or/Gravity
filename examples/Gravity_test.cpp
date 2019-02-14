@@ -510,6 +510,29 @@ TEST_CASE("testing function convexity"){
     CHECK(f2.is_convex());
 }
 
+TEST_CASE("testing quadratic function factorization"){
+    var<> x1("x1",0.5,10), x2("x2",-1,1);
+    x1.in(R(4));x2.in(R(4));
+    auto f = 3*pow(x1,2) + 5*pow(x2,2) - 2*x1*x2; /* Convex since it can be factorized to (x1 - x2)^2 + 2x1^2 + 4x2^2 */
+    f.print_symbolic();
+    f.print();
+    CHECK(f.is_convex());
+    f = 4*x1*x2 - 2*pow(x1,2) - 3*pow(x2,2); /* Concave since it can be factorized to  -(2-sqrt(2))x1^2 - (3-sqrt(2))x2^2 - (sqrt(2)x1 - sqrt(2)x2)^2*/
+    f.print_symbolic();
+    f.print();
+    CHECK(f.is_concave());
+    /* Checking convexity in model objective */
+    var<> x("x",-10,10), y("y",-10,10);
+    Model test("test");
+    test.add(x.in(R(2)), y.in(R(1)));
+    x.initialize_uniform();
+    test.min(6*x(0)*x(0) + 4*x(1)*x(1) - 2.5*x(0)*x(1));
+    Constraint c1("c1");
+    c1 = x(0)*x(1);
+    test.add(c1>=8+y(0));
+    test.print();
+}
+
 TEST_CASE("testing constraints"){
     var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3",2,4);
     x1.in(R(2));
@@ -630,6 +653,7 @@ TEST_CASE("testing nonlinear Model"){
     M.add(cstr2 == 0);
     M.max(sum(x));
     M.print();
+    CHECK(!M.is_convex());
     CHECK(M.get_nb_vars()==12);
     CHECK(M.get_nb_cons()==8);
 }

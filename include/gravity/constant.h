@@ -96,7 +96,7 @@ namespace gravity {
             return (_type==complex_c);
         };
 
-        virtual bool func_is_number() const{return false;};
+        virtual bool func_is_number() const{return is_number();};
         
         virtual bool is_number() const{
             return (_type!=par_c && _type!=uexp_c && _type!=bexp_c && _type!=var_c && _type!=func_c);
@@ -566,6 +566,10 @@ namespace gravity {
         }
         
         string to_str(int prec = 10) {
+            return to_string_with_precision(_val,prec);
+        }
+        
+        string to_str(size_t index, int prec = 10) {
             return to_string_with_precision(_val,prec);
         }
         

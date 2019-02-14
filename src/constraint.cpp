@@ -18,7 +18,7 @@ using namespace gravity;
 
 
 
-int Constraint_::get_type() const{
+ConstraintType Constraint_::get_ctype() const{
     return _ctype;
 };
 

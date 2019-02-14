@@ -43,7 +43,7 @@ namespace gravity {
 
         NType                                          _intype; /**< internal storage type **/
 
-        void set_type(NType type) {
+        void set_intype(NType type) {
             _intype = type;
         }
 
@@ -1186,6 +1186,7 @@ namespace gravity {
             else{
                 res._indices->_ids->at(0).push_back(i*_dim[1]+j);
             }
+            res._name += "["+to_string(i)+","+to_string(j)+"]";
             return res;
         }
 
@@ -1194,6 +1195,7 @@ namespace gravity {
                 throw invalid_argument("Current param/var is not indexed.");
             }
             param res(*this);
+            res._name += "["+to_string(idx)+"]";
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_ids->at(0).push_back(idx);
@@ -1218,6 +1220,7 @@ namespace gravity {
             if (it1 == _indices->_keys_map->end()){
                 throw invalid_argument("In operator()(string key1, Args&&... args), unknown key");
             }
+            res._name += "["+key._name+"]";
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_ids->at(0).push_back(it1->second);

@@ -253,33 +253,33 @@ public:
     gravity::indices get_bus_pairs_chord();
 
     
-    /** Power Models */
+    /** Power Model<>s */
     
-    vector<shared_ptr<Model>> conting_mods;/* < Contingency models */
+    vector<shared_ptr<Model<>>> conting_mods;/* < Contingency Model<>s */
     
-    void update_status(unique_ptr<Model> model);
+    void update_status(unique_ptr<Model<>> Model);
     
     void fix_investment();
-    shared_ptr<Model> build_ACOPF(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
-    unique_ptr<Model> build_ACOPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
+    shared_ptr<Model<>> build_ACOPF(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+    unique_ptr<Model<>> build_ACOPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
     
-    unique_ptr<Model> build_SOCP_OPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
+    unique_ptr<Model<>> build_SOCP_OPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
     
-    unique_ptr<Model> build_SOCP_OPF_MINLP(PowerModelType model=SOCP, int output=0, double tol=1e-6);
+    unique_ptr<Model<>> build_SOCP_OPF_MINLP(PowerModelType Model=SOCP, int output=0, double tol=1e-6);
     
-    unique_ptr<Model> build_ACOPF_MINLP(PowerModelType model, int output, double tol,const vector<bool>& cont_in);
+    unique_ptr<Model<>> build_ACOPF_MINLP(PowerModelType Model, int output, double tol,const vector<bool>& cont_in);
     
-    unique_ptr<Model> build_soft_ACOPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6, double obj_pen=1e10);
+    unique_ptr<Model<>> build_soft_ACOPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6, double obj_pen=1e10);
     
     vector<param<>> signs();
     
-    unique_ptr<Model> build_fixed_ACOPF_N_1(PowerModelType model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
-    double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
-    unique_ptr<Model> build_ROMDST(PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
-    shared_ptr<Model> build_SCOPF(PowerModelType model=LDISTF, int output=5, double tol=1e-6);
-    shared_ptr<Model> build_ROMDST_contingency(const string& name, PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
-    shared_ptr<Model> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
-    shared_ptr<Model> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
+    unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
+    double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+    unique_ptr<Model<>> build_ROMDST(PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
+    shared_ptr<Model<>> build_SCOPF(PowerModelType Model=LDISTF, int output=5, double tol=1e-6);
+    shared_ptr<Model<>> build_ROMDST_contingency(const string& name, PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
+    shared_ptr<Model<>> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType Model=ACPOL, int output=5, double tol=1e-6);
+    shared_ptr<Model<>> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType Model=ACPOL, int output=5, double tol=1e-6);
     
     void fill_wbnds();
 };
