@@ -523,11 +523,11 @@ TEST_CASE("testing quadratic function factorization"){
     CHECK(f.is_concave());
     /* Checking convexity in model objective */
     var<> x("x",-10,10), y("y",-10,10);
-    Model test("test");
+    Model<> test("test");
     test.add(x.in(R(2)), y.in(R(1)));
     x.initialize_uniform();
     test.min(6*x(0)*x(0) + 4*x(1)*x(1) - 2.5*x(0)*x(1));
-    Constraint c1("c1");
+    Constraint<> c1("c1");
     c1 = x(0)*x(1);
     test.add(c1>=8+y(0));
     test.print();
