@@ -31,7 +31,7 @@ namespace gravity {
         
         
         /* Accessors */
-        int get_type() const;
+        ConstraintType get_ctype() const;
         bool is_ineq() const{
             return (_ctype==leq || _ctype==geq);
         }

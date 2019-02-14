@@ -176,7 +176,7 @@ namespace gravity {
             bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
             res.param<type>::operator=(param<type>::operator()(t1, args...));
-            res.param<type>::set_type(var_c);
+            res.set_type(var_c);
             if(!indexed & !res._lb->is_number()){
                 (res._lb->in(*res._indices));
             }

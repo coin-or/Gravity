@@ -31,6 +31,78 @@
 using namespace std;
 
 namespace gravity {
+    template<typename type>
+    void compute_constrs(vector<shared_ptr<Constraint<type>>>& v, double* res, int i, int j){
+        //    DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
+        for (size_t idx = i; idx < j; idx++) {
+            auto c = v[idx];
+            size_t nb_ins = c->_dim[0];
+            size_t id = 0;
+            for (size_t inst = 0; inst< nb_ins; inst++){
+                if (!*c->_all_lazy || !c->_lazy[inst]) {
+                    res[c->_id+id++] = c->eval(inst);
+                    DebugOff("Accessing res at position " << c->_id+inst << endl);
+                    //                _cons_vals[index++] = res[c->_id+inst];
+                    DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+                }
+            }
+        }
+    }
+    
+    
+    template<typename type>
+    void compute_jac(vector<shared_ptr<Constraint<type>>>& vec, double* res, int i, int j, bool first_call, vector<double>& jac_vals){
+        size_t cid = 0, id_inst = 0;
+        string vid;
+        shared_ptr<Constraint<type>> c = NULL;
+        param_* v = NULL;
+        shared_ptr<func_> dfdx;
+        auto idx = vec[i]->_jac_cstr_idx;
+        for (size_t id = i; id < j; id++) {
+            c = vec[id];
+            auto nb_ins = c->_dim[0];
+            id_inst = 0;
+            if (c->is_linear() && !first_call) {
+                //        if (false) {
+                DebugOff("Linear constraint, using stored jacobian!\n");
+                for (size_t i = 0; i<nb_ins; i++) {
+                    if (!*c->_all_lazy || !c->_lazy[i]) {
+                        for (size_t j = 0; j<c->get_nb_vars(i); j++) {
+                            res[idx] = jac_vals[idx];
+                            idx++;
+                        }
+                    }
+                }
+            }
+            else {
+                for (auto &v_p: c->get_vars()){
+                    v = v_p.second.first.get();
+                    vid = v->_name;
+                    dfdx = c->get_stored_derivative(vid);
+                    id_inst = 0;
+                    for (size_t inst = 0; inst< nb_ins; inst++){
+                        if (!*c->_all_lazy || !c->_lazy[inst]) {
+                            cid = c->_id+id_inst++;
+                            if (v->_is_vector) {
+                                auto dim = v->get_dim(inst);
+                                for (size_t j = 0; j<dim; j++) {
+                                    res[idx] = c->eval(dfdx,inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
+                                    jac_vals[idx] = res[idx];
+                                    DebugOff("jac_val["<< idx <<"] = " << jac_vals[idx] << endl);
+                                    idx++;
+                                }
+                            }
+                            else {
+                                res[idx] = c->eval(dfdx,inst);
+                                jac_vals[idx] = res[idx];
+                                idx++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
     template<typename type = double>
     class Model {
@@ -73,7 +145,7 @@ namespace gravity {
         map<size_t, shared_ptr<Constraint<type>>>           _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model. */
         map<string, shared_ptr<Constraint<type>>>           _cons_name; /**< Sorted map (by name) pointing to all constraints contained in this model. */
         map<unique_id, set<shared_ptr<Constraint<type>>>>   _v_in_cons; /**< Set of constraints where each variable appears. */
-        shared_ptr<func_>                                   _obj = nullptr; /**< Pointer to objective function */
+        shared_ptr<func<type>>                                  _obj = nullptr; /**< Pointer to objective function */
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,set<pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
@@ -81,14 +153,14 @@ namespace gravity {
         /** Constructor */
         //@{
         Model(){
-            _obj = make_shared<func<>>();
+            _obj = make_shared<func<type>>();
         };
         Model(const string& name){
             _name = name;
-            _obj = make_shared<func<>>();
+            _obj = make_shared<func<type>>();
         };
         //@}
-        
+
         
         /* Accessors */
         
@@ -168,15 +240,6 @@ namespace gravity {
             }
         }
         
-        /* Evaluation Operators */
-        
-        type eval(shared_ptr<func_> f, size_t i){
-            return func<type>::eval(f,i);
-        }
-        
-        type eval(shared_ptr<func_> f, size_t i, size_t j){
-            return func<type>::eval(f,i,j);
-        }
         
         /* Output */
         
@@ -312,15 +375,7 @@ namespace gravity {
                 if ((_type==lin_m || _type==quad_m) && (c->is_nonlinear() || c->is_polynomial())) {
                     _type = nlin_m;
                 }
-                if(_convexity==linear_){
-                    _convexity = c->_all_convexity;
-                }
-                else if (is_convex() && !c->is_convex() && !c->is_soc() && !c->is_rotated_soc()) {
-                    _convexity = undet_;
-                }
-                else if (is_concave() && !c->is_concave() && !c->is_soc() && !c->is_rotated_soc()) {
-                    _convexity = undet_;
-                }
+                update_convexity(*c);
                 cid = c->_id;
                 if (cid!=new_cid) {
                     c->_id = new_cid;
@@ -485,98 +540,7 @@ namespace gravity {
                     return newc;
                 }
                 newc->update_str();
-                for (auto &p_t: newc->get_lterms()) {
-                    if (p_t.second._coef->is_function()) {
-                        auto f = static_pointer_cast<func<type>>(p_t.second._coef);
-                        auto exp = f->get_expr();
-                        if (exp) {
-                            embed(*exp);
-                        }
-                    }
-                }
-                for (auto &p_t: newc->get_qterms()) {
-                    if (p_t.second._coef->is_function()) {
-                        auto f = static_pointer_cast<func<type>>(p_t.second._coef);
-                        auto exp = f->get_expr();
-                        if (exp) {
-                            embed(*exp);
-                        }
-                    }
-                }
-                for (auto &p_t: newc->get_pterms()) {
-                    if (p_t.second._coef->is_function()) {
-                        auto f = static_pointer_cast<func<type>>(p_t.second._coef);
-                        auto exp = f->get_expr();
-                        if (exp) {
-                            embed(*exp);
-                        }
-                    }
-                }
-                if (newc->get_cst()->is_function()) {
-                    auto cc = static_pointer_cast<func<type>>(newc->get_cst());
-                    auto exp = cc->get_expr();
-                    if (exp) {
-                        embed(*exp);
-                    }
-                }
-                auto exp = newc->get_expr();
-                if (exp) {
-                    if (exp->is_uexpr()) {
-                        auto ue = static_pointer_cast<uexpr>(exp);
-                        if (ue->_son->is_function()) {
-                            auto f = static_pointer_cast<func<type>>(ue->_son);
-                            bool found_cpy = false;
-                            auto name = f->to_str();
-                            auto name2 = name+"\u1D40";//Chek if a transposed version of the function exists
-                            if (_nl_funcs_map.count(name2)>0) {
-                                auto cpy = _nl_funcs_map.at(name2);
-                                f->_val = cpy->_val;
-                                f->_evaluated = true;
-                                found_cpy = true;
-                            }
-                            if (!found_cpy) {
-                                auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-                                if (f_p.second) {
-                                    embed(f);
-                                    _nl_funcs.push_back(f);
-                                    DebugOff(f->to_str() << endl);
-                                }
-                                else {
-                                    ue->_son = f_p.first->second;
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        auto be = static_pointer_cast<bexpr>(exp);
-                        if (be->_lson->is_function()) {
-                            auto f = static_pointer_cast<func<type>>(be->_lson);
-                            auto name = f->to_str();
-                            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-                            if (f_p.second) {
-                                embed(f);
-                                DebugOff(f->to_str() << endl);
-                                _nl_funcs.push_back(f);
-                            }
-                            else {
-                                be->_lson = f_p.first->second;
-                            }
-                        }
-                        if (be->_rson->is_function()) {
-                            auto f = static_pointer_cast<func<type>>(be->_rson);
-                            auto name = f->to_str();
-                            auto f_p = _nl_funcs_map.insert(make_pair<>(f->to_str(), f));
-                            if (f_p.second) {
-                                embed(f);
-                                DebugOff(f->to_str() << endl);
-                                _nl_funcs.push_back(f);
-                            }
-                            else {
-                                be->_rson = f_p.first->second;
-                            }
-                        }
-                    }
-                }
+                embed(newc);
                 update_convexity(*newc);
                 newc->_violated.resize(newc->_dim[0],true);
                 _cons_name[c.get_name()] = newc;
@@ -711,7 +675,7 @@ namespace gravity {
                 switch (c->get_type()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            diff = abs(c->eval(inst) - c->_rhs);
+                            diff = abs(c->eval(inst));
                             if(diff > tol) {
                                 DebugOff("Violated equation: ");
                                 //                        c->print(inst);
@@ -738,7 +702,7 @@ namespace gravity {
                     case leq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             c->_violated[inst] = false;
-                            diff = c->eval(inst) - c->_rhs;
+                            diff = c->eval(inst);
                             if(diff > tol) {
                                 DebugOn("Violated inequality: ");
                                 c->print(inst);
@@ -770,7 +734,7 @@ namespace gravity {
                     case geq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             c->_violated[inst] = false;
-                            diff = c->eval(inst) - c->_rhs;
+                            diff = c->eval(inst);
                             if(diff < -tol) {
                                 DebugOff("Violated inequality: ");
                                 //                        c->print(inst);
@@ -994,126 +958,126 @@ namespace gravity {
         
         
         void fill_in_var_bounds(double* x_l ,double* x_u) {
-            size_t vid;
-            param_* v;
-            for(auto& v_p: _vars)
-            {
-                v = v_p.second;
-                vid = v->get_id();
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = (double)real_var->get_lb(i);
-                            x_u[vid+i] = (double)real_var->get_ub(i);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = (double)real_var->get_lb(i);
-                            x_u[vid+i] = (double)real_var->get_ub(i);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        DebugOff(real_var->get_name() << " in:" << endl);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = real_var->get_lb(i);
-                            x_u[vid+i] = real_var->get_ub(i);
-                            DebugOff("(" << i << ")" << " : [" << x_l[vid+i] << "," << x_u[vid+i] << "]\n");
-                        }
-                        DebugOff(";" << endl);
-                        break;
-                    }
-                    case integer_:{
-                        auto real_var = (var<int>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = (double)real_var->get_lb(i);
-                            x_u[vid+i] = (double)real_var->get_ub(i);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto real_var = (var<short>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = (double)real_var->get_lb(i);
-                            x_u[vid+i] = (double)real_var->get_ub(i);
-                        }
-                        break;
-                    }
-                    case binary_:{
-                        auto real_var = (var<bool>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            x_l[vid+i] = (double)real_var->get_lb(i);
-                            x_u[vid+i] = (double)real_var->get_ub(i);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
-            }
+//            size_t vid;
+//            shared_ptr<param_> v;
+//            for(auto& v_p: _vars)
+//            {
+//                v = v_p.second;
+//                vid = v->get_id();
+//                switch (v->get_intype()) {
+//                    case float_: {
+//                        auto real_var = (var<float>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = (double)real_var->get_lb(i);
+//                            x_u[vid+i] = (double)real_var->get_ub(i);
+//                        }
+//                        break;
+//                    }
+//                    case long_:{
+//                        auto real_var = (var<long double>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = (double)real_var->get_lb(i);
+//                            x_u[vid+i] = (double)real_var->get_ub(i);
+//                        }
+//                        break;
+//                    }
+//                    case double_:{
+//                        auto real_var = (var<double>*)v;
+//                        DebugOff(real_var->get_name() << " in:" << endl);
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = real_var->get_lb(i);
+//                            x_u[vid+i] = real_var->get_ub(i);
+//                            DebugOff("(" << i << ")" << " : [" << x_l[vid+i] << "," << x_u[vid+i] << "]\n");
+//                        }
+//                        DebugOff(";" << endl);
+//                        break;
+//                    }
+//                    case integer_:{
+//                        auto real_var = (var<int>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = (double)real_var->get_lb(i);
+//                            x_u[vid+i] = (double)real_var->get_ub(i);
+//                        }
+//                        break;
+//                    }
+//                    case short_:{
+//                        auto real_var = (var<short>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = (double)real_var->get_lb(i);
+//                            x_u[vid+i] = (double)real_var->get_ub(i);
+//                        }
+//                        break;
+//                    }
+//                    case binary_:{
+//                        auto real_var = (var<bool>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            x_l[vid+i] = (double)real_var->get_lb(i);
+//                            x_u[vid+i] = (double)real_var->get_ub(i);
+//                        }
+//                        break;
+//                    }
+//                    default:
+//                        break;
+//                } ;
+//            }
             //    cout << "idx = " << idx << endl;
         }
         
         
         void set_x(const double* x){
             size_t vid;
-            param_* v;
-            for(auto& v_p: _vars)
-            {
-                v = v_p.second;
-                vid = v->get_id();
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto real_var = (var<int>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto real_var = (var<short>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    case binary_:{
-                        auto real_var = (var<bool>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            real_var->set_val(i, x[vid+i]);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
-            }
+            shared_ptr<param_> v;
+//            for(auto& v_p: _vars)
+//            {
+//                v = v_p.second;
+//                vid = v->get_id();
+//                switch (v->get_intype()) {
+//                    case float_: {
+//                        auto real_var = (var<float>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    case long_:{
+//                        auto real_var = (var<long double>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    case double_:{
+//                        auto real_var = (var<double>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    case integer_:{
+//                        auto real_var = (var<int>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    case short_:{
+//                        auto real_var = (var<short>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    case binary_:{
+//                        auto real_var = (var<bool>*)v;
+//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
+//                            real_var->set_val(i, x[vid+i]);
+//                        }
+//                        break;
+//                    }
+//                    default:
+//                        break;
+//                } ;
+//            }
         }
         
         
@@ -1138,11 +1102,11 @@ namespace gravity {
                     }
                 }
                 else if(!f->is_matrix()){ //vector
-                    f->eval_vector();
+//                    f->eval_vector();
                 }
                 else {
                     DebugOff(f->to_str()<<endl);
-                    f->eval_matrix();
+//                    f->eval_matrix();
                 }
                 if (f->is_constant()) {
                     f->_evaluated = true;
@@ -1200,14 +1164,14 @@ namespace gravity {
                 set_x(x);
                 compute_funcs();
             }
-            res = eval(_obj);
+            res = _obj->eval();
             DebugOff("Objective = " << to_string(res) << endl);
         }
         
         
         void fill_in_grad_obj(const double* x , double* res, bool new_x){
             param_* v;
-            shared_ptr<func_> df;
+            shared_ptr<func<type>> df;
             size_t vid, vid_inst, index = 0;
             unique_id v_unique;
             if (new_x) {
@@ -1256,13 +1220,13 @@ namespace gravity {
                 if (v->_is_vector) {
                     for (size_t i = 0; i < v->get_dim(); i++) {
                         vid_inst = vid + v->get_id_inst(i);
-                        res[vid_inst] = eval(df,i);
+                        res[vid_inst] = df->eval(i);
                         _obj_grad_vals[index++] =res[vid_inst];
                     }
                 }
                 else {
                     vid_inst = vid + v->get_id_inst();
-                    res[vid_inst] = eval(df);
+                    res[vid_inst] = df->eval();
                     _obj_grad_vals[index++] =res[vid_inst];
                 }
             }
@@ -1453,22 +1417,7 @@ namespace gravity {
         }
         
         
-        void compute_constrs(vector<shared_ptr<Constraint<type>>>& v, double* res, int i, int j){
-            //    DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
-            for (size_t idx = i; idx < j; idx++) {
-                auto c = v[idx];
-                size_t nb_ins = c->_dim[0];
-                size_t id = 0;
-                for (size_t inst = 0; inst< nb_ins; inst++){
-                    if (!*c->_all_lazy || !c->_lazy[inst]) {
-                        res[c->_id+id++] = c->eval(inst);
-                        DebugOff("Accessing res at position " << c->_id+inst << endl);
-                        //                _cons_vals[index++] = res[c->_id+inst];
-                        DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-                    }
-                }
-            }
-        }
+        
         
         
         void fill_in_cstr(const double* x , double* res, bool new_x){
@@ -1522,7 +1471,7 @@ namespace gravity {
                 DebugOff("i = " << i << endl);
                 DebugOff("limits[" << i << "] = " << limits[i] << endl);
                 DebugOff("limits[" << i+1 << "] = " << limits[i+1] << endl);
-                threads.push_back(thread(compute_constrs, ref(_cons_vec), res, limits[i], limits[i+1]));
+                threads.push_back(thread(compute_constrs<type>, ref(_cons_vec), res, limits[i], limits[i+1]));
                 //        threads.push_back(thread(dummy));
             }
             /* Join the threads with the main thread */
@@ -1588,58 +1537,6 @@ namespace gravity {
         }
         
         
-        void compute_jac(vector<shared_ptr<Constraint<type>>>& vec, double* res, int i, int j, bool first_call, vector<double>& jac_vals){
-            size_t cid = 0, id_inst = 0;
-            string vid;
-            shared_ptr<Constraint<type>> c = NULL;
-            param_* v = NULL;
-            shared_ptr<func_> dfdx;
-            auto idx = vec[i]->_jac_cstr_idx;
-            for (size_t id = i; id < j; id++) {
-                c = vec[id];
-                auto nb_ins = c->_dim[0];
-                id_inst = 0;
-                if (c->is_linear() && !first_call) {
-                    //        if (false) {
-                    DebugOff("Linear constraint, using stored jacobian!\n");
-                    for (size_t i = 0; i<nb_ins; i++) {
-                        if (!*c->_all_lazy || !c->_lazy[i]) {
-                            for (size_t j = 0; j<c->get_nb_vars(i); j++) {
-                                res[idx] = jac_vals[idx];
-                                idx++;
-                            }
-                        }
-                    }
-                }
-                else {
-                    for (auto &v_p: c->get_vars()){
-                        v = v_p.second.first.get();
-                        vid = v->_name;
-                        dfdx = c->get_stored_derivative(vid);
-                        id_inst = 0;
-                        for (size_t inst = 0; inst< nb_ins; inst++){
-                            if (!*c->_all_lazy || !c->_lazy[inst]) {
-                                cid = c->_id+id_inst++;
-                                if (v->_is_vector) {
-                                    auto dim = v->get_dim(inst);
-                                    for (size_t j = 0; j<dim; j++) {
-                                        res[idx] = func<type>::eval(dfdx,inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
-                                        jac_vals[idx] = res[idx];
-                                        DebugOff("jac_val["<< idx <<"] = " << jac_vals[idx] << endl);
-                                        idx++;
-                                    }
-                                }
-                                else {
-                                    res[idx] = func<type>::eval(dfdx,inst);
-                                    jac_vals[idx] = res[idx];
-                                    idx++;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         
         /* Fill the nonzero values in the jacobian */
         
@@ -1661,7 +1558,7 @@ namespace gravity {
             string vid;
             Constraint<type>* c = NULL;
             param_* v = NULL;
-            shared_ptr<func_> dfdx;
+            shared_ptr<func<type>> dfdx;
             //    vector<Constraint*> cons;
             if (_type!=nlin_m) {//Polynomial, Quadratic or Linear
                 _cons_vec.clear();
@@ -1682,7 +1579,7 @@ namespace gravity {
                 
                 /* Launch all threads in parallel */
                 for (unsigned i = 0; i < nr_threads; ++i) {
-                    threads.push_back(thread(compute_jac, ref(_cons_vec), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
+                    threads.push_back(thread(compute_jac<type>, ref(_cons_vec), res, limits[i], limits[i+1], _first_call_jac, ref(_jac_vals)));
                 }
                 /* Join the threads with the main thread */
                 for(auto &t : threads){
@@ -1721,13 +1618,13 @@ namespace gravity {
                                     if (v->_is_vector) {
                                         auto dim = v->get_dim(inst);
                                         for (size_t j = 0; j<dim; j++) {
-                                            res[idx] = eval(dfdx,0);
+                                            res[idx] = c->eval(dfdx,0);
                                             _jac_vals[idx] = res[idx];
                                             idx++;
                                         }
                                     }
                                     else {
-                                        res[idx] = eval(dfdx,0);
+                                        res[idx] = dfdx->eval();
                                         _jac_vals[idx] = res[idx];
                                         idx++;
                                     }
@@ -1742,14 +1639,14 @@ namespace gravity {
                                         auto dim = v->get_dim(inst);
                                         if (dfdx->is_matrix()) {
                                             for (size_t j = 0; j<dim; j++) {
-                                                res[idx] = eval(dfdx,j,inst);
+                                                res[idx] = dfdx->eval(j,inst);
                                                 _jac_vals[idx] = res[idx];
                                                 idx++;
                                             }
                                         }
                                         else {
                                             for (size_t j = 0; j<dim; j++) {
-                                                res[idx] = eval(dfdx,j);//TODO check double indexed funcs
+                                                res[idx] = dfdx->eval(j);//TODO check double indexed funcs
                                                 _jac_vals[idx] = res[idx];
                                                 DebugOff("jac_val["<< idx <<"] = " << _jac_vals[idx] << endl);
                                                 idx++;
@@ -1757,7 +1654,7 @@ namespace gravity {
                                         }
                                     }
                                     else {
-                                        res[idx] = eval(dfdx,inst);;
+                                        res[idx] = dfdx->eval(inst);
                                         _jac_vals[idx] = res[idx];
                                         idx++;
                                     }
@@ -1856,7 +1753,7 @@ namespace gravity {
             string vi_name, vj_name;
             shared_ptr<param_> vi;
             shared_ptr<param_> vj;
-            Constraint<type>* c;
+            shared_ptr<Constraint<type>> c;
             for (auto &pairs: _hess_link) {
                 vi_name = pairs.first.first;
                 vj_name = pairs.first.second;
@@ -1875,7 +1772,7 @@ namespace gravity {
                     //        auto f_pair = *pairs.second.begin();
                     auto f = f_pair.first;
                     if (f->_is_constraint) {
-                        c = (Constraint<type>*)f;
+                        c = static_pointer_cast<Constraint<type>>(f);
                     }
                     auto d2f = f_pair.second;
                     size_t nb_inst = f->_dim[0];
@@ -1929,7 +1826,7 @@ namespace gravity {
         
         void fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
             size_t idx = 0, idx_in = 0, c_inst = 0, idx_pair=0;
-            Constraint<type>* c;
+            shared_ptr<Constraint<type>> c;
             bool idx_inc = false;
             double hess = 0;
             for (size_t i = 0; i<_nnz_h; i++) {
@@ -1949,7 +1846,7 @@ namespace gravity {
                         idx_inc = false;
                         auto f = f_pair.first;
                         if (f->_is_constraint) {
-                            c = (Constraint<type>*)f;
+                            c = static_pointer_cast<Constraint<type>>(f);
                         }
                         auto d2f = f_pair.second;
                         size_t nb_inst = f->_dim[0];
@@ -1964,7 +1861,7 @@ namespace gravity {
                                         if (d2f->is_matrix()) {
                                             for (size_t i = 0; i < d2f->_dim[0]; i++) {
                                                 for (size_t j = i; j < d2f->_dim[1]; j++) {
-                                                    hess = d2f->get_val(i,j);
+                                                    hess = c->eval(d2f,i,j);
                                                     _hess_vals[idx_in++] = hess;
                                                     res[idx++] += lambda[c->_id + c_inst] * hess;
                                                     //                                        f_idx++;
@@ -2059,7 +1956,7 @@ namespace gravity {
                                     }
                                 }
                                 else {
-                                    hess = d2f->eval();
+                                    hess = d2f->eval(0);
                                     _hess_vals[idx_in++] = hess;
                                     res[idx] += obj_factor * hess;
                                 }
@@ -2089,7 +1986,7 @@ namespace gravity {
                         idx_inc = false;
                         auto f = f_pair.first;
                         if (f->_is_constraint) {
-                            c = (Constraint<type>*)f;
+                            c = static_pointer_cast<Constraint<type>>(f);
                         }
                         auto d2f = f_pair.second;
                         size_t nb_inst = f->_dim[0];
@@ -2160,7 +2057,7 @@ namespace gravity {
                     idx_inc = false;
                     auto f = f_pair.first;
                     if (f->_is_constraint) {
-                        c = (Constraint<type>*)f;
+                        c = static_pointer_cast<Constraint<type>>(f);
                     }
                     auto d2f = f_pair.second;
                     size_t nb_inst = f->_dim[0];
@@ -2196,7 +2093,7 @@ namespace gravity {
                                     if (c->is_nonlinear()) {
                                         for (size_t i = 0; i < d2f->_dim[0]; i++) {
                                             for (size_t j = i; j < d2f->_dim[1]; j++) {
-                                                hess = d2f->get_val(i,j);
+                                                hess = d2f->eval(i,j);
                                                 _hess_vals[idx_in++] = hess;
                                                 res[idx++] += lambda[c->_id + c_inst] * hess;
                                                 //                                    f_idx++;
@@ -2286,7 +2183,7 @@ namespace gravity {
                                 }
                             }
                             else {
-                                hess = d2f->eval();
+                                hess = d2f->eval(0);
                                 _hess_vals[idx_in++] = hess;
                                 res[idx] += obj_factor * hess;
                             }
@@ -2309,15 +2206,15 @@ namespace gravity {
         
         
         
-        void reset_funcs() {
-            for (auto& f:_nl_funcs) {
-                f->reset_val();
-            }
-            for (auto& c:_cons) {
-                c.second->reset_val();
-            }
-            //    _obj->reset_val();
-        }
+//        void reset_funcs() {
+//            for (auto& f:_nl_funcs) {
+//                f->reset_val();
+//            }
+//            for (auto& c:_cons) {
+//                c.second->reset_val();
+//            }
+//            //    _obj->reset_val();
+//        }
         
         void fill_in_maps() {/*< Fill the _hess and _v_in_ maps to link variables with their constraints and compute the Jacobian & Hessian matrices */
             string vi_name, vj_name;
@@ -2340,10 +2237,10 @@ namespace gravity {
                             vj_name = vj_p.first;
                             //                vjd = vj->get_id();
                             if (vi_name.compare(vj_name) < 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                                _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(&_obj,_obj->get_stored_derivative(vi->_name)->get_stored_derivative(vj->_name).get()));
+                                _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(_obj,_obj->get_stored_derivative(vi->_name)->get_stored_derivative(vj->_name)));
                             }
                             else {
-                                _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(&_obj,_obj->get_stored_derivative(vj->_name)->get_stored_derivative(vi->_name).get()));
+                                _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(_obj,_obj->get_stored_derivative(vj->_name)->get_stored_derivative(vi->_name)));
                             }
                             //                for (int inst = 0; inst<vi->get_dim(); inst++) {
                             //                    vid = vi->get_id();
@@ -2356,16 +2253,16 @@ namespace gravity {
                     }
                 }
             }
-            Constraint<type>* c = NULL;
+            shared_ptr<Constraint<type>> c = nullptr;
             for(auto& c_p :_cons)
             {
-                c = c_p.second.get();
+                c = c_p.second;
                 //        c->print();
                 if (c->_new) {
                     c->compute_derivatives();
                     //            if (_type==nlin_m) {
                     for (auto &df_p:*c->get_dfdx()) {
-                        auto df = df_p.second;
+                        auto df = static_pointer_cast<func<type>>(df_p.second);
                         DebugOff(df->to_str() << endl);
                         if (df->get_expr() || _type==nlin_m) {
                             df_p.second = embed(df);
@@ -2389,10 +2286,10 @@ namespace gravity {
                                 vj = vj_p.second.first.get();
                                 vj_name = vj_p.first;
                                 if (vi_name.compare(vj_name) <= 0) {//ONLY STORE LOWER TRIANGULAR PART OF HESSIAN
-                                    _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_name)->get_stored_derivative(vj->_name).get()));
+                                    _hess_link[make_pair<>(vi_name,vj_name)].insert(make_pair<>(c, c->get_stored_derivative(vi->_name)->get_stored_derivative(vj->_name)));
                                 }
                                 else {
-                                    _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_name)->get_stored_derivative(vi->_name).get()));
+                                    _hess_link[make_pair<>(vj_name,vi_name)].insert(make_pair<>(c, c->get_stored_derivative(vj->_name)->get_stored_derivative(vi->_name)));
                                 }
                             }
                         }
@@ -2442,63 +2339,63 @@ namespace gravity {
         
         void fill_in_var_init(double* x) {
             size_t vid;
-            param_* v;
+            shared_ptr<param_> v;
             for(auto& v_p: _vars)
             {
                 v = v_p.second;
                 vid = v->get_id();
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = (double)real_var->eval(i);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = (double)real_var->eval(i);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = real_var->eval(i);
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto real_var = (var<int>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = (double)real_var->eval(i);
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto real_var = (var<short>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = (double)real_var->eval(i);
-                        }
-                        break;
-                    }
-                    case binary_:{
-                        auto real_var = (var<bool>*)v;
-                        for (size_t i = 0; i < v->get_dim(); i++) {
-                            //                    vid_inst = vid + v->get_id_inst(i);
-                            x[vid+i] = (double)real_var->eval(i);
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
+//                switch (v->get_intype()) {
+//                    case float_: {
+//                        auto real_var = (var<float>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = (double)real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    case long_:{
+//                        auto real_var = (var<long double>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = (double)real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    case double_:{
+//                        auto real_var = (var<double>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    case integer_:{
+//                        auto real_var = (var<int>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = (double)real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    case short_:{
+//                        auto real_var = (var<short>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = (double)real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    case binary_:{
+//                        auto real_var = (var<bool>*)v;
+//                        for (size_t i = 0; i < v->get_dim(); i++) {
+//                            //                    vid_inst = vid + v->get_id_inst(i);
+//                            x[vid+i] = (double)real_var->eval(i);
+//                        }
+//                        break;
+//                    }
+//                    default:
+//                        break;
+//                } ;
             }
         }
         
@@ -3237,52 +3134,52 @@ namespace gravity {
         
         
         void replace_integers(){/*< Replace internal type of integer variables so that continuous relaxations can be computed */
-            bool has_int = false;
-            //this->relax();
-            //this->unrelax();
-            for (auto &v_p:this->_vars_name) {
-                if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                    has_int = true;
-                    auto v = v_p.second;
-                    auto new_v = new var<double>(v_p.second->_name, 0,1);
-                    new_v->copy(*v);
-                    new_v->_is_relaxed = true;
-                    new_v->_val->resize(new_v->get_dim());
-                    if (v->get_intype()==integer_) {
-                        auto double_var = (var<int>*)v;
-                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-                            new_v->_val->at(i) = double_var->_val->at(i);
-                        }
-                    }
-                    if (v->get_intype()==short_) {
-                        auto double_var = (var<short>*)v;
-                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-                            new_v->_val->at(i) = double_var->_val->at(i);
-                        }
-                    }
-                    if (v->get_intype()==binary_) {
-                        auto double_var = (var<bool>*)v;
-                        this->_bin_vars[v_p.second->get_vec_id()] = *double_var;
-                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-                            new_v->_val->at(i) = double_var->_val->at(i);
-                        }
-                    }
-                    v_p.second = new_v;
-                }
-            }
-            for (auto &v_p:this->_vars) {
-                if (v_p.second->is_integer() || v_p.second->is_binary()) {
-                    auto name = v_p.second->_name;
-                    delete v_p.second;
-                    v_p.second = this->get_var_ptr(name);
-                }
-            }
-            if(has_int){
-                this->_obj->relax(this->_vars);
-                for (auto &c_p: this->_cons) {
-                    c_p.second->relax(this->_vars);
-                }
-            }
+//            bool has_int = false;
+//            //this->relax();
+//            //this->unrelax();
+//            for (auto &v_p:this->_vars_name) {
+//                if (v_p.second->is_integer() || v_p.second->is_binary()) {
+//                    has_int = true;
+//                    auto v = v_p.second;
+//                    auto new_v = new var<double>(v_p.second->_name, 0,1);
+//                    new_v->copy(*v);
+//                    new_v->_is_relaxed = true;
+//                    new_v->_val->resize(new_v->get_dim());
+//                    if (v->get_intype()==integer_) {
+//                        auto double_var = (var<int>*)v;
+//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
+//                            new_v->_val->at(i) = double_var->_val->at(i);
+//                        }
+//                    }
+//                    if (v->get_intype()==short_) {
+//                        auto double_var = (var<short>*)v;
+//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
+//                            new_v->_val->at(i) = double_var->_val->at(i);
+//                        }
+//                    }
+//                    if (v->get_intype()==binary_) {
+//                        auto double_var = (var<bool>*)v;
+//                        this->_bin_vars[v_p.second->get_vec_id()] = *double_var;
+//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
+//                            new_v->_val->at(i) = double_var->_val->at(i);
+//                        }
+//                    }
+//                    v_p.second = new_v;
+//                }
+//            }
+//            for (auto &v_p:this->_vars) {
+//                if (v_p.second->is_integer() || v_p.second->is_binary()) {
+//                    auto name = v_p.second->_name;
+//                    delete v_p.second;
+//                    v_p.second = this->get_var_ptr(name);
+//                }
+//            }
+//            if(has_int){
+//                this->_obj->relax(this->_vars);
+//                for (auto &c_p: this->_cons) {
+//                    c_p.second->relax(this->_vars);
+//                }
+//            }
             
         }
         

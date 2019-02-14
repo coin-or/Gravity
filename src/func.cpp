@@ -1962,68 +1962,6 @@ namespace gravity{
         }
     }
     
-    /**
-     Copy and embed derivatives of f.
-     @param[in] f function to copy derivatives from.
-     */
-    void func_::copy_derivatives(const func_& f){
-        if (f._dfdx) {
-            for (auto &pair:*f._dfdx) {
-                auto df = pair.second->fcopy();
-                embed(*df);
-                (*_dfdx)[pair.first] = df;
-            }
-        }
-    }
-//
-//    void func_::reset(){
-//        _to_str = "noname";
-//        delete _all_range;
-//        _all_range = new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-//        if (_vars) {
-//            _vars->clear();
-//        }
-//        if (_params){
-//            _params->clear();
-//        }
-//        _dfdx->clear();
-//        _hess_link.clear();
-//        delete _range;
-//        _range = nullptr;
-//        delete _convexity;
-//        _convexity = nullptr;
-//        delete _sign;
-//        _sign = nullptr;
-//        _expr = nullptr;
-//        delete _DAG;
-//        _DAG = nullptr;
-//        delete _queue;
-//        _queue = nullptr;
-//        set_type(func_c);
-//        _ftype = const_;
-//        _return_type = integer_;
-//        _all_convexity = linear_;
-//        _all_sign = zero_;
-//        _is_transposed = false;
-//        _is_vector = false;
-//        //        _is_matrix = false;
-//        _evaluated = false;
-//
-//        _val->resize(1);
-//        _val->at(0) = 0;
-//        _dim[0] = 1;
-//        _lterms->clear();
-//        _qterms->clear();
-//        _pterms->clear();
-//        delete _cst;
-//        _cst = new constant<double>(0);
-//        //        _nb_instances = 1;
-//        _nb_vars = 0;
-//        _nnz_h = 0;
-//        _nnz_j = 0;
-//    };
-//
-    
     
     /**
      Reverse the convexity property of the current function
@@ -4542,14 +4480,14 @@ namespace gravity{
     NType func_::get_return_type() const { return _return_type;};
 //
 //
-//    qterm* func_::get_square(param_* p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
-//        for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
-//            if (pair_it->second._p->first==p && pair_it->second._p->second==p) {
-//                return &pair_it->second;
-//            }
-//        }
-//        return nullptr;
-//    }
+    qterm* func_::get_square(shared_ptr<param_> p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
+        for (auto pair_it = _qterms->begin(); pair_it != _qterms->end(); pair_it++) {
+            if (pair_it->second._p->first==p && pair_it->second._p->second==p) {
+                return &pair_it->second;
+            }
+        }
+        return nullptr;
+    }
 //
 //    func_ func_::get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
 //        func_ res; // res = gradf(x*)*(x-x*) + f(x*)
@@ -4830,33 +4768,7 @@ namespace gravity{
         return *this;
     }
     
-    Convexity func_::get_convexity(const qterm& q) {
-        return q.get_convexity();
-        auto conv = q.get_convexity();
-        if(_all_convexity==linear_ || conv==_all_convexity){
-            return conv;
-        }
-        // At this stage, we know that q._p->first !=q._p->second
-        // Checking if the product can be factorized
-//        auto sqr1 = get_square(q._p->first);
-//        auto sqr2 = get_square(q._p->second);
-//        if (sqr1 && sqr2){
-//            auto c1 = sqr1->_coef;
-//            auto c2 = sqr2->_coef;
-//            if ((sqr1->_sign^c1->is_positive())==(sqr2->_sign^c2->is_positive())) {// && c0->is_at_least_half(c1) && c0->is_at_least_half(c2)
-//                if (c1->is_number() && c2->is_number() && q._coef->is_number()) {
-//                    if (t_eval(c1)*t_eval(c2) >= t_eval(q._coef)*t_eval(q._coef)/4) {
-//                        if (!(sqr1->_sign^c1->is_positive())) {
-//                            return convex_;
-//                        }
-//                        return concave_;
-//                    }
-//                }
-//                return undet_;
-//            }
-//        }
-        return undet_;
-    }
+    
 //
 //    template<typename type>
 //    func_ power(const param<type>& v, unsigned p){
@@ -5103,32 +5015,7 @@ namespace gravity{
         return false;
     }
 
-    void func_::update_quad_convexity(){
-        if(is_unitary()){
-            //TODO check second derivative
-        }
-        if (!_pterms->empty()) {
-            _all_convexity = undet_;
-            return;
-        }
-        if (_qterms->empty() && !_expr) {
-            _all_convexity = linear_;
-            return;
-        }
-        if (!_qterms->empty() && !_expr) {
-            _all_convexity = get_convexity(_qterms->begin()->second);
-            for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
-                Convexity conv = get_convexity(pair_it->second);
-                if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
-                    _all_convexity = undet_;
-                    return;
-                }
-                else {
-                    _all_convexity = conv;
-                }
-            }
-        }
-    }
+    
 //
 //
 //    string poly_to_str(const constant_* c, size_t inst){/**< printing c, detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */

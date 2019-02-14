@@ -34,46 +34,21 @@
 #include "MosekProgram.h"
 #endif
 
+
+void gurobiNotAvailable();
+
+void cplexNotAvailable();
+
+void bonminNotAvailable();
+
+void ipoptNotAvailable();
+
+void mosekNotAvailable();
+
+void ClpNotAvailable();
+
 namespace gravity {
-    void gurobiNotAvailable()
-    {
-        cerr << "Can't use Gurobi as a solver: this version of Gravity "
-        "was compiled without Gurobi support." << endl;
-        exit(1);
-    }
-    void cplexNotAvailable()
-    {
-        cerr << "Can't use Cplex as a solver: this version of Gravity "
-        "was compiled without Cplex support." << endl;
-        exit(1);
-    }
-    
-    void bonminNotAvailable()
-    {
-        cerr << "Can't use Bonmin as a solver: this version of Gravity "
-        "was compiled without Bonmin support." << endl;
-        exit(1);
-    }
-    void ipoptNotAvailable()
-    {
-        cerr << "Can't use Ipopt as a solver: this version of Gravity "
-        "was compiled without Ipopt support." << endl;
-        exit(1);
-    }
-    
-    
-    void mosekNotAvailable()
-    {
-        cerr << "Can't use Mosek as a solver: this version of Gravity "
-        "was compiled without Mosek support." << endl;
-        exit(1);
-    }
-    void ClpNotAvailable()
-    {
-        cerr << "Can't use Clp as a solver: this version of Gravity "
-        "was compiled without Clp support." << endl;
-        exit(1);
-    }
+
     
     template<typename type = double>
     class solver {
@@ -87,9 +62,9 @@ namespace gravity {
         //@{
         solver();
 
-        solver(gravity::Model<type>& model, SolverType stype){
+        solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
             _stype = stype;
-            _model = &model;
+            _model = model;
             if (_stype==ipopt) {
 #ifdef USE_IPOPT                
                 _model->replace_integers();
@@ -104,7 +79,7 @@ namespace gravity {
                 if(_model->_objt==maximize){
                     _model->_obj->reverse_sign();
                 }
-                _prog = make_shared<IpoptProgram<type>>(IpoptProgram<type>(_model));
+                _prog = make_shared<IpoptProgram<type>>(_model);
 #else
                 ipoptNotAvailable();
 #endif
@@ -252,13 +227,13 @@ namespace gravity {
                         optimal = true;
                         for (auto &v_p:_model->_bin_vars) {
                             auto bin_var = v_p.second;
-                            auto double_var = (var<double>*)_model->get_var_ptr(v_p.first);
+                            auto double_var = static_pointer_cast<var<double>>(_model->get_var_ptr(v_p.first));
                             for (int i = 0; i < double_var->get_dim(); i++) {
                                 if(round(double_var->_val->at(i))==1){
-                                    bin_var._val->at(i) = true;
+                                    bin_var->_val->at(i) = true;
                                 }
                                 else{
-                                    bin_var._val->at(i) = false;
+                                    bin_var->_val->at(i) = false;
                                 }
                             }
                         }

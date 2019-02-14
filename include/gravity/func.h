@@ -31,7 +31,7 @@ namespace gravity {
     /** Backbone class for function */
     class func_ : public constant_{
     private:
-        shared_ptr<func_> compute_derivative(const param_& v);  /**< Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+        
         
     public:
         FType                                                             _ftype = const_; /**< Function type, e.g., constant, linear, quadratic... >>**/
@@ -53,7 +53,6 @@ namespace gravity {
         shared_ptr<vector<Convexity>>                                     _convexity = nullptr; /**< Vector of convexity types, i.e., linear, convex, concave or unknown. This is a vector since a function can have multiple instances (different constants coefficients, and bounds, but same structure) >>**/
         shared_ptr<vector<Sign>>                                          _sign = nullptr; /**< vector storing the sign of return value if known. >>**/
         shared_ptr<map<size_t, set<size_t>>>                              _hess_link = nullptr; /**< Set of variables linked to one another in the hessian, stored by variable ids  */
-        shared_ptr<map<string,shared_ptr<func_>>>                         _dfdx = nullptr;/**< A map storing the derivatives indexed by variables' names */
 
         bool                                                              _new = true; /**< Will become false once this function is added to a program. Can be useful for iterative model solving. */
         bool                                                              _is_constraint = false;
@@ -171,16 +170,7 @@ namespace gravity {
          @param[in] f function to copy derivatives from.
          */
         void copy_derivatives(const func_& f);
-
-        void set_first_derivative(const param_& v, func_&& f){
-            DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v._name] = make_shared<func_>(move(f));
-        }
-
-        void set_second_derivative(const param_& v1, const param_& v2, func_&& f){
-            DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
-        }
+        
 
         unsigned nb_occ_var(string name) const;/**< Returns the number of occurences the variable has in this function. */
         
@@ -210,19 +200,9 @@ namespace gravity {
         shared_ptr<expr> get_expr() const{
             return _expr;
         }
+        
 
-        shared_ptr<map<string,shared_ptr<func_>>> get_dfdx() const{
-            return _dfdx;
-        };
-
-        shared_ptr<func_> get_stored_derivative(const string& vid) const; /**< Returns the stored derivative with respect to variable v. */
-
-//        func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
-
-//        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
-
-
-        void compute_derivatives(); /**< Computes and stores the derivative of f with respect to all variables. */
+        
 
         
         /**
@@ -235,12 +215,7 @@ namespace gravity {
         
         qterm* get_square(shared_ptr<param_> p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
         
-        /**
-         Returns the convexity of current function if quadratic term q was to be added.
-         @param[in] q quadratic term to be added.
-         @return convexity of function if q was to be added.
-         */
-        Convexity get_convexity(const qterm& q);
+        
         
         /**
          Index the function and its variables/parameters using nodes of a graph
@@ -667,10 +642,25 @@ namespace gravity {
     
     template<typename type = double>
     class func: public func_{
+    private:
+        /** Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
+        shared_ptr<func> compute_derivative(const param_& v){
+            auto vid = v._name;
+            if(_dfdx->count(vid)!=0){
+                return _dfdx->at(vid);
+            }
+            auto df = make_shared<func>(get_derivative(v));
+            df->allocate_mem();
+            (*_dfdx)[vid] = df;
+            DebugOff( "First derivative with respect to " << v.get_name(false,false) << " = " << df->to_str() << endl);
+            return df;
+        }
+        
     public:
-        shared_ptr<vector<type>>                _val = nullptr; /**< vector of values **/
-        shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
-        shared_ptr<vector<pair<type,type>>>     _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this func **/
+        shared_ptr<map<string,shared_ptr<func>>>                _dfdx = nullptr;/**< A map storing the derivatives indexed by variables' names */
+        shared_ptr<vector<type>>                                _val = nullptr; /**< vector of values **/
+        shared_ptr<pair<type,type>>                             _range = nullptr; /**< (Min,Max) values in vals **/
+        shared_ptr<vector<pair<type,type>>>                     _all_range = nullptr; /**< Vector of (Min,Max) values for each instance of this func **/
 
         void update_range(){
             _range = make_shared<pair<type,type>>(make_pair<>(zero<type>().eval(), zero<type>().eval()));
@@ -737,8 +727,8 @@ namespace gravity {
             return true;
         }
         
-        template<class T, typename enable_if<is_convertible<T, type>::value && sizeof(T) <= sizeof(type)>::type* = nullptr>
-        func get_derivative(shared_ptr<constant_> ex, const var<T>& v) const{
+        
+        func get_derivative(shared_ptr<constant_> ex, const param_& v) const{
             auto name = v.get_name(false,false);
             if(ex->is_var()){
                 auto vv = static_pointer_cast<param_>(ex);
@@ -760,7 +750,7 @@ namespace gravity {
                 else if(uexp->_son->is_var()) {
                     auto vv = dynamic_pointer_cast<param_>(uexp->_son);
                     if(vv->get_name(false,false)==name){
-                        son = v;
+                        son.insert(v);
                     }
                     else{
                         return func();
@@ -809,7 +799,7 @@ namespace gravity {
                 else if(bexp->_lson->is_var()) {
                     auto vv = dynamic_pointer_cast<param_>(bexp->_lson);
                     if(vv->get_name(false,false)==name){
-                        lson = v;
+                        lson.insert(v);
                     }
                 }
                 else {
@@ -822,7 +812,7 @@ namespace gravity {
                 else if(bexp->_rson->is_var()) {
                     auto vv = dynamic_pointer_cast<param_>(bexp->_rson);
                     if(vv->get_name(false,false)==name){
-                        rson = v;
+                        rson.insert(v);
                     }
                 }
                 else {
@@ -857,6 +847,63 @@ namespace gravity {
                 }
             }
             return func();
+        }
+
+        shared_ptr<func> get_stored_derivative(const string& vid) const{ /**< Returns the stored derivative with respect to variable v. */
+            auto it = _dfdx->find(vid);
+            if (it!=_dfdx->end()) {
+                return it->second;
+            }
+            else {
+                throw invalid_argument("No derivatives stored!\n");
+            }
+        }
+    
+        //        func_ get_derivative(const param_& v) const; /**< Computes and returns the derivative with respect to variable v. */
+        
+        //        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
+        
+        
+        /** Computes and stores the derivative of f with respect to all variables. */
+        void compute_derivatives(){
+            size_t vid = 0, vjd = 0;
+            param_* vi;
+            param_* vj;
+            DebugOff( "Computing derivatives for " << to_str() << endl);
+            for (auto &vp: *_vars) {
+                vi = vp.second.first.get();
+                vid = vi->get_id();
+                auto vi_name = vp.first;
+                auto df = compute_derivative(*vi);
+                //            if (is_nonlinear()) {
+                DebugOff( "First derivative with respect to " << vp.first << " = " << df->to_str() << endl);
+                //            }
+                for (auto &vp2: *df->_vars) {
+                    vj = vp2.second.first.get();
+                    vjd = vj->get_id();
+                    auto vj_name = vp2.first;
+                    if (vi_name.compare(vj_name) <= 0) { //only store lower left part of hessian matrix since it is symmetric.
+                        auto d2f = df->compute_derivative(*vj);
+                        DebugOff( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f->to_str() << endl);
+                        //                d2f->print();
+                    }
+                }
+    
+            }
+        }
+        
+        shared_ptr<map<string,shared_ptr<func>>> get_dfdx() const{
+            return _dfdx;
+        };
+        
+        void set_first_derivative(const param_& v, func&& f){
+            DebugOff(f.to_str()<<endl);
+            (*_dfdx)[v._name] = make_shared<func_>(move(f));
+        }
+        
+        void set_second_derivative(const param_& v1, const param_& v2, func&& f){
+            DebugOff(f.to_str()<<endl);
+            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
         }
         
         pair<type,type> get_range(shared_ptr<list<pair<shared_ptr<param_>, int>>> pterm) const{
@@ -952,8 +999,8 @@ namespace gravity {
             return pair<type,type>();
         };
         
-        template<class T, typename enable_if<is_convertible<T, type>::value && sizeof(T) <= sizeof(type)>::type* = nullptr>
-        func get_derivative(const var<T>& v) const{
+        
+        func get_derivative(const param_& v) const{
             func res;
             shared_ptr<pair<type,type>> term_range;
             if(!has_var(v)){
@@ -2143,8 +2190,8 @@ namespace gravity {
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
             _embedded = f._embedded;
-            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-            copy_derivatives(f);
+            _dfdx = make_shared<map<string,shared_ptr<func<type>>>>();
+//            copy_derivatives(f);
             if(f._hess_link){
                 _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
             }
@@ -2278,8 +2325,8 @@ namespace gravity {
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
             _embedded = f._embedded;
-            _dfdx = make_shared<map<string,shared_ptr<func_>>>();
-            copy_derivatives(f);
+            _dfdx = make_shared<map<string,shared_ptr<func>>>();
+//            copy_derivatives(f);
             if(f._hess_link){
                 _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
             }
@@ -2562,7 +2609,7 @@ namespace gravity {
             return _val->at(idx);
         }
         
-        type eval(size_t i) {
+        type eval(size_t i=0) {
             if(is_matrix()){
                 throw invalid_argument("eval() should be called with double index here\n");
             }
@@ -2587,7 +2634,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        type eval(shared_ptr<constant_> c, size_t i) {
+        type eval(shared_ptr<constant_> c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -2758,7 +2805,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        type eval(shared_ptr<constant_> c, size_t i) {
+        type eval(shared_ptr<constant_> c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -4341,7 +4388,9 @@ namespace gravity {
             if(is_quadratic()){
                 update_quad_convexity();
             }
-            update_convexity_add(f._all_convexity);
+            else {
+                update_convexity_add(f._all_convexity);
+            }
             _range->first += f._range->first;
             _range->second += f._range->second;
             return *this;
@@ -4415,6 +4464,75 @@ namespace gravity {
             auto f = *this;
             f.transpose();
             return f;
+        }
+        
+        void update_quad_convexity(){
+            if(is_unitary()){
+                //TODO check second derivative
+            }
+            if (!_pterms->empty()) {
+                _all_convexity = undet_;
+                return;
+            }
+            if (_qterms->empty() && !_expr) {
+                _all_convexity = linear_;
+                return;
+            }
+            if (!_qterms->empty() && !_expr) {
+                _all_convexity = get_convexity(_qterms->begin()->second);
+                for (auto pair_it = next(_qterms->begin()); pair_it != _qterms->end(); pair_it++) {
+                    Convexity conv = get_convexity(pair_it->second);
+                    if (_all_convexity==undet_ || conv ==undet_ || (_all_convexity==convex_ && conv==concave_) || (_all_convexity==concave_ && conv==convex_)) {
+                        _all_convexity = undet_;
+                        return;
+                    }
+                    else {
+                        _all_convexity = conv;
+                    }
+                }
+            }
+        }
+        
+        /**
+         Returns the convexity of current function if quadratic term q was to be added.
+         @param[in] q quadratic term to be added.
+         @return convexity of function if q = coef*p1*p2 was to be added.
+         */
+        Convexity get_convexity(const qterm& q){
+            if(q._p->first == q._p->second){
+                if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
+                    return convex_;
+                }
+                if (q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                    return concave_;
+                }
+                if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                    return convex_;
+                }
+                if (!q._sign && (q._coef->is_negative() || q._coef->is_non_positive())) {
+                    return concave_;
+                }
+            }
+            // At this stage, we know that q._p->first !=q._p->second
+            // Checking if the product can be factorized
+            auto sqr1 = get_square(q._p->first);
+            auto sqr2 = get_square(q._p->second);
+            if (sqr1 && sqr2){
+                auto c1 = sqr1->_coef;
+                auto c2 = sqr2->_coef;
+                if ((sqr1->_sign^c1->is_positive())==(sqr2->_sign^c2->is_positive())) {
+                    if (c1->func_is_number() && c2->func_is_number() && q._coef->func_is_number()) {
+                        if (eval<type>(c1) >= eval<type>(q._coef)/2. && eval<type>(c2) >= eval<type>(q._coef)/2.) {
+                            if (!(sqr1->_sign^c1->is_positive())) {
+                                return convex_;
+                            }
+                            return concave_;
+                        }
+                    }
+                    return undet_;
+                }
+            }
+            return undet_;
         }
         
     };
@@ -4673,6 +4791,16 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator/(const func<T1>& f1, const func<T2>& f2){
+        return func<T2>(f1)/=f2;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    func<T1> operator/(const param<T1>& f1, const param<T2>& f2){
+        return func<T1>(f1)/=f2;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    func<T2> operator/(const param<T1>& f1, const param<T2>& f2){
         return func<T2>(f1)/=f2;
     }
     

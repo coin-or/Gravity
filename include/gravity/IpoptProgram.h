@@ -32,7 +32,7 @@ public:
     
     
     void update_model(){
-        _model->reset_funcs();
+//        _model->reset_funcs();
         _model->fill_in_maps();
     }
     
@@ -69,13 +69,12 @@ public:
                                          )
     {
         _model->set_x(x);
-        _model->_obj_val = obj_value;
+//        _model->_obj_val = obj_value;
         //    _model->print_solution();
         //    _model->compute_funcs();
         //    _model->check_feasible(x);
         if(_model->_objt==maximize){
-            _model->_obj *= -1.;
-            _model->_obj_val *= -1.;
+            _model->_obj->reverse_sign();
         }
         //    _model->_obj_val = _model->_obj.eval();
         for (auto &cp: _model->_cons) {
@@ -87,17 +86,17 @@ public:
                 }
             }
         }
-        for (auto &vp: _model->_vars) {
-            auto nb_inst = vp.second->get_dim();
-            vp.second->_u_dual.resize(nb_inst);
-            vp.second->_l_dual.resize(nb_inst);
-            auto vid = vp.second->get_id();
-            for (unsigned inst = 0; inst < nb_inst; inst++) {
-                vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
-                vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
-            }
-        }
-        cout << "\n************** Objective Function Value = " << _model->_obj_val << " **************" << endl;
+//        for (auto &vp: _model->_vars) {
+//            auto nb_inst = vp.second->get_dim();
+//            vp.second->_u_dual.resize(nb_inst);
+//            vp.second->_l_dual.resize(nb_inst);
+//            auto vid = vp.second->get_id();
+//            for (unsigned inst = 0; inst < nb_inst; inst++) {
+//                vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
+//                vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
+//            }
+//        }
+//        cout << "\n************** Objective Function Value = " << _model->eval<double>(_model->_obj,0) << " **************" << endl;
     }
     
     /** Method to return the bounds for my problem */
