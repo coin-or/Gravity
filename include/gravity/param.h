@@ -88,6 +88,8 @@ namespace gravity {
         
         virtual void print(){};
         
+        virtual void print_symbolic() const{};
+        
         virtual void print(bool vals, int prec){};
 
         void set_id(size_t idx) {
@@ -476,6 +478,15 @@ namespace gravity {
             }
             return constant_::get_dim(i);
         }
+        
+        /** Fill x with the variable's values */
+        virtual void set_double_val(double* x){};
+        /** Fill the variable's values from x */
+        virtual void get_double_val(const double* x){};
+        virtual void copy_vals(const param_& p){};
+        virtual void copy_bounds(const param_& p){};
+        virtual double get_double_lb(size_t i) const{return 0;};
+        virtual double get_double_ub(size_t i) const{return 0;};
 
     };
 
@@ -1656,6 +1667,33 @@ namespace gravity {
             }
         }
 //        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
+        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        void set_double_val(double* x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                x[vid+i] = (double)_val->at(i);
+            }
+        }
+        
+        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        void get_double_val(const double* x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i) = x[vid+i];
+            }
+        }
+        
+        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        void copy_vals(const param_& p){
+            auto dim = p.get_dim();
+            _val->resize(dim);
+            for (size_t i = 0; i < dim; i++) {
+//                _val->at(i) = this->eval(p,i);
+            }
+        }
+                
+       
+
 
     };
 

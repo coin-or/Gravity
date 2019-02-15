@@ -510,6 +510,15 @@ TEST_CASE("testing function convexity"){
     CHECK(f2.is_convex());
 }
 
+TEST_CASE("testing bounds copy"){
+    var<int> x("x",-3,3);
+    var<> y("y", -1.2, 1.4);
+    y.copy_bounds(x);
+    y.print(true, 5);
+    CHECK(y.get_lb()==-3);
+    CHECK(y.get_ub()==3);
+}
+
 TEST_CASE("testing quadratic function factorization"){
     var<> x1("x1",0.5,10), x2("x2",-1,1);
     x1.in(R(4));x2.in(R(4));
@@ -652,6 +661,7 @@ TEST_CASE("testing nonlinear Model"){
     cstr2 = a*x*y*cos(x-z);
     M.add(cstr2 == 0);
     M.max(sum(x));
+    M.print_symbolic();
     M.print();
     CHECK(!M.is_convex());
     CHECK(M.get_nb_vars()==12);
