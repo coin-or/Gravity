@@ -138,14 +138,14 @@ namespace gravity {
         /* */
         map<size_t, shared_ptr<param_>>                     _params; /**< Sorted map pointing to all parameters contained in this model. */
         map<size_t, shared_ptr<param_>>                     _vars; /**< Sorted map pointing to all variables contained in this model. */
-        map<size_t, shared_ptr<var<bool>>>                  _bin_vars; /**< Sorted map pointing to all binary variables contained in this model. */
+        map<size_t, shared_ptr<param_>>                     _int_vars; /**< Sorted map pointing to all binary variables contained in this model. */
         map<string, shared_ptr<param_>>                     _params_name; /**< Sorted map (by name) pointing to all parameters contained in this model. */
         map<string, shared_ptr<param_>>                     _vars_name; /**< Sorted map (by name) pointing to all variables contained in this model. */
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
         map<size_t, shared_ptr<Constraint<type>>>           _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model. */
         map<string, shared_ptr<Constraint<type>>>           _cons_name; /**< Sorted map (by name) pointing to all constraints contained in this model. */
         map<unique_id, set<shared_ptr<Constraint<type>>>>   _v_in_cons; /**< Set of constraints where each variable appears. */
-        shared_ptr<func<type>>                                  _obj = nullptr; /**< Pointer to objective function */
+        shared_ptr<func<type>>                              _obj = nullptr; /**< Pointer to objective function */
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,set<pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
@@ -2580,13 +2580,16 @@ namespace gravity {
             }
         }
         
+        shared_ptr<param_> get_int_var(size_t idx){
+            return _int_vars.at(idx);
+        }
         
         void round_solution(){
             for (auto &v_pair:_vars) {
                 if(v_pair.second->_is_relaxed){
-                    v_pair.second->round_val();
+                    v_pair.second->round_vals();
                     auto int_var = get_int_var(v_pair.first);
-                    int_var->copy_vals(v_pair.second);
+                    int_var->copy_vals(*v_pair.second);
                 }
             }
         }
