@@ -643,6 +643,7 @@ TEST_CASE("testing simple model"){
     M.add(cstr2 >= 2);//Check wrong range.
     M.max(sum(x));
     M.print();
+    M.round_solution();
     CHECK(M.is_convex());
     CHECK(M.get_nb_vars()==6);
     CHECK(M.get_nb_cons()==2);

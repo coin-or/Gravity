@@ -483,6 +483,9 @@ namespace gravity {
         virtual void set_double_val(double* x){};
         /** Fill the variable's values from x */
         virtual void get_double_val(const double* x){};
+        /** round the value stored at position i to the nearest integer */
+        virtual void round_vals(){};
+
         virtual void copy_vals(const param_& p){};
         virtual void copy_bounds(const param_& p){};
         virtual double get_double_lb(size_t i) const{return 0;};
@@ -1682,6 +1685,24 @@ namespace gravity {
                 _val->at(i) = x[vid+i];
             }
         }
+        
+        /** round the value stored at position i to the nearest integer */
+        void round_vals(){round_vals_();};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void round_vals_(){
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i) = std::round((T)_val->at(i));
+            }
+        };
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void round_vals_(){
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i).real(std::round(_val->at(i).real()));
+                _val->at(i).imag(std::round(_val->at(i).imag()));
+            }
+        };
         
         template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void copy_vals(const param_& p){

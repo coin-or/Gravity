@@ -225,20 +225,8 @@ namespace gravity {
                     status = iapp->OptimizeTNLP(tmp);
                     if (status == Solve_Succeeded) {
                         optimal = true;
-                        for (auto &v_p:_model->_bin_vars) {
-                            auto bin_var = v_p.second;
-                            auto double_var = static_pointer_cast<var<double>>(_model->get_var_ptr(v_p.first));
-                            for (int i = 0; i < double_var->get_dim(); i++) {
-                                if(round(double_var->_val->at(i))==1){
-                                    bin_var->_val->at(i) = true;
-                                }
-                                else{
-                                    bin_var->_val->at(i) = false;
-                                }
-                            }
-                        }
+                        _model->round_solution();
                         // Retrieve some statistics about the solve
-                        
                         //                printf("\n\nSolution of the primal variables:\n");
                         //                _model->print_solution();
                         //                return status;
