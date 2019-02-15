@@ -37,10 +37,10 @@ namespace gravity {
         for (size_t idx = i; idx < j; idx++) {
             auto c = v[idx];
             size_t nb_ins = c->_dim[0];
-            size_t id = 0;
+            size_t ind = 0;
             for (size_t inst = 0; inst< nb_ins; inst++){
                 if (!*c->_all_lazy || !c->_lazy[inst]) {
-                    res[c->_id+id++] = c->eval(inst);
+                    res[c->_id+ind++] = c->eval(inst);
                     DebugOff("Accessing res at position " << c->_id+inst << endl);
                     //                _cons_vals[index++] = res[c->_id+inst];
                     DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
@@ -56,10 +56,10 @@ namespace gravity {
         string vid;
         shared_ptr<Constraint<type>> c = NULL;
         param_* v = NULL;
-        shared_ptr<func_> dfdx;
+        shared_ptr<func<type>> dfdx;
         auto idx = vec[i]->_jac_cstr_idx;
-        for (size_t id = i; id < j; id++) {
-            c = vec[id];
+        for (size_t ind = i; ind < j; ind++) {
+            c = vec[ind];
             auto nb_ins = c->_dim[0];
             id_inst = 0;
             if (c->is_linear() && !first_call) {
@@ -93,7 +93,7 @@ namespace gravity {
                                 }
                             }
                             else {
-                                res[idx] = c->eval(dfdx,inst);
+                                res[idx] = dfdx->eval(inst);
                                 jac_vals[idx] = res[idx];
                                 idx++;
                             }
@@ -372,7 +372,10 @@ namespace gravity {
                 if (_type==lin_m && c->is_quadratic()) {
                     _type = quad_m;
                 }
-                if ((_type==lin_m || _type==quad_m) && (c->is_nonlinear() || c->is_polynomial())) {
+                else if ((_type==lin_m || _type==quad_m) && c->is_polynomial()) {
+                    _type = pol_m;
+                }
+                else if (c->is_nonlinear()) {
                     _type = nlin_m;
                 }
                 update_convexity(*c);
@@ -451,13 +454,12 @@ namespace gravity {
         }
         
         
-        void add_lazy(const Constraint<type>& c){
+        void add_lazy(Constraint<type>& c){
             if (c.get_dim()==0) {
                 return;
             }
-            *c._all_lazy = true;
+            c.make_lazy();
             auto newc = add_constraint(c);
-            newc->make_lazy();
             _has_lazy = true;
         }
         
@@ -561,10 +563,10 @@ namespace gravity {
                     if (_type==lin_m && c.is_quadratic()) {
                         _type = quad_m;
                     }
-                    if ((_type==lin_m || _type==quad_m) && c.is_polynomial()) {
+                    else if ((_type==lin_m || _type==quad_m) && c.is_polynomial()) {
                         _type = pol_m;
                     }
-                    if(c.is_nonlinear()){
+                    else if(c.is_nonlinear()){
                         _type = nlin_m;
                     }
                     newc->allocate_mem();
@@ -613,7 +615,7 @@ namespace gravity {
         
         template<typename T>
         void set_objective(const func<T>& f, ObjectiveType t) {
-            _obj = f;
+            *_obj = f;
             _objt = t;
             update_convexity(f);
             //    embed(_obj);
@@ -625,7 +627,7 @@ namespace gravity {
             auto obj = f;
             obj._dim[0] = 1;
             obj.allocate_mem();
-            _obj = make_shared<func<T1>>(move(obj));
+            *_obj = move(obj);
             _objt = minimize;
             update_convexity(obj);
         }
@@ -635,7 +637,7 @@ namespace gravity {
             auto obj = f;
             obj._dim[0] = 1;
             obj.allocate_mem();
-            _obj = make_shared<func<T1>>(move(obj));
+            *_obj = move(obj);
             _objt = maximize;
             update_convexity(obj);
         }
@@ -897,62 +899,19 @@ namespace gravity {
             {
                 v = v_p.second;
                 vid = v->get_id();
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        DebugOff(real_var->get_name() << " in:" << endl);
-                        if (real_var->_is_relaxed) {
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                var_types[vid+i] = Bonmin::TMINLP::BINARY;
-                            }
-                        }
-                        else {
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                var_types[vid+i] = Bonmin::TMINLP::CONTINUOUS;
-                            }
-                        }
-                        DebugOff(";" << endl);
-                        break;
-                    }
-                    case integer_:{
-                        auto real_var = (var<int>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            var_types[vid+i] = Bonmin::TMINLP::INTEGER;
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto real_var = (var<short>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            var_types[vid+i] = Bonmin::TMINLP::INTEGER;
-                        }
-                        break;
-                    }
-                    case binary_:{
-                        auto real_var = (var<bool>*)v;
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            var_types[vid+i] = Bonmin::TMINLP::BINARY;
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
+                auto bonmin_type = Bonmin::TMINLP::CONTINUOUS;
+                auto type = v->get_intype();
+                if(type==short_ || type==integer_){
+                    bonmin_type = Bonmin::TMINLP::INTEGER;
+                }
+                else if(type==binary_){
+                    bonmin_type = Bonmin::TMINLP::BINARY;
+                }
+                for (size_t i = 0; i < v->get_dim(); i++) {
+                    var_types[vid+i] = bonmin_type;
+                }
             }
+                
         }
 #endif
         
@@ -1025,66 +984,14 @@ namespace gravity {
         
         
         void set_x(const double* x){
-            size_t vid;
-            shared_ptr<param_> v;
-//            for(auto& v_p: _vars)
-//            {
-//                v = v_p.second;
-//                vid = v->get_id();
-//                switch (v->get_intype()) {
-//                    case float_: {
-//                        auto real_var = (var<float>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto real_var = (var<long double>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto real_var = (var<double>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto real_var = (var<int>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto real_var = (var<short>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    case binary_:{
-//                        auto real_var = (var<bool>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            real_var->set_val(i, x[vid+i]);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                } ;
-//            }
+            for(auto &v_p: _vars)
+            {
+                v_p.second->get_double_val(x);
+            }
         }
         
         
         void compute_funcs() {
-            //    if (_type!=nlin_m) {
-            //        return;
-            //    }
             auto it = _nl_funcs.begin();
             while (it!=_nl_funcs.end()) {
                 auto f = (*it++);
@@ -1158,6 +1065,13 @@ namespace gravity {
             //    }
         }
         
+//        type eval(shared_ptr<constant_> f, size_t i){
+//            return func<type>::eval(f,i);
+//        }
+//
+//        type eval(shared_ptr<constant_> f, size_t i, size_t j){
+//            return func<type>::eval(f,i,j);
+//        }
         
         void fill_in_obj(const double* x , double& res, bool new_x){
             if (new_x) {
@@ -2336,66 +2250,10 @@ namespace gravity {
             
         }
         
-        
+        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void fill_in_var_init(double* x) {
-            size_t vid;
-            shared_ptr<param_> v;
-            for(auto& v_p: _vars)
-            {
-                v = v_p.second;
-                vid = v->get_id();
-//                switch (v->get_intype()) {
-//                    case float_: {
-//                        auto real_var = (var<float>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = (double)real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto real_var = (var<long double>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = (double)real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto real_var = (var<double>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto real_var = (var<int>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = (double)real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto real_var = (var<short>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = (double)real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    case binary_:{
-//                        auto real_var = (var<bool>*)v;
-//                        for (size_t i = 0; i < v->get_dim(); i++) {
-//                            //                    vid_inst = vid + v->get_id_inst(i);
-//                            x[vid+i] = (double)real_var->eval(i);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                } ;
+            for(auto& v_p: _vars){
+                v_p.second->set_double_val(x);
             }
         }
         
@@ -2707,7 +2565,7 @@ namespace gravity {
             cout << "Number of atomic functions = " << _nl_funcs.size();
             cout << endl;
             for (auto& f: _nl_funcs){
-                f->print_symbolic(false,false);
+                f->print_symbolic();
                 f->print();
                 cout << endl;
             }
@@ -2715,308 +2573,23 @@ namespace gravity {
         }
         
         
-        void print_solution() const{
+        void print_solution(int prec) const{
             for (auto &v_pair:_vars) {
                 auto v = v_pair.second;
-                v->print(true,true);
+                v->print(true,prec);
             }
         }
         
         
         void round_solution(){
             for (auto &v_pair:_vars) {
-                auto v = v_pair.second;
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        if(real_var->_is_relaxed){
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                (real_var->_val->at(i)) = round(real_var->_val->at(i));
-                            }
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        if(real_var->_is_relaxed){
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                (real_var->_val->at(i)) = round(real_var->_val->at(i));
-                            }
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        if(real_var->_is_relaxed){
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                if(real_var->_val->at(i)>0.1){
-                                    real_var->_val->at(i) = 1;
-                                }
-                                else {
-                                    real_var->_val->at(i) = 0;
-                                }
-                            }
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        break;
-                    }
-                    case short_:{
-                        break;
-                    }
-                    case binary_:{
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
-            }
-            for (auto &v_p:_bin_vars) {
-                auto bin_var = v_p.second;
-                auto real_var = (var<double>*)get_var_ptr(v_p.first);
-                for (size_t i = 0; i < real_var->get_dim(); i++) {
-                    if(round(real_var->_val->at(i))==1){
-                        bin_var->_val->at(i) = true;
-                    }
-                    else{
-                        bin_var->_val->at(i) = false;
-                    }
+                if(v_pair.second->_is_relaxed){
+                    v_pair.second->round_val();
+                    auto int_var = get_int_var(v_pair.first);
+                    int_var->copy_vals(v_pair.second);
                 }
             }
         }
-        
-        
-        void add_integrality(){
-            func<type> new_obj;
-            for (auto &v_pair:_vars) {
-                auto v = v_pair.second;
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = (var<float>*)v;
-                        if(real_var->_is_relaxed){
-                            param<int> rhs("rhs");
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                rhs.set_val(i,round(real_var->_val->at(i)));
-                            }
-                            new_obj += pow(*real_var - rhs,2);
-                        }
-                        break;
-                    }
-                    case long_:{
-                        auto real_var = (var<long double>*)v;
-                        if(real_var->_is_relaxed){
-                            param<int> rhs("rhs");
-                            for (size_t i = 0; i < real_var->get_dim(); i++) {
-                                rhs.set_val(i,round(real_var->_val->at(i)));
-                            }
-                            new_obj += pow(*real_var - rhs,2);
-                        }
-                        break;
-                    }
-                    case double_:{
-                        auto real_var = (var<double>*)v;
-                        Constraint<type> Fix_int("Fix_int_"+real_var->_name);
-                        Fix_int += *real_var - pow((*real_var),2);
-                        add(Fix_int<=0);
-                        break;
-                    }
-                    case integer_:{
-                        //                auto real_var = (var<int>*)v;
-                        //                real_var->param::print(true);
-                        break;
-                    }
-                    case short_:{
-                        //                auto real_var = (var<short>*)v;
-                        //                real_var->param::print(true);
-                        break;
-                    }
-                    case binary_:{
-                        //                auto real_var = (var<bool>*)v;
-                        //                real_var->param::print(true);
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
-            }
-        }
-        
-        //
-        //void add_round_solution_obj(bool balance_obj){
-        //    func_ new_obj;
-        //    for (auto &v_pair:_vars) {
-        //        auto v = v_pair.second;
-        //        v->_new = true;
-        //        switch (v->get_intype()) {
-        //            case float_: {
-        //                auto real_var = (var<float>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<int> rhs("rhs");
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        //                        rhs.set_val(i,round(real_var->_val->at(i)));
-        //                    }
-        //                    new_obj += pow(*real_var - rhs,2);
-        //                }
-        //                break;
-        //            }
-        //            case long_:{
-        //                auto real_var = (var<long double>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<int> rhs("rhs");
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        //                        rhs.set_val(i,round(real_var->_val->at(i)));
-        //                    }
-        //                    new_obj += pow(*real_var - rhs,2);
-        //                }
-        //                break;
-        //            }
-        //            case double_:{
-        //                double rhs = 0;
-        //                auto real_var = (var<double>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<double> coef("coef"+v->_name);
-        ////                    auto rev_indices = real_var->get_rev_indices();
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        ////                        auto idx = real_var->get_id_inst(i);
-        //                        if ((real_var->_val->at(i))>=0.1) {
-        ////                            new_obj -= 500000*(*real_var)(rev_indices->at(i));
-        ////                            coef.set_val(rev_indices->at(i), -500000);
-        //                            coef = -2;
-        //                            rhs += 2;
-        //                        }
-        //                        else{
-        ////                            new_obj += 500000*(*real_var)(rev_indices->at(i));
-        ////                            coef.set_val(rev_indices->at(i), 500000);
-        //                            coef = 2;
-        ////                            rhs = 20000;
-        //                        }
-        //
-        //                    }
-        //                    new_obj += rhs + product(coef,(*real_var));
-        ////                    new_obj->print_expanded();
-        ////                    new_obj += pow(rhs - *real_var,2);
-        ////                    new_obj += sum(rhs) - sum(*real_var);
-        //                }
-        ////                else{
-        //////                    param<int> rhs("rhs");
-        ////                    auto rev_indices = real_var->get_rev_indices();
-        ////                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        ////                        new_obj += 1e-2*pow(real_var->_val->at(i) - (*real_var)(rev_indices->at(i)),2);
-        //////                        rhs.set_val(rev_indices->at(i),real_var->_val->at(i));
-        ////                    }
-        //////                    new_obj += constant<>(1e-2).tr()*pow(rhs - (*real_var),2);
-        ////                    //                    new_obj += pow(rhs - *real_var,2);
-        ////                    //                    new_obj += sum(rhs) - sum(*real_var);
-        ////                }
-        //                break;
-        //            }
-        //            case integer_:{
-        ////                auto real_var = (var<int>*)v;
-        ////                real_var->param::print(true);
-        //                break;
-        //            }
-        //            case short_:{
-        ////                auto real_var = (var<short>*)v;
-        ////                real_var->param::print(true);
-        //                break;
-        //            }
-        //            case binary_:{
-        ////                auto real_var = (var<bool>*)v;
-        ////                real_var->param::print(true);
-        //                break;
-        //            }
-        //            default:
-        //                break;
-        //        } ;
-        //    }
-        //    if (balance_obj) {
-        //        _obj = _obj*(1./_obj_val) + new_obj;
-        //    }
-        //    else {
-        //        _obj = new_obj;
-        ////        for(auto& p: _cons){
-        ////            p.second->_new = true;
-        ////            p.second->_dfdx->clear();
-        ////        }
-        ////        _hess_link.clear();
-        //
-        //    }
-        ////    _obj = new_obj;
-        ////    _obj->print_expanded();
-        //    _obj->_dfdx->clear();
-        //    _obj->_new = true;
-        //    for(auto& p: _cons){
-        //        p.second->_new = true;
-        //        p.second->_dfdx->clear();
-        //    }
-        //    _hess_link.clear();
-        //}
-        
-        //
-        //void add_round_solution_cuts(){
-        //    for (auto &v_pair:_vars) {
-        //        auto v = v_pair.second;
-        //        switch (v->get_intype()) {
-        //            case float_: {
-        //                auto real_var = (var<float>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<int> rhs("rhs");
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        //                        rhs.set_val(i,round(real_var->_val->at(i)));
-        //                    }
-        //                    Constraint<type> Fix_int("Fix_int_"+real_var->_name);
-        //                    Fix_int += *real_var - rhs;
-        //                    add(Fix_int==0);
-        //                }
-        //                break;
-        //            }
-        //            case long_:{
-        //                auto real_var = (var<long double>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<int> rhs("rhs");
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        //                        rhs.set_val(i,round(real_var->_val->at(i)));
-        //                    }
-        //                    Constraint<type> Fix_int("Fix_int_"+real_var->_name);
-        //                    Fix_int += *real_var - rhs;
-        //                    add(Fix_int==0);
-        //                }
-        //                break;
-        //            }
-        //            case double_:{
-        //                auto real_var = (var<double>*)v;
-        //                if(real_var->_is_relaxed){
-        //                    param<> rhs("rhs");
-        //                    for (size_t i = 0; i < real_var->get_dim(); i++) {
-        //                        rhs.set_val(i,round(real_var->_val->at(i)));
-        //                    }
-        //                    Constraint<type> Fix_int("Fix_int_"+real_var->_name);
-        //                    Fix_int += pow((rhs - *real_var),2);
-        //                    add(Fix_int<=1e-12);
-        //                }
-        //                break;
-        //            }
-        //            case integer_:{
-        //                auto real_var = (var<int>*)v;
-        //                real_var->param::print(true);
-        //                break;
-        //            }
-        //            case short_:{
-        //                auto real_var = (var<short>*)v;
-        //                real_var->param::print(true);
-        //                break;
-        //            }
-        //            case binary_:{
-        //                auto real_var = (var<bool>*)v;
-        //                real_var->param::print(true);
-        //                break;
-        //            }
-        //            default:
-        //                break;
-        //        } ;
-        //    }
-        //}
         
         
         void print_symbolic(){
@@ -3025,6 +2598,9 @@ namespace gravity {
             _obj->print_symbolic();
             for(auto& p: _cons){
                 p.second->print_symbolic();
+            }
+            for(auto& v: _vars){
+                v.second->print_symbolic();
             }
             cout << "-------------------------" << endl;
         }
@@ -3051,10 +2627,6 @@ namespace gravity {
             cout << "Number of variables = " << get_nb_vars() << endl;
             cout << "Number of constraints = " << get_nb_cons() << " (" << get_nb_ineq() << " inequalities, " << get_nb_eq() << " equations)" << endl;
             //    compute_funcs();
-            //    for (auto &pair:_vars) {
-            //        auto v = pair.second;
-            //
-            //    }
             cout << "Objective: ";
             if(_objt==minimize){
                 cout << "Min ";
@@ -3072,56 +2644,15 @@ namespace gravity {
             for(auto& p: _cons){
                 p.second->print();
             }
+            for(auto& v: _vars){
+                v.second->print();
+            }
             string tail;
             tail.insert(0,size_header,'-');
             cout << tail << endl;
         }
         
-        //
-        //void print(){
-        //    compute_funcs();
-        //    for (auto &pair:_vars) {
-        //        auto v = pair.second;
-        //        switch (v->get_intype()) {
-        //            case float_: {
-        //                break;
-        //            }
-        //            case long_:{
-        //                break;
-        //            }
-        //            case double_:{
-        //                auto real_var = (var<double>*)v;
-        //                real_var->_lb->eval();
-        //                real_var->_ub->eval();
-        //                real_var->print(true);
-        //                break;
-        //            }
-        //            case integer_:{
-        //                break;
-        //            }
-        //            case short_:{
-        //                break;
-        //            }
-        //            case binary_:{
-        //                break;
-        //            }
-        //
-        //            case complex_:{
-        //                auto cpx_var = (var<Cpx>*)v;
-        //                cpx_var->_lb->eval();
-        //                cpx_var->_ub->eval();
-        //                cpx_var->print(true);
-        //                break;
-        //            }
-        //        }
-        //    }
-        //    cout << "Objective";
-        //    _obj->print();
-        ////    exit(1);
-        //    for(auto& p: _cons){
-        //        p.second->print();
-        //    }
-        //}
+        
         
         
         void print_constraints() const{
@@ -3134,53 +2665,31 @@ namespace gravity {
         
         
         void replace_integers(){/*< Replace internal type of integer variables so that continuous relaxations can be computed */
-//            bool has_int = false;
-//            //this->relax();
-//            //this->unrelax();
-//            for (auto &v_p:this->_vars_name) {
-//                if (v_p.second->is_integer() || v_p.second->is_binary()) {
-//                    has_int = true;
-//                    auto v = v_p.second;
-//                    auto new_v = new var<double>(v_p.second->_name, 0,1);
-//                    new_v->copy(*v);
-//                    new_v->_is_relaxed = true;
-//                    new_v->_val->resize(new_v->get_dim());
-//                    if (v->get_intype()==integer_) {
-//                        auto double_var = (var<int>*)v;
-//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-//                            new_v->_val->at(i) = double_var->_val->at(i);
-//                        }
-//                    }
-//                    if (v->get_intype()==short_) {
-//                        auto double_var = (var<short>*)v;
-//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-//                            new_v->_val->at(i) = double_var->_val->at(i);
-//                        }
-//                    }
-//                    if (v->get_intype()==binary_) {
-//                        auto double_var = (var<bool>*)v;
-//                        this->_bin_vars[v_p.second->get_vec_id()] = *double_var;
-//                        for (size_t i = 0; i < double_var->get_dim(); i++) {
-//                            new_v->_val->at(i) = double_var->_val->at(i);
-//                        }
-//                    }
-//                    v_p.second = new_v;
-//                }
-//            }
-//            for (auto &v_p:this->_vars) {
-//                if (v_p.second->is_integer() || v_p.second->is_binary()) {
-//                    auto name = v_p.second->_name;
-//                    delete v_p.second;
-//                    v_p.second = this->get_var_ptr(name);
-//                }
-//            }
-//            if(has_int){
-//                this->_obj->relax(this->_vars);
-//                for (auto &c_p: this->_cons) {
-//                    c_p.second->relax(this->_vars);
-//                }
-//            }
-            
+            bool has_int = false;
+            for (auto &v_p:this->_vars_name) {
+                if (v_p.second->is_integer() || v_p.second->is_binary()) {
+                    has_int = true;
+                    auto v = v_p.second;
+                    auto new_v = make_shared<var<double>>(v_p.second->_name);
+                    new_v->shallow_copy(*v);
+                    new_v->_is_relaxed = true;                    
+                    new_v->copy_vals(*v);
+                    new_v->copy_bounds(*v);
+                    v_p.second = new_v;
+                }
+            }
+            for (auto &v_p:this->_vars) {
+                if (v_p.second->is_integer() || v_p.second->is_binary()) {
+                    auto name = v_p.second->_name;
+                    v_p.second = this->get_var_ptr(name);
+                }
+            }
+            if(has_int){
+                this->_obj->relax(this->_vars);
+                for (auto &c_p: this->_cons) {
+                    c_p.second->relax(this->_vars);
+                }
+            }
         }
         
         

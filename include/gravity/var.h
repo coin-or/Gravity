@@ -413,6 +413,43 @@ namespace gravity {
         string to_str_bounds(bool bounds=true, int prec = 10) const;
         void print(bool bounds, int prec);
         void print();
+        void print_symbolic() const{
+            string str = this->_name;
+            str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"]^" + to_string(this->get_dim()) + "\n";
+            cout << str << endl;
+        }
+        
+        
+        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        void copy_bounds(const param_& p){
+            auto dim = p.get_dim();
+            _lb->reset();
+            _ub->reset();
+            _lb->_val->resize(dim);
+            _ub->_val->resize(dim);
+            for (size_t i = 0; i < this->get_dim(); i++) {
+                _lb->_val->at(i) = p.get_double_lb(i);
+                _ub->_val->at(i) = p.get_double_ub(i);
+            }
+        }
+        
+        
+        double get_double_lb(size_t i) const{return get_double_lb_(i);};
+        
+        
+        double get_double_ub(size_t i) const{return get_double_ub_(i);};
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        double get_double_lb_(size_t i) const{return 0;};
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        double get_double_ub_(size_t i) const{return 0;};
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        double get_double_lb_(size_t i) const{return _lb->eval(i);};
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        double get_double_ub_(size_t i) const{return _ub->eval(i);};
         
     };
     
