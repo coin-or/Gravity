@@ -309,7 +309,7 @@ TEST_CASE("testing complex functions") {
     cpx = Cpx(3,1);
     auto cpx_f = 2*exp(cpx)*z;
     cpx_f.print_symbolic();
-    CHECK(cpx_f.to_str()=="((2,0) * exp(cpx))z");
+    CHECK(cpx_f.to_str()=="((2,0)exp(cpx))z");
     cpx_f.print();
 }
 
@@ -514,7 +514,7 @@ TEST_CASE("testing bounds copy"){
     var<int> x("x",-3,3);
     var<> y("y", -1.2, 1.4);
     y.copy_bounds(x);
-    y.print(true, 5);
+    y.print();
     CHECK(y.get_lb()==-3);
     CHECK(y.get_ub()==3);
 }
@@ -531,15 +531,19 @@ TEST_CASE("testing quadratic function factorization"){
     f.print();
     CHECK(f.is_concave());
     /* Checking convexity in model objective */
-    var<> x("x",-10,10), y("y",-10,10);
-    Model<> test("test");
-    test.add(x.in(R(2)), y.in(R(1)));
+    var<> x("x",-10,10);
+    auto test = make_shared<Model<>>("test");
+    test->add(x.in(R(2)));
     x.initialize_uniform();
-    test.min(6*x(0)*x(0) + 4*x(1)*x(1) - 2.5*x(0)*x(1));
+    test->min(6*x(0)*x(0) + 4*x(1)*x(1) - 2.5*x(0)*x(1));
     Constraint<> c1("c1");
     c1 = x(0)*x(1);
-    test.add(c1>=8+y(0));
-    test.print();
+    test->add(c1>=8);
+    test->print();
+    solver<> s(test,ipopt);
+    s.run(5, 1e-6);
+    test->print_solution();
+    CHECK(abs(test->_obj->get_val()-58.3836718)<1e-6);
 }
 
 TEST_CASE("testing constraints"){
@@ -651,8 +655,13 @@ TEST_CASE("testing simple model"){
 
 TEST_CASE("testing nonlinear Model"){
     Model<> M("MyModel2");
-    var<> x("x", 1,2), y("y", 2, 4), z("z", -1, 2);
+    param<> x_lb("x_lb"), x_ub("x_ub"), y_lb("y_lb"), y_ub("y_ub");
+    x_lb.in(R(4));x_ub.in(R(4));y_lb.in(R(4));y_ub.in(R(4));
+    x_lb = -1; x_ub = 4; y_lb = -5; y_ub = 3;
+    x_lb(2) = -12;
+    var<> x("x", x_lb,x_ub), y("y", y_lb, y_ub), z("z", -1, 2);
     M.add(x.in(R(4)),y.in(R(4)),z.in(R(4)));
+    CHECK(x.get_lb(2)==-12);
     Constraint<> cstr1("cstr1");
     cstr1 = pow(x,2) + pow(y,2) - pow(z,2);
     M.add(cstr1 <= 0);
@@ -660,7 +669,8 @@ TEST_CASE("testing nonlinear Model"){
     a = 2;a = 3;a = 4;a = 5;
     Constraint<> cstr2("cstr2");
     cstr2 = a*x*y*cos(x-z);
-    M.add(cstr2 == 0);
+    M.add(cstr2 == 2);
+    CHECK(cstr2.to_str()==" - 2 + (a)xy * cos(x - z)");
     M.max(sum(x));
     M.print_symbolic();
     M.print();
