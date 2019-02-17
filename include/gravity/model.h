@@ -31,9 +31,17 @@
 using namespace std;
 
 namespace gravity {
+    
+    /**
+     Parallel computation of the constraints stored in v[i] to v[j]
+     @param[in] v vector of constraints
+     @param[in] res vector storing the computation results
+     @param[in] i starting index in v
+     @param[in] j ending index in v
+     */
     template<typename type>
-    void compute_constrs(vector<shared_ptr<Constraint<type>>>& v, double* res, int i, int j){
-        //    DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
+    void compute_constrs(vector<shared_ptr<Constraint<type>>>& v, double* res, size_t i, size_t j){
+        DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
         for (size_t idx = i; idx < j; idx++) {
             auto c = v[idx];
             size_t nb_ins = c->_dim[0];
@@ -49,9 +57,17 @@ namespace gravity {
         }
     }
     
-    
+    /**
+     Parallel computation of the jacobian of the constraints stored in v[i] to v[j]
+     @param[in] v vector of constraints
+     @param[in] res vector storing the computation results
+     @param[in] i starting index in v
+     @param[in] j ending index in v
+     @param[in] first_call true if first_call to this function, false otherwise
+     @param[in] jac_vals Gravity's internal vector for storing the results
+     */
     template<typename type>
-    void compute_jac(vector<shared_ptr<Constraint<type>>>& vec, double* res, int i, int j, bool first_call, vector<double>& jac_vals){
+    void compute_jac(vector<shared_ptr<Constraint<type>>>& vec, double* res, size_t i, size_t j, bool first_call, vector<double>& jac_vals){
         size_t cid = 0, id_inst = 0;
         string vid;
         shared_ptr<Constraint<type>> c = NULL;
@@ -86,7 +102,7 @@ namespace gravity {
                             if (v->_is_vector) {
                                 auto dim = v->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
-                                    res[idx] = c->eval(dfdx,inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
+                                    res[idx] = dfdx->eval(inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
                                     jac_vals[idx] = res[idx];
                                     DebugOff("jac_val["<< idx <<"] = " << jac_vals[idx] << endl);
                                     idx++;
@@ -358,7 +374,8 @@ namespace gravity {
         
         /* Modifiers */
         
-        void reindex(){/*<< Reindexes the constraints after violated ones have been detected and aded to the formulation */
+        /** Reindexes the constraints after violated ones have been detected and added to the formulation */
+        void reindex(){
             size_t cid = 0, new_cid = 0, nb_inst = 0;
             shared_ptr<Constraint<type>> c = nullptr;
             map<size_t, shared_ptr<Constraint<type>>>  new_cons;
@@ -406,23 +423,6 @@ namespace gravity {
         }
         
         
-        void add_var(shared_ptr<param_> v){
-            if (v->is_indexed()) {
-                throw invalid_argument("Should not add an indexed variable to the model");
-                return;
-            }
-            
-            if (_vars_name.count(v->_name) == 0) {
-                v->set_id(_nb_vars);
-                v->set_vec_id(_vars.size());
-                _vars_name[v->_name] = v;
-                _vars[v->get_vec_id()] = v;
-                _nb_vars += v->get_dim();
-            }
-        };
-        
-        
-        
         void del_var(const param_& v){
             auto it = _vars.find(v.get_id());
             if (it!=_vars.end()) {
@@ -431,17 +431,6 @@ namespace gravity {
                 _vars.erase(it);
             }
             init_indices();
-        };
-        
-        
-        void add_param(shared_ptr<param_> v){
-            if (_params.count(v->get_id())==0) {
-                _nb_params += v->get_dim();
-                v->set_id(_params.size());
-                v->set_vec_id(_vars.size());
-                _params_name[v->get_name(false,false)] = v;
-                _params[v->get_vec_id()] = v;
-            }
         };
         
         
@@ -459,7 +448,7 @@ namespace gravity {
                 return;
             }
             c.make_lazy();
-            auto newc = add_constraint(c);
+            add_constraint(c);
             _has_lazy = true;
         }
         
@@ -555,6 +544,7 @@ namespace gravity {
                 if (nb_inst>0) {
                     newc->_id = _nb_cons;
                     _cons[newc->_id] = newc;
+                    _cons_vec.push_back(newc);
                     _built = false;
                     _nb_cons += nb_inst;
                     for (size_t inst = 0; inst<nb_inst; inst++) {
@@ -584,9 +574,20 @@ namespace gravity {
             _cons_name.erase(c.get_name());
             _cons.erase(c._id);
             _built = false;
+            _cons_vec.clear();
+            _cons_vec.resize(_cons.size());
+            size_t i = 0;
+            for(auto& c_p: _cons)
+            {
+                _cons_vec[i++] = c_p.second;
+            }
             /* TODO: make sure other infos in model are updated */
         };
         
+        /**
+         Update the convexity of the current model after adding f (either objective or constraint)
+         @param[in] f function/constraint to be added to the model
+         */
         template<typename T1>
         void update_convexity(const func<T1>& f){
             if(_convexity==linear_){
@@ -618,34 +619,17 @@ namespace gravity {
             *_obj = f;
             _objt = t;
             update_convexity(f);
-            //    embed(_obj);
-            /* TODO make sure the objective receives the same treatment as the constraints. */
+            embed(_obj);
         }
         
         template<typename T1>
         void min(const func<T1>& f){
-            auto obj = f;
-            obj._dim[0] = 1;
-            obj.allocate_mem();
-            *_obj = move(obj);
-            _objt = minimize;
-            update_convexity(obj);
+            set_objective(f, minimize);
         }
         
         template<typename T1>
         void max(const func<T1>& f){
-            auto obj = f;
-            obj._dim[0] = 1;
-            obj.allocate_mem();
-            *_obj = move(obj);
-            _objt = maximize;
-            update_convexity(obj);
-        }
-        
-        
-        void set_objective(pair<shared_ptr<func_>, ObjectiveType> p){
-            _obj = p.first;
-            _objt = p.second;
+            set_objective(f, maximize);
         }
         
         
@@ -674,7 +658,7 @@ namespace gravity {
                 c->_all_satisfied = true;
                 c->_violated.resize(nb_inst);
                 c->_active.resize(nb_inst);
-                switch (c->get_type()) {
+                switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             diff = abs(c->eval(inst));
@@ -775,7 +759,7 @@ namespace gravity {
                 if (nb_viol>0) {
                     DebugOn("Percentage of violated constraints for " << c->get_name() << " = " << to_string(100.*nb_viol/nb_inst) << "%\n");
                 }
-                if (c->get_type()!=eq) {
+                if (c->get_ctype()!=eq) {
                     DebugOff("Percentage of active constraints for " << c->get_name() << " = " << to_string(100.*nb_active/nb_inst) << "%\n");
                 }
             }
@@ -787,105 +771,31 @@ namespace gravity {
         
         
         
-        bool is_feasible(type tol){
-            size_t vid;
+        /**
+         Returns true if the current solution satisfies bounds and constraints upt to tolerance tol
+         @param[in] tol tolerance for constraint satisfaction
+         */
+        bool is_feasible(type tol){            
             shared_ptr<param_> v;
             double viol = 0;
             bool feasible = true;
             for(auto& v_p: _vars)
             {
                 v = v_p.second;
-                vid = v->get_id();
-                switch (v->get_intype()) {
-                    case float_: {
-                        auto real_var = static_pointer_cast<var<float>>(v);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            viol = real_var->get_lb(i) - real_var->_val->at(i);
-                            if(viol  > tol){
-                                clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                                
-                            }
-                            viol = real_var->_val->at(i) - real_var->get_ub(i);
-                            if(viol > tol){
-                                clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                        }
-                        break;
+                for (size_t i = 0; i < v->get_dim(); i++) {
+                    viol = v->get_lb_violation(i);
+                    if(viol  > tol){
+                        clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
+                        
                     }
-                    case long_:{
-                        auto real_var = static_pointer_cast<var<long double>>(v);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            viol = real_var->get_lb(i) - real_var->_val->at(i);
-                            if(viol  > tol){
-                                clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                            viol = real_var->_val->at(i) - real_var->get_ub(i);
-                            if(viol > tol){
-                                clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                        }
-                        break;
+                    viol = v->get_ub_violation(i);
+                    if(viol > tol){
+                        clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
+                        feasible = false;
                     }
-                    case double_:{
-                        auto real_var = static_pointer_cast<var<double>>(v);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            viol = real_var->get_lb(i) - real_var->_val->at(i);
-                            if(viol  > tol){
-                                clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                            viol = real_var->_val->at(i) - real_var->get_ub(i);
-                            if(viol > tol){
-                                clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                        }
-                        break;
-                    }
-                    case integer_:{
-                        auto real_var = static_pointer_cast<var<int>>(v);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            viol = real_var->get_lb(i) - real_var->_val->at(i);
-                            if(viol  > tol){
-                                clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                            viol = real_var->_val->at(i) - real_var->get_ub(i);
-                            if(viol > tol){
-                                clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                        }
-                        break;
-                    }
-                    case short_:{
-                        auto real_var = static_pointer_cast<var<short>>(v);
-                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-                            viol = real_var->get_lb(i) - real_var->_val->at(i);
-                            if(viol  > tol){
-                                clog << "Violated lower bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                            viol = real_var->_val->at(i) - real_var->get_ub(i);
-                            if(viol > tol){
-                                clog << "Violated upper bound for var: " << v->_name << ", index: "<< i << ", violation = " << viol << endl;
-                                feasible = false;
-                            }
-                        }
-                        break;
-                    }
-                    case binary_:{
-                        break;
-                    }
-                    default:
-                        break;
-                } ;
+                }
             }
-            
             feasible = feasible && !has_violated_constraints(tol);
             return feasible;
         }
@@ -915,74 +825,23 @@ namespace gravity {
         }
 #endif
         
-        
+        /**
+         Fill the lower and upper bound values in x_l and x_u
+         @param[out] x_l lower bound values to fill
+         @param[out] x_u upper bound values to fill
+         */
         void fill_in_var_bounds(double* x_l ,double* x_u) {
-//            size_t vid;
-//            shared_ptr<param_> v;
-//            for(auto& v_p: _vars)
-//            {
-//                v = v_p.second;
-//                vid = v->get_id();
-//                switch (v->get_intype()) {
-//                    case float_: {
-//                        auto real_var = (var<float>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = (double)real_var->get_lb(i);
-//                            x_u[vid+i] = (double)real_var->get_ub(i);
-//                        }
-//                        break;
-//                    }
-//                    case long_:{
-//                        auto real_var = (var<long double>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = (double)real_var->get_lb(i);
-//                            x_u[vid+i] = (double)real_var->get_ub(i);
-//                        }
-//                        break;
-//                    }
-//                    case double_:{
-//                        auto real_var = (var<double>*)v;
-//                        DebugOff(real_var->get_name() << " in:" << endl);
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = real_var->get_lb(i);
-//                            x_u[vid+i] = real_var->get_ub(i);
-//                            DebugOff("(" << i << ")" << " : [" << x_l[vid+i] << "," << x_u[vid+i] << "]\n");
-//                        }
-//                        DebugOff(";" << endl);
-//                        break;
-//                    }
-//                    case integer_:{
-//                        auto real_var = (var<int>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = (double)real_var->get_lb(i);
-//                            x_u[vid+i] = (double)real_var->get_ub(i);
-//                        }
-//                        break;
-//                    }
-//                    case short_:{
-//                        auto real_var = (var<short>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = (double)real_var->get_lb(i);
-//                            x_u[vid+i] = (double)real_var->get_ub(i);
-//                        }
-//                        break;
-//                    }
-//                    case binary_:{
-//                        auto real_var = (var<bool>*)v;
-//                        for (size_t i = 0; i < real_var->get_dim(); i++) {
-//                            x_l[vid+i] = (double)real_var->get_lb(i);
-//                            x_u[vid+i] = (double)real_var->get_ub(i);
-//                        }
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//                } ;
-//            }
-            //    cout << "idx = " << idx << endl;
+            for(auto &v_p: _vars)
+            {
+                v_p.second->set_double_lb(x_l);
+                v_p.second->set_double_ub(x_u);
+            }
         }
         
-        
+        /**
+         Initialize the model variables using values from x
+         @param[in] x values to initialize to
+         */
         void set_x(const double* x){
             for(auto &v_p: _vars)
             {
@@ -990,7 +849,9 @@ namespace gravity {
             }
         }
         
-        
+        /**
+         Evaluate all nonlinear functions at current point
+         */
         void compute_funcs() {
             auto it = _nl_funcs.begin();
             while (it!=_nl_funcs.end()) {
@@ -1002,76 +863,21 @@ namespace gravity {
                 if (!f->is_constant() && (_type!=nlin_m)) {//no need to precompute these for polyomial programs
                     continue;
                 }
-                if (!f->is_matrix() && !f->_is_vector) {
+                if (!f->is_matrix()) {
                     DebugOff(f->to_str()<<endl);
-                    for (size_t inst = 0; inst < f->_dim[0]; inst++) {
+                    for (size_t inst = 0; inst < f->get_dim(); inst++) {
                         f->eval(inst);
                     }
                 }
-                else if(!f->is_matrix()){ //vector
-//                    f->eval_vector();
-                }
                 else {
                     DebugOff(f->to_str()<<endl);
-//                    f->eval_matrix();
+                    f->eval_matrix();
                 }
                 if (f->is_constant()) {
                     f->_evaluated = true;
                 }
             }
-            ////        for (int inst = 0; inst < c->_dim[0]; inst++) {
-            ////            c->eval(inst);
-            ////        }
-            //        if (c->is_nonlinear() || (c->is_linear() && !_first_call_jac)) {
-            ////        if ((c->is_linear() && !_first_call_jac)) {
-            //            continue;
-            //        }
-            //        for (auto &dfdx: *c->get_dfdx()) {
-            //            if (dfdx.second->is_matrix()) {
-            //                for (int i = 0; i<dfdx.second->_dim[0]; i++) {
-            //                    for (size_t j = 0; j<dfdx.second->_dim[1]; j++) {
-            //                        dfdx.second->eval(i,j);
-            //                    }
-            //                }
-            //            }
-            ////            else if (dfdx.second->_is_vector) {
-            ////                for (int i = 0; i<dfdx.second->_dim[0]; i++) {
-            ////                    dfdx.second->_val->at(i) = dfdx.second->eval(i);
-            ////                }
-            ////            }
-            //            else {
-            //                for (int inst = 0; inst < dfdx.second->_dim[0]; inst++) {
-            //                    dfdx.second->eval(inst);
-            //                }
-            //            }
-            //            if (c->is_quadratic() && !_first_call_hess) {
-            //                continue;
-            //            }
-            //            for (auto &dfd2x: *dfdx.second->get_dfdx()) {
-            //                if (dfd2x.second->is_matrix()) {
-            //                    for (int i = 0; i<dfd2x.second->_dim[0]; i++) {
-            //                        for (size_t j = 0; j<dfd2x.second->_dim[1]; j++) {
-            //                            dfd2x.second->eval(i,j);
-            //                        }
-            //                    }
-            //                }
-            //                else {
-            //                    for (int inst = 0; inst < dfd2x.second->_dim[0]; inst++) {
-            //                        dfd2x.second->eval(inst);
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
         }
-        
-//        type eval(shared_ptr<constant_> f, size_t i){
-//            return func<type>::eval(f,i);
-//        }
-//
-//        type eval(shared_ptr<constant_> f, size_t i, size_t j){
-//            return func<type>::eval(f,i,j);
-//        }
         
         void fill_in_obj(const double* x , double& res, bool new_x){
             if (new_x) {
@@ -1122,16 +928,11 @@ namespace gravity {
                 v = vi_p.second.first.get();
                 vid = v->get_id();
                 df = _obj->get_stored_derivative(v->_name);
-                //        if (v->is_matrix()) {
-                //            for (size_t i = 0; i < v->_dim[0]; i++) {
-                //                for (size_t j = 0; j < v->_dim[1]; j++) {
-                //                    vid_inst = vid + v->get_id_inst(i);
-                //                    res[vid_inst] = df->eval(i);
-                //                    _obj_grad_vals[index++] =res[vid_inst];
-                //                }
-                //            }
-                //        }
-                if (v->_is_vector) {
+                if (v->is_matrix()) {
+                    //Unsupported yet.
+                    throw invalid_argument("Matrices in the objective unsupported");
+                }
+                else if (v->_is_vector) {
                     for (size_t i = 0; i < v->get_dim(); i++) {
                         vid_inst = vid + v->get_id_inst(i);
                         res[vid_inst] = df->eval(i);
@@ -1335,76 +1136,25 @@ namespace gravity {
         
         
         void fill_in_cstr(const double* x , double* res, bool new_x){
-            Constraint<type>* c = nullptr;
-            //    size_t index = 0;
             if (new_x) {
                 set_x(x);
                 compute_funcs();
             }
-            //    if (_type==nlin_m) {
-            //        for(auto& c_p: _cons)
-            //        {
-            //            c = c_p.second.get();
-            //            auto nb_ins = c->_dim[0];
-            //            for (int inst = 0; inst< nb_ins; inst++){
-            //                res[c->_id+inst] = c->get_val(inst);
-            ////                _cons_vals[index++] = res[c->_id+inst];
-            //                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-            //            }
-            //        }
-            //    }
-            //    else {
-            //    vector<Constraint*> cons;
-            _cons_vec.clear();
-            for(auto& c_p: _cons)
-            {
-                c_p.second->_new = false;
-                _cons_vec.push_back(c_p.second);
-                //            auto nb_ins = c->_dim[0];
-                //            for (int inst = 0; inst< nb_ins; inst++){
-                ////                res[c->_id+inst] = c->get_val(inst);
-                //                res[c->_id+inst] = c->eval(inst);
-                //                //                _cons_vals[index++] = res[c->_id+inst];
-                //                DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
-                //            }
-            }
-            //    compute_constrs(_cons_vec, res, 0, _cons_vec.size());
             unsigned nr_threads = std::thread::hardware_concurrency()/2;
             if (nr_threads==0) {
                 nr_threads = 1;
             }
             vector<thread> threads;
             /* Split cons into nr_threads parts */
-            vector<int> limits = bounds(nr_threads, _cons_vec.size());
-            DebugOff("limits size = " << limits.size() << endl);
-            for (size_t i = 0; i < limits.size(); ++i) {
-                DebugOff("limits[" << i << "] = " << limits[i] << endl);
-            }
+            vector<size_t> limits = bounds(nr_threads, _cons_vec.size());
             /* Launch all threads in parallel */
             for (unsigned i = 0; i < nr_threads; ++i) {
-                DebugOff("i = " << i << endl);
-                DebugOff("limits[" << i << "] = " << limits[i] << endl);
-                DebugOff("limits[" << i+1 << "] = " << limits[i+1] << endl);
                 threads.push_back(thread(compute_constrs<type>, ref(_cons_vec), res, limits[i], limits[i+1]));
-                //        threads.push_back(thread(dummy));
             }
             /* Join the threads with the main thread */
             for(auto &t : threads){
                 t.join();
             }
-            
-            //    }
-            //    }
-            //    else {
-            //
-            //        for(auto& c_p: _cons) {
-            //            c = c_p.second;
-            //            auto nb_ins = c->_dim[0];
-            //            for (int inst = 0; inst< nb_ins; inst++){
-            //                res[c->_id+inst] = _cons_vals[index++];
-            //            }
-            //        }
-            //    }
         }
         
         
@@ -1489,7 +1239,7 @@ namespace gravity {
                 }
                 vector<thread> threads;
                 /* Split cons into nr_threads parts */
-                vector<int> limits = bounds(nr_threads, _cons_vec.size());
+                vector<size_t> limits = bounds(nr_threads, _cons_vec.size());
                 
                 /* Launch all threads in parallel */
                 for (unsigned i = 0; i < nr_threads; ++i) {
@@ -2264,7 +2014,7 @@ namespace gravity {
             for(auto& c_p :_cons)
             {
                 c = c_p.second.get();
-                switch (c->get_type()) {
+                switch (c->get_ctype()) {
                     case eq:{
                         auto nb_ins = c->_dim[0];
                         size_t idx= 0;
@@ -2310,10 +2060,10 @@ namespace gravity {
         }
         
         
-        void embed(expr& e){/**<  Transfer all variables and parameters to the model. */
+        void embed(expr<type>& e){/**<  Transfer all variables and parameters to the model. */
             switch (e.get_type()) {
                 case uexp_c:{
-                    auto ue = (uexpr*)&e;
+                    auto ue = (uexpr<type>*)&e;
                     if (ue->_son->is_function()) {
                         auto f = static_pointer_cast<func<type>>(ue->_son);
                         bool found_cpy = false;
@@ -2360,7 +2110,7 @@ namespace gravity {
                     break;
                 }
                 case bexp_c:{
-                    auto be = (bexpr*)&e;
+                    auto be = (bexpr<type>*)&e;
                     if (be->_lson->is_function()) {
                         auto f = static_pointer_cast<func<type>>(be->_lson);
                         bool found_cpy = false;
@@ -2573,7 +2323,7 @@ namespace gravity {
         }
         
         
-        void print_solution(int prec) const{
+        void print_solution(int prec=5) const{
             for (auto &v_pair:_vars) {
                 auto v = v_pair.second;
                 v->print(true,prec);

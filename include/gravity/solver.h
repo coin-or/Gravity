@@ -65,8 +65,18 @@ namespace gravity {
         solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
             _stype = stype;
             _model = model;
+            init();
+        }
+            
+        solver(gravity::Model<type>& model, SolverType stype){
+            _stype = stype;
+            _model = shared_ptr<gravity::Model<type>>(&model);
+            init();
+        }
+        
+        void init(){
             if (_stype==ipopt) {
-#ifdef USE_IPOPT                
+#ifdef USE_IPOPT
                 _model->replace_integers();
                 SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                 iapp->RethrowNonIpoptException(true);
@@ -127,12 +137,12 @@ namespace gravity {
                 ClpNotAvailable();
 #endif
             }
-        }
+        }        
         //@}
         void set_model(gravity::Model<type>& m);
         
         /* run model */
-        int run(int output, type tol , int max_iter){
+        int run(int output, type tol , int max_iter=10000){
             int return_status = -1;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
@@ -214,7 +224,7 @@ namespace gravity {
                     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     iapp->Options()->SetNumericValue("tol", tol);
                     //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
-                    //                iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
                     //            iapp.Options()->SetIntegerValue("print_level", 5);
                     

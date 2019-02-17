@@ -152,13 +152,13 @@ Sign sign_product(Sign s1, Sign s2){
 }
 
 /*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10] if possible the function will split mem into equal chuncks, if not the last chunck will be slightly larger */
-std::vector<int> bounds(int parts, int mem) {
-    std::vector<int>bnd;
-    int delta = mem / parts;
-    int reminder = mem % parts;
-    int N1 = 0, N2 = 0;
+std::vector<size_t> bounds(unsigned parts, size_t mem) {
+    std::vector<size_t>bnd;
+    size_t delta = mem / parts;
+    size_t reminder = mem % parts;
+    size_t N1 = 0, N2 = 0;
     bnd.push_back(N1);
-    for (int i = 0; i < parts; ++i) {
+    for (size_t i = 0; i < parts; ++i) {
         N2 = N1 + delta;
         if (i == parts - 1)
             N2 += reminder;

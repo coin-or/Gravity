@@ -43,7 +43,7 @@ op::OptionParser readOptions(int argc, char * argv[]);
 //Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
 //if possible the function will split mem into equal chuncks, if not
 //the last chunck will be slightly larger
-std::vector<int> bounds(int parts, int mem);
+std::vector<size_t> bounds(unsigned parts, size_t mem);
 
 
 gravity::Sign reverse(gravity::Sign s);

@@ -486,6 +486,16 @@ namespace gravity {
         /** round the value stored at position i to the nearest integer */
         virtual void round_vals(){};
 
+        /** Fill x with the variable's lower bound values */
+        virtual void set_double_lb(double* x){};
+        /** Fill x with the variable's upper bound values */
+        virtual void set_double_ub(double* x){};
+        
+        /** Return lower bound violation */
+        virtual double get_lb_violation(size_t i){return 0;};
+        /** Return upper bound violation */
+        virtual double get_ub_violation(size_t i){return 0;};
+        
         virtual void copy_vals(const param_& p){};
         virtual void copy_bounds(const param_& p){};
         virtual double get_double_lb(size_t i) const{return 0;};
@@ -1670,22 +1680,35 @@ namespace gravity {
             }
         }
 //        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
-        void set_double_val(double* x){
+        
+        void set_double_val(double* x){set_double_val_(x);};
+            
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void set_double_val_(double* x){
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 x[vid+i] = (double)_val->at(i);
             }
         }
         
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
-        void get_double_val(const double* x){
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_double_val_(double* x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
+        }
+        void get_double_val(const double* x){get_double_val_(x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_double_val_(const double* x){
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 _val->at(i) = x[vid+i];
             }
         }
         
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void get_double_val_(const double* x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
         /** round the value stored at position i to the nearest integer */
         void round_vals(){round_vals_();};
         

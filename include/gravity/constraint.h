@@ -143,7 +143,6 @@ namespace gravity {
         }
             
         Constraint& operator=(const Constraint& c){
-            this->_is_constraint = true;
             _jac_cstr_idx = c._jac_cstr_idx;
             _id = c._id;
             _ctype = c._ctype;
@@ -154,18 +153,19 @@ namespace gravity {
             _lazy = c._lazy;
             _all_satisfied = c._all_satisfied;
             _violated = c._violated;
-            this->func_::operator=(c);
+            this->func<type>::operator=(c);
+            this->_name = c._name;
+            this->_is_constraint = true;
             return *this;
         }
         
         Constraint& operator=(const func<type>& c){
-            this->_is_constraint = true;
             this->func<type>::operator=(c);
+            this->_is_constraint = true;
             return *this;
         }
         
-        Constraint& operator=(Constraint&& c){            
-            this->_is_constraint = true;
+        Constraint& operator=(Constraint&& c){
             _jac_cstr_idx = c._jac_cstr_idx;
             _id = c._id;
             _ctype = c._ctype;
@@ -176,7 +176,9 @@ namespace gravity {
             _lazy = c._lazy;
             _all_satisfied = c._all_satisfied;
             _violated = c._violated;
-            this->func_::operator=(move(c));
+            this->func<type>::operator=(move(c));
+            this->_name = c._name;
+            this->_is_constraint = true;
             return *this;
         }
         
@@ -242,7 +244,7 @@ namespace gravity {
             else {
                 str += ") : ";
             }
-            cout << str << this->func_::to_str();
+            cout << str << this->func<type>::to_str();
             switch (_ctype) {
                 case leq:
                     cout << " <= ";

@@ -271,6 +271,8 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->index_in(*res._indices));
             }
+            res._lb->allocate_mem();
+            res._ub->allocate_mem();
             return res;
         }
         
@@ -371,6 +373,8 @@ namespace gravity {
                 if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
                     this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
                 }
+                _lb->allocate_mem();
+                _ub->allocate_mem();
                 return *this;
             }
         
@@ -411,11 +415,11 @@ namespace gravity {
             return this->get_name(index);
         }
         string to_str_bounds(bool bounds=true, int prec = 10) const;
-        void print(bool bounds, int prec);
+        void print_bounds(bool bounds, int prec);
         void print();
         void print_symbolic() const{
             string str = this->_name;
-            str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"]^" + to_string(this->get_dim()) + "\n";
+            str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"]^" + to_string(this->get_dim());
             cout << str << endl;
         }
         
@@ -434,16 +438,79 @@ namespace gravity {
         }
         
         
+        /** Fill x with the variable's lower bound values */
+        void set_double_lb(double* x){set_double_lb_(x);};
+        /** Fill x with the variable's upper bound values */
+        void set_double_ub(double* x){set_double_ub_(x);};
+        
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        void set_double_lb_(double* x){
+            auto vid = this->get_id();
+            for (size_t i = 0; i < this->get_dim(); i++) {
+                x[vid+i] = (double)this->get_double_lb_(i);
+            }
+        };
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        void set_double_ub_(double* x){
+            auto vid = this->get_id();
+            for (size_t i = 0; i < this->get_dim(); i++) {
+                x[vid+i] = (double)this->get_double_ub_(i);
+            }
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_double_lb_(double* x){
+            throw invalid_argument("Cannot call get_lb_violation_ with a non-arithmetic type.");
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_double_ub_(double* x){
+            throw invalid_argument("Cannot call get_ub_violation_ with a non-arithmetic type.");
+        };
+        
+        
+        /** Return lower bound violation */
+        double get_lb_violation(size_t i){
+            return get_lb_violation_(i);
+        };
+        
+        /** Return upper bound violation */
+        double get_ub_violation(size_t i){
+            return get_ub_violation_(i);
+        };
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        double get_lb_violation_(size_t i){
+            return get_double_lb_(i) - this->_val->at(i);
+        };
+        
+        template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
+        double get_ub_violation_(size_t i){
+            return this->_val->at(i) - get_double_ub_(i);
+        };
+
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        double get_lb_violation_(size_t i){
+            throw invalid_argument("Cannot call get_lb_violation_ with a non-arithmetic type.");
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        double get_ub_violation_(size_t i){
+            throw invalid_argument("Cannot call get_ub_violation_ with a non-arithmetic type.");
+        };
+        
         double get_double_lb(size_t i) const{return get_double_lb_(i);};
         
         
         double get_double_ub(size_t i) const{return get_double_ub_(i);};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        double get_double_lb_(size_t i) const{return 0;};
+        double get_double_lb_(size_t i) const{throw invalid_argument("Cannot call get_double_lb_ with a non-arithmetic type.");};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        double get_double_ub_(size_t i) const{return 0;};
+        double get_double_ub_(size_t i) const{throw invalid_argument("Cannot call get_double_ub_ with a non-arithmetic type.");};
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
         double get_double_lb_(size_t i) const{return _lb->eval(i);};
