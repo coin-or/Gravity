@@ -703,8 +703,8 @@ TEST_CASE("testing nonlinear Model"){
 //
 TEST_CASE("testing socopf"){
     auto time_start = get_cpu_time();
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case5_pjm.m";
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
