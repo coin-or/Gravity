@@ -156,6 +156,19 @@ namespace gravity {
             this->set_val(v);
         }
         
+        void set_val(type val) {
+            if(this->is_indexed()){
+                for(auto &idx: this->_indices->_ids->at(0)){
+                    this->_val->at(idx) = val;
+                }
+            }
+            else {
+                for (auto i = 0; i<this->_val->size() ;i++) {
+                    this->_val->at(i) = val;
+                }
+            }
+        }
+        
         /* Retrieve specified indexed variable. */
         template<typename... Args>
         var operator()(size_t i, size_t j) {

@@ -4075,7 +4075,7 @@ namespace gravity{
         if (_params->count(p->get_name(false,false))!=0) {
             throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
         }
-        update_dim(*p);
+//        update_dim(*p);
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
 //
@@ -4406,51 +4406,51 @@ namespace gravity{
      @param[in] vec vector of nodes
      @return current function
      */
-    func_& func_::in(const vector<Node*>& vec){
-        _nb_vars = 0;
-        string key;
-        auto iter = _vars->begin();
-        while (iter!=_vars->end()) {
-            auto pair = (*iter++);
-            auto v = pair.second.first;
-            if(!v->_indices){
-                v->index_in(vec);
-            }
-            else if(v->_indices->_type==in_arcs_){
-                v->index_in_arcs(vec);
-            }
-            else if(v->_indices->_type==out_arcs_){
-                v->index_out_arcs(vec);
-            }
-            else if(v->_indices->_type==in_gens_){
-                v->index_in_aux(vec,"gens");
-            }
-            if (!v->_is_vector) {// i.e., it is not transposed
-                _nb_vars++;
-            }
-            else {
-                _nb_vars += v->get_dim();
-            }
-        }
-        iter = _params->begin();
-        while (iter!=_params->end()) {
-            auto pair = (*iter++);
-            auto p = pair.second.first;
-            if(!p->_indices){
-                p->index_in(vec);
-            }
-            else if(p->_indices->_type==in_arcs_){
-                p->index_in_arcs(vec);
-            }
-            else if(p->_indices->_type==out_arcs_){
-                p->index_out_arcs(vec);
-            }
-            else if(p->_indices->_type==in_gens_){
-                p->index_in_aux(vec,"gens");
-            }
-        }
-        return *this;
-    }
+//    func_& func_::in(const vector<Node*>& vec){
+//        _nb_vars = 0;
+//        string key;
+//        auto iter = _vars->begin();
+//        while (iter!=_vars->end()) {
+//            auto pair = (*iter++);
+//            auto v = pair.second.first;
+//            if(!v->_indices){
+//                v->index_in(vec);
+//            }
+//            else if(v->_indices->_type==in_arcs_){
+//                v->index_in_arcs(vec);
+//            }
+//            else if(v->_indices->_type==out_arcs_){
+//                v->index_out_arcs(vec);
+//            }
+//            else if(v->_indices->_type==in_gens_){
+//                v->index_in_aux(vec,"gens");
+//            }
+//            if (!v->_is_vector) {// i.e., it is not transposed
+//                _nb_vars++;
+//            }
+//            else {
+//                _nb_vars += v->get_dim();
+//            }
+//        }
+//        iter = _params->begin();
+//        while (iter!=_params->end()) {
+//            auto pair = (*iter++);
+//            auto p = pair.second.first;
+//            if(!p->_indices){
+//                p->index_in(vec);
+//            }
+//            else if(p->_indices->_type==in_arcs_){
+//                p->index_in_arcs(vec);
+//            }
+//            else if(p->_indices->_type==out_arcs_){
+//                p->index_out_arcs(vec);
+//            }
+//            else if(p->_indices->_type==in_gens_){
+//                p->index_in_aux(vec,"gens");
+//            }
+//        }
+//        return *this;
+//    }
     
     /**
      Index the function and its variables/parameters using the indices in ids
@@ -4464,7 +4464,9 @@ namespace gravity{
         while (iter!=_vars->end()) {
             auto pair = (*iter++);
             auto v = pair.second.first;
-            v->index_in(ids);
+            if(!v->is_indexed()){
+                v->index_in(ids);
+            }
             if (!v->_is_vector) {// i.e., it is not transposed
                 _nb_vars++;
             }
@@ -4476,8 +4478,11 @@ namespace gravity{
         while (iter!=_params->end()) {
             auto pair = (*iter++);
             auto p = pair.second.first;
-            p->index_in(ids);
+            if(!p->is_indexed()){
+                p->index_in(ids);
+            }
         }
+        _indices = make_shared<indices>(ids);
         return *this;
     }
     

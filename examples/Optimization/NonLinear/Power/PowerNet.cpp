@@ -136,6 +136,83 @@ PowerNet::~PowerNet() {
     arcs.clear();
 }
 
+indices PowerNet::gens_per_node() const{
+    indices ids("gens_per_node");
+    ids = indices(gens);
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for(auto g: ((Bus*)n)->_gen){
+                if (!g->_active) {
+                    continue;
+                }
+                key = g->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function gen_ids(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::out_arcs_per_node() const{
+    indices ids("out_arcs_per_node");
+    ids = indices(arcs);
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for (auto a:n->get_out()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function out_arcs_per_node(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::in_arcs_per_node() const{
+    indices ids("in_arcs_per_node");
+    ids = indices(arcs);
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for (auto a:n->get_in()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function in_arcs_per_node(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
 
 unsigned PowerNet::get_nb_active_gens() const {
     unsigned nb=0;
@@ -1433,11 +1510,16 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
+    
+    /** Sets */
+    auto gens = gens_per_node();
+    auto out_arcs = out_arcs_per_node();
+    auto in_arcs = in_arcs_per_node();
 
     /**  Objective */
-//    auto obj = product(c1, Pg) + product(c2, pow(Pg,2)) + sum(c0);
-    auto obj = sum(c0);
-//    SOCPF->min(obj.in(gens));
+    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+//    auto obj = sum(c0);
+    SOCPF->min(obj);
 
     /** Constraints */
     /* Second-order cone constraints */
@@ -1447,11 +1529,11 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens()) + gs*Wii;
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gens) + gs*Wii;
     SOCPF->add(KCL_P.in(nodes) == 0);
 
     Constraint<> KCL_Q("KCL_Q");
-    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens()) - bs*Wii;
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gens) - bs*Wii;
     SOCPF->add(KCL_Q.in(nodes) == 0);
 
     /* AC Power Flow */
@@ -1475,26 +1557,24 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= tan_th_max*R_Wij;
-    SOCPF->add(PAD_UB.in(bus_pairs));
+    SOCPF->add(PAD_UB);
 
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= tan_th_min*R_Wij;
-    SOCPF->add(PAD_LB.in(bus_pairs));
+    SOCPF->add(PAD_LB);
 
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    SOCPF->add(Thermal_Limit_from.in(arcs));
-    SOCPF->add(Thermal_Limit_from.in(arcs));
+    SOCPF->add(Thermal_Limit_from);
 
 
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SOCPF->add(Thermal_Limit_to.in(arcs));
-    SOCPF->add(Thermal_Limit_to.in(arcs));
+    SOCPF->add(Thermal_Limit_to);
 
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -1505,11 +1585,13 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     SOCPF->add(LNC1.in(bus_pairs) >= 0);
 
     Constraint<> LNC2("LNC2");
-    LNC2 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
+    LNC2 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);//Moveaway from from()
     LNC2 -= v_min.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
     LNC2 -= v_min.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
     LNC2 += v_min.from()*v_min.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
     SOCPF->add(LNC2.in(bus_pairs) >= 0);
+    SOCPF->print_symbolic();
+    SOCPF->print();
     return SOCPF;
 }
 
