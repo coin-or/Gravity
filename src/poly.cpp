@@ -257,6 +257,9 @@ namespace gravity{
             if (v=="-1" || v==" - 1" || v=="(-1,0)") {
                 return " - ";
             }
+            else if (v.front()=='-'){
+                return " - " + v.substr(1);
+            }
             else if(v=="1" || v==" + 1" || v=="(1,0)") {
                 return " + ";
             }
@@ -272,7 +275,7 @@ namespace gravity{
                 return " + ";
             }
             else if (v.front()=='-'){
-                return v.substr(1);
+                return " + " + v.substr(1);
             }
             else if (v=="1" || v==" + 1" || v=="(1,0)"){
                 return " - ";
@@ -506,8 +509,15 @@ namespace gravity{
     }
     
     string lterm::print_transposed(size_t inst, int prec) const{
-        auto dim = _p->get_dim();
+        if(!_p->is_double_indexed()){
+            return print_transposed(prec);
+        }
         string str;
+        auto dim = _p->get_dim(inst);
+        if(dim==0){
+            return str;
+        }
+        
         for (auto idx = 0; idx <dim; idx++) {
             string coef;
             if (_coef->is_number()){
@@ -526,8 +536,8 @@ namespace gravity{
         string str;
         auto c_new = _coef;
         auto p_new = _p;
-        if (c_new->_is_transposed) {
-            str += print_transposed(prec);
+        if (p_new->_is_vector) {
+            str += print_transposed(ind,prec);
         }
         else{
             string coef;

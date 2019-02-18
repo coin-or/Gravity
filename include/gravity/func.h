@@ -199,14 +199,6 @@ namespace gravity {
         qterm* get_square(shared_ptr<param_> p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
         
         
-        
-        /**
-         Index the function and its variables/parameters using nodes of a graph
-         @param[in] vec vector of nodes
-         @return current function
-         */
-        func_& in(const vector<Node*>& vec);
-        
         /**
          Index the function and its variables/parameters using the indices in ids
          @param[in] ids indices
@@ -894,18 +886,20 @@ namespace gravity {
         bool insert(bool sign, const constant_& coef, const param_& p){/**< Adds coef*p to the linear function. Returns true if added new term, false if only updated coef of p */
             shared_ptr<param_> p_new = p.pcopy();
             bool transpose = false;
+            _evaluated=false;
             string pname;
+            if(coef._is_transposed && !p_new->_is_vector){
+                p_new->_is_vector=true;
+                p_new->_name = "["+p_new->_name+"]";
+            }
             if(p._is_transposed){// Situation where p^T*coef is transformed into coef^T*p
                 if(coef._is_transposed){
                     throw invalid_argument("In  bool insert(bool sign, const constant_& coef, const param_& p), both coef and p are transposed.");
                 }
                 p_new->transpose();
                 transpose = true;
-                pname = p_new->get_name(false,false);
             }
-            else {
-                pname = p.get_name(false,false);
-            }
+            pname = p_new->get_name(false,false);
             auto pair_it = _lterms->find(pname);
             if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
                 throw invalid_argument("param and var with same name: " + pname);
@@ -940,10 +934,7 @@ namespace gravity {
                         incr_occ_param(pname);
                     }
                 }
-                _lterms->insert(make_pair<>(pname, lterm(sign, c_new, p_new)));
-                if(p_new->is_var()){
-                    _evaluated = false;
-                }
+                _lterms->insert(make_pair<>(pname, lterm(sign, c_new, p_new)));                
                 return true;
             }
             else {
@@ -983,11 +974,7 @@ namespace gravity {
                         decr_occ_param(pname);
                     }
                     _lterms->erase(pair_it);
-                    //update_sign();
                 }
-                //            else {
-                //                update_sign(pair_it->second);
-                //            }
                 return false;
             }
         };
@@ -1283,6 +1270,7 @@ namespace gravity {
                 }
             }
         }
+        
         void print() {
             allocate_mem();
             print(10);
@@ -1876,7 +1864,10 @@ namespace gravity {
         func& operator=(const param<T2>& c){
             reset();
             insert(true,unit<type>(),c);
-            update_dim(c);
+            _dim[0] = c._dim[0];
+            _dim[1] = c._dim[1];
+            _is_transposed = c._is_transposed;
+            _is_vector = c._is_vector;
             _val->clear();
             _range->first = c._range->first;
             _range->second = c._range->second;
@@ -3337,22 +3328,22 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
-            return (_range->first == 1 && _range->second == 1);
+            return (func_is_number() && _range->first == 1 && _range->second == 1);
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
-            return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
+            return (func_is_number() && _range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
         
         bool is_zero() const { return zero_range();};
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool zero_range() const{
-            return (_range->first == Cpx(0,0) && _range->second == Cpx(0,0));
+            return (func_is_number() && _range->first == Cpx(0,0) && _range->second == Cpx(0,0));
         }
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool zero_range() const{
-            return (_range->first == 0 && _range->second == 0);
+            return (func_is_number() && _range->first == 0 && _range->second == 0);
         }
         
         
@@ -4728,7 +4719,7 @@ namespace gravity {
             auto pair_it = _qterms->find(qname);
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
-            
+            _evaluated=false;
             if (_ftype <= lin_ && p1.is_var()) {
                 _ftype = quad_;
             }
@@ -4823,6 +4814,7 @@ namespace gravity {
             string name;
             string s;
             bool newv = true;
+            _evaluated=false;
             //        int i = 0;
             for (auto &pair:l) {
                 name += pair.first->get_name(false,false);
@@ -6409,6 +6401,16 @@ namespace gravity {
         }
         return unit<type>().tr()*p.vec();
     }
+    
+    template<typename type>
+    func<type> sum(const var<type>& p, const indices& ids){
+        func<type> res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        return unit<type>().tr()*(p.vec()).in(ids);
+    }        
+    
 }
 
 

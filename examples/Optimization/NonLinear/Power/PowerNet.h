@@ -273,6 +273,10 @@ public:
     
     vector<param<>> signs();
     
+    indices gens_per_node() const;
+    indices out_arcs_per_node() const;
+    indices in_arcs_per_node() const;
+    
     unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
     unique_ptr<Model<>> build_ROMDST(PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);

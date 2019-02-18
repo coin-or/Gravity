@@ -256,6 +256,10 @@ namespace gravity {
         bool is_indexed() const{
             return (_indices && _indices->_ids);
         }
+        
+        bool is_double_indexed() const{
+            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+        }
 
         bool is_binary() const {
             return (_intype==binary_);
@@ -324,11 +328,12 @@ namespace gravity {
                     _name += "_EMPTY";
                     return;
                 }
-                string key, excluded;
+                string excluded;
                 size_t idx = 0;
                 /* Used for truncating extra indices */
-                auto nb_sep1 = _indices->_dim->size();
-                auto nb_sep2 = ids._dim->size();
+//                auto nb_sep1 = _indices->_dim->size();
+//                auto nb_sep1 = ids._dim->size();
+//                auto nb_sep2 = ids._dim->size();
                 
                 for(auto key: *ids._keys){
                     if(ids._excluded_keys.count(idx++)!=0){
@@ -342,6 +347,8 @@ namespace gravity {
                         key = key.substr(0, key.find_last_of(","));
                         key = key.substr(key.find_last_of(",")+1,key.size());
                     }
+                    auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+                    auto nb_sep2 = count(key.begin(), key.end(), ',');
                     if(nb_sep2>nb_sep1){
                         auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
                         key = key.substr(pos+1,key.size()-1);
@@ -1300,6 +1307,11 @@ namespace gravity {
                 return res;
             }
             param res(*this);
+            if(ids.is_indexed()){
+                res._indices = make_shared<indices>(ids);
+                res._name += ".in("+ids._name+")";
+                return res;
+            }
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(ids.empty()){
@@ -1346,7 +1358,6 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-
             res._name += ".in("+ids._name+")";
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */

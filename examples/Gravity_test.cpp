@@ -12,14 +12,13 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-//#include <gravity/Net.h>
 #include <gravity/model.h>
 #include <gravity/solver.h>
 #include <gravity/constraint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <gravity/doctest.h>
-//#include <PowerNet.h>
+#include <PowerNet.h>
 //#include <variant>
 
 
@@ -256,11 +255,11 @@ TEST_CASE("testing vector dot product"){
     auto lin5 = lin4 - lin3;
     CHECK(lin5.is_complex());
     CHECK(lin5.get_dim()==5);
-    CHECK(lin5.get_nb_vars()==2);
+    CHECK(lin5.get_nb_vars()==4);
     CHECK(lin5.is_convex());
     lin5.print_symbolic();
     lin5.print();
-    CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)z + (b)");
+    CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)[z] + (b)");
     auto lin6 = (a+exp(b)).tr()*z;
     lin6.print_symbolic();
     CHECK(lin6.is_linear());
@@ -702,19 +701,20 @@ TEST_CASE("testing nonlinear Model"){
 //    CHECK(clone->arcs.size()==grid1.arcs.size()-1);
 //}
 //
-//TEST_CASE("testing socopf"){
-//    auto time_start = get_cpu_time();
+TEST_CASE("testing socopf"){
+    auto time_start = get_cpu_time();
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    int output = 0;
-//    bool relax = false;
-//    double tol = 1e-6;
-//    string mehrotra = "no", log_level="0";
-//    PowerNet grid;
-//    grid.readgrid(fname);
-//    auto SOCOPF = grid.build_SCOPF();
-//    solver OPF(*SOCOPF,ipopt);
-//    OPF.run(output, relax = false, tol = 1e-6);
-//    auto time_end = get_cpu_time();
-//    DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
-//    CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
-//}
+    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case5_pjm.m";
+    int output = 0;
+    bool relax = false;
+    double tol = 1e-6;
+    string mehrotra = "no", log_level="0";
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto SOCOPF = grid.build_SCOPF();
+    solver<> OPF(SOCOPF,ipopt);
+    OPF.run(5, 1e-6);
+    auto time_end = get_cpu_time();
+    DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
+    CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
+}
