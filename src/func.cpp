@@ -4078,6 +4078,119 @@ namespace gravity{
 //        update_dim(*p);
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
+    
+    template<>
+    double func<double>::eval_double(size_t i) {
+        if(is_zero()){
+            return _range->first;
+        }
+        if (is_constant() && _evaluated) {
+            if (func_is_number()){
+                return _val->at(0);
+            }
+            return _val->at(i);
+        }
+        double res = 0;
+        if(!_cst->is_zero())
+            res += eval_cst(i);
+        if(!_lterms->empty()){
+            for (auto &pair:*_lterms) {
+                if ((pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || (pair.second._p->is_indexed() && pair.second._p->_indices->_ids->size()>1)) && !pair.second._p->is_matrix()) {
+                    auto dim = pair.second._p->get_dim(i);
+                    if (pair.second._sign) {
+                        for (size_t j = 0; j<dim; j++) {
+                            res += eval_coef(pair.second._coef,i,j) * static_pointer_cast<param<double>>(pair.second._p)->eval(i,j);
+                        }
+                    }
+                    else {
+                        for (size_t j = 0; j<dim; j++) {
+                            res -= eval_coef(pair.second._coef,i,j) * static_pointer_cast<param<double>>(pair.second._p)->eval(i,j);
+                        }
+                    }
+                }
+                else {
+                    if (pair.second._sign) {
+                        res += eval_coef(pair.second._coef,i) * static_pointer_cast<param<double>>(pair.second._p)->eval(i);
+                    }
+                    else {
+                        res -= eval_coef(pair.second._coef,i) * static_pointer_cast<param<double>>(pair.second._p)->eval(i);
+                    }
+                }
+            }
+        }
+        //                res += eval_lterms(i);
+        if(!_qterms->empty()){
+            for (auto &pair:*_qterms) {
+                double qval = 0;
+                if (pair.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                    assert(pair.second._p->first->_dim[1]==1 && pair.second._coef->_dim[0]==pair.second._p->second->_dim[0]);
+                    for (auto i = 0; i<pair.second._p->first->_dim[0]; i++) {
+                        for (auto j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                            qval += eval_coef(pair.second._coef,i,j) * static_pointer_cast<param<double>>(pair.second._p->first)->eval(i) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(j);
+                        }
+                    }
+                }
+                else if (pair.second._p->first->is_matrix() && !pair.second._p->second->is_matrix() && !pair.second._p->second->_is_transposed) {//matrix * vect
+                    for (size_t j = 0; j<pair.second._p->second->_dim[0]; j++) {
+                        qval += static_pointer_cast<param<double>>(pair.second._p->first)->eval(i,j) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(j);
+                    }
+                    qval *= eval_coef(pair.second._coef,i);
+                }
+                else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && pair.second._p->second->is_matrix() ) {//transposed vect * matrix
+                    for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                        qval += static_pointer_cast<param<double>>(pair.second._p->first)->eval(j) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(j,i);
+                    }
+                    qval *= eval_coef(pair.second._coef,i);
+                }
+                else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && !pair.second._p->second->is_matrix() && i==0) {//transposed vect * vec, a dot product of two vectors
+                    for (size_t j = 0; j<pair.second._p->first->_dim[1]; j++) {
+                        qval += static_pointer_cast<param<double>>(pair.second._p->first)->eval(j) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(j);
+                    }
+                    qval *= eval_coef(pair.second._coef,i);
+                }
+                else if (!pair.second._coef->is_matrix() && pair.second._coef->_is_transposed && !pair.second._p->first->is_matrix()) {//transposed vect * vec, a dot product of two vectors
+                    for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                        qval += eval_coef(pair.second._coef,j) * static_pointer_cast<param<double>>(pair.second._p->first)->eval(j) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(j);
+                    }
+                }
+                else {
+                    qval += eval_coef(pair.second._coef,i) * static_pointer_cast<param<double>>(pair.second._p->first)->eval(i) * static_pointer_cast<param<double>>(pair.second._p->second)->eval(i);
+                }
+                if (!pair.second._sign) {
+                    qval *= -1;
+                }
+                res += qval;
+            }
+        }
+        //                res += eval_qterms(i);
+        if(!_pterms->empty()){
+            for (auto &pair:*_pterms) {
+                double pval = 1;
+                for (auto &vpair: *pair.second._l) {
+                    pval *= std::pow(eval(vpair.first, i), vpair.second);
+                }
+                pval *= eval_coef(pair.second._coef,i);
+                if (!pair.second._sign) {
+                    pval *= -1;
+                }
+                res += pval;
+            }
+            //                res += eval_pterms(i);
+        }
+        if(_expr)
+            res += eval_expr(_expr,i);
+        if (func_is_number()) {
+            _val->at(0) = res;
+            _evaluated = true;
+        }
+        else {
+            if (is_constant() && i==_val->size()-1) {
+                _evaluated = true;
+            }
+            _val->at(i) = res;
+        }
+        return res;
+    }
 //
 //
 //
