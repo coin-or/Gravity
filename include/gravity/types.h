@@ -27,7 +27,8 @@ namespace gravity{
 #define Binary bool
 #define Debug(x)
 #define DebugOn(x) cout << x
-#define Warning(x) cout << x
+//#define Warning(x) cout << x
+#define Warning(x)
 #define DebugOff(x)
     
     typedef unsigned int uint; /* Index type */
@@ -326,6 +327,19 @@ namespace gravity{
             return !(*this==cpy);
         }
         
+        void shallow_copy(shared_ptr<indices> cpy){
+            _name = cpy->_name;
+            _type = cpy->_type;
+            _keys_map = cpy->_keys_map;
+            _keys = cpy->_keys;
+            _dim = cpy->_dim;
+            _excluded_keys = cpy->_excluded_keys;
+            if(cpy->_ids){
+                _ids = make_shared<vector<vector<size_t>>>(*cpy->_ids);
+            }
+            _time_extended = cpy->_time_extended;
+            _time_pos = cpy->_time_pos;
+        }
         
         indices& operator=(const indices& cpy){
             _name = cpy._name;

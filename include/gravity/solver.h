@@ -70,7 +70,7 @@ namespace gravity {
             
         solver(gravity::Model<type>& model, SolverType stype){
             _stype = stype;
-            _model = shared_ptr<gravity::Model<type>>(&model);
+            _model = make_shared<gravity::Model<type>>(model);
             init();
         }
         
@@ -183,6 +183,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
+//                    if (true) {
                         //            if (false) {
                         mu_init = std::exp(-1)/std::exp(2);
                         DebugOn("Using Hot Start!\n");

@@ -62,8 +62,6 @@ namespace gravity {
         bool                                           _is_real = false; /**< True if the parameter/variable is the real part of a complex number */
         bool                                           _is_imag = false; /**< True if the parameter/variable is the imaginary part of a complex number */
 
-        
-        virtual ~param_(){};
         /**
          A shallow copy of p (ignoring _val and _range)
          @param[in] p param_ to copy from.
@@ -84,6 +82,7 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
+        virtual void initialize_uniform(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         
         virtual void print(){};
@@ -571,7 +570,8 @@ namespace gravity {
             _is_real = p._is_real;
             _is_imag = p._is_imag;
             if(p._indices){
-                _indices = make_shared<indices>(*p._indices);
+                _indices = make_shared<indices>();
+                _indices->shallow_copy(p._indices);
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
@@ -694,30 +694,30 @@ namespace gravity {
             return _intype;
         }
 
-        type eval() const {
+        inline type eval() const {
             if (is_indexed()) {
                 return _val->at(_indices->_ids->at(0).back());
             }
             return _val->back();
         }
 
-        type eval(size_t i) const {
-            if(is_matrix()){
-                throw invalid_argument("eval() should be called with double index here\n");
-            }
+        inline type eval(size_t i) const {
+//            if(is_matrix()){
+//                throw invalid_argument("eval() should be called with double index here\n");
+//            }
             auto idx = get_id_inst(i);
             if (is_indexed()) {
-                if (_indices->_ids->size()>1) {
-                    throw invalid_argument("eval() should be called with double index here\n");
-                }
-                if (_val->size()<=idx){
-                    throw invalid_argument("Param eval out of range");
-                }
+//                if (_indices->_ids->size()>1) {
+//                    throw invalid_argument("eval() should be called with double index here\n");
+//                }
+//                if (_val->size()<=idx){
+//                    throw invalid_argument("Param eval out of range");
+//                }
                 return _val->at(idx);
             }
-            if (_val->size()<=idx){
-                throw invalid_argument("Param eval out of range");
-            }
+//            if (_val->size()<=idx){
+//                throw invalid_argument("Param eval out of range");
+//            }
             return _val->at(idx);
         }
 
@@ -726,12 +726,12 @@ namespace gravity {
             return _val->at(param_::_indices->_keys_map->at(key));
         }
 
-        type eval(size_t i, size_t j) const {
+        inline type eval(size_t i, size_t j) const {
 
             if (is_indexed() && _indices->_ids->size()>1) {
-                if (_indices->_ids->at(i).at(j) >= _val->size()) {
-                    throw invalid_argument("eval(i,j): out of range");
-                }
+//                if (_indices->_ids->at(i).at(j) >= _val->size()) {
+//                    throw invalid_argument("eval(i,j): out of range");
+//                }
                 return _val->at(_indices->_ids->at(i).at(j));
             }
 

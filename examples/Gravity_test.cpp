@@ -331,6 +331,18 @@ TEST_CASE("testing ReLU") {
     dfdA.print();
 }
 
+TEST_CASE("2d Polynomial") {
+    var<> x1("x1",-1,1), x2("x2",-1,1);
+    Model<> M("test");
+    M.add(x1.in(R(1)),x2.in(R(1)));
+    M.initialize_uniform();
+    M.min(pow(x1,2) - 2*pow(x1,4) + x1*x2 - 4*pow(x2,2) + 4*pow(x2,8));
+    solver<> s(M,ipopt);
+    s.run(5,1e-6);
+    M.print();
+    M.print_solution();
+}
+
 TEST_CASE("testing range propagation") {
     indices ids("index_set");
     ids = {"id1", "id2", "key3", "key4"};
@@ -702,19 +714,20 @@ TEST_CASE("testing nonlinear Model"){
 //}
 //
 TEST_CASE("testing socopf"){
-    auto time_start = get_cpu_time();
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case5_pjm.m";
+//    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case9241_pegase.m";
     int output = 0;
-    bool relax = false;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
     PowerNet grid;
     grid.readgrid(fname);
     auto SOCOPF = grid.build_SCOPF();
+    SOCOPF->print();
+    CHECK(SOCOPF->_type==quad_m);
     solver<> OPF(SOCOPF,ipopt);
-    OPF.run(5, 1e-6);
-    auto time_end = get_cpu_time();
-    DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
-    CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
+    auto time_start = get_wall_time();
+    OPF.run(output=5, tol=1e-6);
+    auto time_end = get_wall_time();
+    DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
+//    CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
 }

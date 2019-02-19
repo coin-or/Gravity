@@ -1517,8 +1517,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     auto in_arcs = in_arcs_per_node();
 
     /**  Objective */
-    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
-//    auto obj = sum(c0);
+    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg,2) + sum(c0);
     SOCPF->min(obj);
 
     /** Constraints */
@@ -1590,8 +1589,6 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     LNC2 -= v_min.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
     LNC2 += v_min.from()*v_min.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
     SOCPF->add(LNC2.in(bus_pairs) >= 0);
-    SOCPF->print_symbolic();
-    SOCPF->print();
     return SOCPF;
 }
 

@@ -391,7 +391,19 @@ namespace gravity {
                 return *this;
             }
         
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform() {
+        void initialize_uniform(){initialize_uniform_();};
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_uniform_() {
+            std::default_random_engine generator;
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                std::uniform_real_distribution<double> real_distribution(get_lb(i).real(),get_ub(i).real());
+                std::uniform_real_distribution<double> imag_distribution(get_lb(i).imag(),get_ub(i).imag());
+                param<type>::_val->at(i).real(real_distribution(generator));
+                param<type>::_val->at(i).imag(imag_distribution(generator));
+            }
+        }
+        
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform_() {
             std::default_random_engine generator;
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 std::uniform_real_distribution<double> distribution(get_lb(i),get_ub(i));
@@ -446,7 +458,9 @@ namespace gravity {
             _ub->_val->resize(dim);
             for (size_t i = 0; i < this->get_dim(); i++) {
                 _lb->_val->at(i) = p.get_double_lb(i);
+                _lb->update_range(_lb->_val->at(i));
                 _ub->_val->at(i) = p.get_double_ub(i);
+                _ub->update_range(_ub->_val->at(i));
             }
         }
         
