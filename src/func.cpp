@@ -4570,34 +4570,34 @@ namespace gravity{
      @param[in] ids indices
      @return current function
      */
-    func_& func_::in(const indices& ids) {
-        _nb_vars = 0;
-        string key;
-        auto iter = _vars->begin();
-        while (iter!=_vars->end()) {
-            auto pair = (*iter++);
-            auto v = pair.second.first;
-            if(!v->is_indexed()){
-                v->index_in(ids);
-            }
-            if (!v->_is_vector) {// i.e., it is not transposed
-                _nb_vars++;
-            }
-            else {
-                _nb_vars += v->get_dim();
-            }
-        }
-        iter = _params->begin();
-        while (iter!=_params->end()) {
-            auto pair = (*iter++);
-            auto p = pair.second.first;
-            if(!p->is_indexed()){
-                p->index_in(ids);
-            }
-        }
-        _indices = make_shared<indices>(ids);
-        return *this;
-    }
+//    func_& func_::in(const indices& ids) {
+//        _nb_vars = 0;
+//        string key;
+//        auto iter = _vars->begin();
+//        while (iter!=_vars->end()) {
+//            auto pair = (*iter++);
+//            auto v = pair.second.first;
+//            if(!v->is_indexed()){
+//                v->index_in(ids);
+//            }
+//            if (!v->_is_vector) {// i.e., it is not transposed
+//                _nb_vars++;
+//            }
+//            else {
+//                _nb_vars += v->get_dim();
+//            }
+//        }
+//        iter = _params->begin();
+//        while (iter!=_params->end()) {
+//            auto pair = (*iter++);
+//            auto p = pair.second.first;
+//            if(!p->is_indexed()){
+//                p->index_in(ids);
+//            }
+//        }
+//        _indices = make_shared<indices>(ids);
+//        return *this;
+//    }
     
     
 

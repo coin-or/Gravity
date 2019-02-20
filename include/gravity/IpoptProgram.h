@@ -119,8 +119,16 @@ public:
         return true;
     }
     
-    /** Method to return the starting point for the algorithm */
     bool get_starting_point(Index n, bool init_x, Number* x,
+                             bool init_z, Number* z_L, Number* z_U,
+                             Index m, bool init_lambda,
+                             Number* lambda){
+        return get_starting_point_(n, init_x, x,init_z, z_L, z_U,m, init_lambda,lambda);
+    }
+    
+    /** Method to return the starting point for the algorithm */
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool get_starting_point_(Index n, bool init_x, Number* x,
                                           bool init_z, Number* z_L, Number* z_U,
                                           Index m, bool init_lambda,
                                           Number* lambda){
@@ -143,24 +151,39 @@ public:
         return true;
     }
     
-    /** Method to return the objective value */
     bool eval_f(Index n, const Number* x, bool new_x, Number& obj_value){
+        return eval_f_(n, x, new_x, obj_value);
+    }
+    
+    /** Method to return the objective value */
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool eval_f_(Index n, const Number* x, bool new_x, Number& obj_value){
         
         assert(n==_model->get_nb_vars());
         _model->fill_in_obj(x, obj_value,new_x);
         return true;
     }
     
-    /** Method to return the gradient of the objective */
     bool eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f){
+        return eval_grad_f_(n, x, new_x, grad_f);
+    }
+    
+    /** Method to return the gradient of the objective */
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool eval_grad_f_(Index n, const Number* x, bool new_x, Number* grad_f){
         
         assert(n==_model->get_nb_vars());
         _model->fill_in_grad_obj(x, grad_f, new_x);
         return true;
     }
     
-    /** Method to return the constraint residuals */
     bool eval_g(Index n, const Number* x, bool new_x, Index m, Number* g){
+        return eval_g_(n, x, new_x, m, g);
+    }
+    
+    /** Method to return the constraint residuals */
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool eval_g_(Index n, const Number* x, bool new_x, Index m, Number* g){
         
         assert(n==_model->get_nb_vars());
         //    if (!new_x)
@@ -168,11 +191,18 @@ public:
         return true;
     }
     
+    bool eval_jac_g(Index n, const Number* x, bool new_x,
+                    Index m, Index nele_jac, Index* iRow, Index *jCol,
+                    Number* values){
+        return eval_jac_g_(n, x, new_x, m, nele_jac, iRow, jCol, values);
+    }
+    
     /** Method to return:
      *   1) The structure of the jacobian (if "values" is NULL)
      *   2) The values of the jacobian (if "values" is not NULL)
      */
-    bool eval_jac_g(Index n, const Number* x, bool new_x,
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool eval_jac_g_(Index n, const Number* x, bool new_x,
                                   Index m, Index nele_jac, Index* iRow, Index *jCol,
                                   Number* values){
         
@@ -190,11 +220,18 @@ public:
         return true;
     }
     
+    bool eval_h(Index n, const Number* x, bool new_x,
+                Number obj_factor, Index m, const Number* lambda,
+                bool new_lambda, Index nele_hess, Index* iRow,
+                Index* jCol, Number* values){
+        return eval_h_(n, x, new_x, obj_factor, m, lambda, new_lambda, nele_hess, iRow, jCol, values);
+    }
     /** Method to return:
      *   1) The structure of the hessian of the lagrangian (if "values" is NULL)
      *   2) The values of the hessian of the lagrangian (if "values" is not NULL)
      */
-    bool eval_h(Index n, const Number* x, bool new_x,
+    template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    bool eval_h_(Index n, const Number* x, bool new_x,
                               Number obj_factor, Index m, const Number* lambda,
                               bool new_lambda, Index nele_hess, Index* iRow,
                               Index* jCol, Number* values){
