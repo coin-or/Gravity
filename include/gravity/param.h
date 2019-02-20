@@ -252,7 +252,7 @@ namespace gravity {
 
         /* Querries */
 
-        bool is_indexed() const{
+        inline bool is_indexed() const{
             return (_indices && _indices->_ids);
         }
         
@@ -706,15 +706,15 @@ namespace gravity {
 //                throw invalid_argument("eval() should be called with double index here\n");
 //            }
             auto idx = get_id_inst(i);
-            if (is_indexed()) {
+//            if (is_indexed()) {
 //                if (_indices->_ids->size()>1) {
 //                    throw invalid_argument("eval() should be called with double index here\n");
 //                }
 //                if (_val->size()<=idx){
 //                    throw invalid_argument("Param eval out of range");
 //                }
-                return _val->at(idx);
-            }
+//                return _val->at(idx);
+//            }
 //            if (_val->size()<=idx){
 //                throw invalid_argument("Param eval out of range");
 //            }
@@ -1592,11 +1592,11 @@ namespace gravity {
             cout << to_str(i,j,prec);
         }
         
-        size_t get_id_inst(unsigned inst = 0) const {
+        inline size_t get_id_inst(unsigned inst = 0) const {
             if (is_indexed()) {
-                if(_indices->_ids->at(0).size() <= inst){
-                    throw invalid_argument("get_id_inst out of range");
-                }
+//                if(_indices->_ids->at(0).size() <= inst){
+//                    throw invalid_argument("get_id_inst out of range");
+//                }
                 return _indices->_ids->at(0).at(inst);
             }
             return inst;
@@ -1605,9 +1605,9 @@ namespace gravity {
         size_t get_id_inst(unsigned inst1, unsigned inst2) const {
             if (is_indexed()) {
                 if (_indices->_ids->size()==1) {
-                    if(_indices->_ids->at(0).size() <= inst2){
-                        throw invalid_argument("get_id_inst out of range");
-                    }
+//                    if(_indices->_ids->at(0).size() <= inst2){
+//                        throw invalid_argument("get_id_inst out of range");
+//                    }
                     return _indices->_ids->at(0).at(inst2);
                 }
                 return _indices->_ids->at(inst1).at(inst2);

@@ -671,7 +671,7 @@ namespace gravity {
                     return *static_pointer_cast<param<float>>(p)->_range;
                     break;
                 case double_:
-                    return *static_pointer_cast<param<double>>(p)->_range;
+                    return *((param<double>*)(p.get()))->_range;
                     break;
                 case long_:
                     return *static_pointer_cast<param<long double>>(p)->_range;
@@ -698,7 +698,7 @@ namespace gravity {
                     return *static_pointer_cast<param<float>>(p)->_range;
                     break;
                 case double_:
-                    return *static_pointer_cast<param<double>>(p)->_range;
+                    return *((param<double>*)(p.get()))->_range;
                     break;
                 case long_:
                     return *static_pointer_cast<param<long double>>(p)->_range;
@@ -727,15 +727,15 @@ namespace gravity {
                         coef->transpose();
                     }
                     if (coef->is_function()) {
-                        auto f_cst = static_pointer_cast<func<type>>(coef);
+                        auto f_cst = ((func<type>*)(coef.get()));
                         res = move(*f_cst);
                     }
                     else if(coef->is_param()) {
-                        auto p_cst = static_pointer_cast<param<type>>(coef);
+                        auto p_cst = ((param<type>*)(coef.get()));
                         res = move(*p_cst);
                     }
                     else if(coef->is_number()) {
-                        auto p_cst = static_pointer_cast<constant<type>>(coef);
+                        auto p_cst = ((constant<type>*)(coef.get()));
                         res = move(*p_cst);
                     }
                     if(!lt.second._sign){
@@ -754,19 +754,19 @@ namespace gravity {
                         res.update_dim(v);
                     }
                     if (coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<type>>(coef);
+                        auto f_cst = *((func<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->second);
                     }
                     else if(coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<type>>(coef);
+                        auto p_cst = *((param<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
                     }
                     else if(coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                        auto p_cst = *((constant<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
@@ -792,19 +792,19 @@ namespace gravity {
                         res.update_dim(v);
                     }
                     if (coef->is_function()) {
-                        auto f_cst = *static_pointer_cast<func<type>>(coef);
+                        auto f_cst = *((func<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->first);
                     }
                     else if(coef->is_param()) {
-                        auto p_cst = *static_pointer_cast<param<type>>(coef);
+                        auto p_cst = *((param<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
                     }
                     else if(coef->is_number()) {
-                        auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                        auto p_cst = *((constant<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
@@ -1554,12 +1554,12 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst *= func<type>(c);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 if(c.is_unit()){
                     return p_cst.pcopy();
                 }
@@ -1567,7 +1567,7 @@ namespace gravity {
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst * c;
                 return new_cst.copy();
             }
@@ -1577,17 +1577,17 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const param<T2>& p){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst *= func<type>(p);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst * p;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst * p;
                 return new_cst.copy();
             }
@@ -1597,20 +1597,20 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst *= func<type>(f);
                 embed(f_cst);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst * f;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 if(f.func_is_number()){
-                    return make_shared<func<type>>(p_cst *= f.get_val());
+                    return make_shared<constant<type>>(p_cst *= eval(f.copy(),0));
                 }
                 return make_shared<func<type>>(func(p_cst) *= f);
             }
@@ -1620,17 +1620,17 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> add(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst += func<type>(c);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst + c;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst + c;
                 return new_cst.copy();
             }
@@ -1640,17 +1640,17 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> add(shared_ptr<constant_> coef, const param<T2>& p){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst += func<type>(p);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst + p;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst + p;
                 return new_cst.copy();
             }
@@ -1660,20 +1660,20 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> add(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst += func<type>(f);
                 embed(f_cst);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst + f;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = (*static_pointer_cast<constant<type>>(coef));
+                auto p_cst = (*((constant<type>*)(coef.get())));
                 if(f.func_is_number()){
-                    return make_shared<func<type>>(p_cst += f.get_val());
+                    return make_shared<constant<type>>(p_cst += eval(f.copy(),0));
                 }
                 return make_shared<func<type>>(func(p_cst) += f);
             }
@@ -1683,12 +1683,12 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst -= func<type>(c);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 if(c.is_unit()){
                     return p_cst.pcopy();
                 }
@@ -1696,7 +1696,7 @@ namespace gravity {
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst - c;
                 return new_cst.copy();
             }
@@ -1706,17 +1706,17 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const param<T2>& p){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst -= func<type>(p);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst - p;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = *static_pointer_cast<constant<type>>(coef);
+                auto p_cst = *((constant<type>*)(coef.get()));
                 auto new_cst = p_cst - p;
                 return new_cst.copy();
             }
@@ -1726,20 +1726,20 @@ namespace gravity {
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
-                auto f_cst = *static_pointer_cast<func<type>>(coef);
+                auto f_cst = *((func<type>*)(coef.get()));
                 f_cst -= func<type>(f);
                 embed(f_cst);
                 return f_cst.copy();
             }
             else if(coef->is_param()) {
-                auto p_cst = *static_pointer_cast<param<type>>(coef);
+                auto p_cst = *((param<type>*)(coef.get()));
                 auto new_cst = p_cst - f;
                 return new_cst.copy();
             }
             else if(coef->is_number()) {
-                auto p_cst = (*static_pointer_cast<constant<type>>(coef));
+                auto p_cst = (*((constant<type>*)(coef.get())));
                 if(f.func_is_number()){
-                    return make_shared<func<type>>(p_cst -= f.get_val());
+                    return make_shared<constant<type>>(p_cst -= eval(f.copy(),0));
                 }
                 return make_shared<func<type>>(func(p_cst) -= f);
             }
@@ -1750,8 +1750,13 @@ namespace gravity {
         void add_cst(const constant<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *static_pointer_cast<func<type>>(_cst);
-                f_cst += func<type>(f);
-                _cst = make_shared<func<type>>(move(f_cst));
+                if(f_cst.func_is_number()){
+                    _cst = make_shared<constant<type>>(eval(f_cst.copy(),0) + eval(f.copy(),0));
+                }
+                else {
+                    f_cst += func<type>(f);
+                    _cst = make_shared<func<type>>(move(f_cst));
+                }
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
@@ -1791,9 +1796,14 @@ namespace gravity {
         void add_cst(const func<T2>& f){
             if (_cst->is_function()) {
                 auto f_cst = *static_pointer_cast<func<type>>(_cst);
-                f_cst += f;
-                embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                if(f_cst.func_is_number() && f.func_is_number()){
+                    _cst = make_shared<constant<type>>(eval(f_cst.copy(),0) + eval(f.copy(),0));
+                }
+                else {
+                    f_cst += f;
+                    embed(f_cst);
+                    _cst = make_shared<func<type>>(move(f_cst));
+                }
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
@@ -1803,9 +1813,14 @@ namespace gravity {
             }
             else if(_cst->is_number()) {
                 auto p_cst = *static_pointer_cast<constant<type>>(_cst);
-                auto f_cst = f + func<type>(p_cst);
-                embed(f_cst);
-                _cst = make_shared<func<type>>(move(f_cst));
+                if(f.func_is_number()){
+                    _cst = make_shared<constant<type>>(p_cst += eval(f.copy(),0));
+                }
+                else {
+                    auto f_cst = f + func<type>(p_cst);
+                    embed(f_cst);
+                    _cst = make_shared<func<type>>(move(f_cst));
+                }
             }
         }
         
@@ -2431,7 +2446,7 @@ namespace gravity {
 //            }
 //            return res;
 //        }
-        double eval_double(size_t i=0);
+//        double eval_double(size_t i=0);
         
         type eval(size_t i=0) {
             if(is_zero()){
@@ -2565,31 +2580,31 @@ namespace gravity {
                     return static_pointer_cast<constant<float>>(c)->eval();
                     break;
                 case double_c:
-                    return static_pointer_cast<constant<double>>(c)->eval();
+                    return ((constant<double>*)(c.get()))->eval();
                     break;
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                case func_c:{
-                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                {
+                    auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
-                            return static_pointer_cast<func<bool>>(f)->eval(i);
+                            return ((func<bool>*)(f))->eval(i);
                             break;
                         case short_:
-                            return static_pointer_cast<func<short>>(f)->eval(i);
+                            return ((func<short>*)(f))->eval(i);
                             break;
                         case integer_:
-                            return static_pointer_cast<func<int>>(f)->eval(i);
+                            return ((func<int>*)(f))->eval(i);
                             break;
                         case float_:
-                            return static_pointer_cast<func<float>>(f)->eval(i);
+                            return ((func<float>*)(f))->eval(i);
                             break;
                         case double_:
-                            return static_pointer_cast<func<double>>(f)->eval(i);
+                            return ((func<double>*)(f))->eval(i);
                             break;
                         case long_:
-                            return static_pointer_cast<func<long double>>(f)->eval(i);
+                            return ((func<long double>*)(f))->eval(i);
                             break;
                         default:
                             break;
@@ -2605,25 +2620,25 @@ namespace gravity {
                     break;
                 }
                 default:{
-                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    auto p = ((param_*)(c.get()));
                     switch (p->get_intype()) {
                         case binary_:
-                            return static_pointer_cast<param<bool>>(p)->eval(i);
+                            return ((param<bool>*)(p))->eval(i);
                             break;
                         case short_:
-                            return static_pointer_cast<param<short>>(p)->eval(i);
+                            return ((param<short>*)(p))->eval(i);
                             break;
                         case integer_:
-                            return static_pointer_cast<param<int>>(p)->eval(i);
+                            return ((param<int>*)(p))->eval(i);
                             break;
                         case float_:
-                            return static_pointer_cast<param<float>>(p)->eval(i);
+                            return ((param<float>*)(p))->eval(i);
                             break;
                         case double_:
-                            return static_pointer_cast<param<double>>(p)->eval(i);
+                            return ((param<double>*)(p))->eval(i);
                             break;
                         case long_:
-                            return static_pointer_cast<param<long double>>(p)->eval(i);
+                            return ((param<long double>*)(p))->eval(i);
                             break;
                         default:
                             break;
@@ -2651,31 +2666,31 @@ namespace gravity {
                     return static_pointer_cast<constant<float>>(c)->eval();
                     break;
                 case double_c:
-                    return static_pointer_cast<constant<double>>(c)->eval();
+                    return ((constant<double>*)(c.get()))->eval();
                     break;
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                case func_c:{
-                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                {
+                    auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
-                            return static_pointer_cast<func<bool>>(f)->eval(i,j);
+                            return ((func<bool>*)(f))->eval(i,j);
                             break;
                         case short_:
-                            return static_pointer_cast<func<short>>(f)->eval(i,j);
+                            return ((func<short>*)(f))->eval(i,j);
                             break;
                         case integer_:
-                            return static_pointer_cast<func<int>>(f)->eval(i,j);
+                            return ((func<int>*)(f))->eval(i,j);
                             break;
                         case float_:
-                            return static_pointer_cast<func<float>>(f)->eval(i,j);
+                            return ((func<float>*)(f))->eval(i,j);
                             break;
                         case double_:
-                            return static_pointer_cast<func<double>>(f)->eval(i,j);
+                            return ((func<double>*)(f))->eval(i,j);
                             break;
                         case long_:
-                            return static_pointer_cast<func<long double>>(f)->eval(i,j);
+                            return ((func<long double>*)(f))->eval(i,j);
                             break;
                         default:
                             break;
@@ -2691,25 +2706,25 @@ namespace gravity {
                     break;
                 }
                 default:{
-                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    auto p = ((param_*)(c.get()));
                     switch (p->get_intype()) {
                         case binary_:
-                            return static_pointer_cast<param<bool>>(p)->eval(i,j);
+                            return ((param<bool>*)(p))->eval(i,j);
                             break;
                         case short_:
-                            return static_pointer_cast<param<short>>(p)->eval(i,j);
+                            return ((param<short>*)(p))->eval(i,j);
                             break;
                         case integer_:
-                            return static_pointer_cast<param<int>>(p)->eval(i,j);
+                            return ((param<int>*)(p))->eval(i,j);
                             break;
                         case float_:
-                            return static_pointer_cast<param<float>>(p)->eval(i,j);
+                            return ((param<float>*)(p))->eval(i,j);
                             break;
                         case double_:
-                            return static_pointer_cast<param<double>>(p)->eval(i,j);
+                            return ((param<double>*)(p))->eval(i,j);
                             break;
                         case long_:
-                            return static_pointer_cast<param<long double>>(p)->eval(i,j);
+                            return ((param<long double>*)(p))->eval(i,j);
                             break;
                         default:
                             break;
@@ -2736,7 +2751,7 @@ namespace gravity {
                     return static_pointer_cast<constant<float>>(c)->eval();
                     break;
                 case double_c:
-                    return static_pointer_cast<constant<double>>(c)->eval();
+                    return ((constant<double>*)(c.get()))->eval();
                     break;
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
@@ -2744,29 +2759,29 @@ namespace gravity {
                 case complex_c:
                     return static_pointer_cast<constant<Cpx>>(c)->eval();
                     break;
-                case func_c:{
-                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                {
+                    auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
-                            return static_pointer_cast<func<bool>>(f)->eval(i);
+                            return ((func<bool>*)(f))->eval(i);
                             break;
                         case short_:
-                            return static_pointer_cast<func<short>>(f)->eval(i);
+                            return ((func<short>*)(f))->eval(i);
                             break;
                         case integer_:
-                            return static_pointer_cast<func<int>>(f)->eval(i);
+                            return ((func<int>*)(f))->eval(i);
                             break;
                         case float_:
-                            return static_pointer_cast<func<float>>(f)->eval(i);
+                            return ((func<float>*)(f))->eval(i);
                             break;
                         case double_:
-                            return static_pointer_cast<func<double>>(f)->eval(i);
+                            return ((func<double>*)(f))->eval(i);
                             break;
                         case long_:
-                            return static_pointer_cast<func<long double>>(f)->eval(i);
+                            return ((func<long double>*)(f))->eval(i);
                             break;
                         case complex_:
-                            return static_pointer_cast<func<Cpx>>(f)->eval(i);
+                            return ((func<Cpx>*)(f))->eval(i);
                             break;
                         default:
                             break;
@@ -2782,28 +2797,28 @@ namespace gravity {
                     break;
                 }
                 default:{
-                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    auto p = ((param_*)(c.get()));
                     switch (p->get_intype()) {
                         case binary_:
-                            return static_pointer_cast<param<bool>>(p)->eval(i);
+                            return ((param<bool>*)(p))->eval(i);
                             break;
                         case short_:
-                            return static_pointer_cast<param<short>>(p)->eval(i);
+                            return ((param<short>*)(p))->eval(i);
                             break;
                         case integer_:
-                            return static_pointer_cast<param<int>>(p)->eval(i);
+                            return ((param<int>*)(p))->eval(i);
                             break;
                         case float_:
-                            return static_pointer_cast<param<float>>(p)->eval(i);
+                            return ((param<float>*)(p))->eval(i);
                             break;
                         case double_:
-                            return static_pointer_cast<param<double>>(p)->eval(i);
+                            return ((param<double>*)(p))->eval(i);
                             break;
                         case long_:
-                            return static_pointer_cast<param<long double>>(p)->eval(i);
+                            return ((param<long double>*)(p))->eval(i);
                             break;
                         case complex_:
-                            return static_pointer_cast<param<Cpx>>(p)->eval(i);
+                            return ((param<Cpx>*)(p))->eval(i);
                             break;
                         default:
                             break;
@@ -2829,7 +2844,7 @@ namespace gravity {
                     return static_pointer_cast<constant<float>>(c)->eval();
                     break;
                 case double_c:
-                    return static_pointer_cast<constant<double>>(c)->eval();
+                    return ((constant<double>*)(c.get()))->eval();
                     break;
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
@@ -2837,29 +2852,29 @@ namespace gravity {
                 case complex_c:
                     return static_pointer_cast<constant<Cpx>>(c)->eval();
                     break;
-                case func_c:{
-                    shared_ptr<func_> f = static_pointer_cast<func_>(c);
+                {
+                    auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
-                            return static_pointer_cast<func<bool>>(f)->eval(i,j);
+                            return ((func<bool>*)(f))->eval(i,j);
                             break;
                         case short_:
-                            return static_pointer_cast<func<short>>(f)->eval(i,j);
+                            return ((func<short>*)(f))->eval(i,j);
                             break;
                         case integer_:
-                            return static_pointer_cast<func<int>>(f)->eval(i,j);
+                            return ((func<int>*)(f))->eval(i,j);
                             break;
                         case float_:
-                            return static_pointer_cast<func<float>>(f)->eval(i,j);
+                            return ((func<float>*)(f))->eval(i,j);
                             break;
                         case double_:
-                            return static_pointer_cast<func<double>>(f)->eval(i,j);
+                            return ((func<double>*)(f))->eval(i,j);
                             break;
                         case long_:
-                            return static_pointer_cast<func<long double>>(f)->eval(i,j);
+                            return ((func<long double>*)(f))->eval(i,j);
                             break;
                         case complex_:
-                            return static_pointer_cast<func<Cpx>>(f)->eval(i,j);
+                            return ((func<Cpx>*)(f))->eval(i,j);
                             break;
                         default:
                             break;
@@ -2875,28 +2890,28 @@ namespace gravity {
                     break;
                 }
                 default:{
-                    shared_ptr<param_> p = static_pointer_cast<param_>(c);
+                    auto p = ((param_*)(c.get()));
                     switch (p->get_intype()) {
                         case binary_:
-                            return static_pointer_cast<param<bool>>(p)->eval(i,j);
+                            return ((param<bool>*)(p))->eval(i,j);
                             break;
                         case short_:
-                            return static_pointer_cast<param<short>>(p)->eval(i,j);
+                            return ((param<short>*)(p))->eval(i,j);
                             break;
                         case integer_:
-                            return static_pointer_cast<param<int>>(p)->eval(i,j);
+                            return ((param<int>*)(p))->eval(i,j);
                             break;
                         case float_:
-                            return static_pointer_cast<param<float>>(p)->eval(i,j);
+                            return ((param<float>*)(p))->eval(i,j);
                             break;
                         case double_:
-                            return static_pointer_cast<param<double>>(p)->eval(i,j);
+                            return ((param<double>*)(p))->eval(i,j);
                             break;
                         case long_:
-                            return static_pointer_cast<param<long double>>(p)->eval(i,j);
+                            return ((param<long double>*)(p))->eval(i,j);
                             break;
                         case complex_:
-                            return static_pointer_cast<param<Cpx>>(p)->eval(i,j);
+                            return ((param<Cpx>*)(p))->eval(i,j);
                             break;
                         default:
                             break;
@@ -2907,32 +2922,34 @@ namespace gravity {
         }
         
         inline type eval_coef(shared_ptr<constant_> coef, size_t i) {
-            if (coef->is_function()) {
-                auto f_cst = static_pointer_cast<func<type>>(coef);
+            auto coef_type = coef->get_type();
+            if (coef_type==func_c) {
+                auto f_cst = ((func<type>*)(coef.get()));
                 return f_cst->eval(i);
             }
-            else if(coef->is_param()) {
-                auto p_cst = static_pointer_cast<param<type>>(coef);
+            else if(coef_type==par_c || coef_type==var_c) {
+                auto p_cst = ((param<type>*)(coef.get()));
                 return p_cst->eval(i);
             }
-            else if(coef->is_number()) {
-                auto p_cst = static_pointer_cast<constant<type>>(coef);
+            else {
+                auto p_cst = ((constant<type>*)(coef.get()));
                 return p_cst->eval();
             }
             throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
         }
         
         inline type eval_coef(shared_ptr<constant_> coef, size_t i, size_t j) {
-            if (coef->is_function()) {
-                auto f_cst = static_pointer_cast<func<type>>(coef);
+            auto coef_type = coef->get_type();
+            if (coef_type==func_c) {
+                auto f_cst = ((func<type>*)(coef.get()));
                 return f_cst->eval(i,j);
             }
-            else if(coef->is_param()) {
-                auto p_cst = static_pointer_cast<param<type>>(coef);
+            else if(coef_type==par_c || coef_type==var_c) {
+                auto p_cst = ((param<type>*)(coef.get()));
                 return p_cst->eval(i,j);
             }
-            else if(coef->is_number()) {
-                auto p_cst = static_pointer_cast<constant<type>>(coef);
+            else {
+                auto p_cst = ((constant<type>*)(coef.get()));
                 return p_cst->eval();
             }
             throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");

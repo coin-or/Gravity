@@ -715,19 +715,19 @@ TEST_CASE("testing nonlinear Model"){
 //
 TEST_CASE("testing socopf"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case9241_pegase.m";
+//    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case2383wp_k.m";
     int output = 0;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
     PowerNet grid;
     grid.readgrid(fname);
     auto SOCOPF = grid.build_SCOPF();
-    SOCOPF->print();
+//    SOCOPF->print();
     CHECK(SOCOPF->_type==quad_m);
     solver<> OPF(SOCOPF,ipopt);
     auto time_start = get_wall_time();
     OPF.run(output=5, tol=1e-6);
     auto time_end = get_wall_time();
     DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
-//    CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
+    CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
 }
