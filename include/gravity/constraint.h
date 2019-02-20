@@ -59,23 +59,23 @@ namespace gravity {
             this->_dim[0] = 1;
         };
         
-        Constraint& operator<=(type rhs) {
-            _ctype = leq;
-            *this -= rhs;
-            return *this;
-        }
-        
-        Constraint& operator==(type rhs) {
-            _ctype = eq;
-            *this -= rhs;
-            return *this;
-        }
-        
-        Constraint& operator>=(type rhs) {
-            _ctype = geq;
-            *this -= rhs;
-            return *this;
-        }
+//        Constraint& operator<=(type rhs) {
+//            _ctype = leq;
+//            *this -= rhs;
+//            return *this;
+//        }
+//        
+//        Constraint& operator==(type rhs) {
+//            _ctype = eq;
+//            *this -= rhs;
+//            return *this;
+//        }
+//        
+//        Constraint& operator>=(type rhs) {
+//            _ctype = geq;
+//            *this -= rhs;
+//            return *this;
+//        }
         
         Constraint& operator<=(const param<type>& rhs) {
             _ctype = leq;

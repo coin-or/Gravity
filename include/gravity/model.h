@@ -39,7 +39,7 @@ namespace gravity {
      @param[in] i starting index in v
      @param[in] j ending index in v
      */
-    template<typename type>
+    template<typename type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
     void compute_constrs(vector<shared_ptr<Constraint<type>>>& v, double* res, size_t i, size_t j){
         DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
         for (size_t idx = i; idx < j; idx++) {
@@ -66,7 +66,7 @@ namespace gravity {
      @param[in] first_call true if first_call to this function, false otherwise
      @param[in] jac_vals Gravity's internal vector for storing the results
      */
-    template<typename type>
+    template<typename type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
     void compute_jac(vector<shared_ptr<Constraint<type>>>& vec, double* res, size_t i, size_t j, bool first_call, vector<double>& jac_vals){
         size_t cid = 0, id_inst = 0;
         string vid;
@@ -166,43 +166,43 @@ namespace gravity {
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,set<pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         
-//        Model& operator=(const Model& m){
-//            _name = m._name;
-//            _hess = m._hess;
-//            _nl_funcs =m._nl_funcs;
-//            _nl_funcs_map = m._nl_funcs_map;
-//            _has_lazy = m._has_lazy;
-//            _built = m._built;
-//            _first_run = m._first_run;
-//            _first_call_gard_obj = m._first_call_gard_obj;
-//            _first_call_jac = m._first_call_jac;
-//            _first_call_hess = m._first_call_hess;
-//            _convexity = m._convexity;
-//            _type = m._type;
-//            _nb_vars = m._nb_vars;
-//            _nb_params = m._nb_params;
-//            _nb_cons = m._nb_cons;
-//            _nnz_g = m._nnz_g;
-//            _nnz_h = m._nnz_h;
-//            _nnz_g_obj = m._nnz_g_obj;
-//            _jac_vals = m._jac_vals;
-//            _obj_grad_vals = m._obj_grad_vals;
-//            _hess_vals = m._hess_vals;
-//            _params = m._params;
-//            _vars = m._vars;
-//            _int_vars = m._int_vars;
-//            _params_name = m._params_name;
-//            _vars_name = m._vars_name;
-//            _cons_vec = m._cons_vec;
-//            _cons = m._cons;
-//            _cons_name = m._cons_name;
-//            _v_in_cons = m._v_in_cons;
-//            _obj = m._obj->copy();
-//            _objt = m._objt;
-//            _status = m._status;
-//            _hess_link = m._hess_link;
-//            return *this;
-//        }
+        Model& operator=(const Model& m){
+            _name = m._name;
+            _hess = m._hess;
+            _nl_funcs =m._nl_funcs;
+            _nl_funcs_map = m._nl_funcs_map;
+            _has_lazy = m._has_lazy;
+            _built = m._built;
+            _first_run = m._first_run;
+            _first_call_gard_obj = m._first_call_gard_obj;
+            _first_call_jac = m._first_call_jac;
+            _first_call_hess = m._first_call_hess;
+            _convexity = m._convexity;
+            _type = m._type;
+            _nb_vars = m._nb_vars;
+            _nb_params = m._nb_params;
+            _nb_cons = m._nb_cons;
+            _nnz_g = m._nnz_g;
+            _nnz_h = m._nnz_h;
+            _nnz_g_obj = m._nnz_g_obj;
+            _jac_vals = m._jac_vals;
+            _obj_grad_vals = m._obj_grad_vals;
+            _hess_vals = m._hess_vals;
+            _params = m._params;
+            _vars = m._vars;
+            _int_vars = m._int_vars;
+            _params_name = m._params_name;
+            _vars_name = m._vars_name;
+            _cons_vec = m._cons_vec;
+            _cons = m._cons;
+            _cons_name = m._cons_name;
+            _v_in_cons = m._v_in_cons;
+            _obj = m._obj->copy();
+            _objt = m._objt;
+            _status = m._status;
+            _hess_link = m._hess_link;
+            return *this;
+        }
         
         /** Constructor */
         //@{
@@ -473,7 +473,7 @@ namespace gravity {
         
         
         
-        void add(const Constraint<type>& c){
+        void add(Constraint<type>& c){
             if (c.get_dim()==0) {
                 return;
             }
@@ -675,7 +675,7 @@ namespace gravity {
             _objt = t;
         }
         
-        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         bool has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
             //    if (!_has_lazy) {
             //        return false;
@@ -918,6 +918,7 @@ namespace gravity {
             }
         }
         
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_obj(const double* x , double& res, bool new_x){
             if (new_x) {
                 set_x(x);
@@ -927,7 +928,7 @@ namespace gravity {
             DebugOff("Objective = " << to_string(res) << endl);
         }
         
-        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_grad_obj(const double* x , double* res, bool new_x){
             param_* v;
             shared_ptr<func<type>> df;
@@ -1178,6 +1179,7 @@ namespace gravity {
             cout << "Objective = " << to_string_with_precision(_obj->get_val(),prec) << endl;
         }
         
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_cstr(const double* x , double* res, bool new_x){
             if (new_x) {
                 set_x(x);
@@ -1248,7 +1250,7 @@ namespace gravity {
         
         
         /* Fill the nonzero values in the jacobian */
-        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_jac(const double* x , double* res, bool new_x){
             //    if (!_first_call_jac && (!new_x || _type==lin_m)) { /* No need to recompute jacobian for linear models */
             if (new_x) {
@@ -1527,7 +1529,7 @@ namespace gravity {
             _hess_vals.resize(idx_all);
         }
         
-        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_hess(const double* x , double obj_factor, const double* lambda, double* res, bool new_x){
             size_t idx = 0, idx_in = 0, c_inst = 0, idx_pair=0;
             shared_ptr<Constraint<type>> c;
@@ -2047,7 +2049,7 @@ namespace gravity {
             
         }
         
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_var_init(double* x) {
             for(auto& v_p: _vars){
                 v_p.second->set_double_val(x);
@@ -2585,19 +2587,26 @@ namespace gravity {
     
 //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
 
-    template<typename T>
-    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
-        auto fcpy = f.copy();
-        f->_val->resize(1);
-        return make_pair<>(f,maximize);
-    };
-    
-    template<typename T>
-    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
-        auto fcpy = f.copy();
-        f->_val->resize(1);
-        return make_pair<>(f,minimize);
-    };
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
+//        auto fcpy = f.copy();
+//        fcpy->allocate_mem();
+//        return make_pair<>(fcpy,maximize);
+//    };
+//
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
+//        auto fcpy = f.copy();
+//        f->_val->resize(1);
+//        return make_pair<>(fcpy,minimize);
+//    };
+//
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
+//        f->_val->resize(1);
+//        auto fcpy = move(f.copy());
+//        return make_pair<>(fcpy,minimize);
+//    };
 
     template<typename type = double>
     class Program{

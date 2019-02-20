@@ -85,15 +85,15 @@ int main (int argc, char * argv[])
     else {
         DebugOn("Using rectangular model\n");
     }
-    Model CPXOPF("CPX-OPF Model");
+    Model<Cpx> CPXOPF("CPX-OPF Model");
     /** Variables */
     /* Power generation variables */
     var<Cpx> Sg("Sg", grid.Sg_min, grid.Sg_max);
     CPXOPF.add(Sg.in(grid.gens));
     
     /* Power flow variables */
-    var<Cpx> S_from("S_from", grid.S_max);
-    var<Cpx> S_to("S_to", grid.S_max);
+    var<Cpx> S_from("S_from", -1*grid.S_max,grid.S_max);
+    var<Cpx> S_to("S_to", -1*grid.S_max,grid.S_max);
     CPXOPF.add(S_from.in(grid.arcs),S_to.in(grid.arcs));
     
     /** Voltage variables */
@@ -101,55 +101,55 @@ int main (int argc, char * argv[])
     CPXOPF.add(V.in(grid.nodes));
                
     /** Construct the objective function */
-    auto obj = product(c1, real(Sg)) + product(c2, power(real(Sg),2)) + sum(c0);
+    auto obj = c1.tr()*real(Sg) + c2.tr()*pow(real(Sg),2) + sum(c0);
     CPXOPF.min(obj.in(grid.gens));
     
     /** Define constraints */
     
     /* Ref Bus */
-    Constraint Ref_Bus("Ref_Bus");
+    Constraint<Cpx> Ref_Bus("Ref_Bus");
     Ref_Bus = imag(V)(ref_bus);
     CPXOPF.add(Ref_Bus == 0);
     
     /** KCL Flow conservation */
-    Constraint KCL("KCL");
+    Constraint<Cpx> KCL("KCL");
     KCL  = sum(S_from.out_arcs()) + sum(S_to.in_arcs()) + Sd - sum(Sg.in_gens()) + conj(Ysh)*sqrmag(V);
     CPXOPF.add(KCL.in(grid.nodes) == 0);
     
     /** AC Power Flows */
-    Constraint Flow_From("Flow_From");
-    Flow_From = S_from - (conj(Y+Ych)/sqrmag(T))*sqrmag(V.from()) + (conj(Y)/T)*V.from()*conj(V.to());
+    Constraint<Cpx> Flow_From("Flow_From");
+    Flow_From = S_from - ((conj(Y)+conj(Ych))/sqrmag(T))*sqrmag(V.from()) + (conj(Y)/T)*V.from()*conj(V.to());
     CPXOPF.add(Flow_From.in(grid.arcs)==0);
     
-    Constraint Flow_To("Flow_To");
-    Flow_To = S_to - (conj(Y+Ych))*sqrmag(V.to()) + (conj(Y)/conj(T))*conj(V.from())*V.to();
+    Constraint<Cpx> Flow_To("Flow_To");
+    Flow_To = S_to - (conj(Y)+conj(Ych))*sqrmag(V.to()) + (conj(Y)/conj(T))*conj(V.from())*V.to();
     CPXOPF.add(Flow_To.in(grid.arcs)==0);
     
     /* Phase Angle Bounds constraints */
     auto bus_pairs = grid.get_bus_pairs();
-    Constraint PAD_UB("PAD_UB");
+    Constraint<Cpx> PAD_UB("PAD_UB");
     PAD_UB = ang(V.from()) - ang(V.to());
     PAD_UB -= grid.th_max;
     CPXOPF.add(PAD_UB.in(bus_pairs) <= 0);
-    Constraint PAD_LB("PAD_LB");
+    Constraint<Cpx> PAD_LB("PAD_LB");
     PAD_LB = ang(V.from()) - ang(V.to());
     PAD_LB -= grid.th_min;
     CPXOPF.add(PAD_LB.in(bus_pairs) >= 0);
     
     /*  Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from = sqrmag(S_from) - power(grid.S_max, 2);
+    Constraint<Cpx> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from = sqrmag(S_from) - pow(grid.S_max, 2);
     CPXOPF.add(Thermal_Limit_from.in(grid.arcs) <= 0);
     
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to = sqrmag(S_to) - power(grid.S_max,2);
+    Constraint<Cpx> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = sqrmag(S_to) - pow(grid.S_max,2);
     CPXOPF.add(Thermal_Limit_to.in(grid.arcs) <= 0);
     CPXOPF.print_symbolic();
     CPXOPF.print();
     return 0;
-    solver OPF(CPXOPF,ipopt);
+//    solver<Cpx> OPF(CPXOPF,ipopt);
     auto solver_time_start = get_wall_time();
-    OPF.run(output, relax = false, tol = 1e-6, 0.02, "mumps");
+//    OPF.run(output, tol = 1e-6);
     auto solver_time_end = get_wall_time();
     auto total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
@@ -160,7 +160,7 @@ int main (int argc, char * argv[])
     /* CPXOPF.print(); */
     
     /** Terminal output **/
-    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(CPXOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(CPXOPF.get_obj_val().real()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     
     return 0;

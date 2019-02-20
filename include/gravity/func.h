@@ -199,12 +199,7 @@ namespace gravity {
         qterm* get_square(shared_ptr<param_> p); /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/
         
         
-        /**
-         Index the function and its variables/parameters using the indices in ids
-         @param[in] ids indices
-         @return current function
-         */
-        func_& in(const indices& ids);
+        
         
         
         /**
@@ -424,6 +419,41 @@ namespace gravity {
         
         bool is_constant() const{
             return (_vars->empty());
+        }
+        
+        
+        /**
+         Index the function and its variables/parameters using the indices in ids
+         @param[in] ids indices
+         @return current function
+         */
+        func& in(const indices& ids){
+            _nb_vars = 0;
+            string key;
+            auto iter = _vars->begin();
+            while (iter!=_vars->end()) {
+                auto pair = (*iter++);
+                auto v = pair.second.first;
+                if(!v->is_indexed()){
+                    v->index_in(ids);
+                }
+                if (!v->_is_vector) {// i.e., it is not transposed
+                    _nb_vars++;
+                }
+                else {
+                    _nb_vars += v->get_dim();
+                }
+            }
+            iter = _params->begin();
+            while (iter!=_params->end()) {
+                auto pair = (*iter++);
+                auto p = pair.second.first;
+                if(!p->is_indexed()){
+                    p->index_in(ids);
+                }
+            }
+            _indices = make_shared<indices>(ids);
+            return *this;
         }
         
         
@@ -5954,6 +5984,13 @@ namespace gravity {
         return res;
     }
     
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    func<T> cos(const func<T>& f){
+        func<T> res(uexpr<T>(cos_, f.copy()));
+        res._all_convexity = undet_;
+        return res;
+    }
+    
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> sin(const func<T>& f){
         func<T> res(uexpr<T>(sin_, f.copy()));
@@ -5976,6 +6013,13 @@ namespace gravity {
         if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
             res._range->first = -1;
         }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    func<T> sin(const func<T>& f){
+        func<T> res(uexpr<T>(sin_, f.copy()));
+        res._all_convexity = undet_;
         return res;
     }
     
