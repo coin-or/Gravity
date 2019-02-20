@@ -1475,7 +1475,6 @@ void PowerNet::save_all_sol(const string& fname){
 
 
 shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
-
     auto bus_pairs = get_bus_pairs();
     /** MODEL DECLARATION */
     shared_ptr<Model<>> SOCPF(new Model<>("SCOPF Model"));
