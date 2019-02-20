@@ -63,7 +63,7 @@ int main (int argc, char * argv[])
     DebugOn("nb lines = " << nb_lines << endl);
     DebugOn("nb buses = " << nb_buses << endl);
     
-    PowerModelType pmt = ACPOL;
+    PowerModelType pmt = ACRECT;
     if(!strcmp(mtype.c_str(),"ACRECT")) pmt = ACRECT;
     bool polar = (pmt==ACPOL);
     if (polar) {
@@ -105,6 +105,11 @@ int main (int argc, char * argv[])
         vr.initialize_all(1.0);
     }
     
+    /** Sets */
+    auto gens = grid.gens_per_node();
+    auto out_arcs = grid.out_arcs_per_node();
+    auto in_arcs = grid.in_arcs_per_node();
+    
     /** Construct the objective function */
     /**  Objective */
     auto obj = grid.c1.tr()*Pg + grid.c2.tr()*pow(Pg,2) + sum(grid.c0);
@@ -125,8 +130,8 @@ int main (int argc, char * argv[])
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
     Constraint<> KCL_Q("KCL_Q");
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens());
-    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens());
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gens);
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + grid.ql - sum(Qg, gens);
     /* Shunts */
     if (polar) {
         KCL_P +=  grid.gs*pow(v,2);
@@ -245,7 +250,7 @@ int main (int argc, char * argv[])
     ACOPF.add(Thermal_Limit_to.in(grid.arcs) <= 0);
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output, tol = 1e-6);
+    OPF.run(output=5, tol = 1e-6);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;

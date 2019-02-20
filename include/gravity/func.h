@@ -2615,7 +2615,7 @@ namespace gravity {
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                {
+                case func_c:{
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
@@ -2701,7 +2701,7 @@ namespace gravity {
                 case long_c:
                     return static_pointer_cast<constant<long double>>(c)->eval();
                     break;
-                {
+                case func_c:{
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
@@ -2789,7 +2789,7 @@ namespace gravity {
                 case complex_c:
                     return static_pointer_cast<constant<Cpx>>(c)->eval();
                     break;
-                {
+                case func_c:{
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
@@ -2882,7 +2882,7 @@ namespace gravity {
                 case complex_c:
                     return static_pointer_cast<constant<Cpx>>(c)->eval();
                     break;
-                {
+                case func_c:{
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
