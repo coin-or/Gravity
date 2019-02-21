@@ -275,15 +275,15 @@ namespace gravity {
         
         template<typename... Args>
         var in(const indices& vec1, Args&&... args) {
-            bool indexed = param<type>::_indices!=nullptr;
+//            bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));
-            if(!indexed && !res._lb->is_number()){
-                (res._lb->index_in(*res._indices));
-            }
-            if(!indexed && !res._ub->is_number()){
-                (res._ub->index_in(*res._indices));
-            }
+            res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
+//            if(!indexed && !res._lb->is_number()){
+//                (res._lb->index_in(*res._indices));
+//            }
+//            if(!indexed && !res._ub->is_number()){
+//                (res._ub->index_in(*res._indices));
+//            }
             res._lb->allocate_mem();
             res._ub->allocate_mem();
             return res;
