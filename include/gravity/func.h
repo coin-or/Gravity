@@ -427,7 +427,7 @@ namespace gravity {
          @param[in] ids indices
          @return current function
          */
-        func& in(const indices& ids){
+        func& in(const indices& ids){//TODO assert each var and param that is not transposed has same dim as ids
             _nb_vars = 0;
             string key;
             auto iter = _vars->begin();
@@ -749,39 +749,16 @@ namespace gravity {
             if(!has_var(v)){
                 return res;
             }
-            auto name = v.get_name(false,false);
-            for (auto &lt: *_lterms) {
-                if (lt.second._p->get_name(false,false) == name) {
-                    auto coef = lt.second._coef->copy();
-                    if ((coef->_is_vector && coef->_is_transposed)) {
-                        coef->transpose();
-                    }
-                    if (coef->is_function()) {
-                        auto f_cst = ((func<type>*)(coef.get()));
-                        res = move(*f_cst);
-                    }
-                    else if(coef->is_param()) {
-                        auto p_cst = ((param<type>*)(coef.get()));
-                        res = move(*p_cst);
-                    }
-                    else if(coef->is_number()) {
-                        auto p_cst = ((constant<type>*)(coef.get()));
-                        res = move(*p_cst);
-                    }
-                    if(!lt.second._sign){
-                        res.reverse_sign();
-                    }
-                    break;
-                }
+            if(v._is_vector){
+                res._is_vector=true;
             }
+            auto name = v.get_name(false,false);
             for (auto &lt: *_qterms) {
                 if (lt.second._p->first->get_name(false,false) == name) {
+                    res.update_dim(v);
                     auto coef = lt.second._coef->copy();
-                    if ((coef->_is_vector && coef->_is_transposed)) {
+                    if (coef->_is_transposed) {
                         coef->transpose();//TODO is this needed?
-                    }
-                    else {
-                        res.update_dim(v);
                     }
                     if (coef->is_function()) {
                         auto f_cst = *((func<type>*)(coef.get()));
@@ -814,12 +791,10 @@ namespace gravity {
                     }
                 }
                 if (lt.second._p->second->get_name(false,false) == name) {
+                    res.update_dim(v);
                     auto coef = lt.second._coef->copy();
-                    if ((coef->_is_vector && coef->_is_transposed)) {
+                    if (coef->_is_transposed) {
                         coef->transpose();//TODO is this needed?
-                    }
-                    else {
-                        res.update_dim(v);
                     }
                     if (coef->is_function()) {
                         auto f_cst = *((func<type>*)(coef.get()));
@@ -872,23 +847,39 @@ namespace gravity {
                     }
                     it++;
                 }
-                if(has_v){
+                if(has_v){//TODO fix range propagation for square terms
+                    res.update_dim(v);
                     auto pterm_range = get_range(newl);
                     pterm_range.first *= expo;
                     pterm_range.second *= expo;
                     if (lt.second._coef->is_function()) {
                         auto f_cst = *static_pointer_cast<func<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*f_cst, *newl);
+                        if(newl->size()==1 && newl->front().second==2){
+                            res.insert(lt.second._sign, expo*f_cst, *newl->front().first,*newl->front().first);
+                        }
+                        else{
+                            res.insert(lt.second._sign, expo*f_cst, *newl);
+                        }
                         pterm_range = *get_product_range(make_shared<pair<type,type>>(pterm_range), f_cst._range);
                     }
                     else if(lt.second._coef->is_param()) {
                         auto p_cst = *static_pointer_cast<param<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*p_cst, *newl);
+                        if(newl->size()==1 && newl->front().second==2){
+                            res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->front().first);
+                        }
+                        else{
+                            res.insert(lt.second._sign, expo*p_cst, *newl);
+                        }
                         pterm_range = *get_product_range(make_shared<pair<type,type>>(pterm_range), p_cst._range);
                     }
                     else if(lt.second._coef->is_number()) {
                         auto p_cst = *static_pointer_cast<constant<type>>(lt.second._coef);
-                        res.insert(lt.second._sign, expo*p_cst, *newl);
+                        if(newl->size()==1 && newl->front().second==2){
+                            res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->front().first);
+                        }
+                        else{
+                            res.insert(lt.second._sign, expo*p_cst, *newl);
+                        }
                         pterm_range.first = min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
                         pterm_range.second = max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
                     }
@@ -902,14 +893,44 @@ namespace gravity {
                     }
                 }
             }
-            if (!_expr) {
-                //            res.untranspose();
-                return res;
-            }
-            else { // f is a composition of functions
+            if (_expr) {
                 res += get_derivative(_expr,v);
-                return res;
             }
+            for (auto &lt: *_lterms) {
+                if (lt.second._p->get_name(false,false) == name) {
+                    auto coef = lt.second._coef->copy();
+                    if (coef->_is_transposed) {
+                        coef->transpose();
+                    }
+                    if (coef->is_function()) {
+                        if(lt.second._sign){
+                            res += *((func<type>*)(coef.get()));
+                        }
+                        else {
+                            res -= *((func<type>*)(coef.get()));
+                        }
+                        
+                    }
+                    else if(coef->is_param()) {
+                        if(lt.second._sign){
+                            res += *((param<type>*)(coef.get()));
+                        }
+                        else {
+                            res -= *((param<type>*)(coef.get()));
+                        }
+                    }
+                    else if(coef->is_number()) {
+                        if(lt.second._sign){
+                            res += *((constant<type>*)(coef.get()));
+                        }
+                        else {
+                            res -= *((constant<type>*)(coef.get()));
+                        }
+                    }
+                    break;
+                }
+            }
+            return res;
         }
         
         
@@ -1326,22 +1347,7 @@ namespace gravity {
                 str += pair.second.to_str();
             }
             if(!_cst->is_zero()){
-                if (_cst->is_number() || _cst->func_is_number()) {
-                    auto val = _cst->to_str();
-                    if (val.front()=='-') {
-                        str += " - " + val.substr(1);
-                    }
-                    else if (val != "0"){
-                        str += " + ";
-                        str += val;
-                    }
-                }
-                else {
-                    str += " + ";
-                    str += "(";
-                    str += _cst->to_str();
-                    str += ")";
-                }
+                str += clean_print(true, _cst->to_str());
             }
             if (_expr) {
                 str += " + ";
@@ -1580,11 +1586,27 @@ namespace gravity {
             }
         }
 
+        /** Returns true if the current function is just a wrapper to a parameter */
+        bool func_is_param() const{
+            return _cst->is_zero() && _qterms->empty() && _pterms->empty() && !_expr && _lterms->size()==1 && _lterms->begin()->second._p->is_param() && _lterms->begin()->second._sign && _lterms->begin()->second._coef->is_unit() && _lterms->begin()->second._p->get_intype()==_return_type;
+        }
+        
+        param<type> func_get_param() const{
+            auto p = *(param<type>*)(_lterms->begin()->second._p.get());
+            if(_is_transposed && ! p._is_transposed){
+                p.transpose();
+            }
+            return p;
+        }
+        
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         shared_ptr<constant_> multiply(shared_ptr<constant_> coef, const constant<T2>& c){
             if (coef->is_function()) {
                 auto f_cst = *((func<type>*)(coef.get()));
+                if(c.is_unit() && f_cst.func_is_param()){
+                    return f_cst.func_get_param().copy();
+                }
                 f_cst *= func<type>(c);
                 return f_cst.copy();
             }

@@ -259,7 +259,7 @@ TEST_CASE("testing vector dot product"){
     CHECK(lin5.is_convex());
     lin5.print_symbolic();
     lin5.print();
-    CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)[z] + (b)");
+    CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)[z] + b");
     auto lin6 = (a+exp(b)).tr()*z;
     lin6.print_symbolic();
     CHECK(lin6.is_linear());

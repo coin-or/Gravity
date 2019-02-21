@@ -10,6 +10,44 @@
 #include <gravity/func.h>
 
 using namespace std;
+
+string clean_print(bool pos, const string& v, bool brackets){
+    if(pos){
+        if (v=="-1" || v==" - 1" || v=="(-1,0)") {
+            return " - ";
+        }
+        else if (v.front()=='-'){
+            return " - " + v.substr(1);
+        }
+        else if(v=="1" || v==" + 1" || v=="(1,0)") {
+            return " + ";
+        }
+        else if(brackets){
+            return " + ("+v+")";
+        }
+        else{
+            return " + " + v;
+        }
+    }
+    else {
+        if (v == "-1" || v==" - 1" || v=="(-1,0)") {
+            return " + ";
+        }
+        else if (v.front()=='-'){
+            return " + " + v.substr(1);
+        }
+        else if (v=="1" || v==" + 1" || v=="(1,0)"){
+            return " - ";
+        }
+        else if(brackets){
+            return " - ("+v+")";
+        }
+        else{
+            return " - " + v;
+        }
+    }
+}
+
 namespace gravity{
 
     lterm::lterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p){
@@ -252,42 +290,42 @@ namespace gravity{
 //
 //
 //
-    string clean_print(bool pos, const string& v, bool brackets = false){
-        if(pos){
-            if (v=="-1" || v==" - 1" || v=="(-1,0)") {
-                return " - ";
-            }
-            else if (v.front()=='-'){
-                return " - " + v.substr(1);
-            }
-            else if(v=="1" || v==" + 1" || v=="(1,0)") {
-                return " + ";
-            }
-            else if(brackets){
-                return " + ("+v+")";
-            }
-            else{
-                return " + " + v;
-            }
-        }
-        else {
-            if (v == "-1" || v==" - 1" || v=="(-1,0)") {
-                return " + ";
-            }
-            else if (v.front()=='-'){
-                return " + " + v.substr(1);
-            }
-            else if (v=="1" || v==" + 1" || v=="(1,0)"){
-                return " - ";
-            }
-            else if(brackets){
-                return " - ("+v+")";
-            }
-            else{
-                return " - " + v;
-            }
-        }
-    }
+//    string clean_print(bool pos, const string& v, bool brackets = false){
+//        if(pos){
+//            if (v=="-1" || v==" - 1" || v=="(-1,0)") {
+//                return " - ";
+//            }
+//            else if (v.front()=='-'){
+//                return " - " + v.substr(1);
+//            }
+//            else if(v=="1" || v==" + 1" || v=="(1,0)") {
+//                return " + ";
+//            }
+//            else if(brackets){
+//                return " + ("+v+")";
+//            }
+//            else{
+//                return " + " + v;
+//            }
+//        }
+//        else {
+//            if (v == "-1" || v==" - 1" || v=="(-1,0)") {
+//                return " + ";
+//            }
+//            else if (v.front()=='-'){
+//                return " + " + v.substr(1);
+//            }
+//            else if (v=="1" || v==" + 1" || v=="(1,0)"){
+//                return " - ";
+//            }
+//            else if(brackets){
+//                return " - ("+v+")";
+//            }
+//            else{
+//                return " - " + v;
+//            }
+//        }
+//    }
     
     string print_expo(int exp){
         string str;
@@ -422,26 +460,30 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (c_new->is_number()){
-            coef = c_new->to_str(prec);
+        if (c_new->_is_transposed) {
+            str += print_transposed(ind,prec);
         }
-        else {
-            coef = c_new->to_str(ind,prec);
+        else{
+            if (c_new->is_number()){
+                coef = c_new->to_str(prec);
+            }
+            else {
+                coef = c_new->to_str(ind,prec);
+            }
+            if(_coef_p1_tr){
+                str += "(";
+            }
+            str += clean_print(_sign,coef);
+            str += p_new1->get_name(ind);
+            if(_coef_p1_tr){
+                str += ")\u1D40";
+            }
+            else if (p_new1==p_new2) {
+                str += "²";
+                return str;
+            }
+            str += p_new2->get_name(ind);
         }
-        if(_coef_p1_tr){
-            str += "(";
-        }
-        str += clean_print(_sign,coef);
-        str += p_new1->get_name(ind);
-        if(_coef_p1_tr){
-            str += ")\u1D40";
-        }
-        else if (p_new1==p_new2) {
-            str += "²";
-            return str;
-        }
-//            str += ".";
-        str += p_new2->get_name(ind);
         return str;
     }
     
@@ -504,6 +546,57 @@ namespace gravity{
             }
             str += clean_print(_sign,coef);
             str += _p->get_name(idx);
+        }
+        return str;
+    }
+    
+    string qterm::print_transposed(int prec) const{
+        auto dim = _coef->get_dim();
+        string str;
+        for (auto idx = 0; idx <dim; idx++) {
+            string coef;
+            if (_coef->is_number()){
+                coef = _coef->to_str(prec);
+            }
+            else {
+                coef = _coef->to_str(idx,prec);
+            }
+            str += clean_print(_sign,coef);
+            if (_p->first==_p->second) {
+                str += _p->first->get_name(idx)+ "²";
+            }
+            else {
+                str += _p->first->get_name(idx)+ _p->second->get_name(idx);
+            }
+        }
+        return str;
+    }
+    
+    string qterm::print_transposed(size_t inst, int prec) const{
+        if(!_p->first->is_double_indexed()){
+            return print_transposed(prec);
+        }
+        string str;
+        auto dim = _coef->get_dim(inst);
+        if(dim==0){
+            return str;
+        }
+        
+        for (auto idx = 0; idx <dim; idx++) {
+            string coef;
+            if (_coef->is_number()){
+                coef = _coef->to_str(prec);
+            }
+            else {
+                coef = _coef->to_str(inst, idx,prec);
+            }
+            str += clean_print(_sign,coef);
+            if (_p->first==_p->second) {
+                str += _p->first->get_name(inst,idx)+ "²";
+            }
+            else {
+                str += _p->first->get_name(inst,idx)+ _p->second->get_name(inst,idx);
+            }
         }
         return str;
     }

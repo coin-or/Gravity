@@ -21,6 +21,8 @@
 
 using namespace std;
 
+string clean_print(bool pos, const string& v, bool brackets = false);
+    
 namespace gravity {
     
     
@@ -199,6 +201,8 @@ namespace gravity {
         string to_str(size_t ind, int prec) const;
         string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
+        string print_transposed(int prec) const;
+        string print_transposed(size_t idx, int prec) const;
     };
 
 
