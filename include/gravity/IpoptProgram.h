@@ -69,6 +69,12 @@ public:
                                          )
     {
         _model->set_x(x);
+//        cout << "hess vals = " << endl;
+//        for (size_t i = 0; i<_model->_hess_vals.size(); i++) {
+//            if(_model->_hess_vals[i]!=0)
+//                cout << _model->_hess_vals[i];
+//        }
+//        cout << endl;
 //        _model->_obj_val = obj_value;
         //    _model->print_solution();
         //    _model->compute_funcs();

@@ -25,6 +25,17 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing numerical precision") {
+    double bMVA = 100.0;
+    double smax = 1089;
+    double smax2 = pow(smax/bMVA,2);
+//    CHECK(smax2==118.5921);
+    smax2 = (smax/bMVA)*(smax/bMVA);
+//    CHECK(smax2==118.5921);
+    smax = 996.0;
+    smax2 = smax/bMVA;
+    CHECK(smax2==9.9600000000000008);
+}
 
 TEST_CASE("testing constants") {
     constant<> c0;
@@ -730,4 +741,5 @@ TEST_CASE("testing socopf"){
     auto time_end = get_wall_time();
     DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
     CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
+    CHECK(OPF.get_nb_iterations()==24);
 }

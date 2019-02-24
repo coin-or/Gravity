@@ -14,6 +14,22 @@
 #include <gravity/model.h>
 #ifdef USE_IPOPT
 #include <gravity/IpoptProgram.h>
+//#include "IpoptInterfaceCommon.h"
+#include <coin/IpRegOptions.hpp>
+#include <coin/IpJournalist.hpp>
+#include <coin/IpIpoptApplication.hpp>
+#include <coin/IpSolveStatistics.hpp>
+
+
+using Ipopt::IsValid;
+using Ipopt::RegisteredOption;
+using Ipopt::EJournalLevel;
+using Ipopt::Journal;
+using Ipopt::IpoptApplication;
+using Ipopt::SmartPtr;
+using Ipopt::TNLP;
+using Ipopt::ApplicationReturnStatus;
+using Ipopt::SolveStatistics;
 #endif
 #ifdef USE_GUROBI
 #include <gravity/GurobiProgram.h>
@@ -56,7 +72,8 @@ namespace gravity {
         shared_ptr<gravity::Model<type>>          _model = nullptr;
         shared_ptr<Program<type>>                 _prog = nullptr;
         SolverType                                _stype;
-        type                                      _tol; /*<< Solver tolerance. */
+        type                                      _tol = 1e-6; /*<< Solver tolerance. */
+        unsigned                                  _nb_iterations = 0;
         
         /** Constructor */
         //@{
@@ -73,6 +90,10 @@ namespace gravity {
             _model = make_shared<gravity::Model<type>>(model);
             init();
         }
+        
+        unsigned get_nb_iterations(){
+            return _nb_iterations;
+        };
         
         void init(){
             if (_stype==ipopt) {
@@ -234,6 +255,10 @@ namespace gravity {
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
                     status = iapp->OptimizeTNLP(tmp);
+                    if (IsValid(iapp->Statistics())) {
+                        SmartPtr<SolveStatistics> stats = iapp->Statistics();
+                        _nb_iterations = stats->IterationCount();                        
+                    }
                     if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();

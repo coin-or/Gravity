@@ -87,9 +87,11 @@ namespace gravity {
         
         virtual void print(){};
         
+        virtual void print_vals(int prec){};
+        
         virtual void print_symbolic() const{};
         
-        virtual void print(bool vals, int prec){};
+        virtual void print(int prec){};
 
         void set_id(size_t idx) {
             *_id = idx;
@@ -111,15 +113,15 @@ namespace gravity {
         
         size_t get_id_inst(size_t inst = 0) const {            
             if (is_indexed()) {
-                if(_indices->_ids->at(0).size() <= inst){
-                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
-                }
+//                if(_indices->_ids->at(0).size() <= inst){
+//                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+//                }
                 return _indices->_ids->at(0).at(inst);
             }
-            auto dim = get_dim();
-            if(inst > dim-1){
-                throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
-            }
+//            auto dim = get_dim();
+//            if(inst > dim-1){
+//                throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+//            }
             return inst;
         };
 
@@ -1583,14 +1585,7 @@ namespace gravity {
                 return to_string_with_precision(eval(index), prec);
             }
         }
-
-        void print(size_t index, int prec = 10)  {
-            cout << to_str(index,prec);
-        }
-
-        void print(size_t i, size_t j, int prec = 10) {
-            cout << to_str(i,j,prec);
-        }
+        
         
         inline size_t get_id_inst(unsigned inst = 0) const {
             if (is_indexed()) {
@@ -1657,12 +1652,17 @@ namespace gravity {
             return str;
         }
         
+        
         void print() {
-            cout << this->to_str_vals(true, 10);
+            print(16);
         }
 
-        void print(bool vals, int prec) {
-            cout << this->to_str_vals(vals, prec);
+        void print_vals(int prec){
+            cout << this->to_str_vals(true, prec);
+        }
+        
+        void print(int prec) {
+            print_vals(prec);
         }
 
 
@@ -1738,12 +1738,14 @@ namespace gravity {
             }
         };
         
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
-        void copy_vals(const param_& p){
+        
+        
+        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
+        void copy_vals(const param<T>& p){
             auto dim = p.get_dim();
             _val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
-//                _val->at(i) = this->eval(p,i);
+                _val->at(i) = p._val->at(i);
             }
         }
                 
