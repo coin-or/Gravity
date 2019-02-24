@@ -20,7 +20,7 @@ int main (int argc, char * argv[])
 {
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
     int output = 0;
-    bool relax = false;
+//    bool relax = false;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
     
@@ -78,8 +78,23 @@ int main (int argc, char * argv[])
     auto c1 = grid.c1.in(gens);
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
-    
-
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto v_min = grid.v_min.in(nodes);
+    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
+    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
     
     PowerModelType pmt = ACRECT;
     if(!strcmp(mtype.c_str(),"ACRECT")) pmt = ACRECT;
@@ -96,31 +111,34 @@ int main (int argc, char * argv[])
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
     ACOPF.add(Pg.in(gens),Qg.in(gens));
-    
+//    Pg.copy_vals(grid.pg_s);
+//    Pg.initialize_av();
+//    Qg.initialize_uniform();
     /* Power flow variables */
-    var<> Pf_from("Pf_from", -1*grid.S_max,grid.S_max);
-    var<> Qf_from("Qf_from", -1*grid.S_max,grid.S_max);
-    var<> Pf_to("Pf_to", -1*grid.S_max,grid.S_max);
-    var<> Qf_to("Qf_to", -1*grid.S_max,grid.S_max);
-    
+    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+    var<> Qf_to("Qf_to", -1.*S_max,S_max);
     ACOPF.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    
     
     /** Voltage related variables */
     var<> theta("theta");
-    var<> v("|V|", grid.v_min, grid.v_max);
-    var<> vr("vr", -1*grid.v_max,grid.v_max);
-    var<> vi("vi", -1*grid.v_max,grid.v_max);
+    var<> v("|V|", v_min, v_max);
+    var<> vr("vr", -1.*v_max,v_max);
+    var<> vi("vi", -1.*v_max,v_max);
     
     if (polar) {
         ACOPF.add(v.in(nodes));
         ACOPF.add(theta.in(nodes));
-        v.initialize_all(1);
+        v.initialize_all(1.0);
     }
     else {
         ACOPF.add(vr.in(nodes));
         ACOPF.add(vi.in(nodes));
-        vr.initialize_all(1.0);
+//        vi.initialize_all(1.0);
+        vr.initialize_all(1);
+//        vi.initialize_uniform(-0.5,0.01);
+//        vr.initialize_uniform(0.99,1.01);
     }
     
     
@@ -144,16 +162,16 @@ int main (int argc, char * argv[])
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
     Constraint<> KCL_Q("KCL_Q");
-    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gen_nodes);
-    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + grid.ql - sum(Qg, gen_nodes);
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes);
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes);
     /* Shunts */
     if (polar) {
-        KCL_P +=  grid.gs*pow(v,2);
-        KCL_Q -=  grid.bs*pow(v,2);
+        KCL_P +=  gs*pow(v,2);
+        KCL_Q -=  bs*pow(v,2);
     }
     else {
-        KCL_P +=  grid.gs*(pow(vr,2)+pow(vi,2));
-        KCL_Q -=  grid.bs*(pow(vr,2)+pow(vi,2));
+        KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
+        KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
     }
     ACOPF.add(KCL_P.in(nodes) == 0);
     ACOPF.add(KCL_Q.in(nodes) == 0);
@@ -168,9 +186,9 @@ int main (int argc, char * argv[])
         Flow_P_From += grid.b/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
-        Flow_P_From -= grid.g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_P_From -= grid.g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_From -= grid.b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
+        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
     ACOPF.add(Flow_P_From.in(arcs)==0);
     
@@ -182,9 +200,9 @@ int main (int argc, char * argv[])
         Flow_P_To += grid.b/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
     }
     else {
-        Flow_P_To -= grid.g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_P_To -= grid.g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_To -= grid.b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
+        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
     ACOPF.add(Flow_P_To.in(arcs)==0);
     
@@ -196,9 +214,9 @@ int main (int argc, char * argv[])
         Flow_Q_From += grid.g/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
-        Flow_Q_From += grid.b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_Q_From += grid.b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_From -= grid.g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
+        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
     }
     ACOPF.add(Flow_Q_From.in(arcs)==0);
     
@@ -210,9 +228,9 @@ int main (int argc, char * argv[])
         Flow_Q_To += grid.g/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
     }
     else {
-        Flow_Q_To += grid.b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_Q_To += grid.b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_To -= grid.g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
+        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
     }
     ACOPF.add(Flow_Q_To.in(arcs)==0);
     
@@ -220,12 +238,12 @@ int main (int argc, char * argv[])
     if (!polar) {
         Constraint<> Vol_limit_UB("Vol_limit_UB");
         Vol_limit_UB = pow(vr, 2) + pow(vi, 2);
-        Vol_limit_UB -= pow(grid.v_max, 2);
+        Vol_limit_UB -= pow(v_max, 2);
         ACOPF.add(Vol_limit_UB.in(nodes) <= 0);
         
         Constraint<> Vol_limit_LB("Vol_limit_LB");
         Vol_limit_LB = pow(vr, 2) + pow(vi, 2);
-        Vol_limit_LB -= pow(grid.v_min,2);
+        Vol_limit_LB -= pow(v_min,2);
         ACOPF.add(Vol_limit_LB.in(nodes) >= 0);
     }
     
@@ -242,10 +260,10 @@ int main (int argc, char * argv[])
     else {
         DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
         PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_UB -= grid.tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
-        
+        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
+
         PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_LB -= grid.tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
+        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
     }
         ACOPF.add(PAD_UB.in(bus_pairs) <= 0);
         ACOPF.add(PAD_LB.in(bus_pairs) >= 0);
@@ -254,13 +272,15 @@ int main (int argc, char * argv[])
     /*  Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
-    Thermal_Limit_from -= pow(grid.S_max, 2);
+    Thermal_Limit_from -= pow(S_max, 2);
     ACOPF.add(Thermal_Limit_from.in(arcs) <= 0);
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
-    Thermal_Limit_to -= pow(grid.S_max,2);
+    Thermal_Limit_to -= pow(S_max,2);
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
+//    ACOPF.print(16);
+//    ACOPF.initialize_uniform();
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
     OPF.run(output=5, tol = 1e-6);
@@ -273,6 +293,7 @@ int main (int argc, char * argv[])
     ACOPF.print_symbolic();
     ACOPF.print();
      */
+//    ACOPF.print_solution();
     /** Terminal output */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(ACOPF.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);

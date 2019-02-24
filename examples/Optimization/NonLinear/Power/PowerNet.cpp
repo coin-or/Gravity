@@ -261,9 +261,9 @@ unsigned PowerNet::get_nb_active_nodes() const {
 int PowerNet::readGAMS(const string& fname) {
     double pi = 4.*atan(1.);
     string name;
-    double kvb = 0;
+//    double kvb = 0;
     //    int id = 0;
-    unsigned index = 0;
+//    unsigned index = 0;
     cout << "Loading file " << fname << endl;
     ifstream file(fname, std::ifstream::in);
     if(!file.is_open()) {
@@ -776,22 +776,22 @@ int PowerNet::readGAMS(const string& fname) {
             tan_th_max.add_val(name,tan(th_max.eval(name)));
         }
         if (arc->tbound.min >= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min.eval(name)));
         };
         if (arc->tbound.max <= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min(name).eval()), cos(th_max(name).eval())));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         cphi.add_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
         sphi.add_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
@@ -845,13 +845,14 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 //    Bus* bus_clone= NULL;
     file >> word;
     int status;
+    double total_p_load = 0, total_q_load = 0;
     while(word.compare("];")) {
         name = word.c_str();
         file >> ws >> word;
         status = atoi(word.c_str());
         if (status==3) {
             ref_bus = name;
-            DebugOff("Ref bus = " << ref_bus << endl);
+            DebugOn("Ref bus = " << ref_bus << endl);
         }
         file >> ws >> word;
         pl.add_val(name,atof(word.c_str())/bMVA);
@@ -876,6 +877,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
 //        bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
+        total_p_load += pl.eval();
+        total_q_load += ql.eval();
         bus->vs = v_s.eval();
         V_min.add_val(name,Cpx(-1*bus->vbound.max, -1*bus->vbound.max));
         V_max.add_val(name,Cpx(bus->vbound.max, bus->vbound.max));
@@ -888,7 +891,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 
         this->Net::add_node(bus);
         if (status>=4) {
-            DebugOff("INACTIVE NODE!\n" << name << endl);
+            DebugOn("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -1040,7 +1043,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         else
             arc->tr = atof(word.c_str());
         file >> ws >> word;
-        arc->as = atof(word.c_str())*pi/180.;
+        arc->as = (atof(word.c_str())*pi)/180.;
         file >> ws >> word;
         
         
@@ -1056,8 +1059,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
             DebugOn("Angle bounds are equal to zero. Setting them to -+60");
-            arc->tbound.min = -60*pi/180.;
-            arc->tbound.max = 60*pi/180.;
+            arc->tbound.min = -60.*pi/180.;
+            arc->tbound.max = 60.*pi/180.;
             
         }
         if (reversed && reverse_arcs) {
@@ -1087,6 +1090,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b.add_val(name,arc->b);
         tr.add_val(name,arc->tr);
         as.add_val(name,arc->as);
+        //(g+g_fr)/tm^2
         g_ff.add_val(name,arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         g_ft.add_val(name,(-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
@@ -1101,6 +1105,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
         ch.add_val(name,arc->ch);
+//        S_max.add_val(name,min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
         
         /* Complex params */
@@ -1110,7 +1115,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
@@ -1134,22 +1139,22 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
         if (arc->tbound.min >= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min.eval(name)));
         };
         if (arc->tbound.max <= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min(name).eval()), cos(th_max(name).eval())));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         cphi.add_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
         sphi.add_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
@@ -1870,7 +1875,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     auto ACOPF = build_ACOPF();
     bool relax;
     solver<> OPF(ACOPF,ipopt);
-    auto mipgap = 1e-6;
+//    auto mipgap = 1e-6;
     OPF.run(output, relax = false, tol);
     return ACOPF->_obj->get_val();
 }

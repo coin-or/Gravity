@@ -350,6 +350,7 @@ namespace gravity {
                 return _dfdx->at(vid);
             }
             auto df = make_shared<func>(get_derivative(v));
+            df->_evaluated = false;
             df->allocate_mem();
             (*_dfdx)[vid] = df;
             DebugOff( "First derivative with respect to " << v.get_name(false,false) << " = " << df->to_str() << endl);
@@ -625,10 +626,9 @@ namespace gravity {
                     vj = vp2.second.first.get();
                     vjd = vj->get_id();
                     auto vj_name = vp2.first;
-                    if (vi_name.compare(vj_name) <= 0) { //only store lower left part of hessian matrix since it is symmetric.
+                    if (vi_name.compare(vj_name) >= 0) { //only store lower left part of hessian matrix since it is symmetric.
                         auto d2f = df->compute_derivative(*vj);
                         DebugOff( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f->to_str() << endl);
-                        //                d2f->print();
                     }
                 }
     
@@ -1347,7 +1347,13 @@ namespace gravity {
                 str += pair.second.to_str();
             }
             if(!_cst->is_zero()){
-                str += clean_print(true, _cst->to_str());
+                auto cst_str = _cst->to_str();
+                if (cst_str.front()=='-'){
+                    str += " - " + cst_str.substr(1);
+                }
+                else {
+                    str += " + " + cst_str;
+                }
             }
             if (_expr) {
                 str += " + ";
@@ -1386,6 +1392,10 @@ namespace gravity {
             for (auto &pair:*_lterms) {
                 str += pair.second.to_str(index, prec);
             }
+            if (_expr) {
+                str += " + ";
+                str += _expr->to_str(index, prec);
+            }
             if(!_cst->is_zero()){
                 auto val = _cst->to_str(index, prec);
                 if (val.front()=='-') {
@@ -1395,10 +1405,6 @@ namespace gravity {
                     str += " + ";
                     str += val;
                 }
-            }
-            if (_expr) {
-                str += " + ";
-                str += _expr->to_str(index, prec);
             }
             if (str.size() > 2 && str.at(1)=='+') {
                 str = str.substr(3);
@@ -1567,6 +1573,7 @@ namespace gravity {
         }
         
         void allocate_mem(){
+            _evaluated = false;
             _val->resize(get_dim());
             for (auto &pair:*_lterms) {
                 auto coef = pair.second._coef;
@@ -5183,6 +5190,9 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
+        if(p1.is_zero() || p2.is_zero()){
+            return res;
+        }
         if(p1.is_param() && p2.is_var()){
             res.insert(true,p1,p2);
         }
@@ -5222,6 +5232,9 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
+        if(p1.is_zero() || p2.is_zero()){
+            return res;
+        }
         if(p1.is_param() && p2.is_var()){
             res.insert(true,param<T2>(p1),p2);
         }

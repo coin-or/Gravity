@@ -323,12 +323,13 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) c
 }
 
 template<typename type> void var<type>::print() {
-    cout << to_str_bounds(true,10);
+    print(16);
 }
 
     
-template<typename type> void var<type>::print_bounds(bool bounds, int prec) {
-    cout << to_str_bounds(bounds,prec);
+    
+template<typename type> void var<type>::print(int prec) {
+    cout << to_str_bounds(true,prec);
 }
     
 var<Cpx> conj(const var<Cpx>& v){

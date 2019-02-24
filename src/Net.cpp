@@ -245,7 +245,7 @@ bool Net::add_arc(Arc* a) {
 }
 // undirected
 void Net::add_undirected_arc(Arc* a) {
-    bool parallel = false;
+//    bool parallel = false;
     set<Arc*>* s = NULL;
     string src, dest, key, key_inv;
     src = a->_src->_name;

@@ -411,6 +411,38 @@ namespace gravity {
             }
         }
         
+        void initialize_ub(){
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                param<type>::_val->at(i) = get_ub(i);
+            }
+        };
+        
+        void initialize_av(){
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                param<type>::_val->at(i) = (get_lb(i) + get_ub(i))/2.;
+            }
+        };
+        
+        void initialize_uniform(type lb, type ub){initialize_uniform_(lb,ub);};
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_uniform_(type lb, type ub) {
+            std::default_random_engine generator;
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                std::uniform_real_distribution<double> real_distribution(lb.real(),ub.real());
+                std::uniform_real_distribution<double> imag_distribution(lb.imag(),ub.imag());
+                param<type>::_val->at(i).real(real_distribution(generator));
+                param<type>::_val->at(i).imag(imag_distribution(generator));
+            }
+        }
+        
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform_(type lb, type ub) {
+            std::default_random_engine generator;
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                std::uniform_real_distribution<double> distribution(lb,ub);
+                param<type>::_val->at(i) = distribution(generator);
+            }
+        }
+        
         var tr() const {
             auto v = var(*this);
             if(!this->_is_vector){
@@ -439,9 +471,10 @@ namespace gravity {
         string to_str(size_t index, int prec) {
             return this->get_name(index);
         }
-        string to_str_bounds(bool bounds=true, int prec = 10) const;
-        void print_bounds(bool bounds, int prec);
+        string to_str_bounds(bool bounds=true, int prec = 10) const;        
         void print();
+        void print(int prec);
+        void print_vals(int prec){param<type>::print_vals(prec);};
         void print_symbolic() const{
             string str = this->_name;
             str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"]^" + to_string(this->get_dim());
