@@ -44,6 +44,7 @@ namespace gravity {
         DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
         for (size_t idx = i; idx < j; idx++) {
             auto c = v[idx];
+            c->_new = false;
             size_t nb_ins = c->_dim[0];
             size_t ind = 0;
             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -438,6 +439,12 @@ namespace gravity {
             size_t cid = 0, new_cid = 0, nb_inst = 0;
             shared_ptr<Constraint<type>> c = nullptr;
             map<size_t, shared_ptr<Constraint<type>>>  new_cons;
+            _idx_it.clear();
+            _cons_vec.clear();
+            _nnz_pairs.clear();
+            _first_call_jac = true;
+            _first_call_hess = true;
+            _first_call_gard_obj = true;
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
@@ -460,6 +467,7 @@ namespace gravity {
                     c->_id = new_cid;
                 }
                 new_cons[c->_id] = c;
+                _cons_vec.push_back(c);
                 new_cid = c->_id+nb_inst;
             }
             _cons = new_cons;
@@ -755,7 +763,7 @@ namespace gravity {
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
-                                    *c->_all_lazy = false;
+//                                    *c->_all_lazy = false;
                                     c->_all_satisfied = false;
                                     c->_violated[inst] = true;
                                     violated = true;
@@ -787,7 +795,7 @@ namespace gravity {
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
-                                    *c->_all_lazy = false;
+//                                    *c->_all_lazy = false;
                                     c->_all_satisfied = false;
                                     c->_violated[inst] = true;
                                     violated = true;
@@ -816,15 +824,15 @@ namespace gravity {
                 nb_viol_all += nb_viol;
                 nb_active_all += nb_active;
                 if (nb_viol>0 && c->get_ctype()!=eq) {
-                    DebugOn("Percentage of violated constraints for " << c->get_name() << " = " << to_string_with_precision(100.*nb_viol/nb_inst,4) << "%\n");
+                    DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOn("Percentage of active constraints for " << c->get_name() << " = " << to_string_with_precision(100.*nb_active/nb_inst,4) << "%\n");
+                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
-            DebugOn("Total percentage of violated constraints = " << to_string_with_precision(100.*nb_viol_all/_nb_cons,4) << "%\n");
+            DebugOn("Total percentage of violated constraints = (" << nb_viol_all << "/" << _nb_cons << ") " << to_string_with_precision(100.*nb_viol_all/_nb_cons,3) << "%\n");
             auto nb_ineq = get_nb_ineq();
-            DebugOn("Total percentage of active constraints = " << to_string_with_precision(100.*nb_active_all/nb_ineq,4) << "%\n");
+            DebugOn("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
             return violated;
         }
         
@@ -946,6 +954,7 @@ namespace gravity {
                 compute_funcs();
             }
             res = _obj->eval();
+            _obj->_new = false;
             DebugOff("Objective = " << to_string(res) << endl);
         }
         
@@ -2052,17 +2061,15 @@ namespace gravity {
                     //            }
                 }
             }
-//            for (auto &vp: _vars) {
-//                auto nb_inst = vp.second->get_dim();
-//                auto vid = vp.second->get_id();
-//                for (size_t inst = 0; inst < nb_inst; inst++) {
-//                    auto id_inst = vp.second->get_id_inst(inst);
-                    //            z_L[vid + id_inst] = vp.second->_l_dual[inst];
-                    //            z_U[vid + id_inst] = vp.second->_u_dual[inst];
-                    //            z_L[vp.second->get_id() + vp.second->get_id_inst(inst)] = 0;
-                    //            z_U[vp.second->get_id() + vp.second->get_id_inst(inst)] = 0;
-//                }
-//            }
+            for (auto &vp: _vars) {
+                auto nb_inst = vp.second->get_dim();
+                auto vid = vp.second->get_id();
+                for (size_t inst = 0; inst < nb_inst; inst++) {
+                    auto id_inst = vp.second->get_id_inst(inst);
+                        z_L[vid + id_inst] = vp.second->_l_dual[inst];
+                        z_U[vid + id_inst] = vp.second->_u_dual[inst];
+                }
+            }
             
         }
         

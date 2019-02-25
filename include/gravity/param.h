@@ -62,6 +62,10 @@ namespace gravity {
         bool                                           _is_real = false; /**< True if the parameter/variable is the real part of a complex number */
         bool                                           _is_imag = false; /**< True if the parameter/variable is the imaginary part of a complex number */
 
+        /* For Ipopt Use */
+        vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
+        vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
+        
         /**
          A shallow copy of p (ignoring _val and _range)
          @param[in] p param_ to copy from.
@@ -111,7 +115,7 @@ namespace gravity {
 
         indices get_indices() const{return *_indices;};
         
-        size_t get_id_inst(size_t inst = 0) const {            
+        inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
 //                if(_indices->_ids->at(0).size() <= inst){
 //                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");

@@ -83,25 +83,28 @@ public:
             _model->_obj->reverse_sign();
         }
         //    _model->_obj_val = _model->_obj.eval();
-        for (auto &cp: _model->_cons) {
+        for (auto &cp: _model->_cons_name) {
             cp.second->_dual.resize(cp.second->_dim[0]);
             auto idx = 0;
             for (size_t inst = 0; inst < cp.second->_dim[0]; inst++) {
                 if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                     cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
                 }
+                else {
+                    cp.second->_dual[inst] = 1;
+                }
             }
         }
-//        for (auto &vp: _model->_vars) {
-//            auto nb_inst = vp.second->get_dim();
-//            vp.second->_u_dual.resize(nb_inst);
-//            vp.second->_l_dual.resize(nb_inst);
-//            auto vid = vp.second->get_id();
-//            for (unsigned inst = 0; inst < nb_inst; inst++) {
-//                vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
-//                vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
-//            }
-//        }
+        for (auto &vp: _model->_vars) {
+            auto nb_inst = vp.second->get_dim();
+            vp.second->_u_dual.resize(nb_inst);
+            vp.second->_l_dual.resize(nb_inst);
+            auto vid = vp.second->get_id();
+            for (size_t inst = 0; inst < nb_inst; inst++) {
+                vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
+                vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
+            }
+        }
 //        cout << "\n************** Objective Function Value = " << _model->eval<double>(_model->_obj,0) << " **************" << endl;
     }
     
