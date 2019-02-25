@@ -164,7 +164,7 @@ namespace gravity {
         
         /* run model */
         int run(int output, type tol , int max_iter=10000){
-            int return_status = -1;
+            int return_status = -1, dyn_max_iter = 20;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
@@ -204,6 +204,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
+                        dyn_max_iter *= 2;
 //                    if (true) {
                         //            if (false) {
                         mu_init = std::exp(-1)/std::exp(2);
@@ -218,7 +219,7 @@ namespace gravity {
                         //                iapp->Options()->SetNumericValue("warm_start_mult_bound_push", 1e-12);
                     }
                     _model->_first_run = false;
-                    
+                    iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
                     //mu_init, warm_start_mult_bound_push, warm_start_slack_bound_push, warm_start_bound_push
                     
@@ -237,7 +238,7 @@ namespace gravity {
                     
                     //                            iapp->Options()->SetStringValue("derivative_test", "second-order");
                     
-                    iapp->Options()->SetIntegerValue("max_iter", max_iter);
+                    
                     
                     //                        iapp->Options()->SetNumericValue("ma27_liw_init_factor", 50);
                     //                        iapp->Options()->SetNumericValue("ma27_pivtol", 1e-6);
@@ -268,7 +269,7 @@ namespace gravity {
                         //                return status;
                         //                    return_status = status;
                     }
-                    else if (status == Solved_To_Acceptable_Level) {
+                    else if (status == Solved_To_Acceptable_Level || status == Maximum_Iterations_Exceeded) {
                         //                return 150;
                         optimal = true;
                     }

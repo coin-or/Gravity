@@ -265,8 +265,8 @@ int main (int argc, char * argv[])
         PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
         PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
     }
-        ACOPF.add(PAD_UB.in(bus_pairs) <= 0);
-        ACOPF.add(PAD_LB.in(bus_pairs) >= 0);
+        ACOPF.add_lazy(PAD_UB.in(bus_pairs) <= 0);
+        ACOPF.add_lazy(PAD_LB.in(bus_pairs) >= 0);
     
     
     /*  Thermal Limit Constraints */
@@ -279,7 +279,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to -= pow(S_max,2);
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
-//    ACOPF.print(16);
+//    ACOPF.print();
 //    ACOPF.initialize_uniform();
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
