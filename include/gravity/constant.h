@@ -338,6 +338,9 @@ namespace gravity {
             _val = val;
         };
         
+        shared_ptr<pair<type,type>> range() const{
+            return make_shared<pair<type,type>>(_val,_val);
+        }
         
         constant tr() const{
             auto newc(*this);
