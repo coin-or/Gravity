@@ -701,29 +701,30 @@ TEST_CASE("testing nonlinear Model"){
     CHECK(M.get_nb_cons()==8);
 }
 
-//TEST_CASE("testing acopf"){
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    unsigned nb_threads = 2;
-//    double tol = 1e-6;
-//    string mehrotra = "no", log_level="0";
-//    PowerNet grid1,grid2;
-//    grid1.readgrid(fname);
-//    auto ACOPF1 = grid1.build_ACOPF(ACRECT);
-//    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-//    auto ACOPF2 = grid1.build_ACOPF(ACPOL);
-//    auto models = {ACOPF1, ACOPF2};
-//    /* run in parallel */
-//    run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-//    CHECK(abs(ACOPF1->_obj_val-17551.8909275818)<tol);
-//    CHECK(ACOPF1->is_feasible(tol));
-//    ACOPF1->print_solution();
-//    auto Mc = ACOPF1->build_McCormick();
-//    auto clone = grid1.clone();
-//    CHECK(clone->arcs.size()==grid1.arcs.size());
-//    clone->remove_arc(clone->arcs.at(0));
-//    CHECK(clone->arcs.size()==grid1.arcs.size()-1);
-//}
-//
+TEST_CASE("testing acopf"){
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    unsigned nb_threads = 2;
+    double tol = 1e-6;
+    string mehrotra = "no", log_level="0";
+    PowerNet grid1,grid2;
+    grid1.readgrid(fname);
+    auto ACOPF1 = grid1.build_ACOPF(ACRECT);
+    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
+    auto ACOPF2 = grid1.build_ACOPF(ACPOL);
+    auto models = {ACOPF1, ACOPF2};
+    /* run in parallel */
+    run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
+    CHECK(abs(ACOPF1->get_obj_val()-17551.8909275818)<tol);
+    CHECK(abs(ACOPF2->get_obj_val()-17551.8909275818)<tol);
+    CHECK(ACOPF1->is_feasible(tol));
+    ACOPF1->print_solution();
+    auto Mc = ACOPF1->build_McCormick();
+    auto clone = grid1.clone();
+    CHECK(clone->arcs.size()==grid1.arcs.size());
+    clone->remove_arc(clone->arcs.at(0));
+    CHECK(clone->arcs.size()==grid1.arcs.size()-1);
+}
+
 TEST_CASE("testing socopf"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
 //    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case2383wp_k.m";

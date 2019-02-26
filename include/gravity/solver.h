@@ -199,7 +199,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
-                    //            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
@@ -457,7 +457,7 @@ namespace gravity {
     };
     
     template<typename type>
-    void run_models(const std::vector<shared_ptr<Model<type>>>& models, int start, int end, SolverType stype, type tol){
+    void run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol){
         for (auto i = start; i<end; i++) {
             solver<type>(*(models.at(i)),stype).run(5, tol);
             models.at(i)->print_solution(false);
@@ -467,18 +467,19 @@ namespace gravity {
     
      /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     template<typename type>
-    void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype, type tol, unsigned nr_threads){
+    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype, type tol, unsigned nr_threads){
         std::vector<thread> threads;
         std::vector<bool> feasible;
         /* Split models into nr_threads parts */
-        std::vector<int> limits = bounds(nr_threads, models.size());
+        std::vector<size_t> limits = bounds(nr_threads, models.size());
         DebugOff("limits size = " << limits.size() << endl);
-        for (int i = 0; i < limits.size(); ++i) {
+        for (size_t i = 0; i < limits.size(); ++i) {
             DebugOff("limits[" << i << "] = " << limits[i] << endl);
         }
         /* Launch all threads in parallel */
-        for (int i = 0; i < nr_threads; ++i) {
-            threads.push_back(thread(run_models, ref(models), limits[i], limits[i+1], stype, tol));
+        auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
+        for (size_t i = 0; i < nr_threads; ++i) {
+            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol));
         }
         /* Join the threads with the main thread */
         for(auto &t : threads){

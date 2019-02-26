@@ -32,7 +32,7 @@ namespace gravity {
         type                                   _coef = unit<type>().eval(); /**< coefficient multpying the expression */
         string                                 _to_str = "noname"; /**< A string representation of the expression */
         
-        
+        virtual void in(const indices& ids){};
         void propagate_dim(size_t d){
             if(_is_transposed){
                 _dim[1] = d;
@@ -87,9 +87,20 @@ namespace gravity {
             _son->propagate_dim(d);
         }
         
+        void uneval(){
+            _son->uneval();
+        }
+        
         /** allocates memory for current and all sub-functions */
         void allocate_mem(){
             _son->allocate_mem();
+        };
+        
+        void in(const indices& ids){
+            if(_son->is_function()){
+                auto f = static_pointer_cast<func<type>>(_son);
+                f->in(ids);
+            }
         };
         
         Sign get_all_sign() const{
@@ -307,6 +318,17 @@ namespace gravity {
             return (this->_to_str.compare(c._to_str)==0);
         }
         
+        void in(const indices& ids){
+            if(_lson->is_function()){
+                auto f = static_pointer_cast<func<type>>(_lson);
+                f->in(ids);
+            }
+            if(_rson->is_function()){
+                auto f = static_pointer_cast<func<type>>(_rson);
+                f->in(ids);
+            }
+        };
+        
         void propagate_dim(size_t d){
             if(this->_is_transposed){
                 this->_dim[1] = d;
@@ -316,6 +338,11 @@ namespace gravity {
             }
             _lson->propagate_dim(d);
             _rson->propagate_dim(d);
+        }
+        
+        void uneval(){
+            _lson->uneval();
+            _rson->uneval();
         }
         
         /** allocates memory for current and all sub-functions */

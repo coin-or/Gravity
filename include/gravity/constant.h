@@ -167,6 +167,7 @@ namespace gravity {
         
         virtual void relax(const map<size_t, shared_ptr<param_>>& vars){};
         virtual void print(){};
+        virtual void uneval(){};
         virtual string to_str() {return string();};
         virtual string to_str(int prec) {return string();};
         virtual string to_str(size_t idx, int prec) {return string();};
