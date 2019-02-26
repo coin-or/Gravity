@@ -82,6 +82,13 @@ int main (int argc, char * argv[])
     auto ql = grid.ql.in(nodes);
     auto gs = grid.gs.in(nodes);
     auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(bus_pairs);
+    auto th_max = grid.th_max.in(bus_pairs);
     auto g_ft = grid.g_ft.in(arcs);
     auto g_ff = grid.g_ff.in(arcs);
     auto g_tt = grid.g_tt.in(arcs);
@@ -96,7 +103,7 @@ int main (int argc, char * argv[])
     auto tan_th_min = grid.tan_th_min.in(bus_pairs);
     auto tan_th_max = grid.tan_th_max.in(bus_pairs);
     
-    PowerModelType pmt = ACRECT;
+    PowerModelType pmt = ACPOL;
     if(!strcmp(mtype.c_str(),"ACRECT")) pmt = ACRECT;
     bool polar = (pmt==ACPOL);
     if (polar) {
@@ -126,11 +133,17 @@ int main (int argc, char * argv[])
     var<> v("|V|", v_min, v_max);
     var<> vr("vr", -1.*v_max,v_max);
     var<> vi("vi", -1.*v_max,v_max);
-    
+
+    var<> v_from, v_to, theta_from, theta_to;
     if (polar) {
         ACOPF.add(v.in(nodes));
         ACOPF.add(theta.in(nodes));
         v.initialize_all(1.0);
+        v_from = (v.from()).in(arcs);
+        v_to = (v.to()).in(arcs);
+        theta_from = (theta.from()).in(arcs);
+        theta_to = (theta.to()).in(arcs);
+        
     }
     else {
         ACOPF.add(vr.in(nodes));
@@ -140,7 +153,6 @@ int main (int argc, char * argv[])
 //        vi.initialize_uniform(-0.5,0.01);
 //        vr.initialize_uniform(0.99,1.01);
     }
-    
     
     /** Construct the objective function */
     /**  Objective */
@@ -181,9 +193,9 @@ int main (int argc, char * argv[])
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From += Pf_from;
     if (polar) {
-        Flow_P_From -= grid.g/pow(grid.tr,2)*pow(v.from(),2);
-        Flow_P_From += grid.g/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
-        Flow_P_From += grid.b/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
+        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
+        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
         Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
@@ -195,9 +207,9 @@ int main (int argc, char * argv[])
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To += Pf_to;
     if (polar) {
-        Flow_P_To -= grid.g*pow(v.to(), 2);
-        Flow_P_To += grid.g/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
-        Flow_P_To += grid.b/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
+        Flow_P_To -= g*pow(v_to, 2);
+        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
         Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
@@ -209,9 +221,9 @@ int main (int argc, char * argv[])
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From += Qf_from;
     if (polar) {
-        Flow_Q_From += (0.5*grid.ch+grid.b)/pow(grid.tr,2)*pow(v.from(),2);
-        Flow_Q_From -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
-        Flow_Q_From += grid.g/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
+        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
+        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
         Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
@@ -223,9 +235,9 @@ int main (int argc, char * argv[])
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to;
     if (polar) {
-        Flow_Q_To += (0.5*grid.ch+grid.b)*pow(v.to(),2);
-        Flow_Q_To -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
-        Flow_Q_To += grid.g/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
+        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
+        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
         Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
@@ -253,9 +265,9 @@ int main (int argc, char * argv[])
     Constraint<> PAD_LB("PAD_LB");
     if (polar) {
         PAD_UB = theta.from() - theta.to();
-        PAD_UB -= grid.th_max;
+        PAD_UB -= th_max;
         PAD_LB = theta.from() - theta.to();
-        PAD_LB -= grid.th_min;
+        PAD_LB -= th_min;
     }
     else {
         DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
@@ -265,8 +277,8 @@ int main (int argc, char * argv[])
         PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
         PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
     }
-        ACOPF.add_lazy(PAD_UB.in(bus_pairs) <= 0);
-        ACOPF.add_lazy(PAD_LB.in(bus_pairs) >= 0);
+        ACOPF.add(PAD_UB.in(bus_pairs) <= 0);
+        ACOPF.add(PAD_LB.in(bus_pairs) >= 0);
     
     
     /*  Thermal Limit Constraints */
@@ -294,6 +306,7 @@ int main (int argc, char * argv[])
     ACOPF.print();
      */
 //    ACOPF.print_solution();
+//    ACOPF.print();
     /** Terminal output */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(ACOPF.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);

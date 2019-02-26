@@ -69,7 +69,7 @@ namespace gravity {
         shared_ptr<indices>                            _indices = nullptr; /*< If indexed, point to the indexing set */
         /** Accessors */
         FType get_ftype() const;
-        NType get_return_type() const;
+        inline NType get_return_type() const{ return _return_type;};
 
         map<size_t, set<size_t>>& get_hess_link() { return *_hess_link;};
         map<string, pair<shared_ptr<param_>, unsigned>>& get_vars() { return *_vars;};
@@ -350,6 +350,9 @@ namespace gravity {
                 return _dfdx->at(vid);
             }
             auto df = make_shared<func>(get_derivative(v));
+            if(_is_vector){
+                df->_is_vector=true;//TODO check this.
+            }
             df->_evaluated = false;
             df->allocate_mem();
             (*_dfdx)[vid] = df;
@@ -429,6 +432,7 @@ namespace gravity {
          @return current function
          */
         func& in(const indices& ids){//TODO assert each var and param that is not transposed has same dim as ids
+//            index_in(ids);
             _nb_vars = 0;
             string key;
             auto iter = _vars->begin();
@@ -454,6 +458,9 @@ namespace gravity {
                 }
             }
             _indices = make_shared<indices>(ids);
+//            if(_expr){
+//                _expr->in(ids);
+//            }
             return *this;
         }
         
@@ -626,7 +633,7 @@ namespace gravity {
                     vj = vp2.second.first.get();
                     vjd = vj->get_id();
                     auto vj_name = vp2.first;
-                    if (vi_name.compare(vj_name) >= 0) { //only store lower left part of hessian matrix since it is symmetric.
+                    if (vi_name.compare(vj_name) <= 0) { //only store lower left part of hessian matrix since it is symmetric.
                         auto d2f = df->compute_derivative(*vj);
                         DebugOff( "Second derivative with respect to " << vp2.first << " and " << vp.first << " = " << d2f->to_str() << endl);
                     }
@@ -1371,6 +1378,7 @@ namespace gravity {
             if(str.size()==0){
                 str = "0";
             }
+            _to_str = str;
             return str;
         }
         
@@ -2507,11 +2515,18 @@ namespace gravity {
 //        }
 //        double eval_double(size_t i=0);
         
+        void uneval() {
+            _evaluated = false;
+            if(_expr){
+                _expr->uneval();
+            }
+        }
         type eval(size_t i=0) {
             if(is_zero()){
                 return _range->first;
             }
-            if (is_constant() && _evaluated) {
+//            if (is_constant() && _evaluated) {
+            if (_evaluated) {
                 if (func_is_number()){
                     return _val->at(0);
                 }
@@ -2611,7 +2626,8 @@ namespace gravity {
                 _evaluated = true;
             }
             else {
-                if (is_constant() && i==_val->size()-1) {
+//                if (is_constant() && i==_val->size()-1) {
+                if (i==_val->size()-1) {
                     _evaluated = true;
                 }
                 _val->at(i) = res;
@@ -2623,8 +2639,169 @@ namespace gravity {
             return eval_coef(_cst, i);
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        inline type get_val(const shared_ptr<constant_>& c, size_t i=0) {
+            switch (c->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(c)->eval();
+                    break;
+                case short_c:
+                    return static_pointer_cast<constant<short>>(c)->eval();
+                    break;
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(c)->eval();
+                    break;
+                case float_c:
+                    return static_pointer_cast<constant<float>>(c)->eval();
+                    break;
+                case double_c:
+                    return ((constant<double>*)(c.get()))->eval();
+                    break;
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(c)->eval();
+                    break;
+                case complex_c:
+                    return static_pointer_cast<constant<Cpx>>(c)->eval();
+                    break;
+                case func_c:{
+                    auto f = ((func_*)(c.get()));
+                    switch (f->get_return_type()) {
+                        case complex_:
+                            return ((func<Cpx>*)(f))->_val->at(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+                case uexp_c:{
+                    return eval_uexpr((uexpr<type>*)(c.get()),i);
+                    break;
+                }
+                case bexp_c:{
+                    return eval_bexpr((bexpr<type>*)(c.get()),i);
+                    break;
+                }
+                default:{
+                    auto p = ((param_*)(c.get()));
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return ((param<bool>*)(p))->eval(i);
+                            break;
+                        case short_:
+                            return ((param<short>*)(p))->eval(i);
+                            break;
+                        case integer_:
+                            return ((param<int>*)(p))->eval(i);
+                            break;
+                        case float_:
+                            return ((param<float>*)(p))->eval(i);
+                            break;
+                        case double_:
+                            return ((param<double>*)(p))->eval(i);
+                            break;
+                        case long_:
+                            return ((param<long double>*)(p))->eval(i);
+                            break;
+                        case complex_:
+                            return ((param<Cpx>*)(p))->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+            }
+            throw invalid_argument("Unsupported type");
+        }
+        
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        inline type eval(shared_ptr<constant_> c, size_t i=0) {
+        inline type get_val(const shared_ptr<constant_>& c, size_t i=0) {
+            switch (c->get_type()) {
+                case binary_c:
+                    return static_pointer_cast<constant<bool>>(c)->eval();
+                    break;
+                case short_c:
+                    return static_pointer_cast<constant<short>>(c)->eval();
+                    break;
+                case integer_c:
+                    return static_pointer_cast<constant<int>>(c)->eval();
+                    break;
+                case float_c:
+                    return static_pointer_cast<constant<float>>(c)->eval();
+                    break;
+                case double_c:
+                    return ((constant<double>*)(c.get()))->eval();
+                    break;
+                case long_c:
+                    return static_pointer_cast<constant<long double>>(c)->eval();
+                    break;
+                case func_c:{
+                    auto f = ((func_*)(c.get()));
+                    switch (f->get_return_type()) {
+                        case binary_:
+                            return ((func<bool>*)(f))->_val->at(i);
+                            break;
+                        case short_:
+                            return ((func<short>*)(f))->_val->at(i);
+                            break;
+                        case integer_:
+                            return ((func<int>*)(f))->_val->at(i);
+                            break;
+                        case float_:
+                            return ((func<float>*)(f))->_val->at(i);
+                            break;
+                        case double_:
+                            return ((func<double>*)(f))->_val->at(i);
+                            break;
+                        case long_:
+                            return ((func<long double>*)(f))->_val->at(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+                case uexp_c:{
+                    return eval_uexpr(((uexpr<type>*)c.get()),i);
+                    break;
+                }
+                case bexp_c:{
+                    return eval_bexpr(((bexpr<type>*)c.get()),i);
+                    break;
+                }
+                default:{
+                    auto p = ((param_*)(c.get()));
+                    switch (p->get_intype()) {
+                        case binary_:
+                            return ((param<bool>*)(p))->eval(i);
+                            break;
+                        case short_:
+                            return ((param<short>*)(p))->eval(i);
+                            break;
+                        case integer_:
+                            return ((param<int>*)(p))->eval(i);
+                            break;
+                        case float_:
+                            return ((param<float>*)(p))->eval(i);
+                            break;
+                        case double_:
+                            return ((param<double>*)(p))->eval(i);
+                            break;
+                        case long_:
+                            return ((param<long double>*)(p))->eval(i);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+            }
+            throw invalid_argument("Unsupported type");
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -2671,11 +2848,11 @@ namespace gravity {
                     break;
                 }
                 case uexp_c:{
-                    return eval_uexpr(static_pointer_cast<uexpr<type>>(c),i);
+                    return eval_uexpr(((uexpr<type>*)c.get()),i);
                     break;
                 }
                 case bexp_c:{
-                    return eval_bexpr(static_pointer_cast<bexpr<type>>(c),i);
+                    return eval_bexpr(((bexpr<type>*)c.get()),i);
                     break;
                 }
                 default:{
@@ -2710,7 +2887,7 @@ namespace gravity {
         
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        inline type eval(shared_ptr<constant_> c, size_t i, size_t j) {
+        inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -2795,7 +2972,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        inline type eval(shared_ptr<constant_> c, size_t i=0) {
+        inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -2848,11 +3025,11 @@ namespace gravity {
                     break;
                 }
                 case uexp_c:{
-                    return eval(static_pointer_cast<uexpr<type>>(c),i);
+                    return eval_uexpr((uexpr<type>*)(c.get()),i);
                     break;
                 }
                 case bexp_c:{
-                    return eval(static_pointer_cast<bexpr<type>>(c),i);
+                    return eval_bexpr((bexpr<type>*)(c.get()),i);
                     break;
                 }
                 default:{
@@ -2888,7 +3065,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        inline type eval(shared_ptr<constant_> c, size_t i, size_t j) {
+        inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j) {
             switch (c->get_type()) {
                 case binary_c:
                     return static_pointer_cast<constant<bool>>(c)->eval();
@@ -2980,7 +3157,7 @@ namespace gravity {
             }
         }
         
-        inline type eval_coef(shared_ptr<constant_> coef, size_t i) {
+        inline type eval_coef(const shared_ptr<constant_>& coef, size_t i) {
             auto coef_type = coef->get_type();
             if (coef_type==func_c) {
                 auto f_cst = ((func<type>*)(coef.get()));
@@ -2997,7 +3174,7 @@ namespace gravity {
             throw invalid_argument("in function eval_coef(shared_ptr<constant_> coef, size_t i), coef should be a constant");
         }
         
-        inline type eval_coef(shared_ptr<constant_> coef, size_t i, size_t j) {
+        inline type eval_coef(const shared_ptr<constant_>& coef, size_t i, size_t j) {
             auto coef_type = coef->get_type();
             if (coef_type==func_c) {
                 auto f_cst = ((func<type>*)(coef.get()));
@@ -3236,16 +3413,16 @@ namespace gravity {
             _evaluated = v;
         }
         
-        type eval_expr(shared_ptr<expr<type>> exp, size_t i) {
+        inline type eval_expr(const shared_ptr<expr<type>>& exp, size_t i) {
             if (exp->is_uexpr()) {
-                return eval_uexpr(static_pointer_cast<uexpr<type>>(exp),i);
+                return eval_uexpr(((uexpr<type>*)exp.get()),i);
             }
-            return eval_bexpr(static_pointer_cast<bexpr<type>>(exp),i);
+            return eval_bexpr(((bexpr<type>*)exp.get()),i);
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T eval_uexpr(shared_ptr<uexpr<type>> exp, size_t i) {
-            T res = eval(exp->_son,i);
+        inline T eval_uexpr(uexpr<type>* exp, size_t i) {
+            T res = get_val(exp->_son,i);
             switch (exp->_otype) {
                 case cos_:
                     return exp->_coef*std::cos(res);
@@ -3279,7 +3456,7 @@ namespace gravity {
             }
         }
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        Cpx eval_uexpr(shared_ptr<uexpr<T>> exp, size_t i) {
+        Cpx eval_uexpr(uexpr<T>* exp, size_t i) {
             Cpx res = eval(exp->_son,i);
             switch (exp->_otype) {
                 case cos_:
@@ -3317,9 +3494,9 @@ namespace gravity {
         }
                        
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        T  eval_bexpr(shared_ptr<bexpr<type>> exp, size_t i){
-            T lval = eval(exp->_lson,i);
-            T rval = eval(exp->_rson,i);
+        inline T  eval_bexpr(bexpr<type>* exp, size_t i){
+            T lval = get_val(exp->_lson,i);
+            T rval = get_val(exp->_rson,i);
             switch (exp->_otype) {
                 case plus_:
                     return exp->_coef*(lval + rval);
@@ -3341,21 +3518,21 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T  eval_bexpr(shared_ptr<bexpr<type>> exp, size_t i){
-            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
-                    eval(exp->_lson,inst);
-                }
-                exp->_lson->evaluated(true);
-            }
-            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
-                    eval(exp->_rson,inst);
-                }
-                exp->_rson->evaluated(true);
-            }
-            T lval = eval(exp->_lson,i);
-            T rval = eval(exp->_rson,i);
+        inline T  eval_bexpr(bexpr<type>* exp, size_t i){
+//            if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
+//                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
+//                    eval(exp->_lson,inst);
+//                }
+//                exp->_lson->evaluated(true);
+//            }
+//            if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
+//                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
+//                    eval(exp->_rson,inst);
+//                }
+//                exp->_rson->evaluated(true);
+//            }
+            T lval = get_val(exp->_lson,i);
+            T rval = get_val(exp->_rson,i);
             switch (exp->_otype) {
                 case plus_:
                     return exp->_coef*(lval + rval);
@@ -3381,7 +3558,7 @@ namespace gravity {
         
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T eval_uexpr(shared_ptr<uexpr<type>> exp, size_t i, size_t j) {
+        T eval_uexpr(const shared_ptr<uexpr<type>>& exp, size_t i, size_t j) {
             T res = eval(exp->_son,i,j);
             switch (exp->_otype) {
                 case cos_:
@@ -3416,7 +3593,7 @@ namespace gravity {
             }
         }
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        Cpx eval_uexpr(shared_ptr<uexpr<type>> exp, size_t i, size_t j) {
+        Cpx eval_uexpr(const shared_ptr<uexpr<type>>& exp, size_t i, size_t j) {
             Cpx res = eval(exp->_son,i,j);
             switch (exp->_otype) {
                 case cos_:
@@ -3453,7 +3630,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        T  eval_bexpr(shared_ptr<bexpr<type>> exp, size_t i, size_t j){
+        T  eval_bexpr(const shared_ptr<bexpr<type>>& exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
                     eval(exp->_lson,inst);
@@ -3489,7 +3666,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T  eval_bexpr(shared_ptr<bexpr<type>> exp, size_t i, size_t j){
+        T  eval_bexpr(const shared_ptr<bexpr<type>>& exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
                     eval(exp->_lson,inst);
@@ -3560,7 +3737,7 @@ namespace gravity {
             return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
         
-        bool is_zero() const { return zero_range();};
+        inline bool is_zero() const { return zero_range();};
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool zero_range() const{
 //            return (func_is_number() && _range->first == Cpx(0,0) && _range->second == Cpx(0,0));
@@ -3568,9 +3745,9 @@ namespace gravity {
         }
         
         template<typename T=type,
-        typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool zero_range() const{
-            return (_range->first == 0 && _range->second == 0);
-//            return (func_is_number() && _range->first == 0 && _range->second == 0);
+        typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
+//            return (_range->first == 0 && _range->second == 0);
+            return (func_is_number() && _range->first == 0 && _range->second == 0);
         }
         
         
@@ -3615,7 +3792,7 @@ namespace gravity {
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator/=(const constant<T2>& c){
-            auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<constant<T2>>(c));
+            auto be = bexpr<type>(div_, make_shared<func>(*this), make_shared<constant<T2>>(c));
             *this = func(be);
             _evaluated = false;
             _all_convexity = undet_;
@@ -3624,7 +3801,7 @@ namespace gravity {
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func& operator/=(const param<T2>& p){
-            auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<param<T2>>(p));
+            auto be = bexpr<type>(div_, make_shared<func>(*this), make_shared<param<T2>>(p));
             *this = func(be);
             _evaluated = false;
             _all_convexity = undet_;
@@ -3636,7 +3813,7 @@ namespace gravity {
             if(!is_constant() && f.is_constant()){
                 return *this *= 1/f;
             }
-            auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+            auto be = bexpr<type>(div_, make_shared<func>(*this), make_shared<func>(f));
             *this = func(be);
             _evaluated = false;
             _all_convexity = undet_;
@@ -4262,6 +4439,9 @@ namespace gravity {
         func& operator+=(const func<T2>& f){
             if (f.is_zero()) {
                 return *this;
+            }
+            if(is_zero()){
+                return *this = f;
             }
             _evaluated = false;
             update_dim(f);

@@ -4349,7 +4349,7 @@ namespace gravity{
 //    }
 //
     FType func_::get_ftype() const { return _ftype;}
-    NType func_::get_return_type() const { return _return_type;};
+    
 //
 //
     qterm* func_::get_square(shared_ptr<param_> p){ /**< Returns the quadratic term containing a square of p or nullptr if none exists. **/

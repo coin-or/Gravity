@@ -1599,197 +1599,204 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
 
 shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
-        bool polar = (pmt==ACPOL);
-        if (polar) {
-            Debug("Using polar model\n");
-        }
-        else {
-            Debug("Using rectangular model\n");
-        }
-        shared_ptr<Model<>> ACOPF(new Model<>("AC-OPF Model"));
-        /** Variables */
-        /* Power generation variables */
-        var<double> Pg("Pg", pg_min, pg_max);
-        var<double> Qg ("Qg", qg_min, qg_max);
-        ACOPF->add(Pg.in(gens), Qg.in(gens));
-        Pg_base = Pg;
-        Qg_base = Qg;
+    auto gen_nodes = gens_per_node();
+    auto out_arcs = out_arcs_per_node();
+    auto in_arcs = in_arcs_per_node();
+    bool polar = (pmt==ACPOL);
+    if (polar) {
+        Debug("Using polar model\n");
+    }
+    else {
+        Debug("Using rectangular model\n");
+    }
+    shared_ptr<Model<>> ACOPF(new Model<>("AC-OPF Model"));
+    /** Variables */
+    /* Power generation variables */
+    var<double> Pg("Pg", pg_min, pg_max);
+    var<double> Qg ("Qg", qg_min, qg_max);
+    ACOPF->add(Pg.in(gens), Qg.in(gens));
+    Pg_base = Pg;
+    Qg_base = Qg;
     
-        /* Power flow variables */
-        var<double> Pf_from("Pf_from", -1*S_max,S_max);
-        var<double> Qf_from("Qf_from", -1*S_max,S_max);
-        var<double> Pf_to("Pf_to", -1*S_max,S_max);
-        var<double> Qf_to("Qf_to", -1*S_max,S_max);
-        ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-        p_from_base = Pf_from;
-        p_to_base = Pf_to;
-        q_from_base = Qf_from;
-        q_to_base = Qf_to;
-        /** Voltage related variables */
-        var<double> theta("theta", -6.3, 6.3);
-        var<double> v("|V|", v_min, v_max);
-        //    var<double> vr("vr");
-        //    var<double> vi("vi");
-        var<double> vr("vr", -1*v_max,v_max);
-        var<double> vi("vi", -1*v_max,v_max);
+    /* Power flow variables */
+    var<double> Pf_from("Pf_from", -1*S_max,S_max);
+    var<double> Qf_from("Qf_from", -1*S_max,S_max);
+    var<double> Pf_to("Pf_to", -1*S_max,S_max);
+    var<double> Qf_to("Qf_to", -1*S_max,S_max);
+    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
+    p_from_base = Pf_from;
+    p_to_base = Pf_to;
+    q_from_base = Qf_from;
+    q_to_base = Qf_to;
+    /** Voltage related variables */
+    var<double> theta("theta", -6.3, 6.3);
+    var<double> v("|V|", v_min, v_max);
+    //    var<double> vr("vr");
+    //    var<double> vi("vi");
+    var<double> vr("vr", -1*v_max,v_max);
+    var<double> vi("vi", -1*v_max,v_max);
     
-        if (polar) {
-            ACOPF->add_var(v.in(nodes));
-            ACOPF->add_var(theta.in(nodes));
-            v.initialize_all(1);
-        }
-        else {
-            ACOPF->add_var(vr.in(nodes));
-            ACOPF->add_var(vi.in(nodes));
-            vr.initialize_all(1.0);
-        }
-        v_base = v;
-        theta_base = theta;
+    var<> v_from, v_to, theta_from, theta_to;
+    if (polar) {
+        ACOPF->add(v.in(nodes));
+        ACOPF->add(theta.in(nodes));
+        v.initialize_all(1.0);
+        v_from = (v.from()).in(arcs);
+        v_to = (v.to()).in(arcs);
+        theta_from = (theta.from()).in(arcs);
+        theta_to = (theta.to()).in(arcs);        
+    }
+    else {
+        ACOPF->add_var(vr.in(nodes));
+        ACOPF->add_var(vi.in(nodes));
+        vr.initialize_all(1.0);
+    }
+    v_base = v;
+    theta_base = theta;
     
-        /** Construct the objective function */
-//        func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-        func<> obj = sum(c0);
-//        ACOPF->min(obj.in(gens));
+    /** Construct the objective function */
+    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+    ACOPF->min(obj);
     
-        /** Define constraints */
+    /** Define constraints */
     
-        /* REF BUS */
-        Constraint<> Ref_Bus("Ref_Bus");
-        if (polar) {
-            Ref_Bus = theta(ref_bus);
-        }
-        else {
-            Ref_Bus = vi(ref_bus);
-        }
-        ACOPF->add(Ref_Bus == 0);
+    /* REF BUS */
+    Constraint<> Ref_Bus("Ref_Bus");
+    if (polar) {
+        Ref_Bus = theta(ref_bus);
+    }
+    else {
+        Ref_Bus = vi(ref_bus);
+    }
+    ACOPF->add(Ref_Bus == 0);
     
-        /** KCL Flow conservation */
-        Constraint<> KCL_P("KCL_P");
-        Constraint<> KCL_Q("KCL_Q");
-        KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-        KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-        /* Shunts */
-        if (polar) {
-            KCL_P +=  gs*pow(v,2);
-            KCL_Q -=  bs*pow(v,2);
-        }
-        else {
-            KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
-            KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
-        }
-        ACOPF->add(KCL_P.in(nodes) == 0);
-        ACOPF->add(KCL_Q.in(nodes) == 0);
+    /** KCL Flow conservation */
+    Constraint<> KCL_P("KCL_P");
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes);
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes);
+    /* Shunts */
+    if (polar) {
+        KCL_P +=  gs*pow(v,2);
+        KCL_Q -=  bs*pow(v,2);
+    }
+    else {
+        KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
+        KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
+    }
+    ACOPF->add(KCL_P.in(nodes) == 0);
+    ACOPF->add(KCL_Q.in(nodes) == 0);
     
-        /** AC Power Flows */
-        /** TODO write the constraints in Complex form */
-        Constraint<> Flow_P_From("Flow_P_From");
-        Flow_P_From += Pf_from;
-        if (polar) {
-            Flow_P_From -= g/pow(tr,2)*pow(v.from(),2);
-            Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-            Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-        }
-        else {
-            Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-            Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-        }
-        ACOPF->add(Flow_P_From.in(arcs)==0);
+    /** AC Power Flows */
+    /** TODO write the constraints in Complex form */
+    Constraint<> Flow_P_From("Flow_P_From");
+    Flow_P_From += Pf_from;
+    if (polar) {
+        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
+        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+    }
+    else {
+        Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
+        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+    }
+    ACOPF->add(Flow_P_From.in(arcs)==0);
     
-        Constraint<> Flow_P_To("Flow_P_To");
-        Flow_P_To += Pf_to;
-        if (polar) {
-            Flow_P_To -= g*pow(v.to(), 2);
-            Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-            Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-        }
-        else {
-            Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-            Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-        }
-        ACOPF->add(Flow_P_To.in(arcs)==0);
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf_to;
+    if (polar) {
+        Flow_P_To -= g*pow(v_to, 2);
+        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
+        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+    }
+    ACOPF->add(Flow_P_To.in(arcs)==0);
     
-        Constraint<> Flow_Q_From("Flow_Q_From");
-        Flow_Q_From += Qf_from;
-        if (polar) {
-            Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v.from(),2);
-            Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-            Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-        }
-        else {
-            Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-            Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-        }
-        ACOPF->add(Flow_Q_From.in(arcs)==0);
-        Constraint<> Flow_Q_To("Flow_Q_To");
-        Flow_Q_To += Qf_to;
-        if (polar) {
-            Flow_Q_To += (0.5*ch+b)*pow(v.to(),2);
-            Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-            Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-        }
-        else {
-            Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-            Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-        }
-        ACOPF->add(Flow_Q_To.in(arcs)==0);
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From += Qf_from;
+    if (polar) {
+        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
+        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+    }
+    else {
+        Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
+        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+    }
+    ACOPF->add(Flow_Q_From.in(arcs)==0);
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf_to;
+    if (polar) {
+        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
+        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
+        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
+        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+    }
+    ACOPF->add(Flow_Q_To.in(arcs)==0);
     
-        /** AC voltage limit constraints. */
-        if (!polar) {
-            Constraint<> Vol_limit_UB("Vol_limit_UB");
-            Vol_limit_UB = pow(vr, 2) + pow(vi, 2);
-            Vol_limit_UB -= pow(v_max, 2);
-            ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-    
-            Constraint<> Vol_limit_LB("Vol_limit_LB");
-            Vol_limit_LB = pow(vr, 2) + pow(vi, 2);
-            Vol_limit_LB -= pow(v_min,2);
-            ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-            DebugOff(v_min.to_str(true) << endl);
-            DebugOff(v_max.to_str(true) << endl);
-        }
-    
-    
-        /* Phase Angle Bounds constraints */
-        Constraint<> PAD_UB("PAD_UB");
-        Constraint<> PAD_LB("PAD_LB");
-        auto bus_pairs = get_bus_pairs();
-        if (polar) {
-            PAD_UB = theta.from() - theta.to();
-            PAD_UB -= th_max;
-            PAD_LB = theta.from() - theta.to();
-            PAD_LB -= th_min;
-            DebugOff(th_min.to_str(true) << endl);
-            DebugOff(th_max.to_str(true) << endl);
-        }
-        else {
-            DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-            PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-            PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
-    
-            PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-            PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
-            DebugOff(th_min.to_str(true) << endl);
-            DebugOff(th_max.to_str(true) << endl);
-        }
-        ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
-        ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
+    /** AC voltage limit constraints. */
+    if (!polar) {
+        Constraint<> Vol_limit_UB("Vol_limit_UB");
+        Vol_limit_UB = pow(vr, 2) + pow(vi, 2);
+        Vol_limit_UB -= pow(v_max, 2);
+        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
+        
+        Constraint<> Vol_limit_LB("Vol_limit_LB");
+        Vol_limit_LB = pow(vr, 2) + pow(vi, 2);
+        Vol_limit_LB -= pow(v_min,2);
+        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
+        DebugOff(v_min.to_str(true) << endl);
+        DebugOff(v_max.to_str(true) << endl);
+    }
     
     
-        /*  Thermal Limit Constraints */
-        Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-        Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
-        Thermal_Limit_from -= pow(S_max, 2);
-        ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
+    /* Phase Angle Bounds constraints */
+    Constraint<> PAD_UB("PAD_UB");
+    Constraint<> PAD_LB("PAD_LB");
+    auto bus_pairs = get_bus_pairs();
+    if (polar) {
+        PAD_UB = theta.from() - theta.to();
+        PAD_UB -= th_max;
+        PAD_LB = theta.from() - theta.to();
+        PAD_LB -= th_min;
+        DebugOff(th_min.to_str(true) << endl);
+        DebugOff(th_max.to_str(true) << endl);
+    }
+    else {
+        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
+        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
+        
+        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
+        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
+        DebugOff(th_min.to_str(true) << endl);
+        DebugOff(th_max.to_str(true) << endl);
+    }
+    ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
+    ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
     
-        Constraint<> Thermal_Limit_to("Thermal_Limit_to");
-        Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
-        Thermal_Limit_to -= pow(S_max,2);
-        ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-        return ACOPF;
+    
+    /*  Thermal Limit Constraints */
+    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from -= pow(S_max, 2);
+    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
+    
+    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
+    Thermal_Limit_to -= pow(S_max,2);
+    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
+    return ACOPF;
 }
 
 
