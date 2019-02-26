@@ -52,6 +52,8 @@ namespace gravity {
             this->_name = name;
             _lb = make_shared<func<type>>(constant<type>(numeric_limits<type>::lowest()));
             _ub = make_shared<func<type>>(constant<type>(numeric_limits<type>::max()));
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
@@ -60,6 +62,8 @@ namespace gravity {
             this->_name = name;
             _lb = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
             _ub = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
         }
         
 //        var(const string& name, Sign s);

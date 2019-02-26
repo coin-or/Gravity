@@ -30,6 +30,10 @@ namespace gravity {
     protected:
     public:
         type                                   _coef = unit<type>().eval(); /**< coefficient multpying the expression */
+        Convexity                              _all_convexity = linear_; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
+        Sign                                   _all_sign = zero_; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
+
+        shared_ptr<pair<type,type>>            _range = make_shared<pair<type,type>>(); /**< (Min,Max) values of expression **/
         string                                 _to_str = "noname"; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
@@ -141,6 +145,13 @@ namespace gravity {
             this->_type = uexp_c;
             _son = move(exp._son);
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -154,6 +165,9 @@ namespace gravity {
             this->_type = uexp_c;
             _son = move(exp._son);
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            this->_range = move(exp._range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -186,6 +200,13 @@ namespace gravity {
             this->_type = uexp_c;
             _son = exp._son->copy();
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -198,6 +219,13 @@ namespace gravity {
             this->_type = uexp_c;
             _son = exp._son->copy();
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -305,6 +333,29 @@ namespace gravity {
             _lson = move(exp._lson);
             _rson = move(exp._rson);
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
+            this->_to_str = exp._to_str;
+            this->_coef = exp._coef;
+            this->_is_vector = exp._is_vector;
+            this->_is_transposed = exp._is_transposed;
+            this->_dim[0] = exp._dim[0]; this->_dim[1] = exp._dim[1];
+            return *this;
+        }
+        
+        bexpr& operator=(bexpr&& exp){
+            this->_type = bexp_c;
+            _lson = move(exp._lson);
+            _rson = move(exp._rson);
+            _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            this->_range = move(exp._range);
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -560,34 +611,7 @@ namespace gravity {
         }
         
         
-        bexpr(OperatorType otype, shared_ptr<constant_> lson, shared_ptr<constant_> rson){
-            _otype = otype;
-            _lson = lson;
-            _rson = rson;
-            this->_type = bexp_c;
-            this->_to_str = to_str();
-            if(otype==product_){
-                this->_dim[0] = _lson->_dim[0];
-                this->_dim[1] = _rson->_dim[1];
-                
-                /* Instructions above work for matrix and vector dot products, below we check if it's a component-wise vector,matrix product */
-                if(otype==product_ && !_lson->is_matrix() && _rson->is_matrix()){
-                    this->_dim[0] = _rson->_dim[0];
-                }
-                if(otype==product_ && _lson->is_matrix() && !_rson->is_matrix() && _rson->_is_transposed){
-                    this->_dim[1] = _lson->_dim[1];
-                }
-                if(this->is_matrix()){
-                    this->_is_vector = true;
-                }
-            }
-            else {
-                this->_dim[0] = std::max(this->_dim[0], _lson->_dim[0]);
-                this->_dim[0] = std::max(this->_dim[0], _rson->_dim[0]);
-                this->_dim[1] = std::max(this->_dim[1], _lson->_dim[1]);
-                this->_dim[1] = std::max(this->_dim[1], _rson->_dim[1]);
-            }
-        };
+        bexpr(OperatorType otype, shared_ptr<constant_> lson, shared_ptr<constant_> rson);
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         bexpr& operator=(const bexpr<T2>& exp){
@@ -595,6 +619,13 @@ namespace gravity {
             _lson = exp._lson->copy();
             _rson = exp._rson->copy();
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
@@ -608,6 +639,13 @@ namespace gravity {
             _lson = exp._lson->copy();
             _rson = exp._rson->copy();
             _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
             this->_to_str = exp._to_str;
             this->_coef = exp._coef;
             this->_is_vector = exp._is_vector;
