@@ -126,7 +126,7 @@ namespace gravity {
             else if(_stype==cplex)
             {
 #ifdef USE_CPLEX
-                _prog = make_shared<CplexProgram>(CplexProgram(_model));
+                _prog = make_shared<CplexProgram>(_model);
 #else
                 cplexNotAvailable();
 #endif
@@ -134,7 +134,7 @@ namespace gravity {
             else if(_stype == mosek)
             {
 #ifdef USE_MOSEK
-                _prog = make_shared<MosekProgram>(MosekProgram(_model));
+                _prog = make_shared<MosekProgram>(_model);
 #else
                 mosekNotAvailable();
 #endif
@@ -145,7 +145,7 @@ namespace gravity {
                 if(_model->_objt==maximize){
                     _model->_obj->reverse_sign();
                 }
-                _prog = make_shared<BonminProgram>(BonminProgram(_model));
+                _prog = make_shared<BonminProgram>(_model);
 #else
                 bonminNotAvailable();
 #endif
@@ -153,7 +153,7 @@ namespace gravity {
             else if (_stype == clp){
 #ifdef USE_CLP
                 _model->replace_integers();
-                _prog = make_shared<ClpProgram>(ClpProgram(_model));
+                _prog = make_shared<ClpProgram>(_model);
 #else
                 ClpNotAvailable();
 #endif
@@ -161,9 +161,11 @@ namespace gravity {
         }        
         //@}
         void set_model(gravity::Model<type>& m);
-        
-        /* run model */
         int run(int output, type tol , int max_iter=10000){
+            return run(output, tol, max_iter, 1e-6, false);
+        }
+        /* run model */
+        int run(int output, type tol , int max_iter, double mipgap, bool relax){
             int return_status = -1, dyn_max_iter = 20;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
@@ -283,7 +285,7 @@ namespace gravity {
                 }
                 else if (_stype == clp){
 #ifdef USE_CLP
-                    auto clp_prog = (ClpProgram*)(_prog);
+                    auto clp_prog = (ClpProgram*)(_prog.get());
                     clp_prog->prepare_model();
                     optimal = clp_prog->solve();
                     
@@ -296,7 +298,7 @@ namespace gravity {
 #ifdef USE_GUROBI
                     try{
                         
-                        auto grb_prog = (GurobiProgram*)(_prog);
+                        auto grb_prog = (GurobiProgram*)(_prog.get());
                         grb_prog->_output = print_level;
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
@@ -314,8 +316,8 @@ namespace gravity {
                 {
 #ifdef USE_CPLEX
                     try{
-                        auto cplex_prog = (CplexProgram*)(_prog);
-                        cplex_prog->_output = print_level;
+                        auto cplex_prog = (CplexProgram*)(_prog.get());
+                        cplex_prog->_output = output;
                         cplex_prog->prepare_model();
                         optimal = cplex_prog->solve(relax,mipgap);
                         
@@ -332,8 +334,8 @@ namespace gravity {
                 {
 #ifdef USE_MOSEK
                     try{
-                        auto mosek_prog = (MosekProgram*)(_prog);
-                        mosek_prog->_output = print_level;
+                        auto mosek_prog = (MosekProgram*)(_prog.get());
+                        mosek_prog->_output = output;
                         mosek_prog->prepare_model();
                         bool ok = mosek_prog->solve(relax);
                         return_status = ok ? 100 : -1;
