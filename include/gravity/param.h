@@ -495,6 +495,10 @@ namespace gravity {
         virtual void set_double_val(double* x){};
         /** Fill the variable's values from x */
         virtual void get_double_val(const double* x){};
+        
+        /** Fill the variable's value at pos to x */
+        virtual void get_double_val(size_t pos, double x){};
+        
         /** round the value stored at position i to the nearest integer */
         virtual void round_vals(){};
 
@@ -1710,6 +1714,7 @@ namespace gravity {
         void set_double_val_(double* x){
             throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
+        
         void get_double_val(const double* x){get_double_val_(x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -1724,6 +1729,20 @@ namespace gravity {
         void get_double_val_(const double* x){
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
+        
+        
+        void get_double_val(size_t pos, double x){get_double_val_(pos,x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_double_val_(size_t pos, double x){
+            _val->at(pos) = x;
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void get_double_val_(size_t i, double x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
+        
         /** round the value stored at position i to the nearest integer */
         void round_vals(){round_vals_();};
         

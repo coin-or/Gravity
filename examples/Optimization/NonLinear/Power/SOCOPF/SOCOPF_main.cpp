@@ -158,12 +158,12 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add(PAD_UB.in(arcs));
+    SOCP.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add(PAD_LB.in(arcs));
+    SOCP.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -194,15 +194,15 @@ int main (int argc, char * argv[])
     
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
-//    if (use_cplex) {
-//        solver<> SCOPF_CPX(SOCP, cplex);
-//        auto solver_time_start = get_wall_time();
-//        SCOPF_CPX.run(output = 0, relax = false, tol = 1e-6);
-//        solver_time_end = get_wall_time();
-//        total_time_end = get_wall_time();
-//        solve_time = solver_time_end - solver_time_start;
-//        total_time = total_time_end - total_time_start;
-//    }
+    if (use_cplex) {
+        solver<> SOCOPF_CPX(SOCP, cplex);
+        auto solver_time_start = get_wall_time();
+        SOCOPF_CPX.run(output = 5, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
 //    else if (use_gurobi) {
 //        solver<> SCOPF_GRB(SOCP, gurobi);
 //        auto solver_time_start = get_wall_time();
@@ -212,7 +212,7 @@ int main (int argc, char * argv[])
 //        solve_time = solver_time_end - solver_time_start;
 //        total_time = total_time_end - total_time_start;
 //    }
-//    else {
+    else {
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
@@ -221,7 +221,7 @@ int main (int argc, char * argv[])
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
-//    }
+    }
 //    SOCP.print_solution(12);
     /** Uncomment next line to print expanded model */
     /* SOCP.print(); */
