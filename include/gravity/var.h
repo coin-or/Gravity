@@ -398,20 +398,22 @@ namespace gravity {
         void initialize_uniform(){initialize_uniform_();};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_uniform_() {
-            std::default_random_engine generator;
+            std::random_device dev;
+            std::mt19937 engine(dev());
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 std::uniform_real_distribution<double> real_distribution(get_lb(i).real(),get_ub(i).real());
                 std::uniform_real_distribution<double> imag_distribution(get_lb(i).imag(),get_ub(i).imag());
-                param<type>::_val->at(i).real(real_distribution(generator));
-                param<type>::_val->at(i).imag(imag_distribution(generator));
+                param<type>::_val->at(i).real(real_distribution(engine));
+                param<type>::_val->at(i).imag(imag_distribution(engine));
             }
         }
         
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform_() {
-            std::default_random_engine generator;
+            std::random_device dev;
+            std::mt19937 engine(dev());
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 std::uniform_real_distribution<double> distribution(get_lb(i),get_ub(i));
-                param<type>::_val->at(i) = distribution(generator);
+                param<type>::_val->at(i) = distribution(engine);
             }
         }
         
@@ -430,20 +432,22 @@ namespace gravity {
         void initialize_uniform(type lb, type ub){initialize_uniform_(lb,ub);};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_uniform_(type lb, type ub) {
-            std::default_random_engine generator;
+            std::random_device dev;
+            std::mt19937 engine(dev());
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 std::uniform_real_distribution<double> real_distribution(lb.real(),ub.real());
                 std::uniform_real_distribution<double> imag_distribution(lb.imag(),ub.imag());
-                param<type>::_val->at(i).real(real_distribution(generator));
-                param<type>::_val->at(i).imag(imag_distribution(generator));
+                param<type>::_val->at(i).real(real_distribution(engine));
+                param<type>::_val->at(i).imag(imag_distribution(engine));
             }
         }
         
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_uniform_(type lb, type ub) {
-            std::default_random_engine generator;
+            std::random_device dev;
+            std::mt19937 engine(dev());
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 std::uniform_real_distribution<double> distribution(lb,ub);
-                param<type>::_val->at(i) = distribution(generator);
+                param<type>::_val->at(i) = distribution(engine);
             }
         }
         
@@ -487,16 +491,36 @@ namespace gravity {
         
         
         template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
-        void copy_bounds(const param_& p){
-            auto dim = p.get_dim();
+        void copy_bounds(const shared_ptr<param_>& p){
+            auto dim = p->get_dim();
+            if(dim!=this->get_dim()){
+                throw invalid_argument("calling function copy_bounds with non-matching dimensions");
+            }
             _lb->reset();
             _ub->reset();
             _lb->_val->resize(dim);
             _ub->_val->resize(dim);
-            for (size_t i = 0; i < this->get_dim(); i++) {
-                _lb->_val->at(i) = p.get_double_lb(i);
+            for (size_t i = 0; i < dim; i++) {
+                _lb->_val->at(i) = p->get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));
-                _ub->_val->at(i) = p.get_double_ub(i);
+                _ub->_val->at(i) = p->get_double_ub(i);
+                _ub->update_range(_ub->_val->at(i));
+            }
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
+        }
+        
+        
+        template<typename T=type, typename T2, typename enable_if<is_convertible<T2, T>::value>::type* = nullptr>
+        void copy_bounds(const var<T2>& p){
+            auto dim = p.get_dim();
+            if(dim!=this->get_dim()){
+                throw invalid_argument("calling function copy_bounds with non-matching dimensions");
+            }
+            for (size_t i = 0; i < dim; i++) {
+                _lb->_val->at(i) = p._lb->_val->at(i);
+                _lb->update_range(_lb->_val->at(i));
+                _ub->_val->at(i) = p._ub->_val->at(i);
                 _ub->update_range(_ub->_val->at(i));
             }
         }

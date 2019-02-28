@@ -36,6 +36,15 @@ namespace gravity {
     string to_string_with_precision(const T a_value, const int n)
     {
         std::ostringstream out;
+        if(std::is_same<T,bool>::value && a_value==numeric_limits<T>::lowest()){
+            return "0";
+        }
+        if(std::is_same<T,bool>::value && a_value==numeric_limits<T>::max()){
+            return "1";
+        }
+        if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::max()){
+            return "+∞";
+        }
         if(std::numeric_limits<T>::is_specialized && a_value==numeric_limits<T>::lowest()){
             return "−∞";
         }
@@ -268,9 +277,8 @@ namespace gravity {
     /** Polymorphic class constant, can store an arithmetic or a complex number.*/
     template<typename type = double>
     class constant: public constant_{
-    protected:
-        type        _val;/**< value of current constant */
     public:
+        type        _val;/**< value of current constant */
         
         template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         T zero(){
@@ -283,8 +291,7 @@ namespace gravity {
         }
         
         /** Constructors */
-        constant(){
-            _val = zero<type>();
+        void update_type(){
             if(typeid(type)==typeid(bool)){
                 set_type(binary_c);
                 return;
@@ -313,21 +320,40 @@ namespace gravity {
                 set_type(complex_c);
                 return;
             }
-
             throw invalid_argument("Unknown constant type.");
+        }
+        
+        constant(){
+            _val = zero<type>();
+            update_type();
         }
         
         ~constant(){};
         
         
         constant& operator=(const constant& c) {
-            _is_transposed = c._is_transposed;
-            _is_vector = c._is_vector;            
             _type = c._type;
+            _is_transposed = c._is_transposed;
+            _is_vector = c._is_vector;                        
             _val = c._val;
             return *this;
         }
-            
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        constant& operator=(const constant<T2>& c) {
+            update_type();
+            _is_transposed = c._is_transposed;
+            _is_vector = c._is_vector;
+            _val = c._val;
+            return *this;
+        }
+        
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        constant(const constant<T2>& c){ /**< Copy constructor */
+            *this = c;
+        };
+        
         constant(const constant& c){ /**< Copy constructor */
             *this = c;
         };

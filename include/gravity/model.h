@@ -275,10 +275,10 @@ namespace gravity {
                 shared_ptr<param_> newv;
                 if (v._val->empty()) {
                     Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
-                    newv = make_shared<var<type>>(move((v.in(R(1)))));
+                    newv = make_shared<var<T>>(move((v.in(R(1)))));
                 }
                 else {
-                    newv = make_shared<var<type>>(move(v));
+                    newv = make_shared<var<T>>(move(v));
                 }
                 _vars_name[v._name] = newv;
                 _vars[v.get_vec_id()] = newv;
@@ -293,8 +293,8 @@ namespace gravity {
         
         template <typename T, typename... Args>
         void add(var<T>&& v, Args&&... args){
-            list<var<type>> vars;
-            vars = {forward<var<type>>(args)...};
+            list<var<T>> vars;
+            vars = {forward<var<T>>(args)...};
             vars.push_front(move(v));
             for (auto &v:vars) {
                 add_var(move(v));
@@ -1032,59 +1032,59 @@ namespace gravity {
             }
         }
         
-        //
-        //template<typename T1>
-        //void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
-        //    Constraint<type> MC1(name+"_McCormick1");
-        //    auto lb1 = v1.get_lb(v1.get_id_inst());
-        //    auto lb2 = v2.get_lb(v2.get_id_inst());
-        //    auto ub1 = v1.get_ub(v1.get_id_inst());
-        //    auto ub2 = v2.get_ub(v2.get_id_inst());
-        //    bool template_cstr = v1->_dim[0]>1;
-        //    MC1 += vlift;
-        //    if(template_cstr){//Template constraint
-        //        MC1 -= (*v1._lb)*v2 + (*v2._lb)*v1 - (*v1._lb)*(*v2._lb);
-        //    }
-        //    else {
-        //        MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
-        //    }
-        //    MC1 >= 0;
-        //    add(MC1);
-        //    //    MC1.print();
-        //    Constraint<type> MC2(name+"_McCormick2");
-        //    MC2 += vlift;
-        //    if(template_cstr){//Template constraint
-        //        MC2 -= (*v1._ub)*v2 + (*v2._ub)*v1 - (*v1._ub)*(*v2._ub);
-        //    }
-        //    else {
-        //        MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
-        //    }
-        //    MC2 >= 0;
-        //    add(MC2);
-        ////    //    MC2.print();
-        //    Constraint<type> MC3(name+"_McCormick3");
-        //    MC3 += vlift;
-        //    if(template_cstr){//Template constraint
-        //        MC3 -= (*v1._lb)*v2 + (*v2._ub)*v1 - (*v1._lb)*(*v2._ub);
-        //    }
-        //    else {
-        //        MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
-        //    }
-        //    MC3 <= 0;
-        //    add(MC3);
-        ////    //    MC3.print();
-        //    Constraint<type> MC4(name+"_McCormick4");
-        //    MC4 += vlift;
-        //    if(template_cstr){//Template constraint
-        //        MC4 -= (*v1._ub)*v2 + (*v2._lb)*v1 - (*v1._ub)*(*v2._lb);
-        //    }
-        //    else{
-        //        MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-        //    }
-        //    MC4 <= 0;
-        //    add(MC4);
-        //    //    MC4.print();
-        //}
+        
+        template<typename T1>
+        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
+            Constraint<type> MC1(name+"_McCormick1");
+            auto lb1 = v1.get_lb(v1.get_id_inst());
+            auto lb2 = v2.get_lb(v2.get_id_inst());
+            auto ub1 = v1.get_ub(v1.get_id_inst());
+            auto ub2 = v2.get_ub(v2.get_id_inst());
+            bool template_cstr = v1._dim[0]>1;
+            MC1 += vlift;
+            if(template_cstr){//Template constraint
+                MC1 -= (*v1._lb)*v2 + (*v2._lb)*v1 - (*v1._lb)*(*v2._lb);
+            }
+            else {
+                MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
+            }
+            MC1 >= 0;
+            add(MC1);
+            //    MC1.print();
+            Constraint<type> MC2(name+"_McCormick2");
+            MC2 += vlift;
+            if(template_cstr){//Template constraint
+                MC2 -= (*v1._ub)*v2 + (*v2._ub)*v1 - (*v1._ub)*(*v2._ub);
+            }
+            else {
+                MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
+            }
+            MC2 >= 0;
+            add(MC2);
+        //    //    MC2.print();
+            Constraint<type> MC3(name+"_McCormick3");
+            MC3 += vlift;
+            if(template_cstr){//Template constraint
+                MC3 -= (*v1._lb)*v2 + (*v2._ub)*v1 - (*v1._lb)*(*v2._ub);
+            }
+            else {
+                MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
+            }
+            MC3 <= 0;
+            add(MC3);
+        //    //    MC3.print();
+            Constraint<type> MC4(name+"_McCormick4");
+            MC4 += vlift;
+            if(template_cstr){//Template constraint
+                MC4 -= (*v1._ub)*v2 + (*v2._lb)*v1 - (*v1._ub)*(*v2._lb);
+            }
+            else{
+                MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
+            }
+            MC4 <= 0;
+            add(MC4);
+            //    MC4.print();
+        }
         
         
         /** Build the sequential McCormick relaxation for polynomial programs **/
@@ -2003,10 +2003,7 @@ namespace gravity {
             string vi_name, vj_name;
             param_* vi;
             param_* vj;
-            
             _built = true;
-            
-            
             if (_obj->_new) {
                 _obj->allocate_mem();
                 _obj->compute_derivatives();
@@ -2417,12 +2414,12 @@ namespace gravity {
                 //            f_p.first->second = f;
                 //            return f;
                 //        }
-                if (f->_dim[0] > f_p.first->second->_dim[0]) {
-                    *f_p.first->second = *f;
-                }
-                else if (f->_dfdx->size()>0) {
-                    *f_p.first->second = *f;
-                }
+//                if (f->_dim[0] > f_p.first->second->_dim[0]) {
+//                    *f_p.first->second = *f;
+//                }
+//                else if (f->_dfdx->size()>0) {
+//                    *f_p.first->second = *f;
+//                }
                 //        f_p.first->second->allocate_mem();
                 return f_p.first->second;
             }
@@ -2460,7 +2457,7 @@ namespace gravity {
                 if(v_pair.second->_is_relaxed){
                     v_pair.second->round_vals();
                     auto int_var = get_int_var(v_pair.first);
-                    int_var->copy_vals(*v_pair.second);
+                    int_var->copy_vals(v_pair.second);
                 }
             }
         }
@@ -2544,11 +2541,12 @@ namespace gravity {
                 if (v_p.second->is_integer() || v_p.second->is_binary()) {
                     has_int = true;
                     auto v = v_p.second;
+                    _int_vars[v->get_id()] = v;
                     auto new_v = make_shared<var<double>>(v_p.second->_name);
                     new_v->shallow_copy(*v);
                     new_v->_is_relaxed = true;                    
-//                    new_v->copy_vals(*v);
-                    new_v->copy_bounds(*v);
+                    new_v->copy_vals(v);
+                    new_v->copy_bounds(v);
                     v_p.second = new_v;
                 }
             }

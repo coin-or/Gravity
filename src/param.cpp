@@ -6,10 +6,19 @@
 //
 //
 #include <gravity/param.h>
+#include <gravity/func.h>
 
 namespace gravity {
     
-    
+    template<typename T>
+    void param<T>::copy_vals(const shared_ptr<param_>& p){
+        auto dim = p->get_dim();
+        func<T> f;
+        _val->resize(dim);
+        for (size_t i = 0; i < dim; i++) {
+            _val->at(i) = f.eval(p,i);
+        }
+    }
     
     template<>
     void param<complex<double>>::update_range(const complex<double>& val) {
@@ -80,4 +89,12 @@ namespace gravity {
         newp._is_imag = true;
         return newp;
     }
+    
+    template class param<bool>;
+    template class param<short>;
+    template class param<int>;
+    template class param<float>;
+    template class param<double>;
+    template class param<long double>;
+    template class param<Cpx>;
 }
