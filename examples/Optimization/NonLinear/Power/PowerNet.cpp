@@ -163,8 +163,8 @@ indices PowerNet::gens_per_node() const{
 }
 
 indices PowerNet::out_arcs_per_node() const{
-    indices ids("out_arcs_per_node");
-    ids = indices(arcs);
+    auto ids = indices(arcs);
+    ids._name = "out_arcs_per_node";
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
     string key;
@@ -189,8 +189,8 @@ indices PowerNet::out_arcs_per_node() const{
 }
 
 indices PowerNet::in_arcs_per_node() const{
-    indices ids("in_arcs_per_node");
-    ids = indices(arcs);
+    auto ids = indices(arcs);
+    ids._name = "in_arcs_per_node";
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
     string key;

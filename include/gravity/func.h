@@ -1065,6 +1065,7 @@ namespace gravity {
             if (pair_it != _lterms->end() && pair_it->second._p->get_type() != p.get_type()) {
                 throw invalid_argument("param and var with same name: " + pname);
             }
+            _evaluated = false;
             if (_ftype == const_ && p.is_var()) {
                 _ftype = lin_;
             }
@@ -2205,7 +2206,7 @@ namespace gravity {
                 }
                 else if(term._coef->is_number()) {
                     auto coef = *static_pointer_cast<constant<T2>>(term._coef);
-                    term._coef = constant<type>(coef.eval()).copy();
+                    term._coef = constant<type>(coef).copy();
                 }
                 this->insert(term);
             }
@@ -4881,7 +4882,7 @@ namespace gravity {
                 auto c2 = sqr2->_coef;
                 if ((sqr1->_sign^c1->is_positive())==(sqr2->_sign^c2->is_positive())) {
                     if (c1->func_is_number() && c2->func_is_number() && q._coef->func_is_number()) {
-                        if (eval<type>(c1) >= eval<type>(q._coef)/2. && eval<type>(c2) >= eval<type>(q._coef)/2.) {
+                        if (2.*sqrt(eval<type>(c1)*eval<type>(c2)) >= eval<type>(q._coef)) {
                             if (!(sqr1->_sign^c1->is_positive())) {
                                 return convex_;
                             }
@@ -5243,7 +5244,7 @@ namespace gravity {
                 auto new_var = vars.at(old_var->get_vec_id())->pcopy();
                 new_var->shallow_copy(*old_var);
                 (*new_vars)[new_var->get_name(false,false)] = make_pair<>(new_var,nb_occ);
-                if (new_var->is_binary() || new_var->is_short() || new_var->is_integer()) {
+                if (old_var->is_binary() || old_var->is_short() || old_var->is_integer()) {
                     has_int = true;
                     new_var->_is_relaxed = true;
                 }
@@ -5289,6 +5290,10 @@ namespace gravity {
             auto ps2 = p2.get_name(false,false);
             auto qname = ps1+","+ps2;
             auto pair_it = _qterms->find(qname);
+            if (pair_it == _qterms->end()) {
+                qname = ps2+","+ps1;
+                pair_it = _qterms->find(qname);
+            }
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
             _evaluated=false;
@@ -5351,10 +5356,32 @@ namespace gravity {
             }
             else {
                 if (pair_it->second._sign == sign) {
-                    //                pair_it->second._coef = add(pair_it->second._coef, coef);
+                    if (coef.is_function()) {
+                        auto coef2 = *(func<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_param()) {
+                        auto coef2 = *(param<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_number()) {
+                        auto coef2 = *(constant<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
                 }
                 else{
-                    //                pair_it->second._coef = substract(pair_it->second._coef, coef);
+                    if (coef.is_function()) {
+                        auto coef2 = *(func<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_param()) {
+                        auto coef2 = *(param<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_number()) {
+                        auto coef2 = *(constant<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
                 }
                 if (pair_it->second._coef->is_zero()) {
                     if (p1.is_var()) {
@@ -5452,12 +5479,33 @@ namespace gravity {
             }
             else {
                 if (pair_it->second._sign == sign) {
-                    //                pair_it->second._coef = add(pair_it->second._coef, coef);
+                    if (coef.is_function()) {
+                        auto coef2 = *(func<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_param()) {
+                        auto coef2 = *(param<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_number()) {
+                        auto coef2 = *(constant<type>*)(&coef);
+                        pair_it->second._coef = add(pair_it->second._coef,coef2);
+                    }
                 }
                 else{
-                    //                pair_it->second._coef = substract(pair_it->second._coef, coef);
+                    if (coef.is_function()) {
+                        auto coef2 = *(func<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_param()) {
+                        auto coef2 = *(param<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
+                    else if(coef.is_number()) {
+                        auto coef2 = *(constant<type>*)(&coef);
+                        pair_it->second._coef = subtract(pair_it->second._coef,coef2);
+                    }
                 }
-                
                 if (pair_it->second._coef->is_zero()) {
                     for (auto& it:*pair_it->second._l) {
                         p = it.first;
@@ -6594,9 +6642,9 @@ namespace gravity {
         if(exp==1){
             return f;
         }
-        if(exp==2){
-            return f*f;
-        }
+//        if(exp==2){
+//            return f*f;
+//        }
         else {
             func<T> res(f);
             for (int i = 1; i < exp; i++) {
@@ -6902,7 +6950,7 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const func<T1>& f, T2 v){
         func<T2> res(f);
-        res -= f;
+        res -= v;//TODO check when v = f
         return res;
     }
     

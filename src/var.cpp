@@ -129,7 +129,7 @@ template<typename type> void   var<type>::set_size(size_t s) {
 
 template<typename type>
 type    var<type>::get_lb(size_t i) const {
-    if (_lb->is_number()) {
+    if (_lb->func_is_number()) {
         return _lb->_val->at(0);
     }
     return _lb->eval(i);
@@ -137,7 +137,7 @@ type    var<type>::get_lb(size_t i) const {
 
 template<typename type>
 type    var<type>::get_ub(size_t i) const {
-    if (_ub->is_number()) {
+    if (_ub->func_is_number()) {
         return _ub->_val->at(0);
     }
     return _ub->eval(i);
@@ -241,10 +241,12 @@ template<typename type> void   var<type>::add_ub_only(type val) {
 
     
 template<typename type> void   var<type>::set_lb(type val) {
+    *_lb = constant<type>(val);
     param<type>::_range->first = val;
 }
 
 template<typename type> void   var<type>::set_ub(type val) {
+    *_ub = constant<type>(val);
     param<type>::_range->second = val;
 }
 

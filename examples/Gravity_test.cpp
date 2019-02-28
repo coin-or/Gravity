@@ -25,6 +25,134 @@
 using namespace std;
 using namespace gravity;
 
+//@variable(m, -2 <= x[1:2] <= 2)
+//@variable(m, y[1:4])
+//setlowerbound(y[1], 0)
+//setlowerbound(y[3], 0)
+//@NLobjective(m, Min, 30 + y[3]*y[4] + 30*y[1]*y[2] + y[1]*y[2]*y[3]*y[4])
+//@NLconstraint(m, y[1] == (x[1] + x[2] + 1)^2 )
+//@NLconstraint(m, y[2] == 19 - 14*x[1] + 3*x[1]^2 - 14*x[2] + 6*x[1]*x[2] + 3*x[2]^2)
+//@NLconstraint(m, y[3] == (2*x[1] - 3*x[2])^2)
+//@NLconstraint(m, y[4] == 18 - 32*x[1] + 12*x[1]^2 + 48*x[2] - 36*x[1]*x[2] + 27*x[2]^2)
+
+TEST_CASE("Alpine issue") {
+    Model<> m;
+    var<> x1("x1", -2, 2), x2("x2", -2, 2);
+    var<> y1("y1"), y2("y2"), y3("y3"), y4("y4");
+    m.add(x1.in(R(1)), x2.in(R(1)),y1.in(R(1)), y2.in(R(1)),y3.in(R(1)),y4.in(R(1)));
+    Constraint<> c1("c1");
+    c1 = pow((x1 +x2 +1),2);
+    CHECK(c1.is_convex());
+    y1.set_lb(c1._range->first);
+    y1.set_ub(c1._range->second);
+    c1 -= y1;
+    m.add(c1==0);
+    cout << "y1 lower bound = " << y1._range->first << endl;
+    cout << "y1 upper bound = " << y1._range->second << endl;
+    Constraint<> c2("c2");
+//    c2 = 19 - 14*x1 + 3*pow(x1,2) - 14*x2 + 6*x1*x2 + 3*pow(x2,2);
+    c2 = 19 - 14*x1 - 14*x2 + pow(sqrt(3)*x1+sqrt(3)*x2,2);
+    y2.set_lb(c2._range->first);
+    y2.set_ub(c2._range->second);
+    cout << "y2 lower bound = " << y2._range->first << endl;
+    cout << "y2 upper bound = " << y2._range->second << endl;
+    c2 -= y2;
+    CHECK(c2.is_convex());
+    m.add(c2==0);
+    Constraint<> c3("c3");
+    c3 = pow(2*x1 - 3*x2,2);
+    y3.set_lb(c3._range->first);
+    y3.set_ub(c3._range->second);
+    c3 -= y3;
+    CHECK(c3.is_convex());
+    m.add(c3==0);
+    cout << "y3 lower bound = " << y3._range->first << endl;
+    cout << "y3 upper bound = " << y3._range->second << endl;
+    Constraint<> c4("c4");
+//    c4 = 18 - 32*x1 + 12*pow(x1,2) + 48*x2 - 36*x1*x2 + 27*pow(x2,2);
+    c4 = 18 - 32*x1 - 6*pow(x1,2) + 48*x2 + pow(sqrt(18)*x1 - sqrt(18)*x2,2) + 9*pow(x2,2);
+    y4.set_lb(c4._range->first);
+    y4.set_ub(c4._range->second);
+    c4 -= y4;
+    CHECK(!c4.is_convex());
+    m.add(c4==0);
+    cout << "y4 lower bound = " << y4._range->first << endl;
+    cout << "y4 upper bound = " << y4._range->second << endl;
+    
+    auto obj = 30 + y3*y4 +30*y1*y2 + y1*y2*y3*y4;
+    cout << "Objective lower bound = " << obj._range->first << endl;
+    cout << "Objective upper bound = " << obj._range->second << endl;
+    m.min(obj);
+    m.print_symbolic();
+//    m.initialize_uniform();
+    solver<> s(m,ipopt);
+//    s.run(5,1e-6,1000000000);
+//    m.print_solution();
+    Model<> relax("Lifted Relaxation");
+    relax.add(x1.in(R(1)), x2.in(R(1)),y1.in(R(1)), y2.in(R(1)),y3.in(R(1)),y4.in(R(1)));
+    var<> y1234("y1y2y3y4"), y12("y1y2"), y34("y3y4"), x12("x1x2"), x11("x1x1"), x22("x2x2");
+    relax.add(x11.in(R(1)), x22.in(R(1)),x12.in(R(1)), y12.in(R(1)),y34.in(R(1)),y1234.in(R(1)));
+//    y1234.set_lb((y1*y2*y3*y4)._range->first);
+    y1234.set_lb(-6.5960864721715523e+04);
+    y1234.set_ub(9.6862741376982182e+07);
+    y12.set_lb(-6.7991238617093404e+02);
+    y12.set_ub(2.0469403071503261e+03);
+    y34.set_lb(-1.0480127832632632e+04);
+    y34.set_ub(4.7800000000531814e+04);
+    x12.set_lb((x1*x2)._range->first);
+    x12.set_ub((x1*x2)._range->second);
+    x11.set_lb((x1*x1)._range->first);
+    x11.set_ub((x1*x1)._range->second);
+    x22.set_lb((x1*x1)._range->first);
+    x22.set_ub((x2*x2)._range->second);
+//    func<> relax_obj = 30 + y34 +30*y12 + y1234;
+    func<> relax_obj = y1234;
+    relax.max(relax_obj);
+    relax.add(c1<=0);
+    relax.add(c2<=0);
+    relax.add(c3<=0);
+    
+    Constraint<> obj_ub("obj_ub");
+    
+    obj_ub = 30 + y34 +30*y12 + y1234;
+    relax.add(obj_ub<=3);
+    
+    Constraint<> c1_relax("c1_relax");
+    c1_relax = x11 + 2*x12 + x22 + 2*x1 + 2*x2 - y1 + 1;
+    relax.add(c1_relax==0);
+    Constraint<> c2_relax("c2_relax");
+    c2_relax = 3*x11 + 6*x12 + 3*x22 - 14*x1 - 14*x2 - y2 + 19;
+    relax.add(c2_relax==0);
+    Constraint<> c3_relax("c3_relax");
+    c3_relax = 4*x11 - 12*x12 + 9*x22 - y3;
+    relax.add(c3_relax==0);
+    Constraint<> c4_relax("c4_relax");
+    c4_relax = 12*x11 -36*x12 + 27*x22 - 32*x1 + 48*x2 - y4 + 18;
+    relax.add(c4_relax==0);
+    
+    Constraint<> soc1("soc1");
+    soc1 = x11 - pow(x1,2);
+    relax.add(soc1 >= 0);
+    Constraint<> soc2("soc2");
+    soc2 = x22 - pow(x2,2);
+    relax.add(soc2 >= 0);
+    
+    Constraint<> rot_soc("rot_soc");
+    rot_soc = x11*x22 - pow(x12,2);
+    relax.add(rot_soc >= 0);
+    CHECK(rot_soc.is_rotated_soc());
+    
+    relax.add_McCormick("x12", x12, x1, x2);
+    relax.add_McCormick("y12", y12, y1, y2);
+    relax.add_McCormick("y34", y34, y3, y4);
+    relax.add_McCormick("y1234", y1234, y12, y34);
+    
+    relax.print_symbolic();
+    solver<> s2(relax,ipopt);
+    s2.run();
+    relax.print_solution();
+}
+
 TEST_CASE("testing numerical precision") {
     double bMVA = 100.0;
     double smax = 1089;

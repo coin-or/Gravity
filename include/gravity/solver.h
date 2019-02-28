@@ -161,7 +161,7 @@ namespace gravity {
         }        
         //@}
         void set_model(gravity::Model<type>& m);
-        int run(int output, type tol , int max_iter=10000){
+        int run(int output=5, type tol=1e-6 , int max_iter=10000){
             return run(output, tol, max_iter, 1e-6, false);
         }
         /* run model */

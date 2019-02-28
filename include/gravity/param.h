@@ -95,7 +95,7 @@ namespace gravity {
         
         virtual void print_symbolic() const{};
         
-        virtual void print(int prec){};
+        virtual void print(int prec){};                
 
         void set_id(size_t idx) {
             *_id = idx;
@@ -271,7 +271,7 @@ namespace gravity {
         };
 
         bool is_integer() const {
-            return (_intype==integer_);
+            return (_intype==integer_ || _intype==short_);
         };
 
         bool is_float() const {
@@ -512,8 +512,8 @@ namespace gravity {
         /** Return upper bound violation */
         virtual double get_ub_violation(size_t i){return 0;};
         
-        virtual void copy_vals(const param_& p){};
-        virtual void copy_bounds(const param_& p){};
+        virtual void copy_vals(const shared_ptr<param_>& p){};
+        virtual void copy_bounds(const shared_ptr<param_>& p){};
         virtual double get_double_lb(size_t i) const{return 0;};
         virtual double get_double_ub(size_t i) const{return 0;};
 
@@ -1675,12 +1675,7 @@ namespace gravity {
 
 
         type getvalue() const {
-            if (_indices) {
-                return (_val->at(_indices->last()));
-            }
-            else {
-                return _val->at(0);
-            }
+            return _val->back();
         }
         
         void update_range(const Cpx& val);
@@ -1771,6 +1766,8 @@ namespace gravity {
                 _val->at(i) = p._val->at(i);
             }
         }
+        
+        void copy_vals(const shared_ptr<param_>& p);
                 
        
 

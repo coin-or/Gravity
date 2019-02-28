@@ -43,8 +43,11 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             cplex.extract(*_cplex_model);
         }
         cplex.setParam(IloCplex::EpGap, mipgap);
-        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
+//        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
+//        cplex.setParam(IloCplex::MIPDisplay, 2);
+//        cplex.setParam(IloCplex::SimDisplay, 2);
+//        cplex.setParam(IloCplex::PreInd, 0);
         cplex.solve();
         if (cplex.getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;
@@ -136,8 +139,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             }
 //            for (int i = 0; i < real_var->get_dim(); i++) {
-//                cout << _cplex_vars.at(vid)[i].getName() << ", ";
-//                cout << real_var->get_rev_indices()->at(i) << " : ";
+//                cout << real_var->_indices->_keys->at(i) << " : ";
 //                cout << to_string(_cplex_vars.at(vid)[i].getId()) << " in [";
 //                cout << lb[i] << "," << ub[i]<< "]\n";
 //            }
@@ -153,6 +155,12 @@ void CplexProgram::fill_in_cplex_vars() {
                 ub[i] = real_var->get_ub(i);
             }
             _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub, ILOINT);
+//            for (int i = 0; i < real_var->get_dim(); i++) {
+//                cout << real_var->_indices->_keys->at(i) << " : ";
+//                cout << to_string(_cplex_vars.at(vid)[i].getId()) << " in [";
+//                cout << lb[i] << "," << ub[i]<< "]\n";
+//            }
+//            cout << endl;
             break;
         }
         case short_: {
@@ -167,14 +175,8 @@ void CplexProgram::fill_in_cplex_vars() {
             break;
         }
         case binary_: {
-            auto real_var = (var<bool>*)v.get();
-            auto lb = IloNumArray(*_cplex_env, real_var->get_dim());
-            auto ub = IloNumArray(*_cplex_env, real_var->get_dim());
-            for (int i = 0; i < real_var->get_dim(); i++) {
-                lb[i] = real_var->get_lb(i);
-                ub[i] = real_var->get_ub(i);
-            }
             _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,ILOBOOL);
+            _cplex_vars.at(vid).setSize(v->get_dim());
             break;
         }
         default:
