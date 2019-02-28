@@ -102,9 +102,6 @@ int main (int argc, char * argv[])
     var<> theta("𝛉");
     DCOPF.add(theta.in(nodes));
     
-    auto theta_from = theta.from().in(arcs);
-    auto theta_to = theta.to().in(arcs);
-    
     /**  Objective */
     auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
     DCOPF.min(obj);
@@ -123,16 +120,16 @@ int main (int argc, char * argv[])
     
     /* AC Power Flow */
     Constraint<> Flow_P("Flow_P");
-    Flow_P = Pf + b*(theta_from - theta_to);
+    Flow_P = Pf + b*(theta.from(arcs) - theta.to(arcs));
     DCOPF.add(Flow_P.in(arcs) == 0);
 
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
-    PAD_UB = theta.from() - theta.to();
+    PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
     PAD_UB -= th_max;
     DCOPF.add(PAD_UB.in(bus_pairs) <= 0);
     Constraint<> PAD_LB("PAD_LB");
-    PAD_LB = theta.from() - theta.to();
+    PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
     PAD_LB -= th_min;
     DCOPF.add(PAD_LB.in(bus_pairs) >= 0);
     /* Solver selection */
@@ -157,7 +154,9 @@ int main (int argc, char * argv[])
     else {
         solver<> DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
-        DCOPF_IPT.run(output=5, tol = 1e-6);
+        DCOPF_IPT.run(output = 5, tol = 1e-6);
+        solver<> DCOPF_CPX(DCOPF, cplex);
+        DCOPF_CPX.run(output = 5, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

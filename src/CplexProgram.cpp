@@ -22,6 +22,21 @@ CplexProgram::~CplexProgram() {
 }
 
 
+void CplexProgram::warm_start(){
+    IloCplex cplex(*_cplex_env);
+    IloNumArray vals(*_cplex_env);
+    IloNumVarArray vars(*_cplex_env);
+    double val = 0;
+    for (auto i = 0; i < _cplex_vars.size(); i++) {
+        for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+            vars.add(_cplex_vars[i][j]);
+            _model->_vars[i]->set_double_val(j,val);
+            vals.add(val);
+        }
+    }
+    cplex.setStart(vals, 0, vars, 0, 0, 0);
+}
+
 bool CplexProgram::solve(bool relax, double mipgap) {
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
     //    print_constraints();
@@ -45,9 +60,22 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         cplex.setParam(IloCplex::EpGap, mipgap);
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
+        cplex.setParam(IloCplex::RootAlg, 1);
+        cplex.setParam(IloCplex::AdvInd, 1);
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
 //        cplex.setParam(IloCplex::PreInd, 0);
+        IloNumArray vals(*_cplex_env);
+        IloNumVarArray vars(*_cplex_env);
+        double val = 0;
+        for (auto i = 0; i < _cplex_vars.size(); i++) {
+            for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
+                vars.add(_cplex_vars[i][j]);
+                _model->_vars[i]->set_double_val(j,val);
+                vals.add(val);
+            }
+        }
+        cplex.setStart(vals, 0, vars, 0, 0, 0);
         cplex.solve();
         if (cplex.getStatus() == IloAlgorithm::Infeasible) {
             _cplex_env->out() << "No Solution" << endl;
