@@ -232,6 +232,10 @@ namespace gravity {
             return res;
         }
         
+        var from(const indices& ids){
+            return this->from().in(ids);
+        }
+        
         
         var to(){
             var<type> res(*this);
@@ -240,7 +244,9 @@ namespace gravity {
             return res;
         }
         
-        
+        var to(const indices& ids){
+            return this->to().in(ids);
+        }
         var out_arcs(){
             var<type> res(*this);
             res._name += ".out_arcs";
