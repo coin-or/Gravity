@@ -60,9 +60,9 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         cplex.setParam(IloCplex::EpGap, mipgap);
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
-        cplex.setParam(IloCplex::RootAlg, 1);
-        cplex.setParam(IloCplex::AdvInd, 1);
-//        cplex.setParam(IloCplex::MIPDisplay, 2);
+//        cplex.setParam(IloCplex::RootAlg, 1);
+//        cplex.setParam(IloCplex::AdvInd, 1);
+        cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
 //        cplex.setParam(IloCplex::PreInd, 0);
         IloNumArray vals(*_cplex_env);

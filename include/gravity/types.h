@@ -513,6 +513,8 @@ namespace gravity{
             }
         }
         
+        
+        
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
@@ -649,6 +651,8 @@ namespace gravity{
     std::string type_name(const T& t) {
         return t._type_name;
     }
+    
+    indices range(size_t i, size_t j);
 }
 
 #endif

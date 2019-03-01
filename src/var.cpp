@@ -241,13 +241,29 @@ template<typename type> void   var<type>::add_ub_only(type val) {
 
     
 template<typename type> void   var<type>::set_lb(type val) {
-    *_lb = constant<type>(val);
-    param<type>::_range->first = val;
+    if(this->is_indexed()){
+        _lb->set_val(this->get_id_inst(),val);
+        _lb->update_range(val);
+        this->update_range(val);
+        _lb->_evaluated = true;
+    }
+    else {
+        *_lb = constant<type>(val);
+        param<type>::_range->first = val;
+    }
 }
 
 template<typename type> void   var<type>::set_ub(type val) {
-    *_ub = constant<type>(val);
-    param<type>::_range->second = val;
+    if(this->is_indexed()){
+        _ub->set_val(this->get_id_inst(),val);
+        _ub->update_range(val);
+        this->update_range(val);
+        _ub->_evaluated = true;
+    }
+    else {
+        *_ub = constant<type>(val);
+        param<type>::_range->second = val;
+    }
 }
 
 template<typename type> void   var<type>::in_q_cone() {
