@@ -3,6 +3,15 @@
 using namespace std;
 using namespace gravity;
 
+
+gravity::indices gravity::range(size_t i, size_t j){
+    gravity::indices res(to_string(i)+":"+to_string(j));
+    for(auto idx = i; idx <=j; idx++){
+        res.add(to_string(idx));
+    }
+    return res;
+}
+
 #ifdef _WIN32
 #include <Windows.h>
 

@@ -2058,7 +2058,7 @@ namespace gravity {
             _all_sign = _cst->get_sign();
             _val->resize(1);
             _val->at(0) = c.eval();
-            update_range(_val->at(0));
+            set_range(_val->at(0));
             _all_sign = c.get_all_sign();
             _evaluated = true;
             return *this;
@@ -2389,14 +2389,18 @@ namespace gravity {
             _dim[0] = _val->size();
         }
         
+        void set_range(type val) {
+            _range->first = val;
+            _range->second = val;
+        }
         
         void update_range(type val) {
-//            if (val <= _range->first) {
+            if (val <= _range->first) {
                 _range->first = val;
-//            }
-//            if (val >= _range->second) {
+            }
+            if (val >= _range->second) {
                 _range->second = val;
-//            }
+            }
         }
         
         void add_val(size_t i, type val) {

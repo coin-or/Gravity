@@ -188,6 +188,8 @@ namespace gravity {
             return res;
         }
         
+        
+        
         template<typename... Args>
         var operator()(string t1, Args&&... args) {
             bool indexed = param<type>::_indices!=nullptr;
@@ -215,6 +217,14 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            return res;
+        }
+        
+        
+        template<typename... Args>
+        var operator[](size_t i) {
+            auto res = (*this)(i-1);
+            res._name = this->_name+"["+to_string(i)+"]";
             return res;
         }
         
@@ -396,6 +406,8 @@ namespace gravity {
                 if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
                     this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
                 }
+                _lb->set_size(s._dim);
+                _ub->set_size(s._dim);
                 _lb->allocate_mem();
                 _ub->allocate_mem();
                 return *this;

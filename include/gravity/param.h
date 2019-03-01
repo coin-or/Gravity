@@ -1202,14 +1202,24 @@ namespace gravity {
         }
 #endif
 
-
-
         param& operator=(type v) {
             if(_indices){
                 set_val(v);
             }
             else {
                 add_val(v);
+            }
+            return *this;
+        }
+
+        param& operator=(const initializer_list<type>& l) {
+            if(_indices){
+                for(auto &v:l)
+                    set_val(v);
+            }
+            else {
+                for(auto &v:l)
+                    add_val(v);
             }
             return *this;
         }

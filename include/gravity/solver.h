@@ -161,8 +161,11 @@ namespace gravity {
         }        
         //@}
         void set_model(gravity::Model<type>& m);
+        int run(bool relax){
+            return run(5, 1e-6, 10000, 1e-6, relax);
+        }
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
-            return run(output, tol, max_iter, 1e-6, false);
+            return run(output, tol, max_iter, 1e-6, true);
         }
         /* run model */
         int run(int output, type tol , int max_iter, double mipgap, bool relax){
