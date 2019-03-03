@@ -1329,12 +1329,83 @@ namespace gravity {
                 res._name += ".in("+ids._name+")";
                 return res;
             }
+            string key, excluded;
+            size_t nb_inst=1;
             param res(*this);
-            if(ids.is_indexed()){
-                res._indices = make_shared<indices>(ids);
+            if(ids.is_indexed()){/* Double-indexed set */
+                size_t idx_excl = 0;
+                nb_inst = ids._ids->size();
+                //TODO check that the current param has the keys found in ids
+                bool has_all_keys = true;
+                for(auto key: *ids._keys){
+                    if(ids._excluded_keys.count(idx_excl++)!=0){
+                        continue;
+                    }
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        has_all_keys = false;
+                        break;
+                    }
+                }
+                if(has_all_keys){
+                    res._indices = make_shared<indices>(ids);
+                    if(res._is_transposed){
+                        res._dim[1]=_indices->size();
+                    }
+                    else {
+                        res._dim[0]=_indices->size();
+                    }
+                    res._name += ".in("+ids._name+")";
+                    return res;
+                }
+                res._indices->_ids = make_shared<vector<vector<size_t>>>();
+                res._indices->_ids->resize(nb_inst);
+                for(size_t inst = 0; inst<nb_inst;inst++){
+                    auto nb_idx = ids._ids->at(inst).size();
+                    res._indices->_ids->at(inst).resize(nb_idx);
+                    for(size_t idx = 0; idx<nb_idx; idx++){
+                        key = ids._keys->at(ids._ids->at(inst).at(idx));
+                        if(ids._excluded_keys.count(idx)!=0){
+                            excluded += key + ",";
+                            continue;
+                        }
+                        if(!res._indices->_time_extended && ids._time_extended){/* truncate time indices */
+                            auto pos = nthOccurrence(key, ",", ids._time_pos);
+                            key = key.substr(0,pos);
+                        }
+                        if(_indices){
+                            if(_indices->_type==to_){
+                                key = key.substr(key.find_last_of(",")+1,key.size());
+                            }
+                            else if(_indices->_type==from_){
+                                key = key.substr(0, key.find_last_of(","));
+                                key = key.substr(key.find_last_of(",")+1,key.size());
+                            }
+                        }
+                        /* Compare indexing and truncate extra indices */
+                        auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+                        auto nb_sep2 = count(key.begin(), key.end(), ',');
+                        if(nb_sep2>nb_sep1){
+                            auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
+                            key = key.substr(pos+1,key.size()-1);
+                        }
+                        auto it1 = _indices->_keys_map->find(key);
+                        if (it1 == _indices->_keys_map->end()){
+                            throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                        }
+                        res._indices->_ids->at(inst).at(idx) = it1->second;
+                    }
+                }
                 res._name += ".in("+ids._name+")";
+                if(res._is_transposed){
+                    res._dim[1]=res._indices->_ids->at(0).size();
+                }
+                else {
+                    res._dim[0]=res._indices->_ids->at(0).size();
+                }
                 return res;
             }
+            size_t idx = 0;
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(ids.empty()){
@@ -1342,8 +1413,6 @@ namespace gravity {
                 res._name += "_EMPTY";
                 return res;
             }
-            string key, excluded;
-            size_t idx = 0;
             for(auto key: *ids._keys){
                 if(ids._excluded_keys.count(idx++)!=0){
                     excluded += key + ",";
@@ -1427,48 +1496,27 @@ namespace gravity {
             return res;
         }
 
-        param in_pairs(){
-            param<type> res(*this);
-            res._name += ".in_pairs";
-            res._indices->_type = in_pairs_;
-            return res;
-        }
-
         param from(){
             param<type> res(*this);
             res._name += ".from";
             res._indices->_type = from_;
             return res;
         }
-
-
+        
+        param from(const indices& ids){
+            return this->from().in(ids);
+        }
+        
+        
         param to(){
             param<type> res(*this);
             res._name += ".to";
             res._indices->_type = to_;
             return res;
         }
-
-
-        param out_arcs(){
-            param<type> res(*this);
-            res._name += ".out_arcs";
-            res._indices->_type = out_arcs_;
-            return res;
-        }
-
-        param in_arcs(){
-            param<type> res(*this);
-            res._name += ".in_arcs";
-            res._indices->_type = in_arcs_;
-            return res;
-        }
-
-        param in_gens(){
-            param<type> res(*this);
-            res._name += ".in_gens";
-            res._indices->_type = in_gens_;
-            return res;
+        
+        param to(const indices& ids){
+            return this->to().in(ids);
         }
 
         /* Index param/var based on incoming arcs out of nodes in vec */

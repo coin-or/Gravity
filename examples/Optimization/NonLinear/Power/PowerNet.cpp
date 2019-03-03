@@ -770,8 +770,8 @@ int PowerNet::readGAMS(const string& fname) {
             
         }
         else {
-            th_min.add_val(name,max(th_min.eval(name), arc->tbound.min));
-            th_max.add_val(name,min(th_max.eval(name), arc->tbound.max));
+            th_min.add_val(name,gravity::max(th_min.eval(name), arc->tbound.min));
+            th_max.add_val(name,gravity::min(th_max.eval(name), arc->tbound.max));
             tan_th_min.add_val(name,tan(th_min.eval(name)));
             tan_th_max.add_val(name,tan(th_max.eval(name)));
         }
@@ -789,7 +789,7 @@ int PowerNet::readGAMS(const string& fname) {
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*gravity::min(cos(th_min.eval(name)), cos(th_max.eval(name))));
             wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
             wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
@@ -1081,7 +1081,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         Bus* bus_s = (Bus*)(arc->_src);
         Bus* bus_d = (Bus*)(arc->_dest);
         
-        arc->smax = max(
+        arc->smax = gravity::max(
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                         pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
                         );
@@ -1105,7 +1105,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
         ch.add_val(name,arc->ch);
-//        S_max.add_val(name,min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
+//        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
         
         /* Complex params */
@@ -1133,8 +1133,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             
         }
         else {
-            th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
-            th_max.set_val(name,min(th_max.eval(name), arc->tbound.max));
+            th_min.set_val(name,gravity::max(th_min.eval(name), arc->tbound.min));
+            th_max.set_val(name,gravity::min(th_max.eval(name), arc->tbound.max));
             tan_th_min.set_val(name,tan(th_min.eval(name)));
             tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
@@ -1152,7 +1152,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*gravity::min(cos(th_min.eval(name)), cos(th_max.eval(name))));
             wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
             wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
@@ -1311,10 +1311,10 @@ void PowerNet::update_net(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0){
                 cos_max_ = 1;
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             } else{
-                cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
@@ -1527,7 +1527,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     /** Constraints */
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from()*Wii.to();
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOCPF->add(SOC.in(bus_pairs) <= 0);
 
     /* Flow conservation */
@@ -1541,19 +1541,19 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (g_ff*Wii.from() + g_ft*R_Wij.in_pairs() + b_ft*Im_Wij.in_pairs());
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij + b_ft*Im_Wij);
     SOCPF->add(Flow_P_From.in(arcs) == 0);
 
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (g_tt*Wii.to() + g_tf*R_Wij.in_pairs() - b_tf*Im_Wij.in_pairs());
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij - b_tf*Im_Wij);
     SOCPF->add(Flow_P_To.in(arcs) == 0);
 
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs() - b_ff*Wii.from() - b_ft*R_Wij.in_pairs());
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij - b_ff*Wii.from(arcs) - b_ft*R_Wij);
     SOCPF->add(Flow_Q_From.in(arcs) == 0);
 
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + (b_tt*Wii.to() + b_tf*R_Wij.in_pairs() + g_tf*Im_Wij.in_pairs());
+    Flow_Q_To = Qf_to + (b_tt*Wii.to(arcs) + b_tf*R_Wij + g_tf*Im_Wij);
     SOCPF->add(Flow_Q_To.in(arcs) == 0);
 
     /* Phase Angle Bounds constraints */
@@ -1581,17 +1581,17 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
-    LNC1 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
-    LNC1 -= v_max.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
-    LNC1 -= v_max.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
-    LNC1 -= v_max.from()*v_max.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
+    LNC1 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
+    LNC1 -= v_max.to(bus_pairs)*cos_d*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC1 -= v_max.from(bus_pairs)*cos_d*(v_min.from(bus_pairs)+v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC1 -= v_max.from(bus_pairs)*v_max.to(bus_pairs)*cos_d*(v_min.from(bus_pairs)*v_min.to(bus_pairs) - v_max.from(bus_pairs)*v_max.to(bus_pairs));
     SOCPF->add(LNC1.in(bus_pairs) >= 0);
 
     Constraint<> LNC2("LNC2");
-    LNC2 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);//Moveaway from from()
-    LNC2 -= v_min.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
-    LNC2 -= v_min.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
-    LNC2 += v_min.from()*v_min.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
+    LNC2 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
+    LNC2 -= v_min.to(bus_pairs)*cos_d*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC2 -= v_min.from(bus_pairs)*cos_d*(v_min.from(bus_pairs)+v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC2 += v_min.from(bus_pairs)*v_min.to(bus_pairs)*cos_d*(v_min.from(bus_pairs)*v_min.to(bus_pairs) - v_max.from(bus_pairs)*v_max.to(bus_pairs));
     SOCPF->add(LNC2.in(bus_pairs) >= 0);
     return SOCPF;
 }
@@ -1637,19 +1637,24 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
     var<double> vi("vi", -1*v_max,v_max);
     
     var<> v_from, v_to, theta_from, theta_to;
+    var<> vr_from, vr_to, vi_from, vi_to;
     if (polar) {
         ACOPF->add(v.in(nodes));
         ACOPF->add(theta.in(nodes));
         v.initialize_all(1.0);
-        v_from = (v.from()).in(arcs);
-        v_to = (v.to()).in(arcs);
-        theta_from = (theta.from()).in(arcs);
-        theta_to = (theta.to()).in(arcs);        
+        v_from = v.from(arcs);
+        v_to = v.to(arcs);
+        theta_from = theta.from(arcs);
+        theta_to = theta.to(arcs);        
     }
     else {
         ACOPF->add_var(vr.in(nodes));
         ACOPF->add_var(vi.in(nodes));
         vr.initialize_all(1.0);
+        vr_from = vr.from(arcs);
+        vr_to = vr.to(arcs);
+        vi_from = vi.from(arcs);
+        vi_to = vi.to(arcs);
     }
     v_base = v;
     theta_base = theta;
@@ -1697,9 +1702,9 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
-        Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_P_From -= g_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_P_From -= g_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_From -= b_ft*(vi_from*vr_to - vr_from*vi_to);
     }
     ACOPF->add(Flow_P_From.in(arcs)==0);
     
@@ -1711,9 +1716,9 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
-        Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
     }
     ACOPF->add(Flow_P_To.in(arcs)==0);
     
@@ -1725,9 +1730,9 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
-        Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
     }
     ACOPF->add(Flow_Q_From.in(arcs)==0);
     Constraint<> Flow_Q_To("Flow_Q_To");
@@ -1738,9 +1743,9 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
-        Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
     }
     ACOPF->add(Flow_Q_To.in(arcs)==0);
     
@@ -1765,22 +1770,18 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
     Constraint<> PAD_LB("PAD_LB");
     auto bus_pairs = get_bus_pairs();
     if (polar) {
-        PAD_UB = theta.from() - theta.to();
+        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_UB -= th_max;
-        PAD_LB = theta.from() - theta.to();
+        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_LB -= th_min;
-        DebugOff(th_min.to_str(true) << endl);
-        DebugOff(th_max.to_str(true) << endl);
     }
     else {
         DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
+        PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_UB -= tan_th_max*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
         
-        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
-        DebugOff(th_min.to_str(true) << endl);
-        DebugOff(th_max.to_str(true) << endl);
+        PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_LB -= tan_th_min*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
     }
     ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
     ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
@@ -1819,10 +1820,10 @@ indices PowerNet::get_bus_pairs_chord(){
         cos_min_ = -1;
     } else if (m_theta_lb < 0 && m_theta_ub > 0){
         cos_max_ = 1;
-        cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
     } else{
-        cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
-        cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
     }
     if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
         sin_max_ = 1;
@@ -1905,10 +1906,10 @@ void PowerNet::fill_wbnds(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0) {
                 cos_max_ = 1;
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             } else {
-                cos_max_ = max(cos(m_theta_lb), cos(m_theta_ub));
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = gravity::max(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max * bus_d->vbound.max;
             w_min_ = bus_s->vbound.min * bus_d->vbound.min;

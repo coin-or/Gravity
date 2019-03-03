@@ -323,12 +323,12 @@ namespace gravity {
             res->second =numeric_limits<T1>::max();
             return res;
         }
-        auto min1 = min(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        auto max1 = max(cast_range1->second*range2->second, cast_range1->second*range2->first);
-        auto min2 = min(cast_range1->second*range2->second, cast_range1->second*range2->first);
-        auto max2 = max(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        res->first = min(min1,min2);
-        res->second = max(max1,max2);
+        auto min1 = gravity::min(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        auto max1 = gravity::max(cast_range1->second*range2->second, cast_range1->second*range2->first);
+        auto min2 = gravity::min(cast_range1->second*range2->second, cast_range1->second*range2->first);
+        auto max2 = gravity::max(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        res->first = gravity::min(min1,min2);
+        res->second = gravity::max(max1,max2);
         return res;
     }
     
@@ -341,12 +341,12 @@ namespace gravity {
             res->second =numeric_limits<T2>::max();
             return res;
         }
-        auto min1 = min(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        auto max1 = max(cast_range1->second*range2->second, cast_range1->second*range2->second);
-        auto min2 = min(cast_range1->second*range2->second, cast_range1->first*range2->second);
-        auto max2 = max(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        res->first = min(min1,min2);
-        res->second = max(max1,max2);
+        auto min1 = gravity::min(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        auto max1 = gravity::max(cast_range1->second*range2->second, cast_range1->second*range2->second);
+        auto min2 = gravity::min(cast_range1->second*range2->second, cast_range1->first*range2->second);
+        auto max2 = gravity::max(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        res->first = gravity::min(min1,min2);
+        res->second = gravity::max(max1,max2);
         return res;
     }
     
@@ -360,12 +360,12 @@ namespace gravity {
             res->second =numeric_limits<T1>::max();
             return res;
         }
-        min1 = min(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        max1 = max(cast_range1->second/range2->second, cast_range1->second/range2->first);
-        min2 = min(cast_range1->second/range2->second, cast_range1->second/range2->first);
-        max2 = max(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        res->first = min(min1,min2);
-        res->second = max(max1,max2);
+        min1 = gravity::min(cast_range1->first/range2->first, cast_range1->first/range2->second);
+        max1 = gravity::max(cast_range1->second/range2->second, cast_range1->second/range2->first);
+        min2 = gravity::min(cast_range1->second/range2->second, cast_range1->second/range2->first);
+        max2 = gravity::max(cast_range1->first/range2->first, cast_range1->first/range2->second);
+        res->first = gravity::min(min1,min2);
+        res->second = gravity::max(max1,max2);
         return res;
     }
     
@@ -378,12 +378,12 @@ namespace gravity {
             res->second =numeric_limits<T2>::max();
             return res;
         }
-        auto min1 = min(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        auto max1 = max(cast_range1->second/range2->second, cast_range1->second/range2->second);
-        auto min2 = min(cast_range1->second/range2->second, cast_range1->first/range2->second);
-        auto max2 = max(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        res->first = min(min1,min2);
-        res->second = max(max1,max2);
+        auto min1 = gravity::min(cast_range1->first/range2->first, cast_range1->first/range2->second);
+        auto max1 = gravity::max(cast_range1->second/range2->second, cast_range1->second/range2->second);
+        auto min2 = gravity::min(cast_range1->second/range2->second, cast_range1->first/range2->second);
+        auto max2 = gravity::max(cast_range1->first/range2->first, cast_range1->first/range2->second);
+        res->first = gravity::min(min1,min2);
+        res->second = gravity::max(max1,max2);
         return res;
     }
     
@@ -887,6 +887,9 @@ namespace gravity {
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
+                        if(p_cst.is_indexed()){
+                            res._indices = p_cst._indices;
+                        }
                     }
                     else if(coef->is_number()) {
                         auto p_cst = *((constant<type>*)(coef.get()));
@@ -921,6 +924,9 @@ namespace gravity {
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
+                        if(p_cst.is_indexed()){
+                            res._indices = p_cst._indices;
+                        }
                     }
                     else if(coef->is_number()) {
                         auto p_cst = *((constant<type>*)(coef.get()));
@@ -992,8 +998,8 @@ namespace gravity {
                         else{
                             res.insert(lt.second._sign, expo*p_cst, *newl);
                         }
-                        pterm_range.first = min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
-                        pterm_range.second = max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                        pterm_range.first = gravity::min(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
+                        pterm_range.second = gravity::max(pterm_range.first*p_cst.eval(), pterm_range.second*p_cst.eval());
                     }
                     if(lt.second._sign){
                         res._range = get_plus_range(res._range, make_shared<pair<type,type>>(pterm_range));
@@ -1022,11 +1028,15 @@ namespace gravity {
                         
                     }
                     else if(coef->is_param()) {
+                        auto p_cst = *((param<type>*)(coef.get()));
                         if(lt.second._sign){
-                            res += *((param<type>*)(coef.get()));
+                            res += p_cst;
                         }
                         else {
-                            res -= *((param<type>*)(coef.get()));
+                            res -= p_cst;
+                        }
+                        if(p_cst.is_indexed()){
+                            res._indices = p_cst._indices;
                         }
                     }
                     else if(coef->is_number()) {
@@ -1490,8 +1500,12 @@ namespace gravity {
             _to_str = to_str();
         }
         
+        bool is_double_indexed() const{
+            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+        }
+        
         string to_str(size_t index, int prec) {            
-            if (is_constant()) {
+            if (is_constant() && !this->is_double_indexed()) {
                 return to_string_with_precision(eval(index),prec);
             }
             string str;
@@ -1544,6 +1558,17 @@ namespace gravity {
             return max_size;
         }
         
+        size_t get_dim() const{
+            return constant_::get_dim();
+        }
+        
+        size_t get_dim(size_t i) const{
+            if (is_indexed() && _indices->_ids->size()>i) {
+                return _indices->_ids->size();
+            }
+            return constant_::get_dim(i);
+        }
+        
         void print(int prec){
             string str;
             if (is_constant()) {
@@ -1579,7 +1604,7 @@ namespace gravity {
                 str += ") = ";
             }
             auto space_size = str.size();
-            auto nb_inst = _dim[0];
+            auto nb_inst = this->get_dim(0);
             allocate_mem();
             if (is_matrix()) {
                 auto max_cell_size = get_max_cell_size();
@@ -2407,8 +2432,8 @@ namespace gravity {
             if(is_matrix()){
                 throw invalid_argument("Cannot call func::add_val(type val) on matrix");
             }
-            _dim[0] = max(_dim[0],i+1);
-            _val->resize(max(_val->size(),i+1));
+            _dim[0] = gravity::max(_dim[0],i+1);
+            _val->resize(gravity::max(_val->size(),i+1));
             _val->at(i) = val;
             update_range(val);
         }
@@ -2446,8 +2471,8 @@ namespace gravity {
             auto index = _indices->size();
             auto pp = _indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
+                _val->resize(gravity::max(_val->size(),index+1));
+                _dim[0] = gravity::max(_dim[0],_val->size());
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
@@ -2464,10 +2489,10 @@ namespace gravity {
         
         void add_val(size_t i, size_t j, type val) {
             _is_vector = true;
-            _dim[0] = max(_dim[0],i+1);
-            _dim[1] = max(_dim[1],j+1);
+            _dim[0] = gravity::max(_dim[0],i+1);
+            _dim[1] = gravity::max(_dim[1],j+1);
             auto index = _dim[1]*i+j;
-            _val->resize(max(_val->size(),index+1));
+            _val->resize(gravity::max(_val->size(),index+1));
             _val->at(index) = val;
             update_range(val);
         }
@@ -2754,6 +2779,10 @@ namespace gravity {
         
         inline type eval_cst(size_t i) {
             return eval_coef(_cst, i);
+        }
+        
+        inline type eval_cst(size_t i, size_t j) {
+            return eval_coef(_cst, i, j);
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
@@ -3051,11 +3080,11 @@ namespace gravity {
                     break;
                 }
                 case uexp_c:{
-                    return eval_uexpr(static_pointer_cast<uexpr<type>>(c),i,j);
+                    return eval_uexpr((uexpr<type>*)(c.get()),i,j);
                     break;
                 }
                 case bexp_c:{
-                    return eval_bexpr(static_pointer_cast<bexpr<type>>(c),i,j);
+                    return eval_bexpr((bexpr<type>*)(c.get()),i,j);
                     break;
                 }
                 default:{
@@ -3537,6 +3566,13 @@ namespace gravity {
             return eval_bexpr(((bexpr<type>*)exp.get()),i);
         }
         
+        inline type eval_expr(const shared_ptr<expr<type>>& exp, size_t i, size_t j) {
+            if (exp->is_uexpr()) {
+                return eval_uexpr(((uexpr<type>*)exp.get()),i, j);
+            }
+            return eval_bexpr(((bexpr<type>*)exp.get()),i);
+        }
+        
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline T eval_uexpr(uexpr<type>* exp, size_t i) {
             if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {
@@ -3647,6 +3683,12 @@ namespace gravity {
                 case div_:
                     return exp->_coef*(lval/rval);
                     break;
+                case min_:
+                    return exp->_coef*(gravity::min(lval,rval));
+                    break;
+                case max_:
+                    return exp->_coef*(gravity::max(lval,rval));
+                    break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
                     break;
@@ -3684,6 +3726,12 @@ namespace gravity {
                 case power_:
                     return exp->_coef*(powl(lval,rval));
                     break;
+                case min_:
+                    return exp->_coef*(gravity::min(lval,rval));
+                    break;
+                case max_:
+                    return exp->_coef*(gravity::max(lval,rval));
+                    break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
                     break;
@@ -3693,7 +3741,7 @@ namespace gravity {
         
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T eval_uexpr(const shared_ptr<uexpr<type>>& exp, size_t i, size_t j) {
+        T eval_uexpr(const uexpr<type>* exp, size_t i, size_t j) {
             T res = eval(exp->_son,i,j);
             switch (exp->_otype) {
                 case cos_:
@@ -3728,7 +3776,7 @@ namespace gravity {
             }
         }
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        Cpx eval_uexpr(const shared_ptr<uexpr<type>>& exp, size_t i, size_t j) {
+        Cpx eval_uexpr(const uexpr<type>* exp, size_t i, size_t j) {
             Cpx res = eval(exp->_son,i,j);
             switch (exp->_otype) {
                 case cos_:
@@ -3765,7 +3813,7 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        T  eval_bexpr(const shared_ptr<bexpr<type>>& exp, size_t i, size_t j){
+        T  eval_bexpr(const bexpr<type>* exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
                     eval(exp->_lson,inst);
@@ -3793,6 +3841,12 @@ namespace gravity {
                 case div_:
                     return exp->_coef*(lval/rval);
                     break;
+                case min_:
+                    return exp->_coef*(gravity::min(lval,rval));
+                    break;
+                case max_:
+                    return exp->_coef*(gravity::max(lval,rval));
+                    break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
                     break;
@@ -3801,7 +3855,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        T  eval_bexpr(const shared_ptr<bexpr<type>>& exp, size_t i, size_t j){
+        T  eval_bexpr(const bexpr<type>* exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
                     eval(exp->_lson,inst);
@@ -3832,6 +3886,12 @@ namespace gravity {
                 case power_:
                     return exp->_coef*(powl(lval,rval));
                     break;
+                case min_:
+                    return exp->_coef*(gravity::min(lval,rval));
+                    break;
+                case max_:
+                    return exp->_coef*(gravity::max(lval,rval));
+                    break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
                     break;
@@ -3844,23 +3904,163 @@ namespace gravity {
             return _val->at(_indices->_keys_map->at(key));
         }
         
-        type eval(size_t i, size_t j) {
-            
-            if (is_indexed() && _indices->_ids->size()>1) {
-                if (_indices->_ids->at(i).at(j) >= _val->size()) {
-                    throw invalid_argument("eval(i,j): out of range");
+        type eval(size_t i, size_t j){
+            if(is_zero()){
+                return 0.;
+            }
+            //            if (is_constant() && _evaluated) {
+            if (_evaluated) {
+                if (func_is_number()){
+                    return _val->at(0);
                 }
-                return _val->at(_indices->_ids->at(i).at(j));
+                if (is_indexed() && _indices->_ids->size()>1) {
+                    if (_indices->_ids->at(i).at(j) >= _val->size()) {
+                        throw invalid_argument("eval(i,j): out of range");
+                    }
+                    return _val->at(_indices->_ids->at(i).at(j));
+                }
+                if (!is_matrix()) {
+                    return eval(j);
+                }
+                if (_is_transposed) {
+                    return _val->at(j*_dim[0]+i);
+                }
+                return _val->at(i*_dim[1]+j);
             }
-            
-            if (!is_matrix()) {
-                return eval(j);
+            type res = 0;
+            if(!_cst->is_zero())
+                res += eval_cst(i,j);
+            if(!_lterms->empty()){
+                for (auto &pair:*_lterms) {
+                    if ((pair.second._coef->_is_transposed || pair.second._coef->is_matrix()) && !pair.second._p->is_matrix()) {
+                        auto dim = pair.second._p->get_dim(i);
+                        if (pair.second._sign) {
+                            for (size_t j = 0; j<dim; j++) {
+                                res += eval_coef(pair.second._coef,i,j) * eval(pair.second._p,i,j);
+                            }
+                        }
+                        else {
+                            for (size_t j = 0; j<dim; j++) {
+                                res -= eval_coef(pair.second._coef,i,j) * eval(pair.second._p,i,j);
+                            }
+                        }
+                    }
+                    else {
+                        if (pair.second._sign) {
+                            res += eval_coef(pair.second._coef,i) * eval(pair.second._p,i,j);
+                        }
+                        else {
+                            res -= eval_coef(pair.second._coef,i) * eval(pair.second._p,i,j);
+                        }
+                    }
+                }
             }
-            if (_is_transposed) {
-                return _val->at(j*_dim[0]+i);
+            //                res += eval_lterms(i);
+            if(!_qterms->empty()){
+                for (auto &pair:*_qterms) {
+                    type qval = 0;
+                    if (pair.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                        assert(pair.second._p->first->_dim[1]==1 && pair.second._coef->_dim[0]==pair.second._p->second->_dim[0]);
+                        for (auto i = 0; i<pair.second._p->first->_dim[0]; i++) {
+                            for (auto j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                                qval += eval_coef(pair.second._coef,i,j) * eval(pair.second._p->first,i) * eval(pair.second._p->second,j);
+                            }
+                        }
+                    }
+                    else if (pair.second._p->first->is_matrix() && !pair.second._p->second->is_matrix() && !pair.second._p->second->_is_transposed) {//matrix * vect
+                        for (size_t j = 0; j<pair.second._p->second->_dim[0]; j++) {
+                            qval += eval(pair.second._p->first,i,j) * eval(pair.second._p->second,j);
+                        }
+                        qval *= eval_coef(pair.second._coef,i);
+                    }
+                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && pair.second._p->second->is_matrix() ) {//transposed vect * matrix
+                        for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                            qval += eval(pair.second._p->first,j) * eval(pair.second._p->second,j,i);
+                        }
+                        qval *= eval_coef(pair.second._coef,i);
+                    }
+                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && !pair.second._p->second->is_matrix() && i==0) {//transposed vect * vec, a dot product of two vectors
+                        for (size_t j = 0; j<pair.second._p->first->_dim[1]; j++) {
+                            qval += eval(pair.second._p->first,j) * eval(pair.second._p->second,j);
+                        }
+                        qval *= eval_coef(pair.second._coef,i);
+                    }
+                    else if (!pair.second._coef->is_matrix() && pair.second._coef->_is_transposed && !pair.second._p->first->is_matrix()) {//transposed vect * vec, a dot product of two vectors
+                        for (size_t j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                            qval += eval_coef(pair.second._coef,j) * eval(pair.second._p->first,j) * eval(pair.second._p->second,j);
+                        }
+                    }
+                    else {
+                        qval += eval_coef(pair.second._coef,i,j) * eval(pair.second._p->first,i,j) * eval(pair.second._p->second,i,j);
+                    }
+                    if (!pair.second._sign) {
+                        qval *= -1.;
+                    }
+                    res += qval;
+                }
             }
-            return _val->at(i*_dim[1]+j);
+            //                res += eval_qterms(i);
+            if(!_pterms->empty()){
+                for (auto &pair:*_pterms) {
+                    type pval = unit<type>().eval();
+                    for (auto &vpair: *pair.second._l) {
+                        pval *= std::pow(eval(vpair.first, i,j), vpair.second);
+                    }
+                    pval *= eval_coef(pair.second._coef,i,j);
+                    if (!pair.second._sign) {
+                        pval *= -1.;
+                    }
+                    res += pval;
+                }
+                //                res += eval_pterms(i);
+            }
+            if(_expr)
+                res += eval_expr(_expr,i,j);
+            if (func_is_number()) {
+                _val->at(0) = res;
+                _evaluated = true;
+            }
+            else {
+                //                if (is_constant() && i==_val->size()-1) {
+                if(is_double_indexed()){
+                    _val->at(_indices->_ids->at(i).at(j)) = res;
+                }
+                else{
+                    if (_is_transposed) {
+                        _val->at(j*_dim[0]+i) = res;
+    //                    if (j*_dim[0]+i==_val->size()-1) {
+    //                        _evaluated = true;
+    //                    }
+                    }
+                    else {
+                        _val->at(i*_dim[1]+j) = res;
+    //                    if (i*_dim[1]+j==_val->size()-1) {
+    //                        _evaluated = true;
+    //                    }
+                    }
+                }
+            }
+            return res;
         }
+        
+//        type eval(size_t i, size_t j) {
+//
+//
+//            if (is_indexed() && _indices->_ids->size()>1) {
+//                if (_indices->_ids->at(i).at(j) >= _val->size()) {
+//                    throw invalid_argument("eval(i,j): out of range");
+//                }
+//                return _val->at(_indices->_ids->at(i).at(j));
+//            }
+//
+//            if (!is_matrix()) {
+//                return eval(j);
+//            }
+//            if (_is_transposed) {
+//                return _val->at(j*_dim[0]+i);
+//            }
+//            return _val->at(i*_dim[1]+j);
+//        }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
             return (func_is_number() && _range->first == 1 && _range->second == 1);
@@ -5474,7 +5674,7 @@ namespace gravity {
                 }
                 pterm p(sign, c_new, newl);
                 //            update_sign(p);
-                _dim[0] = std::max(_dim[0], l.begin()->first->_dim[0]);
+                _dim[0] = gravity::max(_dim[0], l.begin()->first->_dim[0]);
                 _pterms->insert(make_pair<>(name, move(p)));
                 if(pnew->is_var()){
                     _evaluated = false;
@@ -5915,6 +6115,20 @@ namespace gravity {
         return res;
     }
     
+    
+    template<class T1>
+    constant<T1> min(const constant<T1>& p1,const constant<T1>& p2){
+        constant<T1> res(p1);
+        res.set_val(gravity::min(res.eval(),p2.eval()));
+        return res;
+    }
+    
+    template<class T1>
+    constant<T1> max(const constant<T1>& p1,const constant<T1>& p2){
+        constant<T1> res(p1);
+        res.set_val(gravity::max(res.eval(),p2.eval()));
+        return res;
+    }
         
     template<class T1>
     constant<T1> log(const constant<T1>& p1){
@@ -6066,6 +6280,62 @@ namespace gravity {
         return res;
     }
     
+    template<class T>
+    func<T> min(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = gravity::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = linear_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = gravity::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = linear_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = gravity::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = linear_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = gravity::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = linear_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> log(const param<T>& p1){
         if(!p1.is_positive()){
@@ -6211,8 +6481,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = min(cos(p1._range->first),cos(p1._range->second));
-        res._range->second = max(cos(p1._range->first),cos(p1._range->second));
+        res._range->first = gravity::min(cos(p1._range->first),cos(p1._range->second));
+        res._range->second = gravity::max(cos(p1._range->first),cos(p1._range->second));
         if(p1._range->first <0 && p1._range->second >0){
             res._range->second = 1;
         }
@@ -6237,8 +6507,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = min(sin(p1._range->first),sin(p1._range->second));
-        res._range->second = max(sin(p1._range->first),sin(p1._range->second));
+        res._range->first = gravity::min(sin(p1._range->first),sin(p1._range->second));
+        res._range->second = gravity::max(sin(p1._range->first),sin(p1._range->second));
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
@@ -6300,7 +6570,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = p1._range->first;
         }
-        res._range->second = max(zero<T1>().eval(),p1._range->second);
+        res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -6330,8 +6600,8 @@ namespace gravity {
         else {
             func<T> res;
             res.insert(p1,exp);
-            res._range->first = min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
-            res._range->second = max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            res._range->first = gravity::min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
+            res._range->second = gravity::max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
             if(exp%2==0) {
                 res._all_sign = non_neg_;
                 if(p1.is_positive()){
@@ -6472,8 +6742,8 @@ namespace gravity {
             res._range->second = 1;
         }
         else {
-            res._range->first = min(std::cos(f._range->first),std::cos(f._range->second));
-            res._range->second = max(std::cos(f._range->first),std::cos(f._range->second));
+            res._range->first = gravity::min(std::cos(f._range->first),std::cos(f._range->second));
+            res._range->second = gravity::max(std::cos(f._range->first),std::cos(f._range->second));
         }
         if(f._range->first <0 && f._range->second >0){
             res._range->second = 1;
@@ -6516,8 +6786,8 @@ namespace gravity {
             res._range->second = 1;
         }
         else {
-            res._range->first = min(std::sin(f._range->first),std::sin(f._range->second));
-            res._range->second = max(std::sin(f._range->first),std::sin(f._range->second));
+            res._range->first = gravity::min(std::sin(f._range->first),std::sin(f._range->second));
+            res._range->second = gravity::max(std::sin(f._range->first),std::sin(f._range->second));
             shifted_range.first += pi/2.;
             shifted_range.second += pi/2.;
             if(shifted_range.first <0 && shifted_range.second >0){
@@ -6627,7 +6897,7 @@ namespace gravity {
             res._all_sign = pos_;
             res._range->first = f._range->first;
         }
-        res._range->second = max(zero<T1>().eval(),f._range->second);
+        res._range->second = gravity::max(zero<T1>().eval(),f._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -6659,8 +6929,8 @@ namespace gravity {
                 res._range->second = numeric_limits<T>::max();
             }
             else {
-                res._range->first = min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
-                res._range->second = max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+                res._range->first = gravity::min(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
+                res._range->second = gravity::max(std::pow(f._range->first,exp),std::pow(f._range->second,exp));
             }
             if(exp%2==0) {
                 res._all_sign = non_neg_;
@@ -7023,8 +7293,8 @@ namespace gravity {
         func<T1> res;
         res.update_dot_dim(c,p);
         res.insert(true,c,p);
-        res._range->first = min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
         res.update_all_sign();
         if(c._is_transposed){
             res._range->first *= p._dim[0];
@@ -7038,8 +7308,8 @@ namespace gravity {
         func<T2> res;
         res.update_dot_dim(c,p);
         res.insert(true,constant<T2>(c),p);
-        res._range->first = min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
         res.update_all_sign();
         if(c._is_transposed){
             res._range->first *= p._dim[0];
@@ -7052,8 +7322,8 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p, const constant<T2>& c){
         func<T1> res;
-        res._range->first = min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
         res.update_all_sign();
         res.update_dot_dim(p,c);
         if(p._is_transposed){
@@ -7070,8 +7340,8 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p, const constant<T2>& c){
         func<T2> res;
-        res._range->first = min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
         res.update_all_sign();
         res.update_dot_dim(p,c);
         if(p._is_transposed){
@@ -7156,7 +7426,15 @@ namespace gravity {
             return res;
         }
         return unit<type>().tr()*(p.vec()).in(ids);
-    }        
+    }
+    
+//    template<typename type>
+//    func<type> sum(const func<type>& f, const indices& ids){
+//        auto ff = f;
+//        ff.index_in(ids);
+//        func<type> res;
+//        return unit<type>().tr()*(ff.vec()).in(ids);
+//    }
     
 }
 

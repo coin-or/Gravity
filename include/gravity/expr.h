@@ -417,38 +417,46 @@ namespace gravity {
                 }
                 str+="(";
             }
-            if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
-                str += "(";
-                str+= _lson->to_str();
-                str += ")";
+            if(_otype==min_){
+                str += "min("+_lson->to_str()+", "+_rson->to_str()+")";
             }
-            else
-                str+= _lson->to_str();
-            
-            if (_otype==plus_) {
-                str+= " + ";
-            }
-            if (_otype==minus_) {
-                str+= " - ";
-            }
-            if (_otype==product_) {
-                str+= " * ";
-            }
-            if (_otype==div_) {
-                str+= "/";
-            }
-            
-            if (_otype==power_) {
-                str+= "^";
-            }
-            
-            if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
-                str+= _rson->to_str();
+            else if(_otype==max_){
+                str += "max("+_lson->to_str()+", "+_rson->to_str()+")";
             }
             else {
-                str+= "(";
-                str+= _rson->to_str();
-                str+= ")";
+                    if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
+                    str += "(";
+                    str+= _lson->to_str();
+                    str += ")";
+                }
+                else
+                    str+= _lson->to_str();
+                
+                if (_otype==plus_) {
+                    str+= " + ";
+                }
+                if (_otype==minus_) {
+                    str+= " - ";
+                }
+                if (_otype==product_) {
+                    str+= " * ";
+                }
+                if (_otype==div_) {
+                    str+= "/";
+                }
+                
+                if (_otype==power_) {
+                    str+= "^";
+                }
+                
+                if (_otype==plus_ || (_rson->get_type()!=uexp_c && _rson->get_type()!=bexp_c)) {
+                    str+= _rson->to_str();
+                }
+                else {
+                    str+= "(";
+                    str+= _rson->to_str();
+                    str+= ")";
+                }
             }
             if (this->_coef!=unit<type>().eval()) {
                 str += ")";

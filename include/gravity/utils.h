@@ -70,9 +70,45 @@ bool operator <=(const Cpx& lhs, const Cpx& rhs);
 
 bool operator >=(const Cpx& lhs, const Cpx& rhs);
 
-
-Cpx min (const Cpx& a, const Cpx& b);
-Cpx max (const Cpx& a, const Cpx& b);
-
+namespace gravity{
+    
+//    Cpx min (const Cpx& a, const Cpx& b);
+//    Cpx max (const Cpx& a, const Cpx& b);
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    T min (const T& a, const T& b){
+        Cpx res(a);
+        if (res.real()>b.real()) {
+            res.real(b.real());
+        }
+        if (res.imag()>b.imag()) {
+            res.imag(b.imag());
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    T max(const T& a, const T& b){
+        Cpx res(a);
+        if (res.real()<b.real()) {
+            res.real(b.real());
+        }
+        if (res.imag()<b.imag()) {
+            res.imag(b.imag());
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T min (const T& a, const T& b){
+        return std::min(a,b);
+    }
+    
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T max(const T& a, const T& b){
+        return std::max(a,b);
+    }
+}
 
 #endif

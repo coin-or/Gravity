@@ -28,6 +28,10 @@ string operator_str(gravity::OperatorType ot){
             return "ReLU";
         case gravity::unit_step_:
             return "UnitStep";
+        case gravity::min_:
+            return "min";
+        case gravity::max_:
+            return "max";
         default:
             break;
     }

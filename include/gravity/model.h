@@ -46,7 +46,7 @@ namespace gravity {
             auto c = v[idx];
             c->_new = false;
             c->_evaluated = false;
-            size_t nb_ins = c->_dim[0];
+            size_t nb_ins = c->get_dim(0);
             size_t ind = 0;
             for (size_t inst = 0; inst< nb_ins; inst++){
                 if (!*c->_all_lazy || !c->_lazy[inst]) {
@@ -78,10 +78,10 @@ namespace gravity {
         auto idx = vec[i]->_jac_cstr_idx;
         for (size_t ind = i; ind < j; ind++) {
             c = vec[ind];
-            auto nb_ins = c->_dim[0];
+            auto nb_ins = c->get_dim(0);
             id_inst = 0;
             if (c->is_linear() && !first_call) {
-                //        if (false) {
+//                        if (false) {
                 DebugOff("Linear constraint, using stored jacobian!\n");
                 for (size_t i = 0; i<nb_ins; i++) {
                     if (!*c->_all_lazy || !c->_lazy[i]) {
@@ -107,19 +107,19 @@ namespace gravity {
                             if (v->_is_vector) {
                                 auto dim = v->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
-                                    res[idx] = dfdx->eval(inst,j);//TODO: res[idx] += .. (account for vectors with repeated identical entries)
+                                    res[idx] += dfdx->eval(inst,j);
                                     jac_vals[idx] = res[idx];
                                     DebugOff("jac_val["<< idx <<"] = " << jac_vals[idx] << endl);
                                     idx++;
                                 }
                             }
                             else {
-                                res[idx] = dfdx->eval(inst);
+                                res[idx] += dfdx->eval(inst);
                                 jac_vals[idx] = res[idx];
                                 idx++;
                             }
                         }
-                    }
+                    }                    
                 }
             }
         }
@@ -346,7 +346,7 @@ namespace gravity {
             _nnz_g = 0;
             for (auto &cp:_cons) {
                 auto c = cp.second;
-                auto nb_inst = c->_dim[0];
+                auto nb_inst = c->get_dim(0);
                 for (size_t inst = 0; inst<nb_inst; inst++) {
                     if (!*c->_all_lazy || !c->_lazy[inst]) {
                         _nnz_g += c->get_nb_vars(inst);
@@ -381,11 +381,11 @@ namespace gravity {
                         c = static_pointer_cast<Constraint<type>>(f);
                     }
                     auto d2f = f_pair.second;
-                    size_t nb_inst = f->_dim[0];
+                    size_t nb_inst = f->get_dim(0);
                     for (size_t inst = 0; inst<nb_inst; inst++) {
                         if (!(f->_is_constraint && *c->_all_lazy && c->_lazy[inst])) {
                             if (d2f->is_matrix()) {
-                                for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                     for (size_t j = i; j < d2f->_dim[1]; j++) {
                                         if(_nnz_pairs.insert({{vid + vi->get_id_inst(i),vjd+vj->get_id_inst(j)}, idx}).second){
                                             idx++;
@@ -395,7 +395,7 @@ namespace gravity {
                                 }
                             }
                             else if(d2f->_is_vector){
-                                for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                     if(_nnz_pairs.insert({{vid + vi->get_id_inst(j),vjd+vj->get_id_inst(j)}, idx}).second){
                                         idx++;
                                     };
@@ -604,10 +604,10 @@ namespace gravity {
                 newc->update_str();
                 embed(newc, false);
                 update_convexity(*newc);
-                newc->_violated.resize(newc->_dim[0],true);
+                newc->_violated.resize(newc->get_dim(0),true);
                 _cons_name[c.get_name()] = newc;
                 if(*newc->_all_lazy){
-                    newc->_lazy.resize(newc->_dim[0],true);
+                    newc->_lazy.resize(newc->get_dim(0),true);
                     newc->allocate_mem();
                     return newc;
                 }
@@ -723,7 +723,7 @@ namespace gravity {
             {
                 c = c_p.second;
                 //        cid = c->_id;
-                nb_inst = c->_dim[0];
+                nb_inst = c->get_dim(0);
                 nb_viol = 0;
                 nb_active = 0;
                 c->_all_satisfied = true;
@@ -1262,7 +1262,7 @@ namespace gravity {
             {
                 c = c_p.second.get();
                 c->_jac_cstr_idx = idx;
-                auto nb_ins = c->_dim[0];
+                auto nb_ins = c->get_dim(0);
                 for (auto &v_p: c->get_vars()){
                     v = v_p.second.first.get();
                     vid = v->get_id();
@@ -1302,8 +1302,11 @@ namespace gravity {
                 set_x(x);
                 compute_funcs();
             }
-            
+            for (size_t i = 0; i<_nnz_g; i++) {
+                res[i] = 0;
+            }
             if (!_first_call_jac && (_type==lin_m)) { /* No need to recompute jacobian for linear models */
+//            if (false) { /* No need to recompute jacobian for linear models */
                 for (size_t i = 0; i< _nnz_g; i++) {
                     res[i] = _jac_vals[i];
                 }
@@ -1342,7 +1345,7 @@ namespace gravity {
             for(auto& c_p :_cons)
             {
                 c = c_p.second.get();
-                auto nb_ins = c->_dim[0];
+                auto nb_ins = c->get_dim(0);
                 size_t id = 0;
                 if (c->is_linear() && !_first_call_jac) {
                     //        if (false) {
@@ -1390,14 +1393,14 @@ namespace gravity {
                                         auto dim = v->get_dim(inst);
                                         if (dfdx->is_matrix()) {
                                             for (size_t j = 0; j<dim; j++) {
-                                                res[idx] = dfdx->eval(j,inst);
+                                                res[idx] += dfdx->eval(j,inst);
                                                 _jac_vals[idx] = res[idx];
                                                 idx++;
                                             }
                                         }
                                         else {
                                             for (size_t j = 0; j<dim; j++) {
-                                                res[idx] = dfdx->_val->at(j);//TODO check double indexed funcs
+                                                res[idx] += dfdx->_val->at(j);//TODO check double indexed funcs
                                                 _jac_vals[idx] = res[idx];
                                                 DebugOff("jac_val["<< idx <<"] = " << _jac_vals[idx] << endl);
                                                 idx++;
@@ -1482,7 +1485,7 @@ namespace gravity {
                 else {
                     lin = false;
                 }
-                auto nb_ins = c->_dim[0];
+                auto nb_ins = c->get_dim(0);
                 for (size_t i = 0; i< nb_ins; i++){
                     if (!*c->_all_lazy || !c->_lazy[i]) {
                         cid = c->_id+id++;
@@ -1526,12 +1529,12 @@ namespace gravity {
                         c = static_pointer_cast<Constraint<type>>(f);
                     }
                     auto d2f = f_pair.second;
-                    size_t nb_inst = f->_dim[0];
+                    size_t nb_inst = f->get_dim(0);
                     for (size_t inst = 0; inst<nb_inst; inst++) {
                         if (!(f->_is_constraint && *c->_all_lazy && c->_lazy[inst])) {
                             
                             if (d2f->is_matrix()) {
-                                for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                     for (size_t j = i; j < d2f->_dim[1]; j++) {
                                         idx_all++;
                                         iRow[_idx_it[idx]] = vid + vi->get_id_inst(i);
@@ -1542,10 +1545,10 @@ namespace gravity {
                                 }
                             }
                             else if(d2f->_is_vector){
-                                //                    if (d2f->_dim[0] != d2f->_dim[0]) {
+                                //                    if (d2f->get_dim(0) != d2f->get_dim(0)) {
                                 //                        throw invalid_argument("error");
                                 //                    }
-                                for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                     idx_all++;
                                     iRow[_idx_it[idx]] = vid + vi->get_id_inst(j);
                                     jCol[_idx_it[idx]] = vjd + vj->get_id_inst(j);
@@ -1603,7 +1606,7 @@ namespace gravity {
                         }
                         auto d2f = f_pair.second;
 //                        d2f->print(12);
-                        size_t nb_inst = f->_dim[0];
+                        size_t nb_inst = f->get_dim(0);
                         size_t id_inst = 0;
                         for (size_t inst = 0; inst<nb_inst; inst++) {
                             if (f->_is_constraint) {
@@ -1613,7 +1616,7 @@ namespace gravity {
                                         c_inst = c->get_id_inst(id_inst++);
                                         //                            if(f->is_nonlinear()){
                                         if (d2f->is_matrix()) {
-                                            for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                            for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                                 for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                     hess = d2f->eval(i,j);
                                                     _hess_vals[idx_in++] = hess;
@@ -1624,7 +1627,7 @@ namespace gravity {
                                             }
                                         }
                                         else if(d2f->_is_vector){
-                                            for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                            for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                                 if (d2f->func_is_number()) {
                                                     hess = d2f->_val->at(0);
                                                 }
@@ -1657,7 +1660,7 @@ namespace gravity {
                                         c_inst = c->get_id_inst(id_inst++);
                                         //                            if(f->is_nonlinear()){
                                         if (d2f->is_matrix()) {
-                                            for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                            for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                                 for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                     hess = d2f->eval(i,j);
                                                     _hess_vals[idx_in++] = hess;
@@ -1668,7 +1671,7 @@ namespace gravity {
                                             }
                                         }
                                         else if(d2f->_is_vector){
-                                            for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                            for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                                 if (d2f->func_is_number()) {
                                                     hess = d2f->eval(0);
                                                 }
@@ -1700,7 +1703,7 @@ namespace gravity {
                             }
                             else {
                                 if (d2f->is_matrix()) {
-                                    for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                    for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                         for (size_t j = i; j < d2f->_dim[1]; j++) {
                                             hess = d2f->eval(i,j);
                                             _hess_vals[idx_in++] = hess;
@@ -1711,7 +1714,7 @@ namespace gravity {
                                     }
                                 }
                                 else if(d2f->_is_vector){
-                                    for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                    for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                         if (d2f->func_is_number()) {
                                             hess = d2f->_val->at(0);
                                         }
@@ -1761,7 +1764,7 @@ namespace gravity {
 //                        if(!d2f->is_constant()){
 //                            d2f->_evaluated=false;
 //                        }
-                        size_t nb_inst = f->_dim[0];
+                        size_t nb_inst = f->get_dim(0);
                         id_inst = 0;
                         for (size_t inst = 0; inst<nb_inst; inst++) {
                             if (f->_is_constraint) {
@@ -1769,7 +1772,7 @@ namespace gravity {
                                     idx_inc = false;
                                     c_inst = c->get_id_inst(id_inst++);
                                     if (d2f->is_matrix()) {
-                                        for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                        for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                             for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                 res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                                 //                                        f_idx++;
@@ -1778,7 +1781,7 @@ namespace gravity {
                                         }
                                     }
                                     else if(d2f->_is_vector){
-                                        for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                        for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                             //                                    f_idx++;
                                             idx_inc = true;
@@ -1794,7 +1797,7 @@ namespace gravity {
                             }
                             else {
                                 if(d2f->_is_vector){
-                                    for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                    for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                         res[_idx_it[idx++]] += obj_factor * _hess_vals[idx_in++];
                                         idx_inc = true;
                                     }
@@ -1831,7 +1834,7 @@ namespace gravity {
 //                    if(!d2f->is_constant()){
 //                        d2f->_evaluated=false;
 //                    }
-                    size_t nb_inst = f->_dim[0];
+                    size_t nb_inst = f->get_dim(0);
                     size_t id_inst = 0;
                     for (size_t inst = 0; inst<nb_inst; inst++) {
                         if (f->_is_constraint) {
@@ -1840,7 +1843,7 @@ namespace gravity {
                                 c_inst = c->get_id_inst(id_inst++);
                                 if (c->is_quadratic()) {
                                     if (d2f->is_matrix()) {
-                                        for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                        for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                             for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                 res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                                 //                                        f_idx++;
@@ -1849,7 +1852,7 @@ namespace gravity {
                                         }
                                     }
                                     else if(d2f->_is_vector){
-                                        for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                        for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                             //                                    f_idx++;
                                             idx_inc = true;
@@ -1861,7 +1864,7 @@ namespace gravity {
                                 }
                                 else if (d2f->is_matrix()) {
                                     if (c->is_nonlinear()) {
-                                        for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                        for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                             for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                 hess = d2f->eval(i,j);
                                                 _hess_vals[idx_in++] = hess;
@@ -1872,7 +1875,7 @@ namespace gravity {
                                         }
                                     }
                                     else {
-                                        for (size_t i = 0; i < d2f->_dim[0]; i++) {
+                                        for (size_t i = 0; i < d2f->get_dim(0); i++) {
                                             for (size_t j = i; j < d2f->_dim[1]; j++) {
                                                 hess = d2f->eval(i,j);
                                                 _hess_vals[idx_in++] = hess;
@@ -1885,7 +1888,7 @@ namespace gravity {
                                 }
                                 else if(d2f->_is_vector){
                                     if (true) {
-                                        for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                        for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             if (d2f->func_is_number()) {
                                                 hess = d2f->_val->at(0);
                                             }
@@ -1899,7 +1902,7 @@ namespace gravity {
                                         }
                                     }
                                     else {
-                                        for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                        for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             if (d2f->func_is_number()) {
                                                 hess = d2f->_val->at(0);
                                             }
@@ -1937,7 +1940,7 @@ namespace gravity {
                         else {
                             if (_obj->is_quadratic()) {
                                 if(d2f->_is_vector){
-                                    for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                    for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                         res[_idx_it[idx++]] += obj_factor * _hess_vals[idx_in++];
                                         //                                f_idx++;
                                         idx_inc = true;
@@ -1948,7 +1951,7 @@ namespace gravity {
                                 }
                             }
                             else if(d2f->_is_vector){
-                                for (size_t j = 0; j < d2f->_dim[0]; j++) {
+                                for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                     //                    for (size_t j = i; j < (pairs.second.begin())->second->_dim[1]; j++) {
                                     hess = d2f->eval(j);
                                     _hess_vals[idx_in++] = hess;
@@ -2085,7 +2088,7 @@ namespace gravity {
         void fill_in_duals(double* lambda, double* z_L, double* z_U){
             for (auto &cp: _cons) {
                 size_t idx = 0;
-                //        for (size_t inst = 0; inst < cp.second->_dim[0]; inst++) {
+                //        for (size_t inst = 0; inst < cp.second->get_dim(0); inst++) {
                 //            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                 //                lambda[cp.second->_id + idx++] = 0;
                 //            }
@@ -2131,7 +2134,7 @@ namespace gravity {
                 c = c_p.second.get();
                 switch (c->get_ctype()) {
                     case eq:{
-                        auto nb_ins = c->_dim[0];
+                        auto nb_ins = c->get_dim(0);
                         size_t idx= 0;
                         for (size_t i = 0; i< nb_ins; i++){
                             if (!*c->_all_lazy || !c->_lazy[i]) {
@@ -2143,7 +2146,7 @@ namespace gravity {
                         break;
                     }
                     case leq:{
-                        auto nb_ins = c->_dim[0];
+                        auto nb_ins = c->get_dim(0);
                         size_t idx= 0;
                         for (size_t i = 0; i< nb_ins; i++){
                             if (!*c->_all_lazy || !c->_lazy[i]) {
@@ -2155,7 +2158,7 @@ namespace gravity {
                         break;
                     }
                     case geq:{
-                        auto nb_ins = c->_dim[0];
+                        auto nb_ins = c->get_dim(0);
                         size_t idx= 0;
                         for (size_t i = 0; i< nb_ins; i++){
                             if (!*c->_all_lazy || !c->_lazy[i]) {
@@ -2215,7 +2218,7 @@ namespace gravity {
                                 _nl_funcs.push_back(f);
                                 DebugOff(f->to_str() << endl);
                                 //                f->_val = make_shared<vector<double>>();
-                                //                f->_val->resize(f->_dim[0]);
+                                //                f->_val->resize(f->get_dim(0));
                             }
                             else {
                                 ue->_son = f_p.first->second;
@@ -2262,7 +2265,7 @@ namespace gravity {
                                 DebugOff(f->to_str() << endl);
                                 _nl_funcs.push_back(f);
                                 //                f->_val = make_shared<vector<double>>();
-                                //                f->_val->resize(f->_dim[0]);
+                                //                f->_val->resize(f->get_dim(0));
                             }
                             else {
                                 be->_lson = f_p.first->second;
@@ -2305,7 +2308,7 @@ namespace gravity {
                                 DebugOff(f->to_str() << endl);
                                 _nl_funcs.push_back(f);
                                 //                f->_val = make_shared<vector<double>>();
-                                //                f->_val->resize(f->_dim[0]);
+                                //                f->_val->resize(f->get_dim(0));
                             }
                             else {
                                 be->_rson = f_p.first->second;
@@ -2408,13 +2411,13 @@ namespace gravity {
                     f->allocate_mem();
                     return f;
                     //        f_p.first->second->_val = make_shared<vector<double>>();
-                    //        f_p.first->second->_val->resize(f_p.first->second->_dim[0]);
+                    //        f_p.first->second->_val->resize(f_p.first->second->get_dim(0));
                 }
                 //        if (f->_new) {
                 //            f_p.first->second = f;
                 //            return f;
                 //        }
-//                if (f->_dim[0] > f_p.first->second->_dim[0]) {
+//                if (f->get_dim(0) > f_p.first->second->get_dim(0)) {
 //                    *f_p.first->second = *f;
 //                }
 //                else if (f->_dfdx->size()>0) {
