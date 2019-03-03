@@ -366,7 +366,7 @@ namespace gravity{
     string pterm::print_poly_vars() const{
         string str;
         for (auto& p: *_l) {
-            str += p.first->get_name(true,true);
+            str += p.first->get_name(true,false);
             str += print_expo(p.second);
         }
         return str;
@@ -442,7 +442,7 @@ namespace gravity{
         else{
             str += clean_print(_sign,c_new->to_str(),true);
         }
-        str += p_new1->get_name(true,true);
+        str += p_new1->get_name(true,false);
         if(_coef_p1_tr){
             str += ")\u1D40";
         }
@@ -450,7 +450,7 @@ namespace gravity{
             str += "²";
             return str;
         }
-        str += p_new2->get_name(true,true);
+        str += p_new2->get_name(true,false);
         return str;
     }
     
@@ -529,7 +529,7 @@ namespace gravity{
         else{
             str += clean_print(_sign,c_new->to_str(),true);
         }
-        str += p_new->get_name(true,true);
+        str += p_new->get_name(true,false);
         return str;
     }
     

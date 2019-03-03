@@ -20,7 +20,6 @@ int main (int argc, char * argv[])
 {
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
     int output = 0;
-//    bool relax = false;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
     
@@ -135,22 +134,25 @@ int main (int argc, char * argv[])
     var<> vi("vi", -1.*v_max,v_max);
 
     var<> v_from, v_to, theta_from, theta_to;
+    var<> vr_from, vr_to, vi_from, vi_to;
     if (polar) {
         ACOPF.add(v.in(nodes));
         ACOPF.add(theta.in(nodes));
         v.initialize_all(1.0);
-        v_from = (v.from()).in(arcs);
-        v_to = (v.to()).in(arcs);
-        theta_from = (theta.from()).in(arcs);
-        theta_to = (theta.to()).in(arcs);
+        v_from = v.from(arcs);
+        v_to = v.to(arcs);
+        theta_from = theta.from(arcs);
+        theta_to = theta.to(arcs);
         
     }
     else {
         ACOPF.add(vr.in(nodes));
         ACOPF.add(vi.in(nodes));
-//        vi.initialize_all(1.0);
         vr.initialize_all(1);
-//        vi.initialize_uniform(-0.5,0.01);
+        vr_from = vr.from(arcs);
+        vr_to = vr.to(arcs);
+        vi_from = vi.from(arcs);
+        vi_to = vi.to(arcs);
 //        vr.initialize_uniform(0.99,1.01);
     }
     
@@ -198,9 +200,9 @@ int main (int argc, char * argv[])
         Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
-        Flow_P_From -= g_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_P_From -= g_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_P_From -= g_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_From -= b_ft*(vi_from*vr_to - vr_from*vi_to);
     }
     ACOPF.add(Flow_P_From.in(arcs)==0);
     
@@ -212,9 +214,9 @@ int main (int argc, char * argv[])
         Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
-        Flow_P_To -= g_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
     }
     ACOPF.add(Flow_P_To.in(arcs)==0);
     
@@ -226,9 +228,9 @@ int main (int argc, char * argv[])
         Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
     }
     else {
-        Flow_Q_From += b_ff*(pow(vr.from(), 2) + pow(vi.from(), 2));
-        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
+        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
     }
     ACOPF.add(Flow_Q_From.in(arcs)==0);
     
@@ -240,9 +242,9 @@ int main (int argc, char * argv[])
         Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
     }
     else {
-        Flow_Q_To += b_tt*(pow(vr.to(), 2) + pow(vi.to(), 2));
-        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
+        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
     }
     ACOPF.add(Flow_Q_To.in(arcs)==0);
     
@@ -264,18 +266,18 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     Constraint<> PAD_LB("PAD_LB");
     if (polar) {
-        PAD_UB = theta.from() - theta.to();
+        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_UB -= th_max;
-        PAD_LB = theta.from() - theta.to();
+        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_LB -= th_min;
     }
     else {
         DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
+        PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_UB -= tan_th_max*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
 
-        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
+        PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_LB -= tan_th_min*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
     }
         ACOPF.add(PAD_UB.in(bus_pairs) <= 0);
         ACOPF.add(PAD_LB.in(bus_pairs) >= 0);
@@ -300,13 +302,13 @@ int main (int argc, char * argv[])
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    /* Uncomment lines below to print model */
-    /*
+    /* Uncomment lines below to print model
     ACOPF.print_symbolic();
     ACOPF.print();
      */
-//    ACOPF.print_solution();
-//    ACOPF.print();
+    /* Uncomment lines below to print solution
+    ACOPF.print_solution();
+     */
     /** Terminal output */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(ACOPF.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);

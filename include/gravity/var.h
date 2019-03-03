@@ -228,13 +228,13 @@ namespace gravity {
             return res;
         }
         
-        var in_pairs(){
-            var<type> res(*this);
-            res._name += ".in_pairs";
-            res._indices->_type = in_pairs_;
-            return res;
-        }
-        
+//        var in_pairs(){
+//            var<type> res(*this);
+//            res._name += ".in_pairs";
+//            res._indices->_type = in_pairs_;
+//            return res;
+//        }
+//
         var from(){
             var<type> res(*this);
             res._name += ".from";
@@ -257,26 +257,26 @@ namespace gravity {
         var to(const indices& ids){
             return this->to().in(ids);
         }
-        var out_arcs(){
-            var<type> res(*this);
-            res._name += ".out_arcs";
-            res._indices->_type = out_arcs_;
-            return res;
-        }
-        
-        var in_arcs(){
-            var<type> res(*this);
-            res._name += ".in_arcs";
-            res._indices->_type = in_arcs_;
-            return res;
-        }
-        
-        var in_gens(){
-            var<type> res(*this);
-            res._name += ".in_gens";
-            res._indices->_type = in_gens_;
-            return res;
-        }
+//        var out_arcs(){
+//            var<type> res(*this);
+//            res._name += ".out_arcs";
+//            res._indices->_type = out_arcs_;
+//            return res;
+//        }
+//        
+//        var in_arcs(){
+//            var<type> res(*this);
+//            res._name += ".in_arcs";
+//            res._indices->_type = in_arcs_;
+//            return res;
+//        }
+//        
+//        var in_gens(){
+//            var<type> res(*this);
+//            res._name += ".in_gens";
+//            res._indices->_type = in_gens_;
+//            return res;
+//        }
         
         
         
