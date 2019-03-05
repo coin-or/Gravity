@@ -127,26 +127,45 @@ if (Boost)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
-# Include Eigen
 
 set(UNZIPPED OFF CACHE BOOL "Already unzipped")
 if(NOT UNZIPPED)
-  message(STATUS "Unzipping Classification Data and Eigen v3.3.5")
+  message(STATUS "Unzipping Classification Data")
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/data_sets/Classification/Archive.tar.gz
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/data_sets/Classification
      )
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5.tar.gz
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/third_party
-  )
 endif()
-include_directories(${PROJECT_SOURCE_DIR}/third_party/eigen-git-mirror-3.3.5)
+set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR}/third_party)
+get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
-# Include cpp_option_parser
-include_directories(${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser)
-add_subdirectory(third_party/cpp_option_parser)
-set(LIBS ${LIBS} option_parser)
+set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
+
+
+include(ExternalProject)
+# Eigen
+find_package(Eigen QUIET)
+if (EIGEN_FOUND)
+ message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
+else(EIGEN_FOUND)
+ set(EIGEN_VERSION 3.3.7)
+ include(ExternalEigen)
+ set(EIGEN_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/eigen)
+ set(ADD_EIGEN TRUE)
+endif (EIGEN_FOUND)
+include_directories(${EIGEN_INCLUDE_DIR})
+
+# cpp_option_parser
+set(OPT_PARSER_VERSION v1.0)
+include(ExternalOptParser)
+set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
+link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
+#link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
+include_directories(${OPT_PARSER_INCLUDE_DIR})
+include_directories(${THIRDPARTY_INSTALL_PATH}/include)
+
+
+
 
 # Find QPP?
 if (Qpp AND NOT UNZIPPED)

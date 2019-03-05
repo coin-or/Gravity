@@ -3518,6 +3518,7 @@ namespace gravity{
     bool func_::has_var(const param_& v) const{
         return get_var(v.get_name(true, false))!=nullptr;
     }
+        
 //
 //
 //    bool func_::has_var(const string& name) const{

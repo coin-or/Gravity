@@ -10,6 +10,7 @@
 
 namespace gravity {
     
+    
     template<typename T>
     void param<T>::copy_vals(const shared_ptr<param_>& p){
         auto dim = p->get_dim();

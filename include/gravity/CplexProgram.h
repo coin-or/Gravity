@@ -23,16 +23,15 @@ using namespace gravity;
 class CplexProgram: public Program<>{
 private:
     
-    IloModel* _cplex_model;
-    IloEnv* _cplex_env;
+    shared_ptr<IloModel> _cplex_model;
+    shared_ptr<IloEnv> _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
 public:
     shared_ptr<Model<>> _model;
     int _output;
     CplexProgram();
-    CplexProgram(const shared_ptr<Model<>>& m);
-    ~CplexProgram();
+    CplexProgram(const shared_ptr<Model<>>& m);    
     void update_model();
     void reset_model();
     

@@ -26,7 +26,7 @@
 #ifdef USE_QPP
     #include "qpp.h"
 #endif
-#include <Eigen/Sparse>
+#include "Eigen/Sparse"
 
 using namespace std;
 
@@ -126,6 +126,9 @@ namespace gravity {
 //            if(inst > dim-1){
 //                throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
 //            }
+            if(_dim[0]==1 && _dim[1]==1){/* unidimensional param */
+                return 0;
+            }
             return inst;
         };
 
@@ -539,6 +542,8 @@ namespace gravity {
             init_range();
             _val = make_shared<vector<type>>();
         }
+        
+        
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         param(){
@@ -1656,44 +1661,67 @@ namespace gravity {
         }
         
         
-        inline size_t get_id_inst(unsigned inst = 0) const {
-            if (is_indexed()) {
-//                if(_indices->_ids->at(0).size() <= inst){
-//                    throw invalid_argument("get_id_inst out of range");
+//        inline size_t get_id_inst(unsigned inst = 0) const {
+//            if (is_indexed()) {
+////                if(_indices->_ids->at(0).size() <= inst){
+////                    throw invalid_argument("get_id_inst out of range");
+////                }
+//                return _indices->_ids->at(0).at(inst);
+//            }
+//            return inst;
+//        };
+//
+//        size_t get_id_inst(unsigned inst1, unsigned inst2) const {
+//            if (is_indexed()) {
+//                if (_indices->_ids->size()==1) {
+////                    if(_indices->_ids->at(0).size() <= inst2){
+////                        throw invalid_argument("get_id_inst out of range");
+////                    }
+//                    return _indices->_ids->at(0).at(inst2);
 //                }
-                return _indices->_ids->at(0).at(inst);
-            }
-            return inst;
-        };
-        
-        size_t get_id_inst(unsigned inst1, unsigned inst2) const {
-            if (is_indexed()) {
-                if (_indices->_ids->size()==1) {
-//                    if(_indices->_ids->at(0).size() <= inst2){
-//                        throw invalid_argument("get_id_inst out of range");
-//                    }
-                    return _indices->_ids->at(0).at(inst2);
+//                return _indices->_ids->at(inst1).at(inst2);
+//            }
+//            return inst2;
+//        };
+        size_t get_max_cell_size(){
+            auto max_size = 0;
+            for (size_t i = 0; i<_dim[0]; i++) {
+                for (size_t j = 0; j<_dim[1]; j++) {
+                    eval(i,j);
+                    auto cell = to_str(i,j,5);
+                    if(max_size < cell.size()){
+                        max_size = cell.size();
+                    }
                 }
-                return _indices->_ids->at(inst1).at(inst2);
             }
-            return inst2;
-        };
-
-        string to_str_vals(bool vals, int prec = 10) const {
+            return max_size;
+        }
+        
+        string to_str_vals(bool vals, int prec = 10) {
             string str = get_name(false,true);
             auto name = str.substr(0, str.find_last_of("."));
             str = name;
             if (vals) {
                 str += " = { \n";
-                if(is_matrix()){
-                    for (size_t i = 0; i < _dim[0]; i++) {
-                        for (size_t j = 0; j < _dim[1]; j++) {
-                            str += to_string_with_precision(this->eval(i,j),prec);
-                            str += " ";
+                auto space_size = str.size();
+                if (is_matrix()) {
+                    auto max_cell_size = get_max_cell_size();
+                    for (size_t i = 0; i<_dim[0]; i++) {
+                        str.insert(str.end(), space_size, ' ');
+                        str += "|";
+                        for (size_t j = 0; j<_dim[1]; j++) {
+                            auto cell = to_str(i,j,prec);
+                            auto cell_size = cell.size();
+                            cell.insert(0, floor((max_cell_size+1 - cell_size)/2.), ' ');
+                            cell.append(ceil((max_cell_size+1 - cell_size)/2.), ' ');
+                            str += cell;
+                            if(j!=_dim[1]-1){
+                                str += " ";
+                            }
                         }
-                        str += "\n";
+                        str += "|\n";
                     }
-                    str += "};\n";
+                    str += "}\n";
                     return str;
                 }
                 if(_indices) {
