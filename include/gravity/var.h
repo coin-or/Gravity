@@ -66,7 +66,15 @@ namespace gravity {
             this->_range->second = _ub->_range->second;
         }
         
-//        var(const string& name, Sign s);
+        var(const string& name, Sign s):var(name){
+            if (s==non_neg_ || s==pos_) {
+                    add_lb_only(zero<type>().eval());
+            }
+            else if (s==non_pos_ || s==neg_) {
+                    add_ub_only(zero<type>().eval());
+            }
+        };
+        
         var(const var<type>& v);
         var(var<type>&& v);
         //@}
@@ -497,7 +505,7 @@ namespace gravity {
         string to_str(size_t index, int prec) {
             return this->get_name(index);
         }
-        string to_str_bounds(bool bounds=true, int prec = 10) const;        
+        string to_str_bounds(bool bounds=true, int prec = 10);        
         void print();
         void print(int prec);
         void print_vals(int prec){param<type>::print_vals(prec);};

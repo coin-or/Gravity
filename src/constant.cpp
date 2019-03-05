@@ -3,6 +3,7 @@
 //
 
 #include <gravity/constant.h>
+#include <gravity/func.h>
 
 using namespace std;
 using namespace gravity;
@@ -32,7 +33,7 @@ constant<double> gravity::real(const constant<Cpx>& cst){
 }
 
 constant<double> gravity::sqrmag(const constant<Cpx>& cst){
-    return pow(abs(cst.eval()),2);
+    return std::pow(abs(cst.eval()),2);
 }
 
 constant<double> gravity::angle(const constant<Cpx>& cst){

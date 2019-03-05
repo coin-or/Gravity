@@ -313,38 +313,191 @@ namespace gravity {
         
         void print_symbolic(bool endline = true, bool display_input = true);
     };
-
-    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
-    shared_ptr<pair<T1,T1>> get_product_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
-        shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
-        shared_ptr<pair<T1,T1>> cast_range1 = make_shared<pair<T1,T1>>(make_pair<>((T1)range1->first,(T1)range1->second));
-        if(abs(range2->first)==numeric_limits<T1>::max() || abs(range2->second)==numeric_limits<T1>::max() || abs(cast_range1->first)==numeric_limits<T1>::max()|| abs(cast_range1->second)==numeric_limits<T1>::max()){
-            res->first =numeric_limits<T1>::lowest();
-            res->second =numeric_limits<T1>::max();
-            return res;
+    
+    
+    
+    /*
+     From Table 1.1 in http://www2.math.uni-wuppertal.de/~xsc/preprints/prep_01_4.pdf
+     Replacing R* with +INF or -INF
+     */
+    template<class T,typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T extended_plus(T x, T y){
+        
+        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::lowest()){
+            throw invalid_argument("In function extended_plus cannot add +inf to -inf");
         }
-        auto min1 = gravity::min(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        auto max1 = gravity::max(cast_range1->second*range2->second, cast_range1->second*range2->first);
-        auto min2 = gravity::min(cast_range1->second*range2->second, cast_range1->second*range2->first);
-        auto max2 = gravity::max(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::max()){
+            throw invalid_argument("In function extended_plus cannot add -inf to +inf");
+        }
+        //+INF
+        if(x==numeric_limits<T>::max() || y==numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+        }
+        if(x==numeric_limits<T>::lowest() || y==numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+        }
+        auto res = (x+y);
+        if (res>numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+        }
+        if (res<numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+        }
+        return res;
+    }
+    
+    /*
+     From Table 1.2 in http://www2.math.uni-wuppertal.de/~xsc/preprints/prep_01_4.pdf
+     Replacing R* with +INF or -INF
+     */
+    template<class T,typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T extended_minus(T x, T y){
+        
+        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+            throw invalid_argument("In function extended_minus cannot substract +inf to +inf");
+        }
+        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+            throw invalid_argument("In function extended_minus cannot substract -inf to -inf");
+        }
+        //+INF
+        if(x==numeric_limits<T>::max() || y==numeric_limits<T>::lowest()){
+            return numeric_limits<T>::max();
+        }
+        if(x==numeric_limits<T>::lowest() || y==numeric_limits<T>::max()){
+            return numeric_limits<T>::lowest();
+        }
+        auto res = (x-y);
+        if (res>numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+        }
+        if (res<numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+        }
+        return res;
+    }
+    
+    /*
+     From Table 1.3 in http://www2.math.uni-wuppertal.de/~xsc/preprints/prep_01_4.pdf
+     Replacing R* with +INF or -INF
+     */
+    template<class T,typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T extended_mult(T x, T y){
+        //+INF
+        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::lowest()){
+            return numeric_limits<T>::max();
+        }
+        if(x==numeric_limits<T>::lowest() && y<0){
+            return numeric_limits<T>::max();
+        }
+        if(y==numeric_limits<T>::lowest() && x<0){
+            return numeric_limits<T>::max();
+        }
+        if(x==numeric_limits<T>::lowest() && y==0){
+            return numeric_limits<T>::lowest();
+        }
+        if(y==numeric_limits<T>::lowest() && x==0){
+            return numeric_limits<T>::lowest();
+        }
+        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+        }
+        if(x==numeric_limits<T>::max() && y>=0){
+            return numeric_limits<T>::max();
+        }
+        if(y==numeric_limits<T>::max() && x>=0){
+            return numeric_limits<T>::max();
+        }
+        //-INF
+        if(x==numeric_limits<T>::lowest() && y==numeric_limits<T>::max()){
+            return numeric_limits<T>::lowest();
+        }
+        if(x==numeric_limits<T>::lowest() && y>=0){
+            return numeric_limits<T>::lowest();
+        }
+        if(y==numeric_limits<T>::lowest() && x>=0){
+            return numeric_limits<T>::lowest();
+        }
+        if(x==numeric_limits<T>::max() && y==numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+        }
+        if(x==numeric_limits<T>::max() && y<0){
+            return numeric_limits<T>::lowest();
+        }
+        if(y==numeric_limits<T>::max() && x<0){
+            return numeric_limits<T>::lowest();
+        }
+        if(x==numeric_limits<T>::max() && y==0){
+            return numeric_limits<T>::max();
+        }
+        if(y==numeric_limits<T>::max() && x==0){
+            return numeric_limits<T>::max();
+        }
+        if(y==0 && x==0){
+            return 0;
+        }
+        auto res = (x*y);
+        if (res>numeric_limits<T>::max()){
+            return numeric_limits<T>::max();
+        }
+        if (res<numeric_limits<T>::lowest()){
+            return numeric_limits<T>::lowest();
+        }
+        return res;
+    }
+    
+    template<class T,typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    T extended_minus(T x, T y){
+        T res;
+        res.real(extended_minus(x.real(),y.real()));
+        res.imag(extended_minus(x.imag(),y.imag()));
+        return res;
+    }
+    
+    template<class T,typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    T extended_plus(T x, T y){
+        T res;
+        res.real(extended_plus(x.real(),y.real()));
+        res.imag(extended_plus(x.imag(),y.imag()));
+        return res;
+    }
+    
+    template<class T,typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    T extended_mult(T x, T y){
+        T res;
+        res.real(extended_minus(extended_mult(x.real(),y.real()),extended_mult(x.imag(),y.imag())));
+        res.imag(extended_plus(extended_mult(x.real(),y.imag()),extended_mult(x.imag(),y.real())));
+        return res;
+    }
+    
+    template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    shared_ptr<pair<T1,T1>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
+        shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
+        T1 x1 = x->first;
+        T1 x2 = x->second;
+        T1 y1 = y->first;
+        T1 y2 = y->second;
+        T1 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+        T1 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+        T1 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+        T1 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
         res->first = gravity::min(min1,min2);
         res->second = gravity::max(max1,max2);
         return res;
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
-    shared_ptr<pair<T2,T2>> get_product_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
+    shared_ptr<pair<T2,T2>> get_product_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
-        shared_ptr<pair<T2,T2>> cast_range1 = make_shared<pair<T2,T2>>(make_pair<>((T2)range1->first,(T2)range1->second));
-        if(abs(range2->first)==numeric_limits<T2>::max() || abs(range2->second)==numeric_limits<T2>::max() || abs(cast_range1->first)==numeric_limits<T2>::max()|| abs(cast_range1->second)==numeric_limits<T2>::max()){
-            res->first =numeric_limits<T2>::lowest();
-            res->second =numeric_limits<T2>::max();
-            return res;
-        }
-        auto min1 = gravity::min(cast_range1->first*range2->first, cast_range1->first*range2->second);
-        auto max1 = gravity::max(cast_range1->second*range2->second, cast_range1->second*range2->second);
-        auto min2 = gravity::min(cast_range1->second*range2->second, cast_range1->first*range2->second);
-        auto max2 = gravity::max(cast_range1->first*range2->first, cast_range1->first*range2->second);
+        T2 x1 = x->first;
+        T2 x2 = x->second;
+        T2 y1 = y->first;
+        T2 y2 = y->second;
+        T2 min1 = gravity::min(extended_mult(x1,y1), extended_mult(x1,y2));
+        T2 min2 = gravity::min(extended_mult(x2,y1), extended_mult(x2,y2));
+        T2 max1 = gravity::max(extended_mult(x1,y1), extended_mult(x1,y2));
+        T2 max2 = gravity::max(extended_mult(x2,y1), extended_mult(x2,y2));
         res->first = gravity::min(min1,min2);
         res->second = gravity::max(max1,max2);
         return res;
@@ -352,102 +505,85 @@ namespace gravity {
     
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     shared_ptr<pair<T1,T1>> get_div_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
-        shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
-        shared_ptr<pair<T1,T1>> cast_range1 = make_shared<pair<T1,T1>>(make_pair<>((T1)range1->first,(T1)range1->second));
-        T1 min1, max1, min2, max2;
-        if(abs(range2->first)==numeric_limits<T1>::max() || abs(range2->second)==numeric_limits<T1>::max() || abs(cast_range1->first)==numeric_limits<T1>::max()|| abs(cast_range1->second)==numeric_limits<T1>::max()){
+        if(range2->first==numeric_limits<T2>::lowest() || range2->second==numeric_limits<T2>::max()
+           || range1->first==numeric_limits<T1>::lowest()|| range1->second==numeric_limits<T1>::max()){
+            shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
             res->first =numeric_limits<T1>::lowest();
             res->second =numeric_limits<T1>::max();
             return res;
         }
-        min1 = gravity::min(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        max1 = gravity::max(cast_range1->second/range2->second, cast_range1->second/range2->first);
-        min2 = gravity::min(cast_range1->second/range2->second, cast_range1->second/range2->first);
-        max2 = gravity::max(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        res->first = gravity::min(min1,min2);
-        res->second = gravity::max(max1,max2);
-        return res;
+        auto inv_range2 = make_shared<pair<T2,T2>>(*range2);
+        inv_range2->first = 1./inv_range2->first;
+        inv_range2->second = 1./inv_range2->second;
+        return get_product_range<T1, T1, nullptr>(range1, inv_range2);
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     shared_ptr<pair<T2,T2>> get_div_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
         shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
-        shared_ptr<pair<T2,T2>> cast_range1 = make_shared<pair<T2,T2>>(make_pair<>((T2)range1->first,(T2)range1->second));
-        if(abs(range2->first)==numeric_limits<T2>::max() || abs(range2->second)==numeric_limits<T2>::max() || abs(cast_range1->first)==numeric_limits<T2>::max()|| abs(cast_range1->second)==numeric_limits<T2>::max()){
+        if(range2->first==numeric_limits<T2>::lowest() || range2->second==numeric_limits<T2>::max()
+           || range1->first==numeric_limits<T1>::lowest()|| range1->second==numeric_limits<T1>::max()){
             res->first =numeric_limits<T2>::lowest();
             res->second =numeric_limits<T2>::max();
             return res;
         }
-        auto min1 = gravity::min(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        auto max1 = gravity::max(cast_range1->second/range2->second, cast_range1->second/range2->second);
-        auto min2 = gravity::min(cast_range1->second/range2->second, cast_range1->first/range2->second);
-        auto max2 = gravity::max(cast_range1->first/range2->first, cast_range1->first/range2->second);
-        res->first = gravity::min(min1,min2);
-        res->second = gravity::max(max1,max2);
-        return res;
+        auto inv_range2 = make_shared<pair<T2,T2>>(*range2);
+        inv_range2->first = 1./inv_range2->first;
+        inv_range2->second = 1./inv_range2->second;
+        return get_product_range<T2, T2, nullptr>(range1, inv_range2);
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
-    shared_ptr<pair<T1,T1>> get_plus_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
+    shared_ptr<pair<T1,T1>> get_plus_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
-        shared_ptr<pair<T1,T1>> cast_range1 = make_shared<pair<T1,T1>>(make_pair<>((T1)range1->first,(T1)range1->second));
-        T1 min1, max1, min2, max2;
-        if(abs(range2->first)==numeric_limits<T1>::max() || abs(range2->second)==numeric_limits<T1>::max() || abs(cast_range1->first)==numeric_limits<T1>::max()|| abs(cast_range1->second)==numeric_limits<T1>::max()){
-            res->first =numeric_limits<T1>::lowest();
-            res->second =numeric_limits<T1>::max();
-            return res;
-        }
-        res->first = cast_range1->first + range2->first;
-        res->second = cast_range1->second + range2->second;
+        T1 x1 = x->first;
+        T1 x2 = x->second;
+        T1 y1 = y->first;
+        T1 y2 = y->second;
+        res->first = extended_plus(x1,y1);
+        res->second = extended_plus(x2,y2);
         return res;
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
-    shared_ptr<pair<T2,T2>> get_plus_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
+    shared_ptr<pair<T2,T2>> get_plus_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
-        shared_ptr<pair<T2,T2>> cast_range1 = make_shared<pair<T2,T2>>(make_pair<>((T2)range1->first,(T2)range1->second));
-        if(abs(range2->first)==numeric_limits<T2>::max() || abs(range2->second)==numeric_limits<T2>::max() || abs(cast_range1->first)==numeric_limits<T2>::max()|| abs(cast_range1->second)==numeric_limits<T2>::max()){
-            res->first =numeric_limits<T2>::lowest();
-            res->second =numeric_limits<T2>::max();
-            return res;
-        }
-        res->first = cast_range1->first + range2->first;
-        res->second = cast_range1->second + range2->second;
+        T2 x1 = x->first;
+        T2 x2 = x->second;
+        T2 y1 = y->first;
+        T2 y2 = y->second;
+        res->first = extended_plus(x1,y1);
+        res->second = extended_plus(x2,y2);
         return res;
     }
     
     
     template<class T1, class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
-    shared_ptr<pair<T1,T1>> get_minus_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
+    shared_ptr<pair<T1,T1>> get_minus_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T1,T1>> res = make_shared<pair<T1,T1>>();
-        shared_ptr<pair<T1,T1>> cast_range1 = make_shared<pair<T1,T1>>(make_pair<>((T1)range1->first,(T1)range1->second));
-        T1 min1, max1, min2, max2;
-        if(abs(range2->first)==numeric_limits<T1>::max() || abs(range2->second)==numeric_limits<T1>::max() || abs(cast_range1->first)==numeric_limits<T1>::max()|| abs(cast_range1->second)==numeric_limits<T1>::max()){
-            res->first =numeric_limits<T1>::lowest();
-            res->second =numeric_limits<T1>::max();
-            return res;
-        }
-        res->first = cast_range1->first - range2->second;
-        res->second = cast_range1->second - range2->first;
+        T1 x1 = x->first;
+        T1 x2 = x->second;
+        T1 y1 = y->first;
+        T1 y2 = y->second;
+        res->first = extended_minus(x1,y2);
+        res->second = extended_minus(x2,y1);
         return res;
     }
     
     template<class T1, class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
-    shared_ptr<pair<T2,T2>> get_minus_range(shared_ptr<pair<T1,T1>> range1, shared_ptr<pair<T2,T2>> range2){
+    shared_ptr<pair<T2,T2>> get_minus_range(shared_ptr<pair<T1,T1>> x, shared_ptr<pair<T2,T2>> y){
         shared_ptr<pair<T2,T2>> res = make_shared<pair<T2,T2>>();
-        shared_ptr<pair<T2,T2>> cast_range1 = make_shared<pair<T2,T2>>(make_pair<>((T2)range1->first,(T2)range1->second));
-        if(abs(range2->first)==numeric_limits<T2>::max() || abs(range2->second)==numeric_limits<T2>::max() || abs(cast_range1->first)==numeric_limits<T2>::max()|| abs(cast_range1->second)==numeric_limits<T2>::max()){
-            res->first =numeric_limits<T2>::lowest();
-            res->second =numeric_limits<T2>::max();
-            return res;
-        }
-        res->first = cast_range1->first - range2->second;
-        res->second = cast_range1->second - range2->first;
+        T2 x1 = x->first;
+        T2 x2 = x->second;
+        T2 y1 = y->first;
+        T2 y2 = y->second;
+        res->first = extended_minus(x1,y2);
+        res->second = extended_minus(x2,y1);
         return res;
     }
     
     
-    template<typename type = double>
+    template<typename type>
     class func: public func_{
     private:
         /** Computes and stores the derivative of f with respect to variable v. Returns a pointer to the stored function. */
@@ -531,6 +667,7 @@ namespace gravity {
         bool is_constant() const{
             return (_vars->empty());
         }
+
         
         
         /**
@@ -580,6 +717,18 @@ namespace gravity {
             return true;
         }
         
+        func vec() const{
+            auto f(*this);
+            if(func_is_param()){
+                auto vi = f._vars->begin()->second.first;
+                if(vi->_is_vector){
+                    vi->_is_vector = true;
+                    vi->_name = "["+vi->_name+"]";
+                }
+            }
+            f._is_vector = true;
+            return f;
+        }
         
         shared_ptr<expr<type>> get_expr() const{
             return _expr;
@@ -828,7 +977,7 @@ namespace gravity {
             return pair<type,type>();
         };
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         pair<type,type> get_range(shared_ptr<param_> p) const{
             switch (p->get_intype()) {
                 case binary_:
@@ -1250,7 +1399,7 @@ namespace gravity {
         }
         
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> void update_all_sign(){
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void update_all_sign(){
             if (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)) {
                 _all_sign = zero_;
             }
@@ -2061,7 +2210,7 @@ namespace gravity {
         func(const constant<T2>& c):func(){
             *this = c;
         }
-        template<class T2, class = typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(const param<T2>& c):func(){
             *this = c;
         }
@@ -2071,7 +2220,7 @@ namespace gravity {
             *this = c;
         }
         
-        template<class T2, class = typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type>
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         func(const func<T2>& f): func(){
             *this = f;
         }
@@ -2545,7 +2694,7 @@ namespace gravity {
             return unknown_;
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_sign(size_t idx) const{
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> Sign get_sign(size_t idx) const{
             if (_val->at(idx) == Cpx(0,0)) {
                 return zero_;
             }
@@ -2785,7 +2934,7 @@ namespace gravity {
             return eval_coef(_cst, i, j);
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         inline type get_val(const shared_ptr<constant_>& c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
@@ -3117,7 +3266,7 @@ namespace gravity {
             throw invalid_argument("Unsupported type");
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
             switch (c->get_type()) {
                 case binary_c:
@@ -3210,7 +3359,7 @@ namespace gravity {
             }
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j) {
             switch (c->get_type()) {
                 case binary_c:
@@ -3613,7 +3762,7 @@ namespace gravity {
                     break;
             }
         }
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         Cpx eval_uexpr(uexpr<T>* exp, size_t i) {
             if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
@@ -3656,7 +3805,7 @@ namespace gravity {
             }
         }
                        
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         inline T  eval_bexpr(bexpr<type>* exp, size_t i){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
@@ -3775,7 +3924,7 @@ namespace gravity {
                     break;
             }
         }
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         Cpx eval_uexpr(const uexpr<type>* exp, size_t i, size_t j) {
             Cpx res = eval(exp->_son,i,j);
             switch (exp->_otype) {
@@ -3812,7 +3961,7 @@ namespace gravity {
             }
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         T  eval_bexpr(const bexpr<type>* exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
                 for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
@@ -4067,14 +4216,14 @@ namespace gravity {
 //            return (_range->first == 1 && _range->second == 1);
         }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit() const{
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> bool is_unit() const{
 //            return (func_is_number() && _range->first == Cpx(1,0) && _range->second == Cpx(1,0));
             return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
         }
         
         inline bool is_zero() const { return zero_range();};
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool zero_range() const{
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> bool zero_range() const{
 //            return (func_is_number() && _range->first == Cpx(0,0) && _range->second == Cpx(0,0));
             return (_range->first == Cpx(0,0) && _range->second == Cpx(0,0));
         }
@@ -4769,15 +4918,15 @@ namespace gravity {
                 if (!f._cst->is_zero()) {
                     if (f._cst->is_function()) {
                         auto f_cst = *static_pointer_cast<func<T2>>(f._cst);
-                        res._cst = multiply(f._cst, f_cst);
+                        res._cst = multiply(_cst, f_cst);
                     }
                     else if(f._cst->is_param()) {
                         auto p_cst = *static_pointer_cast<param<T2>>(f._cst);
-                        res._cst = multiply(f._cst, p_cst);
+                        res._cst = multiply(_cst, p_cst);
                     }
                     else if(f._cst->is_number()) {
                         auto p_cst = *static_pointer_cast<constant<T2>>(f._cst);
-                        res._cst = multiply(f._cst, p_cst);
+                        res._cst = multiply(_cst, p_cst);
                     }
                 }
             }
@@ -7293,12 +7442,13 @@ namespace gravity {
         func<T1> res;
         res.update_dot_dim(c,p);
         res.insert(true,c,p);
-        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range = get_product_range(c.range(), p._range);
         res.update_all_sign();
         if(c._is_transposed){
-            res._range->first *= p._dim[0];
-            res._range->second *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::lowest())
+                res._range->first *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::max())
+                res._range->second *= p._dim[0];
         }
         return res;
     }
@@ -7308,12 +7458,12 @@ namespace gravity {
         func<T2> res;
         res.update_dot_dim(c,p);
         res.insert(true,constant<T2>(c),p);
-        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
-        res.update_all_sign();
+        res._range = get_product_range(c.range(), p._range);
         if(c._is_transposed){
-            res._range->first *= p._dim[0];
-            res._range->second *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::lowest())
+                res._range->first *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::max())
+                res._range->second *= p._dim[0];
         }
         return res;
     }
@@ -7322,14 +7472,15 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p, const constant<T2>& c){
         func<T1> res;
-        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range = get_product_range(p._range,c.range());
         res.update_all_sign();
         res.update_dot_dim(p,c);
         if(p._is_transposed){
             res.insert(true,constant<T1>(c).tr(),p.tr());
-            res._range->first *= p._dim[0];
-            res._range->second *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::lowest())
+                res._range->first *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::max())
+                res._range->second *= p._dim[0];
         }
         else {
             res.insert(true,constant<T1>(c),p);
@@ -7340,14 +7491,15 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p, const constant<T2>& c){
         func<T2> res;
-        res._range->first = gravity::min(c.eval()*p._range->first, c.eval()*p._range->second);
-        res._range->second = gravity::max(c.eval()*p._range->first, c.eval()*p._range->second);
+        res._range = get_product_range(p._range,c.range());
         res.update_all_sign();
         res.update_dot_dim(p,c);
         if(p._is_transposed){
             res.insert(true,c.tr(),p.tr());
-            res._range->first *= p._dim[0];
-            res._range->second *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::lowest())
+                res._range->first *= p._dim[0];
+            if(res._range->first != numeric_limits<T2>::max())
+                res._range->second *= p._dim[0];
         }
         else {
             res.insert(true,c,p);
@@ -7428,6 +7580,162 @@ namespace gravity {
         return unit<type>().tr()*(p.vec()).in(ids);
     }
     
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const func<T1>& f1, const func<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const func<T1>& f1, const func<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const param<T1>& f1, const param<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const param<T1>& f1, const param<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const param<T1>& f1, const func<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const param<T1>& f1, const func<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const func<T1>& f1, const param<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const func<T1>& f1, const param<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const param<T1>& f1, const constant<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const param<T1>& f1, const constant<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const constant<T1>& f1, const param<T2>& f2){
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const constant<T1>& f1, const param<T2>& f2){
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const constant<T1>& f1, const func<T2>& f2){
+        return f1.tr()*f2.vec();
+    }
+    
+    
+    template<class T1=double,class T2=double, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const constant<T1>& f1, const func<T2>& f2){
+        return f1.tr()*f2.vec();
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const func<T1>& f1, const constant<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(T1 f1, const param<T2>& f2){
+        return func<T1>(f1).tr()*f2.vec();
+    }
+    
+    template<class T1=double,class T2=double, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(T1 f1, const param<T2>& f2){
+        return func<T2>(f1).tr()*f2.vec();
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const param<T1>& f1, T2 f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*func<T1>(f2).vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const param<T1>& f1, T2 f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*func<T2>(f2).vec();
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(T1 f1, const func<T2>& f2){
+        return func<T2>(f1).tr()*f2.vec();
+    }
+    
+    template<class T1=double,class T2=double, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(T1 f1, const func<T2>& f2){
+        return func<T2>(f1).tr()*f2.vec();
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
+    func<T1> product(const func<T1>& f1, T2 f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*func<T1>(f2).vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const func<T1>& f1, T2 f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*func<T2>(f2).vec();
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
+    func<T2> product(const func<T1>& f1, const constant<T2>& f2){
+        if(f1.is_matrix())
+            return f1*f2;
+        return f1.tr()*f2.vec();
+    }
 //    template<typename type>
 //    func<type> sum(const func<type>& f, const indices& ids){
 //        auto ff = f;

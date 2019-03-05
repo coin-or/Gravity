@@ -1,8 +1,8 @@
 #include <gravity/CplexProgram.h>
 
 CplexProgram::CplexProgram(const shared_ptr<Model<>>& m) {
-    _cplex_env = new IloEnv();
-    _cplex_model = new IloModel(*_cplex_env);
+    _cplex_env = make_shared<IloEnv>();
+    _cplex_model = make_shared<IloModel>(*_cplex_env);
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
@@ -14,11 +14,6 @@ void CplexProgram::update_model(){
     fill_in_cplex_vars();
     create_cplex_constraints();
     set_cplex_objective();
-}
-
-CplexProgram::~CplexProgram() {
-    delete _cplex_model;
-    delete _cplex_env;
 }
 
 

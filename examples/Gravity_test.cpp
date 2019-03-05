@@ -21,11 +21,8 @@
 #include <PowerNet.h>
 //#include <variant>
 
-
 using namespace std;
 using namespace gravity;
-
-
 
 
 
@@ -263,12 +260,12 @@ TEST_CASE("testing vector dot product"){
     CHECK(lin4.is_convex());
     CHECK(lin4.get_dim()==5);
     auto lin5 = lin4 - lin3;
+    lin5.print_symbolic();
+    lin5.print();
     CHECK(lin5.is_complex());
     CHECK(lin5.get_dim()==5);
     CHECK(lin5.get_nb_vars()==4);
-    CHECK(lin5.is_convex());
-    lin5.print_symbolic();
-    lin5.print();
+    CHECK(lin5.is_convex());    
     CHECK(lin5.to_str()=="(b)y² - ([a]ᵀ)[z] + b");
     auto lin6 = (a+exp(b)).tr()*z;
     lin6.print_symbolic();
@@ -610,6 +607,7 @@ TEST_CASE("testing soc/rotated soc constraints"){
     cstr >= 0;
     cstr.print_symbolic();
     cstr.print();
+    CHECK(cstr.to_str()==" - x1² + x2x3 + (log(a))x2 + (a)x3 + a * log(a)");
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_quadratic());
     CHECK(cstr.check_rotated_soc());
@@ -944,7 +942,7 @@ TEST_CASE("Alpine issue") {
     //    m.print_solution();
     Model<> relax("Lifted Relaxation");
     relax.add(x1.in(R(1)), x2.in(R(1)),y1.in(R(1)), y2.in(R(1)),y3.in(R(1)),y4.in(R(1)));
-    var<> y1234("y1y2y3y4"), y12("y1y2"), y34("y3y4"), x12("x1x2"), x11("x1x1"), x22("x2x2");
+    var<> y1234("y1234"), y12("y12"), y34("y34"), x12("(x12"), x11("x11"), x22("x22");
     relax.add(x11.in(R(1)), x22.in(R(1)),x12.in(R(1)), y12.in(R(1)),y34.in(R(1)),y1234.in(R(1)));
     y1234.set_lb((y1*y2*y3*y4)._range->first);
     y1234.set_ub((y1*y2*y3*y4)._range->second);

@@ -307,7 +307,7 @@ template<typename type> bool var<type>::operator!=(const var& v) const {
 }
 
 /* Output */
-template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) const {
+template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
     string str = param<type>::to_str_vals(false, prec);
     if (!bounds) {
         return str;

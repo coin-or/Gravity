@@ -24,7 +24,7 @@ using namespace std;
 using namespace gravity;
 
 /* Builds the static SVM model */
-unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
+unique_ptr<Model<>> build_svm(const DataSet<>& training_set, double mu){
     
     /* Defining parameters ans indices */
     auto nf = training_set._nb_features;
@@ -33,7 +33,7 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     auto F = training_set.get_features_matrices(); /* Features matrices, one per-class */
     
     /* Model */
-    auto SVM = unique_ptr<Model>(new Model());
+    auto SVM = unique_ptr<Model<>>(new Model<>());
     
     /* Variables */
     var<> w("w");
@@ -41,16 +41,18 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
     var<> xi2("xi2", pos_);
     var<> b("b");
     SVM->add(w.in(R(nf)), xi1.in(R(m1)), xi2.in(R(m2)), b.in(R(1)));
+    param<> half("0.5");
+    half = 0.5;
     /* Objective function */
-    SVM->min(product(0.5,power(w,2)) + mu*sum(xi1) + mu*sum(xi2));
+    SVM->min(half.tr()*pow(w.vec(),2) + mu*sum(xi1) + mu*sum(xi2));
     
     /* Constraints */
     /* Class 1 constraints */
-    auto Class1 = Constraint("Class1");
+    auto Class1 = Constraint<>("Class1");
     Class1 = product(F[0],w) + b + (xi1 - 1);
     SVM->add(Class1 >= 0);
     /* Class 2 constraints */
-    auto Class2 = Constraint("Class2");
+    auto Class2 = Constraint<>("Class2");
     Class2 = product(F[1],w) + b + (1 - xi2);
     SVM->add(Class2 <= 0);
     
@@ -59,7 +61,7 @@ unique_ptr<Model> build_svm(const DataSet<>& training_set, double mu){
 
 
 /* Builds the dual SVM model */
-unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const string& kernel_type, double gamma, double r, unsigned d){
+unique_ptr<Model<>> build_svm_dual(const DataSet<>& training_set, double mu, const string& kernel_type, double gamma, double r, unsigned d){
     
     /* Defining parameters ans indices */
     auto m = training_set._nb_points;
@@ -67,7 +69,7 @@ unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const
     auto y = training_set.get_classes();
 
     /* Model */
-    auto SVM = unique_ptr<Model>(new Model());
+    auto SVM = unique_ptr<Model<>>(new Model<>());
     
     /* Variables */
     var<> alpha("𝛂", 0, mu);
@@ -77,7 +79,7 @@ unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const
     
     /* Constraints */
     /* Equality constraints */
-    auto Equ0 = Constraint("Equation");
+    auto Equ0 = Constraint<>("Equation");
     Equ0 = y.tr()*alpha;
     SVM->add(Equ0 == 0);
     
@@ -85,7 +87,7 @@ unique_ptr<Model> build_svm_dual(const DataSet<>& training_set, double mu, const
 }
 
 
-unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double mu){
+unique_ptr<Model<>> build_lazy_svm(const DataSet<>& training_set, int nb_c, double mu){
     
     /* Defining parameters ans indices */
     auto nf = training_set._nb_features;
@@ -95,14 +97,14 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double
     auto f = training_set.get_features(); /* Feature values */
     
     /* Model */
-    unique_ptr<Model> SVM = unique_ptr<Model>(new Model());
+    unique_ptr<Model<>> SVM = unique_ptr<Model<>>(new Model<>());
     /* Variables */
     var<> w("w");
     var<> xi("xi", pos_);
     var<> b("b");
     SVM->add(w.in(R(nf)), xi.in(R(m)), b.in(R(1)));
     /* Objective function */
-    SVM->min(product(0.5,power(w,2)) + mu*sum(xi));
+    SVM->min(product(0.5,pow(w,2)) + mu*sum(xi));
     
     /* Constraints */
     size_t nb_c1 = m1;
@@ -110,13 +112,13 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double
         nb_c1 = nb_c;
     }
     for (auto i = 0; i<nb_c1; i++) {
-        auto Class1 = Constraint("Class1_"+to_string(i));
+        auto Class1 = Constraint<>("Class1_"+to_string(i));
         Class1 = product(f[0][i],w) + b + (xi(i) - 1);
         SVM->add(Class1 >= 0);
     }
     /* Remaining constraints are lazy */
     for (auto i = nb_c1; i<m1; i++) {
-        auto Class1 = Constraint("Class1_"+to_string(i));
+        auto Class1 = Constraint<>("Class1_"+to_string(i));
         Class1 = product(f[0][i],w) + b + (xi(i) - 1);
         SVM->add_lazy(Class1 >= 0);
     }
@@ -127,13 +129,13 @@ unique_ptr<Model> build_lazy_svm(const DataSet<>& training_set, int nb_c, double
         nb_c2 = nb_c;
     }
     for (auto i = 0; i<nb_c2; i++) {
-        auto Class2 = Constraint("Class2_"+to_string(i));
+        auto Class2 = Constraint<>("Class2_"+to_string(i));
         Class2 = product(f[1][i],w) + b + (1 - xi(i+m1));
         SVM->add(Class2 <= 0);
     }
     /* Remaining constraints are lazy */
     for (auto i = nb_c2; i<m2; i++) {
-        auto Class2 = Constraint("Class2_"+to_string(i));
+        auto Class2 = Constraint<>("Class2_"+to_string(i));
         Class2 = product(f[1][i],w) + b + (1 - xi(i+m1));
         SVM->add_lazy(Class2 <= 0);
     }
@@ -211,24 +213,24 @@ int main (int argc, char * argv[])
     training_set.print_stats();
     auto nf = training_set._nb_features;
     gamma = 1./nf;
-    unique_ptr<Model> SVM;
+    unique_ptr<Model<>> SVM;
     if(dual){
         kernel = opt["k"];
         SVM = build_svm_dual(training_set, mu, kernel,1./training_set._nb_features,0,3);
     }
     else {
-        if (nb_c<0) {
-            SVM = build_svm(training_set, mu);
+        if (lazy && nb_c>0) {
+            SVM = build_lazy_svm(training_set, nb_c, mu);
         }
         else {
-            SVM = build_lazy_svm(training_set, nb_c, mu);
+            SVM = build_svm(training_set, mu);
         }
     }
     SVM->print_symbolic();
     /* Start Timers */
-    solver SVM_solver(*SVM,solv_type);
+    solver<> SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();
-    SVM_solver.run(output,false,tol,1e-3,"mumps");
+    SVM_solver.run(output,tol);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
@@ -242,7 +244,7 @@ int main (int argc, char * argv[])
     test_set.parse(fname+".t", &training_set);
     if(dual){
         double b = 0;
-        auto alpha = SVM->get_var<>("𝛂");
+        auto alpha = SVM->get_var<double>("𝛂");
         auto y = training_set.get_classes();
         bool point_on_margin = false;
         for (auto i = 0; i<training_set._nb_points; i++) {
@@ -281,8 +283,8 @@ int main (int argc, char * argv[])
         }
     }
     else {
-        auto w = SVM->get_var<>("w");
-        auto b = SVM->get_var<>("b");
+        auto w = SVM->get_var<double>("w");
+        auto b = SVM->get_var<double>("b");
         DebugOn("b = " << b.eval() << endl);
         for (auto c = 0; c<test_set._nb_classes; c++) {
             for (auto i = 0; i<test_set._class_sizes[c]; i++) {

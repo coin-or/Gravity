@@ -356,6 +356,14 @@ namespace gravity {
             return _nnz_g;
         };
         
+        template <typename T>
+        var<T> get_var(const string& vname) const{
+            auto it = _vars_name.find(vname);
+            if (it==_vars_name.end()) {
+                throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
+            }
+            return *(var<T>*)it->second.get();
+        }
         
         /* Return the number of nonzeros in the lower left part of the hessian */
         
@@ -2683,7 +2691,7 @@ namespace gravity {
     template<typename type = double>
     class Program{
     public:
-        virtual void update_model(){};
+//        virtual void update_model(){};
         string _status;
     };
     

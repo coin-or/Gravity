@@ -257,7 +257,7 @@ namespace gravity {
                     //            iapp.Options()->SetIntegerValue("print_level", 5);
                     
                     //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
-                    _prog->update_model();
+                    _model->fill_in_maps();
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
                     status = iapp->OptimizeTNLP(tmp);
@@ -382,7 +382,7 @@ namespace gravity {
                     //            bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
                     bonmin.options()->SetIntegerValue("num_resolve_at_root", 5);
                     
-                    _prog->update_model();
+                    _model->fill_in_maps();
                     SmartPtr<TMINLP> tmp = new BonminProgram(_model);
                     bonmin.initialize(tmp);
                     

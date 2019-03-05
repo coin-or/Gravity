@@ -26,6 +26,7 @@ namespace gravity {
 
     class param_;
     class func_;
+    template<typename T=double> class func;
     /**
      Transform a scalar to a string with user-specified precision.
      @param[in] a_value number to be transformed.
@@ -328,6 +329,7 @@ namespace gravity {
             update_type();
         }
         
+                
         ~constant(){};
         
         
@@ -360,7 +362,7 @@ namespace gravity {
 
         shared_ptr<constant_> copy() const{return make_shared<constant>(*this);};
         
-        constant(type val):constant(){
+        constant(const type& val):constant(){
             _val = val;
         };
         
