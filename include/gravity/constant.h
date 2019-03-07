@@ -210,44 +210,61 @@ namespace gravity {
         /**
          Update the dimensions of current object after it is multiplied with c2.
          @param[in] c2 object multiplying this.
-         @return true if dimensions were updated, false otherwise.
          */
-        bool update_dot_dim(const constant_& c2){
-            return update_dot_dim(*this, c2);
+        void update_dot_dim(const constant_& c2){
+            update_dot_dim(*this, c2);
+        }
+        
+        bool is_row_vector() const{
+            return _dim[0]==1 && _dim[1]>1;
+        }
+        
+        bool is_column_vector() const{
+            return _dim[1]==1 && _dim[0]>1;
+        }
+        
+        bool is_scalar() const{
+            return !_is_vector && _dim[0]==1 && _dim[1]==1;
         }
         
         /**
          Update the dimensions of current object to correspond to c1.c2.
          @param[in] c1 first element in product.
          @param[in] c2 second element in product.
-         @return true if dimensions were updated, false otherwise.
          */
-        bool update_dot_dim(const constant_& c1, const constant_& c2){
-            if(c1._is_vector || c2._is_vector){/* If both c1 and c2 are scalars, no need to update dimensions */
-                if(c1.is_matrix() && (!c2._is_vector || (!c2.is_matrix() && !c2._is_transposed))){/* If multiplying a matrix with a scalar/column */
-                    _dim[0] = c2._dim[0];
-                    _dim[1] = c2._dim[1];
-                    _is_vector = true;
-                    return true;
-                }
-                if(c2.is_matrix() && (!c1._is_vector || (c1._is_vector && !c1._is_transposed))){/* If multiplying a scalar/column vector with a matrix */
-                    _dim[0] = c1._dim[0];
-                    _dim[1] = c1._dim[1];
-                    _is_vector = true;
-                    return true;
-                }
-                /* Otherwise, we have a dot product */
+        void update_dot_dim(const constant_& c1, const constant_& c2){
+            /* If c2 is a scalar or if multiplying a matrix with a row vector */
+            if(c2.is_scalar() || (c1.is_matrix() && c2.is_row_vector())){
                 _dim[0] = c1._dim[0];
-                _dim[1] = c2._dim[1];
-                if(get_dim()>1){
-                    _is_vector = true;
-                }
-                _is_transposed = false;/* The result of a product with a vector/matrix is not transposed */
-                return true;
+                _dim[1] = c1._dim[1];
+                _is_vector = c1._is_vector;
+                _is_transposed = c1._is_transposed;
+                return;
             }
-            _dim[0] = max(_dim[0], c1._dim[0]);
-            _dim[0] = max(_dim[0], c2._dim[0]);
-            return false;
+            /* If c1 is a scalar or if multiplying a row vector with a matrix */
+            else if(c1.is_scalar() || (c2.is_matrix() && c1.is_column_vector())){
+                _dim[0] = c2._dim[0];
+                _dim[1] = c2._dim[1];
+                _is_vector = c2._is_vector;
+                _is_transposed = c2._is_transposed;
+                return;
+            }
+            /* Both c1 and c2 are non-scalars */
+            /* If it is a dot product */
+            if(c1.is_row_vector() && c2.is_column_vector()){ /* c1^T.c2 */
+                if(c1._dim[1]!=c2._dim[0]){
+                    throw invalid_argument("Dot product with mismatching dimensions");
+                }
+                _is_transposed = false;/* The result of a dot product is not transposed */
+            }
+            else if(c1.is_row_vector() && c2.is_row_vector()){
+                _is_transposed = true;/* this is a term-wise product of transposed vectors */
+            }
+            _dim[0] = c1._dim[0];
+            _dim[1] = c2._dim[1];
+            if(get_dim()==1){
+                _is_vector = false;
+            }
         }
         
         /**
@@ -447,12 +464,12 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool unit_val() const{
-            return (_val == Cpx(1,0));
+            return (!_is_vector && _val == Cpx(1,0));
         }
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool unit_val() const{
-            return (_val == 1);
+            return (!_is_vector && _val == 1);
         }
         
         bool is_negative() const {

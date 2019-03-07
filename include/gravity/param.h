@@ -188,7 +188,7 @@ namespace gravity {
                 name += "["+_indices->_keys->at(rev_idx)+"]";
             }
             else if(_indices){
-                name += "["+_indices->_keys->at(inst)+"]";
+                name += "["+_indices->_keys->at(get_id_inst(inst))+"]";
             }
             else {
                 name += "["+to_string(inst)+"]";
@@ -488,10 +488,9 @@ namespace gravity {
         }
 
         size_t get_dim(size_t i) const{
-            if (is_indexed() && _indices->_ids->size()>i) {
+            if(is_double_indexed())
                 return _indices->_ids->at(i).size();
-            }
-            return constant_::get_dim(i);
+            return this->_dim[0];
         }
         
         /** Fill x with the variable's values */
@@ -836,29 +835,30 @@ namespace gravity {
         }
 
         void set_val(size_t i, size_t j, type val) {
-            if(!is_matrix()){
-                throw invalid_argument("Function set_val(size_t i, size_t j, type val) should be called on a matrix");
-            }
-            if(_dim[0] <= i || _dim[1] <= j){
-                throw invalid_argument("In Function set_val(size_t i, size_t j, type val), i or j are out of bounds");
-            }
+//            if(!is_matrix()){
+//                throw invalid_argument("Function set_val(size_t i, size_t j, type val) should be called on a matrix");
+//            }
+//            if(_dim[0] <= i || _dim[1] <= j){
+//                throw invalid_argument("In Function set_val(size_t i, size_t j, type val), i or j are out of bounds");
+//            }
+            update_range(val);
             if (_is_transposed) {
-                if(_val->at(_dim[0]*j+i)==_range->first ||  _val->at(_dim[0]*j+i)==_range->second || val<_range->first || val>_range->second){
+//                if(_val->at(_dim[0]*j+i)==_range->first ||  _val->at(_dim[0]*j+i)==_range->second || val<_range->first || val>_range->second){
                     _val->at(_dim[0]*j+i) = val;
-                    reset_range();
-                }
-                else {
-                    _val->at(_dim[0]*j+i) = val;
-                }
+//                    reset_range();
+//                }
+//                else {
+//                    _val->at(_dim[0]*j+i) = val;
+//                }
             }
            else {
-                if(_val->at(_dim[1]*i+j)==_range->first ||  _val->at(_dim[1]*i+j)==_range->second || val<_range->first || val>_range->second){
+//                if(_val->at(_dim[1]*i+j)==_range->first ||  _val->at(_dim[1]*i+j)==_range->second || val<_range->first || val>_range->second){
+//                    _val->at(_dim[1]*i+j) = val;
+//                    reset_range();
+//                }
+//                else {
                     _val->at(_dim[1]*i+j) = val;
-                    reset_range();
-                }
-                else {
-                    _val->at(_dim[1]*i+j) = val;
-                }
+//                }
            }
         }
 

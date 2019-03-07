@@ -9,7 +9,9 @@ endif(EIGEN_ROOT_DIR)
 find_path(EIGEN_INCLUDE_DIR
   NAMES Eigen/Core
   HINTS /usr/local/include
+  HINTS /usr/local/include/eigen3
   HINTS /usr/include
+  HINTS /usr/include/eigen3
   HINTS ${THIRDPARTY_INSTALL_PATH}/include)
 
 # Extract Eigen version from Eigen/src/Core/util/Macros.h
@@ -48,5 +50,5 @@ endif (EIGEN_INCLUDE_DIR)
 if (EIGEN_FOUND)
   set(EIGEN_INCLUDE_DIRS ${EIGEN_INCLUDE_DIR})
 else (EIGEN_FOUND)
- message("Cannot find Eigen, will try pulling it from github.") 
+ message("Cannot find Eigen, will try pulling it from github.")
 endif (EIGEN_FOUND)

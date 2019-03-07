@@ -7,7 +7,7 @@ unset(EIGEN_HOME)
 set(EIGEN_ROOT ${THIRDPARTY_INSTALL_PATH} CACHE INTERNAL "")
 ExternalProject_Add(eigen
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && curl -k -L ${EIGEN_DOWNLOAD_URL} -o eigen.tar.gz && tar -xzvf eigen.tar.gz && mv eigen-git-mirror-3.3.7 eigen && mv eigen ./Install
+    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && curl -k -L ${EIGEN_DOWNLOAD_URL} -o eigen.tar.gz && tar -xzvf eigen.tar.gz && mv eigen-git-mirror-3.3.7 eigen && rm -fr ./Install/eigen && mv eigen ./Install
     URL ${EIGEN_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EIGEN_ROOT}
     CONFIGURE_COMMAND ""
