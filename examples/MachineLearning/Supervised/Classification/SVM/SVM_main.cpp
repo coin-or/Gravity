@@ -41,10 +41,8 @@ unique_ptr<Model<>> build_svm(const DataSet<>& training_set, double mu){
     var<> xi2("xi2", pos_);
     var<> b("b");
     SVM->add(w.in(R(nf)), xi1.in(R(m1)), xi2.in(R(m2)), b.in(R(1)));
-    param<> half("0.5");
-    half = 0.5;
     /* Objective function */
-    SVM->min(half.tr()*pow(w.vec(),2) + mu*sum(xi1) + mu*sum(xi2));
+    SVM->min(product(0.5,pow(w,2)) + mu*sum(xi1) + mu*sum(xi2));
     
     /* Constraints */
     /* Class 1 constraints */
@@ -74,6 +72,7 @@ unique_ptr<Model<>> build_svm_dual(const DataSet<>& training_set, double mu, con
     /* Variables */
     var<> alpha("𝛂", 0, mu);
     SVM->add(alpha.in(R(m)));
+//    SVM->initialize_uniform();
     /* Objective function */
     SVM->min(0.5*alpha.tr()*K*alpha - sum(alpha));
     
@@ -145,7 +144,7 @@ unique_ptr<Model<>> build_lazy_svm(const DataSet<>& training_set, int nb_c, doub
 
 int main (int argc, char * argv[])
 {
-    double tol = 1e-6, r = 0, gamma = 0;
+    double tol = 1e-3, r = 0, gamma = 0;
     unsigned d = 3;
     auto total_time_start = get_wall_time();
     string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5", kernel = "linear";
@@ -227,6 +226,7 @@ int main (int argc, char * argv[])
         }
     }
     SVM->print_symbolic();
+//    SVM->print();
     /* Start Timers */
     solver<> SVM_solver(*SVM,solv_type);
     double solver_time_start = get_wall_time();

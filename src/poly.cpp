@@ -551,7 +551,7 @@ namespace gravity{
     }
     
     string qterm::print_transposed(int prec) const{
-        auto dim = _coef->get_dim();
+        auto dim = _p->first->get_dim(0);
         string str;
         for (auto idx = 0; idx <dim; idx++) {
             string coef;
@@ -602,7 +602,7 @@ namespace gravity{
     }
     
     string lterm::print_transposed(size_t inst, int prec) const{
-        if(!_p->is_double_indexed()){
+        if(!_p->is_double_indexed() && !_coef->is_matrix()){
             return print_transposed(prec);
         }
         string str;
@@ -620,7 +620,12 @@ namespace gravity{
                 coef = _coef->to_str(inst, idx,prec);
             }
             str += clean_print(_sign,coef);
-            str += _p->get_name(inst,idx);
+            if(_p->is_double_indexed()){
+                str += _p->get_name(inst,idx);
+            }
+           else {
+               str += _p->get_name(idx);
+           }
         }
         return str;
     }

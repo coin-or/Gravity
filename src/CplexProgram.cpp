@@ -53,7 +53,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             cplex.extract(*_cplex_model);
         }
         cplex.setParam(IloCplex::EpGap, mipgap);
-//        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
+        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::RootAlg, 1);
 //        cplex.setParam(IloCplex::AdvInd, 1);
@@ -250,7 +250,7 @@ void CplexProgram::set_cplex_objective() {
     for (auto& it_lterm: _model->_obj->get_lterms()) {
         IloNumExpr lterm(*_cplex_env);
         idx = it_lterm.second._p->get_vec_id();
-        if (it_lterm.second._coef->_is_vector) {//Vectorial/Matrix product
+        if (it_lterm.second._p->_is_vector) {//Vectorial/Matrix product
             assert(it_lterm.second._p->_is_vector && it_lterm.second._coef->_dim[0]==1 && it_lterm.second._p->_dim[1]==1); // We're in the objective dimensions should reduce to one.
             auto dim = it_lterm.second._p->get_dim();
             for (int j = 0; j<dim; j++) {
