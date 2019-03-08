@@ -260,7 +260,7 @@ public:
     void update_status(unique_ptr<Model<>> Model);
     
     void fix_investment();
-    shared_ptr<Model<>> build_ACOPF(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+    
     unique_ptr<Model<>> build_ACOPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
     
     unique_ptr<Model<>> build_SOCP_OPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
@@ -287,5 +287,7 @@ public:
     
     void fill_wbnds();
 };
+
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
 
 #endif

@@ -54,6 +54,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
         cplex.setParam(IloCplex::EpGap, mipgap);
         cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
+        cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::RootAlg, 1);
 //        cplex.setParam(IloCplex::AdvInd, 1);

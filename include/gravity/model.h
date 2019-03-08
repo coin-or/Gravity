@@ -54,6 +54,9 @@ namespace gravity {
                     DebugOff("Accessing res at position " << c->_id+inst << endl);
                     //                _cons_vals[index++] = res[c->_id+inst];
                     DebugOff("g[" << to_string(c->_id+inst) << "] = " << to_string(res[c->_id+inst]) << endl);
+//                    if(c->_id+inst==15){
+//                        cout << "ok";
+//                    }
                 }
             }
         }
@@ -454,6 +457,8 @@ namespace gravity {
             _idx_it.clear();
             _cons_vec.clear();
             _nnz_pairs.clear();
+            _jac_vals.clear();
+            _hess_vals.clear();
             _first_call_jac = true;
             _first_call_hess = true;
             _first_call_gard_obj = true;
@@ -697,6 +702,7 @@ namespace gravity {
         void set_objective(const func<T>& f, ObjectiveType t) {
             *_obj = f;
             _objt = t;
+            _obj->_indices = nullptr;
             update_convexity(f);
 //            embed(_obj);
         }
@@ -1724,7 +1730,7 @@ namespace gravity {
                                 else if(d2f->_is_vector){
                                     for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                         if (d2f->func_is_number()) {
-                                            hess = d2f->_val->at(0);
+                                            hess = d2f->eval(0);
                                         }
                                         else {
                                             hess = d2f->eval(j);
@@ -1839,9 +1845,9 @@ namespace gravity {
                         c = static_pointer_cast<Constraint<type>>(f);
                     }
                     auto d2f = f_pair.second;
-//                    if(!d2f->is_constant()){
-//                        d2f->_evaluated=false;
-//                    }
+                    if(!d2f->is_constant()){
+                        d2f->_evaluated=false;
+                    }
                     size_t nb_inst = f->get_dim(0);
                     size_t id_inst = 0;
                     for (size_t inst = 0; inst<nb_inst; inst++) {
@@ -1895,7 +1901,7 @@ namespace gravity {
                                     }
                                 }
                                 else if(d2f->_is_vector){
-                                    if (true) {
+                                    if (c->is_nonlinear()) {
                                         for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             if (d2f->func_is_number()) {
                                                 hess = d2f->_val->at(0);
@@ -1912,7 +1918,7 @@ namespace gravity {
                                     else {
                                         for (size_t j = 0; j < d2f->get_dim(0); j++) {
                                             if (d2f->func_is_number()) {
-                                                hess = d2f->_val->at(0);
+                                                hess = d2f->eval(0);
                                             }
                                             else {
                                                 hess = d2f->eval(j);
@@ -1927,14 +1933,14 @@ namespace gravity {
                                 }
                                 else {
                                     if (d2f->func_is_number()) {
-                                        hess = d2f->_val->at(0);
+                                        hess = d2f->eval(0);
                                     }
                                     else {
                                         if (c->is_nonlinear()) {
                                             hess = d2f->_val->at(inst);
                                         }
                                         else {
-                                            hess = d2f->_val->at(inst);
+                                            hess = d2f->eval(inst);
                                         }
                                     }
                                     _hess_vals[idx_in++] = hess;

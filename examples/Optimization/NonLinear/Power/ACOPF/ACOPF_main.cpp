@@ -53,7 +53,6 @@ int main (int argc, char * argv[])
     grid.readgrid(fname);
     
     /* Grid Stats */
-    auto bus_pairs = grid.get_bus_pairs();
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -62,6 +61,7 @@ int main (int argc, char * argv[])
     DebugOn("nb active buses = " << nb_buses << endl);
     
     /** Sets */
+    auto bus_pairs = grid.get_bus_pairs();
     auto nodes = indices(grid.nodes);
     auto arcs = indices(grid.arcs);
     auto gens = indices(grid.gens);
@@ -158,7 +158,7 @@ int main (int argc, char * argv[])
     
     /** Construct the objective function */
     /**  Objective */
-    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     ACOPF.min(obj);
 
     /** Define constraints */

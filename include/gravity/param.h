@@ -1355,10 +1355,20 @@ namespace gravity {
                 if(has_all_keys){
                     res._indices = make_shared<indices>(ids);
                     if(res._is_transposed){
-                        res._dim[1]=_indices->size();
+                        if(res.is_double_indexed()){
+                            res._dim[1]=_indices->size();
+                        }
+                        else {
+                            res._dim[1]=res._indices->size();
+                        }
                     }
                     else {
-                        res._dim[0]=_indices->size();
+                        if(res.is_double_indexed()){
+                            res._dim[0]=_indices->size();
+                        }
+                        else {
+                            res._dim[0]=res._indices->size();
+                        }
                     }
                     res._name += ".in("+ids._name+")";
                     return res;

@@ -706,9 +706,9 @@ TEST_CASE("testing acopf"){
     string mehrotra = "no", log_level="0";
     PowerNet grid1,grid2;
     grid1.readgrid(fname);
-    auto ACOPF1 = grid1.build_ACOPF(ACRECT);
+    auto ACOPF1 = build_ACOPF(grid1,ACRECT);
     fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-    auto ACOPF2 = grid1.build_ACOPF(ACPOL);
+    auto ACOPF2 = build_ACOPF(grid1,ACPOL);
     auto models = {ACOPF1, ACOPF2};
     /* run in parallel */
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
