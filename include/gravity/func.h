@@ -918,12 +918,12 @@ namespace gravity {
         
         void set_first_derivative(const param_& v, func&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v._name] = make_shared<func_>(move(f));
+            (*_dfdx)[v._name] = make_shared<func>(move(f));
         }
         
         void set_second_derivative(const param_& v1, const param_& v2, func&& f){
             DebugOff(f.to_str()<<endl);
-            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func_>(move(f))));
+            (*_dfdx)[v1._name]->_dfdx->insert(make_pair<>(v2._name, make_shared<func>(move(f))));
         }
         
         pair<type,type> get_range(shared_ptr<list<pair<shared_ptr<param_>, int>>> pterm) const{
@@ -4426,13 +4426,9 @@ namespace gravity {
             /* Case where the current function is constant and the other operand is not. */
             if (func_is_number() || (is_constant() && !f.is_constant())) {
                 auto cpy = this->copy();
-                update_dot_dim(f);
-                update_sign_multiply(f);
                 func res = f;
-                res._dim[0] = _dim[0];
-                res._dim[1] = _dim[1];
-                res._is_vector = _is_vector;
-                res._is_transposed = _is_transposed;
+                res.update_dot_dim(*this,f);
+                update_sign_multiply(f);
                 res._all_sign = _all_sign;
                 res._range = get_product_range(_range,f._range);
                 if(_is_transposed){

@@ -258,10 +258,10 @@ namespace gravity {
                 shared_ptr<param_> newv;
                 if (v._val->empty()) {
                     Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
-                    newv = (v.in(R(1))).copy();
+                    newv = (v.in(R(1))).pcopy();
                 }
                 else {
-                    newv = v.copy();
+                    newv = v.pcopy();
                 }
                 _vars_name[v._name] = newv;
                 _vars[v.get_vec_id()] = newv;
@@ -708,8 +708,39 @@ namespace gravity {
         }
         
         template<typename T1>
+        void min(const param<T1>& p){
+            set_objective(func<T1>(p), minimize);
+        }
+        
+        template<typename T1>
+        void min(T1 c){
+            set_objective(func<T1>(c), minimize);
+        }
+        
+        template<typename T1>
+        void min(const var<T1>& v){
+            set_objective(func<T1>(v), minimize);
+        }
+        
+        template<typename T1>
         void min(const func<T1>& f){
             set_objective(f, minimize);
+        }
+        
+        
+        template<typename T1>
+        void max(const param<T1>& p){
+            set_objective(func<T1>(p), maximize);
+        }
+        
+        template<typename T1>
+        void max(T1 c){
+            set_objective(func<T1>(c), maximize);
+        }
+        
+        template<typename T1>
+        void max(const var<T1>& v){
+            set_objective(func<T1>(v), maximize);
         }
         
         template<typename T1>
