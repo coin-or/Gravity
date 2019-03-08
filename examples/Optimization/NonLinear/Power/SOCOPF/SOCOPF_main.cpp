@@ -119,7 +119,7 @@ int main (int argc, char * argv[])
     
     
     /**  Objective */
-    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SOCP.min(obj);
     
     /** Constraints */

@@ -1598,43 +1598,77 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
 
 
-shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
-    auto gen_nodes = gens_per_node();
-    auto out_arcs = out_arcs_per_node();
-    auto in_arcs = in_arcs_per_node();
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, double tol){
+    /** Sets */
+    auto bus_pairs = grid.get_bus_pairs();
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    auto gen_nodes = grid.gens_per_node();
+    auto out_arcs = grid.out_arcs_per_node();
+    auto in_arcs = grid.in_arcs_per_node();
+    
+    /* Grid Parameters */
+    auto pg_min = grid.pg_min.in(gens);
+    auto pg_max = grid.pg_max.in(gens);
+    auto qg_min = grid.qg_min.in(gens);
+    auto qg_max = grid.qg_max.in(gens);
+    auto c1 = grid.c1.in(gens);
+    auto c2 = grid.c2.in(gens);
+    auto c0 = grid.c0.in(gens);
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(bus_pairs);
+    auto th_max = grid.th_max.in(bus_pairs);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto v_min = grid.v_min.in(nodes);
+    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
+    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    
     bool polar = (pmt==ACPOL);
     if (polar) {
-        Debug("Using polar model\n");
+        DebugOn("Using polar model\n");
     }
     else {
-        Debug("Using rectangular model\n");
+        DebugOn("Using rectangular model\n");
     }
-    shared_ptr<Model<>> ACOPF(new Model<>("AC-OPF Model"));
+    auto ACOPF = make_shared<Model<>>("AC-OPF Model");
     /** Variables */
     /* Power generation variables */
-    var<double> Pg("Pg", pg_min, pg_max);
-    var<double> Qg ("Qg", qg_min, qg_max);
-    ACOPF->add(Pg.in(gens), Qg.in(gens));
-    Pg_base = Pg;
-    Qg_base = Qg;
-    
+    var<> Pg("Pg", pg_min, pg_max);
+    var<> Qg ("Qg", qg_min, qg_max);
+    ACOPF->add(Pg.in(gens),Qg.in(gens));
+    //    Pg.copy_vals(grid.pg_s);
+    //    Pg.initialize_av();
+    //    Qg.initialize_uniform();
     /* Power flow variables */
-    var<double> Pf_from("Pf_from", -1*S_max,S_max);
-    var<double> Qf_from("Qf_from", -1*S_max,S_max);
-    var<double> Pf_to("Pf_to", -1*S_max,S_max);
-    var<double> Qf_to("Qf_to", -1*S_max,S_max);
+    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+    var<> Qf_to("Qf_to", -1.*S_max,S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    p_from_base = Pf_from;
-    p_to_base = Pf_to;
-    q_from_base = Qf_from;
-    q_to_base = Qf_to;
+    
     /** Voltage related variables */
-    var<double> theta("theta", -6.3, 6.3);
-    var<double> v("|V|", v_min, v_max);
-    //    var<double> vr("vr");
-    //    var<double> vi("vi");
-    var<double> vr("vr", -1*v_max,v_max);
-    var<double> vi("vi", -1*v_max,v_max);
+    var<> theta("theta");
+    var<> v("|V|", v_min, v_max);
+    var<> vr("vr", -1.*v_max,v_max);
+    var<> vi("vi", -1.*v_max,v_max);
     
     var<> v_from, v_to, theta_from, theta_to;
     var<> vr_from, vr_to, vi_from, vi_to;
@@ -1645,22 +1679,23 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         v_from = v.from(arcs);
         v_to = v.to(arcs);
         theta_from = theta.from(arcs);
-        theta_to = theta.to(arcs);        
+        theta_to = theta.to(arcs);
+        
     }
     else {
-        ACOPF->add_var(vr.in(nodes));
-        ACOPF->add_var(vi.in(nodes));
-        vr.initialize_all(1.0);
+        ACOPF->add(vr.in(nodes));
+        ACOPF->add(vi.in(nodes));
+        vr.initialize_all(1);
         vr_from = vr.from(arcs);
         vr_to = vr.to(arcs);
         vi_from = vi.from(arcs);
         vi_to = vi.to(arcs);
+        //        vr.initialize_uniform(0.99,1.01);
     }
-    v_base = v;
-    theta_base = theta;
     
     /** Construct the objective function */
-    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+    /**  Objective */
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     ACOPF->min(obj);
     
     /** Define constraints */
@@ -1668,10 +1703,10 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
     /* REF BUS */
     Constraint<> Ref_Bus("Ref_Bus");
     if (polar) {
-        Ref_Bus = theta(ref_bus);
+        Ref_Bus = theta(grid.ref_bus);
     }
     else {
-        Ref_Bus = vi(ref_bus);
+        Ref_Bus = vi(grid.ref_bus);
     }
     ACOPF->add(Ref_Bus == 0);
     
@@ -1735,6 +1770,7 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
     }
     ACOPF->add(Flow_Q_From.in(arcs)==0);
+    
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To += Qf_to;
     if (polar) {
@@ -1760,15 +1796,12 @@ shared_ptr<Model<>> PowerNet::build_ACOPF(PowerModelType pmt, int output, double
         Vol_limit_LB = pow(vr, 2) + pow(vi, 2);
         Vol_limit_LB -= pow(v_min,2);
         ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-        DebugOff(v_min.to_str(true) << endl);
-        DebugOff(v_max.to_str(true) << endl);
     }
     
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     Constraint<> PAD_LB("PAD_LB");
-    auto bus_pairs = get_bus_pairs();
     if (polar) {
         PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_UB -= th_max;
@@ -1880,11 +1913,11 @@ indices PowerNet::get_bus_pairs_chord(){
 
 double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     
-    auto ACOPF = build_ACOPF();
+    auto ACOPF = build_ACOPF(*this,pmt,output,tol);
     bool relax;
     solver<> OPF(ACOPF,ipopt);
 //    auto mipgap = 1e-6;
-    OPF.run(output, relax = false, tol);
+    OPF.run(output, tol);
     return ACOPF->_obj->get_val();
 }
 

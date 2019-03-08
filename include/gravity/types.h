@@ -589,6 +589,17 @@ namespace gravity{
             return res;
         }
         
+        size_t get_max_nb_columns() const {
+            assert(is_indexed());
+            auto nb_inst = _ids->size();
+            size_t max_dim = 0;
+            for(size_t inst = 0; inst<nb_inst; inst++){
+                auto nb_idx = _ids->at(inst).size();
+                max_dim = max(max_dim,nb_idx);
+            }
+            return max_dim;
+        }
+            
         size_t size() const {
             if(is_indexed()){
                 return _ids->at(0).size();

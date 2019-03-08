@@ -1136,6 +1136,9 @@ namespace gravity {
                         if(newl->size()==1 && newl->front().second==2){
                             res.insert(lt.second._sign, expo*f_cst, *newl->front().first,*newl->front().first);
                         }
+                        else if(newl->size()==2 && newl->front().second==1 && newl->back().second==1){
+                            res.insert(lt.second._sign, expo*f_cst, *newl->front().first,*newl->back().first);
+                        }
                         else{
                             res.insert(lt.second._sign, expo*f_cst, *newl);
                         }
@@ -1146,6 +1149,9 @@ namespace gravity {
                         if(newl->size()==1 && newl->front().second==2){
                             res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->front().first);
                         }
+                        else if(newl->size()==2 && newl->front().second==1 && newl->back().second==1){
+                            res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->back().first);
+                        }
                         else{
                             res.insert(lt.second._sign, expo*p_cst, *newl);
                         }
@@ -1155,6 +1161,9 @@ namespace gravity {
                         auto p_cst = *static_pointer_cast<constant<type>>(lt.second._coef);
                         if(newl->size()==1 && newl->front().second==2){
                             res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->front().first);
+                        }
+                        else if(newl->size()==2 && newl->front().second==1 && newl->back().second==1){
+                            res.insert(lt.second._sign, expo*p_cst, *newl->front().first,*newl->back().first);
                         }
                         else{
                             res.insert(lt.second._sign, expo*p_cst, *newl);

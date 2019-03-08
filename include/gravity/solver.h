@@ -162,13 +162,16 @@ namespace gravity {
         //@}
         void set_model(gravity::Model<type>& m);
         int run(bool relax){
-            return run(5, 1e-6, 10000, 1e-6, relax);
+            return run(5, 1e-6, 10000, 1e-6, relax, {false,""});
+        }
+        int run(int output, type tol , string lin_solver){
+            return run(output, tol, 10000, 1e-6, true, {true,lin_solver});
         }
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
-            return run(output, tol, max_iter, 1e-6, true);
+            return run(output, tol, max_iter, 1e-6, true, {false,""});
         }
         /* run model */
-        int run(int output, type tol , int max_iter, double mipgap, bool relax){
+        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver){
             int return_status = -1, dyn_max_iter = 20;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
@@ -184,8 +187,9 @@ namespace gravity {
                         std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
                         return (int) status;
                     }
-                    
-//                    iapp->Options()->SetStringValue("linear_solver", lin_solver);
+                    if(lin_solver.first){
+                        iapp->Options()->SetStringValue("linear_solver", lin_solver.second);
+                    }
 //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
 //                    iapp->Options()->SetIntegerValue("print_level", print_level);
@@ -209,9 +213,9 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
-                        dyn_max_iter *= 2;
+//                        dyn_max_iter *= 2;
 //                    if (true) {
-                        //            if (false) {
+//                                    if (false) {
                         mu_init = std::exp(-1)/std::exp(2);
                         DebugOn("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
@@ -434,6 +438,8 @@ namespace gravity {
                     violated_constraints = _model->has_violated_constraints(tol);
                     if (violated_constraints) {
                         _model->reindex();
+//                        _model->print();
+//                        _model->print_symbolic();
                         //                Constraint obj_cstr("obj_cstr_"+to_string(nb_it));
                         //                obj_cstr += _model->_obj - _model->_obj_ub;
                         //                if (_model->_objt==minimize) {

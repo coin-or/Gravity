@@ -25,7 +25,7 @@ class IpoptProgram : public TNLP, public Program<type>{
 public:
     shared_ptr<Model<type>> _model = nullptr;
     
-    IpoptProgram(shared_ptr<Model<type>> m):_model(m){
+    IpoptProgram(const shared_ptr<Model<type>>& m):_model(m){
     }
     
     
@@ -90,9 +90,9 @@ public:
                 if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                     cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
                 }
-                else {
-                    cp.second->_dual[inst] = 1;
-                }
+//                else {
+//                    cp.second->_dual[inst] = 1;
+//                }
             }
         }
         for (auto &vp: _model->_vars) {

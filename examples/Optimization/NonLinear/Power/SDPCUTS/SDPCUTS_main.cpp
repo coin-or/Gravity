@@ -77,68 +77,106 @@ int main (int argc, char * argv[]) {
     grid.readgrid(fname);
 
     grid.get_tree_decomp_bags(false,true);
-//    grid.update_net();
-
-    // Grid Parameters
-    auto bus_pairs = grid.get_bus_pairs();
-    auto bus_pairs_chord = grid.get_bus_pairs_chord();
+    
+    /* Grid Stats */
+    auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
-    DebugOff("nb gens = " << nb_gen << endl);
-    DebugOff("nb lines = " << nb_lines << endl);
-    DebugOff("nb buses = " << nb_buses << endl);
-    DebugOff("nb bus_pairs = " << nb_bus_pairs_chord << endl);
+    DebugOn("nb active gens = " << nb_gen << endl);
+    DebugOn("nb active lines = " << nb_lines << endl);
+    DebugOn("nb active buses = " << nb_buses << endl);
 
-
+    /** Sets */
+    auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_chord = grid.get_bus_pairs_chord();
+    if (!sdp_cuts) {
+        bus_pairs_chord = bus_pairs;
+    }
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    auto gen_nodes = grid.gens_per_node();
+    auto out_arcs = grid.out_arcs_per_node();
+    auto in_arcs = grid.in_arcs_per_node();
+    
+    /* Grid Parameters */
+    auto pg_min = grid.pg_min.in(gens);
+    auto pg_max = grid.pg_max.in(gens);
+    auto qg_min = grid.qg_min.in(gens);
+    auto qg_max = grid.qg_max.in(gens);
+    auto c1 = grid.c1.in(gens);
+    auto c2 = grid.c2.in(gens);
+    auto c0 = grid.c0.in(gens);
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(bus_pairs);
+    auto th_max = grid.th_max.in(bus_pairs);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto w_max = grid.w_max.in(nodes);
+    auto w_min = grid.w_min.in(nodes);
+    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
+    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    auto wr_min = grid.wr_min.in(bus_pairs_chord);
+    auto wr_max = grid.wr_max.in(bus_pairs_chord);
+    auto wi_min = grid.wi_min.in(bus_pairs_chord);
+    auto wi_max = grid.wi_max.in(bus_pairs_chord);
+    
     double upper_bound = grid.solve_acopf();
 
 
     /** Build model */
-    Model SDP("SDP Model");
+    Model<> SDP("SDP Model");
 
     /** Variables */
-    /* power generation variables */
-    var<double> Pg("Pg", grid.pg_min, grid.pg_max);
-    var<double> Qg ("Qg", grid.qg_min, grid.qg_max);
-    SDP.add(Pg.in(grid.gens));
-    SDP.add(Qg.in(grid.gens));
-    /* power flow variables */
-    var<double> Pf_from("Pf_from", grid.S_max);
-    var<double> Qf_from("Qf_from", grid.S_max);
-    var<double> Pf_to("Pf_to", grid.S_max);
-    var<double> Qf_to("Qf_to", grid.S_max);
-    SDP.add(Pf_from.in(grid.arcs));
-    SDP.add(Qf_from.in(grid.arcs));
-    SDP.add(Pf_to.in(grid.arcs));
-    SDP.add(Qf_to.in(grid.arcs));
+    /* Power generation variables */
+    var<> Pg("Pg", pg_min, pg_max);
+    var<> Qg ("Qg", qg_min, qg_max);
+    SDP.add(Pg.in(gens),Qg.in(gens));
+
+    /* Power flow variables */
+    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+    var<> Qf_to("Qf_to", -1.*S_max,S_max);
+    SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
 
     /* Real part of Wij = ViVj */
-    var<double>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
+    var<>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
-    var<double>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
+    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
-    var<double>  Wii("Wii", grid.w_min, grid.w_max);
-    SDP.add(Wii.in(grid.nodes));
+    var<>  Wii("Wii", w_min, w_max);
+    SDP.add(Wii.in(nodes));
+    SDP.add(R_Wij.in(bus_pairs_chord));
+    SDP.add(Im_Wij.in(bus_pairs_chord));
+                                 
 
-    if (sdp_cuts) {
-        SDP.add(R_Wij.in(bus_pairs_chord));
-        SDP.add(Im_Wij.in(bus_pairs_chord));
-    }
-    else{
-        SDP.add(R_Wij.in(bus_pairs));
-        SDP.add(Im_Wij.in(bus_pairs));
-    }
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
 
     /**  Objective */
-    auto obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
-    SDP.min(obj.in(grid.gens));
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    SDP.min(obj);
 
-    Constraint obj_cstr("obj_ub");
-    obj_cstr += SDP._obj - 1.05*upper_bound;
-    SDP.add(obj_cstr <= 0);
+//    Constraint obj_cstr("obj_ub");
+//    obj_cstr += SDP._obj - 1.05*upper_bound;
+//    SDP.add(obj_cstr <= 0);
 
     
     /** Constraints */
@@ -150,12 +188,12 @@ int main (int argc, char * argv[]) {
         auto Im_Wij_ = Im_Wij.pairs_in_bags(grid._bags, 3);
         auto Wii_ = Wii.in_bags(grid._bags, 3);
         
-        Constraint SDP3("SDP_3D");
+        Constraint<> SDP3("SDP_3D");
         SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
         SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
-        SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
+        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
             SDP.add_lazy(SDP3 >= 0);
@@ -165,109 +203,97 @@ int main (int argc, char * argv[]) {
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
     }
-    /* Second-order cone constraints */
-    Constraint SOC("SOC");
-    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    if (sdp_cuts) {
-        SDP.add(SOC.in(bus_pairs_chord) <= 0);
-    }
-    else{
-        SDP.add(SOC.in(bus_pairs) <= 0);
-    }
     
-
+    /** Constraints */
+    /* Second-order cone constraints */
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    
     
     /* Flow conservation */
-    Constraint KCL_P("KCL_P");
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + grid.pl - sum(Pg.in_gens()) + grid.gs*Wii;
-    SDP.add(KCL_P.in(grid.nodes) == 0);
+    Constraint<> KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
+    SDP.add(KCL_P.in(nodes) == 0);
     
-    Constraint KCL_Q("KCL_Q");
-    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + grid.ql - sum(Qg.in_gens()) - grid.bs*Wii;
-    SDP.add(KCL_Q.in(grid.nodes) == 0);
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
+    SDP.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
-    Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (grid.g_ff*Wii.from() + grid.g_ft*R_Wij.in_pairs() + grid.b_ft*Im_Wij.in_pairs());
-    SDP.add(Flow_P_From.in(grid.arcs) == 0);
+    Constraint<> Flow_P_From("Flow_P_From");
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij + b_ft*Im_Wij);
+    SDP.add(Flow_P_From.in(arcs) == 0);
     
-    Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (grid.g_tt*Wii.to() + grid.g_tf*R_Wij.in_pairs() - grid.b_tf*Im_Wij.in_pairs());
-    SDP.add(Flow_P_To.in(grid.arcs) == 0);
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij - b_tf*Im_Wij);
+    SDP.add(Flow_P_To.in(arcs) == 0);
     
-    Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in_pairs() - grid.b_ff*Wii.from() - grid.b_ft*R_Wij.in_pairs());
-    SDP.add(Flow_Q_From.in(grid.arcs) == 0);
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij - b_ff*Wii.from(arcs) - b_ft*R_Wij);
+    SDP.add(Flow_Q_From.in(arcs) == 0);
     
-    Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + (grid.b_tt*Wii.to() + grid.b_tf*R_Wij.in_pairs() + grid.g_tf*Im_Wij.in_pairs());
-    SDP.add(Flow_Q_To.in(grid.arcs) == 0);
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij + g_tf*Im_Wij;
+    SDP.add(Flow_Q_To.in(arcs) == 0);
     
-
     /* Phase Angle Bounds constraints */
-
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij;
-    PAD_UB <= grid.tan_th_max*R_Wij;
+    Constraint<> PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij.in(bus_pairs);
+    PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
     SDP.add_lazy(PAD_UB.in(bus_pairs));
-//    SDP.add(PAD_UB.in(bus_pairs));
-
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij;
-    PAD_LB >= grid.tan_th_min*R_Wij;
+    
+    Constraint<> PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij.in(bus_pairs);
+    PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SDP.add_lazy(PAD_LB.in(bus_pairs));
-//    SDP.add(PAD_LB.in(bus_pairs));
-
+    
     /* Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
-    Thermal_Limit_from <= power(grid.S_max,2);
-    SDP.add(Thermal_Limit_from.in(grid.arcs));
+    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from <= pow(S_max,2);
+    SDP.add(Thermal_Limit_from.in(arcs));
     
     
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
-    Thermal_Limit_to <= power(grid.S_max,2);
-    SDP.add(Thermal_Limit_to.in(grid.arcs));
+    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
+    Thermal_Limit_to <= pow(S_max,2);
+    SDP.add(Thermal_Limit_to.in(arcs));
     
-
     /* Lifted Nonlinear Cuts */
-    Constraint LNC1("LNC1");
-    LNC1 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
-    LNC1 -= grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
-    LNC1 -= grid.v_max.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
-    LNC1 -= grid.v_max.from()*grid.v_max.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add(LNC1.in(bus_pairs) >= 0);
+    Constraint<> LNC1("LNC1");
+    LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
-
-
-    Constraint LNC2("LNC2");
-    LNC2 = (grid.v_min.from()+grid.v_max.from())*(grid.v_min.to()+grid.v_max.to())*(sin(0.5*(grid.th_max+grid.th_min))*Im_Wij + cos(0.5*(grid.th_max+grid.th_min))*R_Wij);
-    LNC2 -= grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.to()+grid.v_max.to())*Wii.from();
-    LNC2 -= grid.v_min.from()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()+grid.v_max.from())*Wii.to();
-    LNC2 += grid.v_min.from()*grid.v_min.to()*cos(0.5*(grid.th_max-grid.th_min))*(grid.v_min.from()*grid.v_min.to() - grid.v_max.from()*grid.v_max.to());
-//    SDP.add(LNC2.in(bus_pairs) >= 0);
+    
+    Constraint<> LNC2("LNC2");
+    LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
 
 
 
     total_time_start = get_wall_time();
     /* Solver selection */
-    solver SDPOPF(SDP,solv_type);
+    solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
-    SDPOPF.run(output = 5, relax = false, tol = 1e-6, 1e-6, "mumps", mehrotra = "no");
-    SDP.print();
-  double gap = 100*(upper_bound - SDP._obj_val)/upper_bound;
+    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+    /* SDP.print(); */
+  double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP.get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(SDP._obj_val) << "."<<endl);
-    DebugOn("\nResults: " << grid._name << " " << to_string(SDP._obj_val) << " " << to_string(total_time)<<endl);
+    DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
 //    DebugOn("\nTime in nfp: " << time_in_all_nfp << endl);
     return 0;
 }

@@ -107,7 +107,7 @@ int main (int argc, char * argv[])
         DCOPF.add(theta.in(nodes));
         
         /**  Objective */
-        auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
         DCOPF.min(obj);
         
         /** Constraints */
@@ -119,7 +119,7 @@ int main (int argc, char * argv[])
         
         /* Flow conservation */
         Constraint<> KCL_P("KCL_P");
-        KCL_P  = b.in(in_arcs).tr()*(theta.from(in_arcs)-theta.to(in_arcs)) - b.in(out_arcs).tr()*(theta.from(out_arcs)-theta.to(out_arcs)) + pl + gs - sum(Pg, gen_nodes);
+        KCL_P  = b.tr().in(in_arcs)*(theta.from(in_arcs)-theta.to(in_arcs)) - b.tr().in(out_arcs)*(theta.from(out_arcs)-theta.to(out_arcs)) + pl + gs - sum(Pg, gen_nodes);
         DCOPF.add(KCL_P.in(nodes) == 0);
         
         /* Phase Angle Bounds constraints */
@@ -157,7 +157,7 @@ int main (int argc, char * argv[])
         DCOPF.add(theta.in(nodes));
         
         /**  Objective */
-        auto obj = c1.tr()*Pg + c2.tr()*pow(Pg.vec(),2) + sum(c0);
+        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
         DCOPF.min(obj);
         
         /** Constraints */
