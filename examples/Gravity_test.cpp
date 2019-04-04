@@ -306,42 +306,42 @@ TEST_CASE("testing monomials"){
     auto monoms = cstr.get_monomials(9);
 }
 
-TEST_CASE("testing acopf"){
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    unsigned nb_threads = 2;
-    double tol = 1e-6;
-    string mehrotra = "no", log_level="0";
-    PowerNet grid1,grid2;
-    grid1.readgrid(fname);
-    auto ACOPF1 = grid1.build_ACOPF(ACRECT);
-    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-    auto ACOPF2 = grid1.build_ACOPF(ACPOL);
-    auto models = {ACOPF1, ACOPF2};
-    /* run in parallel */
-    run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-    CHECK(abs(ACOPF1->_obj_val-17551.8909275818)<tol);
-    CHECK(ACOPF1->is_feasible(tol));
-    ACOPF1->print_solution();
-    auto Mc = ACOPF1->build_McCormick();
-    auto clone = grid1.clone();
-    CHECK(clone->arcs.size()==grid1.arcs.size());
-    clone->remove_arc(clone->arcs.at(0));
-    CHECK(clone->arcs.size()==grid1.arcs.size()-1);
-}
+// TEST_CASE("testing acopf"){
+//     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//     unsigned nb_threads = 2;
+//     double tol = 1e-6;
+//     string mehrotra = "no", log_level="0";
+//     PowerNet grid1,grid2;
+//     grid1.readgrid(fname);
+//     auto ACOPF1 = grid1.build_ACOPF(ACRECT);
+//     fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
+//     auto ACOPF2 = grid1.build_ACOPF(ACPOL);
+//     auto models = {ACOPF1, ACOPF2};
+//     /* run in parallel */
+//     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
+//     CHECK(abs(ACOPF1->_obj_val-17551.8909275818)<tol);
+//     CHECK(ACOPF1->is_feasible(tol));
+//     ACOPF1->print_solution();
+//     auto Mc = ACOPF1->build_McCormick();
+//     auto clone = grid1.clone();
+//     CHECK(clone->arcs.size()==grid1.arcs.size());
+//     clone->remove_arc(clone->arcs.at(0));
+//     CHECK(clone->arcs.size()==grid1.arcs.size()-1);
+// }
 
-TEST_CASE("testing socopf"){
-    auto time_start = get_cpu_time();
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    int output = 0;
-    bool relax = false;
-    double tol = 1e-6;
-    string mehrotra = "no", log_level="0";
-    PowerNet grid;
-    grid.readgrid(fname);
-    auto SOCOPF = grid.build_SCOPF();
-    solver OPF(*SOCOPF,ipopt);
-    OPF.run(output, relax = false, tol = 1e-6);
-    auto time_end = get_cpu_time();
-    DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
-    CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
-}
+// TEST_CASE("testing socopf"){
+//     auto time_start = get_cpu_time();
+//     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//     int output = 0;
+//     bool relax = false;
+//     double tol = 1e-6;
+//     string mehrotra = "no", log_level="0";
+//     PowerNet grid;
+//     grid.readgrid(fname);
+//     auto SOCOPF = grid.build_SCOPF();
+//     solver OPF(*SOCOPF,ipopt);
+//     OPF.run(output, relax = false, tol = 1e-6);
+//     auto time_end = get_cpu_time();
+//     DebugOn("Total cpu time = " << time_end - time_start << " secs" << endl);
+//     CHECK(abs(SOCOPF->_obj_val-14999.715037743885)<tol);
+// }
