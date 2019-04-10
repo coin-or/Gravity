@@ -86,7 +86,7 @@ namespace gravity {
         var(const string& name, const param<T>& sb):var(name) {
             _lb = make_shared<func_>(-1*sb);
             _ub = make_shared<func_>(sb);
-            param<type>::_range->first = min(-1*sb._range->first, -1*sb._range->second);
+            param<type>::_range->first = std::min(-1*sb._range->first, -1*sb._range->second);
             param<type>::_range->second = sb._range->second;
         }
         

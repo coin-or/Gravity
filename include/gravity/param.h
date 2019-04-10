@@ -594,8 +594,8 @@ namespace gravity {
             auto index = param_::_indices->size();
             auto pp = param_::_indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
+                _val->resize(std::max(_val->size(),index+1));
+                _dim[0] = std::max(_dim[0],_val->size());
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
