@@ -32,6 +32,7 @@
 double get_wall_time();
 double get_cpu_time();
 
+string clean_print(bool pos, const string& v, bool brackets = false);
 
 int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
 
@@ -56,28 +57,30 @@ gravity::indices time(unsigned p1 ,unsigned p2);
 
 template<typename... Args>
 gravity::indices time(std::string idx1, Args&&... args) {
-    gravity::indices res(idx1,(args)...);
+    gravity::indices res("time");
+    res.init(idx1,args...);
     res._time_extended = true;
     return res;
 }
 
 
-bool operator <(const Cpx& lhs, const Cpx& rhs);
+bool operator <(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 
-bool operator >(const Cpx& lhs, const Cpx& rhs);
+bool operator >(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 
-bool operator <=(const Cpx& lhs, const Cpx& rhs);
+bool operator <=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 
-bool operator >=(const Cpx& lhs, const Cpx& rhs);
+bool operator >=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 
 namespace gravity{
     
+    set<int> get_phases(string phases);
 //    Cpx min (const Cpx& a, const Cpx& b);
 //    Cpx max (const Cpx& a, const Cpx& b);
     
-    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    template<class T, typename enable_if<is_same<T,gravity::Cpx>::value>::type* = nullptr>
     T min (const T& a, const T& b){
-        Cpx res(a);
+        gravity::Cpx res(a);
         if (res.real()>b.real()) {
             res.real(b.real());
         }
@@ -87,9 +90,9 @@ namespace gravity{
         return res;
     }
     
-    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    template<class T, typename enable_if<is_same<T,gravity::Cpx>::value>::type* = nullptr>
     T max(const T& a, const T& b){
-        Cpx res(a);
+        gravity::Cpx res(a);
         if (res.real()<b.real()) {
             res.real(b.real());
         }

@@ -73,6 +73,8 @@ namespace gravity {
         bool                            _is_vector = false; /**< True if the constant is a vector or matrix */
         size_t                          _dim[2] = {1,1}; /*< dimension of current object */
         
+        bool                            _polar = false; /**< True in case this is a complex number with a polar representation, rectangular representation if false */
+        
         virtual ~constant_(){};
         CType get_type() const { return _type;}
         
@@ -150,6 +152,7 @@ namespace gravity {
             return (_type==func_c);
         };
         
+        virtual void update_double_index() {};
         
         virtual Sign get_all_sign() const {return unknown_;};
         virtual Sign get_sign(size_t idx=0) const{return unknown_;};
@@ -252,7 +255,7 @@ namespace gravity {
             /* Both c1 and c2 are non-scalars */
             /* If it is a dot product */
             if(c1.is_row_vector() && c2.is_column_vector()){ /* c1^T.c2 */
-                if(!c1.is_double_indexed() && c1._dim[1]!=c2._dim[0]){
+                if(!c1.is_double_indexed() && !c2.is_double_indexed() && c1._dim[1]!=c2._dim[0]){
                     throw invalid_argument("Dot product with mismatching dimensions");
                 }
                 _is_transposed = false;/* The result of a dot product is not transposed */
@@ -621,6 +624,7 @@ namespace gravity {
         string to_str(size_t index, int prec = 10) {
             return to_string_with_precision(_val,prec);
         }
+        
         
     };
     /**

@@ -100,8 +100,15 @@ namespace gravity {
             constant_::set_type(var_c);
             _lb = make_shared<func<type>>(lb);
             _ub = make_shared<func<type>>(ub);
-            this->_range->first = _lb->_range->first;
-            this->_range->second = _ub->_range->second;
+            if(_lb->get_dim()==0 ||_ub->get_dim()==0)
+            {
+                this->_range->first = 0;
+                this->_range->second = 0;
+            }
+            else {
+                this->_range->first = _lb->_range->first;
+                this->_range->second = _ub->_range->second;
+            }
 
         };
         
@@ -110,8 +117,15 @@ namespace gravity {
             constant_::set_type(var_c);
             _lb = make_shared<func<type>>(move(lb));
             _ub = make_shared<func<type>>(move(ub));
-            this->_range->first = _lb->_range->first;
-            this->_range->second = _ub->_range->second;
+            if(_lb->get_dim()==0 ||_ub->get_dim()==0)
+            {
+                this->_range->first = 0;
+                this->_range->second = 0;
+            }
+            else {
+                this->_range->first = _lb->_range->first;
+                this->_range->second = _ub->_range->second;
+            }
         };
         
         //@}
@@ -187,6 +201,7 @@ namespace gravity {
             bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
             res.param<type>::operator=(param<type>::operator()(i, j));
+            res._type = var_c;
             if(!indexed && !res._lb->is_number()){
                 (res._lb->in(*res._indices));
             }
@@ -211,6 +226,17 @@ namespace gravity {
                 (res._ub->in(*res._indices));
             }
             return res;
+        }
+        
+        /** let p share the values and indices of current var */
+        void share_vals(param<type>& p){
+            if(this->_indices){
+                p._indices = this->_indices;
+            }
+            p._dim[0] = this->_dim[0];
+            p._dim[1] = this->_dim[1];
+            p._val = this->_val;
+            p._range = this->_range;
         }
         
         template<typename... Args>
@@ -301,11 +327,32 @@ namespace gravity {
             return res;
         }
         
+        void real_imag(const var<>& pr, const var<>& pi){
+            this->_real = make_shared<var<>>(pr);
+            this->_imag = make_shared<var<>>(pi);
+        }
+        
+        void mag_ang(const var<>& pmag, const var<>& pang){
+            this->_mag = make_shared<var<>>(pmag);
+            this->_ang = make_shared<var<>>(pang);
+            this->_polar = true;
+        }
+        
+        void set_real(const var<>& p){
+            this->_real = make_shared<var<>>(p);
+        }
+        
+        void set_imag(const var<>& p){
+            this->_imag = make_shared<var<>>(p);
+        }
+
+
         template<typename... Args>
         var in(const indices& vec1, Args&&... args) {
 //            bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
+            res._type = var_c;
 //            if(!indexed && !res._lb->is_number()){
 //                (res._lb->index_in(*res._indices));
 //            }
@@ -325,12 +372,14 @@ namespace gravity {
         var in_arcs(const vector<Node*>& vec) {
             var<type> res(*this);
             res.param<type>::operator=(param<type>::in_arcs(vec));
+            res._type = var_c;
             return res;
         }
         
         var out_arcs(const vector<Node*>& vec) {
             var<type> res(*this);
             res.param<type>::operator=(param<type>::out_arcs(vec));
+            res._type = var_c;
             return res;
         }
         
@@ -338,6 +387,7 @@ namespace gravity {
         var in_aux(const vector<Node*>& vec, const string& aux_type) {
             var<type> res(*this);
             res.param<type>::operator=(param<type>::in_aux(vec,aux_type));
+            res._type = var_c;
             return res;
         }
         
@@ -420,6 +470,12 @@ namespace gravity {
                 _ub->allocate_mem();
                 return *this;
             }
+        
+        void initialize_zero(){
+            for (int i = 0; i<this->_val->size(); i++) {
+                this->_val->at(i) = 0.;
+            }
+        };
         
         void initialize_uniform(){initialize_uniform_();};
         

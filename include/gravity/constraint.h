@@ -116,7 +116,7 @@ namespace gravity {
         
         void make_lazy() {
             *_all_lazy = true;
-            _lazy.resize(this->get_dim(),true);
+            _lazy.resize(this->get_nb_instances(),true);
         }
         
         
@@ -131,6 +131,7 @@ namespace gravity {
                 return *this;
             }
             this->func<type>::in(ids);
+            this->_dim[0] = ids.size();
             return *this;
         };
 
@@ -185,12 +186,12 @@ namespace gravity {
         size_t get_nb_instances() const{
             size_t nb = 0;
             if (!*_all_lazy) {
-                return this->_dim[0];
+                return this->get_nb_inst();
             }
             if(_lazy.size()==0){
                 return 0;
             }
-            for (size_t i = 0; i<this->_dim[0]; i++) {
+            for (size_t i = 0; i<this->get_nb_inst(); i++) {
                 if (!_lazy[i]) {
                     nb++;
                 }
@@ -286,7 +287,7 @@ namespace gravity {
                 str += ") : ";
             }            
             auto space_size = str.size();
-            auto nb_inst = this->_dim[0];
+            auto nb_inst = this->get_nb_instances();
             this->allocate_mem();
             if (this->is_matrix()) {
                 auto max_cell_size = this->get_max_cell_size();

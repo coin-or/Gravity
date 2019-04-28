@@ -21,8 +21,6 @@
 
 using namespace std;
 
-string clean_print(bool pos, const string& v, bool brackets = false);
-    
 namespace gravity {
     
     
@@ -139,7 +137,8 @@ namespace gravity {
 //                p1->_is_vector=true;
 //            }
             if (coef->_is_transposed && p1->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                _coef_p1_tr = true;
+//                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
 //            if (p1->_is_transposed) {
 //                if (p1->get_dim() != p2->get_dim()) {

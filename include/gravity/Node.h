@@ -24,6 +24,7 @@ public:
     std::string _name="noname";
     std::string _type_name="Nodes";
     int _id=-1;
+    set<int> _phases;
     bool _active = true;
     std::vector<Arc*> branches;
     

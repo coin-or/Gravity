@@ -37,20 +37,7 @@ namespace gravity {
         }
     }
     
-    
-    //    template<>
-    //    void param<complex<double>>::set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
-    //        if (!is_complex()) {
-    //            throw invalid_argument("Function void set_complex_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM) is only implemented for complex<double> typed params/vars");
-    //        }
-    //        for (size_t k=0; k<SM.outerSize(); ++k) {
-    //            for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
-    //                set_val(it.row(), it.col(), it.value());
-    //            }
-    //        }
-    //    }
-    
-    
+        
     
     param<Cpx> conj(const param<Cpx>& p){
         param<Cpx> newp(p);
@@ -60,6 +47,7 @@ namespace gravity {
         else {
             newp._name = "conj("+newp._name+")";
         }
+        newp._is_conjugate = !newp._is_conjugate;
         return newp;
     }
     

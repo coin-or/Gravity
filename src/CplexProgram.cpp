@@ -110,7 +110,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 
 void CplexProgram::fill_in_cplex_vars() {
     _cplex_vars.resize(_model->_vars.size());
-    unsigned vid = -1;
+    unsigned vid = 0;
     for(auto& v_p: _model->_vars)
     {
         auto v = v_p.second;
@@ -119,9 +119,6 @@ void CplexProgram::fill_in_cplex_vars() {
 //        }
         v->_new = false;
         vid = v->get_vec_id();
-        if( vid == -1) {
-            throw invalid_argument("Variable needs to be added to model first: use add_var(v) function:" + v->get_name(false,false));
-        }
         switch (v->get_intype()) {
         case float_: {
             auto real_var = (var<float>*)v.get();

@@ -11,42 +11,7 @@
 
 using namespace std;
 
-string clean_print(bool pos, const string& v, bool brackets){
-    if(pos){
-        if (v=="-1" || v==" - 1" || v=="(-1,0)") {
-            return " - ";
-        }
-        else if (v.front()=='-'){
-            return " - " + v.substr(1);
-        }
-        else if(v=="1" || v==" + 1" || v=="(1,0)") {
-            return " + ";
-        }
-        else if(brackets){
-            return " + ("+v+")";
-        }
-        else{
-            return " + " + v;
-        }
-    }
-    else {
-        if (v == "-1" || v==" - 1" || v=="(-1,0)") {
-            return " + ";
-        }
-        else if (v.front()=='-'){
-            return " + " + v.substr(1);
-        }
-        else if (v=="1" || v==" + 1" || v=="(1,0)"){
-            return " - ";
-        }
-        else if(brackets){
-            return " - ("+v+")";
-        }
-        else{
-            return " - " + v;
-        }
-    }
-}
+
 
 namespace gravity{
 
@@ -460,7 +425,7 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (c_new->_is_transposed) {
+        if (c_new->_is_transposed || c_new->is_double_indexed()) {
             str += print_transposed(ind,prec);
         }
         else{
@@ -591,11 +556,13 @@ namespace gravity{
                 coef = _coef->to_str(inst, idx,prec);
             }
             str += clean_print(_sign,coef);
-            if (_p->first==_p->second) {
-                str += _p->first->get_name(inst,idx)+ "²";
+            auto name1 = _p->first->get_name(inst,idx);
+            auto name2 = _p->second->get_name(inst,idx);
+            if (name1==name2) {
+                str += name1 + "²";
             }
             else {
-                str += _p->first->get_name(inst,idx)+ _p->second->get_name(inst,idx);
+                str += name1 + name2;
             }
         }
         return str;
@@ -630,11 +597,12 @@ namespace gravity{
         return str;
     }
     
+    
     string lterm::to_str(size_t ind, int prec) const{
         string str;
         auto c_new = _coef;
         auto p_new = _p;
-        if (p_new->_is_vector) {
+        if (p_new->_is_vector || p_new->is_double_indexed()) {
             str += print_transposed(ind,prec);
         }
         else{

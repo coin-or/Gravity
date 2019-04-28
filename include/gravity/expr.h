@@ -37,6 +37,7 @@ namespace gravity {
         string                                 _to_str = "noname"; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
+        virtual void update_double_index(){};
         void propagate_dim(size_t d){
             if(_is_transposed){
                 _dim[1] = d;
@@ -91,6 +92,10 @@ namespace gravity {
             _son->propagate_dim(d);
         }
         
+        void update_double_index(){
+            _son->update_double_index();
+        }
+        
         void uneval(){
             _son->uneval();
         }
@@ -132,6 +137,7 @@ namespace gravity {
         uexpr(OperatorType ot, shared_ptr<constant_> son){
             _otype = ot;
             _son = son;
+            this->_range = make_shared<pair<type,type>>();
             this->_type = uexp_c;
             this->_dim[0] = son->_dim[0];
             this->_dim[1] = son->_dim[1];
@@ -380,6 +386,11 @@ namespace gravity {
             }
         };
         
+        void update_double_index(){
+            _lson->update_double_index();
+            _rson->update_double_index();
+        }
+        
         void propagate_dim(size_t d){
             if(this->_is_transposed){
                 this->_dim[1] = d;
@@ -514,15 +525,30 @@ namespace gravity {
             return str;
         }
         
+        string print_transposed(size_t inst, int prec){            
+            string str;
+            auto dim = _lson->get_dim(inst);
+            if(_rson->is_double_indexed()){
+                dim = _rson->get_dim(inst);
+            }
+            if(dim==0){
+                return str;
+            }
+            for (auto idx = 0; idx <dim; idx++) {                
+                str += to_str(inst,idx,prec);
+            }
+            return str;
+        }
+        
+        
         string to_str(size_t inst,int prec) {
+            if(_otype==product_ && (_lson->is_double_indexed() || _rson->is_double_indexed())){
+                return print_transposed(inst,prec);
+            }
             string str;
             if (this->_coef!=unit<type>().eval()) {
-                if (this->_coef!=-1.*unit<type>().eval()) {
-                    str+= to_string_with_precision(this->_coef, prec);
-                }
-                else {
-                    str+= "-";
-                }
+                auto coef = to_string_with_precision(this->_coef, prec);
+                str += clean_print(true,coef);
                 str+="(";
             }
             if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
@@ -534,10 +560,18 @@ namespace gravity {
                 str+= _lson->to_str(inst,prec);
             
             if (_otype==plus_) {
-                str+= " + ";
+                if (this->_coef!=1. && this->_coef!=-1.) {
+                    str+= " + ";
+                }
             }
             if (_otype==minus_) {
-                str+= " - ";
+                if (this->_coef==-1.) {
+                    str += " + ";
+                }
+                if (this->_coef==1.){
+                    str = str.substr(1);
+                    str+= " - ";
+                }
             }
             if (_otype==product_) {
                 str+= " * ";
@@ -567,12 +601,8 @@ namespace gravity {
         string to_str(size_t inst1,size_t inst2,int prec) {
             string str;
             if (this->_coef!=unit<type>().eval()) {
-                if (this->_coef!=-1.*unit<type>().eval()) {
-                    str+= to_string_with_precision(this->_coef, prec);
-                }
-                else {
-                    str+= "-";
-                }
+                auto coef = to_string_with_precision(this->_coef, prec);
+                str += clean_print(true,coef);
                 str+="(";
             }
             if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
@@ -584,10 +614,18 @@ namespace gravity {
                 str+= _lson->to_str(inst1,inst2,prec);
             
             if (_otype==plus_) {
-                str+= " + ";
+                if (this->_coef!=1. && this->_coef!=-1.) {
+                    str+= " + ";
+                }
             }
             if (_otype==minus_) {
-                str+= " - ";
+                if (this->_coef==-1.) {
+                    str += " + ";
+                }
+                if (this->_coef==1.){
+                    str = str.substr(1);
+                    str+= " - ";
+                }
             }
             if (_otype==product_) {
                 str+= " * ";

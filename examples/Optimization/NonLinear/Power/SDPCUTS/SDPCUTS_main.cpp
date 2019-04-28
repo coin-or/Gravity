@@ -26,13 +26,13 @@ int main (int argc, char * argv[]) {
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string lazy = "no";
-    bool lazy_bool = true;
+    bool lazy_bool = false;
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
-
+    
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-
+    
     // create a OptionParser with options
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -43,11 +43,11 @@ int main (int argc, char * argv[]) {
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
-
+    
     if (!correct_parsing) {
         return EXIT_FAILURE;
     }
-
+    
     fname = opt["f"];
     bool has_help = op::str2bool(opt["h"]);
     if (has_help) {
@@ -69,13 +69,13 @@ int main (int argc, char * argv[]) {
     }
     
     num_bags = atoi(opt["b"].c_str());
-
+    
     cout << "\nnum bags = " << num_bags << endl;
-
+    
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
-
+    
     grid.get_tree_decomp_bags(false,true);
     
     /* Grid Stats */
@@ -85,7 +85,7 @@ int main (int argc, char * argv[]) {
     DebugOn("nb active gens = " << nb_gen << endl);
     DebugOn("nb active lines = " << nb_lines << endl);
     DebugOn("nb active buses = " << nb_buses << endl);
-
+    
     /** Sets */
     auto bus_pairs = grid.get_bus_pairs();
     auto bus_pairs_chord = grid.get_bus_pairs_chord();
@@ -135,26 +135,33 @@ int main (int argc, char * argv[]) {
     auto wr_max = grid.wr_max.in(bus_pairs_chord);
     auto wi_min = grid.wi_min.in(bus_pairs_chord);
     auto wi_max = grid.wi_max.in(bus_pairs_chord);
+    //    auto V_sq_max=1.21;
+    auto V_sq_min=0.81;
     
     double upper_bound = grid.solve_acopf();
-
-
+    
+    
     /** Build model */
     Model<> SDP("SDP Model");
-
+    
     /** Variables */
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
     SDP.add(Pg.in(gens),Qg.in(gens));
-
+    
     /* Power flow variables */
     var<> Pf_from("Pf_from", -1.*S_max,S_max);
     var<> Qf_from("Qf_from", -1.*S_max,S_max);
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
+    var<> lij("lij", pos_);
+    bool loss = true;
+    if(loss){
+        SDP.add(lij.in(arcs));
+    }
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-
+    
     /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
@@ -164,20 +171,20 @@ int main (int argc, char * argv[]) {
     SDP.add(Wii.in(nodes));
     SDP.add(R_Wij.in(bus_pairs_chord));
     SDP.add(Im_Wij.in(bus_pairs_chord));
-                                 
-
+    
+    
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
-
+    
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDP.min(obj);
-
-//    Constraint obj_cstr("obj_ub");
-//    obj_cstr += SDP._obj - 1.05*upper_bound;
-//    SDP.add(obj_cstr <= 0);
-
+    
+    //    Constraint obj_cstr("obj_ub");
+    //    obj_cstr += SDP._obj - 1.05*upper_bound;
+    //    SDP.add(obj_cstr <= 0);
+    
     
     /** Constraints */
     if(grid.add_3d_nlin && sdp_cuts) {
@@ -260,6 +267,37 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
     
+    if(loss){
+        Constraint<> Loss_from("Loss_from");
+        Loss_from = w_max.from(arcs)*lij - (pow(Pf_from, 2) + pow(Qf_from, 2));
+        SDP.add(Loss_from.in(arcs) >= 0);
+        
+        Constraint<> Loss_to("Loss_to");
+        Loss_to = w_max.to(arcs)*lij - (pow(Pf_to, 2) + pow(Qf_to, 2));
+        SDP.add(Loss_to.in(arcs) >= 0);
+        
+        Constraint<> Loss_U("Loss_U");
+        Loss_U = w_min.from(arcs)*lij - pow(S_max,2);
+        SDP.add(Loss_U.in(arcs) <= 0);
+        
+        Constraint<> Loss_eq("Loss_eq");
+        Loss_eq = lij - ((pow(g_ff,2)+pow(b_ff,2))*Wii.from(arcs) + (pow(g_ft,2)+pow(b_ft,2))*Wii.to(arcs)
+                                   +(g_ff*g_ft+b_ff*b_ft)*2*R_Wij +(g_ff*b_ft-b_ff*g_ft)*2*Im_Wij);
+        //        Loss_eq = grid.r.in(arcs)*lij - (Pf_from + Pf_to);
+//        SDP.add(Loss_eq.in(arcs) == 0);
+        
+//        Constraint<> Loss_C("Loss_C");
+//
+//        Loss_C = lij - pow(tr,2)*((pow(g_ff,2)+pow(b_ff,2))*Wii.from(arcs) + (pow(g_ft,2)+pow(b_ft,2))*Wii.to(arcs)
+//                                  +(g_ff*g_ft+b_ff*b_ft)*2*R_Wij +(g_ff*b_ft-b_ff*g_ft)*2*Im_Wij);
+//        //        Loss_eq = grid.r.in(arcs)*lij - (Pf_from + Pf_to);
+//        SDP.add(Loss_eq.in(arcs) == 0);
+        
+        
+    }
+    
+    
+    
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
     LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
@@ -274,16 +312,16 @@ int main (int argc, char * argv[]) {
     LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
-
-
-
+    
+    SDP.print();
+    
     total_time_start = get_wall_time();
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 5, tol = 1e-6);
-    /* SDP.print(); */
-  double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
+    //    SDP.print();
+    double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
@@ -294,6 +332,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
-//    DebugOn("\nTime in nfp: " << time_in_all_nfp << endl);
+    //    DebugOn("\nTime in nfp: " << time_in_all_nfp << endl);
     return 0;
 }
+

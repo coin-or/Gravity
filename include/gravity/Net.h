@@ -79,7 +79,7 @@ public:
     void add_undirected_arc(Arc* a);
 
     /* Accessors */
-    Node* get_node(std::string name);
+    Node* get_node(std::string name) const;
 
     /** returns the arc formed by node n1 and n2 */
     Arc* get_arc(Node* n1, Node* n2);
