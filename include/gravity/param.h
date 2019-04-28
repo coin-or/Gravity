@@ -26,7 +26,6 @@
 #ifdef USE_QPP
     #include "qpp.h"
 #endif
-#include "Eigen/Sparse"
 
 using namespace std;
 
@@ -61,7 +60,14 @@ namespace gravity {
         bool                                           _is_angle = false; /**< True if the parameter/variable is the angle of a complex number */
         bool                                           _is_real = false; /**< True if the parameter/variable is the real part of a complex number */
         bool                                           _is_imag = false; /**< True if the parameter/variable is the imaginary part of a complex number */
+        
+        shared_ptr<param_>                                        _real = nullptr; /**< Pointer to the real variable in case this is a complex var */
+        shared_ptr<param_>                                        _imag = nullptr; /**< Pointer to the imaginary variable in case this is a complex var */
 
+        shared_ptr<param_>                                        _mag = nullptr; /**< Pointer to the magnitude variable in case this is a complex var */
+        shared_ptr<param_>                                        _ang = nullptr; /**< Pointer to the angle variable in case this is a complex var */
+
+        
         /* For Ipopt Use */
         vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
         vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
@@ -81,11 +87,15 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
 
+        
+        
         virtual void initialize_uniform(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         
@@ -117,9 +127,9 @@ namespace gravity {
         
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
-//                if(_indices->_ids->at(0).size() <= inst){
-//                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
-//                }
+                if(_indices->_ids->at(0).size() <= inst){
+                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+                }
                 return _indices->_ids->at(0).at(inst);
             }
 //            auto dim = get_dim();
@@ -133,14 +143,16 @@ namespace gravity {
         };
 
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_indexed()) {
-                if (_indices->_ids->size()==1) {
-                    return _indices->_ids->at(0).at(inst2);
+            if (is_double_indexed()) {
+                if (_indices->_ids->size()<=inst1) {
+                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
+                }
+                if (_indices->_ids->at(inst1).size()<=inst2) {
+                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst2 out of range\n");
                 }
                 return _indices->_ids->at(inst1).at(inst2);
             }
-            return get_id_inst(inst2);
-//            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
+            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
         };
 
 
@@ -332,7 +344,7 @@ namespace gravity {
                 _indices->_ids = make_shared<vector<vector<size_t>>>();
                 _indices->_ids->resize(1);
                 if(ids.empty()){
-                    DebugOn("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                    DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                     _name += "_EMPTY";
                     return;
                 }
@@ -358,8 +370,8 @@ namespace gravity {
                     auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
                     auto nb_sep2 = count(key.begin(), key.end(), ',');
                     if(nb_sep2>nb_sep1){
-                        auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                        key = key.substr(pos+1,key.size()-1);
+                        auto pos = nthOccurrence(key, ",", nb_sep1+1);
+                        key = key.substr(0,pos);
                     }
                     auto it1 = _indices->_keys_map->find(key);
                     if (it1 == _indices->_keys_map->end()){
@@ -371,7 +383,7 @@ namespace gravity {
                     _dim[1]=_indices->_ids->at(0).size();
                 }
                 else {
-                    _dim[0]=_indices->_ids->at(0).size();
+                    _dim[0]=_indices->_ids->size();
                 }
                 _name += ".in("+ids._name+")";
                 if(!excluded.empty()){
@@ -388,7 +400,7 @@ namespace gravity {
         void index_in_arcs(const vector<Node*>& vec) {
             _indices->_ids = make_shared<vector<vector<size_t>>>();
             if(vec.empty()){
-                DebugOn("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 _name += "_EMPTY";
                 return;
             }
@@ -421,7 +433,7 @@ namespace gravity {
         void index_out_arcs(const vector<Node*>& vec) {
             _indices->_ids = make_shared<vector<vector<size_t>>>();
             if(vec.empty()){
-                DebugOn("In function param.index_out_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.index_out_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 _name += "_EMPTY";
                 return;
             }
@@ -453,7 +465,7 @@ namespace gravity {
         void index_in_aux(const vector<Node*>& vec, const string& aux_type) {
             _indices->_ids = make_shared<vector<vector<size_t>>>();
             if(vec.empty()){
-                DebugOn("In function param.index_in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.index_in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 _name += "_EMPTY";
                 return;
             }
@@ -488,10 +500,27 @@ namespace gravity {
         }
 
         size_t get_dim(size_t i) const{
-            if(is_double_indexed())
+            if(is_double_indexed()){
+                if(i>_indices->_ids->size()){
+                    throw invalid_argument("get_dim(size_t i) i out of range\n");
+                }
                 return _indices->_ids->at(i).size();
+            }
+            if(is_indexed()){
+                return _indices->_ids->at(0).size();
+            }
             return this->_dim[0];
         }
+        
+        size_t get_nb_inst() const{
+            if(is_double_indexed())
+                return _indices->_ids->size();
+            if(is_indexed() && !_is_transposed){
+                return _indices->_ids->at(0).size();
+            }
+            return this->_dim[0];
+        }
+        
         
         /** Fill x with the variable's values */
         virtual void set_double_val(double* x){};
@@ -534,18 +563,7 @@ namespace gravity {
         shared_ptr<vector<type>>                _val = nullptr; /**< vector of values **/
         shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
 
-        template<typename T=type,
-        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         param() {
-            update_type();
-            init_range();
-            _val = make_shared<vector<type>>();
-        }
-        
-        
-
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
-        param(){
             update_type();
             init_range();
             _val = make_shared<vector<type>>();
@@ -561,16 +579,17 @@ namespace gravity {
             *this = p;            
         }
 
-        param (const param& p) {
+        param (const param& p):param() {
             *this = p;
         }
         
-        param (param&& p) {
+        param (param&& p):param() {
             *this = move(p);
         }
 
         param& operator=(const param& p) {
             _type = p._type;
+            _polar = p._polar;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
@@ -586,6 +605,8 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             if(p._indices){
                 _indices = make_shared<indices>();
                 _indices->shallow_copy(p._indices);
@@ -599,6 +620,7 @@ namespace gravity {
         param& operator=(const param<T2>& p) {
             update_type();
             _id = p._id;
+            _polar = p._polar;
             _vec_id = p._vec_id;
             _val = make_shared<vector<type>>();
             _val->resize(p._val->size());
@@ -618,6 +640,8 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             if(p._indices){
                 _indices = make_shared<indices>(*p._indices);
             }
@@ -628,6 +652,7 @@ namespace gravity {
 
         param& operator=(param&& p) {
             _type = p._type;
+            _polar = p._polar;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
@@ -643,6 +668,8 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = move(p._indices);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
@@ -764,12 +791,34 @@ namespace gravity {
 
         /* Modifiers */
         
+        void mag_ang(const param<>& pmag, const param<>& pang){
+            this->_mag = make_shared<param<>>(pmag);
+            this->_ang = make_shared<param<>>(pang);
+            this->_polar = true;
+        }
+        
+        void real_imag(const param<>& pr, const param<>& pi){
+            this->_real = make_shared<param<>>(pr);
+            this->_imag = make_shared<param<>>(pi);
+        }
+        
+        void set_real(const param<>& p){
+            _real = make_shared<param<>>(p);
+        }
+        
+        void set_imag(const param<>& p){
+            _imag = make_shared<param<>>(p);
+        }
+        
+
+        
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void init_range() {
             _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
+        
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void init_range() {
@@ -812,6 +861,11 @@ namespace gravity {
             _val->push_back(val);
             update_range(val);
             _dim[0] = _val->size();
+        }
+        
+        void set_range(type v){
+            _range->first = v;
+            _range->second = v;
         }
 
 
@@ -867,7 +921,7 @@ namespace gravity {
         size_t set_val(const string& key, type val) {
             auto it = _indices->_keys_map->find(key);
             if (it == _indices->_keys_map->end()){
-                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key");
+                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key"+key);
             }
             if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
                 _val->at(it->second) = val;
@@ -896,10 +950,7 @@ namespace gravity {
             }
             else {
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
-                _val->at(pp.first->second) = val;
-                if(val==_range->first || val==_range->second){
-                    reset_range();
-                }
+                set_val(key,val);
                 return pp.first->second;
             }
         }
@@ -1065,11 +1116,11 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-            return (_range->first == 0 && _range->second == 0);
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
-            return (_range->first == Cpx(0,0) && _range->second == Cpx(0,0));
+            return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
         }
         
         bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
@@ -1113,17 +1164,6 @@ namespace gravity {
             }
         }
 
-
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM){
-            for (size_t k=0; k<SM.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<Cpx,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
-                    set_val(2*it.row(), 2*it.col(), it.value().real());
-                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                }
-            }
-        }
 
 
 
@@ -1300,8 +1340,10 @@ namespace gravity {
             return this->in(np._keys);
         }
 
+        void reverse_sign(){
+            throw invalid_argument("Cannot reverse sign of param");
+        }
         
-
         template<typename... Args>
         param in(const indices& vec1, Args&&... args) {
             auto ids = indices(vec1,args...);
@@ -1375,6 +1417,15 @@ namespace gravity {
                 }
                 res._indices->_ids = make_shared<vector<vector<size_t>>>();
                 res._indices->_ids->resize(nb_inst);
+                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+                auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+                int pos = 0;
+                if(nb_sep2>nb_sep1){
+                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
+                }
+                else if(nb_sep1>nb_sep2){
+                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
+                }
                 for(size_t inst = 0; inst<nb_inst;inst++){
                     auto nb_idx = ids._ids->at(inst).size();
                     res._indices->_ids->at(inst).resize(nb_idx);
@@ -1384,25 +1435,29 @@ namespace gravity {
                             excluded += key + ",";
                             continue;
                         }
-                        if(!res._indices->_time_extended && ids._time_extended){/* truncate time indices */
-                            auto pos = nthOccurrence(key, ",", ids._time_pos);
-                            key = key.substr(0,pos);
-                        }
-                        if(_indices){
+                        if(_indices->_type==to_ || _indices->_type==from_){
+                            string pref;
+                            if(nb_sep2>2){/* key has a prefix */
+                                pref = key.substr(0, key.find_last_of(","));
+                                pref = pref.substr(0, pref.find_last_of(","));
+                                pref = pref.substr(0, pref.find_last_of(",")+1);
+                            }
                             if(_indices->_type==to_){
-                                key = key.substr(key.find_last_of(",")+1,key.size());
+                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
                             }
                             else if(_indices->_type==from_){
                                 key = key.substr(0, key.find_last_of(","));
-                                key = key.substr(key.find_last_of(",")+1,key.size());
+                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
                             }
                         }
-                        /* Compare indexing and truncate extra indices */
-                        auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                        auto nb_sep2 = count(key.begin(), key.end(), ',');
-                        if(nb_sep2>nb_sep1){
-                            auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                            key = key.substr(pos+1,key.size()-1);
+                        else {
+                            /* Compare indexing and truncate extra indices */
+                            if(nb_sep2>nb_sep1){
+                                key = key.substr(pos+1);
+                            }
+                            else if(nb_sep1>nb_sep2){
+                                key = _indices->_keys->front().substr(0,pos) + "," + key;
+                            }
                         }
                         auto it1 = _indices->_keys_map->find(key);
                         if (it1 == _indices->_keys_map->end()){
@@ -1413,10 +1468,10 @@ namespace gravity {
                 }
                 res._name += ".in("+ids._name+")";
                 if(res._is_transposed){
-                    res._dim[1]=res._indices->_ids->at(0).size();
+                    res._dim[1]=res._indices->size();
                 }
                 else {
-                    res._dim[0]=res._indices->_ids->at(0).size();
+                    res._dim[0]=res._indices->size();
                 }
                 return res;
             }
@@ -1424,34 +1479,95 @@ namespace gravity {
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(ids.empty()){
-                DebugOn("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
+                res._dim[0] = 0;
+                res._dim[1] = 0;
+//                res.set_range(0);
                 return res;
+            }
+            auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+            int pos = 0;
+            bool is_prefix = false, is_suffix = false;
+            if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep2>nb_sep1){
+                pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
+                key = ids._keys->front().substr(pos+1);
+                auto it1 = _indices->_keys_map->find(key);
+                if (it1 == _indices->_keys_map->end()){
+                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep1+1);
+                    key = ids._keys->front().substr(0,pos);
+                    it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                    }
+                    else {
+                        is_prefix = true;
+                    }
+                }
+                else {
+                    is_suffix = true;
+                }
+            }
+            else if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep1>nb_sep2){
+                pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
+                key = _indices->_keys->front().substr(0,pos) + "," + ids._keys->front();
+                auto it1 = _indices->_keys_map->find(key);
+                if (it1 == _indices->_keys_map->end()){
+                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep2+1);
+                    key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
+                    it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                    }
+                    else {
+                        is_prefix = true;
+                    }
+                }
+                else {
+                    is_suffix = true;
+                }
             }
             for(auto key: *ids._keys){
                 if(ids._excluded_keys.count(idx++)!=0){
                     excluded += key + ",";
                     continue;
                 }
-                if(!res._indices->_time_extended && ids._time_extended){/* truncate time indices */
-                    auto pos = nthOccurrence(key, ",", ids._time_pos);
-                    key = key.substr(0,pos);
-                }
-                if(_indices){
+                if(_indices->_type==to_ || _indices->_type==from_){
+                    string pref;
+                    if(nb_sep2>2){/* key has a prefix */
+                        pref = key.substr(0, key.find_last_of(","));
+                        pref = pref.substr(0, pref.find_last_of(","));
+                        pref = pref.substr(0, pref.find_last_of(",")+1);
+                    }
                     if(_indices->_type==to_){
-                        key = key.substr(key.find_last_of(",")+1,key.size());
+                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
                     }
                     else if(_indices->_type==from_){
                         key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
+                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
                     }
                 }
-                /* Compare indexing and truncate extra indices */
-                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                auto nb_sep2 = count(key.begin(), key.end(), ',');
-                if(nb_sep2>nb_sep1){
-                    auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                    key = key.substr(pos+1,key.size()-1);
+                else {
+                    /* Compare indexing and truncate extra indices */
+                    if(nb_sep2>nb_sep1){
+                        if(is_suffix){
+                            pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
+                            key = key.substr(pos+1);
+                        }
+                        else {
+                            pos = nthOccurrence(key, ",", nb_sep1+1);
+                            key = key.substr(0,pos);
+                        }
+                    }
+                    else if(nb_sep1>nb_sep2){
+                        if(is_suffix){
+                            key = _indices->_keys->front().substr(0,pos) + "," + key;
+                        }
+                        else {
+                            key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
+                        }
+                    }
                 }
                 auto it1 = _indices->_keys_map->find(key);
                 if (it1 == _indices->_keys_map->end()){
@@ -1479,7 +1595,7 @@ namespace gravity {
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(ids.empty()){
-                DebugOn("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1540,7 +1656,7 @@ namespace gravity {
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(vec.empty()){
-                DebugOn("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1578,7 +1694,7 @@ namespace gravity {
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(vec.empty()){
-                DebugOn("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1614,7 +1730,7 @@ namespace gravity {
             param res(*this);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             if(vec.empty()){
-                DebugOn("In function param.in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }

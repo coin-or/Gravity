@@ -19,15 +19,16 @@ class Arc{
 public:
     int _id;
     std::string _name;
-    std::string _circuit_id;
-    std::string _type_name="Arcs";
+    std::string _type_name="Arc";
     Node* _src;
     Node* _dest;
     double _weight;
     double _len = 0;
+    bool _is_transformer = false;
     bool _active = true;
     bool _expansion = false;
     bool _parallel = false;
+    set<int> _phases;
     bool _imaginary = false;
     int _free = false;
     std::vector<Node*> _intersection; // intersection of node _src and node _dest
@@ -49,6 +50,19 @@ public:
     Arc(Node* s, Node* d);
     Arc(Node* s, Node* d, double weight);
     Arc* clone();
+    
+    bool has_phase(const string& ph) const{
+        for(auto ph_i: _phases){
+            if("ph"+to_string(ph_i)==ph){
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    void set_phases(string phases){
+        _phases = gravity::get_phases(phases);
+    }
     
     /* Connects the current arc to its source and destination, adding itself to the list of branches in these nodes */
     void connect();

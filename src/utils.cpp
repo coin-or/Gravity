@@ -3,11 +3,47 @@
 using namespace std;
 using namespace gravity;
 
+set<int> gravity::get_phases(string phases){
+    set<int> _phases;
+    if(phases.empty())
+        return _phases;
+    auto pos = phases.find_first_of(",");
+    auto ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    phases = phases.substr(pos+1);
+    if(phases.empty())
+        return _phases;
+    pos = phases.find_first_of(",");
+    ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    phases = phases.substr(pos+1);
+    if(phases.empty())
+        return _phases;
+    pos = phases.find_first_of(",");
+    ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    return _phases;
+}
+
+gravity::indices time(unsigned p1 ,unsigned p2){
+    gravity::indices res(p1,p2);
+    res._time_extended = true;
+    return res;
+}
 
 gravity::indices gravity::range(size_t i, size_t j){
     gravity::indices res(to_string(i)+":"+to_string(j));
     for(auto idx = i; idx <=j; idx++){
         res.add(to_string(idx));
+    }
+    return res;
+}
+
+gravity::indices gravity::operator-(const gravity::indices& s1, const gravity::indices& s2){
+    gravity::indices res;
+    for(auto &key: *s1._keys){
+        if(s2._keys_map->count(key)==0)
+            res.add(key);
     }
     return res;
 }
@@ -50,6 +86,43 @@ double get_cpu_time() {
 }
 #endif
 
+
+string clean_print(bool pos, const string& v, bool brackets){
+    if(pos){
+        if (v=="-1" || v==" - 1" || v=="(-1,0)") {
+            return " - ";
+        }
+        else if (v.front()=='-'){
+            return " - " + v.substr(1);
+        }
+        else if(v=="1" || v==" + 1" || v=="(1,0)") {
+            return " + ";
+        }
+        else if(brackets){
+            return " + ("+v+")";
+        }
+        else{
+            return " + " + v;
+        }
+    }
+    else {
+        if (v == "-1" || v==" - 1" || v=="(-1,0)") {
+            return " + ";
+        }
+        else if (v.front()=='-'){
+            return " + " + v.substr(1);
+        }
+        else if (v=="1" || v==" + 1" || v=="(1,0)"){
+            return " - ";
+        }
+        else if(brackets){
+            return " - ("+v+")";
+        }
+        else{
+            return " - " + v;
+        }
+    }
+}
 
 int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
 {

@@ -129,7 +129,7 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
-Node* Net::get_node(string name){
+Node* Net::get_node(string name) const{
     return nodeID.find(name)->second;
 }
 
@@ -240,6 +240,7 @@ bool Net::add_arc(Arc* a) {
         a->_parallel = true;
         parallel = true;
     }
+    arcMap[a->_name] = a;
     arcs.push_back(a);
     return parallel;
 }

@@ -11,7 +11,222 @@
 //
 using namespace std;
 namespace gravity{
+  
+    pair<func<double>,func<double>> get_mag_ang(const func<Cpx>& f){
+        func<double> f_mag = get_mag(f._cst.get()), f_ang = get_ang(f._cst.get());
+        for (auto &qt: *f._qterms) {
+            auto coef = qt.second._coef;
+            func<double> p1_mag, p2_mag, p1_ang, p2_ang;
+            func<double> c_mag, c_ang;
+            if(!qt.second._p->first->_polar){
+                auto p1_r = get_real(qt.second._p->first.get());
+                auto p1_i = get_imag(qt.second._p->first.get());
+                p1_mag = sqrt(p1_r*p1_r + p1_i*p1_i);
+                p1_ang = atan2(p1_r,p1_i);// TODO fix atan2
+            }
+            else {
+                p1_mag = get_mag(qt.second._p->first.get());
+                p1_ang = get_ang(qt.second._p->first.get());
+            }
+            if(!qt.second._p->second->_polar){
+                auto p2_r = get_real(qt.second._p->second.get());
+                auto p2_i = get_imag(qt.second._p->second.get());
+                p2_mag = sqrt(p2_r*p2_r + p2_i*p2_i);
+                p2_ang = atan2(p2_r,p2_i);// TODO fix atan2
+            }
+            else {
+                p2_mag = get_mag(qt.second._p->second.get());
+                p2_ang = get_ang(qt.second._p->second.get());
+            }
+            if(!coef->_polar){
+                auto c_r = get_real(coef.get());
+                auto c_i = get_imag(coef.get());
+                c_mag = sqrt(c_r*c_r + c_i*c_i);
+                c_ang = atan2(c_r,c_i);// TODO fix atan2
+            }
+            else {
+                c_mag = get_mag(coef.get());
+                c_ang = get_ang(coef.get());
+            }
+            if(coef->_is_transposed){
+                c_mag.transpose();
+                c_ang.transpose();
+                p1_mag._is_vector = true;
+                p1_ang._is_vector = true;
+                p2_mag._is_vector = true;
+                p2_ang._is_vector = true;
+            }
+            if(qt.second._sign){
+                f_mag += c_mag*p1_mag*p2_mag;
+                f_ang += c_ang + p1_ang + p2_ang;
+            }
+            else {
+                f_mag -= c_mag*p1_mag*p2_mag;
+                f_ang -= c_ang + p1_ang + p2_ang;
+            }
+        }
+        for (auto &lt: *f._lterms) {
+            auto coef = lt.second._coef;
+            func<double> p1_mag, p1_ang;
+            func<double> c_mag, c_ang;
+            if(!lt.second._p->_polar){
+                auto p1_r = get_real(lt.second._p.get());
+                auto p1_i = get_imag(lt.second._p.get());
+                p1_mag = sqrt(p1_r*p1_r + p1_i*p1_i);
+                p1_ang = atan2(p1_r,p1_i);// TODO fix atan2
+            }
+            else {
+                p1_mag = get_mag(lt.second._p.get());
+                p1_ang = get_ang(lt.second._p.get());
+            }
+            if(!coef->_polar){
+                auto c_r = get_real(coef.get());
+                auto c_i = get_imag(coef.get());
+                c_mag = sqrt(c_r*c_r + c_i*c_i);
+                c_ang = atan2(c_r,c_i);// TODO fix atan2
+            }
+            else {
+                c_mag = get_mag(coef.get());
+                c_ang = get_ang(coef.get());
+            }
+            if(coef->_is_transposed){
+                c_mag.transpose();
+                c_ang.transpose();
+                p1_mag._is_vector = true;
+                p1_ang._is_vector = true;
+            }
+            if(lt.second._sign){
+                f_mag += c_mag * p1_mag;
+                f_ang += c_ang + p1_ang;
+            }
+            else {
+                f_mag -= c_mag * p1_mag;
+                f_ang -= c_ang + p1_ang;
+            }
+        }
+        return {f_mag,f_ang};
+    }
     
+    /** WARNING, only call if the variables appearing in the function are complex or double */
+    pair<func<double>,func<double>> get_real_imag(const func<Cpx>& f){
+        func<double> f_r = get_real(f._cst.get()), f_i = get_imag(f._cst.get());
+        for (auto &qt: *f._qterms) {
+            auto coef = qt.second._coef;
+            func<double> p1_r, p2_r, p1_i, p2_i;
+            func<double> p1_mag, p2_mag, p1_ang, p2_ang;
+            func<double> c_r, c_i, c_mag, c_ang;
+            func<> fq_r, fq_i;
+            if(qt.second._p->first->_polar){
+                p1_mag = get_mag(qt.second._p->first.get());
+                p1_ang = get_ang(qt.second._p->first.get());
+                p1_r = p1_mag*cos(p1_ang);
+                p1_i = p1_mag*sin(p1_ang);
+            }
+            else {
+                p1_r = get_real(qt.second._p->first.get());
+                p1_i = get_imag(qt.second._p->first.get());
+            }
+            if(qt.second._p->second->_polar){
+                p2_mag = get_mag(qt.second._p->second.get());
+                p2_ang = get_ang(qt.second._p->second.get());
+                p2_r = p2_mag*cos(p2_ang);
+                p2_i = p2_mag*sin(p2_ang);
+            }
+            else {
+                p2_r = get_real(qt.second._p->second.get());
+                p2_i = get_imag(qt.second._p->second.get());
+            }
+            if(qt.second._p->first->_is_transposed){
+                p1_r.transpose();
+                p1_i.transpose();
+                p2_r._is_vector = true;
+                p2_i._is_vector = true;
+            }
+            if(coef->_polar){
+                c_mag = get_mag(coef.get());
+                c_ang = get_ang(coef.get());
+                c_r = c_mag*cos(c_ang);
+                c_i = c_mag*sin(c_ang);
+            }
+            else {
+                c_r = get_real(coef.get());
+                c_i = get_imag(coef.get());
+            }
+            if(coef->_is_transposed){
+                c_r.transpose();
+                c_i.transpose();
+                p1_r._is_vector = true;
+                p1_i._is_vector = true;
+                p2_r._is_vector = true;
+                p2_i._is_vector = true;
+            }
+            if(coef->_polar && qt.second._p->first->_polar && qt.second._p->second->_polar){
+                fq_r = c_mag*p1_mag*p2_mag*cos(c_ang+p1_ang+p2_ang);
+                fq_i = c_mag*p1_mag*p2_mag*sin(c_ang+p1_ang+p2_ang);
+            }
+            else if(!coef->_polar && qt.second._p->first->_polar && qt.second._p->second->_polar){
+                fq_r = c_r*p1_mag*p2_mag*cos(p1_ang+p2_ang) - c_i*p1_mag*p2_mag*sin(p1_ang+p2_ang);
+                fq_i = c_r*p1_mag*p2_mag*sin(p1_ang+p2_ang) + c_i*p1_mag*p2_mag*cos(p1_ang+p2_ang);
+            }
+            else {
+                fq_r = c_r*(p1_r*p2_r - p1_i*p2_i) - c_i*(p1_r*p2_i + p1_i*p2_r);
+                fq_i = c_r*(p1_r*p2_i + p1_i*p2_r) + c_i*(p1_r*p2_r - p1_i*p2_i);
+            }
+            if(!qt.second._sign){
+                fq_r.reverse_sign();
+                fq_i.reverse_sign();
+            }
+            f_r += fq_r;
+            f_i += fq_i;
+        }
+        for (auto &lt: *f._lterms) {
+            auto coef = lt.second._coef;
+            func<double> p1_r, p1_i, p1_mag, p1_ang;
+            func<double> c_r, c_i, c_mag, c_ang;
+            func<> fl_r, fl_i;
+            if(lt.second._p->_polar){
+                p1_mag = get_mag(lt.second._p.get());
+                p1_ang = get_ang(lt.second._p.get());
+                p1_r = p1_mag*cos(p1_ang);
+                p1_i = p1_mag*sin(p1_ang);
+            }
+            else {
+                p1_r = get_real(lt.second._p.get());
+                p1_i = get_imag(lt.second._p.get());
+            }
+            if(coef->_polar){
+                c_mag = get_mag(coef.get());
+                c_ang = get_ang(coef.get());
+                c_r = c_mag*cos(c_ang);
+                c_i = c_mag*sin(c_ang);
+            }
+            else {
+                c_r = get_real(coef.get());
+                c_i = get_imag(coef.get());
+            }
+            if(coef->_is_transposed){
+                c_r.transpose();
+                c_i.transpose();
+                p1_r._is_vector = true;
+                p1_i._is_vector = true;
+            }
+            if(coef->_polar && lt.second._p->_polar){
+                fl_r = c_mag*p1_mag*cos(c_ang+p1_ang);
+                fl_i = c_mag*p1_mag*sin(c_ang+p1_ang);
+            }
+            else {
+                fl_r = c_r*p1_r - c_i*p1_i;
+                fl_i = c_r*p1_i + c_i*p1_r;
+            }
+            if(!lt.second._sign){
+                fl_r.reverse_sign();
+                fl_i.reverse_sign();
+            }
+            f_r += fl_r;
+            f_i += fl_i;
+        }
+        return {f_r,f_i};
+    }
 //
 //    bool is_indexed(const constant_* c){
 //        if (c->is_var() || c->is_param()) {
@@ -4055,6 +4270,9 @@ namespace gravity{
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
+        if(v->is_double_indexed()){
+            _indices = v->_indices;
+        }
         if (v->_is_vector) {// i.e., it appears in a sum
             if (v->is_matrix()) {
                 if (v->_is_transposed) {
@@ -4070,8 +4288,227 @@ namespace gravity{
             _nb_vars++;
         }
     }
-
-
+    
+    func<double> get_mag(constant_* c){
+        if(c->is_double()){
+            func<> res = *((constant<double>*)c);
+            return res;
+        }
+        if(c->is_complex()){
+            func<> res = std::abs(((constant<Cpx>*)c)->eval());
+            if(c->_is_transposed){
+                res.transpose();
+            }
+            return res;
+        }
+        if(c->is_param() || c->is_var()){
+            auto p = (param_*)c;
+            if(p->_is_imag || p->_is_angle || p->_is_real || p->_is_sqrmag){
+                throw invalid_argument("unsupported");
+            }
+            if(p->get_intype()==complex_){
+                if(p->_mag){
+                    if(p->is_var()){
+                        return *((var<>*)p->_mag.get());
+                    }
+                    else {
+                        return *((param<>*)p->_mag.get());
+                    }
+                }
+                else {
+                    return 0;
+                }
+            }
+            else if(p->get_intype()==double_){
+                if(p->is_var()){
+                    return *((var<>*)p);
+                }
+                else {
+                    return *((param<>*)p);
+                }
+            }
+        }
+        if(c->is_function()){
+            auto f = (func_*)c;
+            if(f->get_return_type()==double_){
+                return *(func<>*)f;
+            }
+            if(f->get_return_type()==complex_){
+                return get_mag_ang(*(func<Cpx>*)f).first;
+            }
+        }
+        throw invalid_argument("unsupported");
+    }
+    
+    func<double> get_real(constant_* c){
+        if(c->is_double()){
+            func<> res = ((constant<double>*)c)->eval();
+            if(c->_is_transposed){
+                res.transpose();
+            }
+            return res;
+        }
+        if(c->is_complex()){
+            func<> res = ((constant<Cpx>*)c)->eval().real();
+            if(c->_is_transposed){
+                res.transpose();
+            }
+            return res;
+        }
+        if(c->is_param() || c->is_var()){
+            auto p = (param_*)c;
+            if(p->_is_imag || p->_is_angle || p->_is_real || p->_is_sqrmag){
+                throw invalid_argument("unsupported");
+            }
+            if(p->get_intype()==complex_){
+                if(p->_real){
+                    if(p->is_var()){
+                        return *((var<>*)p->_real.get());
+                    }
+                    else {
+                        return *((param<>*)p->_real.get());
+                    }
+                }
+                else {
+                    return 0;
+                }
+            }
+            else if(p->get_intype()==double_){
+                if(p->is_var()){
+                    return *((var<>*)p);
+                }
+                else {
+                    return *((param<>*)p);
+                }
+            }
+        }
+        if(c->is_function()){
+            auto f = (func_*)c;
+            if(f->get_return_type()==double_){
+                return *(func<>*)f;
+            }
+            if(f->get_return_type()==complex_){
+                return get_real_imag(*(func<Cpx>*)f).first;
+            }
+        }
+        throw invalid_argument("unsupported");
+    }
+    
+    func<double> get_ang(constant_* c){
+        if(c->is_double()){
+            return std::atan2(0,((constant<double>*)c)->eval());
+        }
+        if(c->is_complex()){
+            return arg(((constant<Cpx>*)c)->eval());
+        }
+        if(c->is_param() || c->is_var()){
+            auto p = (param_*)c;
+            if(p->_is_angle){
+                if(p->is_var()){
+                    return *((var<>*)p);
+                }
+                else {
+                    return *((param<>*)p);
+                }
+            }
+            if(p->_is_imag || p->_is_real || p->_is_sqrmag){
+                throw invalid_argument("unsupported");
+            }
+            if(p->get_intype()==complex_){
+                if(p->_ang){
+                    if(p->is_var()){
+                        if(p->_is_conjugate){
+                            func<> res = (*((var<>*)p->_ang.get()));
+                            res.reverse_sign();
+                            return res;
+                        }
+                        else {
+                            return *((var<>*)p->_ang.get());
+                        }
+                    }
+                    else {
+                        if(p->_is_conjugate){
+                            func<> res = (*((param<>*)p->_ang.get()));
+                            res.reverse_sign();
+                            return res;
+                        }
+                        else {
+                            return *((param<>*)p->_ang.get());
+                        }
+                    }
+                }
+                else {
+                    return 0;
+                }
+            }
+            else {
+                return 0;
+            }
+        }
+        if(c->is_function()){
+            auto f = (func_*)c;
+            if(f->get_return_type()==complex_){
+                return get_mag_ang(*(func<Cpx>*)f).second;
+            }
+            return 0;
+        }
+        throw invalid_argument("unsupported");
+    }
+    
+    func<double> get_imag(constant_* c){
+        if(c->is_double()){
+            return 0;
+        }
+        if(c->is_complex()){
+            return ((constant<Cpx>*)c)->eval().imag();
+        }
+        if(c->is_param() || c->is_var()){
+            auto p = (param_*)c;
+            if(p->_is_imag || p->_is_angle || p->_is_real || p->_is_sqrmag){
+                throw invalid_argument("unsupported");
+            }
+            if(p->get_intype()==complex_){
+                if(p->_imag){
+                    if(p->is_var()){
+                        if(p->_is_conjugate){
+                            func<> res = (*((var<>*)p->_imag.get()));
+                            res.reverse_sign();
+                            return res;
+                        }
+                        else {
+                            return *((var<>*)p->_imag.get());
+                        }
+                    }
+                    else {
+                        if(p->_is_conjugate){
+                            func<> res = (*((param<>*)p->_imag.get()));
+                            res.reverse_sign();
+                            return res;
+                        }
+                        else {
+                            return *((param<>*)p->_imag.get());
+                        }
+                    }
+                }
+                else {
+                    return 0;
+                }
+            }
+            else {
+                return 0;
+            }
+        }
+        if(c->is_function()){
+            auto f = (func_*)c;
+            if(f->get_return_type()==complex_){
+                return get_real_imag(*(func<Cpx>*)f).second;
+            }
+            return 0;
+        }
+        throw invalid_argument("unsupported");
+    }
+    
+    
     void func_::add_param(shared_ptr<param_> p, int nb){/**< Inserts the parameter in this function input list. WARNING: Assumes that p has not been added previousely!*/
         if (_params->count(p->get_name(false,false))!=0) {
             throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
@@ -4861,4 +5298,34 @@ namespace gravity{
 //    }
 //
     
+//
+//    template func<double> constant<double>::get_real() const;
+//    template func<double> constant<double>::get_imag() const;
+//    template func<double> constant<Cpx>::get_real() const;
+//    template func<double> constant<Cpx>::get_imag() const;
+//    template func<double> var<double>::get_real() const;
+//    template func<double> var<double>::get_imag() const;
+//    template func<double> var<Cpx>::get_real() const;
+//    template func<double> var<Cpx>::get_imag() const;
+//    template <>
+//    func<double> var<double>::get_real() const;
+//    template <>
+//    func<double> var<double>::get_imag() const;
+//    template <>
+//    func<double> param<double>::get_real() const;
+//    template <>
+//    func<double> param<double>::get_imag() const;
+//    
+//    template <>
+//    func<double> constant<Cpx>::get_real() const;
+//    template <>
+//    func<double> constant<Cpx>::get_imag() const;
+//    template <>
+//    func<double> var<Cpx>::get_real() const;
+//    template <>
+//    func<double> var<Cpx>::get_imag() const;
+//    template <>
+//    func<double> param<Cpx>::get_real() const;
+//    template <>
+//    func<double> param<Cpx>::get_imag() const;
 }

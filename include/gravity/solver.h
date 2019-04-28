@@ -118,7 +118,7 @@ namespace gravity {
             else if(_stype==gurobi)
             {
 #ifdef USE_GUROBI
-                _prog = make_shared<GurobiProgram>(GurobiProgram(_model));
+                _prog = make_shared<GurobiProgram>(_model);
 #else
                 gurobiNotAvailable();
 #endif
@@ -162,23 +162,33 @@ namespace gravity {
         //@}
         void set_model(gravity::Model<type>& m);
         int run(bool relax){
-            return run(5, 1e-6, 10000, 1e-6, relax, {false,""});
+            return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6);
         }
-        int run(int output, type tol , string lin_solver){
-            return run(output, tol, 10000, 1e-6, true, {true,lin_solver});
+        int run(int output, type tol , const string& lin_solver){
+            return run(output, tol, 10000, 1e-6, true, {true,lin_solver}, 1e+6);
         }
+        
+        int run(type tol , double time_limit){
+            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit);
+        }
+        
+        //OPF.run(tol,time_limit,"ma97");
+        int run(type tol , double time_limit, const string& lin_solver){
+            return run(5, tol, 10000, 1e-6, true, {true,lin_solver}, time_limit);
+        }
+        
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
-            return run(output, tol, max_iter, 1e-6, true, {false,""});
+            return run(output, tol, max_iter, 1e-6, true, {false,""}, 1e+6);
         }
         /* run model */
-        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver){
+        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
             int return_status = -1, dyn_max_iter = 20;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
                 if (_stype==ipopt) {
 #ifdef USE_IPOPT
-                    double mu_init = std::exp(-1)/std::exp(2);
+                    double mu_init = std::exp(5)/std::exp(1);
                     SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                     iapp->RethrowNonIpoptException(true);
                     ApplicationReturnStatus status = iapp->Initialize();
@@ -245,7 +255,7 @@ namespace gravity {
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
-                    //                            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     
                     
                     
@@ -261,6 +271,9 @@ namespace gravity {
                     //            iapp.Options()->SetIntegerValue("print_level", 5);
                     
                     //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
+                    if(!_model->_built){ /* Constraints have been added */
+                        _model->reindex();
+                    }
                     _model->fill_in_maps();
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
@@ -285,7 +298,7 @@ namespace gravity {
                     else {
                         optimal = false;
                     }
-                    return_status = optimal ? 100 : -1;
+                    return_status = optimal ? 0 : -1;
 #else
                     ipoptNotAvailable();
 #endif
@@ -306,11 +319,11 @@ namespace gravity {
                     try{
                         
                         auto grb_prog = (GurobiProgram*)(_prog.get());
-                        grb_prog->_output = print_level;
+                        grb_prog->_output = output;
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
                         optimal = grb_prog->solve(relax,mipgap);
-                        return_status = optimal ? 100 : -1;
+                        return_status = optimal ? 0 : -1;
                     }catch(GRBException e) {
                         cerr << "\nError code = " << e.getErrorCode() << endl;
                         cerr << e.getMessage() << endl;
@@ -328,7 +341,7 @@ namespace gravity {
                         cplex_prog->prepare_model();
                         optimal = cplex_prog->solve(relax,mipgap);
                         
-                        return_status = optimal ? 100 : -1;
+                        return_status = optimal ? 0 : -1;
                     }
                     catch(IloException e) {
                         cerr << e.getMessage() << endl;
@@ -345,7 +358,7 @@ namespace gravity {
                         mosek_prog->_output = output;
                         mosek_prog->prepare_model();
                         bool ok = mosek_prog->solve(relax);
-                        return_status = ok ? 100 : -1;
+                        return_status = ok ? 0 : -1;
                     }
                     catch(mosek::fusion::FusionException e) {
                         cerr << e.toString() << endl;
@@ -429,7 +442,7 @@ namespace gravity {
                         _model->_obj_val *= -1;
                     }
                     
-                    return_status = ok ? 100 : -1;
+                    return_status = ok ? 0 : -1;
 #else
                     bonminNotAvailable();
 #endif
@@ -468,21 +481,29 @@ namespace gravity {
     };
     
     template<typename type>
-    void run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol){
+    int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="ma27"){
+        int return_status = -1;
         for (auto i = start; i<end; i++) {
-            solver<type>(*(models.at(i)),stype).run(5, tol);
-            models.at(i)->print_solution(false);
+            return_status = solver<type>(*(models.at(i)),stype).run(0, tol, lin_solver);
+            //            models.at(i)->print_solution(24);
         }
+        return return_status;
     }
-
     
-     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     template<typename type>
-    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype, type tol, unsigned nr_threads){
+    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="ma27"){
+        run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
+    }
+    
+    /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
+    template<typename type>
+    
+    void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="ma27"){
         std::vector<thread> threads;
         std::vector<bool> feasible;
         /* Split models into nr_threads parts */
         std::vector<size_t> limits = bounds(nr_threads, models.size());
+        DebugOn("Running on " << nr_threads << " threads." << endl);
         DebugOff("limits size = " << limits.size() << endl);
         for (size_t i = 0; i < limits.size(); ++i) {
             DebugOff("limits[" << i << "] = " << limits[i] << endl);
@@ -490,7 +511,7 @@ namespace gravity {
         /* Launch all threads in parallel */
         auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
         for (size_t i = 0; i < nr_threads; ++i) {
-            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol));
+            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver));
         }
         /* Join the threads with the main thread */
         for(auto &t : threads){
