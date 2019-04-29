@@ -1,5 +1,5 @@
 //
-//  DCOPF->cpp
+//  DCOPF.cpp
 //  Gravity
 //
 //  Created by Hassan Hijazi on 19 Jan 18.
@@ -91,213 +91,137 @@ int main (int argc, char * argv[])
     auto b = grid.b.in(arcs);
     auto th_min = grid.th_min.in(bus_pairs);
     auto th_max = grid.th_max.in(bus_pairs);
-
+    
     /** Declare model */
-    auto DCOPF = make_shared<Model<>>("DCOPF Model");
-    double mu = 1;
-    var<> y("y", 0,1);
-    var<> q("q", pos_);
+    Model<> DCOPF("DCOPF Model");
+    
     if(projected) {/* Project out the power flow variables*/
         /** Variables */
         /* Power generation variables */
         var<> Pg("Pg", pg_min, pg_max);
-        DCOPF->add(Pg.in(gens));
+        DCOPF.add(Pg.in(gens));
         
         
         /* Phase angle variables */
         var<> theta("𝛉");
-        DCOPF->add(theta.in(nodes));
+        DCOPF.add(theta.in(nodes));
         
         /**  Objective */
         auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-        DCOPF->min(obj);
+        DCOPF.min(obj);
         
         /** Constraints */
         
         /* REF BUS */
         Constraint<> Ref_Bus("Ref_Bus");
         Ref_Bus = theta(grid.ref_bus);
-        DCOPF->add(Ref_Bus == 0);
+        DCOPF.add(Ref_Bus == 0);
         
         /* Flow conservation */
         Constraint<> KCL_P("KCL_P");
         KCL_P  = b.tr().in(in_arcs)*(theta.from(in_arcs)-theta.to(in_arcs)) - b.tr().in(out_arcs)*(theta.from(out_arcs)-theta.to(out_arcs)) + pl + gs - sum(Pg, gen_nodes);
-        DCOPF->add(KCL_P.in(nodes) == 0);
+        DCOPF.add(KCL_P.in(nodes) == 0);
         
         /* Phase Angle Bounds constraints */
         Constraint<> PAD_UB("PAD_UB");
         PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_UB -= th_max;
-        DCOPF->add(PAD_UB.in(bus_pairs) <= 0);
+        DCOPF.add(PAD_UB.in(bus_pairs) <= 0);
         Constraint<> PAD_LB("PAD_LB");
         PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
         PAD_LB -= th_min;
-        DCOPF->add(PAD_LB.in(bus_pairs) >= 0);
+        DCOPF.add(PAD_LB.in(bus_pairs) >= 0);
         
         /* Line Limits constraints */
         Constraint<> Thermal_UB("Thermal_UB");
         Thermal_UB = b*(theta.to(arcs) - theta.from(arcs));
         Thermal_UB -= S_max;
-        DCOPF->add(Thermal_UB.in(arcs) <= 0);
+        DCOPF.add(Thermal_UB.in(arcs) <= 0);
         Constraint<> Thermal_LB("Thermal_LB");
         Thermal_LB = b*(theta.to(arcs) - theta.from(arcs));
         Thermal_LB += S_max;
-        DCOPF->add(Thermal_LB.in(arcs) >= 0);
+        DCOPF.add(Thermal_LB.in(arcs) >= 0);
     }
     else {
         /** Variables */
         /* Power generation variables */
         var<> Pg("Pg", pg_min, pg_max);
-        DCOPF->add(Pg.in(gens));
+        DCOPF.add(Pg.in(gens));
         
         /* Power flow variables */
         var<> Pf("Pf", -1*S_max, S_max);
-        DCOPF->add(Pf.in(arcs));
-        
-        
-        DCOPF->add(y.in(arcs));
-        //[0, 1, 1, 0, 0, 1]
-//        y("3,2,3") = 0;//4,2,3
-//        y("0,1,2") = 1;//1,1,2
-//        y("4,3,4") = 1;//5,3,4
-//        y("1,1,4") = 0;//2,1,4
-//        y("5,4,5") = 0;//6,4,5
-//        y("2,1,5") = 1;//3,1,5
-//        y.initialize_all(0);
-//        y.initialize_uniform();
-//        y.initialize_binary();
+        DCOPF.add(Pf.in(arcs));
         
         /* Phase angle variables */
         var<> theta("𝛉");
-        DCOPF->add(theta.in(nodes));
-        
-        
-        DCOPF->add(q);
-
-        Constraint<> q_def("q_def");
-        q_def = q - (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
-        DCOPF->add(q_def>=0);
+        DCOPF.add(theta.in(nodes));
         
         /**  Objective */
-//        auto obj = mu*q + product(150, pow(pow(y,2) - y,2));
-//        q += product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-//        q.allocate_mem();
-        
-        if(use_cplex){
-            DCOPF->min(q);
-        }
-        else {
-//            DCOPF->min(q);
-            auto obj = mu*q + product(16, pow(pow(y,2) - y,2));// + pow(y("4,3,4"),2)
-            DCOPF->min(obj);
-        }
-        
-//        Constraint<> y_eq("y_eq");
-//        y_eq = y("4,3,4");
-//        DCOPF->add(y_eq==0);
+        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+        DCOPF.min(obj);
         
         /** Constraints */
-        
-        /* Integrality */
-//        Constraint<> Integ("Int");
-//        Integ = pow(y,2) - y;
-//        DCOPF->add(Integ == 0);
         
         /* REF BUS */
         Constraint<> Ref_Bus("Ref_Bus");
         Ref_Bus = theta(grid.ref_bus);
-        DCOPF->add(Ref_Bus == 0);
+        DCOPF.add(Ref_Bus == 0);
         
         /* Flow conservation */
         Constraint<> KCL_P("KCL_P");
         KCL_P  = sum(Pf, out_arcs) - sum(Pf, in_arcs) + pl + gs - sum(Pg, gen_nodes);
-        DCOPF->add(KCL_P.in(nodes) == 0);
+        DCOPF.add(KCL_P.in(nodes) == 0);
         
         /* AC Power Flow */
-        if(!use_cplex){
-            Constraint<> Flow_PU("Flow_PU");
-            Flow_PU = Pf + b*y*(theta.from(arcs) - theta.to(arcs));
-            DCOPF->add(Flow_PU.in(arcs) == 0);
-        }
-        else {
-            Constraint<> Flow_PU("Flow_PU");
-            Flow_PU = Pf + b*(theta.from(arcs) - theta.to(arcs) + 2*pi*(1-y));
-            DCOPF->add(Flow_PU.in(arcs) <= 0);
-    
-            Constraint<> Flow_PL("Flow_PL");
-            Flow_PL = Pf + b*(theta.from(arcs) - theta.to(arcs) - 2*pi*(1-y));
-            DCOPF->add(Flow_PL.in(arcs) >= 0);
-        }
-
+        Constraint<> Flow_P("Flow_P");
+        Flow_P = Pf + b*(theta.from(arcs) - theta.to(arcs));
+        DCOPF.add(Flow_P.in(arcs) == 0);
+        
         /* Phase Angle Bounds constraints */
         Constraint<> PAD_UB("PAD_UB");
-        PAD_UB = theta.from(arcs) - theta.to(arcs);
-        PAD_UB -= th_max.in(arcs)*y + (1-y)*2*pi;
-        DCOPF->add(PAD_UB.in(arcs) <= 0);
+        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_UB -= th_max;
+        DCOPF.add(PAD_UB.in(bus_pairs) <= 0);
         Constraint<> PAD_LB("PAD_LB");
-        PAD_LB = theta.from(arcs) - theta.to(arcs);
-        PAD_LB -= th_min.in(arcs)*y - (1-y)*2*pi;
-        DCOPF->add(PAD_LB.in(arcs) >= 0);
-        
-        /* Line Limits constraints */
-        Constraint<> Thermal_UB("Thermal_UB");
-        Thermal_UB = Pf;
-        Thermal_UB -= S_max*y;
-        DCOPF->add(Thermal_UB.in(arcs) <= 0);
-        Constraint<> Thermal_LB("Thermal_LB");
-        Thermal_LB -= Pf;
-        Thermal_LB -= S_max*y;
-        DCOPF->add(Thermal_LB.in(arcs) <= 0);
+        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_LB -= th_min;
+        DCOPF.add(PAD_LB.in(bus_pairs) >= 0);
     }
-    DCOPF->print();
     /* Solver selection */
     if (use_cplex) {
         solver<> DCOPF_CPX(DCOPF, cplex);
         auto solver_time_start = get_wall_time();
-        DCOPF_CPX.run(false);
+        DCOPF_CPX.run(output = 0, tol = 1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-    else if (use_gurobi) {
-        solver<> DCOPF_GRB(DCOPF, gurobi);
-        auto solver_time_start = get_wall_time();
-        DCOPF_GRB.run(output = 5, tol = 1e-6);
-        solver_time_end = get_wall_time();
-        total_time_end = get_wall_time();
-        solve_time = solver_time_end - solver_time_start;
-        total_time = total_time_end - total_time_start;
-    }
+    //    else if (use_gurobi) {
+    //        solver DCOPF_GRB(DCOPF, gurobi);
+    //        auto solver_time_start = get_wall_time();
+    //        DCOPF_GRB.run(output, relax = false, tol = 1e-6);
+    //        solver_time_end = get_wall_time();
+    //        total_time_end = get_wall_time();
+    //        solve_time = solver_time_end - solver_time_start;
+    //        total_time = total_time_end - total_time_start;
+    //    }
     else {
         solver<> DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
-        for(auto it = 0; it< 1000; it++){
-            DCOPF->initialize_zero();
-            DCOPF->get_var<double>("y").initialize_binary();
-//            y.initialize_binary();//            DCOPF->get_var<double>("y.in(Arcs)").initialize_binary();
-            
-            DCOPF_IPT.run(output = 5, tol = 1e-6);
-//            Constraint<> obj_cut("obj_cut"+to_string(it));
-//            obj_cut += q;
-//            DCOPF->add(obj_cut <= q.eval()-1e-6);
-            string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(1/mu*DCOPF->get_obj_val());
-            DebugOn(out <<endl);
-//            DCOPF->round_solution();
-            DCOPF->print_solution();
-        }
+        DCOPF_IPT.run(output = 5, tol = 1e-6);
         /** Warm starting Cplex
-        solver<> DCOPF_CPX(DCOPF, cplex);
-        DCOPF_CPX.run(output = 5, tol = 1e-6);
-        **/
+         solver<> DCOPF_CPX(DCOPF, cplex);
+         DCOPF_CPX.run(output = 5, tol = 1e-6);
+         **/
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
     /** Uncomment next line to print expanded model */
-    DCOPF->print_solution();
-    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(1/mu*DCOPF->get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
+    /* DCOPF.print(); */
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(DCOPF.get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     return 0;
 }
