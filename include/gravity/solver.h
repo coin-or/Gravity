@@ -165,7 +165,10 @@ namespace gravity {
             return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6);
         }
         int run(int output, type tol , const string& lin_solver){
-            return run(output, tol, 10000, 1e-6, true, {true,lin_solver}, 1e+6);
+            if(lin_solver!="")
+                return run(output, tol, 10000, 1e-6, true, {true,lin_solver}, 1e+6);
+            else
+                return run(output, tol, 10000, 1e-6, true, {false,lin_solver}, 1e+6);
         }
         
         int run(type tol , double time_limit){
@@ -481,7 +484,7 @@ namespace gravity {
     };
     
     template<typename type>
-    int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="ma27"){
+    int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver=""){
         int return_status = -1;
         for (auto i = start; i<end; i++) {
             return_status = solver<type>(*(models.at(i)),stype).run(0, tol, lin_solver);
@@ -491,14 +494,14 @@ namespace gravity {
     }
     
     template<typename type>
-    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="ma27"){
+    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
         run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
     }
     
     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     template<typename type>
     
-    void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="ma27"){
+    void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
         std::vector<thread> threads;
         std::vector<bool> feasible;
         /* Split models into nr_threads parts */

@@ -97,6 +97,7 @@ namespace gravity {
         
         
         virtual void initialize_uniform(){};
+        virtual void initialize_zero(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         
         virtual void print(){};

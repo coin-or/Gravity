@@ -95,7 +95,7 @@ int main (int argc, char * argv[])
     DebugOn("nb buses = " << nb_buses << endl);
     
     PowerModelType pmt = ACPOL;
-    if(!strcmp(mtype.c_str(),"rect")) pmt = ACRECT;
+    if(mtype=="rect") pmt = ACRECT;
     bool polar = (pmt==ACPOL);
     if (polar) {
         DebugOn("Using polar model\n");
