@@ -471,11 +471,50 @@ namespace gravity {
                 return *this;
             }
         
+        
+        
         void initialize_zero(){
             for (int i = 0; i<this->_val->size(); i++) {
                 this->_val->at(i) = 0.;
             }
         };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_binary_() {
+            std::random_device dev;
+            std::mt19937 engine(dev());
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                std::uniform_real_distribution<double> real_distribution(get_lb(i).real(),get_ub(i).real());
+                std::uniform_real_distribution<double> imag_distribution(get_lb(i).imag(),get_ub(i).imag());
+                if(real_distribution(engine) <= (get_ub(i).real()-get_lb(i).real())/2.){
+                    param<type>::_val->at(i) = get_lb(i).real();
+                }
+                else {
+                    param<type>::_val->at(i) = get_ub(i).real();
+                }
+                if(imag_distribution(engine) <= (get_ub(i).imag()-get_lb(i).imag())/2.){
+                    param<type>::_val->at(i) = get_lb(i).imag();
+                }
+                else {
+                    param<type>::_val->at(i) = get_ub(i).imag();
+                }
+            }
+        }
+        
+        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_binary_() {
+            std::random_device dev;
+            std::mt19937 engine(dev());
+            for (int i = 0; i<param<type>::_val->size(); i++) {
+                std::uniform_real_distribution<double> distribution(get_lb(i),get_ub(i));
+                if(distribution(engine) <= (get_ub(i)-get_lb(i))/2.){
+                    param<type>::_val->at(i) = get_lb(i);
+                }
+                else {
+                    param<type>::_val->at(i) = get_ub(i);
+                }
+            }
+        }
+        
+        void initialize_binary(){initialize_binary_();};
         
         void initialize_uniform(){initialize_uniform_();};
         

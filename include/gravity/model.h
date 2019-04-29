@@ -2103,19 +2103,11 @@ namespace gravity {
         }
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        void initialize_zero(){
+            for (auto &vp: _vars) {
+                vp.second->initialize_zero();
+            }
+        }
         
         void initialize_uniform(){
             for (auto &vp: _vars) {

@@ -274,7 +274,7 @@ int main (int argc, char * argv[])
         auto solver_time_start = get_wall_time();
         for(auto it = 0; it< 1000; it++){
             DCOPF->initialize_zero();
-            DCOPF->get_var<double>("y.in(Arcs)").initialize_binary();
+            DCOPF->get_var<double>("y").initialize_binary();
 //            y.initialize_binary();//            DCOPF->get_var<double>("y.in(Arcs)").initialize_binary();
             
             DCOPF_IPT.run(output = 5, tol = 1e-6);
