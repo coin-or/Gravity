@@ -103,7 +103,7 @@ int main (int argc, char * argv[])
     auto tan_th_max = grid.tan_th_max.in(bus_pairs);
     
     PowerModelType pmt = ACPOL;
-    if(!strcmp(mtype.c_str(),"ACRECT")) pmt = ACRECT;
+    if(mtype=="ACRECT") pmt = ACRECT;
     bool polar = (pmt==ACPOL);
     if (polar) {
         DebugOn("Using polar model\n");

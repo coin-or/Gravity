@@ -153,7 +153,8 @@ namespace gravity {
                 }
                 return _indices->_ids->at(inst1).at(inst2);
             }
-            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
+            return get_id_inst(inst2);
+//            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
         };
 
 
