@@ -109,7 +109,70 @@ namespace gravity{
     
     /** WARNING, only call if the variables appearing in the function are complex or double */
     pair<func<double>,func<double>> get_real_imag(const func<Cpx>& f){
+        func<double> c_r, c_i, c_mag, c_ang;
+        func<double> p1_r, p2_r, p1_i, p2_i;
+        func<double> p1_mag, p2_mag, p1_ang, p2_ang;
         func<double> f_r = get_real(f._cst.get()), f_i = get_imag(f._cst.get());
+        for (auto &pt: *f._pterms) {
+            func<> fp_r = 1.;
+            func<> fp_i = 0.;
+            auto coef = pt.second._coef;
+            if(coef->_polar){
+                c_mag = get_mag(coef.get());
+                c_ang = get_ang(coef.get());
+                c_r = c_mag*cos(c_ang);
+                c_i = c_mag*sin(c_ang);
+            }
+            else {
+                c_r = get_real(coef.get());
+                c_i = get_imag(coef.get());
+            }
+            if(coef->_is_transposed){
+                c_r.transpose();
+                c_i.transpose();
+                p1_r._is_vector = true;
+                p1_i._is_vector = true;
+                p2_r._is_vector = true;
+                p2_i._is_vector = true;
+            }
+            auto it = pt.second._l->begin();
+            while(it!=pt.second._l->end()){
+                auto vv = it->first;
+                auto expo = it->second;
+                if(vv->_polar){
+                    p1_mag = get_mag(vv.get());
+                    p1_ang = get_ang(vv.get());
+                    p1_r = p1_mag*cos(p1_ang);
+                    p1_i = p1_mag*sin(p1_ang);
+                }
+                else {
+                    p1_r = get_real(vv.get());
+                    p1_i = get_imag(vv.get());
+                }
+                if(coef->_polar || vv->_polar){
+                    throw invalid_argument("unsupported yet");
+                }
+                else {
+                    for (auto i = 0; i<expo; i++) {
+                        auto fp_r_new = fp_r*p1_r - fp_i*p1_i;
+                        auto fp_i_new = fp_r*p1_i + fp_i*p1_r;
+                        fp_r = fp_r_new;
+                        fp_i = fp_i_new;
+                    }
+                }
+                it++;
+            }
+            auto fp_r_new = c_r*fp_r - c_i*fp_i;
+            auto fp_i_new = c_r*fp_i + c_i*fp_r;
+            fp_r = fp_r_new;
+            fp_i = fp_i_new;
+            if(!pt.second._sign){
+                fp_r.reverse_sign();
+                fp_i.reverse_sign();
+            }
+            f_r += fp_r;
+            f_i += fp_i;
+        }
         for (auto &qt: *f._qterms) {
             auto coef = qt.second._coef;
             func<double> p1_r, p2_r, p1_i, p2_i;
