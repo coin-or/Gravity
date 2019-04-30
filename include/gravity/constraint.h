@@ -212,6 +212,10 @@ namespace gravity {
             return ind;
         }
         
+        bool is_redundant() {
+            
+        }
+            
         bool is_convex() const{
             return (this->_all_convexity==linear_ || (this->_all_convexity==convex_ &&_ctype==leq) || (this->_all_convexity==concave_ &&_ctype==geq));
         }

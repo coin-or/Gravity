@@ -85,7 +85,7 @@ public:
 typedef enum { ACPOL, ACRECT, DISTF, CDISTF, LDISTF, QC, QC_SDP, OTS, DF, SOCP, SDP, DC, QC_OTS_L, QC_OTS_N, QC_OTS_O, SOCP_OTS, GRB_TEST } PowerModelType;
 // A PowerNet extends a standard network by incorporating additional parameters related to power systems.
 class PowerNet: public Net {
-
+    
 public:
     bool add_3d_nlin = true;
     string ref_bus;
@@ -100,7 +100,7 @@ public:
     
     param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<double> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
-    param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */    
+    param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */
     param<double> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
     param<double> pv_out; /**< Normalized PV generation on bus */
     param<double> c0, c1, c2; /**< Generation costs */
@@ -110,7 +110,7 @@ public:
     param<int> min_ut, min_dt; /**< Minimum Uptime and Downtime for Generators */
     int max_ident_units; /**< Maximum number of identical units */
     param<int> min_diesel_invest, max_diesel_invest; /**< Minimum and Maximum number of Diesel generation investment at a given bus */
-    param<int> min_batt_invest, max_batt_invest; /**< Minimum and Maximum number of Battery investment at a given bus */    
+    param<int> min_batt_invest, max_batt_invest; /**< Minimum and Maximum number of Battery investment at a given bus */
     param<double> th_min, th_max, tan_th_min, tan_th_max, cphi, sphi, cos_d; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
     param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
     param<double> v_diff_max; /**< Voltage bounds difference upper bound */
@@ -122,9 +122,9 @@ public:
     unsigned _nb_conting = 0;/**< Number of contingencies for N-1 */
     indices _eff_pieces;/**< Set of indices for pieces for the efficiency curves */
     param<double> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
-    param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
-    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
-    param<Cpx> Y, Ych, T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max;
+    param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max, cc, dd; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
+    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, bt = param<>("bt"), cht= param<>("cht"), ch_half=param<>("ch_half"), cht_half=param<>("cht_half"); /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
+    param<Cpx> Y, Ych,T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max;
     
     /** Set of all diesel generators */
     std::vector<Gen*> gens;
@@ -158,7 +158,7 @@ public:
     std::vector<PV*> _existing_PV_gens;
     
     /** Set of existing + potential diesel generators */
-//    std::vector<DieselGen*> _diesel_gens;
+    //    std::vector<DieselGen*> _diesel_gens;
     
     /** Set of existing + potential diesel generators */
     std::vector<WindGen*> _wind_gens;
@@ -187,7 +187,7 @@ public:
     
     /** Data on PV gens */
     PVData _PV_data;
-
+    
     
     /** Indices Sets */
     indices hours; /**< Hours */
@@ -251,7 +251,7 @@ public:
     
     /** get set indexed by bus pairs in the chordal extension */
     gravity::indices get_bus_pairs_chord();
-
+    
     
     /** Power Model<>s */
     

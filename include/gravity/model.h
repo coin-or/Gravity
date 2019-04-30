@@ -565,8 +565,38 @@ namespace gravity {
             c_imag._dim[0] = c._dim[0];
             add_constraint(c_real);
             add_constraint(c_imag);
-            //            c_real.print_symbolic();
-            //            c_imag.print_symbolic();
+//            c_real.print_symbolic();
+//            c_imag.print_symbolic();
+        }
+        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void add_real(const Constraint<Cpx>& c){
+            if (c.get_dim()==0) {
+                return;
+            }
+            auto real_imag = get_real_imag(c);
+            Constraint<type> c_real;
+            c_real += real_imag.first;
+            c_real._name = "Real(" + c._name + ")";
+            c_real._ctype = c._ctype;
+            c_real._indices = c._indices;
+            c_real._dim[0] = c._dim[0];
+            add_constraint(c_real);
+        }
+        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void add_imag(const Constraint<Cpx>& c){
+            if (c.get_dim()==0) {
+                return;
+            }
+            auto real_imag = get_real_imag(c);
+            Constraint<type> c_imag;
+            c_imag += real_imag.second;
+            c_imag._name = "Imag(" + c._name + ")";
+            c_imag._ctype = c._ctype;
+            c_imag._indices = c._indices;
+            c_imag._dim[0] = c._dim[0];
+            add_constraint(c_imag);
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -692,12 +722,16 @@ namespace gravity {
         }
         
         
-        shared_ptr<Constraint<type>> add_constraint(const Constraint<type>& c){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c){
             if (c.get_dim()==0) {
                 return nullptr;
             }
+//            if(c.is_redundant(1e-8)){/* TO DO move this test to the solve part */
+//                DebugOn(c._name << " is redundant, not adding it to the model" << endl);
+//            }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
+                newc->_val = c._val;
                 newc->check_soc();
                 newc->check_rotated_soc();
                 if (newc->is_constant()) {
@@ -753,6 +787,7 @@ namespace gravity {
                         _type = nlin_m;
                     }
                     newc->allocate_mem();
+                    c.allocate_mem();
                 }
                 return newc;
             }
