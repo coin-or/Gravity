@@ -699,6 +699,48 @@ TEST_CASE("testing nonlinear Model"){
     CHECK(M.get_nb_cons()==8);
 }
 
+TEST_CASE("testing complex constraint expansion"){
+    Model<> M("test");
+    auto ids = indices("ids");
+    ids = {"id1", "id2"};
+    var<> x("x"), y("y"), u1("u1"), v1("v1"), u2("u2"), v2("v2");
+    M.add(x.in(ids),y.in(ids),u1.in(ids),v1.in(ids),u2.in(ids),v2.in(ids));
+    var<Cpx> w1("w1"), w2("w2"), z("z");
+    z.real_imag(x, y);
+    w1.real_imag(u1, v1);
+    w2.real_imag(u2, v2);
+    
+    param<> pr1("pr1"), pi1("pi1"),pr2("pr2");
+    pr1 = {1,2};pi1 = {0,-1};pr2 = {-2,2};
+    param<Cpx> p1("p1");
+    p1.real_imag(pr1, pi1);
+    
+    Constraint<Cpx> C_lin1("C_lin1");
+    C_lin1 = p1*z;
+    M.add(C_lin1.in(ids)==0);
+    
+    param<Cpx> p2("p2");
+    p2.set_real(pr2);/* zero imaginary */
+    Constraint<Cpx> C_lin2("C_lin2");
+    C_lin2 = p2*z;
+    M.add(C_lin2.in(ids)==0);
+    
+    Constraint<Cpx> C_quad("C_quad");
+    C_quad = z*w1;
+    M.add(C_quad.in(ids)==0);
+    
+    Constraint<Cpx> C_norm("C_norm");
+    C_norm = z*conj(z);
+    M.add(C_norm.in(ids)==0);
+    
+    Constraint<Cpx> C_pol("C_pol");
+    C_pol = z*w1*w2;
+    M.add(C_pol.in(ids)==0);
+    M.print();
+    
+    
+}
+
 TEST_CASE("testing acopf"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     unsigned nb_threads = 2;
