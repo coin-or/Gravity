@@ -104,7 +104,6 @@ PowerNet::PowerNet() {
     g_ft.set_name("g_ft");
     g_tf.set_name("g_tf");
     g_tt.set_name("g_tt");
-
     b_ff.set_name("b_ff");
     b_ft.set_name("b_ft");
     b_tf.set_name("b_tf");
@@ -117,6 +116,8 @@ PowerNet::PowerNet() {
     Ych.set_name("Ych");
     T.set_name("T");
     Sd.set_name("Sd");
+    cc.set_name("cc");
+    dd.set_name("dd");
 }
 
 PowerNet::~PowerNet() {
@@ -264,7 +265,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     double pi = 4.*atan(1.);
     string name;
     double kvb = 0;
-//    int id = 0;
+    //    int id = 0;
     unsigned index = 0;
     cout << "Loading file " << fname << endl;
     ifstream file(fname.c_str(), std::ifstream::in);
@@ -275,16 +276,16 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     while (word.compare("function")) {
         file >> word;
     }
-
+    
     file.ignore(6);
     file >> word;
     _name = word;
-
-//  cout << _name << endl;
+    
+    //  cout << _name << endl;
     while (word.compare("mpc.baseMVA")) {
         file >> word;
     }
-
+    
     file.ignore(3);
     getline(file, word,';');
     bMVA = atoi(word.c_str());
@@ -292,10 +293,10 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     while (word.compare("mpc.bus")) {
         file >> word;
     }
-
+    
     getline(file, word);
     Bus* bus = NULL;
-//    Bus* bus_clone= NULL;
+    //    Bus* bus_clone= NULL;
     file >> word;
     int status;
     double total_p_load = 0, total_q_load = 0;
@@ -327,42 +328,42 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         w_min.add_val(name,pow(v_min.eval(), 2));
         w_max.add_val(name,pow(v_max.eval(), 2));
         // single phase
-
+        
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
-//        bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
+        //        bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
         total_p_load += pl.eval();
         total_q_load += ql.eval();
         bus->vs = v_s.eval();
         V_min.add_val(name,Cpx(-1*bus->vbound.max, -1*bus->vbound.max));
         V_max.add_val(name,Cpx(bus->vbound.max, bus->vbound.max));
         Sd.add_val(name,Cpx(bus->_cond[0]->_pl,bus->_cond[0]->_ql));
-//        bus_clone->vs = v_s.eval();
+        //        bus_clone->vs = v_s.eval();
         if (status>=4) {
             bus->_active = false;
-//            bus_clone->_active = false;
+            //            bus_clone->_active = false;
         }
-
+        
         this->Net::add_node(bus);
         if (status>=4) {
             DebugOn("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
-//    ref_bus = nodes.front()->_name;
+    //    ref_bus = nodes.front()->_name;
     file.seekg (0, file.beg);
-
-
+    
+    
     /* Generator data */
     while (word.compare("mpc.gen")) {
         file >> word;
     }
-//    double qmin = 0, qmax = 0, pmin = 0, pmax = 0, ps = 0, qs = 0;
-//    int status = 0;
+    //    double qmin = 0, qmax = 0, pmin = 0, pmax = 0, ps = 0, qs = 0;
+    //    int status = 0;
     getline(file, word);
-
-
+    
+    
     file >> word;
-//    std::vector<bool> gen_status;
+    //    std::vector<bool> gen_status;
     index = 0;
     string bus_name;
     while(word.compare("];")) {
@@ -378,19 +379,19 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         qg_max.add_val(name,atof(word.c_str())/bMVA);
         file >> word;
         qg_min.add_val(name,atof(word.c_str())/bMVA);
-
+        
         file >> ws >> word >> ws >> word >> ws >> word;
         status = atoi(word.c_str());
         file >> word;
         pg_max.add_val(name,atof(word.c_str())/bMVA);
-
+        
         
         file >> word;
         pg_min.add_val(name,atof(word.c_str())/bMVA);
         getline(file, word,'\n');
-//        gen_status.push_back(status==1);
-
-
+        //        gen_status.push_back(status==1);
+        
+        
         bus->_has_gen = true;
         /** generator name, ID */
         Gen* g = new Gen(bus, name, pg_min.eval(index), pg_max.eval(index), qg_min.eval(index), qg_max.eval(index));
@@ -407,20 +408,20 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             g->_active = false;
         }
         index++;
-//        getline(file, word);
+        //        getline(file, word);
         file >> word;
     }
-
-
+    
+    
     file.seekg (0, file.beg);
-
+    
     /* Generator costs */
     while (word.compare("mpc.gencost")) {
         file >> word;
     }
-//    double c0 = 0, c1 = 0,c2 = 0;
+    //    double c0 = 0, c1 = 0,c2 = 0;
     getline(file, word);
-
+    
     int gen_counter = 0;
     for (size_t i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
@@ -429,16 +430,16 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         c1.add_val(to_string(i),atof(word.c_str())*bMVA);
         file >> word;
         c0.add_val(to_string(i),atof(word.c_str()));
-//        c2(i) = atof(word.c_str())*pow(bMVA,2);
-//        file >> word;
-//        c1(i) = atof(word.c_str())*bMVA;
-//        file >> word;
-//        c0(i) = atof(word.c_str());
+        //        c2(i) = atof(word.c_str())*pow(bMVA,2);
+        //        file >> word;
+        //        c1(i) = atof(word.c_str())*bMVA;
+        //        file >> word;
+        //        c0(i) = atof(word.c_str());
         gens[gen_counter++]->set_costs(c0.eval(), c1.eval(), c2.eval());
         getline(file, word);
     }
     file.seekg (0, file.beg);
-
+    
     /* Lines data */
     while (word.compare("mpc.branch")) {
         file >> word;
@@ -456,7 +457,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >> dest;
         key = dest+","+src;//Taking care of reversed direction arcs
         reversed = false;
-//        if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
+        //        if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
         if((reverse_arcs && get_node(src)->_id > get_node(dest)->_id) || arcID.find(key)!=arcID.end()) {//Reverse arc direction
             Warning("Adding arc linking " +src+" and "+dest);
             Warning(" with reversed direction, reversing source and destination.\n");
@@ -528,6 +529,14 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         }
         arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
         arc->dd = arc->tr*sin(arc->as);
+        name = arc->_name;
+        cc.add_val(name, arc->cc);
+        dd.add_val(name, arc->dd);
+        bt.add_val(name,arc->b/pow(arc->tr,2));
+        cht.add_val(name, arc->ch/pow(arc->tr,2));
+        ch_half.add_val(name, arc->ch*0.5);
+        cht_half.add_val(name, arc->ch*0.5/pow(arc->tr,2));
+        
         //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
         
@@ -535,10 +544,9 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         Bus* bus_d = (Bus*)(arc->_dest);
         
         arc->smax = gravity::max(
-                        pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
-                        pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
-                        );
-        name = arc->_name;
+                                 pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
+                                 pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
+                                 );
         g.add_val(name,arc->g);
         b.add_val(name,arc->b);
         tr.add_val(name,arc->tr);
@@ -558,7 +566,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
         ch.add_val(name,arc->ch);
-//        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
+        //        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
         
         /* Complex params */
@@ -575,7 +583,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         /* Switching to bus_pairs keys */
         name = bus_s->_name + "," + bus_d->_name;
         if (arc->_active && bus_pair_names.count(name)==0) {
-//            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
+            //            _bus_pairs._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name), arc->_active));
             bus_pair_names.insert(name);
         }
         if (!arc->_parallel) {
@@ -620,9 +628,9 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     DebugOff(tr.to_str(true) << endl);
     
     file.close();
-//    if (nodes.size()>1000) {
-//        add_3d_nlin = false;
-//    }
+    //    if (nodes.size()>1000) {
+    //        add_3d_nlin = false;
+    //    }
     return 0;
 }
 
@@ -636,7 +644,7 @@ void PowerNet::update_net(){
     int fixed = 1, id_sorted = 0; //id of the current bag in bags_sorted
     Arc *a12, *a13, *a32;
     std::vector<std::vector<Node*>> bags_sorted;
-
+    
     // bags are cliques in the chordal completion graph
     for(auto& b: _bags){
         for(int i = 0; i < b.size()-1; i++) {
@@ -658,7 +666,7 @@ void PowerNet::update_net(){
             }
         }
     }
-
+    
     while (fixed != 0) {
         fixed = 0;
         DebugOff("\nNew iteration");
@@ -695,7 +703,7 @@ void PowerNet::update_net(){
             }
             else{ // Bags with size > 3; todo: leave only this as the general case?
                 DebugOff("\nBag with size > 3");
-
+                
                 for(int i = 0; i < b.size()-1; i++) {
                     for (int j = i + 1; j < b.size(); j++) {
                         Arc* a = get_arc(b[i]->_name, b[j]->_name);
@@ -709,14 +717,14 @@ void PowerNet::update_net(){
                             Arc *a1 = get_arc(a->_dest, n1);
                             if (!a1->_free) {
                                 a->_free = false;
-
+                                
                                 vector<Node *> bag;
                                 bag.push_back(get_node(n->_name));
                                 bag.push_back(get_node(a->_dest->_name));
                                 bag.push_back(get_node(n1->_name));
-//                                sort(bag.begin(), bag.end(),
-//                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
-
+                                //                                sort(bag.begin(), bag.end(),
+                                //                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
+                                
                                 fixed++;
                                 sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
                                 bags_sorted.push_back(bag);
@@ -728,37 +736,37 @@ void PowerNet::update_net(){
                     } // j
                 } // i
                 ++b_it;
-
+                
             } // size > 3
         } // bags loop
     } // while
-
+    
     //add all remaining bags to bags_sorted
     for(auto b_it = _bags.begin(); b_it != _bags.end();) {
         std::vector<Node*> b = *b_it;
-            if(b.size() >= 2) bags_sorted.push_back(b);
-            _bags.erase(b_it);
-//            id_sorted++;
+        if(b.size() >= 2) bags_sorted.push_back(b);
+        _bags.erase(b_it);
+        //            id_sorted++;
     }
     _bags = bags_sorted;
-
+    
     for(auto& a: arcs) {
         if(a->_imaginary) a->_free = true;
     }
-
-
+    
+    
     for(auto& k: _bus_pairs._keys){
         _bus_pairs_chord._keys.push_back(new index_pair(*k));
     }
-
+    
     for(auto& a: arcs){
         if(a->_imaginary){
             Bus* bus_s = (Bus*)(a->_src);
             Bus* bus_d = (Bus*)(a->_dest);
-
+            
             name = bus_s->_name + "," + bus_d->_name;
             _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
-
+            
             if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
                 cos_max_ = 1;
                 cos_min_ = -1;
@@ -771,11 +779,11 @@ void PowerNet::update_net(){
             }
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
-
+            
             wr_max_ = cos_max_*w_max_;
             if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
             else wr_min_ = cos_min_*w_min_;
-
+            
             if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
                 sin_max_ = 1;
                 sin_min_ = -1;
@@ -783,14 +791,14 @@ void PowerNet::update_net(){
                 sin_max_ = sin(m_theta_ub);
                 sin_min_ = sin(m_theta_lb);
             }
-
+            
             if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
             else wi_max_ = sin_max_*w_min_;
             if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
             else wi_min_ = sin_min_*w_max_;
-
-//            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
-
+            
+            //            cout << "\nImaginary line, bounds: (" << wr_min_ << "," << wr_max_ << "); (" << wi_min_ << "," << wi_max_ << ")";
+            
             wr_max.add_val(name,wr_max_);
             wr_min.add_val(name,wr_min_);
             wi_max.add_val(name,wi_max_);
@@ -831,8 +839,8 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     var<double> Qg ("Qg", qg_min, qg_max);
     SOCPF->add(Pg.in(gens));
     SOCPF->add(Qg.in(gens));
-
-
+    
+    
     /* power flow variables */
     var<double> Pf_from("Pf_from", -1*S_max,S_max);
     var<double> Qf_from("Qf_from", -1*S_max,S_max);
@@ -842,7 +850,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     SOCPF->add(Qf_from.in(arcs));
     SOCPF->add(Pf_to.in(arcs));
     SOCPF->add(Qf_to.in(arcs));
-
+    
     /* Real part of Wij = ViVj */
     var<double>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
@@ -852,7 +860,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     SOCPF->add(Wii.in(nodes));
     SOCPF->add(R_Wij.in(bus_pairs));
     SOCPF->add(Im_Wij.in(bus_pairs));
-
+    
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
@@ -861,66 +869,66 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     auto gens = gens_per_node();
     auto out_arcs = out_arcs_per_node();
     auto in_arcs = in_arcs_per_node();
-
+    
     /**  Objective */
     auto obj = c1.tr()*Pg + c2.tr()*pow(Pg,2) + sum(c0);
     SOCPF->min(obj);
-
+    
     /** Constraints */
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOCPF->add(SOC.in(bus_pairs) <= 0);
-
+    
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gens) + gs*Wii;
     SOCPF->add(KCL_P.in(nodes) == 0);
-
+    
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gens) - bs*Wii;
     SOCPF->add(KCL_Q.in(nodes) == 0);
-
+    
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij + b_ft*Im_Wij);
     SOCPF->add(Flow_P_From.in(arcs) == 0);
-
+    
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij - b_tf*Im_Wij);
     SOCPF->add(Flow_P_To.in(arcs) == 0);
-
+    
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij - b_ff*Wii.from(arcs) - b_ft*R_Wij);
     SOCPF->add(Flow_Q_From.in(arcs) == 0);
-
+    
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + (b_tt*Wii.to(arcs) + b_tf*R_Wij + g_tf*Im_Wij);
     SOCPF->add(Flow_Q_To.in(arcs) == 0);
-
+    
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= tan_th_max*R_Wij;
     SOCPF->add(PAD_UB);
-
+    
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= tan_th_min*R_Wij;
     SOCPF->add(PAD_LB);
-
+    
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     SOCPF->add(Thermal_Limit_from);
-
-
+    
+    
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SOCPF->add(Thermal_Limit_to);
-
+    
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
     LNC1 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
@@ -928,7 +936,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
     LNC1 -= v_max.from(bus_pairs)*cos_d*(v_min.from(bus_pairs)+v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC1 -= v_max.from(bus_pairs)*v_max.to(bus_pairs)*cos_d*(v_min.from(bus_pairs)*v_min.to(bus_pairs) - v_max.from(bus_pairs)*v_max.to(bus_pairs));
     SOCPF->add(LNC1.in(bus_pairs) >= 0);
-
+    
     Constraint<> LNC2("LNC2");
     LNC2 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
     LNC2 -= v_min.to(bus_pairs)*cos_d*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*Wii.from(bus_pairs);
@@ -1258,7 +1266,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     auto ACOPF = build_ACOPF(*this,pmt,output,tol);
     bool relax;
     solver<> OPF(ACOPF,ipopt);
-//    auto mipgap = 1e-6;
+    //    auto mipgap = 1e-6;
     OPF.run(output, tol);
     return ACOPF->_obj->get_val();
 }
@@ -1274,7 +1282,7 @@ void PowerNet::fill_wbnds(){
             if(get_arc(bus_s, bus_d)) continue;
             
             string name = bus_s->_name + "," + bus_d->_name;
-//            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
+            //            _bus_pairs_chord._keys.push_back(new index_pair(index_(bus_s->_name), index_(bus_d->_name)));
             
             if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
                 cos_max_ = 1;
