@@ -649,11 +649,13 @@ namespace gravity{
             res._keys_map = make_shared<map<string,size_t>>(*_keys_map);
             res._keys = make_shared<vector<string>>(*_keys);
             res._excluded_keys.insert(res._keys_map->at(key));
-            if(!is_indexed()){
-                res._ids = make_shared<vector<vector<size_t>>>();
-                res._ids->resize(1);
-            }
-            res.reindex();
+//            if(!is_indexed()){
+//                res._ids = make_shared<vector<vector<size_t>>>();
+//                res._ids->resize(1);
+//            }
+//            res.reindex();
+            res._name += "\\{" + key+"}";
+            res.remove_excluded();
             return res;
         }
         
