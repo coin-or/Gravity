@@ -77,6 +77,9 @@ int main (int argc, char * argv[]) {
     if (loss_s.compare("no")==0) {
         loss = false;
     }
+    else {
+        loss = true;
+    }
     
     num_bags = atoi(opt["b"].c_str());
     
@@ -153,11 +156,8 @@ int main (int argc, char * argv[]) {
     auto cht_half=grid.cht_half.in(arcs);
     auto rty=grid.rty.in(arcs);
     auto ity=grid.ity.in(arcs);
-    /*auto Y=grid.Y.in(arcs);
-    auto Ych=grid.Ych.in(arcs);*/
-    //    auto V_sq_max=1.21;
-    /*auto V_sq_min=0.81;
-    auto V_sq_max=1.21;*/
+    auto Ya=grid.Y.in(arcs);
+
     
     double upper_bound = grid.solve_acopf();
     
@@ -189,12 +189,7 @@ int main (int argc, char * argv[]) {
     var<>  Im_Wij("Im_Wij", wi_min, wi_max);
      //Magnitude of Wii = Vi^2
     
-    
-    /* Real part of Wij = ViVj
-    var<>  R_Wij("R_Wij", wr_min, wr_max);
-     Imaginary part of Wij = ViVj
-    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
-     Magnitude of Wii = Vi^2 */
+
     
     var<>  Wii("Wii", w_min, w_max);
     SDP.add(Wii.in(nodes));
@@ -202,9 +197,9 @@ int main (int argc, char * argv[]) {
     SDP.add(Im_Wij.in(bus_pairs_chord));
     
     
-    /* Initialize variables */
+    /* Initialize variables
     R_Wij.initialize_all(1.0);
-    Wii.initialize_all(1.001);
+    Wii.initialize_all(1.001);*/
     
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
@@ -299,42 +294,25 @@ int main (int argc, char * argv[]) {
     SDP.add(Thermal_Limit_to.in(arcs));
     
     if(loss){
-        param<Cpx> T("T"), Y("Y"), Yt("Yt"), Ych("Ych"), Ycht("Ycht"), TY("TY");
-        var<Cpx> S("S"), L("L"), W("W");
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L("L"), W("W");
         T.real_imag(cc.in(arcs), dd.in(arcs));
-        TY.real_imag(rty.in(arcs), ity.in(arcs));
-        Yt.real_imag(g_tt.in(arcs), bt.in(arcs));
         Y.real_imag(g.in(arcs), b.in(arcs));
         Ych.set_imag(ch_half.in(arcs));
-        Ycht.set_imag(cht_half.in(arcs));
 
 
-                  L.set_real(lij.in(arcs));
+        L.set_real(lij.in(arcs));
         W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
   
         Constraint<Cpx> C1("C1");
-     // C1 = (Yt+Ycht)*(conj(Y)+conj(Ych))*Wii.from(arcs)-(conj(Yt)+conj(Ycht))*Y*T*conj(W)-conj(Yt)*(Y+Ych)*conj(T)*W+Y*conj(Y)*Wii.to(arcs);
-//        SDP.add(C1==L);
-    
-    
-//
-//        C1 = (Yt+Ycht)*(conj(Y)+conj(Ych))*Wii.from(arcs)-(conj(Yt)+conj(Ycht))*TY*conj(W)-conj(TY)*(Yt+Ycht)*W+Y*conj(Y)*Wii.to(arcs);
-//       SDP.add_real(C1.in(arcs)==L.in(arcs));
-    
-        
-        
-  
-       C1=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-          SDP.add_real(C1.in(arcs)==L.in(arcs));
+        C1=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SDP.add_real(C1.in(arcs)==pow(tr,2)*L.in(arcs));
 
     
         Constraint<> Loss_from("Loss_from");
         Loss_from = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
         SDP.add(Loss_from.in(arcs) <= 0);
-        
-            Constraint<> Loss_to("Loss_to");
-      Loss_to = (pow(Pf_to, 2) + pow(Qf_to, 2))*pow(tr,2)-w_max.to(arcs)*lij;
-        SDP.add(Loss_to.in(arcs) <= 0);
+    
 
         
         Constraint<> Loss_U("Loss_U");
@@ -342,24 +320,19 @@ int main (int argc, char * argv[]) {
         SDP.add(Loss_U.in(arcs) <= 0);
         
         
-        
-      Constraint<> Loss_C("Loss_C");
 
-        Loss_C = lij - pow(tr,2)*((pow(g_ff,2)+pow(b_ff,2))*Wii.from(arcs) + (pow(g_ft,2)+pow(b_ft,2))*Wii.to(arcs)
-                                 +(g_ff*g_ft+b_ff*b_ft)*2*R_Wij.in(arcs) +(g_ff*b_ft-b_ff*g_ft)*2*Im_Wij.in(arcs));
-
-     // SDP.add(Loss_C.in(arcs) == 0);
+//      Constraint<> Loss_C("Loss_C");
+//
+//        Loss_C = lij - pow(tr.in(arcs),2)*((pow(g_ff.in(arcs),2)+pow(b_ff.in(arcs),2))*Wii.from(arcs) + (pow(g_ft.in(arcs),2)+pow(b_ft.in(arcs),2))*Wii.to(arcs)
+//                                 +(g_ff.in(arcs)*g_ft.in(arcs)+b_ff.in(arcs)*b_ft.in(arcs))*2*R_Wij.in(arcs) +(g_ff.in(arcs)*b_ft.in(arcs)-b_ff.in(arcs)*g_ft.in(arcs))*2*Im_Wij.in(arcs));
+//
+//     SDP.add(Loss_C.in(arcs) == 0);
     
-          
-          Constraint<> Loss_C1("Loss_C1");
-          
-          Loss_C1 = lij - ((pow(g,2)+pow(b+ch*0.5,2))*Wii.from(arcs) + (pow(g,2)+pow(b,2))*Wii.to(arcs)
-                                    -2*((g*g+b*b+b*ch*0.5)*R_Wij +g*ch*0.5*Im_Wij));
-          
-          //SDP.add(Loss_C1.in(arcs) == 0);
+    }
+    
         
       
-    }
+    
     
     
     if (llnc)
@@ -379,10 +352,6 @@ int main (int argc, char * argv[]) {
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
     }
-    SDP.print();
- 
-
-        
     
     
     total_time_start = get_wall_time();
@@ -402,46 +371,6 @@ int main (int argc, char * argv[]) {
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
-    //    DebugOn("\nTime in nfp: " << time_in_all_nfp << endl);
-    
-    
-//    for(auto it:*(R_Wij.get_keys()))
-//        DebugOn("R_Wij "<<R_Wij.eval(it)<<endl);
-//
-//    for(auto it:*lij.get_vals())
-//        DebugOn("LIj "<<it<<endl);
-    
-//       DebugOn("R_Wij 115 121 "<<R_Wij.eval("115,121")<<endl);
-//       DebugOn("R_Wij 115 124 "<<R_Wij.eval("115,124")<<endl);
-    /*Loss_C.print();
-    Loss_C.print_symbolic();*/
-     
-
-    
-//    g_ff.print();
-//    g.print();
-//    b_ff.print();
-//    auto c_E=b+ch*0.5;
-//    c_E.print();
-//
-//    auto a=pow(tr,2)*(pow(g_ff,2)+pow(b_ff,2));
-//    a.print();
-//
-//    auto b_E=(pow(g,2)+pow(b+ch*0.5,2));
-//    b_E.print();
-//
-//    tr.print();
-//
-//    //C1.print();
-//
-//    w_min.print();
-//    w_max.print();
-    
-    
-//    for(size_t it=0; it<Loss_to.get_nb_instances(); it++)
-//        DebugOn("C "<<Loss_to.eval(it)<<endl);
-    
-
     
     return 0;
 
