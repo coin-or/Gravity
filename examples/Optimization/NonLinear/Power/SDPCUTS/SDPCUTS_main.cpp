@@ -21,12 +21,12 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss = false, llnc=true;
+    bool loss_from = false, llnc=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
-    string loss_s = "yes";
+    string loss_from_s = "yes";
     string lazy_s = "no";
     bool lazy_bool = false;
     SolverType solv_type = ipopt;
@@ -44,7 +44,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("l", "losses", "add loss constraints", loss_s);
+    opt.add_option("l", "losses", "add loss constraints", loss_from_s);
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -73,12 +73,12 @@ int main (int argc, char * argv[]) {
         lazy_bool = false;
     }
     
-    loss_s = opt["l"];
-    if (loss_s.compare("no")==0) {
-        loss = false;
+    loss_from_s = opt["l"];
+    if (loss_from_s.compare("no")==0) {
+        loss_from = false;
     }
     else {
-        loss = true;
+        loss_from = true;
     }
     
     num_bags = atoi(opt["b"].c_str());
@@ -150,13 +150,8 @@ int main (int argc, char * argv[]) {
     auto wi_max = grid.wi_max.in(bus_pairs_chord);
     auto cc=grid.cc.in(arcs);
     auto dd=grid.dd.in(arcs);
-    auto bt=grid.bt.in(arcs);
-    auto cht=grid.cht.in(arcs);
     auto ch_half=grid.ch_half.in(arcs);
-    auto cht_half=grid.cht_half.in(arcs);
-    auto rty=grid.rty.in(arcs);
-    auto ity=grid.ity.in(arcs);
-    auto Ya=grid.Y.in(arcs);
+
 
     
     double upper_bound = grid.solve_acopf();
@@ -177,7 +172,7 @@ int main (int argc, char * argv[]) {
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
     var<> lij("lij");
-    if(loss){
+    if(loss_from){
         SDP.add(lij.in(arcs));
     }
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
@@ -197,9 +192,9 @@ int main (int argc, char * argv[]) {
     SDP.add(Im_Wij.in(bus_pairs_chord));
     
     
-    /* Initialize variables
+    // Initialize variables
     R_Wij.initialize_all(1.0);
-    Wii.initialize_all(1.001);*/
+    Wii.initialize_all(1.001);
     
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
@@ -293,40 +288,31 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
     
-    if(loss){
+    if(loss_from){
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
-        var<Cpx> L("L"), W("W");
+        var<Cpx> L_from("L_from"), W("W");
         T.real_imag(cc.in(arcs), dd.in(arcs));
         Y.real_imag(g.in(arcs), b.in(arcs));
         Ych.set_imag(ch_half.in(arcs));
 
 
-        L.set_real(lij.in(arcs));
+        L_from.set_real(lij.in(arcs));
         W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
   
-        Constraint<Cpx> C1("C1");
-        C1=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SDP.add_real(C1.in(arcs)==pow(tr,2)*L.in(arcs));
+        Constraint<Cpx> I_from("I_from");
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from.in(arcs));
 
     
-        Constraint<> Loss_from("Loss_from");
-        Loss_from = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
-        SDP.add(Loss_from.in(arcs) <= 0);
+        Constraint<> I_from_L("I_from_L");
+        I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
+        SDP.add(I_from_L.in(arcs) <= 0);
     
 
         
-        Constraint<> Loss_U("Loss_U");
-        Loss_U = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDP.add(Loss_U.in(arcs) <= 0);
-        
-        
-
-//      Constraint<> Loss_C("Loss_C");
-//
-//        Loss_C = lij - pow(tr.in(arcs),2)*((pow(g_ff.in(arcs),2)+pow(b_ff.in(arcs),2))*Wii.from(arcs) + (pow(g_ft.in(arcs),2)+pow(b_ft.in(arcs),2))*Wii.to(arcs)
-//                                 +(g_ff.in(arcs)*g_ft.in(arcs)+b_ff.in(arcs)*b_ft.in(arcs))*2*R_Wij.in(arcs) +(g_ff.in(arcs)*b_ft.in(arcs)-b_ff.in(arcs)*g_ft.in(arcs))*2*Im_Wij.in(arcs));
-//
-//     SDP.add(Loss_C.in(arcs) == 0);
+        Constraint<> I_from_U("I_from_U");
+        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+        SDP.add(I_from_U.in(arcs) <= 0);
     
     }
     
