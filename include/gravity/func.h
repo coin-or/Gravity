@@ -1339,6 +1339,7 @@ namespace gravity {
                     _lterms->erase(pair_it);
                     if(is_constant()){
                         _ftype = const_;
+                        _val->resize(1);
                     }
                 }
                 return false;
@@ -6115,6 +6116,7 @@ namespace gravity {
                     }
                     if(is_constant()){
                         _ftype = const_;
+                        _val->resize(1);
                     }
                     //                update_sign();
                     //                update_convexity();
@@ -6243,6 +6245,7 @@ namespace gravity {
                     }
                     if(is_constant()){
                         _ftype = const_;
+                        _val->resize(1);
                     }
                     //                update_sign();
                     //                update_convexity();
