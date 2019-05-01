@@ -6367,7 +6367,7 @@ namespace gravity {
             if(p1.is_positive() || p1.is_negative()){
                 res._range->first=extended_mult(p1._range->first,p1._range->first);
             }
-            res._range->second=extended_mult(p1._range->second,p1._range->second);
+            res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
         }
         else {
             res._range = get_product_range(p1._range,p2._range);
@@ -6431,7 +6431,7 @@ namespace gravity {
             if(p1.is_positive() || p1.is_negative()){
                 res._range->first=extended_mult(p1._range->first,p1._range->first);
             }
-            res._range->second=extended_mult(p1._range->second,p1._range->second);
+            res._range->second=extended_mult(std::max(std::abs(p1._range->second),std::abs(p1._range->first)),std::max(std::abs(p1._range->second),std::abs(p1._range->first)));
         }
         else {
             res._range = get_product_range(p1._range,p2._range);
