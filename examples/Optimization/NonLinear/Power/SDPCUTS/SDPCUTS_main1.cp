@@ -21,13 +21,12 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss = false, llnc=true;
+    bool loss = true, llnc=false;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
-    string loss_s = "yes";
-    string lazy_s = "no";
+    string lazy = "no";
     bool lazy_bool = false;
     SolverType solv_type = ipopt;
     double tol = 1e-6;
@@ -44,8 +43,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("l", "losses", "add loss constraints", loss_s);
-    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
+    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
     
@@ -68,14 +66,9 @@ int main (int argc, char * argv[]) {
     }else if(solver_str.compare("Mosek")==0) {
         solv_type = mosek;
     }
-    lazy_s = opt["lz"];
-    if (lazy_s.compare("no")==0) {
+    lazy = opt["lz"];
+    if (lazy.compare("no")==0) {
         lazy_bool = false;
-    }
-    
-    loss_s = opt["l"];
-    if (loss_s.compare("no")==0) {
-        loss = false;
     }
     
     num_bags = atoi(opt["b"].c_str());
@@ -156,8 +149,7 @@ int main (int argc, char * argv[]) {
     /*auto Y=grid.Y.in(arcs);
     auto Ych=grid.Ych.in(arcs);*/
     //    auto V_sq_max=1.21;
-    /*auto V_sq_min=0.81;
-    auto V_sq_max=1.21;*/
+    auto V_sq_min=0.81;
     
     double upper_bound = grid.solve_acopf();
     
@@ -176,25 +168,25 @@ int main (int argc, char * argv[]) {
     var<> Qf_from("Qf_from", -1.*S_max,S_max);
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
-    var<> lij("lij");
+    var<> lij("lij", pos_);
     if(loss){
         SDP.add(lij.in(arcs));
     }
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
-    
+    /*
       //Real part of Wij = ViVj
-    var<>  R_Wij("R_Wij", wr_min, wr_max);
+    var<>  R_Wij("R_Wij", -1.21, 1.21);
      //Imaginary part of Wij = ViVj
-    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
+    var<>  Im_Wij("Im_Wij", -1.21, 1.21);
      //Magnitude of Wii = Vi^2
+    */
     
-    
-    /* Real part of Wij = ViVj
+    /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", wr_min, wr_max);
-     Imaginary part of Wij = ViVj
+    /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", wi_min, wi_max);
-     Magnitude of Wii = Vi^2 */
+    /* Magnitude of Wii = Vi^2 */
     
     var<>  Wii("Wii", w_min, w_max);
     SDP.add(Wii.in(nodes));
@@ -260,19 +252,19 @@ int main (int argc, char * argv[]) {
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs));
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij + b_ft*Im_Wij);
     SDP.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs));
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij - b_tf*Im_Wij);
     SDP.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs));
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij - b_ff*Wii.from(arcs) - b_ft*R_Wij);
     SDP.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs);
+    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij + g_tf*Im_Wij;
     SDP.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
@@ -298,8 +290,8 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
     
-    if(loss){
-        param<Cpx> T("T"), Y("Y"), Yt("Yt"), Ych("Ych"), Ycht("Ycht"), TY("TY");
+    
+    param<Cpx> T("T"), Y("Y"), Yt("Yt"), Ych("Ych"), Ycht("Ycht"), TY("TY");
         var<Cpx> S("S"), L("L"), W("W");
         T.real_imag(cc.in(arcs), dd.in(arcs));
         TY.real_imag(rty.in(arcs), ity.in(arcs));
@@ -317,15 +309,13 @@ int main (int argc, char * argv[]) {
 //        SDP.add(C1==L);
     
     
-//
-//        C1 = (Yt+Ycht)*(conj(Y)+conj(Ych))*Wii.from(arcs)-(conj(Yt)+conj(Ycht))*TY*conj(W)-conj(TY)*(Yt+Ycht)*W+Y*conj(Y)*Wii.to(arcs);
-//       SDP.add_real(C1.in(arcs)==L.in(arcs));
     
-        
-        
+    C1 = (Yt+Ycht)*(conj(Y)+conj(Ych))*Wii.from(arcs)-(conj(Yt)+conj(Ycht))*TY*conj(W)-conj(TY)*(Yt+Ycht)*W+Y*conj(Y)*Wii.to(arcs);
+    SDP.add(C1.in(arcs)==L.in(arcs));
+    
   
-       C1=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-          SDP.add_real(C1.in(arcs)==L.in(arcs));
+    //C1 = (Yt+Ycht)*(conj(Y)+conj(Ych))*Wii.from(arcs)-(conj(Yt)+conj(Ycht))*Y*conj(W)-conj(Y)*(Yt+Ycht)*W+Y*conj(Y)*Wii.to(arcs);
+         //  SDP.add(C1.in(arcs)==L.in(arcs));
 
     
         Constraint<> Loss_from("Loss_from");
@@ -333,9 +323,8 @@ int main (int argc, char * argv[]) {
         SDP.add(Loss_from.in(arcs) <= 0);
         
             Constraint<> Loss_to("Loss_to");
-      Loss_to = (pow(Pf_to, 2) + pow(Qf_to, 2))*pow(tr,2)-w_max.to(arcs)*lij;
+        Loss_to = (pow(Pf_to, 2) + pow(Qf_to, 2))*pow(tr,2)-w_max.to(arcs)*lij;
         SDP.add(Loss_to.in(arcs) <= 0);
-
         
         Constraint<> Loss_U("Loss_U");
         Loss_U = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
@@ -346,10 +335,10 @@ int main (int argc, char * argv[]) {
       Constraint<> Loss_C("Loss_C");
 
         Loss_C = lij - pow(tr,2)*((pow(g_ff,2)+pow(b_ff,2))*Wii.from(arcs) + (pow(g_ft,2)+pow(b_ft,2))*Wii.to(arcs)
-                                 +(g_ff*g_ft+b_ff*b_ft)*2*R_Wij.in(arcs) +(g_ff*b_ft-b_ff*g_ft)*2*Im_Wij.in(arcs));
+                                  +(g_ff*g_ft+b_ff*b_ft)*2*R_Wij +(g_ff*b_ft-b_ff*g_ft)*2*Im_Wij);
 
-     // SDP.add(Loss_C.in(arcs) == 0);
-    
+        SDP.add(Loss_C.in(arcs) == 0);
+          
           
           Constraint<> Loss_C1("Loss_C1");
           
@@ -359,7 +348,7 @@ int main (int argc, char * argv[]) {
           //SDP.add(Loss_C1.in(arcs) == 0);
         
       
-    }
+        
     
     
     if (llnc)
@@ -381,7 +370,8 @@ int main (int argc, char * argv[]) {
     }
     SDP.print();
  
-
+    g_ff.print();
+    g.print();
         
     
     
@@ -405,41 +395,40 @@ int main (int argc, char * argv[]) {
     //    DebugOn("\nTime in nfp: " << time_in_all_nfp << endl);
     
     
-//    for(auto it:*(R_Wij.get_keys()))
-//        DebugOn("R_Wij "<<R_Wij.eval(it)<<endl);
-//
-//    for(auto it:*lij.get_vals())
-//        DebugOn("LIj "<<it<<endl);
+    for(auto it:*(R_Wij.get_keys()))
+        DebugOn("R_Wij "<<R_Wij.eval(it)<<endl);
     
-//       DebugOn("R_Wij 115 121 "<<R_Wij.eval("115,121")<<endl);
-//       DebugOn("R_Wij 115 124 "<<R_Wij.eval("115,124")<<endl);
+    for(auto it:*lij.get_vals())
+        DebugOn("LIj "<<it<<endl);
+    
+  
     /*Loss_C.print();
     Loss_C.print_symbolic();*/
      
 
     
-//    g_ff.print();
-//    g.print();
-//    b_ff.print();
-//    auto c_E=b+ch*0.5;
-//    c_E.print();
-//
-//    auto a=pow(tr,2)*(pow(g_ff,2)+pow(b_ff,2));
-//    a.print();
-//
-//    auto b_E=(pow(g,2)+pow(b+ch*0.5,2));
-//    b_E.print();
-//
-//    tr.print();
-//
-//    //C1.print();
-//
-//    w_min.print();
-//    w_max.print();
+    g_ff.print();
+    g.print();
+    b_ff.print();
+    auto c_E=b+ch*0.5;
+    c_E.print();
+    
+    auto a=pow(tr,2)*(pow(g_ff,2)+pow(b_ff,2));
+    a.print();
+    
+    auto b_E=(pow(g,2)+pow(b+ch*0.5,2));
+    b_E.print();
+    
+    tr.print();
+    
+    //C1.print();
+    
+    w_min.print();
+    w_max.print();
     
     
-//    for(size_t it=0; it<Loss_to.get_nb_instances(); it++)
-//        DebugOn("C "<<Loss_to.eval(it)<<endl);
+    for(size_t it=0; it<Loss_to.get_nb_instances(); it++)
+        DebugOn("C "<<SDP.get_constraint("Loss_to")->eval(it)<<endl);
     
 
     
