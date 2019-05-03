@@ -1187,7 +1187,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
 {
-    bool relax, sdp_cuts = true, soc=true, loss_to=false, llnc=true, lazy_bool = true;
+    bool relax, sdp_cuts = true, soc=true, loss_to=false, llnc=true, lazy_bool = false;
     size_t num_bags = 0;
     string num_bags_s = "100";
 
@@ -1196,7 +1196,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
     cout << "\nnum bags = " << num_bags << endl;
     
     
-    grid.get_tree_decomp_bags(false,true);
+    
     
     /* Grid Stats */
     auto nb_gen = grid.get_nb_active_gens();
