@@ -87,7 +87,7 @@ int main (int argc, char * argv[]) {
     
     PowerNet grid;
     grid.readgrid(fname);
-    
+    grid.get_tree_decomp_bags(false,true);
     
     double solver_time_start = get_wall_time();
     vector<shared_ptr<Model<>>> batch_models;
