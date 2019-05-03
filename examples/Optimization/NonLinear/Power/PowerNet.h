@@ -279,6 +279,7 @@ public:
     
     unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+    double solve_sdpopf(bool loss_from, int output, double tol);
     unique_ptr<Model<>> build_ROMDST(PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
     shared_ptr<Model<>> build_SCOPF(PowerModelType Model=LDISTF, int output=5, double tol=1e-6);
     shared_ptr<Model<>> build_ROMDST_contingency(const string& name, PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
@@ -289,5 +290,6 @@ public:
 };
 
 shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false);
 
 #endif
