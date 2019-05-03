@@ -97,27 +97,34 @@ int main (int argc, char * argv[]) {
     auto SDP= build_SDPOPF(grid, loss_from);
     /** Build model */
    auto var_map=SDP->_vars_name;
+   auto count_map=0;
+    auto count_var=0;
         for(auto it:var_map)
         {
+            count_map++;
         std::string vname=it.first;
         var<> v=SDP->get_var<double>(vname);
         auto v_keys=v.get_keys();
+            count_var=0;
+        
         for(auto key: *v_keys)
         {
-        auto SDP1= build_SDPOPF(grid, loss_from);
-        SDP1->min(v(key));
-        SDP1->print();
+            count_var++;
+            auto SDP1= build_SDPOPF(grid, loss_from);
+            var<> v1=SDP1->get_var<double>(vname);
+        SDP1->min(v1(key));
+      //  SDP1->print();
         batch_models.push_back(SDP1);
-                if (batch_models.size()==nb_threads)
+                if (batch_models.size()==nb_threads || (count_map==var_map.size() && count_var==v.get_dim()))
                 {
                     double batch_time_start = get_wall_time();
-                    run_parallel(batch_models,ipopt,1e-6,2,"ma27");
+                    run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
                     double batch_time_end = get_wall_time();
                     auto batch_time = batch_time_end - batch_time_start;
-                   // DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                    DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
                     batch_models.clear();
                 
-                    //auto SDP= build_SDPOPF(grid, loss_from);
+               /// auto SDP= build_SDPOPF(grid, loss_from);
                 }
             }
                     }
