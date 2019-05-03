@@ -55,6 +55,9 @@ public:
 
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
+    
+    /** Indices */
+    gravity::indices bus_pairs = gravity::indices("bus_pairs"), bus_pairs_chord = gravity::indices("bus_pairs_chordal");
 
     bool duplicate(std::string name1, std::string name2, int id1);
 
@@ -132,6 +135,7 @@ public:
 
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     gravity::indices get_bus_pairs();
+    
 
     /** Compute the tree decomposition bags **/
     void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques.

@@ -633,14 +633,19 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
 
 /** Return the vector of arcs ignoring parallel lines **/
 indices Net::get_bus_pairs(){
-    indices bpairs("bus_pairs");
+    if(!bus_pairs.empty()){
+        return bus_pairs;
+    }
     for (auto a: arcs) {
         if (!a->_parallel) {
-            bpairs.add(a->_src->_name+","+a->_dest->_name);
+            bus_pairs.add(a->_src->_name+","+a->_dest->_name);
         }
     }
-    return bpairs;
+    return bus_pairs;
 }
+
+
+
 
 
 

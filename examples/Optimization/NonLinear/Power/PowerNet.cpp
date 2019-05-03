@@ -1471,15 +1471,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
 }
 
 
-
 /** Return the vector of arcs of the chordal completion ignoring parallel lines **/
 indices PowerNet::get_bus_pairs_chord(){
+    if(!this->bus_pairs_chord.empty()){
+        return this->bus_pairs_chord;
+    }
     set<pair<Node*,Node*>> unique_pairs;
-    indices bpairs("bus_pairs");
     for (auto a: arcs) {
         if (!a->_parallel) {
             unique_pairs.insert({a->_src,a->_dest});
-            bpairs.add(a->_src->_name+","+a->_dest->_name);
+            bus_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
         }
     }
     string key;
@@ -1521,7 +1522,7 @@ indices PowerNet::get_bus_pairs_chord(){
                 wr_min.add_val(name,wr_min_);
                 wi_max.add_val(name,wi_max_);
                 wi_min.add_val(name,wi_min_);
-                bpairs.add(name);
+                bus_pairs_chord.add(name);
             }
         }
         /* Loop back pair */
@@ -1542,11 +1543,13 @@ indices PowerNet::get_bus_pairs_chord(){
             wr_min.add_val(name,wr_min_);
             wi_max.add_val(name,wi_max_);
             wi_min.add_val(name,wi_min_);
-            bpairs.add(name);
+            bus_pairs_chord.add(name);
         }
     }
-    return bpairs;
+    return bus_pairs_chord;
 }
+
+
 
 double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     
