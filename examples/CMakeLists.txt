@@ -9,6 +9,7 @@ include_directories(${PROJECT_INCLUDE_DIR})
 
 # the RPATH to be used when installing, but only if it's not a system directory
 #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.h)
 
 file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/ModelLearning/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/MinKPart/*.cpp)
@@ -35,7 +36,7 @@ add_executable(dcopf ${DCOPF_SOURCES} ${Power_SOURCES})
 add_executable(socopf ${SOCOPF_SOURCES} ${Power_SOURCES})
 #add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 add_executable(sdpcuts ${SDPOPF_SOURCES} ${Power_SOURCES})
-add_executable(obbt ${SDPOPF_SOURCES} ${Power_SOURCES} ${OBBT_SOURCES})
+add_executable(obbt ${Power_SOURCES} ${OBBT_SOURCES} ${HEADERS})
 #add_executable(sdpchordal ${SDPSTATIC_SOURCES} ${Power_SOURCES})
 add_executable(svm ${ML_SOURCES} ${SVM_SOURCES})
 #add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
