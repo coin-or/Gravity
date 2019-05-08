@@ -142,6 +142,7 @@ namespace gravity {
         
         
     public:
+
         bool                            _has_lazy = false; /**< Has lazy constraints. */
         bool                            _built = false; /**< Indicates if this model has been already built. */
         bool                            _first_run = true; /**< Indicates if a solver was ran on this model. */

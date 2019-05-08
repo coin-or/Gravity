@@ -50,6 +50,18 @@ PowerNet::PowerNet() {
     pv_varcost.set_name("pv_varcost");
     pg_s.set_name("pg_s");
     qg_s.set_name("qg_s");
+    pf_from_min.set_name("pf_from_min");
+    pf_from_max.set_name("pf_from_max");
+    qf_from_min.set_name("qf_from_min");
+    qf_from_max.set_name("qf_from_max");
+    pf_to_min.set_name("pf_to_min");
+    pf_to_max.set_name("pf_to_max");
+    qf_to_min.set_name("qf_to_min");
+    qf_to_max.set_name("qf_to_max");
+    lij_min.set_name("lij_min");
+    lij_max.set_name("lij_max");
+    lji_min.set_name("lji_min");
+    lji_max.set_name("lji_min");
     cb_f.set_name("cb_f");
     cb_v.set_name("cb_v");
     c0.set_name("c0");
@@ -570,6 +582,19 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         ch.add_val(name,arc->ch);
 //        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
+        pf_from_max.add_val(name, arc->limit);
+        pf_from_min.add_val(name, (arc->limit)*(-1));
+        qf_from_max.add_val(name, arc->limit);
+        qf_from_min.add_val(name, (arc->limit)*(-1));
+        pf_to_max.add_val(name, arc->limit);
+        pf_to_min.add_val(name, (arc->limit)*(-1));
+        qf_to_max.add_val(name, arc->limit);
+        qf_to_min.add_val(name, (arc->limit)*(-1));
+        lij_min.add_val(name, 0);
+        lij_max.add_val(name, pow(arc->tr,2)*pow(arc->limit, 2)/pow(bus_s->vbound.min,2));
+        lji_min.add_val(name, 0);
+        lji_max.add_val(name, pow(arc->limit, 2)/pow(bus_d->vbound.min,2));
+        
         
         /* Complex params */
         Y.add_val(name,Cpx(arc->g,arc->b));
@@ -1185,7 +1210,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     return ACOPF;
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bound)
 {
     bool relax, sdp_cuts = true, soc=true, loss_to=false, llnc=true, lazy_bool = false;
     size_t num_bags = 0;
@@ -1224,6 +1249,18 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
     auto pg_max = grid.pg_max.in(gens);
     auto qg_min = grid.qg_min.in(gens);
     auto qg_max = grid.qg_max.in(gens);
+    auto pf_from_min=grid.pf_from_min.in(arcs);
+    auto pf_from_max=grid.pf_from_max.in(arcs);
+    auto qf_from_min=grid.qf_from_min.in(arcs);
+    auto qf_from_max=grid.qf_from_max.in(arcs);
+    auto pf_to_min=grid.pf_to_min.in(arcs);
+    auto pf_to_max=grid.pf_to_max.in(arcs);
+    auto qf_to_min=grid.qf_to_min.in(arcs);
+    auto qf_to_max=grid.qf_to_max.in(arcs);
+    auto lij_min=grid.lij_min.in(arcs);
+    auto lij_max=grid.lij_max.in(arcs);
+    auto lji_min=grid.lji_min.in(arcs);
+    auto lji_max=grid.lji_max.in(arcs);
     auto c1 = grid.c1.in(gens);
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
@@ -1270,12 +1307,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
     SDPOPF->add(Pg.in(gens),Qg.in(gens));
     
     /* Power flow variables */
-    var<> Pf_from("Pf_from", -1.*S_max,S_max);
-    var<> Qf_from("Qf_from", -1.*S_max,S_max);
-    var<> Pf_to("Pf_to", -1.*S_max,S_max);
-    var<> Qf_to("Qf_to", -1.*S_max,S_max);
-    var<> lij("lij", pos_);
-    var<> lji("lji", pos_);
+    var<> Pf_from("Pf_from", pf_from_min,pf_from_max);
+    var<> Qf_from("Qf_from", qf_from_min,qf_from_max);
+    var<> Pf_to("Pf_to", pf_to_min,pf_to_max);
+    var<> Qf_to("Qf_to", qf_to_min,qf_to_max);
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
     if(loss_from){
         SDPOPF->add(lij.in(arcs));
     }
@@ -1306,6 +1343,10 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from)
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDPOPF->min(obj);
+    
+    Constraint<> UB("UB");
+    UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    SDPOPF->add(UB<=upper_bound);
     
     
     /** Constraints */
@@ -1563,7 +1604,8 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
 
 double PowerNet::solve_sdpopf(bool loss_from, int output, double tol){
     bool relax;
-    auto SDPOPF = build_SDPOPF(*this, loss_from);
+    double upper_bound=solve_acopf(ACPOL, output, tol);
+    auto SDPOPF = build_SDPOPF(*this, loss_from, upper_bound);
     solver<> OPF(SDPOPF,ipopt);
     //    auto mipgap = 1e-6;
     OPF.run(output, tol);
