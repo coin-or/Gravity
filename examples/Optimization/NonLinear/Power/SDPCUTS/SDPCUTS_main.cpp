@@ -21,12 +21,13 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = false, llnc=true;
+    bool loss_from = false, llnc=true, loss_to=false;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string loss_from_s = "yes";
+    string loss_to_s="no";
     string lazy_s = "no";
     bool lazy_bool = false;
     SolverType solv_type = ipopt;
@@ -44,7 +45,8 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("l", "losses", "add loss constraints", loss_from_s);
+    opt.add_option("lf", "losses_from", "add from loss constraints", loss_from_s);
+    opt.add_option("lt", "losses_to", "add to loss constraints", loss_to_s);
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -73,12 +75,22 @@ int main (int argc, char * argv[]) {
         lazy_bool = false;
     }
     
-    loss_from_s = opt["l"];
+    loss_from_s = opt["lf"];
     if (loss_from_s.compare("no")==0) {
         loss_from = false;
     }
     else {
         loss_from = true;
+    }
+    
+    
+    
+    loss_to_s = opt["lt"];
+    if (loss_to_s.compare("no")==0) {
+        loss_to = false;
+    }
+    else {
+        loss_to = true;
     }
     
     num_bags = atoi(opt["b"].c_str());
@@ -174,6 +186,10 @@ int main (int argc, char * argv[]) {
     var<> lij("lij");
     if(loss_from){
         SDP.add(lij.in(arcs));
+    }
+    var<> lji("lji", pos_);
+    if(loss_to){
+        SDP.add(lji.in(arcs));
     }
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
@@ -316,7 +332,34 @@ int main (int argc, char * argv[]) {
     
     }
     
+    if(loss_to){
         
+            param<Cpx> T("T"), Y("Y"), Ych("Ych");
+            var<Cpx> L_to("L_to"), W("W");
+            T.real_imag(cc.in(arcs), dd.in(arcs));
+            Y.real_imag(g.in(arcs), b.in(arcs));
+            Ych.set_imag(ch_half.in(arcs));
+            
+            
+            L_to.set_real(lji.in(arcs));
+            W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
+            
+            Constraint<Cpx> I_to("I_to");
+            I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-T*conj(Y)*(Y+Ych)*conj(W)-conj(T)*Y*(conj(Y)+conj(Ych))*W+Y*conj(Y)*Wii.from(arcs);
+            SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+            
+            
+            Constraint<> I_to_L("I_to_L");
+            I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-w_max.to(arcs)*lji;
+            SDP.add(I_to_L.in(arcs) <= 0);
+            
+            
+            
+            Constraint<> I_to_U("I_to_U");
+            I_to_U = w_min.to(arcs)*lji - pow(S_max,2);
+            SDP.add(I_to_U.in(arcs) <= 0);
+            
+        }
       
     
     
@@ -357,6 +400,11 @@ int main (int argc, char * argv[]) {
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
+        
+        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
+        ofstream fout(result_name.c_str(), ios_base::app);
+    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
+        
     
     return 0;
 
