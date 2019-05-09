@@ -180,64 +180,53 @@ namespace gravity {
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         
-        Model(const Model& m){
-            _name = m._name;
-            _hess = m._hess;
-            _nl_funcs =m._nl_funcs;
-            _nl_funcs_map = m._nl_funcs_map;
-            _has_lazy = m._has_lazy;
-            _convexity = m._convexity;
-            _type = m._type;
-            _nb_vars = m._nb_vars;
-            _nb_params = m._nb_params;
-            _nb_cons = m._nb_cons;
-            _nnz_g = m._nnz_g;
-            _nnz_h = m._nnz_h;
-            _nnz_g_obj = m._nnz_g_obj;
-            for(auto &vp: m._vars){
+        shared_ptr<Model<type>> copy() const{
+            shared_ptr<Model<type>> cpy = make_shared<Model<type>>();
+            cpy->_name = _name;
+            for(auto &vp: _vars){
                 switch (vp.second->get_intype()) {
                     case binary_: {
                         auto vv = *static_pointer_cast<var<bool>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case short_: {
                         auto vv = *static_pointer_cast<var<short>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case integer_: {
                         auto vv = *static_pointer_cast<var<int>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case float_: {
                         auto vv = *static_pointer_cast<var<float>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case double_: {
                         auto vv = *static_pointer_cast<var<double>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case long_: {
                         auto vv = *static_pointer_cast<var<long double>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                     case complex_: {
                         auto vv = *static_pointer_cast<var<Cpx>>(vp.second);
-                        add(vv);
+                        cpy->add(vv);
                         break;
                     }
                 }
             }
-            for(auto &cp: m._cons){
-                add(*cp.second);
+            for(auto &cp: _cons){
+                cpy->add(*cp.second);
             }
-            _obj = make_shared<func<>>(*m._obj);
-            _objt = m._objt;
+            cpy->set_objective(*_obj, _objt);
+            return cpy;
         }
         
         //        Model& operator=(const Model& m){
