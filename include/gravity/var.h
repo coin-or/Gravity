@@ -77,6 +77,8 @@ namespace gravity {
         
         var(const var<type>& v);
         var(var<type>&& v);
+        
+        void deep_copy(const var<type>& v);
         //@}
         
         shared_ptr<param_> pcopy() const{return make_shared<var>(*this);};

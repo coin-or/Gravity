@@ -92,7 +92,7 @@ int main (int argc, char * argv[]) {
     grid.readgrid(fname);
     grid.get_tree_decomp_bags(false,true);
     
-
+    
     
     
     
@@ -105,84 +105,76 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6);
     double lower_bound=SDP->get_obj_val();
     
-    auto var_map=SDP->_vars_name;
     double solver_time_start = get_wall_time();
     vector<shared_ptr<Model<>>> batch_models;
-    map<pair<string, string>, int> f_map;
+    map<pair<string, string>, int> fixed_point;
     string vname;
     string mname;
     string key;
     string dir_array[2]={"LB", "UB"};
-    bool term=false;
+    bool terminate=false;
     const double upp_low_tol=1e-3, range_tol=0.02;
-    int count_vname, count_vkey;
     if (upper_bound-lower_bound>=upp_low_tol)
     {
-        
-        
-        for(auto it:var_map)
+        for(auto &it:SDP->_vars_name)
         {
             string vname=it.first;
             var<> v=SDP->get_var<double>(vname);
             auto v_keys=v.get_keys();
-            
-            for(auto key: *v_keys)
+            for(auto &key: *v_keys)
             {
                 auto p=make_pair(vname, key);
-                f_map[p]=false;
+                fixed_point[p]=false;
             }
             
         }
-//        if(SDP->_obj->is_linear())
-//        {
-//            Constraint<> obj_lower("obj_lower");
-//            obj_lower = *(SDP->_obj);
-//            SDP->add(obj_lower>=lower_bound);
-//        }
+        //        if(SDP->_obj->is_linear())
+        //        {
+        //            Constraint<> obj_lower("obj_lower");
+        //            obj_lower = *(SDP->_obj);
+        //            SDP->add(obj_lower>=lower_bound);
+        //        }
         
-        while(!term)
+        while(!terminate)
         {
-            count_vname=0;
-        for(auto it:var_map)
-        {
-            count_vname++;
-            vname=it.first;
-            var<> v=SDP->get_var<double>(vname);
-            count_vkey=0;
-            for(auto key: *(v.get_keys()))
+            for(auto &it:SDP->_vars_name)
             {
-                count_vkey++;
-                auto p=make_pair(vname, key);
-                if(f_map[p]==false)
+                vname=it.first;
+                var<> v=SDP->get_var<double>(vname);
+                for(auto &key: *(v.get_keys()))
                 {
-                for(string dir: dir_array)
-                {
-                   auto modelk=SDP;
-                   // auto modelk=build_SDPOPF(grid, loss_from, upper_bound);
-                    mname=vname+"."+key+"."+dir;
-                    modelk->set_name(mname);
-                    if(dir=="LB")
+                    auto p=make_pair(vname, key);
+                    if(fixed_point[p]==false)
                     {
-                        modelk->min(v(key));
+                        for(auto &dir: dir_array)
+                        {
+                            auto modelk = make_shared<Model<>>(*SDP);
+                            // auto modelk=build_SDPOPF(grid, loss_from, upper_bound);
+                            mname=vname+"."+key+"."+dir;
+                            modelk->set_name(mname);
+                            if(dir=="LB")
+                            {
+                                modelk->min(v(key));
+                            }
+                            else
+                            {
+                                modelk->max(v(key));
+                            }
+                            batch_models.push_back(modelk);
+                            if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
+                            {
+                                double batch_time_start = get_wall_time();
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
+                                double batch_time_end = get_wall_time();
+                                auto batch_time = batch_time_end - batch_time_start;
+                                DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                
+                            }
+                        }
                     }
-                    else
-                    {
-                          modelk->min(v(key)*(-1));
-                    }
-                    batch_models.push_back(modelk);
-                         if (batch_models.size()==nb_threads || (count_vname==var_map.size() && count_vkey==v.get_dim() && dir=="UB"))
-                         {    double batch_time_start = get_wall_time();
-                             run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
-                             double batch_time_end = get_wall_time();
-                             auto batch_time = batch_time_end - batch_time_start;
-                             DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
-                             
-                         }
-                }
                 }
             }
-        }
-        
+            terminate = true;
         }
     }
     return 0;
