@@ -99,7 +99,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     /*Code Assumes number of threads is even and greater than or equal to 2*/
 //    int nb_threads = thread::hardware_concurrency();
-    int nb_threads = 1;
+    int nb_threads = 2;
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
@@ -141,7 +141,7 @@ int main (int argc, char * argv[]) {
             for(auto &it:SDP->_vars_name)
             {
                 vname=it.first;
-                var<> v=SDP->get_var<double>(vname);
+                auto v = SDP->get_var<double>(vname);
                 for(auto &key: *(v.get_keys()))
                 {
                     auto p=make_pair(vname, key);
@@ -153,13 +153,14 @@ int main (int argc, char * argv[]) {
                             // auto modelk=build_SDPOPF(grid, loss_from, upper_bound);
                             mname=vname+"."+key+"."+dir;
                             modelk->set_name(mname);
+                            auto v1 = modelk->get_var<double>(vname);
                             if(dir=="LB")
                             {
-                                modelk->min(v(key));
+                                modelk->min(v1(key));
                             }
                             else
                             {
-                                modelk->max(v(key));
+                                modelk->max(v1(key));
                             }
                             modelk->print();
                             batch_models.push_back(modelk);
@@ -170,13 +171,13 @@ int main (int argc, char * argv[]) {
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
-                                
+                                batch_models.clear();
                             }
                         }
                     }
                 }
             }
-            terminate = true;
+//            terminate = true;
         }
     }
     return 0;

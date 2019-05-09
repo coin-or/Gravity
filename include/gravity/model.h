@@ -180,6 +180,74 @@ namespace gravity {
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         
+        
+        void merge_vars(const shared_ptr<expr<type>>& e){/**<  Transfer all variables and parameters to the model. */
+            switch (e->get_type()) {
+                case uexp_c:{
+                    auto ue = (uexpr<type>*)e.get();
+                    if (ue->_son->is_function()) {
+                        auto f = static_pointer_cast<func<type>>(ue->_son);
+                        merge_vars(f);
+                    }
+                    break;
+                }
+                case bexp_c:{
+                    auto be = (bexpr<type>*)e.get();
+                    if (be->_lson->is_function()) {
+                        auto f = static_pointer_cast<func<type>>(be->_lson);
+                        merge_vars(f);
+                    }
+                    if (be->_rson->is_function()) {
+                        auto f = static_pointer_cast<func<type>>(be->_rson);
+                        merge_vars(f);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        
+        /**
+         Subfuntion of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+         @param[in] f function to merge variables and parameters with.
+         */
+        void merge_vars(const shared_ptr<func<type>>& f){
+            for (auto &pair:*f->_lterms) {
+                auto p = pair.second._p;
+                if (p->is_var()) {
+                    auto pid = *p->_vec_id;
+                    p->share_vals(_vars.at(pid));
+                }
+            }
+            for (auto &pair:*f->_qterms) {
+                auto coef = pair.second._coef;
+                auto p1 = pair.second._p->first;
+                auto p2 = pair.second._p->second;
+                if (p1->is_var()) {
+                    auto pid1 = *p1->_vec_id;
+                    p1->share_vals(_vars.at(pid1));
+                }
+                if (p2->is_var()) {
+                    auto pid2 = *p2->_vec_id;
+                    p2->share_vals(_vars.at(pid2));
+                }
+            }
+            for (auto &pair:*f->_pterms) {
+                auto list = pair.second._l;
+                for (auto &ppi: *list) {
+                    auto p = ppi.first;
+                    if (p->is_var()) {
+                        auto pid = *p->_vec_id;
+                        ppi.first->share_vals(_vars.at(pid));
+                    }
+                }
+            }
+            if (f->_expr) {
+                merge_vars(f->_expr);
+            }
+        }
+        
         shared_ptr<Model<type>> copy() const{
             shared_ptr<Model<type>> cpy = make_shared<Model<type>>();
             cpy->_name = _name;
@@ -187,43 +255,44 @@ namespace gravity {
                 switch (vp.second->get_intype()) {
                     case binary_: {
                         auto vv = *static_pointer_cast<var<bool>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case short_: {
                         auto vv = *static_pointer_cast<var<short>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case integer_: {
                         auto vv = *static_pointer_cast<var<int>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case float_: {
                         auto vv = *static_pointer_cast<var<float>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case double_: {
                         auto vv = *static_pointer_cast<var<double>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case long_: {
                         auto vv = *static_pointer_cast<var<long double>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                     case complex_: {
                         auto vv = *static_pointer_cast<var<Cpx>>(vp.second);
-                        cpy->add(vv);
+                        cpy->add(vv.deep_copy());
                         break;
                     }
                 }
             }
             for(auto &cp: _cons){
                 cpy->add(*cp.second);
+                cpy->merge_vars(cpy->_cons_vec.back());
             }
             cpy->set_objective(*_obj, _objt);
             return cpy;
@@ -2383,6 +2452,7 @@ namespace gravity {
             }
         }
         
+
         
         void embed(expr<type>& e){/**<  Transfer all variables and parameters to the model. */
             switch (e.get_type()) {

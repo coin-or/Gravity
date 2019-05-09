@@ -2416,7 +2416,7 @@ namespace gravity {
             }
             _range->first = f._range->first;
             _range->second = f._range->second;
-            _val->clear();
+//            _val->clear();
             _val->resize(f._val->size());
             for(auto i = 0; i< f._val->size(); i++){
                 _val->at(i) = f._val->at(i);
