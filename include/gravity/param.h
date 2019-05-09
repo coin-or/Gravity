@@ -588,6 +588,34 @@ namespace gravity {
         param (param&& p):param() {
             *this = move(p);
         }
+        
+        void deep_copy(const param& p){
+            _type = p._type;
+            _polar = p._polar;
+            _intype = p._intype;
+            _id = make_shared<size_t>(*p._id);
+            _vec_id = make_shared<size_t>(*p._vec_id);
+            _val = make_shared<vector<type>>(*p._val);
+            _range = make_shared<pair<type,type>>(*p._range);
+            _name = p._name;
+            _is_transposed = p._is_transposed;
+            _is_vector = p._is_vector;
+            _new = p._new;
+            _is_relaxed = p._is_relaxed;
+            _is_angle = p._is_angle;
+            _is_sqrmag = p._is_sqrmag;
+            _is_conjugate = p._is_conjugate;
+            _is_real = p._is_real;
+            _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+            if(p._indices){
+                _indices = make_shared<indices>();
+                _indices->shallow_copy(p._indices);
+            }
+            _dim[0] = p._dim[0];
+            _dim[1] = p._dim[1];
+        }
 
         param& operator=(const param& p) {
             _type = p._type;
