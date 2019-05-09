@@ -38,11 +38,13 @@ template<typename type> var<type>::var(var<type>&& v){
 };
 
 template<typename type>
-void var<type>::deep_copy(const var<type>& v){
-    this->param<type>::deep_copy(v);
-    constant_::set_type(var_c);
-    _lb = make_shared<func<type>>(*v._lb);
-    _ub = make_shared<func<type>>(*v._ub);
+var<type> var<type>::deep_copy() const{
+    var<type> res;
+    res.param<type>::operator=(this->param<type>::deep_copy());
+    res.constant_::set_type(var_c);
+    res._lb = make_shared<func<type>>(*_lb);
+    res._ub = make_shared<func<type>>(*_ub);
+    return res;
 }
 
 template<typename type> var<type>& var<type>::operator=(const var<type>& v) {

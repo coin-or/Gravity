@@ -78,7 +78,7 @@ namespace gravity {
         var(const var<type>& v);
         var(var<type>&& v);
         
-        void deep_copy(const var<type>& v);
+        var deep_copy() const;
         //@}
         
         shared_ptr<param_> pcopy() const{return make_shared<var>(*this);};
@@ -230,16 +230,9 @@ namespace gravity {
             return res;
         }
         
-        /** let p share the values and indices of current var */
-        void share_vals(param<type>& p){
-            if(this->_indices){
-                p._indices = this->_indices;
-            }
-            p._dim[0] = this->_dim[0];
-            p._dim[1] = this->_dim[1];
-            p._val = this->_val;
-            p._range = this->_range;
-        }
+        
+        
+        
         
         template<typename... Args>
         var operator()(size_t i) {

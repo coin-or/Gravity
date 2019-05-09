@@ -95,7 +95,8 @@ namespace gravity {
         }
 
         
-        
+        /** let p share the values and indices of current var */
+        virtual void share_vals(const shared_ptr<param_>& p){};
         virtual void initialize_uniform(){};
         virtual void initialize_zero(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
@@ -161,7 +162,7 @@ namespace gravity {
         string get_name(bool in_func, bool exclude_indexing) const{
             string name = _name;
             if(_indices && exclude_indexing){
-                name = name.substr(0, name.find_last_of("."));
+                name = name.substr(0, name.find_first_of("."));
             }
             if (!in_func && _is_transposed) {
                 name += "\u1D40";
@@ -589,32 +590,103 @@ namespace gravity {
             *this = move(p);
         }
         
-        void deep_copy(const param& p){
-            _type = p._type;
-            _polar = p._polar;
-            _intype = p._intype;
-            _id = make_shared<size_t>(*p._id);
-            _vec_id = make_shared<size_t>(*p._vec_id);
-            _val = make_shared<vector<type>>(*p._val);
-            _range = make_shared<pair<type,type>>(*p._range);
-            _name = p._name;
-            _is_transposed = p._is_transposed;
-            _is_vector = p._is_vector;
-            _new = p._new;
-            _is_relaxed = p._is_relaxed;
-            _is_angle = p._is_angle;
-            _is_sqrmag = p._is_sqrmag;
-            _is_conjugate = p._is_conjugate;
-            _is_real = p._is_real;
-            _is_imag = p._is_imag;
-            _real = p._real;
-            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+        /** let this share the values, indices and range of p */
+        void share_vals_ids(param<type>& p){
             if(p._indices){
-                _indices = make_shared<indices>();
-                _indices->shallow_copy(p._indices);
+                this->_indices = p._indices;
             }
-            _dim[0] = p._dim[0];
-            _dim[1] = p._dim[1];
+            this->_dim[0] = p._dim[0];
+            this->_dim[1] = p._dim[1];
+            this->_val = p._val;
+            this->_range = p._range;
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(param<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(param<T2>& pp){
+            this->_val = pp._val;
+        }
+        
+        /** let this share the values of p */
+        void share_vals(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<param<bool>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<param<short>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<param<int>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<param<float>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (param<double>*)(p.get());
+                    share_vals_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<param<long double>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<param<Cpx>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        param deep_copy() const{
+            param res;
+            res._type = _type;
+            res._polar = _polar;
+            res._intype = _intype;
+//            res._id = make_shared<size_t>();
+//            res._vec_id = make_shared<size_t>();
+//            res._val = make_shared<vector<type>>(*_val);
+            res._val = make_shared<vector<type>>();
+            res._val->resize(_val->size());
+//            res._val = make_shared<vector<type>>(*_val);
+            res._range = make_shared<pair<type,type>>(*_range);
+            res._name = _name;
+            res._is_transposed = _is_transposed;
+            res._is_vector = _is_vector;
+            res._new = _new;
+            res._is_relaxed = _is_relaxed;
+            res._is_angle = _is_angle;
+            res._is_sqrmag = _is_sqrmag;
+            res._is_conjugate = _is_conjugate;
+            res._is_real = _is_real;
+            res._is_imag = _is_imag;
+            res._real = _real;
+            res._imag = _imag; res._mag = res._mag; res._ang = _ang;
+            if(_indices){
+                res._indices = make_shared<indices>();
+                res._indices->shallow_copy(_indices);
+            }
+            res._dim[0] = _dim[0];
+            res._dim[1] = _dim[1];
+            return res;
         }
 
         param& operator=(const param& p) {
