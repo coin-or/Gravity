@@ -98,7 +98,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     /*Code Assumes number of threads is even and greater than or equal to 2*/
-    int nb_threads = thread::hardware_concurrency();
+//    int nb_threads = thread::hardware_concurrency();
+    int nb_threads = 1;
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
@@ -148,7 +149,7 @@ int main (int argc, char * argv[]) {
                     {
                         for(auto &dir: dir_array)
                         {
-                            auto modelk = make_shared<Model<>>(*SDP);
+                            auto modelk = SDP->copy();
                             // auto modelk=build_SDPOPF(grid, loss_from, upper_bound);
                             mname=vname+"."+key+"."+dir;
                             modelk->set_name(mname);
@@ -160,6 +161,7 @@ int main (int argc, char * argv[]) {
                             {
                                 modelk->max(v(key));
                             }
+                            modelk->print();
                             batch_models.push_back(modelk);
                             if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
                             {
