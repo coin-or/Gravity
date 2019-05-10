@@ -97,72 +97,93 @@ int main (int argc, char * argv[]) {
     
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
-    /*Code Assumes number of threads is even and greater than or equal to 2*/
-//    int nb_threads = thread::hardware_concurrency();
-    int nb_threads = 2;
+    
+    int nb_threads = thread::hardware_concurrency();
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
     SDPLB.run(output = 5, tol = 1e-6);
     double lower_bound=SDP->get_obj_val();
     
-    double solver_time_start = get_wall_time();
+    
     vector<shared_ptr<Model<>>> batch_models;
-    map<pair<string, string>, int> fixed_point;
+    map<pair<string, string>, bool> fixed_point;
+    pair<string,string> p, pk;
     string vname;
-    string mname;
-    string key;
+    string mname, mkname, vkname, keyk, dirk;
     string dir_array[2]={"LB", "UB"};
+    var<> vark, vk, v;
+    int iter=0;
+    double boundk1, objk;
     bool terminate=false;
-    const double upp_low_tol=1e-3, range_tol=0.02;
+    bool infeasible=false;
+    bool break_flag=false;
+    const double upp_low_tol=1e-3, fixed_tol=0.001, max_time=100, zero_tol=1e-3, range_tol=1e-6;
+    double solver_time_end, solver_time, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol)
     {
         for(auto &it:SDP->_vars_name)
         {
             string vname=it.first;
-            var<> v=SDP->get_var<double>(vname);
+            v=SDP->get_var<double>(vname);
             auto v_keys=v.get_keys();
             for(auto &key: *v_keys)
             {
-                auto p=make_pair(vname, key);
+                p=make_pair(vname, key);
                 fixed_point[p]=false;
             }
             
         }
-        //        if(SDP->_obj->is_linear())
-        //        {
-        //            Constraint<> obj_lower("obj_lower");
-        //            obj_lower = *(SDP->_obj);
-        //            SDP->add(obj_lower>=lower_bound);
-        //        }
         
-        while(!terminate)
+        if(SDP->_obj->is_linear())
         {
+            Constraint<> obj_lower("obj_lower");
+            obj_lower = *(SDP->_obj);
+            SDP->add(obj_lower>=lower_bound);
+        }
+        
+        while(solver_time<=max_time && !terminate)
+        {
+            iter++;
+            terminate=true;
             for(auto &it:SDP->_vars_name)
             {
                 vname=it.first;
-                auto v = SDP->get_var<double>(vname);
+                v = SDP->get_var<double>(vname);
+                auto v_keys=v.get_keys();
                 for(auto &key: *(v.get_keys()))
                 {
-                    auto p=make_pair(vname, key);
+                    solver_time_end=get_wall_time();
+                    solver_time= solver_time_end-solver_time_start;
+                    if(solver_time>=max_time)
+                    {
+                        break_flag=true;
+                        break;
+                    }
+                    p=make_pair(vname, key);
+                    if(abs(v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key)))<=range_tol)
+                    {
+                        fixed_point[p]=true;
+                    }
                     if(fixed_point[p]==false)
                     {
                         for(auto &dir: dir_array)
                         {
                             auto modelk = SDP->copy();
-                            // auto modelk=build_SDPOPF(grid, loss_from, upper_bound);
                             mname=vname+"."+key+"."+dir;
                             modelk->set_name(mname);
-                            auto v1 = modelk->get_var<double>(vname);
+                            
+                            vark=modelk->get_var<double>(vname);
                             if(dir=="LB")
                             {
-                                modelk->min(v1(key));
+                                modelk->min(vark(key));
                             }
                             else
                             {
-                                modelk->max(v1(key));
+                                modelk->min(vark(key)*(-1));
+                                
                             }
-                            modelk->print();
+                            //modelk->print();
                             batch_models.push_back(modelk);
                             if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
                             {
@@ -170,16 +191,93 @@ int main (int argc, char * argv[]) {
                                 run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
+                                
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                for (auto model:batch_models)
+                                {
+                                    mkname=model->get_name();
+                                    std::size_t pos = mkname.find(".");
+                                    vkname.assign(mkname, 0, pos);
+                                    mkname=mkname.substr(pos+1);
+                                    pos=mkname.find(".");
+                                    keyk.assign(mkname, 0, pos);
+                                    dirk=mkname.substr(pos+1);
+                                    vk=SDP->get_var<double>(vkname);
+                                    pk=make_pair(vkname, keyk);
+                                    if(model->_status==0)
+                                    {
+                                        
+                                        objk=model->get_obj_val();
+                                        
+                                        
+                                        if(dirk=="LB")
+                                            boundk1=vk._lb->eval(vk.get_keys_map()->at(keyk));
+                                        else
+                                        {
+                                            objk*=-1;
+                                            boundk1=vk._ub->eval(vk.get_keys_map()->at(keyk));
+                                        }
+                                        if(abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
+                                        {
+                                            fixed_point[pk]=true;
+                                        }
+                                        else
+                                        {
+                                            fixed_point[pk]=false;
+                                            terminate=false;
+                                            if(dirk=="LB")
+                                                vk(keyk).set_lb(objk);
+                                            else
+                                                vk(keyk).set_ub(objk);
+                                            if(vk._ub->eval(vk.get_keys_map()->at(keyk))<vk._lb->eval(vk.get_keys_map()->at(keyk)))
+                                            {
+                                                double temp=vk._ub->eval(vk.get_keys_map()->at(keyk));
+                                                vk(keyk).set_lb(vk._lb->eval(vk.get_keys_map()->at(keyk)));
+                                                vk(keyk).set_ub(temp);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        infeasible=true;
+                                        DebugOn("Model has been detected to be infeasible in OBBT iteration\t"<<iter<<endl);
+                                        return(-1);
+                                    }
+                                    
+                                    
+                                }
+                                SDP->print();
                                 batch_models.clear();
                             }
                         }
                     }
                 }
             }
-//            terminate = true;
+            if(break_flag==true)
+            {
+                DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
+                SDP->print();
+                break;
+            }
+            
         }
     }
+    
+    DebugOn("Terminate\t"<<terminate<<endl);
+    DebugOn("Time\t"<<solver_time<<endl);
+    DebugOn("Iterations\t"<<iter<<endl);
+    solver<> SDPLB1(SDP,solv_type);
+    SDPLB1.run(output = 5, tol = 1e-6);
+    
+    double gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    
+    gap = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
+    
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(SDP->get_obj_val()) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
     return 0;
     
 }
