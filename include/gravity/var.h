@@ -406,9 +406,17 @@ namespace gravity {
         
         /* Querries */
         
-        type    get_lb(size_t i = 0) const;
+        type    get_lb(size_t i) const;
         
-        type    get_ub(size_t i = 0) const;
+        type    get_ub(size_t i) const;
+        
+        type    get_lb(const string& key) const;
+        
+        type    get_ub(const string& key) const;
+        
+        func<type>    get_lb() const;
+        
+        func<type>    get_ub() const;
         
         
         template<typename T=type,
@@ -438,6 +446,9 @@ namespace gravity {
         
         void    set_lb(type v);
         void    set_ub(type v);
+        
+        void    set_lb(const string& key, type v);
+        void    set_ub(const string& key, type v);
         
         void in_q_cone(); /**< States that the variable is contained in a quadratic cone, for mosek */
         

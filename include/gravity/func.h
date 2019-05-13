@@ -1943,7 +1943,7 @@ namespace gravity {
         }
         
         void allocate_mem(){
-            _evaluated = false;
+//            _evaluated = false;
             if(is_double_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){

@@ -150,6 +150,34 @@ type    var<type>::get_ub(size_t i) const {
     return _ub->eval(i);
 };
     
+    template<typename type>
+    type    var<type>::get_lb(const string& key) const {
+        auto i = this->_indices->_keys_map->at(key);
+        if (_lb->func_is_number()) {
+            return _lb->_val->at(0);
+        }
+        return _lb->eval(i);
+    };
+    
+    template<typename type>
+    type    var<type>::get_ub(const string& key) const {
+        auto i = this->_indices->_keys_map->at(key);
+        if (_ub->func_is_number()) {
+            return _ub->_val->at(0);
+        }
+        return _ub->eval(i);
+    };
+    
+    template<typename type>
+    func<type>    var<type>::get_lb() const {
+        return *_lb;
+    };
+    
+    template<typename type>
+    func<type>    var<type>::get_ub() const {
+        return *_ub;
+    };
+    
     template <typename type>
     template<typename T,
     typename std::enable_if<is_arithmetic<T>::value>::type*>
@@ -259,7 +287,22 @@ template<typename type> void   var<type>::set_lb(type val) {
         param<type>::_range->first = val;
     }
 }
+    
+template<typename type> void  var<type>::set_lb(const string& key, type val){
+    auto i = this->_indices->_keys_map->at(key);
+    _lb->_val->at(i) = val;
+    _lb->update_range(val);
+    this->update_range(val);
+}
 
+template<typename type> void  var<type>::set_ub(const string& key, type val){
+    auto i = this->_indices->_keys_map->at(key);
+    _ub->_val->at(i) = val;
+    _ub->update_range(val);
+    this->update_range(val);
+}
+
+    
 template<typename type> void   var<type>::set_ub(type val) {
     if(this->is_indexed()){
         _ub->set_val(this->get_id_inst(),val);
