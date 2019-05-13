@@ -82,6 +82,7 @@ namespace gravity {
         solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
             _stype = stype;
             _model = model;
+            _model->_built = true;
             init();
         }
             

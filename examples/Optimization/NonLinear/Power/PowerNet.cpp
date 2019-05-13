@@ -1212,7 +1212,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bound)
 {
-    bool relax, sdp_cuts = true, soc=true, loss_to=true, llnc=true, lazy_bool = false;
+    bool relax, sdp_cuts = true, soc=true, loss_to=false, llnc=true, lazy_bool = false;
     size_t num_bags = 0;
     string num_bags_s = "100";
 
@@ -1346,7 +1346,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     
     Constraint<> UB("UB");
     UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-    SDPOPF->add(UB<=upper_bound);
+//    SDPOPF->add(UB<=upper_bound);
     
     
     /** Constraints */
@@ -1454,13 +1454,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         
         
 //        
-        Constraint<> I_from_U("I_from_U");
-        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow((Pf_from.get_ub()+Qf_from.get_ub()),2);
-        SDPOPF->add(I_from_U.in(arcs) <= 0);
+//        Constraint<> I_from_U("I_from_U");
+//        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow((Pf_from.get_ub()+Qf_from.get_ub()),2);
+//        SDPOPF->add(I_from_U.in(arcs) <= 0);
         
-//        Constraint<> I_from_U1("I_from_U1");
-//        I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-//        SDPOPF->add(I_from_U1.in(arcs) <= 0);
+        Constraint<> I_from_U1("I_from_U1");
+        I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+        SDPOPF->add(I_from_U1.in(arcs) <= 0);
         
     }
     
