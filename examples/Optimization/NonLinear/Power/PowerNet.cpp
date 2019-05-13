@@ -1212,7 +1212,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bound)
 {
-    bool relax, sdp_cuts = true, soc=true, loss_to=false, llnc=true, lazy_bool = false;
+    bool relax, sdp_cuts = true, soc=true, loss_to=true, llnc=true, lazy_bool = false;
     size_t num_bags = 0;
     string num_bags_s = "100";
 
@@ -1453,14 +1453,19 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         SDPOPF->add(I_from_L.in(arcs) <= 0);
         
         
+//        
+//        Constraint<> I_from_U("I_from_U");
+//        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow((Pf_from.get_ub()+Qf_from.get_ub()),2);
+//        SDPOPF->add(I_from_U.in(arcs) <= 0);
         
-        Constraint<> I_from_U("I_from_U");
-        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDPOPF->add(I_from_U.in(arcs) <= 0);
+        Constraint<> I_from_U1("I_from_U1");
+        I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+        SDPOPF->add(I_from_U1.in(arcs) <= 0);
         
     }
     
     if(loss_to){
+        
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
         var<Cpx> L_to("L_to"), W("W");
         T.real_imag(cc.in(arcs), dd.in(arcs));
@@ -1481,12 +1486,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         SDPOPF->add(I_to_L.in(arcs) <= 0);
         
         
-        
-        Constraint<> I_to_U("I_to_U");
-        I_to_U = w_min.to(arcs)*lji - pow(S_max,2);
-        SDPOPF->add(I_to_U.in(arcs) <= 0);
+//        Constraint<> I_to_U("I_to_U");
+//        I_to_U = w_min.to(arcs)*lji - pow((Pf_to.get_ub()+Qf_to.get_ub()),2);
+//        SDPOPF->add(I_to_U.in(arcs) <= 0);
+//
+        Constraint<> I_to_U1("I_to_U1");
+        I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
+        SDPOPF->add(I_to_U1.in(arcs) <= 0);
         
     }
+    
     
     if (llnc)
     {

@@ -326,9 +326,13 @@ int main (int argc, char * argv[]) {
     
 
         
-        Constraint<> I_from_U("I_from_U");
-        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDP.add(I_from_U.in(arcs) <= 0);
+//        Constraint<> I_from_U("I_from_U");
+//        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow((Pf_from.get_ub()+Qf_from.get_ub()),2);
+//        SDP.add(I_from_U.in(arcs) <= 0);
+        
+        Constraint<> I_from_U1("I_from_U1");
+        I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+        SDP.add(I_from_U1.in(arcs) <= 0);
     
     }
     
@@ -353,11 +357,14 @@ int main (int argc, char * argv[]) {
             I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-w_max.to(arcs)*lji;
             SDP.add(I_to_L.in(arcs) <= 0);
             
-            
-            
-            Constraint<> I_to_U("I_to_U");
-            I_to_U = w_min.to(arcs)*lji - pow(S_max,2);
-            SDP.add(I_to_U.in(arcs) <= 0);
+        
+//            Constraint<> I_to_U("I_to_U");
+//            I_to_U = w_min.to(arcs)*lji - pow((Pf_to.get_ub(Pf_to.get_id_inst())+Qf_to.get_ub(Qf_to.get_id_inst())),2);
+//            SDP.add(I_to_U.in(arcs) <= 0);
+        
+            Constraint<> I_to_U1("I_to_U1");
+            I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
+            SDP.add(I_to_U1.in(arcs) <= 0);
             
         }
       
@@ -388,7 +395,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 5, tol = 1e-6);
-    //    SDP.print();
+    SDP.print();
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
