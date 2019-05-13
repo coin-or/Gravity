@@ -538,6 +538,42 @@ TEST_CASE("testing bounds copy"){
     CHECK(y.get_ub()==3);
 }
 
+
+TEST_CASE("testing bounds get"){
+    indices ids("index_set");
+    ids = {"id1", "id2"};
+    param<> lb("lb");
+    lb.in(ids);
+    lb.print();
+    lb("id1") = 1.5;
+    lb("id2") = -231.5;
+    param<> ub("ub");
+    ub.in(ids);
+    ub.print();
+    ub("id1") = 2.5;
+    ub("id2") = 231.5;
+    var<> x("x",lb,ub);
+    x.in(ids);
+    CHECK(x.get_lb("id1")==1.5);
+    CHECK(x.get_lb("id2")==-231.5);
+    CHECK(x.get_ub(0)==2.5);
+    CHECK(x.get_ub(1)==231.5);
+    Constraint<> Cst("Cst");
+    Cst += x*x.get_lb();
+    Cst <= x.get_ub();
+    Cst.print();
+    x("id1").set_lb(2);
+    x("id1").set_ub(2.1);
+    /** preferred version **/
+    x.set_lb("id2",-1);
+    x.set_ub("id2",1);
+    Constraint<> Cst2("Cst2");
+    Cst2 += x*x.get_lb();
+    Cst2 <= x.get_ub();
+    Cst2.print();
+    Cst.print();/** Cst unchanged */
+}
+
 TEST_CASE("testing quadratic function factorization"){
     var<> x1("x1",0.5,10), x2("x2",-1,1);
     x1.in(R(4));x2.in(R(4));
