@@ -414,9 +414,9 @@ namespace gravity {
         
         type    get_ub(const string& key) const;
         
-        func<type>    get_lb() const;
+        param<type>    get_lb() const;
         
-        func<type>    get_ub() const;
+        param<type>    get_ub() const;
         
         
         template<typename T=type,
