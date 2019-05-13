@@ -169,13 +169,22 @@ type    var<type>::get_ub(size_t i) const {
     };
     
     template<typename type>
-    func<type>    var<type>::get_lb() const {
-        return *_lb;
+    param<type>    var<type>::get_lb() const {
+        param<type> lb(this->_name+"_lb");
+        lb._val = _lb->_val;
+        lb._dim[0] = _lb->_dim[0];
+        lb._dim[1] = _lb->_dim[1];
+        return lb;
     };
     
     template<typename type>
-    func<type>    var<type>::get_ub() const {
-        return *_ub;
+    param<type>    var<type>::get_ub() const {
+        param<type> ub(this->_name+"_ub");
+        ub._val = _ub->_val;
+        ub._range = _ub->_range;
+        ub._dim[0] = _ub->_dim[0];
+        ub._dim[1] = _ub->_dim[1];
+        return ub;        
     };
     
     template <typename type>

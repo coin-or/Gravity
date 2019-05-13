@@ -534,8 +534,8 @@ TEST_CASE("testing bounds copy"){
     var<> y("y", -1.2, 1.4);
     y.copy_bounds(x);
     y.print();
-    CHECK(y.get_lb()==-3);
-    CHECK(y.get_ub()==3);
+    CHECK(y.get_lb(0)==-3);
+    CHECK(y.get_ub(0)==3);
 }
 
 
@@ -567,11 +567,7 @@ TEST_CASE("testing bounds get"){
     /** preferred version **/
     x.set_lb("id2",-1);
     x.set_ub("id2",1);
-    Constraint<> Cst2("Cst2");
-    Cst2 += x*x.get_lb();
-    Cst2 <= x.get_ub();
-    Cst2.print();
-    Cst.print();/** Cst unchanged */
+    Cst.print();/** Cst has new params */
 }
 
 TEST_CASE("testing quadratic function factorization"){
