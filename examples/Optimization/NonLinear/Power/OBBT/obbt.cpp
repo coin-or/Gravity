@@ -22,7 +22,7 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = false, llnc=true;
+    bool loss_from = true, llnc=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -105,9 +105,11 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6);
     double lower_bound=SDP->get_obj_val();
     
+    vector<double> batchtime;
     
     vector<shared_ptr<Model<>>> batch_models;
     map<pair<string, string>, bool> fixed_point;
+    map<pair<string, string>, double> interval_original, interval_new;
     pair<string,string> p, pk;
     string vname;
     string mname, mkname, vkname, keyk, dirk;
@@ -131,6 +133,8 @@ int main (int argc, char * argv[]) {
             {
                 p=make_pair(vname, key);
                 fixed_point[p]=false;
+                interval_original[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
+                
             }
             
         }
@@ -161,6 +165,7 @@ int main (int argc, char * argv[]) {
                         break;
                     }
                     p=make_pair(vname, key);
+                    interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
                     if(abs(v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key)))<=range_tol)
                     {
                         fixed_point[p]=true;
@@ -191,10 +196,13 @@ int main (int argc, char * argv[]) {
                                 run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
+                            
+                                batchtime.push_back(batch_time);
                                 
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                 for (auto model:batch_models)
                                 {
+                                    model->print();
                                     mkname=model->get_name();
                                     std::size_t pos = mkname.find(".");
                                     vkname.assign(mkname, 0, pos);
@@ -231,10 +239,12 @@ int main (int argc, char * argv[]) {
                                                 vk(keyk).set_ub(objk);
                                             if(vk._ub->eval(vk.get_keys_map()->at(keyk))<vk._lb->eval(vk.get_keys_map()->at(keyk)))
                                             {
+                                                fixed_point[pk]=true;
                                                 double temp=vk._ub->eval(vk.get_keys_map()->at(keyk));
-                                                vk(keyk).set_lb(vk._lb->eval(vk.get_keys_map()->at(keyk)));
-                                                vk(keyk).set_ub(temp);
+                                                vk(keyk).set_ub(vk._lb->eval(vk.get_keys_map()->at(keyk)));
+                                                vk(keyk).set_lb(temp);
                                             }
+                                            
                                         }
                                     }
                                     else
@@ -246,7 +256,7 @@ int main (int argc, char * argv[]) {
                                     
                                     
                                 }
-                                SDP->print();
+                    
                                 batch_models.clear();
                             }
                         }
@@ -266,12 +276,37 @@ int main (int argc, char * argv[]) {
     DebugOn("Terminate\t"<<terminate<<endl);
     DebugOn("Time\t"<<solver_time<<endl);
     DebugOn("Iterations\t"<<iter<<endl);
+    DebugOn("Variable \t Key \t Interval reduction percentage"<<endl);
+    vector<double> interval_gap;
+    double sum=0, avg, num_var=0.0;
+        for(auto &it:SDP->_vars_name)
+        {
+            string vname=it.first;
+            v=SDP->get_var<double>(vname);
+            auto v_keys=v.get_keys();
+            for(auto &key: *v_keys)
+            { num_var++;
+                p=make_pair(vname, key);
+                DebugOn(p.first<<"\t"<<p.second<<"\t"<<(interval_original[p]-interval_new[p])/interval_original[p]*100.0<<endl);
+                interval_gap.push_back((interval_original[p]-interval_new[p])/interval_original[p]*100.0);
+                sum+=interval_gap.back();
+                
+            }
+            
+        }
+    avg=sum/num_var;
+
+    DebugOn("Average interval reduction\t"<<avg<<endl);
+    
+    DebugOn("Batchtime"<<endl);
+       for(auto &it:batchtime)
+           DebugOn(it<<endl);
+    
+    
     solver<> SDPLB1(SDP,solv_type);
     SDPLB1.run(output = 5, tol = 1e-6);
-    
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-    
     gap = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
     
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
