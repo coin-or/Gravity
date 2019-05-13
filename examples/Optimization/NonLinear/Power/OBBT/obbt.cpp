@@ -22,7 +22,7 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = true, llnc=true;
+    bool loss_from = false, llnc=false;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -98,7 +98,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    int nb_threads = thread::hardware_concurrency();
+//    int nb_threads = thread::hardware_concurrency();
+    int nb_threads = 1;
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
@@ -188,7 +189,7 @@ int main (int argc, char * argv[]) {
                                 modelk->min(vark(key)*(-1));
                                 
                             }
-                            //modelk->print();
+                            modelk->print();
                             batch_models.push_back(modelk);
                             if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
                             {
@@ -202,7 +203,7 @@ int main (int argc, char * argv[]) {
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                 for (auto model:batch_models)
                                 {
-                                    model->print();
+//                                    model->print();
                                     mkname=model->get_name();
                                     std::size_t pos = mkname.find(".");
                                     vkname.assign(mkname, 0, pos);
@@ -256,7 +257,7 @@ int main (int argc, char * argv[]) {
                                     
                                     
                                 }
-                    
+                                exit(-1);
                                 batch_models.clear();
                             }
                         }
