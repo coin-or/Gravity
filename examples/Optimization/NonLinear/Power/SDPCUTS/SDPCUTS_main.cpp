@@ -21,7 +21,7 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = false, llnc=true, loss_to=false;
+    bool loss_from = true, llnc=true, loss_to=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -183,7 +183,7 @@ int main (int argc, char * argv[]) {
     var<> Qf_from("Qf_from", -1.*S_max,S_max);
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
-    var<> lij("lij");
+    var<> lij("lij", pos_);
     if(loss_from){
         SDP.add(lij.in(arcs));
     }
@@ -215,10 +215,6 @@ int main (int argc, char * argv[]) {
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDP.min(obj);
-    
-    //    Constraint obj_cstr("obj_ub");
-    //    obj_cstr += SDP._obj - 1.05*upper_bound;
-    //    SDP.add(obj_cstr <= 0);
     
     
     /** Constraints */
@@ -326,9 +322,11 @@ int main (int argc, char * argv[]) {
     
 
         
-//        Constraint<> I_from_U("I_from_U");
-//        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*pow((Pf_from.get_ub()+Qf_from.get_ub()),2);
-//        SDP.add(I_from_U.in(arcs) <= 0);
+        
+        Constraint<> I_from_U("I_from_U");
+        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
+        SDP.add(I_from_U.in(arcs) <= 0);
+        
         
         Constraint<> I_from_U1("I_from_U1");
         I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
@@ -358,9 +356,9 @@ int main (int argc, char * argv[]) {
             SDP.add(I_to_L.in(arcs) <= 0);
             
         
-//            Constraint<> I_to_U("I_to_U");
-//            I_to_U = w_min.to(arcs)*lji - pow((Pf_to.get_ub(Pf_to.get_id_inst())+Qf_to.get_ub(Qf_to.get_id_inst())),2);
-//            SDP.add(I_to_U.in(arcs) <= 0);
+            Constraint<> I_to_U("I_to_U");
+            I_to_U = w_min.to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
+            SDP.add(I_to_U.in(arcs) <= 0);
         
             Constraint<> I_to_U1("I_to_U1");
             I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
@@ -396,6 +394,7 @@ int main (int argc, char * argv[]) {
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 5, tol = 1e-6);
     SDP.print();
+    SDP.print_symbolic();
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
