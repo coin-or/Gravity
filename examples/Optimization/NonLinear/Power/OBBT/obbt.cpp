@@ -22,7 +22,7 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = false, llnc=false;
+    bool loss_from = true, llnc=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -98,15 +98,12 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-//    int nb_threads = thread::hardware_concurrency();
-    int nb_threads = 1;
+    int nb_threads = thread::hardware_concurrency();
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
     SDPLB.run(output = 5, tol = 1e-6);
     double lower_bound=SDP->get_obj_val();
-    
-    vector<double> batchtime;
     
     vector<shared_ptr<Model<>>> batch_models;
     map<pair<string, string>, bool> fixed_point;
@@ -189,7 +186,7 @@ int main (int argc, char * argv[]) {
                                 modelk->min(vark(key)*(-1));
                                 
                             }
-                            modelk->print();
+                
                             batch_models.push_back(modelk);
                             if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
                             {
@@ -197,9 +194,6 @@ int main (int argc, char * argv[]) {
                                 run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
-                            
-                                batchtime.push_back(batch_time);
-                                
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                 for (auto model:batch_models)
                                 {
@@ -220,11 +214,11 @@ int main (int argc, char * argv[]) {
                                         
                                         
                                         if(dirk=="LB")
-                                            boundk1=vk._lb->eval(vk.get_keys_map()->at(keyk));
+                                            boundk1=vk.get_lb(keyk);
                                         else
                                         {
                                             objk*=-1;
-                                            boundk1=vk._ub->eval(vk.get_keys_map()->at(keyk));
+                                            boundk1=vk.get_ub(keyk);
                                         }
                                         if(abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
                                         {
@@ -238,11 +232,11 @@ int main (int argc, char * argv[]) {
                                                 vk(keyk).set_lb(objk);
                                             else
                                                 vk(keyk).set_ub(objk);
-                                            if(vk._ub->eval(vk.get_keys_map()->at(keyk))<vk._lb->eval(vk.get_keys_map()->at(keyk)))
+                                            if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                             {
                                                 fixed_point[pk]=true;
-                                                double temp=vk._ub->eval(vk.get_keys_map()->at(keyk));
-                                                vk(keyk).set_ub(vk._lb->eval(vk.get_keys_map()->at(keyk)));
+                                                double temp=vk.get_ub(keyk);
+                                                vk(keyk).set_ub(vk.get_lb(keyk));
                                                 vk(keyk).set_lb(temp);
                                             }
                                             
@@ -251,13 +245,13 @@ int main (int argc, char * argv[]) {
                                     else
                                     {
                                         infeasible=true;
-                                        DebugOn("Model has been detected to be infeasible in OBBT iteration\t"<<iter<<endl);
+                                        DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                        model->print();
                                         return(-1);
                                     }
                                     
                                     
                                 }
-                                exit(-1);
                                 batch_models.clear();
                             }
                         }
@@ -273,7 +267,7 @@ int main (int argc, char * argv[]) {
             
         }
     }
-    
+    SDP->print();
     DebugOn("Terminate\t"<<terminate<<endl);
     DebugOn("Time\t"<<solver_time<<endl);
     DebugOn("Iterations\t"<<iter<<endl);
@@ -288,9 +282,9 @@ int main (int argc, char * argv[]) {
             for(auto &key: *v_keys)
             { num_var++;
                 p=make_pair(vname, key);
-                DebugOn(p.first<<"\t"<<p.second<<"\t"<<(interval_original[p]-interval_new[p])/interval_original[p]*100.0<<endl);
-                interval_gap.push_back((interval_original[p]-interval_new[p])/interval_original[p]*100.0);
+                interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
                 sum+=interval_gap.back();
+                  DebugOn(p.first<<"\t"<<p.second<<"\t"<<interval_gap.back()<<endl);
                 
             }
             
@@ -298,11 +292,7 @@ int main (int argc, char * argv[]) {
     avg=sum/num_var;
 
     DebugOn("Average interval reduction\t"<<avg<<endl);
-    
-    DebugOn("Batchtime"<<endl);
-       for(auto &it:batchtime)
-           DebugOn(it<<endl);
-    
+
     
     solver<> SDPLB1(SDP,solv_type);
     SDPLB1.run(output = 5, tol = 1e-6);
