@@ -21,8 +21,8 @@ using namespace gravity;
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool relax = false, sdp_cuts = true, soc=true;
-    bool loss_from = true, llnc=true;
+    bool relax = false, sdp_cuts = true;
+    bool loss_from = true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";

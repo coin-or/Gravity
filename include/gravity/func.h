@@ -2927,10 +2927,29 @@ namespace gravity {
         
         void uneval() {
             _evaluated = false;
+            for (auto &pair:*_lterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    static_pointer_cast<func>(coef)->uneval();
+                }
+            }
+            for (auto &pair:*_qterms) {
+                auto coef = pair.second._coef;
+                if (coef->is_function()){
+                    static_pointer_cast<func>(coef)->uneval();
+                }
+            }
+            for (auto &pair:*_pterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    static_pointer_cast<func>(coef)->uneval();
+                }
+            }
             if(_expr){
                 _expr->uneval();
             }
         }
+        
         type eval(size_t i=0) {
             if(is_zero()){
                 return _range->first;

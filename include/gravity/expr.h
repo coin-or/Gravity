@@ -37,6 +37,8 @@ namespace gravity {
         string                                 _to_str = "noname"; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
+        
+        virtual void uneval(){};
         virtual void update_double_index(){};
         void propagate_dim(size_t d){
             if(_is_transposed){
