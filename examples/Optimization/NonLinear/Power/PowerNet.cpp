@@ -1366,7 +1366,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDPOPF->add(SDP3 >= 0);
+            SDPOPF->add_lazy(SDP3 >= 0);
         }
         else {
             SDPOPF->add(SDP3 >= 0);
@@ -1413,12 +1413,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDPOPF->add(PAD_UB.in(bus_pairs));
+    SDPOPF->add_lazy(PAD_UB.in(bus_pairs));
+
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDPOPF->add(PAD_LB.in(bus_pairs));
+    SDPOPF->add_lazy(PAD_LB.in(bus_pairs));
+
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -1508,14 +1510,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
         LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
         LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-        SDPOPF->add(LNC1.in(bus_pairs) >= 0);
+        SDPOPF->add_lazy(LNC1.in(bus_pairs) >= 0);
         
         Constraint<> LNC2("LNC2");
         LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
         LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
         LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
         LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-        SDPOPF->add(LNC2.in(bus_pairs) >= 0);
+        SDPOPF->add_lazy(LNC2.in(bus_pairs) >= 0);
     }
     
     
