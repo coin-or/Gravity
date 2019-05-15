@@ -160,6 +160,7 @@ namespace gravity {
 
 
         string get_name(bool in_func, bool exclude_indexing) const{
+            return _name;
             string name = _name;
             if(_indices && exclude_indexing){
                 name = name.substr(0, name.find_first_of("."));
@@ -176,7 +177,7 @@ namespace gravity {
 
         string get_name(size_t inst) const {/*< Get the name of the indexed version of this variable */
             string name = _name;
-            name = name.substr(0, name.find_first_of("."));
+//            name = name.substr(0, name.find_first_of("."));
             if(_is_imag || _is_real || _is_angle || _is_conjugate){
                 if (name.find(")")==std::string::npos) {
                     name += ")";
