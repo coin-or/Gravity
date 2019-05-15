@@ -119,6 +119,7 @@ int main (int argc, char * argv[]) {
     bool infeasible=false;
     bool break_flag=false;
     const double upp_low_tol=1e-3, fixed_tol=0.001, max_time=100, zero_tol=1e-3, range_tol=1e-6;
+    const int dec_round=6;
     double solver_time_end, solver_time, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol)
     {
@@ -235,9 +236,12 @@ int main (int argc, char * argv[]) {
                                             if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                             {
                                                 fixed_point[pk]=true;
-                                                double temp=vk.get_ub(keyk);
-                                                vk(keyk).set_ub(vk.get_lb(keyk));
-                                                vk(keyk).set_lb(temp);
+//                                                double temp=vk.get_ub(keyk);
+//                                                vk(keyk).set_ub(vk.get_lb(keyk));
+//                                                vk(keyk).set_lb(temp);
+                                                int temp=vk.get_ub(keyk)*pow(10, dec_round);
+                                                vk(keyk).set_ub(temp/(1.0*pow(10, dec_round)));
+                                                vk(keyk).set_lb(temp/(1.0*pow(10, dec_round)));
                                             }
                                             
                                         }
