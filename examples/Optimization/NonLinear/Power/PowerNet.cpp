@@ -1506,16 +1506,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         
         Constraint<> I_to_L("I_to_L");
         I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-w_max.to(arcs)*lji;
-        SDPOPF->add(I_to_L.in(arcs) <= 0);
+        SDPOPF->add_lazy(I_to_L.in(arcs) <= 0);
         
         
         Constraint<> I_to_U("I_to_U");
         I_to_U = w_min.to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
-        SDPOPF->add(I_to_U.in(arcs) <= 0);
+        SDPOPF->add_lazy(I_to_U.in(arcs) <= 0);
         
         Constraint<> I_to_U1("I_to_U1");
         I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
-        SDPOPF->add(I_to_U1.in(arcs) <= 0);
+        SDPOPF->add_lazy(I_to_U1.in(arcs) <= 0);
         
     }
 

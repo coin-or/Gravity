@@ -27,9 +27,9 @@ int main (int argc, char * argv[]) {
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string loss_from_s = "yes";
-    string loss_to_s="no";
-    string lazy_s = "no";
-    bool lazy_bool = false;
+    string loss_to_s="yes";
+    string lazy_s = "yes";
+    bool lazy_bool = true;
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
@@ -353,16 +353,16 @@ int main (int argc, char * argv[]) {
             
             Constraint<> I_to_L("I_to_L");
             I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-w_max.to(arcs)*lji;
-            SDP.add(I_to_L.in(arcs) <= 0);
+            SDP.add_lazy(I_to_L.in(arcs) <= 0);
             
         
             Constraint<> I_to_U("I_to_U");
             I_to_U = w_min.to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
-            SDP.add(I_to_U.in(arcs) <= 0);
+            SDP.add_lazy(I_to_U.in(arcs) <= 0);
         
             Constraint<> I_to_U1("I_to_U1");
             I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
-            SDP.add(I_to_U1.in(arcs) <= 0);
+            SDP.add_lazy(I_to_U1.in(arcs) <= 0);
             
         }
       
@@ -393,8 +393,6 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     SDPOPF.run(output = 5, tol = 1e-6);
-    SDP.print();
-    SDP.print_symbolic();
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
