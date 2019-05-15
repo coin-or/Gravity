@@ -783,6 +783,11 @@ namespace gravity {
                 lifted.insert(lt);
                 add_McCormick(pair.first, vlift, o1, o2);
             }
+            lifted._range = c._range;
+            lifted._all_convexity = linear_;
+            lifted._all_sign = c._all_sign;
+            lifted._ftype = lin_;
+            lifted._ctype = c._ctype;
             return lifted;
         }
         

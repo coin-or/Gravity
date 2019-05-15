@@ -1643,6 +1643,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     solver<> OPF(ACOPF,ipopt);
 //    auto mipgap = 1e-6;
     OPF.run(output, tol);
+    ACOPF->print_solution();
     return ACOPF->_obj->get_val();
 }
 
