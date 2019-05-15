@@ -207,7 +207,7 @@ namespace gravity {
                     }
 //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
-//                    iapp->Options()->SetIntegerValue("print_level", print_level);
+                    iapp->Options()->SetIntegerValue("print_level", output);
                     
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");

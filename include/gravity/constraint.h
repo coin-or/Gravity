@@ -288,9 +288,10 @@ namespace gravity {
                 str += " Complex) : ";
             }
             else {
-                str += ") : ";
+                str += ") : \n";
             }            
-            auto space_size = str.size();
+//            auto space_size = str.size();
+            auto space_size = 0;
             auto nb_inst = this->get_nb_instances();
             this->allocate_mem();
             if (this->is_matrix()) {
