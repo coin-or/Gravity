@@ -524,6 +524,8 @@ namespace gravity {
             return this->_dim[0];
         }
         
+        /** set the _evaluated flag to false for the variable's bounds */
+        virtual void reset_bounds(){};
         
         /** Fill x with the variable's values */
         virtual void set_double_val(double* x){};

@@ -20,7 +20,7 @@ using namespace gravity;
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool relax = false, sdp_cuts = true, soc=true;
+    bool sdp_cuts = true;
     bool loss_from = true, llnc=true, loss_to=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -152,6 +152,7 @@ int main (int argc, char * argv[]) {
     auto b_tf = grid.b_tf.in(arcs);
     auto b_tt = grid.b_tt.in(arcs);
     auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
     auto w_max = grid.w_max.in(nodes);
     auto w_min = grid.w_min.in(nodes);
     auto tan_th_min = grid.tan_th_min.in(bus_pairs);
@@ -212,6 +213,36 @@ int main (int argc, char * argv[]) {
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
+    
+    var<>  R_Vi("R_Vi", -1*v_max, v_max);
+    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+    bool add_original = true;
+    if(add_original){
+        SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
+        R_Vi.initialize_all(1);
+    }
+    
+    if(add_original){
+        Constraint<> Ref_Bus("Ref_Bus");
+        Ref_Bus = Im_Vi(grid.ref_bus);
+        SDP.add(Ref_Bus == 0);
+        
+        bool convexify = true;
+        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
+        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+        Constraint<Cpx> Linking_Wij("Linking_Wij");
+        Linking_Wij = Wij - Vi*conj(Vj);
+        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        Wi.set_real(Wii.in(nodes));
+        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+        Constraint<Cpx> Linking_Wi("Linking_Wi");
+        Linking_Wi = Wii - Vi*conj(Vi);
+        SDP.add(Linking_Wi.in(nodes)==0, convexify);
+        //        SDPOPF->print();
+    }
+    
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDP.min(obj);
@@ -244,12 +275,9 @@ int main (int argc, char * argv[]) {
     
     /** Constraints */
     /* Second-order cone constraints */
-    if(soc)
-    {
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     SDP.add(SOC.in(bus_pairs_chord) <= 0);
-    }
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -325,8 +353,7 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_from_U("I_from_U");
         I_from_U = w_min.from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
-        SDP.add(I_from_U.in(arcs) <= 0);
-        
+        SDP.add_lazy(I_from_U.in(arcs) <= 0);
         
         Constraint<> I_from_U1("I_from_U1");
         I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
@@ -405,10 +432,11 @@ int main (int argc, char * argv[]) {
     DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
         
-        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
-        ofstream fout(result_name.c_str(), ios_base::app);
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
-        
+//        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
+//        ofstream fout(result_name.c_str(), ios_base::app);
+//    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
+    
+    SDP.print();
     
     return 0;
 

@@ -108,6 +108,8 @@ namespace gravity {
             return (_type==complex_c);
         };
 
+        virtual void eval_all() {};
+        
         virtual bool func_is_number() const{return is_number();};
         
         virtual bool is_number() const{
