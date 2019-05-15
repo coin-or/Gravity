@@ -666,7 +666,7 @@ namespace gravity {
         
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(const Constraint<Cpx>& c){
+        void add(const Constraint<Cpx>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
@@ -683,13 +683,30 @@ namespace gravity {
             c_imag._ctype = c._ctype;
             c_imag._indices = c._indices;
             c_imag._dim[0] = c._dim[0];
-            add_constraint(c_real);
-            add_constraint(c_imag);
+            if(convexify){
+                auto lifted_real = lift_quad(c_real);
+                auto lifted_imag = lift_quad(c_imag);
+                lifted_real._ctype = c._ctype;
+                lifted_real._indices = c._indices;
+                lifted_real._dim[0] = c._dim[0];
+                lifted_imag._ctype = c._ctype;
+                lifted_imag._indices = c._indices;
+                lifted_imag._dim[0] = c._dim[0];
+                add_constraint(lifted_real);
+                add_constraint(lifted_imag);
+            }
+            else {
+                add_constraint(c_real);
+                add_constraint(c_imag);
+            }
 //            c_real.print_symbolic();
 //            c_imag.print_symbolic();
         }
         
         Constraint<type> lift_quad(const Constraint<type>& c){
+            if(c.is_constant() || c.is_linear() || c.is_convex()){
+                return c;
+            }
             if(!c.is_quadratic()){
                 throw invalid_argument("lift_quad can only be called on a quadratic constraint");
             }
@@ -708,7 +725,7 @@ namespace gravity {
                     lifted.add_cst(*f_cst);
                 }
                 if (lifted._cst->is_function()) {
-                    lifted.embed(*static_pointer_cast<func>(lifted._cst));
+                    lifted.embed(*static_pointer_cast<func<type>>(lifted._cst));
                 }
             }
             for (auto &pair:*c._lterms) {
@@ -730,6 +747,7 @@ namespace gravity {
             for (auto &pair:*c._qterms) {
                 auto term = pair.second;
                 lterm lt;
+                lt._sign = term._sign;
                 if (term._coef->is_function()) {
                     auto coef = *static_pointer_cast<func<type>>(term._coef);
                     lt._coef = func<type>(coef).copy();
@@ -742,13 +760,21 @@ namespace gravity {
                     auto coef = *static_pointer_cast<constant<type>>(term._coef);
                     lt._coef = constant<type>(coef).copy();
                 }
-                auto vlift = make_shared<var<type>>(term._name);
-                lt._p = vlift;
+                auto o1 = *static_pointer_cast<var<type>>(term._p->first);
+                auto o2 = *static_pointer_cast<var<type>>(term._p->second);
+                auto ids = *c._indices;
+                param<type> lb("lb"), ub("ub");
+                lb.in(ids);ub.in(ids);
+                auto prod = o1*o2;
+                lb.set_val(prod._range->first);
+                ub.set_val(prod._range->second);
+                var<type> vlift("Lift_"+o1.get_name(true,true)+"_"+o2.get_name(true,true), lb, ub);
+                add(vlift.in(ids));
+                lt._p = make_shared<var<type>>(vlift);
                 lifted.insert(lt);
-                var<type> o1(*term._p->first);
-                var<type> o2(*term._p->second);
-                add_McCormick(term._name, vlift, o1, o2);
+                add_McCormick(pair.first, vlift, o1, o2);
             }
+            return lifted;
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -782,7 +808,7 @@ namespace gravity {
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(Constraint<Cpx>&& c){
+        void add(Constraint<Cpx>&& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
@@ -795,8 +821,14 @@ namespace gravity {
             c_imag._name = "Imag(" + c._name + ")";
             c_imag._ctype = c._ctype;
             c_imag._indices = c._indices;
-            add_constraint(c_real);
-            add_constraint(c_imag);
+            if(convexify){
+                add(lift_quad(c_real));
+                add(lift_quad(c_imag));
+            }
+            else {
+                add_constraint(c_real);
+                add_constraint(c_imag);
+            }
         }
         
         
@@ -1439,49 +1471,53 @@ namespace gravity {
             auto lb2 = v2.get_lb(v2.get_id_inst());
             auto ub1 = v1.get_ub(v1.get_id_inst());
             auto ub2 = v2.get_ub(v2.get_id_inst());
+            auto lb1_ = v1.get_lb().in(*v1._indices);
+            auto lb2_ = v2.get_lb().in(*v2._indices);
+            auto ub1_ = v1.get_ub().in(*v1._indices);
+            auto ub2_ = v2.get_ub().in(*v2._indices);
             bool template_cstr = v1._dim[0]>1;
             MC1 += vlift;
             if(template_cstr){//Template constraint
-                MC1 -= (v1.get_lb())*v2 + (v2.get_lb())*v1 - (v1.get_lb())*(v2.get_lb());
+                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
             }
             else {
                 MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
             }
             MC1 >= 0;
-            add(MC1);
+            add(MC1.in(*vlift._indices));
             //    MC1.print();
             Constraint<type> MC2(name+"_McCormick2");
             MC2 += vlift;
             if(template_cstr){//Template constraint
-                MC2 -= (v1.get_ub())*v2 + (v2.get_ub())*v1 - (v1.get_ub())*(v2.get_ub());
+                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
             }
             else {
                 MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
             }
             MC2 >= 0;
-            add(MC2);
+            add(MC2.in(*vlift._indices));
             //    //    MC2.print();
             Constraint<type> MC3(name+"_McCormick3");
             MC3 += vlift;
             if(template_cstr){//Template constraint
-                MC3 -= (v1.get_lb())*v2 + (v2.get_ub())*v1 - (v1.get_lb())*(v2.get_ub());
+                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
             }
             else {
                 MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
             }
             MC3 <= 0;
-            add(MC3);
+            add(MC3.in(*vlift._indices));
             //    //    MC3.print();
             Constraint<type> MC4(name+"_McCormick4");
             MC4 += vlift;
             if(template_cstr){//Template constraint
-                MC4 -= (v1.get_ub())*v2 + (v2.get_lb())*v1 - (v1.get_ub())*(v2.get_lb());
+                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
             }
             else{
                 MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
             }
             MC4 <= 0;
-            add(MC4);
+            add(MC4.in(*vlift._indices));
             //    MC4.print();
         }
         
@@ -2463,6 +2499,23 @@ namespace gravity {
             }
         }
         
+        void reset() {
+            for(auto& c_p :_cons)
+            {
+                c_p.second->uneval();
+            }
+            for(auto &v_p: _vars)
+            {
+                v_p.second->reset_bounds();
+            }
+        }
+        
+        void reset_constrs() {
+            for(auto& c_p :_cons)
+            {
+                c_p.second->uneval();
+            }
+        }
         
         void fill_in_cstr_bounds(double* g_l ,double* g_u) {
             size_t cid = 0;
