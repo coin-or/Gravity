@@ -27,6 +27,7 @@ int main (int argc, char * argv[]) {
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string loss_from_s = "yes";
+    string orig_s = "no";
     string loss_to_s="yes";
     string lazy_s = "yes";
     bool lazy_bool = true;
@@ -46,6 +47,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("lf", "losses_from", "add from loss constraints", loss_from_s);
+    opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
     opt.add_option("lt", "losses_to", "add to loss constraints", loss_to_s);
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
@@ -82,7 +84,16 @@ int main (int argc, char * argv[]) {
     else {
         loss_from = true;
     }
+    bool add_original = true;
     
+    orig_s = opt["o"];
+    if (orig_s.compare("no")==0) {
+        add_original = false;
+    }
+    else {
+        add_original = true;
+    }
+
     
     
     loss_to_s = opt["lt"];
@@ -216,16 +227,18 @@ int main (int argc, char * argv[]) {
     
     var<>  R_Vi("R_Vi", -1*v_max, v_max);
     var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-    bool add_original = true;
+
+   
+
     if(add_original){
         SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
         R_Vi.initialize_all(1);
     }
     
     if(add_original){
-        Constraint<> Ref_Bus("Ref_Bus");
-        Ref_Bus = Im_Vi(grid.ref_bus);
-        SDP.add(Ref_Bus == 0);
+//        Constraint<> Ref_Bus("Ref_Bus");
+//        Ref_Bus = Im_Vi(grid.ref_bus);
+//        SDP.add(Ref_Bus == 0);
         
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
@@ -309,12 +322,12 @@ int main (int argc, char * argv[]) {
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDP.add_lazy(PAD_UB.in(bus_pairs));
+    SDP.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDP.add_lazy(PAD_LB.in(bus_pairs));
+    SDP.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -353,7 +366,7 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_from_U("I_from_U");
         I_from_U = w_min.from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
-        SDP.add_lazy(I_from_U.in(arcs) <= 0);
+//        SDP.add_lazy(I_from_U.in(arcs) <= 0);
         
         Constraint<> I_from_U1("I_from_U1");
         I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
@@ -385,7 +398,7 @@ int main (int argc, char * argv[]) {
         
             Constraint<> I_to_U("I_to_U");
             I_to_U = w_min.to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
-            SDP.add_lazy(I_to_U.in(arcs) <= 0);
+//            SDP.add_lazy(I_to_U.in(arcs) <= 0);
         
             Constraint<> I_to_U1("I_to_U1");
             I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
@@ -404,14 +417,14 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SDP.add_lazy(LNC1.in(bus_pairs) >= 0);
+    SDP.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SDP.add_lazy(LNC2.in(bus_pairs) >= 0);
+    SDP.add(LNC2.in(bus_pairs) >= 0);
     }
     
     
@@ -419,7 +432,11 @@ int main (int argc, char * argv[]) {
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
+
     SDPOPF.run(output = 5, tol = 1e-6);
+
+   // SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();

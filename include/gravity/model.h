@@ -404,7 +404,8 @@ namespace gravity {
         void add_var(var<T>&& v){//Add variables by copy
             if(v.get_dim()==0)
                 return;
-            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name.substr(0,v._name.find_first_of("."));
+            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -768,9 +769,17 @@ namespace gravity {
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
-                var<type> vlift("Lift_"+o1.get_name(true,true)+"_"+o2.get_name(true,true), lb, ub);
-                add(vlift.in(ids));
-                lt._p = make_shared<var<type>>(vlift);
+                var<type> vlift("Lift_"+o1._name+"_"+o2._name, lb, ub);
+                auto it = _vars_name.find(vlift._name);
+                if(it==_vars_name.end()){
+                    add(vlift.in(ids));
+                    lt._p = make_shared<var<type>>(vlift);
+                }
+                else {
+                    lt._p = it->second->pcopy();
+                    vlift = *static_pointer_cast<var<type>>(it->second);
+                }
+                
                 lifted.insert(lt);
                 add_McCormick(pair.first, vlift, o1, o2);
             }
