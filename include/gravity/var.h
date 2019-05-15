@@ -359,6 +359,10 @@ namespace gravity {
             return res;
         }
         
+        void reset_bounds(){
+            _lb->uneval();
+            _ub->uneval();
+        }
         
         //    var in(const node_pairs& np){
         //        return this->in(np._keys);

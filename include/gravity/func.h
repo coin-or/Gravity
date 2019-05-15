@@ -1562,7 +1562,7 @@ namespace gravity {
         template<typename... Args>
         void index_in(const indices& ids1, Args&&... args) {
             auto ids = indices(ids1,args...);
-            if(!_indices || _indices->empty()){/**< No need to add each key individually */
+            if(!_indices || _indices->empty() || ids.is_indexed()){/**< No need to add each key individually */
                 if(!ids._excluded_keys.empty()){
                     ids.remove_excluded();
                 }
@@ -1620,7 +1620,7 @@ namespace gravity {
                     }
                     auto it1 = _indices->_keys_map->find(key);
                     if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: " + key);
                     }
                     _indices->_ids->at(0).push_back(it1->second);
                 }
@@ -2949,6 +2949,13 @@ namespace gravity {
                 _expr->uneval();
             }
         }
+        void eval_all(){
+            auto nb_inst = get_nb_inst();
+            for (size_t inst = 0; inst<nb_inst; inst++) {
+                eval(inst);
+            }
+            _evaluated = true;
+        }
         
         type eval(size_t i=0) {
             if(is_zero()){
@@ -4122,14 +4129,10 @@ namespace gravity {
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         inline T  eval_bexpr(bexpr<type>* exp, size_t i){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
-                    eval(exp->_lson,inst);
-                }
+                exp->_lson->eval_all();
             }
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
-                    eval(exp->_rson,inst);
-                }
+                exp->_rson->eval_all();
             }
             if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
             {
@@ -4179,14 +4182,10 @@ namespace gravity {
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline T  eval_bexpr(bexpr<type>* exp, size_t i){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(0); inst++) {
-                    eval(exp->_lson,inst);
-                }
+                exp->_lson->eval_all();
             }
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(0); inst++) {
-                    eval(exp->_rson,inst);
-                }
+                exp->_rson->eval_all();
             }
             if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
             {
@@ -4312,16 +4311,10 @@ namespace gravity {
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         T  eval_bexpr(const bexpr<type>* exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
-                    eval(exp->_lson,inst);
-                }
-                exp->_lson->evaluated(true);
+                exp->_lson->eval_all();
             }
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
-                    eval(exp->_rson,inst);
-                }
-                exp->_rson->evaluated(true);
+                exp->_rson->eval_all();
             }
             T lval = eval(exp->_lson,i,j);
             T rval = eval(exp->_rson,i,j);
@@ -4354,16 +4347,10 @@ namespace gravity {
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         T  eval_bexpr(const bexpr<type>* exp, size_t i, size_t j){
             if (exp->_lson->is_constant() && !exp->_lson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_lson->get_dim(); inst++) {
-                    eval(exp->_lson,inst);
-                }
-                exp->_lson->evaluated(true);
+                exp->_lson->eval_all();
             }
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_rson->get_dim(); inst++) {
-                    eval(exp->_rson,inst);
-                }
-                exp->_rson->evaluated(true);
+                exp->_rson->eval_all();
             }
             T lval = eval(exp->_lson,i,j);
             T rval = eval(exp->_rson,i,j);

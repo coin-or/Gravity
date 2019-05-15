@@ -173,6 +173,7 @@ int main (int argc, char * argv[]) {
                         for(auto &dir: dir_array)
                         {
                             auto modelk = SDP->copy();
+                            modelk->reset_constrs();
                             mname=vname+"."+key+"."+dir;
                             modelk->set_name(mname);
                             
@@ -293,7 +294,8 @@ int main (int argc, char * argv[]) {
 
     DebugOn("Average interval reduction\t"<<avg<<endl);
 
-    
+    SDP->reset_constrs();
+    SDP->print();
     solver<> SDPLB1(SDP,solv_type);
     SDPLB1.run(output = 5, tol = 1e-6);
     double gap = 100*(upper_bound - lower_bound)/upper_bound;

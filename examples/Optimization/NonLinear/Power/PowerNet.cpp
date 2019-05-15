@@ -1212,7 +1212,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bound)
 {
-    bool relax, sdp_cuts = true, loss_to=true, llnc=true, lazy_bool = false;
+    bool relax, sdp_cuts = true, loss_to=loss_from, llnc=true, lazy_bool = false;
     size_t num_bags = 0;
     string num_bags_s = "100";
 
@@ -1324,16 +1324,30 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     
+//    param<> vmin("vmin"), vmax("vmax");
+//    vmin.in(nodes);vmax.in(nodes);
+//    vmin.set_val(-1.21);vmax.set_val(1.21);
+//    /* Real part of Vi */
+//    var<>  R_Vi("R_Vi", vmin, vmax);
+//
+//    param<> vminI("vminI"), vmaxI("vmaxI");
+//    vminI.in(nodes);vmaxI.in(nodes);
+//    vminI.set_val(-1.21);vmaxI.set_val(1.21);
+//    vminI.set_val(grid.ref_bus, 0);vmaxI.set_val(grid.ref_bus, 0);
+//    /* Imag part of Vi */
+//    var<>  Im_Vi("Im_Vi", vmin, vmax);
     
-    /* Real part of Vi */
     var<>  R_Vi("R_Vi", -1*v_max, v_max);
-    /* Imag part of Vi */
-    var<>  Im_Vi("I_Vi", -1*v_max, v_max);
-    
+    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
     bool add_original = true;
     if(add_original){
         SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+        R_Vi.initialize_all(1);
     }
+    
+//    Constraint<> Ref_Bus("Ref_Bus");
+//    Ref_Bus = Im_Vi(grid.ref_bus);
+//    SDPOPF->add(Ref_Bus == 0);
     
     /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", wr_min, wr_max);
@@ -1356,19 +1370,20 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
 //    UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
 //    SDPOPF->add(UB<=upper_bound);
     if(add_original){
+        bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
         Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0);
+//        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
         Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
-        SDPOPF->add(Linking_Wi.in(nodes)==0);
-        SDPOPF->print();
+        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
+//        SDPOPF->print();
     }
     
     /** Constraints */
@@ -1432,13 +1447,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDPOPF->add_lazy(PAD_UB.in(bus_pairs));
+    SDPOPF->add(PAD_UB.in(bus_pairs));
 
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDPOPF->add_lazy(PAD_LB.in(bus_pairs));
+    SDPOPF->add(PAD_LB.in(bus_pairs));
 
     
     /* Thermal Limit Constraints */
@@ -1472,9 +1487,6 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         Constraint<> I_from_L("I_from_L");
         I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
         SDPOPF->add(I_from_L.in(arcs) <= 0);
-        
-        
-        
         
         Constraint<> I_from_U("I_from_U");
         I_from_U = w_min.from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
@@ -1529,15 +1541,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
         LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
         LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-        SDPOPF->add_lazy(LNC1.in(bus_pairs) >= 0);
+        SDPOPF->add(LNC1.in(bus_pairs) >= 0);
         
         Constraint<> LNC2("LNC2");
         LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
         LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
         LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
         LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-        SDPOPF->add_lazy(LNC2.in(bus_pairs) >= 0);
+        SDPOPF->add(LNC2.in(bus_pairs) >= 0);
     }
+    SDPOPF->print();
     return SDPOPF;
 
 }
