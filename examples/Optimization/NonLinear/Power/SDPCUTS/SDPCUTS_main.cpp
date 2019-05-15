@@ -178,7 +178,7 @@ int main (int argc, char * argv[]) {
 
 
     
-    double upper_bound = grid.solve_acopf();
+    double upper_bound = grid.solve_acopf(ACRECT);
     
     
     /** Build model */
@@ -236,8 +236,10 @@ int main (int argc, char * argv[]) {
     }
     
     if(add_original){
-//        Constraint<> Ref_Bus("Ref_Bus");
-//        Ref_Bus = Im_Vi(grid.ref_bus);
+
+        Constraint<> Ref_Bus("Ref_Bus");
+        Ref_Bus = Im_Vi(grid.ref_bus);
+
 //        SDP.add(Ref_Bus == 0);
         
         bool convexify = true;
@@ -247,13 +249,14 @@ int main (int argc, char * argv[]) {
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+//        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
         Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
         SDP.add(Linking_Wi.in(nodes)==0, convexify);
-        //        SDPOPF->print();
+//                SDP.print();
+//        SDP.print_symbolic();
     }
     
     /**  Objective */
@@ -433,9 +436,16 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
 
+
     SDPOPF.run(output = 5, tol = 1e-6);
 
    // SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+
+
+    SDP.print();
+    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+//    SDP.print();
+//    SDP.print_symbolic();
 
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
     double solver_time_end = get_wall_time();
@@ -449,11 +459,13 @@ int main (int argc, char * argv[]) {
     DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
         
+
 //        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
 //        ofstream fout(result_name.c_str(), ios_base::app);
 //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
-    
-    SDP.print();
+//
+//    SDP.print_solution();
+
     
     return 0;
 
