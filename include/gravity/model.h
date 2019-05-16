@@ -379,7 +379,8 @@ namespace gravity {
         
         template <typename T>
         void add_var(var<T>& v){//Add variables by copy
-            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name.substr(0,v._name.find_first_of("."));
+            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -774,14 +775,14 @@ namespace gravity {
                 if(it==_vars_name.end()){
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);
+                    add_McCormick(pair.first, vlift, o1, o2);
                 }
                 else {
-                    lt._p = it->second->pcopy();
                     vlift = *static_pointer_cast<var<type>>(it->second);
+                    lt._p = make_shared<var<type>>(vlift);
                 }
                 
                 lifted.insert(lt);
-                add_McCormick(pair.first, vlift, o1, o2);
             }
             lifted._range = c._range;
             lifted._all_convexity = linear_;
@@ -1477,7 +1478,6 @@ namespace gravity {
             }
         }
         
-        
         template<typename T1>
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
             Constraint<type> MC1(name+"_McCormick1");
@@ -1490,50 +1490,138 @@ namespace gravity {
             auto ub1_ = v1.get_ub().in(*v1._indices);
             auto ub2_ = v2.get_ub().in(*v2._indices);
             bool template_cstr = v1._dim[0]>1;
-            MC1 += vlift;
-            if(template_cstr){//Template constraint
-                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
+            bool var_equal=false;
+            if(v1._name==v2._name)
+                var_equal=true;
+            if(!var_equal)
+            {
+                Constraint<type> MC1(name+"_McCormick1");
+                MC1 += vlift;
+                if(template_cstr){//Template constraint
+                    MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
+                }
+                else {
+                    MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
+                }
+                MC1 >= 0;
+                add(MC1.in(*vlift._indices));
+                //    MC1.print();
+                Constraint<type> MC2(name+"_McCormick2");
+                MC2 += vlift;
+                if(template_cstr){//Template constraint
+                    MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
+                }
+                else {
+                    MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
+                }
+                MC2 >= 0;
+                add(MC2.in(*vlift._indices));
+                
+                //    //    MC2.print();
+                Constraint<type> MC3(name+"_McCormick3");
+                MC3 += vlift;
+                if(template_cstr){//Template constraint
+                    MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
+                }
+                else {
+                    MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
+                }
+                MC3 <= 0;
+                add(MC3.in(*vlift._indices));
+                //    //    MC3.print();
+                Constraint<type> MC4(name+"_McCormick4");
+                MC4 += vlift;
+                if(template_cstr){//Template constraint
+                    MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
+                }
+                else{
+                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
+                }
+                MC4 <= 0;
+                add(MC4.in(*vlift._indices));
             }
             else {
-                MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
+                Constraint<type> MC4(name+"_Secant");
+                MC4 += vlift;
+                if(template_cstr){//Template constraint
+                    MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
+                }
+                else{
+                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
+                }
+                MC4 <= 0;
+                add(MC4.in(*vlift._indices));
+                Constraint<type> MC5(name+"_McCormick_squared");
+                if(var_equal)
+                {
+                    MC5 += vlift;
+                    
+                    MC5 -= v1*v1;
+                    
+                    MC5 >= 0;
+                    add(MC5.in(*vlift._indices));
+                }
             }
-            MC1 >= 0;
-            add(MC1.in(*vlift._indices));
-            //    MC1.print();
-            Constraint<type> MC2(name+"_McCormick2");
-            MC2 += vlift;
-            if(template_cstr){//Template constraint
-                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
-            }
-            else {
-                MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
-            }
-            MC2 >= 0;
-            add(MC2.in(*vlift._indices));
-            //    //    MC2.print();
-            Constraint<type> MC3(name+"_McCormick3");
-            MC3 += vlift;
-            if(template_cstr){//Template constraint
-                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
-            }
-            else {
-                MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
-            }
-            MC3 <= 0;
-            add(MC3.in(*vlift._indices));
-            //    //    MC3.print();
-            Constraint<type> MC4(name+"_McCormick4");
-            MC4 += vlift;
-            if(template_cstr){//Template constraint
-                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
-            }
-            else{
-                MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-            }
-            MC4 <= 0;
-            add(MC4.in(*vlift._indices));
+
             //    MC4.print();
         }
+        
+//        template<typename T1>
+//        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
+//            Constraint<type> MC1(name+"_McCormick1");
+//            auto lb1 = v1.get_lb(v1.get_id_inst());
+//            auto lb2 = v2.get_lb(v2.get_id_inst());
+//            auto ub1 = v1.get_ub(v1.get_id_inst());
+//            auto ub2 = v2.get_ub(v2.get_id_inst());
+//            auto lb1_ = v1.get_lb().in(*v1._indices);
+//            auto lb2_ = v2.get_lb().in(*v2._indices);
+//            auto ub1_ = v1.get_ub().in(*v1._indices);
+//            auto ub2_ = v2.get_ub().in(*v2._indices);
+//            bool template_cstr = v1._dim[0]>1;
+//            MC1 += vlift;
+//            if(template_cstr){//Template constraint
+//                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
+//            }
+//            else {
+//                MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
+//            }
+//            MC1 >= 0;
+//            add(MC1.in(*vlift._indices));
+//            //    MC1.print();
+//            Constraint<type> MC2(name+"_McCormick2");
+//            MC2 += vlift;
+//            if(template_cstr){//Template constraint
+//                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
+//            }
+//            else {
+//                MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
+//            }
+//            MC2 >= 0;
+//            add(MC2.in(*vlift._indices));
+//            //    //    MC2.print();
+//            Constraint<type> MC3(name+"_McCormick3");
+//            MC3 += vlift;
+//            if(template_cstr){//Template constraint
+//                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
+//            }
+//            else {
+//                MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
+//            }
+//            MC3 <= 0;
+//            add(MC3.in(*vlift._indices));
+//            //    //    MC3.print();
+//            Constraint<type> MC4(name+"_McCormick4");
+//            MC4 += vlift;
+//            if(template_cstr){//Template constraint
+//                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
+//            }
+//            else{
+//                MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
+//            }
+//            MC4 <= 0;
+//            add(MC4.in(*vlift._indices));
+//            //    MC4.print();
+//        }
         
         
         /** Build the sequential McCormick relaxation for polynomial programs **/

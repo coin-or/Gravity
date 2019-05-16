@@ -2927,6 +2927,7 @@ namespace gravity {
         
         void uneval() {
             _evaluated = false;
+            _cst->uneval();
             for (auto &pair:*_lterms) {
                 auto coef = pair.second._coef;
                 if(coef->is_function()){
@@ -2949,6 +2950,7 @@ namespace gravity {
                 _expr->uneval();
             }
         }
+        
         void eval_all(){
             auto nb_inst = get_nb_inst();
             for (size_t inst = 0; inst<nb_inst; inst++) {
@@ -4046,9 +4048,7 @@ namespace gravity {
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline T eval_uexpr(uexpr<type>* exp, size_t i) {
             if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
-                    eval(exp->_son,inst);
-                }
+                exp->_son->eval_all();
             }
             T res = get_val(exp->_son,i);
             switch (exp->_otype) {
@@ -4086,9 +4086,7 @@ namespace gravity {
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         Cpx eval_uexpr(uexpr<T>* exp, size_t i) {
             if (exp->_son->is_constant() && !exp->_son->is_evaluated()) {
-                for (auto inst = 0; inst < exp->_son->get_dim(); inst++) {
-                    eval(exp->_son,inst);
-                }
+                exp->_son->eval_all();
             }
             Cpx res = get_val(exp->_son,i);
             switch (exp->_otype) {

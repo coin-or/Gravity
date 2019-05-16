@@ -160,11 +160,11 @@ namespace gravity {
 
 
         string get_name(bool in_func, bool exclude_indexing) const{
-            return _name;
+//            return _name;
             string name = _name;
-            if(_indices && exclude_indexing){
-                name = name.substr(0, name.find_first_of("."));
-            }
+//            if(_indices && exclude_indexing){
+//                name = name.substr(0, name.find_first_of("."));
+//            }
             if (!in_func && _is_transposed) {
                 name += "\u1D40";
             }
