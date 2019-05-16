@@ -489,7 +489,7 @@ namespace gravity {
     int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver=""){
         int return_status = -1;
         for (auto i = start; i<end; i++) {
-            return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver);
+            return_status = solver<type>((models.at(i)),stype).run(5, tol, lin_solver);
             //            models.at(i)->print_solution(24);
         }
         return return_status;

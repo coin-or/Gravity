@@ -27,7 +27,7 @@ int main (int argc, char * argv[]) {
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string loss_from_s = "yes";
-    string orig_s = "no";
+    string orig_s = "yes";
     string loss_to_s="yes";
     string lazy_s = "yes";
     bool lazy_bool = true;
@@ -239,8 +239,8 @@ int main (int argc, char * argv[]) {
 
         Constraint<> Ref_Bus("Ref_Bus");
         Ref_Bus = Im_Vi(grid.ref_bus);
+        SDP.add(Ref_Bus == 0);
 
-//        SDP.add(Ref_Bus == 0);
         
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
@@ -249,7 +249,7 @@ int main (int argc, char * argv[]) {
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-//        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
         Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
@@ -325,12 +325,12 @@ int main (int argc, char * argv[]) {
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDP.add(PAD_UB.in(bus_pairs));
+    SDP.add_lazy(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDP.add(PAD_LB.in(bus_pairs));
+    SDP.add_lazy(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -437,13 +437,16 @@ int main (int argc, char * argv[]) {
     double solver_time_start = get_wall_time();
 
 
-    SDPOPF.run(output = 5, tol = 1e-6);
 
-   // SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+    //SDPOPF.run(output = 5, tol = 1e-6);
+
+    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
 
 
     SDP.print();
+
     SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+
 //    SDP.print();
 //    SDP.print_symbolic();
 
@@ -460,11 +463,13 @@ int main (int argc, char * argv[]) {
     DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
         
 
+//
 //        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
 //        ofstream fout(result_name.c_str(), ios_base::app);
 //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
-//
+
 //    SDP.print_solution();
+
 
     
     return 0;
