@@ -1337,8 +1337,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
 //    /* Imag part of Vi */
 //    var<>  Im_Vi("Im_Vi", vmin, vmax);
     
-    var<>  R_Vi("R_Vi", -1*v_max, v_max);
-    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+    var<>  R_Vi("R_Vi", -1.1*v_max, v_max);
+    var<>  Im_Vi("Im_Vi", -1.1*v_max, v_max);
     bool add_original = true;
     if(add_original){
         SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
@@ -1366,10 +1366,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDPOPF->min(obj);
     
-//    Constraint<> UB("UB");
-//    UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-//    SDPOPF->add(UB<=upper_bound);
+    Constraint<> UB("UB");
+    UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    SDPOPF->add(UB<=upper_bound);
     if(add_original){
+        Constraint<> Ref_Bus("Ref_Bus");
+        Ref_Bus = Im_Vi(grid.ref_bus);
+        SDPOPF->add(Ref_Bus == 0);
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
@@ -1377,7 +1380,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-//        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
         Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
@@ -1550,7 +1553,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
         SDPOPF->add(LNC2.in(bus_pairs) >= 0);
     }
-    SDPOPF->print();
+//    SDPOPF->print();
     return SDPOPF;
 
 }
@@ -1643,7 +1646,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     solver<> OPF(ACOPF,ipopt);
 //    auto mipgap = 1e-6;
     OPF.run(output, tol);
-    ACOPF->print_solution();
+//    ACOPF->print_solution();
     return ACOPF->_obj->get_val();
 }
 
