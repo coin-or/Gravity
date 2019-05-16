@@ -104,7 +104,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPLB(SDP,solv_type);
     SDPLB.run(output = 5, tol = 1e-6);
     double lower_bound=SDP->get_obj_val();
-    
+    SDP->print();
     vector<shared_ptr<Model<>>> batch_models;
     map<pair<string, string>, bool> fixed_point;
     map<pair<string, string>, double> interval_original, interval_new;
@@ -132,7 +132,6 @@ int main (int argc, char * argv[]) {
                 p=make_pair(vname, key);
                 fixed_point[p]=false;
                 interval_original[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
-                
             }
             
         }
@@ -174,7 +173,7 @@ int main (int argc, char * argv[]) {
                         {
                             auto modelk = SDP->copy();
                             modelk->reset_constrs();
-                            mname=vname+"."+key+"."+dir;
+                            mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
                             vark=modelk->get_var<double>(vname);
@@ -192,7 +191,7 @@ int main (int argc, char * argv[]) {
                             if (batch_models.size()==nb_threads || (it==*SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
                             {
                                 double batch_time_start = get_wall_time();
-                                run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma27");
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma97");
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -200,10 +199,10 @@ int main (int argc, char * argv[]) {
                                 {
 //                                    model->print();
                                     mkname=model->get_name();
-                                    std::size_t pos = mkname.find(".");
+                                    std::size_t pos = mkname.find("|");
                                     vkname.assign(mkname, 0, pos);
                                     mkname=mkname.substr(pos+1);
-                                    pos=mkname.find(".");
+                                    pos=mkname.find("|");
                                     keyk.assign(mkname, 0, pos);
                                     dirk=mkname.substr(pos+1);
                                     vk=SDP->get_var<double>(vkname);
@@ -268,7 +267,6 @@ int main (int argc, char * argv[]) {
             
         }
     }
-    SDP->print();
     DebugOn("Terminate\t"<<terminate<<endl);
     DebugOn("Time\t"<<solver_time<<endl);
     DebugOn("Iterations\t"<<iter<<endl);

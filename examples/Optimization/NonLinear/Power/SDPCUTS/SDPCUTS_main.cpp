@@ -236,7 +236,7 @@ int main (int argc, char * argv[]) {
     if(add_original){
         Constraint<> Ref_Bus("Ref_Bus");
         Ref_Bus = Im_Vi(grid.ref_bus);
-//        SDP.add(Ref_Bus == 0);
+        SDP.add(Ref_Bus == 0);
         
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
@@ -245,7 +245,7 @@ int main (int argc, char * argv[]) {
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-//        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
         Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
@@ -431,8 +431,8 @@ int main (int argc, char * argv[]) {
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
-    SDP.print();
-    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+//    SDP.print();
+    SDPOPF.run(output = 5, tol = 1e-6);
 //    SDP.print();
 //    SDP.print_symbolic();
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
@@ -451,7 +451,7 @@ int main (int argc, char * argv[]) {
         ofstream fout(result_name.c_str(), ios_base::app);
     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-    SDP.print_solution();
+//    SDP.print_solution();
     
     return 0;
 
