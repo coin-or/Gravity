@@ -1339,7 +1339,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     
     var<>  R_Vi("R_Vi", -1.1*v_max, v_max);
     var<>  Im_Vi("Im_Vi", -1.1*v_max, v_max);
-    bool add_original = true;
+    bool add_original = false;
     if(add_original){
         SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
         R_Vi.initialize_all(1);
@@ -1498,7 +1498,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         
         Constraint<> I_from_U1("I_from_U1");
         I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDPOPF->add(I_from_U1.in(arcs) <= 0);
+//        SDPOPF->add(I_from_U1.in(arcs) <= 0);
         
     }
     
@@ -1530,7 +1530,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
         
         Constraint<> I_to_U1("I_to_U1");
         I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
-        SDPOPF->add(I_to_U1.in(arcs) <= 0);
+//        SDPOPF->add(I_to_U1.in(arcs) <= 0);
         
     }
 
