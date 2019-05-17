@@ -290,7 +290,7 @@ namespace gravity {
                     }
                 }
             }
-            for(auto &cp: _cons){
+            for(auto &cp: _cons_name){
                 cpy->add(*cp.second);
                 cpy->merge_vars(cpy->_cons_vec.back());
                 cpy->_cons_vec.back()->uneval();
@@ -1768,9 +1768,9 @@ namespace gravity {
             compute_constrs<type>(_cons_vec, res, 0, _cons_vec.size());
             return;
             unsigned nr_threads = std::thread::hardware_concurrency();
-            if (nr_threads==0) {
+//            if (nr_threads==0) {
                 nr_threads = 1;
-            }
+//            }
             vector<thread> threads;
             /* Split cons into nr_threads parts */
             vector<size_t> limits = bounds(nr_threads, _cons_vec.size());
@@ -1859,9 +1859,9 @@ namespace gravity {
                 //                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
                 //                return;
                 unsigned nr_threads = std::thread::hardware_concurrency();
-                if (nr_threads==0) {
+//                if (nr_threads==0) {
                     nr_threads = 1;
-                }
+//                }
                 vector<thread> threads;
                 /* Split cons into nr_threads parts */
                 vector<size_t> limits = bounds(nr_threads, _cons_vec.size());

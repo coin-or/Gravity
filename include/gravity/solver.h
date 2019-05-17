@@ -287,6 +287,7 @@ namespace gravity {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();                        
                     }
+                    DebugOn("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
@@ -296,7 +297,7 @@ namespace gravity {
                         //                return status;
                         //                    return_status = status;
                     }
-                    else if (status == Solved_To_Acceptable_Level || status == Maximum_Iterations_Exceeded) {
+                    else if (status == Solved_To_Acceptable_Level) {
                         //                return 150;
                         optimal = true;
                     }
@@ -480,6 +481,9 @@ namespace gravity {
                 DebugOn("####################" << endl);
             }
             _model->_status = return_status;
+            if(_model->_status == 0){
+                DebugOn("Solved to Optimality/Acceptable "<< endl);
+            }
             return return_status;
         }
         
