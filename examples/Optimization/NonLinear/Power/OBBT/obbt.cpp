@@ -101,9 +101,9 @@ int main (int argc, char * argv[]) {
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6);
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDP->get_obj_val();
-    SDP->print();
+//    SDP->print();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new;
@@ -117,7 +117,7 @@ int main (int argc, char * argv[]) {
     bool terminate=false;
     bool infeasible=false;
     bool break_flag=false, time_limit = false;
-    const double upp_low_tol=1e-3, fixed_tol=0.001, max_time=200, zero_tol=1e-3, range_tol=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol=0.001, max_time=21600, zero_tol=1e-3, range_tol=1e-6;
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
     {
@@ -142,135 +142,142 @@ int main (int argc, char * argv[]) {
 //            obj_lower = *(SDP->_obj);
 //            SDP->add(obj_lower>=lower_bound);
 //        }
-        unsigned nb_vars = 0;
+        
         solver_time= get_wall_time()-solver_time_start;
-//        for(auto i = 0; i<2 ;i++){
-        while(solver_time<=max_time && !terminate)
-        {
-            iter++;
-            terminate=true;
-            for (auto &it:SDP->_vars_name)
+        for(auto i = 0; i<2 ;i++){
+            if(i==1){
+                DebugOn("Entering second FP iteration" << endl);
+                for(auto &p: fixed_point){
+                    p.second = false;
+                }
+                terminate = false;
+            }
+            while(solver_time<=max_time && !terminate)
             {
-                nb_vars++;
-                vname=it.first;
-                v = SDP->get_var<double>(vname);
-                auto v_keys=v.get_keys();
-                for(auto &key: *(v.get_keys()))
+                iter++;
+                terminate=true;
+                for (auto it=SDP->_vars_name.begin(); it!=SDP->_vars_name.end(); it++)
                 {
-                    solver_time_end=get_wall_time();
-                    solver_time= solver_time_end-solver_time_start;
-                    if(solver_time>=max_time)
+                    vname=it->first;
+                    v = SDP->get_var<double>(vname);
+                    auto v_keys=v.get_keys();
+                    for(auto &key: *(v.get_keys()))
                     {
-                        break_flag=true;
-                        time_limit = true;
-                        break;
-                    }
-                    p=vname+"|"+ key;
-                    interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
-                    if(abs(v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key)))<=range_tol)
-                    {
-                        fixed_point[p]=true;
-                    }
-                    if(fixed_point[p]==false || (nb_vars==SDP->_vars_name.size() && key==v.get_keys()->back()))
-                    {
-                        for(auto &dir: dir_array)
+                        solver_time_end=get_wall_time();
+                        solver_time= solver_time_end-solver_time_start;
+                        if(solver_time>=max_time)
                         {
-                            if(fixed_point[p]==false){
-                                auto modelk = SDP->copy();
-//                                modelk->reset_constrs();
-                                mname=vname+"|"+key+"|"+dir;
-                                modelk->set_name(mname);
-                                
-                                vark=modelk->get_var<double>(vname);
-                                if(dir=="LB")
-                                {
-                                    modelk->min(vark(key));
-                                }
-                                else
-                                {
-                                    modelk->min(vark(key)*(-1));
-                                    
-                                }
-                                
-                                batch_models.push_back(modelk);
-                            }
-                            if (batch_models.size()==nb_threads || (nb_vars==SDP->_vars_name.size() && key==v.get_keys()->back() && dir=="UB"))
+                            break_flag=true;
+                            time_limit = true;
+                            break;
+                        }
+                        p=vname+"|"+ key;
+                        interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
+                        if(abs(v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key)))<=range_tol)
+                        {
+                            fixed_point[p]=true;
+                        }
+                        if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && key==v.get_keys()->back()))
+                        {
+                            for(auto &dir: dir_array)
                             {
-                                double batch_time_start = get_wall_time();
-                                run_parallel(batch_models,ipopt,1e-7,nb_threads,"ma57");
-                                double batch_time_end = get_wall_time();
-                                auto batch_time = batch_time_end - batch_time_start;
-                                DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
-                                for (auto model:batch_models)
-                                {
-                                    //                                    model->print();
-                                    mkname=model->get_name();
-                                    std::size_t pos = mkname.find("|");
-                                    vkname.assign(mkname, 0, pos);
-                                    mkname=mkname.substr(pos+1);
-                                    pos=mkname.find("|");
-                                    keyk.assign(mkname, 0, pos);
-                                    dirk=mkname.substr(pos+1);
-                                    vk=SDP->get_var<double>(vkname);
-                                    pk=vkname+"|"+keyk;
-                                    if(model->_status==0)
+                                if(fixed_point[p]==false){
+                                    auto modelk = SDP->copy();
+    //                                modelk->reset_constrs();
+                                    mname=vname+"|"+key+"|"+dir;
+                                    modelk->set_name(mname);
+                                    
+                                    vark=modelk->get_var<double>(vname);
+                                    if(dir=="LB")
                                     {
-                                        objk=model->get_obj_val();
-                                        if(dirk=="LB")
-                                            boundk1=vk.get_lb(keyk);
-                                        else
-                                        {
-                                            if(objk!=0)
-                                                objk*=-1;
-                                            boundk1=vk.get_ub(keyk);
-                                        }
-                                        if(abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
-                                        {
-                                            fixed_point[pk]=true;
-                                        }
-                                        else
-                                        {
-                                            if(dirk=="LB"){
-                                                vk(keyk).set_lb(objk);
-                                            }
-                                            else{
-                                                vk(keyk).set_ub(objk);
-                                            }
-                                            if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                                            {
-                                                fixed_point[pk]=true;
-                                                double temp=vk.get_ub(keyk);
-                                                vk(keyk).set_ub(vk.get_lb(keyk));
-                                                vk(keyk).set_lb(temp);
-                                            }
-                                            else {
-                                                fixed_point[pk]=false;
-                                                terminate=false;
-                                            }
-                                        }
+                                        modelk->min(vark(key));
                                     }
                                     else
                                     {
-                                        DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-//                                        model->print();
-//                                        fixed_point[pk]=true;
+                                        modelk->min(vark(key)*(-1));
+                                        
                                     }
+                                    
+                                    batch_models.push_back(modelk);
                                 }
-                                batch_models.clear();
+                                if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
+                                {
+                                    double batch_time_start = get_wall_time();
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma97");
+                                    double batch_time_end = get_wall_time();
+                                    auto batch_time = batch_time_end - batch_time_start;
+                                    DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                    for (auto model:batch_models)
+                                    {
+                                        //                                    model->print();
+                                        mkname=model->get_name();
+                                        std::size_t pos = mkname.find("|");
+                                        vkname.assign(mkname, 0, pos);
+                                        mkname=mkname.substr(pos+1);
+                                        pos=mkname.find("|");
+                                        keyk.assign(mkname, 0, pos);
+                                        dirk=mkname.substr(pos+1);
+                                        vk=SDP->get_var<double>(vkname);
+                                        pk=vkname+"|"+keyk;
+                                        if(model->_status==0)
+                                        {
+                                            objk=model->get_obj_val();
+                                            if(dirk=="LB")
+                                                boundk1=vk.get_lb(keyk);
+                                            else
+                                            {
+                                                if(objk!=0)
+                                                    objk*=-1;
+                                                boundk1=vk.get_ub(keyk);
+                                            }
+                                            if(abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
+                                            {
+                                                fixed_point[pk]=true;
+                                            }
+                                            else
+                                            {
+                                                if(dirk=="LB"){
+                                                    vk(keyk).set_lb(objk);
+                                                }
+                                                else{
+                                                    vk(keyk).set_ub(objk);
+                                                }
+                                                if(vk.get_ub(keyk)<vk.get_lb(keyk))
+                                                {
+                                                    fixed_point[pk]=true;
+                                                    double temp=vk.get_ub(keyk);
+                                                    vk(keyk).set_ub(vk.get_lb(keyk));
+                                                    vk(keyk).set_lb(temp);
+                                                }
+                                                else {
+                                                    fixed_point[pk]=false;
+                                                    terminate=false;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+    //                                        model->print();
+    //                                        fixed_point[pk]=true;
+                                        }
+                                    }
+                                    batch_models.clear();
+                                }
                             }
                         }
                     }
                 }
+                if(break_flag==true)
+                {
+                    DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
+                    SDP->print();
+                    break;
+                }
+                solver_time= get_wall_time()-solver_time_start;
+                DebugOn("Solved Fixed Point iteration " << iter << endl);
+    //            SDP->reset_constrs();
             }
-            if(break_flag==true)
-            {
-                DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
-                SDP->print();
-                break;
-            }
-            solver_time= get_wall_time()-solver_time_start;
-            DebugOn("Solved iteration" << iter << endl);
-//            SDP->reset_constrs();
         }
     }
     if(time_limit){
@@ -303,7 +310,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Average interval reduction\t"<<avg<<endl);
     
     SDP->reset_constrs();
-    SDP->print();
+//    SDP->print();
     solver<> SDPLB1(SDP,solv_type);
     SDPLB1.run(output = 5, tol = 1e-6, "ma97");
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
