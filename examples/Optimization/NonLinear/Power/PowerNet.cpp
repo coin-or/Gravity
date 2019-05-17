@@ -1370,9 +1370,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from, double upper_bo
     UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDPOPF->add(UB<=upper_bound);
     if(add_original){
-        Constraint<> Ref_Bus("Ref_Bus");
-        Ref_Bus = Im_Vi(grid.ref_bus);
-        SDPOPF->add(Ref_Bus == 0);
+        Im_Vi.set_lb(grid.ref_bus, 0);
+        Im_Vi.set_ub(grid.ref_bus, 0);
+//        Constraint<> Ref_Bus("Ref_Bus");
+//        Ref_Bus = Im_Vi(grid.ref_bus);
+//        SDPOPF->add(Ref_Bus == 0);
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
