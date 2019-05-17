@@ -117,7 +117,7 @@ int main (int argc, char * argv[]) {
     bool terminate=false;
     bool infeasible=false;
     bool break_flag=false, time_limit = false;
-    const double upp_low_tol=1e-3, fixed_tol=0.001, max_time=21600, zero_tol=1e-3, range_tol=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol=1e-5, max_time=200, zero_tol=1e-5, range_tol=1e-6;
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
     {
@@ -161,8 +161,9 @@ int main (int argc, char * argv[]) {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
                     auto v_keys=v.get_keys();
-                    for(auto &key: *(v.get_keys()))
+                    for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                     {
+                        auto key = *it_key;
                         solver_time_end=get_wall_time();
                         solver_time= solver_time_end-solver_time_start;
                         if(solver_time>=max_time)
@@ -177,30 +178,27 @@ int main (int argc, char * argv[]) {
                         {
                             fixed_point[p]=true;
                         }
-                        if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && key==v.get_keys()->back()))
+                        if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end()))
                         {
                             for(auto &dir: dir_array)
                             {
-                                if(fixed_point[p]==false){
-                                    auto modelk = SDP->copy();
-    //                                modelk->reset_constrs();
-                                    mname=vname+"|"+key+"|"+dir;
-                                    modelk->set_name(mname);
-                                    
-                                    vark=modelk->get_var<double>(vname);
-                                    if(dir=="LB")
-                                    {
-                                        modelk->min(vark(key));
-                                    }
-                                    else
-                                    {
-                                        modelk->min(vark(key)*(-1));
-                                        
-                                    }
-                                    
-                                    batch_models.push_back(modelk);
+                                auto modelk = SDP->copy();
+                                mname=vname+"|"+key+"|"+dir;
+                                modelk->set_name(mname);
+                                
+                                vark=modelk->get_var<double>(vname);
+                                if(dir=="LB")
+                                {
+                                    modelk->min(vark(key));
                                 }
-                                if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && key==v.get_keys()->back() && dir=="UB"))
+                                else
+                                {
+                                    modelk->min(vark(key)*(-1));
+                                    
+                                }
+                                
+                                batch_models.push_back(modelk);
+                                if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
                                     run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma97");
@@ -230,7 +228,7 @@ int main (int argc, char * argv[]) {
                                                     objk*=-1;
                                                 boundk1=vk.get_ub(keyk);
                                             }
-                                            if(abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
+                                            if(abs(boundk1-objk) <= fixed_tol || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol)
                                             {
                                                 fixed_point[pk]=true;
                                             }
