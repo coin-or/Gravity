@@ -56,6 +56,8 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
+    /** Is a tree */
+    bool _tree = false;
     /** Indices */
     gravity::indices bus_pairs = gravity::indices("bus_pairs"), bus_pairs_chord = gravity::indices("bus_pairs_chordal");
 
