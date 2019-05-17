@@ -290,7 +290,7 @@ namespace gravity {
                     }
                 }
             }
-            for(auto &cp: _cons){
+            for(auto &cp: _cons_name){
                 cpy->add(*cp.second);
                 cpy->merge_vars(cpy->_cons_vec.back());
                 cpy->_cons_vec.back()->uneval();

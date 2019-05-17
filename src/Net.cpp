@@ -624,7 +624,10 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     
     
     Debug("\n Number of 3D bags = " << nb << endl);
-    DebugOn("\n Max cliwue size = " << max_size << endl);
+    DebugOn("\n Max clique size = " << max_size << endl);
+    if(max_size==2){
+        this->_tree = true;
+    }
 //    DebugOn("\n Total number of bags = " << _bags.size() << endl);
     
     delete graph_clone;

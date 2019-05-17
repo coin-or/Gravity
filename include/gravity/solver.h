@@ -287,6 +287,7 @@ namespace gravity {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();                        
                     }
+                    DebugOn("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
@@ -296,7 +297,7 @@ namespace gravity {
                         //                return status;
                         //                    return_status = status;
                     }
-                    else if (status == Solved_To_Acceptable_Level || status == Maximum_Iterations_Exceeded) {
+                    else if (status == Solved_To_Acceptable_Level) {
                         //                return 150;
                         optimal = true;
                     }
@@ -480,6 +481,9 @@ namespace gravity {
                 DebugOn("####################" << endl);
             }
             _model->_status = return_status;
+            if(_model->_status == 0){
+                DebugOn("Solved to Optimality/Acceptable "<< endl);
+            }
             return return_status;
         }
         
@@ -489,7 +493,7 @@ namespace gravity {
     int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver=""){
         int return_status = -1;
         for (auto i = start; i<end; i++) {
-            return_status = solver<type>((models.at(i)),stype).run(5, tol, lin_solver);
+            return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver);
             //            models.at(i)->print_solution(24);
         }
         return return_status;
