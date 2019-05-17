@@ -22,6 +22,12 @@ string operator_str(gravity::OperatorType ot){
             return "sin";
         case gravity::tan_:
             return "tan";
+        case gravity::atan2_:
+            return "atan2";
+        case gravity::acos_:
+            return "acos";
+        case gravity::asin_:
+            return "asin";
         case gravity::sqrt_:
             return "sqrt";
         case gravity::relu_:

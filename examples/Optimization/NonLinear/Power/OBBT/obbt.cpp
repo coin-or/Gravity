@@ -27,6 +27,7 @@ int main (int argc, char * argv[]) {
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
     string loss_from_s = "yes";
+    string time_s = "60";
     string lazy_s = "no";
     bool lazy_bool = false;
     SolverType solv_type = ipopt;
@@ -44,6 +45,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("h", "help",
                    "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "losses", "add loss constraints", loss_from_s);
@@ -85,6 +87,8 @@ int main (int argc, char * argv[]) {
     
     num_bags = atoi(opt["b"].c_str());
     
+    double max_time = op::str2double(opt["t"]);
+    
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
@@ -117,7 +121,7 @@ int main (int argc, char * argv[]) {
     bool terminate=false;
     bool infeasible=false;
     bool break_flag=false, time_limit = false;
-    const double upp_low_tol=1e-3, fixed_tol=1e-5, max_time=200, zero_tol=1e-5, range_tol=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol=1e-5, zero_tol=1e-5, range_tol=1e-6;
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
     {
