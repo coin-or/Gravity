@@ -4058,6 +4058,12 @@ namespace gravity {
                 case sin_:
                     return exp->_coef*std::sin(res);
                     break;
+                case acos_:
+                    return exp->_coef*std::acos(res);
+                    break;
+                case asin_:
+                    return exp->_coef*std::asin(res);
+                    break;
                 case sqrt_:
                     return exp->_coef*std::sqrt(res);
                     break;
@@ -4095,6 +4101,12 @@ namespace gravity {
                     break;
                 case sin_:
                     return exp->_coef*std::sin(res);
+                    break;
+                case acos_:
+                    return exp->_coef*std::acos(res);
+                    break;
+                case asin_:
+                    return exp->_coef*std::asin(res);
                     break;
                 case sqrt_:
                     return exp->_coef*std::sqrt(res);
@@ -4244,6 +4256,12 @@ namespace gravity {
                 case sin_:
                     return exp->_coef*std::sin(res);
                     break;
+                case acos_:
+                    return exp->_coef*std::acos(res);
+                    break;
+                case asin_:
+                    return exp->_coef*std::asin(res);
+                    break;
                 case sqrt_:
                     return exp->_coef*std::sqrt(res);
                     break;
@@ -4278,6 +4296,12 @@ namespace gravity {
                     break;
                 case sin_:
                     return exp->_coef*std::sin(res);
+                    break;
+                case acos_:
+                    return exp->_coef*std::acos(res);
+                    break;
+                case asin_:
+                    return exp->_coef*std::asin(res);
                     break;
                 case sqrt_:
                     return exp->_coef*std::sqrt(res);
@@ -6866,8 +6890,8 @@ namespace gravity {
     template<class T>
     func<T> min(const param<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
-        res._all_sign = gravity::min(p1.get_all_sign(),p2.get_all_sign());
-        res._all_convexity = linear_;
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
         res._range->first = gravity::min(p1._range->first,p2._range->first);
         res._range->second = gravity::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
@@ -6880,8 +6904,8 @@ namespace gravity {
     template<class T>
     func<T> max(const param<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
-        res._all_sign = gravity::max(p1.get_all_sign(),p2.get_all_sign());
-        res._all_convexity = linear_;
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
         res._range->first = gravity::max(p1._range->first,p2._range->first);
         res._range->second = gravity::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
@@ -6894,8 +6918,8 @@ namespace gravity {
     template<class T>
     func<T> min(const param<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
-        res._all_sign = gravity::min(p1.get_all_sign(),p2.get_all_sign());
-        res._all_convexity = linear_;
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
         res._range->first = gravity::min(p1._range->first,p2._range->first);
         res._range->second = gravity::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
@@ -6908,8 +6932,8 @@ namespace gravity {
     template<class T>
     func<T> max(const param<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
-        res._all_sign = gravity::max(p1.get_all_sign(),p2.get_all_sign());
-        res._all_convexity = linear_;
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
         res._range->first = gravity::max(p1._range->first,p2._range->first);
         res._range->second = gravity::max(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
@@ -6923,9 +6947,23 @@ namespace gravity {
     func<T> max(const func<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
-        res._all_convexity = linear_;
+        res._all_convexity = undet_;
         res._range->first = gravity::max(p1._range->first,p2._range->first);
         res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const func<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7333,6 +7371,82 @@ namespace gravity {
     }
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> asin(const func<T>& f){
+        if(f._range->first<=-1 || f._range->second>=1){
+            throw invalid_argument("Calling asin(const func<T1>& f) outside ]-1,1[");
+        }
+        func<T> res(uexpr<T>(asin_, f.copy()));
+        if (f.is_linear()) {
+            if(f.is_non_positive()){
+                res._all_convexity = concave_;
+            }
+            else if(f.is_non_negative()){
+                res._all_convexity = convex_;
+            }
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = f._all_sign;
+        res._range->first = std::asin(f._range->first);
+        res._range->second = std::asin(f._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T>
+    func<T> acos(const param<T>& p){
+        return acos(func<T>(p));
+    }
+    
+    template<class T>
+    func<T> acos(const var<T>& p){
+        return acos(func<T>(p));
+    }
+    
+    template<class T>
+    func<T> asin(const param<T>& p){
+        return acos(func<T>(p));
+    }
+    
+    template<class T>
+    func<T> asin(const var<T>& p){
+        return acos(func<T>(p));
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> acos(const func<T>& f){
+        if(f._range->first<=-1 || f._range->second>=1){
+            throw invalid_argument("Calling acos(const func<T1>& f) outside ]-1,1[");
+        }
+        func<T> res(uexpr<T>(acos_, f.copy()));
+        if (f.is_linear()) {
+            if(f.is_non_positive()){
+                 res._all_convexity = convex_;
+            }
+            else if(f.is_non_negative()){
+                res._all_convexity = concave_;
+            }
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = non_neg_;
+        res._range->first = std::acos(f._range->second);
+        res._range->second = std::acos(f._range->first);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> cos(const func<T>& f){
         func<T> res(uexpr<T>(cos_, f.copy()));
         auto conv_sign = cos_sign_curvature(*f._range);
@@ -7357,6 +7471,30 @@ namespace gravity {
         if((f._range->first <-pi && f._range->second >-pi) || (f._range->first <pi && f._range->second >pi)){
             res._range->first = -1;
         }
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    func<T> acos(const func<T>& f){
+        func<T> res(uexpr<T>(acos_, f.copy()));
+        res._all_convexity = undet_;
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    func<T> asin(const func<T>& f){
+        func<T> res(uexpr<T>(asin_, f.copy()));
+        res._all_convexity = undet_;
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;

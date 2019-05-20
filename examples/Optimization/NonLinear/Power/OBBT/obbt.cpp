@@ -26,7 +26,10 @@ int main (int argc, char * argv[]) {
     string num_bags_s = "100";
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
+
     string loss_s = "yes";
+    string time_s = "60";
+
     string lazy_s = "no";
     string orig_s = "no";
     bool lazy_bool = false;
@@ -46,6 +49,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("h", "help",
                    "shows option help");//No option means Default values which may be seen above using option strings
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "losses", "add loss constraints", loss_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
@@ -95,6 +99,8 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
+    double max_time = op::str2double(opt["t"]);
+    
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
@@ -128,7 +134,9 @@ int main (int argc, char * argv[]) {
     bool infeasible=false;
 
     bool break_flag=false, time_limit = false;
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7,max_time=600, zero_tol=1e-5, range_tol=1e-6;
+
+    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7, zero_tol=1e-5, range_tol=1e-6;
+
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
 
@@ -142,7 +150,7 @@ int main (int argc, char * argv[]) {
             {
                 p=vname+"|"+ key;
                 fixed_point[p]=false;
-                interval_original[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
+                interval_original[p]=v.get_ub(key)-v.get_lb(key);
 //                interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
             }
             
@@ -165,6 +173,7 @@ int main (int argc, char * argv[]) {
                 terminate = false;
                 iter=0;
             }
+            SDP->print();
             while(solver_time<=max_time && !terminate && iter<=1)
             {
                 iter++;
@@ -188,8 +197,8 @@ int main (int argc, char * argv[]) {
                             break;
                         }
                         p=vname+"|"+ key;
-                        interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
-                        if(abs(v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key)))<=range_tol)
+                        interval_new[p]=v.get_ub(key)-v.get_lb(key);
+                        if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                         {
                             fixed_point[p]=true;
                         }
@@ -252,17 +261,17 @@ int main (int argc, char * argv[]) {
                                             else
                                             {
                                                 if(dirk=="LB"){
-                                                    vk(keyk).set_lb(objk);
+                                                    vk.set_lb(keyk, objk);
                                                 }
                                                 else{
-                                                    vk(keyk).set_ub(objk);
+                                                    vk.set_ub(keyk, objk);
                                                 }
                                                 if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                                 {
                                                     fixed_point[pk]=true;
                                                     double temp=vk.get_ub(keyk);
-                                                    vk(keyk).set_ub(vk.get_lb(keyk));
-                                                    vk(keyk).set_lb(temp);
+                                                    vk.set_ub(keyk, vk.get_lb(keyk));
+                                                    vk.set_lb(keyk, temp);
                                                 }
                                                 else {
                                                     fixed_point[pk]=false;
