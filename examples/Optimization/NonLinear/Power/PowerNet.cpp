@@ -1365,11 +1365,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SDPOPF->add(UB<=upper_bound);
     if(add_original){
+
 //        Constraint<> Ref_Bus("Ref_Bus");
 //        Ref_Bus = Im_Vi(grid.ref_bus);
 //        SDPOPF->add(Ref_Bus == 0);
        Im_Vi.set_lb(grid.ref_bus,0);
         Im_Vi.set_ub(grid.ref_bus,0);
+
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
@@ -1495,7 +1497,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         
         Constraint<> I_from_U1("I_from_U1");
         I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDPOPF->add(I_from_U1.in(arcs) <= 0);
+      //  SDPOPF->add(I_from_U1.in(arcs) <= 0);
         
     }
 
@@ -1529,7 +1531,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         
         Constraint<> I_to_U1("I_to_U1");
         I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
-        SDPOPF->add(I_to_U1.in(arcs) <= 0);
+      //  SDPOPF->add(I_to_U1.in(arcs) <= 0);
 
     }
 

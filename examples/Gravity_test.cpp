@@ -671,6 +671,10 @@ TEST_CASE("testing nonlinear expressions"){
     x1.in(R(1));
     x2.in(R(1));
     x3.in(R(1));
+    param<> a("a"), b("b");
+    a = 0.2;b = -0.6;
+    param<> c("c"), d("d");
+    c = 0.1;d = -0.5;
     auto cstr = x1*exp(x2*x3);
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_nonlinear());
@@ -679,6 +683,10 @@ TEST_CASE("testing nonlinear expressions"){
     cstr.print();
     auto dfdx2 = cstr.get_derivative(x2);
     dfdx2.print_symbolic();
+    auto f = 2*cos(min(acos(a/b), asin(c/d)))*x1;
+    f.print_symbolic();
+    CHECK(f.to_str()=="(2cos(min(acos(a/b), asin(c/d))))x1");
+    f.print();
 }
 
 TEST_CASE("testing monomials"){
