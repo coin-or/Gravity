@@ -410,6 +410,8 @@ int main (int argc, char * argv[]) {
     
     if (llnc)
     {
+        func<> inter=acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_lb().from(bus_pairs)));
+        inter.print();
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
     LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
@@ -431,7 +433,7 @@ int main (int argc, char * argv[]) {
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
-//    SDP.print();
+    SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6);
 //    SDP.print();
 //    SDP.print_symbolic();

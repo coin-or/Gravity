@@ -976,8 +976,8 @@ namespace gravity {
                             }
                             break;
                         case eq:
-                            if (!newc->is_zero()) {
-                                throw invalid_argument("Adding violated constant constraint!\n");
+                            if (newc->is_positive() || newc->is_negative()) {
+                                throw invalid_argument("Adding violated constant equation!\n");
                             }
                             break;
                         default:
