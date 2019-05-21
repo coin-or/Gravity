@@ -94,6 +94,7 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
+        virtual void reset_range(){};
         
         /** let p share the values and indices of current var */
         virtual void share_vals(const shared_ptr<param_>& p){};
@@ -1081,10 +1082,10 @@ namespace gravity {
                 if (_val->size()<=_indices->_ids->at(0).at(i)){
                     throw invalid_argument("Param set_val(size_t i, type val) out of range");
                 }
+                _val->at(_indices->_ids->at(0).at(i)) = val;
                 if(_val->at(_indices->_ids->at(0).at(i))==_range->first ||  _val->at(_indices->_ids->at(0).at(i))==_range->second || val<_range->first || val>_range->second){
                     reset_range();
                 }
-                _val->at(_indices->_ids->at(0).at(i)) = val;
             }
             if (_val->size()<=i){
                 throw invalid_argument("Param set_val(size_t i, type val) out of range");
@@ -1518,6 +1519,7 @@ namespace gravity {
                         }
                     }
                     res._name += ".in("+ids._name+")";
+                    res.reset_range();
                     return res;
                 }
                 res._indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -1578,6 +1580,7 @@ namespace gravity {
                 else {
                     res._dim[0]=res._indices->size();
                 }
+                res.reset_range();
                 return res;
             }
             size_t idx = 0;
@@ -1589,6 +1592,7 @@ namespace gravity {
                 res._dim[0] = 0;
                 res._dim[1] = 0;
 //                res.set_range(0);
+                res.reset_range();
                 return res;
             }
             auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
@@ -1691,6 +1695,7 @@ namespace gravity {
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
+            res.reset_range();
             return res;
         }
 
@@ -2004,12 +2009,39 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            for (auto v:*_val) {
-                if(_range->first > v){
-                    _range->first = v;
+            if(!is_indexed()){
+                for (auto v:*_val) {
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
                 }
-                if(_range->second  < v){
-                    _range->second = v;
+            }
+            else if(is_double_indexed()){
+                for(auto i = 0; i<_indices->_ids->size();i++){
+                    for(auto j = 0; j<_indices->_ids->at(i).size();j++){
+                        auto idx = _indices->_ids->at(i).at(j);
+                        auto v = _val->at(idx);
+                        if(_range->first > v){
+                            _range->first = v;
+                        }
+                        if(_range->second  < v){
+                            _range->second = v;
+                        }
+                    }
+                }
+            }
+            else {
+                for (auto idx:_indices->_ids->at(0)){
+                    auto v = _val->at(idx);
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
                 }
             }
         }

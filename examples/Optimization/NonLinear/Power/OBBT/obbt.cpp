@@ -99,8 +99,9 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = op::str2double(opt["t"]);
+    //double max_time = op::str2double(opt["t"]);
     
+    double max_time=600;
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
@@ -174,7 +175,7 @@ int main (int argc, char * argv[]) {
                 iter=0;
             }
             SDP->print();
-            while(solver_time<=max_time && !terminate && iter<=1)
+            while(solver_time<=max_time && !terminate)
             {
                 iter++;
                 terminate=true;
