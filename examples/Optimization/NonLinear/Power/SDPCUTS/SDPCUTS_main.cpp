@@ -415,23 +415,18 @@ int main (int argc, char * argv[]) {
     
     if (llnc)
     {
+        func<> inter=acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().from(bus_pairs)));
+        inter.print();
     /* Lifted Nonlinear Cuts */
         //Assuming Im_Wij.ub>0 and Im_Wij.lb<0)
 
-        
 
-       // func<> inter=R_Wij.in(bus_pairs).get_lb()/pow((Wii.get_ub().from(bus_pairs)*Wii.get_lb().from(bus_pairs)),0.5);
-        func<> inter=R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_lb().from(bus_pairs));
-        inter.print();
-
-        func<>inter1=acos(inter);
-
-        inter1.print();
+ 
         
         
     Constraint<> LNC1("LNC1");
-  // LNC1 += sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs))*(pow(Wii.to(bus_pairs).get_lb(), 0.5)+pow(Wii.to(bus_pairs).get_ub(), 0.5))*(sin(phi_ij)*Im_Wij + cos(phi_ij)*R_Wij);
-        LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+   LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.to(bus_pairs).get_lb().to(bus_pairs))+sqrt(Wii.to(bus_pairs).get_ub().to(bus_pairs)))*(sin(0.5*(inter-inter))*Im_Wij + cos(0.5*(inter-inter))*R_Wij);
+       // LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
         
     LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
@@ -452,15 +447,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
 
-
-
-    //SDPOPF.run(output = 5, tol = 1e-6);
-
-    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
-
-
     SDP.print();
-
     SDPOPF.run(output = 5, tol = 1e-6, "ma97");
 
 //    SDP.print();

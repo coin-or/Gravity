@@ -341,6 +341,9 @@ namespace gravity {
             this->_imag = make_shared<var<>>(p);
         }
 
+//        void reset_range(){
+//            param<type>::reset_range();
+//        }
 
         template<typename... Args>
         var in(const indices& vec1, Args&&... args) {
@@ -356,6 +359,11 @@ namespace gravity {
 //            }
             res._lb->allocate_mem();
             res._ub->allocate_mem();
+            auto new_lb(*res._lb);
+            auto new_ub(*res._ub);
+            new_lb.in(vec1, forward<Args>(args)...);
+            new_ub.in(vec1, forward<Args>(args)...);
+            res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
             return res;
         }
         

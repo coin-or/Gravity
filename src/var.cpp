@@ -304,6 +304,7 @@ template<typename type> void   var<type>::set_lb(type val) {
     
 template<typename type> void  var<type>::set_lb(const string& key, type val){
     auto i = this->_indices->_keys_map->at(key);
+    _lb->eval_all();
     _lb->_val->at(i) = val;
     _lb->update_range(val);
     this->update_range(val);
@@ -311,6 +312,7 @@ template<typename type> void  var<type>::set_lb(const string& key, type val){
 
 template<typename type> void  var<type>::set_ub(const string& key, type val){
     auto i = this->_indices->_keys_map->at(key);
+    _ub->eval_all();
     _ub->_val->at(i) = val;
     _ub->update_range(val);
     this->update_range(val);
