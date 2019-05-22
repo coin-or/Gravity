@@ -2961,6 +2961,7 @@ namespace gravity {
         
         type eval(size_t i=0) {
             if(is_zero()){
+//                _val->at(0) = this->_range->first;
                 return _range->first;
             }
 //            if (is_constant() && _evaluated) {
@@ -4058,6 +4059,12 @@ namespace gravity {
                 case sin_:
                     return exp->_coef*std::sin(res);
                     break;
+                case tan_:
+                    return exp->_coef*std::tan(res);
+                    break;
+                case atan_:
+                    return exp->_coef*std::atan(res);
+                    break;
                 case acos_:
                     return exp->_coef*std::acos(res);
                     break;
@@ -4101,6 +4108,12 @@ namespace gravity {
                     break;
                 case sin_:
                     return exp->_coef*std::sin(res);
+                    break;
+                case tan_:
+                    return exp->_coef*std::tan(res);
+                    break;
+                case atan_:
+                    return exp->_coef*std::atan(res);
                     break;
                 case acos_:
                     return exp->_coef*std::acos(res);
@@ -7560,6 +7573,62 @@ namespace gravity {
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> atan(const func<T>& f){
+        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+        }
+        func<T> res(uexpr<T>(atan_, f.copy()));
+        if (f.is_linear()) {
+            if(f.is_non_positive()){
+                res._all_convexity = convex_;
+            }
+            else if(f.is_non_negative()){
+                res._all_convexity = concave_;
+            }
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = f._all_sign;
+        res._range->first = std::atan(f._range->second);
+        res._range->second = std::atan(f._range->first);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
+    func<T> atan(const func<T>& f){
+        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+        }
+        func<T> res(uexpr<T>(atan_, f.copy()));
+        if (f.is_linear()) {
+            if(f.is_non_positive()){
+                res._all_convexity = convex_;
+            }
+            else if(f.is_non_negative()){
+                res._all_convexity = concave_;
+            }
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = f._all_sign;
+        res._range->first = std::atan(f._range->second);
+        res._range->second = std::atan(f._range->first);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
         return res;
     }
     

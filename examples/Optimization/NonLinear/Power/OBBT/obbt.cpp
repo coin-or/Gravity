@@ -99,9 +99,10 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    //double max_time = op::str2double(opt["t"]);
+    double max_time = 600;
+    max_time = op::str2double(opt["t"]);
     
-    double max_time=600;
+//    double max_time=600;
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
@@ -114,7 +115,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    int nb_threads = thread::hardware_concurrency();
+//    int nb_threads = 2*thread::hardware_concurrency();
+    int nb_threads = 4;
     double upper_bound = grid.solve_acopf();
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
@@ -136,7 +138,7 @@ int main (int argc, char * argv[]) {
 
     bool break_flag=false, time_limit = false;
 
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7, zero_tol=1e-5, range_tol=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7, zero_tol=1e-6, range_tol=1e-6;
 
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
