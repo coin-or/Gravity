@@ -2878,52 +2878,7 @@ namespace gravity {
             }
         }
         
-//        double double_eval(size_t i=0) {
-//            if(is_zero()){
-//                return 0;
-//            }
-//            if (is_constant() && _evaluated) {
-//                if (func_is_number()){
-//                    return _val->at(0);
-//                }
-//                return _val->at(i);
-//            }
-//            double res = 0;
-//            if(!_cst->is_zero())
-//                res += _cst->eval_double(i);
-//            if(!_lterms->empty()){
-//                for (auto &pair:*_lterms) {
-//                    res += eval_double_lterm(pair.second,i);
-//                }
-//            }
-//            //                res += eval_lterms(i);
-//            if(!_qterms->empty()){
-//                for (auto &pair:*_qterms) {
-//                    res += eval_double_qterm(pair.second,i);
-//                }
-//            }
-//            //                res += eval_qterms(i);
-//            if(!_pterms->empty()){
-//                for (auto &pair:*_pterms) {
-//                    res += eval_double_pterm(pair.second,i);
-//                }
-//                //                res += eval_pterms(i);
-//            }
-//            if(_expr)
-//                res += eval_expr(_expr,i);
-//            if (is_number()) {
-//                _val->at(0) = res;
-//                _evaluated = true;
-//            }
-//            else {
-//                if (is_constant() && i==_val->size()-1) {
-//                    _evaluated = true;
-//                }
-//                _val->at(i) = res;
-//            }
-//            return res;
-//        }
-//        double eval_double(size_t i=0);
+
         
         void uneval() {
             _evaluated = false;
@@ -2961,7 +2916,11 @@ namespace gravity {
         
         type eval(size_t i=0) {
             if(is_zero()){
-//                _val->at(0) = this->_range->first;
+                if (func_is_number()){
+                    _val->at(0) = this->_range->first;
+                    return _val->at(0);
+                }
+                _val->at(i) = this->_range->first;
                 return _range->first;
             }
 //            if (is_constant() && _evaluated) {
