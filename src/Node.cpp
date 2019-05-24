@@ -122,3 +122,11 @@ std::set<Node*> Node::get_neighbours(){
     return res;
 }
 
+std::vector<Node*> Node::get_neighbours_vec(){
+    auto n_set = get_neighbours();
+    vector<Node*> res;
+    for (auto n:n_set) {
+        res.push_back(n);
+    }
+    return res;
+}
