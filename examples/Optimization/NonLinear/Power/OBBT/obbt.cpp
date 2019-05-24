@@ -99,10 +99,10 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 600;
-    max_time = op::str2double(opt["t"]);
+    double max_time = 100;
+   // max_time = op::str2double(opt["t"]);
     
-//    double max_time=600;
+
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
@@ -138,7 +138,7 @@ int main (int argc, char * argv[]) {
 
     bool break_flag=false, time_limit = false;
 
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7, zero_tol=1e-6, range_tol=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol_abs=1e-6, fixed_tol_rel=1e-7, zero_tol=1e-6, range_tol=1e-4;
 
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
@@ -228,7 +228,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads,"ma97");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -333,6 +333,8 @@ int main (int argc, char * argv[]) {
             
             SDP->print_solution();
             SDP->print();
+            if(SDP->_status==0)
+            {
             double gap = 100*(upper_bound - lower_bound)/upper_bound;
             DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
             gap = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
@@ -342,16 +344,26 @@ int main (int argc, char * argv[]) {
             DebugOn("Lower bound = " << to_string(SDP->get_obj_val()) << "."<<endl);
             DebugOn("Time\t"<<solver_time<<endl);
             DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
+            }
+            else
+            {
+                double gap = 100*(upper_bound - lower_bound)/upper_bound;
+                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+                DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
+                 DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
+            }
             if(time_limit){
                 DebugOn("Reached Time limit!"<<endl);
             }
             else {
                 DebugOn("Terminate\t"<<terminate<<endl);
             }
+            }
+        
             DebugOn("Time\t"<<solver_time<<endl);
             DebugOn("Iterations\t"<<iter<<endl);
         }
-    }
+    
 //    if(time_limit){
 //        DebugOn("Reached Time limit!"<<endl);
 //    }

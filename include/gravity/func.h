@@ -7372,8 +7372,8 @@ namespace gravity {
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> asin(const func<T>& f){
-        if(f._range->first<=-1 || f._range->second>=1){
-            throw invalid_argument("Calling asin(const func<T1>& f) outside ]-1,1[");
+        if(f._range->first<-1 || f._range->second>1){
+            throw invalid_argument("Calling asin(const func<T1>& f) outside [-1,1]");
         }
         func<T> res(uexpr<T>(asin_, f.copy()));
         if (f.is_linear()) {
@@ -7420,8 +7420,8 @@ namespace gravity {
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> acos(const func<T>& f){
-        if(f._range->first<=-1 || f._range->second>=1){
-            throw invalid_argument("Calling acos(const func<T1>& f) outside ]-1,1[");
+        if(f._range->first<-1 || f._range->second>1){
+            throw invalid_argument("Calling acos(const func<T1>& f) outside [-1,1]");
         }
         func<T> res(uexpr<T>(acos_, f.copy()));
         if (f.is_linear()) {
