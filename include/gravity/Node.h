@@ -73,6 +73,8 @@ public:
 
     /* return its neighbours */
     std::set<Node*> get_neighbours();
+    
+    std::vector<Node*> get_neighbours_vec();
 };
 
 #endif

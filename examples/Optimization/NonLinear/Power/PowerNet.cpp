@@ -1525,17 +1525,15 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     func<> theta_L=max(inter_L, th_min.in(bus_pairs));
     func<> inter_U=min(theta_L1*(-1.0), theta_U2);
     func<> theta_U=min(inter_U, th_max.in(bus_pairs));
-    func<> Wsf=Wii.from(bus_pairs)*sin(theta_U.in(bus_pairs));
-    func<> Wst=Wii.to(bus_pairs)*sin(theta_U.in(bus_pairs));
     
     Constraint<> Im_U("Im_U");
-    Im_U=pow(Im_Wij, 2)-Wsf*Wst;
-   // SDPOPF->add(Im_U.in(bus_pairs)<=0);
+    Im_U=pow(Im_Wij, 2) - max(pow(sin(theta_L.in(bus_pairs)),2),pow(sin(theta_U.in(bus_pairs)),2))*Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    SDPOPF->add(Im_U.in(bus_pairs)<=0);
     
     Constraint<> Im_L("Im_L");
     Im_L=min(sin(theta_L)*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)),sin(theta_L)*
          sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) -Im_Wij;
-    //SDPOPF->add(Im_L.in(bus_pairs)<=0);
+    SDPOPF->add(Im_L.in(bus_pairs)<=0);
     
     
     Constraint<> R_L("R_L");
