@@ -21,14 +21,14 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     int output = 0;
     bool sdp_cuts = true;
-    bool loss_from = true, llnc=true, loss_to=true;
+    bool current_from = true, llnc=true, current_to=true, loss=false, loss_bounds=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
     string sdp_cuts_s = "yes";
-    string loss_from_s = "yes";
+    string current_from_s = "yes";
     string orig_s = "yes";
-    string loss_to_s="yes";
+    string current_to_s="yes";
     string lazy_s = "yes";
     bool lazy_bool = true;
     SolverType solv_type = ipopt;
@@ -46,9 +46,9 @@ int main (int argc, char * argv[]) {
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("lf", "losses_from", "add from loss constraints", loss_from_s);
+    opt.add_option("If", "current_from", "add from current constraints", current_from_s);
     opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
-    opt.add_option("lt", "losses_to", "add to loss constraints", loss_to_s);
+    opt.add_option("It", "current_to", "add to current constraints", current_to_s);
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -77,12 +77,12 @@ int main (int argc, char * argv[]) {
         lazy_bool = false;
     }
     
-    loss_from_s = opt["lf"];
-    if (loss_from_s.compare("no")==0) {
-        loss_from = false;
+    current_from_s = opt["If"];
+    if (current_from_s.compare("no")==0) {
+        current_from = false;
     }
     else {
-        loss_from = true;
+        current_from = true;
     }
     bool add_original = true;
     
@@ -96,13 +96,16 @@ int main (int argc, char * argv[]) {
     
     
     
-    loss_to_s = opt["lt"];
-    if (loss_to_s.compare("no")==0) {
-        loss_to = false;
+    current_to_s = opt["It"];
+    if (current_to_s.compare("no")==0) {
+        current_to = false;
     }
     else {
-        loss_to = true;
+        current_to = true;
     }
+    
+    current_from=false;
+    current_to=false;
     
     num_bags = atoi(opt["b"].c_str());
     
@@ -197,8 +200,13 @@ int main (int argc, char * argv[]) {
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
     var<> lij("lij", pos_);
-    if(loss_from){
+    var<> lji("lji", pos_);
+    if(current_from){
         SDP.add(lij.in(arcs));
+    }
+    
+    if(current_from){
+        SDP.add(lji.in(arcs));
     }
     
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
@@ -226,7 +234,23 @@ int main (int argc, char * argv[]) {
     var<>  R_Vi("R_Vi", -1*v_max, v_max);
     var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
     
+        var<> sWf_sWt("sWf_sWt", w_min, w_max), Wf_Wt("Wf_Wt", w_min*w_min, w_max*w_max);
     
+        func<> theta_L1=(acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))))*(-1);
+        func<> inter_1=min(Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
+        func<> theta_L2= asin(inter_1.in(bus_pairs));
+        func<> inter_2=max(Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
+        func<> theta_U2= asin(inter_2.in(bus_pairs));
+        func<> inter_U=min(theta_L1.in(bus_pairs)*(-1.0), theta_U2.in(bus_pairs));
+        func<> theta_U=min(inter_U.in(bus_pairs), th_max.in(bus_pairs));
+    
+        func<> inter_L=max(theta_L1.in(bus_pairs), theta_L2.in(bus_pairs));
+        func<> theta_L=max(inter_L.in(bus_pairs), th_min.in(bus_pairs));
+        func<> cos_L=min(cos(theta_L), cos(theta_U));
+    
+//    func<> theta_L=th_min.in(bus_pairs);
+//    func<> theta_U=th_max.in(bus_pairs);
+//
     
     if(add_original){
         SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
@@ -237,9 +261,26 @@ int main (int argc, char * argv[]) {
         Im_Vi.set_lb((grid.ref_bus),0);
         Im_Vi.set_ub((grid.ref_bus),0);
         
-         R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-         R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
-    
+        auto rbus=grid.get_node(grid.ref_bus);
+        
+        auto rbus_neigh=rbus->get_neighbours_vec();
+        
+        for(auto n:rbus_neigh)
+        {
+           auto arcn=grid.get_arc(n, rbus);
+//              R_Vi.set_lb(n->_name, v_min.eval(n->_name)*cos_L.eval(arcn->(Arc->_name)));
+//              R_Vi.set_ub(n->_name, v_max.eval(n->_name));
+//              Im_Vi.set_lb(n->_name, v_min.eval(n->_name)*sin(theta_L.eval(arcn->_name)));
+//                Im_Vi.set_lb(n->_name, v_min.eval(n->_name)*sin(theta_L.eval(arcn->_name)));
+        }
+        
+        
+        
+        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+        
+        
+        
         
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
@@ -343,7 +384,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
     
-    if(loss_from){
+    if(current_from){
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
         var<Cpx> L_from("L_from"), W("W");
         T.real_imag(cc.in(arcs), dd.in(arcs));
@@ -360,87 +401,280 @@ int main (int argc, char * argv[]) {
         
         
         Constraint<> I_from_L("I_from_L");
-        I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
+        I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-Wii.get_ub().from(arcs)*lij;
         SDP.add(I_from_L.in(arcs) <= 0);
         
-        
-        
-        
         Constraint<> I_from_U("I_from_U");
-        I_from_U = w_min.from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
+        I_from_U = Wii.get_lb().from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
         SDP.add(I_from_U.in(arcs) <= 0);
         
         Constraint<> I_from_U1("I_from_U1");
-        I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
-        SDP.add(I_from_U1.in(arcs) <= 0);
+        I_from_U1 = Wii.get_lb().from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+        // SDPOPF->add(I_from_U1.in(arcs) <= 0);
+    }
+    if(current_to){
         
-        func<> lji=lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))/pow(tr.in(arcs),2)*Wii.from(arcs)+(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
-        +(4*ch_half.in(arcs)*g.in(arcs))/pow(tr.in(arcs),2)*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L_to("L_to"), W("W");
+        T.real_imag(cc.in(arcs), dd.in(arcs));
+        Y.real_imag(g.in(arcs), b.in(arcs));
+        Ych.set_imag(ch_half.in(arcs));
+        
+        
+        L_to.set_real(lji.in(arcs));
+        W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
+        
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-T*conj(Y)*(Y+Ych)*conj(W)-conj(T)*Y*(conj(Y)+conj(Ych))*W+Y*conj(Y)*Wii.from(arcs);
+        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+        
+        
+        //        func<> lji=lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))/pow(tr.in(arcs),2)*Wii.from(arcs)+(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
+        //        +(4*ch_half.in(arcs)*g.in(arcs))/pow(tr.in(arcs),2)*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
         
         Constraint<> I_to_L("I_to_L");
-        I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-w_max.to(arcs)*lji;
+        I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-Wii.get_ub().to(arcs)*lji;
         SDP.add(I_to_L.in(arcs) <= 0);
         
         
         Constraint<> I_to_U("I_to_U");
-        I_to_U = w_min.to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
+        I_to_U = Wii.get_lb().to(arcs)*lji - (max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
         SDP.add(I_to_U.in(arcs) <= 0);
         
         Constraint<> I_to_U1("I_to_U1");
-        I_to_U1 = w_min.to(arcs)*lji - pow(S_max,2);
-        SDP.add(I_to_U1.in(arcs) <= 0);
+        I_to_U1 = Wii.get_lb().to(arcs)*lji - pow(S_max,2);
+        //SDPOPF->add(I_to_U1.in(arcs) <= 0);
+        
+        //        func<> lji=lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))/pow(tr.in(arcs),2)*Wii.from(arcs)+(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
+        //        +(4*ch_half.in(arcs)*g.in(arcs))/pow(tr.in(arcs),2)*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+        
         
     }
     
-    func<> theta_L1=acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)))*(-1);
-    func<> inter_1=min(Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
-    func<> theta_L2= asin(inter_1);
-    func<> inter_2=max(Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
-    func<> theta_U2= asin(inter_2);
-    func<> inter_L=max(theta_L1, theta_L2);
-    func<> theta_L=max(inter_L, th_min.in(bus_pairs));
-    func<> inter_U=min(theta_L1*(-1.0), theta_U2);
-    func<> theta_U=min(inter_U, th_max.in(bus_pairs));
-    func<> Wsf=Wii.from(bus_pairs)*sin(theta_U.in(bus_pairs));
-    func<> Wst=Wii.to(bus_pairs)*sin(theta_U.in(bus_pairs));
+    
+    
+
+    
     
     Constraint<> Im_U("Im_U");
-    Im_U=pow(Im_Wij, 2)-Wsf*Wst;
+    Im_U=pow(Im_Wij, 2) - max(pow(sin(theta_L.in(bus_pairs)),2),pow(sin(theta_U.in(bus_pairs)),2))*Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SDP.add(Im_U.in(bus_pairs)<=0);
     
     Constraint<> Im_L("Im_L");
-    Im_L=min(sin(theta_L)*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)),sin(theta_L)*sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) -Im_Wij;
-    //SDP.add(Im_L.in(bus_pairs)<=0);
+    Im_L=min(sin(theta_L.in(bus_pairs))*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)),sin(theta_L.in(bus_pairs))*
+             sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) -Im_Wij;
+    SDP.add(Im_L.in(bus_pairs)<=0);
     
     
     Constraint<> R_L("R_L");
-    R_L=min(cos(theta_L), cos(theta_U))*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs))-R_Wij;
-    //SDP.add(R_L.in(bus_pairs)<=0);
+    R_L=min(cos(theta_L.in(bus_pairs)),cos(theta_U.in(bus_pairs)))*sqrt(Wii.get_lb().from(bus_pairs)*
+                                                                        Wii.get_lb().to(bus_pairs))-R_Wij;
+    SDP.add(R_L.in(bus_pairs)<=0);
+    loss=false;
+    
+    if(false){
+        func<> cosl=min(cos(theta_L.in(arcs)-as.in(arcs)),cos(theta_U.in(arcs)-as.in(arcs)));
+        
+        cosl.print();
+        
+        g.print();
+        tr.print();
+        //        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        //        T.real_imag(cc.in(arcs), dd.in(arcs));
+        //        Y.real_imag(g.in(arcs), b.in(arcs));
+        //        Ych.set_imag(ch_half.in(arcs));
+        //        var<Cpx> S_ij("S_ij"), S_ji("S_ji");
+        //        S_ij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
+        //        S_ji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+        
+        //        Constraint<Cpx> Loss_U("Loss_U");
+        //        Loss_U=S_ij.in(arcs)+S_ji.in(arcs)-conj(Y.in(arcs))*max(pow(sqrt(Wii.get_ub().from(arcs))/tr.in(arcs)-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr.in(arcs)-sqrt(Wii.get_ub().to(arcs)), 2));
+        //        Loss_U-=(conj(Y.in(arcs))*(1-cosl.in(arcs))+conj(Ych.in(arcs)))*(Wii.from(arcs)/pow(tr.in(arcs),2)+Wii.to(arcs));
+        //        SDP.add(Loss_U.in(arcs)<=0);
+        
+        //        Constraint<Cpx> Loss_L("Loss_L");
+        //        Loss_L=S_ij.in(arcs)+S_ji.in(arcs)-conj(Y)*cosl.in(arcs)*min(pow(sqrt(Wii.get_ub().from(arcs))/tr.in(arcs)-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr.in(arcs)-sqrt(Wii.get_ub().to(arcs)), 2));
+        //        Loss_L-=conj(Ych)*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs));
+        //           SDP.add(Loss_L.in(arcs)>=0);
+        
+        
+        Constraint<> p_U("p_U");
+        p_U=Pf_from+Pf_to-g*max(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cosl)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+        // p_U-=g*(1-cosl.in(arcs))*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs))
+        SDP.add(p_U.in(arcs)<=0);
+        
+        Constraint<> p_L("p_L");
+        p_L=Pf_from+Pf_to-g*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2));
+        // p_U-=g*(1-cosl.in(arcs))*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs));
+        SDP.add(p_L.in(arcs)>=0);
+        
+        Constraint<> q_U("q_U");
+        q_U=Qf_from+Qf_to+b*max(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cosl)+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+        // p_U-=g*(1-cosl.in(arcs))*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs))
+        SDP.add(q_U.in(arcs)<=0);
+        
+        Constraint<> q_L("q_L");
+        q_L=Qf_from+Qf_to+b*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))+ch_half*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+        // p_U-=g*(1-cosl.in(arcs))*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs));
+        SDP.add(q_L.in(arcs)>=0);
+        
+        
+        
+    }
+    loss_bounds=false;
+    if(false){
+        func<> cosl=min(cos(theta_L.in(arcs)-as.in(arcs)),cos(theta_U.in(arcs)-as.in(arcs)));
+        b.print();
+        
+        Constraint<> p_U1("p_U1");
+        p_U1=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sqrt(Wii.get_lb().to(arcs))*sqrt(Wii.get_lb().from(arcs))*cosl;
+        SDP.add(p_U1.in(arcs)<=0);
+        
+        Constraint<> p_L1("p_L1");
+        p_L1=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sqrt(Wii.get_ub().to(arcs))*sqrt(Wii.get_ub().from(arcs));
+        SDP.add(p_L1.in(arcs)>=0);
+        
+        Constraint<> q_U1("q_U1");
+        q_U1=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sqrt(Wii.get_lb().to(arcs))*sqrt(Wii.get_lb().from(arcs))*cosl;
+        SDP.add(q_U1.in(arcs)<=0);
+        
+        Constraint<> q_L1("q_L1");
+        q_L1=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sqrt(Wii.get_ub().to(arcs))*sqrt(Wii.get_ub().from(arcs));
+        SDP.add(q_L1.in(arcs)>=0);
+        
+        
+    }
+    bool loss_bounds1=false;
+    if(false){
+        
+    
+        SDP.add(sWf_sWt.in(arcs), Wf_Wt.in(arcs));
+        
+           bool convexify = true;
+        
+//var<Cpx> Wif, Wit, Wift, sW;
+        
+//        Wif.set_real(Wii.from(arcs));
+//        Wit.set_real(Wii.to(arcs));
+//        Wift.set_real(Wf_Wt.in(arcs));
+//        sW.set_real(sWf_sWt.in(arcs));
+        
+        
+//        Constraint<Cpx> Linking_sqW("Linking_sqW");
+//        Linking_sqW = Wift - sW*sW;
+//        SDP.add(Linking_sqW.in(arcs)==0, convexify);
+//
+//        Constraint<Cpx> Linking_WiiWjj("Linking_WiiWjj");
+//        Linking_WiiWjj = Wift - Wif*Wit;
+//        SDP.add(Linking_WiiWjj.in(arcs)==0, convexify);
+        
+        Constraint<Cpx> Linking_sqW("Linking_sqW");
+        Linking_sqW = Wf_Wt - sWf_sWt.in(arcs)*sWf_sWt.in(arcs);
+        SDP.add(Linking_sqW.in(arcs)==0, convexify);
+        
+        Constraint<Cpx> Linking_WiiWjj("Linking_WiiWjj");
+        Linking_WiiWjj = Wf_Wt - Wii.from(arcs)*Wii.to(arcs);
+        SDP.add(Linking_WiiWjj.in(arcs)==0, convexify);
+        
+        func<> cosl=min(cos(theta_L.in(arcs)-as.in(arcs)),cos(theta_U.in(arcs)-as.in(arcs)));
+        b.print();
+        
+        Constraint<> p_U2("p_U2");
+        p_U2=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sWf_sWt*cosl;
+        SDP.add(p_U2.in(arcs)<=0);
+        
+        Constraint<> p_L2("p_L2");
+        p_L2=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sWf_sWt;
+        SDP.add(p_L2.in(arcs)>=0);
+        
+        Constraint<> q_U2("q_U2");
+        q_U2=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sWf_sWt*cosl;
+        SDP.add(q_U2.in(arcs)<=0);
+
+        Constraint<> q_L2("q_L2");
+        q_L2=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sWf_sWt;
+        SDP.add(q_L2.in(arcs)>=0);
+        
+        
+    }
+    bool loss_bounds2=true;
+    if(false){
+        
+        
+        SDP.add(sWf_sWt.in(arcs), Wf_Wt.in(arcs));
+        
+        bool convexify = true;
+        
+        Constraint<Cpx> Linking_sqW("Linking_sqW");
+        Linking_sqW = Wf_Wt - sWf_sWt.in(arcs)*sWf_sWt.in(arcs);
+        SDP.add(Linking_sqW.in(arcs)==0, convexify);
+        
+        Constraint<Cpx> Linking_WiiWjj("Linking_WiiWjj");
+        Linking_WiiWjj = Wf_Wt - Wii.from(arcs)*Wii.to(arcs);
+        SDP.add(Linking_WiiWjj.in(arcs)==0, convexify);
+        
+        func<> cosl=min(cos(theta_L.in(arcs)-as.in(arcs)),cos(theta_U.in(arcs)-as.in(arcs)));
+        b.print();
+        
+        Constraint<> p_U2("p_U2");
+        p_U2=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sWf_sWt*cosl;
+        SDP.add(p_U2.in(arcs)<=0);
+        
+        Constraint<> p_L2("p_L2");
+        p_L2=Pf_from+Pf_to-g*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))+2*g/tr*sWf_sWt;
+        SDP.add(p_L2.in(arcs)>=0);
+        
+        Constraint<> q_U2("q_U2");
+        q_U2=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sWf_sWt*cosl;
+        SDP.add(q_U2.in(arcs)<=0);
+        
+        Constraint<> q_L2("q_L2");
+        q_L2=Qf_from+Qf_to+(b+ch_half)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs))-2*b/tr*sWf_sWt;
+        SDP.add(q_L2.in(arcs)>=0);
+        
+        
+    }
     
     if (llnc)
     {
         
-        
-        func<> phia=(theta_U+theta_L)/2.0;
-        func<> del=(theta_U-theta_L)/2.0;
+        func<> phi=(theta_U.in(bus_pairs)+theta_L.in(bus_pairs))/2.0;
+        DebugOn("phi");
+        phi.print();
+        func<> del=(theta_U.in(bus_pairs)-theta_L.in(bus_pairs))/2.0;
+        DebugOn("del");
+        del.print();
         
         Constraint<> LNC1("LNC1");
-        LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(Im_Wij.in(bus_pairs)*sin(phia.in(bus_pairs)) + R_Wij.in(bus_pairs)*cos(phia.in(bus_pairs)));
+        LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(Im_Wij.in(bus_pairs)*sin(phi.in(bus_pairs)) + R_Wij.in(bus_pairs)*cos(phi.in(bus_pairs)));
         LNC1 -= sqrt(Wii.get_ub().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
         LNC1 -= sqrt(Wii.get_ub().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
         LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
-            sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
-        SDP.add(LNC1.in(bus_pairs) >= 0);
-        
-        
+                                                                                            sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+      //  SDP.add(LNC1.in(bus_pairs) >= 0);
         Constraint<> LNC2("LNC2");
-        LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(sin(phia)*Im_Wij.in(bus_pairs) + cos(phia)*R_Wij.in(bus_pairs));
-        LNC2 -= sqrt(Wii.get_lb().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
-        LNC2 -= sqrt(Wii.get_lb().from(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
-        LNC2+=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().from(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
-             sqrt(Wii.get_lb().to(bus_pairs))-sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
-        SDP.add(LNC2.in(bus_pairs) >= 0);
-        
+        LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(sin(phi.in(bus_pairs))*Im_Wij.in(bus_pairs) + cos(phi.in(bus_pairs))*R_Wij.in(bus_pairs));
+        LNC2 -= sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+        LNC2 -= sqrt(Wii.get_lb().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+        LNC2+=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))*
+                                                                                                          sqrt(Wii.get_lb().to(bus_pairs))-sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+        //SDP.add(LNC2.in(bus_pairs) >= 0);
+        //
+        //                        Constraint<> LNC2("LNC2");
+        //                        LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+        //                        LNC2 -= sqrt(Wii.get_lb().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+        //                        LNC2 -= sqrt(Wii.get_lb().from(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+        //                        LNC2 += sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+        //                        SDP.add(LNC2.in(bus_pairs) >= 0);
+        //
+        //                Constraint<> LNC1("LNC1");
+        //                LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+        //                LNC1 -= sqrt(Wii.get_ub().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+        //                LNC1 -= sqrt(Wii.get_ub().from(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+        //                LNC1 -=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))*
+        //                    sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+        //                SDP.add(LNC1.in(bus_pairs) >= 0);
+        //
         
     }
     
