@@ -167,7 +167,7 @@ int main (int argc, char * argv[]) {
         //        }
         
         solver_time= get_wall_time()-solver_time_start;
-        for(auto i = 0; i<1 ;i++){
+        for(auto i = 0; i<2 ;i++){
             if(i>=1){
                 DebugOn("Entering second FP iteration" << endl);
                 for(auto &p: fixed_point){
@@ -273,8 +273,8 @@ int main (int argc, char * argv[]) {
                                                 {
                                                     fixed_point[pk]=true;
                                                     double temp=vk.get_ub(keyk);
-                                                    vk.set_ub(keyk, vk.get_lb(keyk));
-                                                    vk.set_lb(keyk, temp);
+                                                    vk.set_ub(keyk, vk.get_lb(keyk)-1e-2);
+                                                    vk.set_lb(keyk, temp+1e-2);
                                                 }
                                                 else {
                                                     fixed_point[pk]=false;
