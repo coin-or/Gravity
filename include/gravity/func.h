@@ -755,7 +755,12 @@ namespace gravity {
             _dim[1] = temp;
             for (auto &vp: *_vars) {
                 if(vp.second.first->_is_transposed){
-                    vp.second.first->_is_transposed = false;
+                    vp.second.first->transpose();
+                }
+            }
+            for (auto &pp: *_params) {
+                if(pp.second.first->_is_transposed){
+                    pp.second.first->transpose();
                 }
             }
         }
@@ -8084,7 +8089,7 @@ namespace gravity {
     func<T1> operator*(const param<T1>& v, const func<T2>& f){
         func<T1> res(v);
         func<T1> f2(f);
-        if((v._is_transposed || v.is_matrix()) && !f2._is_vector){
+        if((v._is_transposed || v.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
             return res *= f2.vec();
         }
         res *= f2;
@@ -8095,7 +8100,7 @@ namespace gravity {
     func<T2> operator*(const param<T1>& v, const func<T2>& f){
         func<T2> res(v);
         func<T2> f2(f);
-        if((v._is_transposed || v.is_matrix()) && !f2._is_vector){
+        if((v._is_transposed || v.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
             return res *= f2.vec();
         }
         res *= f2;
@@ -8106,7 +8111,7 @@ namespace gravity {
     func<T1> operator*(const func<T1>& f, const param<T2>& v){
         func<T1> res(f);
         func<T1> f2(v);
-        if((f._is_transposed || f.is_matrix()) && !f2._is_vector){
+        if((f._is_transposed || f.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
             return res *= f2.vec();
         }
         return res *= f2;
@@ -8116,7 +8121,7 @@ namespace gravity {
     func<T2> operator*(const func<T1>& f, const param<T2>& v){
         func<T2> res(f);
         func<T2> f2(v);
-        if((f._is_transposed || f.is_matrix()) && !f2._is_vector){
+        if((f._is_transposed || f.is_matrix()) && (!f2.func_is_number() && !f2._is_vector)){
             return res *= f2.vec();
         }
         res *= f2;

@@ -300,7 +300,7 @@ int main (int argc, char * argv[]) {
     }
     
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))*1e-4;
     SDP.min(obj);
     
     
