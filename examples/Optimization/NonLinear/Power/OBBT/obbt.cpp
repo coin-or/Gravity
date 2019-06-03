@@ -99,7 +99,7 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 100;
+    double max_time = 200;
    // max_time = op::str2double(opt["t"]);
     
     
@@ -122,7 +122,8 @@ int main (int argc, char * argv[]) {
     solver<> SDPLB(SDP,solv_type);
     SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
-    //    SDP->print();
+    SDP->print();
+    SDP->print_solution();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
@@ -170,15 +171,7 @@ int main (int argc, char * argv[]) {
         
         solver_time= get_wall_time()-solver_time_start;
         for(auto i = 0; i<1 ;i++){
-            if(i>=1){
-                DebugOn("Entering second FP iteration" << endl);
-                for(auto &p: fixed_point){
-                    p.second = false;
-                }
-                terminate = false;
-                iter=0;
-            }
-            SDP->print();
+            
             //            for (auto it=SDP->_vars_name.begin(); it!=SDP->_vars_name.end(); it++)
             //            {
             //                vname=it->first;
@@ -235,6 +228,7 @@ int main (int argc, char * argv[]) {
                                 //Do not reset if original interval is itself less than range_tol
                                 if(interval_original[p]>=range_tol)
                                 {
+                                    DebugOn("Entered reset");
                                     double mid=(v.get_ub(key)+v.get_lb(key))/2.0;
                                     
                                     double left=mid-range_tol/2.0;
@@ -286,7 +280,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-4,nb_threads, "ma97");
+                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma27");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -303,11 +297,11 @@ int main (int argc, char * argv[]) {
                                         dirk=mkname.substr(pos+1);
                                         vk=SDP->get_var<double>(vkname);
                                         pk=vkname+"|"+keyk;
-                                        if((model->get_name())=="Im_Wij.in(bus_pairs_chordal)|1,2|LB")
-                                        {
-                                            model->print();
-                                            
-                                        }
+//                                        if((model->get_name())=="Im_Wij.in(bus_pairs_chordal)|1,2|LB")
+//                                        {
+//                                            model->print();
+//
+//                                        }
                                         if(model->_status==0)
                                         {
                                             objk=model->get_obj_val();
@@ -359,7 +353,7 @@ int main (int argc, char * argv[]) {
                                         else
                                         {
                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                            model->print();
+                                            //model->print();
                                             //                                        fixed_point[pk]=true;
                                         }
                                     }
@@ -398,11 +392,41 @@ int main (int argc, char * argv[]) {
             avg=sum/num_var;
             
             DebugOn("Average interval reduction\t"<<avg<<endl);
-            SDP->reset_constrs();
+            //SDP->reset_constrs();
+//            auto SDP1=SDP->copy();
+//            //    SDP->print();
+//            solver<> SDPLB1(SDP1,solv_type);
+//
+//            SDPLB1.run(output = 5, tol=1e-6, "ma27");
+//
+//            SDP1->print_solution();
+//            SDP1->print();
+//            if(SDP1->_status==0)
+//            {
+//                double gap = 100*(upper_bound - 1e4*lower_bound)/upper_bound;
+//                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+//                gap = 100*(upper_bound - 1e4*(SDP1->get_obj_val()))/upper_bound;
+//
+//                DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+//                DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+//                DebugOn("Lower bound = " << to_string(1e4*(SDP1->get_obj_val())) << "."<<endl);
+//                DebugOn("Time\t"<<solver_time<<endl);
+//                DebugOn("\nResults: " << grid._name << " " << to_string(SDP1->get_obj_val()) << " " <<endl);
+//            }
+//            else
+//            {
+//                double gap = 100*(upper_bound - 1e4*lower_bound)/upper_bound;
+//                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+//                DebugOn("Lower bounding problem status = " << SDP1->_status <<endl);
+//                DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
+//            }
+            
+            
             //    SDP->print();
+            SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-4, "ma97");
+            SDPLB1.run(output = 5, tol=1e-6, "ma27");
             
             SDP->print_solution();
             SDP->print();
