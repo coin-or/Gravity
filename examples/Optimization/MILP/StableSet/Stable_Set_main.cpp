@@ -37,11 +37,11 @@ int main (int argc, const char * argv[])
     model.add(c.in(graph.arcs) <= 1);
     
     /** Solver **/
-    /* solver s(model,ipopt);*/
+    solver s(model,ipopt);
     /* comment below to solve the MIP using Cplex */
     /* solver s(model,cplex); */
     /* comment below to solve the continuous relaxation using clp */
-    solver s(model,clp); 
+    /* solver s(model,clp); */
 
     s.run();
     
