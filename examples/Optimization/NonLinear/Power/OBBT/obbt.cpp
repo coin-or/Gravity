@@ -99,7 +99,7 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 10;
+    double max_time = 400;
    // max_time = op::str2double(opt["t"]);
     
     
@@ -296,7 +296,7 @@ fixed_point[p]=true;
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma97");
+                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma27");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -370,7 +370,8 @@ fixed_point[p]=true;
                                         else
                                         {
                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                            //model->print();
+                                            model->print();
+                                            
                                             //                                        fixed_point[pk]=true;
                                         }
                                     }

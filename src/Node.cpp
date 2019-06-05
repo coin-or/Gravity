@@ -121,6 +121,24 @@ std::set<Node*> Node::get_neighbours(){
     
     return res;
 }
+  int Node::get_degree(){
+    int res=0;
+    for (auto a:branches) {
+        //if(a->_dest->_id=_id && std::find(res.begin(),res.end(), a->_src)== res.end()){
+        if(a->_dest->_id== _id){
+            res++;
+        }
+        
+        //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
+        //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
+        if(a->_src->_id==_id ){
+            res++;
+        }
+    }
+    // uniqueness.
+    
+    return res;
+}
 
 std::vector<Node*> Node::get_neighbours_vec(){
     auto n_set = get_neighbours();

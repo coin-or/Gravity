@@ -647,6 +647,9 @@ indices Net::get_bus_pairs(){
     return bus_pairs;
 }
 
+    
+
+
 
 
 
