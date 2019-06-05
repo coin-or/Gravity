@@ -17,7 +17,7 @@
 using namespace std;
 using namespace gravity;
 
-
+double oaa1, oab1;
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
@@ -99,7 +99,7 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 200;
+    double max_time = 10;
    // max_time = op::str2double(opt["t"]);
     
     
@@ -220,11 +220,14 @@ int main (int argc, char * argv[]) {
                         interval_new[p]=v.get_ub(key)-v.get_lb(key);
                         if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                         {
-                            fixed_point[p]=true;
+fixed_point[p]=true;
                             //Reset bounds when updated bounds become lesser than the range_tolerance value
                             //Do not reset if interval is zero itself
+                            double oaa=v.get_ub(key);
+                            double oab=v.get_lb(key);
+                            double oap=abs(v.get_ub(key)-v.get_lb(key));
                             if(abs(v.get_ub(key)-v.get_lb(key))>zero_tol)
-                            {\
+                            {
                                 //Do not reset if original interval is itself less than range_tol
                                 if(interval_original[p]>=range_tol)
                                 {
@@ -233,23 +236,36 @@ int main (int argc, char * argv[]) {
                                     
                                     double left=mid-range_tol/2.0;
                                     double right=mid+range_tol/2.0;
+                                      DebugOn("UbO"<<ub_original[p]<<endl);
+                                      DebugOn("LbO"<<lb_original[p]<<endl);
                                     if(right<=ub_original[p] && left>=lb_original[p])
                                     {
                                         v.set_ub(key, right);
                                         v.set_lb(key, left);
+                                        DebugOn("Entered if 1"<<endl);
                                     }
                                     else if(right>ub_original[p])
                                     {
                                         
                                         v.set_ub(key, ub_original[p]);
                                         v.set_lb(key, ub_original[p]-range_tol);
+                                              DebugOn("Entered if 2"<<endl);
                                     }
                                     else if(left<lb_original[p])
                                     {
                                         v.set_lb(key, lb_original[p]);
                                         v.set_ub(key, lb_original[p]+range_tol);
+                                              DebugOn("Entered if 3"<<endl);
                                         
                                     }
+                                  
+                                    double ar=ub_original[p];
+                                    double ar1=lb_original[p];
+                                oaa1=v.get_ub(key);
+                                     oab1=v.get_lb(key);
+                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
+                                    
+                                    
                                 }
                             }
                         }
@@ -280,7 +296,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma27");
+                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma97");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -297,9 +313,10 @@ int main (int argc, char * argv[]) {
                                         dirk=mkname.substr(pos+1);
                                         vk=SDP->get_var<double>(vkname);
                                         pk=vkname+"|"+keyk;
-//                                        if((model->get_name())=="Im_Wij.in(bus_pairs_chordal)|1,2|LB")
+//                                    if(model->get_name()=="Lift_Im_Vi.from.in(bus_pairs_chordal)_Im_Vi.to.in(bus_pairs_chordal).in(bus_pairs_chordal)|1,2|UB")
 //                                        {
 //                                            model->print();
+//                                            
 //
 //                                        }
                                         if(model->_status==0)
