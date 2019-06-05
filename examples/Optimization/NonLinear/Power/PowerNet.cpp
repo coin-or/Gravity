@@ -1213,6 +1213,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 {
     bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=false;
+    loss=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
 
@@ -1305,7 +1306,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     /** Variables */
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
-    var<> Qg ("Qg", qg_min, qg_max);
+    var<> Qg("Qg", qg_min, qg_max);
     SDPOPF->add(Pg.in(gens),Qg.in(gens));
     
     /* Power flow variables */
@@ -1314,7 +1315,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     var<> Pf_to("Pf_to", pf_to_min,pf_to_max);
     var<> Qf_to("Qf_to", qf_to_min,qf_to_max);
     var<> lij("lij", lij_min,lij_max);
-       var<> lji("lji", lji_min,lji_max);
+    var<> lji("lji", lji_min,lji_max);
     //var<> obv("obv", 0, upper_bound);
     //SDPOPF->add(obv);
     if(current){
@@ -1558,22 +1559,43 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     if(loss){
         func<> cosl=min(cos(theta_L.in(arcs)-as.in(arcs)),cos(theta_U.in(arcs)-as.in(arcs)));
+        
+                Constraint<> p_U("p_U");
+                p_U=(Pf_from+Pf_to)-g*max(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cosl)*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+                SDPOPF->add(p_U.in(arcs)<=0);
+        
+                Constraint<> p_L("p_L");
+                p_L=(Pf_from+Pf_to)-g*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2));
+                SDPOPF->add(p_L.in(arcs)>=0);
+        
+                Constraint<> q_U("q_U");
+                q_U=(Qf_from+Qf_to)+b*max(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cosl)+ch_half)*
+                (Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+                SDPOPF->add(q_U.in(arcs)<=0);
+        
+                Constraint<> q_L("q_L");
+                q_L=(Qf_from+Qf_to)+b*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))/tr-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr-sqrt(Wii.get_ub().to(arcs)), 2))+ch_half*(Wii.from(arcs)*1.0/tr*1.0/tr+Wii.to(arcs));
+                SDPOPF->add(q_L.in(arcs)>=0);
 
-        Constraint<> p_U("p_U");
-        p_U=(Pf_from+Pf_to)*pow(tr,2)-g*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cosl)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
-        SDPOPF->add(p_U.in(arcs)<=0);
+//        Constraint<> p_U("p_U");
+//        p_U=(Pf_from+Pf_to)*pow(tr,2)-g*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cosl)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//        SDPOPF->add(p_U.in(arcs)<=0);
+//
+//        Constraint<> p_L("p_L");
+//        p_L=(Pf_from+Pf_to)*pow(tr,2)-g*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2));
+//        SDPOPF->add(p_L.in(arcs)>=0);
+//
+//        Constraint<> q_U("q_U");
+//        q_U=(Qf_from+Qf_to)*pow(tr,2)+b*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cosl)+ch_half)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//        SDPOPF->add(q_U.in(arcs)<=0);
+//
+//        Constraint<> q_L("q_L");
+//        q_L=(Qf_from+Qf_to)*pow(tr,2)+b*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+ch_half*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//       SDPOPF->add(q_L.in(arcs)>=0);
+//
+
         
-        Constraint<> p_L("p_L");
-        p_L=(Pf_from+Pf_to)*pow(tr,2)-g*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2));
-        SDPOPF->add(p_L.in(arcs)>=0);
-        
-        Constraint<> q_U("q_U");
-        q_U=(Qf_from+Qf_to)*pow(tr,2)+b*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cosl)+ch_half)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
-        SDPOPF->add(q_U.in(arcs)<=0);
-        
-        Constraint<> q_L("q_L");
-        q_L=(Qf_from+Qf_to)*pow(tr,2)+b*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+ch_half*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
-       SDPOPF->add(q_L.in(arcs)>=0);
+
     }
     if (llnc)
     {

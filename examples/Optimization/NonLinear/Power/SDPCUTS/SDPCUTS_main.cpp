@@ -479,23 +479,7 @@ int main (int argc, char * argv[]) {
         
         g.print();
         tr.print();
-        //        param<Cpx> T("T"), Y("Y"), Ych("Ych");
-        //        T.real_imag(cc.in(arcs), dd.in(arcs));
-        //        Y.real_imag(g.in(arcs), b.in(arcs));
-        //        Ych.set_imag(ch_half.in(arcs));
-        //        var<Cpx> S_ij("S_ij"), S_ji("S_ji");
-        //        S_ij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
-        //        S_ji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
-        
-        //        Constraint<Cpx> Loss_U("Loss_U");
-        //        Loss_U=S_ij.in(arcs)+S_ji.in(arcs)-conj(Y.in(arcs))*max(pow(sqrt(Wii.get_ub().from(arcs))/tr.in(arcs)-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr.in(arcs)-sqrt(Wii.get_ub().to(arcs)), 2));
-        //        Loss_U-=(conj(Y.in(arcs))*(1-cosl.in(arcs))+conj(Ych.in(arcs)))*(Wii.from(arcs)/pow(tr.in(arcs),2)+Wii.to(arcs));
-        //        SDP.add(Loss_U.in(arcs)<=0);
-        
-        //        Constraint<Cpx> Loss_L("Loss_L");
-        //        Loss_L=S_ij.in(arcs)+S_ji.in(arcs)-conj(Y)*cosl.in(arcs)*min(pow(sqrt(Wii.get_ub().from(arcs))/tr.in(arcs)-sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))/tr.in(arcs)-sqrt(Wii.get_ub().to(arcs)), 2));
-        //        Loss_L-=conj(Ych)*(Wii.from(arcs)/pow(tr,2)+Wii.to(arcs));
-        //           SDP.add(Loss_L.in(arcs)>=0);
+ 
         
         
         Constraint<> p_U("p_U");
