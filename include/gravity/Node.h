@@ -75,6 +75,8 @@ public:
     std::set<Node*> get_neighbours();
     
     std::vector<Node*> get_neighbours_vec();
+    
+     int get_degree();
 };
 
 #endif

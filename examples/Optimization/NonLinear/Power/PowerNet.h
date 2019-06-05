@@ -257,6 +257,12 @@ public:
     /** get set indexed by bus pairs in the chordal extension */
     gravity::indices get_bus_pairs_chord();
     
+    gravity::indices get_ref_bus_pairs_from();
+    
+    gravity::indices get_ref_bus_pairs_to();
+    
+    void update_ref_bus();
+    
     
     /** Power Model<>s */
     

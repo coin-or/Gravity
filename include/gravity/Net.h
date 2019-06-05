@@ -138,6 +138,10 @@ public:
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     gravity::indices get_bus_pairs();
     
+    
+     /** Compute the vector of reference bus pairs, ignoring parallel lines **/
+     gravity::indices get_ref_bus_pairs();
+    
 
     /** Compute the tree decomposition bags **/
     void  get_cliquebags(bool print=false); // remove bags that are not maximal cliques.
