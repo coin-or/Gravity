@@ -1546,18 +1546,7 @@ namespace gravity {
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 if(template_cstr){//Template constraint
-                    if((ub1_+lb1_).is_zero()){
-//                    if(true){
-                        if(lb1_.is_non_negative()){
-                            MC4 -= (ub1_+0.99*lb1_)*v1 - ub1_*0.99*lb1_;
-                        }
-                        else {
-                            MC4 -= (ub1_+1.01*lb1_)*v1 - ub1_*1.01*lb1_;
-                        }
-                    }
-                    else {
-                        MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
-                    }
+                    MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 }
                 else{
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
