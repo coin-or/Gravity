@@ -107,7 +107,7 @@ int main (int argc, char * argv[]) {
     
     current_from=true;
     current_to=true;
-    loss=true;
+//    loss=true;
     
     num_bags = atoi(opt["b"].c_str());
     
@@ -324,27 +324,33 @@ int main (int argc, char * argv[]) {
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
         SDP.add(Linking_Wi.in(nodes)==0, convexify);
+        
+        
+        
+        Constraint<Cpx> Rank_type1("RankType1");
+        Rank_type1 += Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+        SDP.add(Rank_type1.in(bus_pairs_chord)>=0, convexify);
         //                SDP.print();
         //        SDP.print_symbolic();
         
         
-   
-        var<> RWij_ij("RWij_ij"), RWii_jj("RWii_jj");
-        SDP.add(RWij_ij.in(bus_pairs));
-        SDP.add(RWii_jj.in(bus_pairs));
-
-        
-        Constraint<Cpx> Linking_Wij_ij("Linking_Wij_ij");
-        Linking_Wij_ij = RWij_ij -Wij*conj(Wij);
-        SDP.add(Linking_Wij_ij.in(bus_pairs)==0, convexify);
-        
-        Constraint<Cpx> Linking_Wii_jj("Linking_Wii_jj");
-        Linking_Wii_jj = RWii_jj -Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SDP.add(Linking_Wii_jj.in(bus_pairs)==0, convexify);
-        
-        Constraint<> Rank1a("Rank1a");
-        Rank1a=RWij_ij-RWii_jj;
-        SDP.add(Rank1a.in(bus_pairs)==0);
+//
+//        var<> RWij_ij("RWij_ij"), RWii_jj("RWii_jj");
+//        SDP.add(RWij_ij.in(bus_pairs));
+//        SDP.add(RWii_jj.in(bus_pairs));
+//
+//
+//        Constraint<Cpx> Linking_Wij_ij("Linking_Wij_ij");
+//        Linking_Wij_ij = RWij_ij -Wij*conj(Wij);
+//        SDP.add(Linking_Wij_ij.in(bus_pairs)==0, convexify);
+//
+//        Constraint<Cpx> Linking_Wii_jj("Linking_Wii_jj");
+//        Linking_Wii_jj = RWii_jj -Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//        SDP.add(Linking_Wii_jj.in(bus_pairs)==0, convexify);
+//
+//        Constraint<> Rank1a("Rank1a");
+//        Rank1a=RWij_ij-RWii_jj;
+//        SDP.add(Rank1a.in(bus_pairs)==0);
         
 //         auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
 //

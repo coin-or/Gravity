@@ -2912,6 +2912,9 @@ namespace gravity {
         }
         
         void eval_all(){
+            if(_val->size()==0){
+                allocate_mem();
+            }
             auto nb_inst = get_nb_inst();
             for (size_t inst = 0; inst<nb_inst; inst++) {
                 eval(inst);
@@ -4570,8 +4573,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-//            return (func_is_number() && _range->first == 0 && _range->second == 0);
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         

@@ -686,7 +686,9 @@ namespace gravity {
             c_imag._indices = c._indices;
             c_imag._dim[0] = c._dim[0];
             if(convexify){
+                c_real.check_soc();c_real.check_rotated_soc();
                 auto lifted_real = lift_quad(c_real);
+                c_imag.check_soc();c_imag.check_rotated_soc();
                 auto lifted_imag = lift_quad(c_imag);
                 lifted_real._ctype = c._ctype;
                 lifted_real._indices = c._indices;
@@ -1544,7 +1546,18 @@ namespace gravity {
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 if(template_cstr){//Template constraint
-                    MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
+                    if((ub1_+lb1_).is_zero()){
+//                    if(true){
+                        if(lb1_.is_non_negative()){
+                            MC4 -= (ub1_+0.99*lb1_)*v1 - ub1_*0.99*lb1_;
+                        }
+                        else {
+                            MC4 -= (ub1_+1.01*lb1_)*v1 - ub1_*1.01*lb1_;
+                        }
+                    }
+                    else {
+                        MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
+                    }
                 }
                 else{
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
