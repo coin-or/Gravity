@@ -1222,7 +1222,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
