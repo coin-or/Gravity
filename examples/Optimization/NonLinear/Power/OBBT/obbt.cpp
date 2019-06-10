@@ -99,7 +99,7 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 400;
+    double max_time = 60;
    // max_time = op::str2double(opt["t"]);
     
     
@@ -441,6 +441,7 @@ fixed_point[p]=true;
             
             
             //    SDP->print();
+           // SDP->_built=false;
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             

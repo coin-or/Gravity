@@ -72,11 +72,11 @@ public:
     
 
     /* return its neighbours */
-    std::set<Node*> get_neighbours();
+    std::set<Node*> get_neighbours() const;
     
-    std::vector<Node*> get_neighbours_vec();
+    std::vector<Node*> get_neighbours_vec() const;
     
-     int get_degree();
+     size_t get_degree() const;
 };
 
 #endif

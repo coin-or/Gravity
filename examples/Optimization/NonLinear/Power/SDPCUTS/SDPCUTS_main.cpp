@@ -34,6 +34,7 @@ int main (int argc, char * argv[]) {
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
+    double ilb, iub;
     
     //string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
@@ -237,22 +238,43 @@ int main (int argc, char * argv[]) {
     var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
     
         //var<> sWf_sWt("sWf_sWt", w_min, w_max), Wf_Wt("Wf_Wt", w_min*w_min, w_max*w_max);
+    func<> theta_L1;
+    theta_L1.allocate_mem();
+    theta_L1=(acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))))*(-1);
+    func<> inter_1;
+    inter_1.allocate_mem();
+    inter_1=min(Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
+    func<> theta_L2;
+    theta_L2.allocate_mem();
+    theta_L2= asin(inter_1.in(bus_pairs));
+    func<> inter_2;
+    inter_2.allocate_mem();
+    inter_2=max(Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
+    func<> theta_U2;
+    theta_U2.allocate_mem();
+    theta_U2= asin(inter_2.in(bus_pairs));
     
-        func<> theta_L1=(acos(R_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))))*(-1);
-        func<> inter_1=min(Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_lb().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
-        func<> theta_L2= asin(inter_1.in(bus_pairs));
-        func<> inter_2=max(Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs)), Im_Wij.get_ub().in(bus_pairs)/sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)));
-        func<> theta_U2= asin(inter_2.in(bus_pairs));
-        func<> inter_U=min(theta_L1.in(bus_pairs)*(-1.0), theta_U2.in(bus_pairs));
-        func<> theta_U=min(inter_U.in(bus_pairs), th_max.in(bus_pairs));
+    func<> inter_U;
+    inter_U.allocate_mem();
+    inter_U=min(theta_L1.in(bus_pairs)*(-1.0), theta_U2.in(bus_pairs));
+    func<> theta_U;
+    theta_U.allocate_mem();
+    theta_U=min(inter_U.in(bus_pairs), th_max.in(bus_pairs));
     
-        func<> inter_L=max(theta_L1.in(bus_pairs), theta_L2.in(bus_pairs));
-        func<> theta_L=max(inter_L.in(bus_pairs), th_min.in(bus_pairs));
-        func<> cos_L=min(cos(theta_L), cos(theta_U));
-    
-//    func<> theta_L=th_min.in(bus_pairs);
-//    func<> theta_U=th_max.in(bus_pairs);
-//
+    func<> inter_L;
+    inter_L.allocate_mem();
+    inter_L=max(theta_L1.in(bus_pairs), theta_L2.in(bus_pairs));
+    func<> theta_L;
+    theta_L.allocate_mem();
+    theta_L=max(inter_L.in(bus_pairs), th_min.in(bus_pairs));
+    func<>  cos_L;
+    cos_L.allocate_mem();
+         cos_L= (min(cos(theta_L.in(bus_pairs)), cos(theta_U.in(bus_pairs)))).in(bus_pairs);
+    cos_L.print();
+    theta_L.print();
+    theta_U.print();
+   
+
     
     if(add_original){
         SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
@@ -263,84 +285,105 @@ int main (int argc, char * argv[]) {
         Im_Vi.set_lb((grid.ref_bus),0);
         Im_Vi.set_ub((grid.ref_bus),0);
         
-
-        
-        
         R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
         R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
         
        auto ref_bus_pairs_from=grid.get_ref_bus_pairs_from();
        auto ref_bus_pairs_to=grid.get_ref_bus_pairs_to();
+        
+        for (auto &p: *ref_bus_pairs_from._keys)
+        {
+            auto ngb = p.substr(0,p.find_first_of(","));
+            R_Vi.set_lb(ngb, v_min.eval(ngb)*cos_L.eval(p));
+            R_Vi.set_ub(ngb, v_max.eval(ngb));
+            ilb=gravity::min(v_min.eval(ngb)*sin(theta_L.eval(p)), v_max.eval(ngb)*sin(theta_L.eval(p)));
+            iub=gravity::max(v_min.eval(ngb)*sin(theta_U.eval(p)), v_max.eval(ngb)*sin(theta_U.eval(p)));
+            Im_Vi.set_lb(ngb, ilb);
+            Im_Vi.set_ub(ngb, iub);
+        }
+        for (auto &p: *ref_bus_pairs_to._keys)
+        {
+            auto ngb = p.substr(p.find_first_of(",")+1);
+            R_Vi.set_lb(ngb, v_min.eval(ngb)*cos_L.eval(p));
+            R_Vi.set_ub(ngb, v_max.eval(ngb));
+            ilb=gravity::min(v_min.eval(ngb)*sin(theta_L.eval(p)), v_max.eval(ngb)*sin(theta_L.eval(p)));
+            iub=gravity::max(v_min.eval(ngb)*sin(theta_U.eval(p)), v_max.eval(ngb)*sin(theta_U.eval(p)));
+            Im_Vi.set_lb(ngb, ilb);
+            Im_Vi.set_ub(ngb, iub);
+        }
 
-    
-        //auto rbus=grid.get_node(grid.ref_bus);
-        
-        //auto rbus_neigh=rbus->get_neighbours_vec();
-        
-//          for(auto n:rbus_neigh)
-//          {
-            //  R_Vi.set_lb(n->_name, v_min(from(ref_bus_pairs)->_name).eval());
-            //              R_Vi.set_ub(n->_name, v_max.eval(n->_name));
-            //              Im_Vi.set_lb(n->_name, v_min.eval(n->_name)*sin(theta_L.eval(arcn->_name)));
-            //                Im_Vi.set_lb(n->_name, v_min.eval(n->_name)*sin(theta_L.eval(arcn->_name)));
-       
-          //}
-        
-        
-        
-        Constraint<> r_lb_f("r_lb_f");
-        r_lb_f=R_Vi.from(ref_bus_pairs_from)-v_min.from(ref_bus_pairs_from)*cos_L.in(ref_bus_pairs_from);
-        SDP.add(r_lb_f.in(ref_bus_pairs_from)>=0);
-        
-        //R_Vi.from(ref_bus_pairs_from).set_lb(v_min.eval(ref_bus_pairs_from.nb_active_keys()));
-        
-        Constraint<> r_lb_t("r_lb_t");
-        r_lb_t=R_Vi.to(ref_bus_pairs_to)-v_min.to(ref_bus_pairs_to)*cos_L.in(ref_bus_pairs_to);
-        SDP.add(r_lb_t.in(ref_bus_pairs_to)>=0);
-        
-        Constraint<> r_ub_f("r_ub_f");
-        r_ub_f=R_Vi.from(ref_bus_pairs_from)-v_max.from(ref_bus_pairs_from);
-        SDP.add(r_ub_f.in(ref_bus_pairs_from)<=0);
-        
-        Constraint<> r_ub_t("r_ub_t");
-        r_ub_t=R_Vi.to(ref_bus_pairs_to)-v_max.to(ref_bus_pairs_to);
-        SDP.add(r_ub_t.in(ref_bus_pairs_to)<=0);
-        
-        Constraint<> i_lb_f("i_lb_f");
-        i_lb_f=Im_Vi.from(ref_bus_pairs_from)-min(v_min.from(ref_bus_pairs_from)*sin(theta_L.in(ref_bus_pairs_from)), v_max.from(ref_bus_pairs_from)*sin(theta_L.in(ref_bus_pairs_from)));
-        SDP.add(i_lb_f.in(ref_bus_pairs_from)>=0);
-        
-        Constraint<> i_lb_t("i_lb_t");
-        i_lb_t=Im_Vi.to(ref_bus_pairs_to)-min(v_min.from(ref_bus_pairs_to)*sin(theta_L.in(ref_bus_pairs_to)), v_max.from(ref_bus_pairs_to)*sin(theta_L.in(ref_bus_pairs_to)));
-        SDP.add(i_lb_t.in(ref_bus_pairs_to)>=0);
-        
-        Constraint<> i_ub_f("i_ub_f");
-        i_ub_f=Im_Vi.from(ref_bus_pairs_from)-max(v_max.from(ref_bus_pairs_from)*sin(theta_U.in(ref_bus_pairs_from)),
-            v_min.from(ref_bus_pairs_from)*sin(theta_U.in(ref_bus_pairs_from)));
-        SDP.add(i_ub_f.in(ref_bus_pairs_from)<=0);
-        
-        Constraint<> i_ub_t("i_ub_t");
-        i_ub_t=Im_Vi.to(ref_bus_pairs_to)-max(v_max.to(ref_bus_pairs_to)*sin(theta_U.in(ref_bus_pairs_to)),
-            v_min.to(ref_bus_pairs_to)*sin(theta_U.in(ref_bus_pairs_to)));
-        SDP.add(i_ub_t.in(ref_bus_pairs_to)<=0);
-        
-        
         bool convexify = true;
-        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
+        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
         Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
         SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
-        Wi.set_real(Wii.in(nodes));
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
         SDP.add(Linking_Wi.in(nodes)==0, convexify);
         //                SDP.print();
         //        SDP.print_symbolic();
+        
+        
+   
+        var<> RWij_ij("RWij_ij"), RWii_jj("RWii_jj");
+        SDP.add(RWij_ij.in(bus_pairs));
+        SDP.add(RWii_jj.in(bus_pairs));
+
+        
+        Constraint<Cpx> Linking_Wij_ij("Linking_Wij_ij");
+        Linking_Wij_ij = RWij_ij -Wij*conj(Wij);
+        SDP.add(Linking_Wij_ij.in(bus_pairs)==0, convexify);
+        
+        Constraint<Cpx> Linking_Wii_jj("Linking_Wii_jj");
+        Linking_Wii_jj = RWii_jj -Wii.from(bus_pairs)*Wii.to(bus_pairs);
+        SDP.add(Linking_Wii_jj.in(bus_pairs)==0, convexify);
+        
+        Constraint<> Rank1a("Rank1a");
+        Rank1a=RWij_ij-RWii_jj;
+        SDP.add(Rank1a.in(bus_pairs)==0);
+        
+//         auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
+//
+//        
+//         for (auto &p: *ref_bus_pairs_ijkl._keys)
+//         {
+//             auto p1 = p.substr(0,p.find_first_of("|"));
+//             auto p2 = p.substr(p.find_first_of("|")+1);
+//             auto n1=p1.substr(0, p1.find_first_of(","));
+//             auto n2=p1.substr(p1.find_first_of(",")+1);
+//             auto n3=p2.substr(0, p2.find_first_of(","));
+//             auto n4=p2.substr(p2.find_first_of(",")+1);
+//             auto p3=n1+","+n4;
+//             auto p4=n2+","+n3;
+//
+//
+//         }
+        
+        
+//        var<Cpx> Wij_kl("Wij_kl"), Wii_jj("Wii_jj");
+//
+//        Constraint<Cpx> Linking_Wij_ij("Linking_Wij_ij");
+//        Linking_Wij_ij = RWij_ij -Wij*conj(Wij);
+//        SDP.add(Linking_Wij_ij.in(bus_pairs)==0, convexify);
+//
+//        Constraint<Cpx> Linking_Wii_jj("Linking_Wii_jj");
+//        Linking_Wii_jj = RWii_jj -Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//        SDP.add(Linking_Wii_jj.in(bus_pairs)==0, convexify);
+//
+//        Constraint<> Rank1b("Rank1b");
+//        Rank1a=RWij_ij-RWii_jj;
+//        SDP.add(Rank1a.in(bus_pairs)==0);
+        
     }
+ 
+ 
+   
+        
+    
     
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
