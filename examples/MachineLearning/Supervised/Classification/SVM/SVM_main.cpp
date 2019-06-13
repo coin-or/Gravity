@@ -185,7 +185,7 @@ int main (int argc, char * argv[])
     else if(solver_str.compare("Cplex")==0) {
         solv_type = cplex;
     }else if(solver_str.compare("Mosek")==0) {
-        solv_type = mosek;
+        solv_type = _mosek;
     }
     lazy_str = opt["lz"];
     bool lazy = false;
