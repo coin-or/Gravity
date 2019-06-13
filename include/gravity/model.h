@@ -3150,7 +3150,15 @@ namespace gravity {
         }
         
         
+        template<class T=type>
+        inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
+            return _obj->eval(c,i);
+        }
         
+        template<class T=type>
+        inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
+            return _obj->eval(c,i,j);
+        }
         
         
     };

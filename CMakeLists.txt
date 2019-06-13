@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2)
 project(Gravity)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
-
+set(MACOSX_RPATH 1) 
 # Debug mode
 option(Debug "Turn on debug mode" OFF)
 
@@ -73,12 +73,16 @@ endif()
 
 # Find MOSEK.
 if (Mosek)
+    set(MOSEK_ROOT_DIR "$ENV{MOSEK_ROOT_DIR}" CACHE PATH "MOSEK root directory.")
 	message(STATUS "Enable MOSEK")
 	add_definitions(-DUSE_MOSEK)
 	find_package(MOSEK REQUIRED)
 	include_directories(${MOSEK_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${MOSEK_LIBRARIES})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    link_directories(${MOSEK_ROOT_DIR}/bin)
+    link_directories(${MOSEK_ROOT_DIR}/src/fusion_cxx)
+
 endif()
 
 # Find gurobi?
@@ -211,6 +215,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
+
 
 if(LINUX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
