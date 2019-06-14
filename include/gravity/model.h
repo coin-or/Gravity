@@ -1023,7 +1023,15 @@ namespace gravity {
                 return newc;
             }
             else {
-                throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+                DebugOn("constraint with same name: " << c.get_name() << endl);
+                c.update_str();
+                if(!_cons_name.at(c.get_name())->equal(c)) {
+                    throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+                }
+                else{
+                    DebugOn("Both constraints are identical, ignoring this one." << endl);
+                    return nullptr;
+                }
             }
         };
         

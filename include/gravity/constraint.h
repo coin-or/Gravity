@@ -82,6 +82,9 @@ namespace gravity {
             *this -= rhs;
             return *this;
         }
+        bool equal(const Constraint<type>& c) const{
+            return _ctype==c._ctype && this->func<type>::operator==(c);
+        }
         
         Constraint& operator==(const param<type>& rhs) {
             _ctype = eq;

@@ -325,7 +325,15 @@ int main (int argc, char * argv[]) {
         Linking_Wi = Wii - Vi*conj(Vi);
         SDP.add(Linking_Wi.in(nodes)==0, convexify);
         
-        
+//        Constraint<Cpx> Vol_limit_LB("Vol_limit_LB");
+//        Vol_limit_LB = Vi*conj(Vi);
+//        SDP.add(Vol_limit_LB.in(nodes)>=pow(v_min,2), convexify);
+//        SDP.print();
+        auto Im_L = SDP.get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
+        auto R_L = SDP.get_var<double>("Lift_R_Vi.in(Nodes)_R_Vi.in(Nodes).in(Nodes)");
+        Constraint<> Vol_limit_LB("Vol_limit_LB");
+        Vol_limit_LB = Im_L + R_L - pow(v_min.in(nodes),2);
+        SDP.add(Vol_limit_LB.in(nodes)>=0);
         
         Constraint<Cpx> Rank_type1("RankType1");
         Rank_type1 += Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
@@ -457,12 +465,12 @@ int main (int argc, char * argv[]) {
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDP.add_lazy(PAD_UB.in(bus_pairs));
+    SDP.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDP.add_lazy(PAD_LB.in(bus_pairs));
+    SDP.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -771,7 +779,7 @@ int main (int argc, char * argv[]) {
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-    //    SDP.print_solution();
+        SDP.print_solution();
     
     
     
