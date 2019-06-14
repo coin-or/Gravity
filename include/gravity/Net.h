@@ -127,7 +127,9 @@ public:
 
     /** Compute the tree decomposition bags **/
     void get_tree_decomp_bags(bool print_bags = false, bool decompose = false);
-
+    
+    std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
+    std::vector<std::vector<Node*>> decompose_bags_3d(bool print_bags=false);
 
     /** get algorithmic graph */
     void get_algorithmic_graph(); // a cloned graph without in-active, parallel lines.

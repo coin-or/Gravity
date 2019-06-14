@@ -1024,6 +1024,7 @@ namespace gravity {
             }
             else {
                 throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+//                DebugOn("WARNING: A constraint with the same name exists, ignoring it: " << c._name << endl);
             }
         };
         

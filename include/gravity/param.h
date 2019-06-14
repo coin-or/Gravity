@@ -711,8 +711,14 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
-            _real = p._real;
-            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>();
                 _indices->shallow_copy(p._indices);
@@ -746,8 +752,14 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
-            _real = p._real;
-            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>(*p._indices);
             }
