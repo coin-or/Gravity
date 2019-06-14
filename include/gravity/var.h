@@ -414,7 +414,7 @@ namespace gravity {
         /* Create a vector of variables indexed as pair of nodes from bags of size bag_size
          e.g., given bag { 1, 5, 7 } index the first variable (1,5), the second (5,7) and the last (1,7)
          */
-        vector<var> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
+        vector<var<type>> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
         
         /* Querries */
         

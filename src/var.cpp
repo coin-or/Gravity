@@ -68,7 +68,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     /* Create a vector of variables indexed as pair of nodes from bags of size bag_size (WARNING assumes bags are unique in bags)*/
     template<typename type>
     vector<var<type>> var<type>::pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size){
-    vector<var> res;
+    vector<var<type>> res;
     vector<indices> ids_vec;
     string key;
     res.resize(bag_size);
@@ -96,6 +96,25 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     }
     for (auto i = 0; i<bag_size; i++) {
         res[i] = this->in(ids_vec[i]);
+        if(res[i].is_complex()){
+            if(res[i]._real){
+                res[i]._real->_name = "R_"+res[i]._name;
+                res[i]._real->_indices = res[i]._indices;
+            }
+            if(res[i]._imag){
+                res[i]._imag->_name = "Im_"+res[i]._name;;
+                res[i]._imag->_indices = res[i]._indices;
+            }
+            if(res[i]._ang){
+                res[i]._ang->_name += "pairs_"+to_string(i);
+                res[i]._ang->_indices = res[i]._indices;
+            }
+            if(res[i]._mag){
+                res[i]._mag->_name += "pairs_"+to_string(i);
+                res[i]._mag->_indices = res[i]._indices;
+            }
+        }
+
     }
     return res;
 }
