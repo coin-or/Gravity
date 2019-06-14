@@ -588,42 +588,42 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
         //        _bags_copy.push_back(bag_copy);
         if(unique_bags.insert(bag).second){
             _bags.push_back(bag); // bag original
+            if (bag_copy.size()==3) {
+                nb++;
+            }
         }
         
-        if (bag_copy.size()==3) {
-            nb++;
-        }
         if (bag_copy.size()>max_size) {
             max_size = bag_copy.size();
         }
-        else if(decompose && bag_copy.size()>3){
-            DebugOff("Decomposing bigger bag into 3d bags\n");
-            
-            for (auto i = 0; i<bag_copy.size()-2; i++) {
-                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-                    for (auto k = j+1; k<bag_copy.size(); k++) {
-                        vector<Node*> new_bag;
-                        new_bag.push_back(bag[i]);
-                        new_bag.push_back(bag[j]);
-                        new_bag.push_back(bag[k]);
-                        DebugOff("new bag = {");
-//                        for (int i=0; i<new_bag.size();     i++) {
-//                            cout << new_bag.at(i)->_name << " ";
+//        else if(decompose && bag_copy.size()>3){
+//            DebugOff("Decomposing bigger bag into 3d bags\n");
+//
+//            for (auto i = 0; i<bag_copy.size()-2; i++) {
+//                for (auto j = i+1; j<bag_copy.size()-1; j++) {
+//                    for (auto k = j+1; k<bag_copy.size(); k++) {
+//                        vector<Node*> new_bag;
+//                        new_bag.push_back(bag[i]);
+//                        new_bag.push_back(bag[j]);
+//                        new_bag.push_back(bag[k]);
+//                        DebugOff("new bag = {");
+////                        for (int i=0; i<new_bag.size();     i++) {
+////                            cout << new_bag.at(i)->_name << " ";
+////                        }
+//                        DebugOff("}" << endl);
+//                        if(unique_bags.insert(new_bag).second){
+//                            _bags.push_back(new_bag);
 //                        }
-                        DebugOff("}" << endl);
-                        if(unique_bags.insert(new_bag).second){
-                            _bags.push_back(new_bag);
-                        }
-                    }
-                }
-            }
-        }
+//                    }
+//                }
+//            }
+//        }
         delete n;
     }
     //    sort(_bags.begin(), _bags.end(), bag_compare);
     
     
-    Debug("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Number of 3D bags = " << nb << endl);
     DebugOn("\n Max clique size = " << max_size << endl);
     if(max_size==2){
         this->_tree = true;
@@ -632,6 +632,80 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     
     delete graph_clone;
     
+}
+
+std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
+    set<vector<Node*>> unique_bags;
+    vector<std::vector<Node*>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.size()==3){
+            if(unique_bags.insert(bag_copy).second){
+                res.push_back(bag_copy);
+            }
+        }
+        else if(bag_copy.size()>3){
+            DebugOff("Decomposing bigger bag into 3d bags\n");
+            
+            for (auto i = 0; i<bag_copy.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.size(); k++) {
+                        vector<Node*> new_bag;
+                        new_bag.push_back(bag_copy[i]);
+                        new_bag.push_back(bag_copy[j]);
+                        new_bag.push_back(bag_copy[k]);
+                        DebugOff("new bag = {");
+                        //                        for (int i=0; i<new_bag.size();     i++) {
+                        //                            cout << new_bag.at(i)->_name << " ";
+                        //                        }
+                        DebugOff("}" << endl);
+                        if(unique_bags.insert(new_bag).second){
+                            res.push_back(new_bag);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return res;
+}
+
+std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
+{
+    set<vector<Node*>> unique_bags;
+    vector<std::vector<Node*>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.size()==4){
+            if(unique_bags.insert(bag_copy).second){
+                res.push_back(bag_copy);
+            }
+        }
+        else if(bag_copy.size()>4){
+            DebugOff("Decomposing bigger bag into 4d bags\n");
+            
+            for (auto i = 0; i<bag_copy.size()-3; i++) {
+                for (auto j = i+1; j<bag_copy.size()-2; j++) {
+                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
+                        for (auto l = k+1; l<bag_copy.size(); l++) {
+                            vector<Node*> new_bag;
+                            new_bag.push_back(bag_copy[i]);
+                            new_bag.push_back(bag_copy[j]);
+                            new_bag.push_back(bag_copy[k]);
+                            new_bag.push_back(bag_copy[l]);
+                            DebugOff("new bag = {");
+                            //                        for (int i=0; i<new_bag.size();     i++) {
+                            //                            cout << new_bag.at(i)->_name << " ";
+                            //                        }
+                            DebugOff("}" << endl);
+                            if(unique_bags.insert(new_bag).second){
+                                res.push_back(new_bag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return res;
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
