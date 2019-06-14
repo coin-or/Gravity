@@ -27,6 +27,12 @@ Node* Node::clone(){
     return copy;
 };
 
+
+/* number of incident lines */
+int Node::degree(){
+    return (int)branches.size();
+}
+
 /*
  @brief Adds a to the list of incident arcs
  */

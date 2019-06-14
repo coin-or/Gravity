@@ -10,6 +10,7 @@
 #define Cycle_Basis_PF_Arc_h
 #include <gravity/Node.h>
 #include <gravity/types.h>
+#include <gravity/Path.h>
 #include <assert.h>
 #include <string>
 #include <vector>
@@ -31,6 +32,10 @@ public:
     set<int> _phases;
     bool _imaginary = false;
     int _free = false;
+    bool in_cycle = false;
+    Path* horton_path = nullptr;
+    double weight = 0;
+    
     std::vector<Node*> _intersection; // intersection of node _src and node _dest
     std::vector<gravity::index_pair*> _intersection_clique; // useful for clique tree
 
