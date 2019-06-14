@@ -513,8 +513,14 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         file >> word;
         arc->r = atof(word.c_str());
+        if(arc->r==0){
+            DebugOn("Branch with zero resistance: " << arc->_name << endl);
+        }
         file >> word;
         arc->x = atof(word.c_str());
+        if(arc->x==0){
+            DebugOn("Branch with zero reactance: " << arc->_name << endl);
+        }
         res = pow(arc->r,2) + pow(arc->x,2);
         
         if (res==0) {
@@ -1487,6 +1493,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
             Linking_Wi = Wii - Vi*conj(Vi);
             SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
             
+            auto Im_L = SDPOPF->get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
+            auto R_L = SDPOPF->get_var<double>("Lift_R_Vi.in(Nodes)_R_Vi.in(Nodes).in(Nodes)");
+            Constraint<> Vol_limit_LB("Vol_limit_LB");
+            Vol_limit_LB = Im_L + R_L - Wii.get_lb();
+            SDPOPF->add(Vol_limit_LB.in(nodes)>=0);
+            
             Constraint<Cpx> Rank_type1("RankType1");
             Rank_type1 += Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
             SDPOPF->add(Rank_type1.in(bus_pairs_chord)>=0, convexify);
@@ -1576,12 +1588,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SDPOPF->add_lazy(PAD_UB.in(bus_pairs));
+    SDPOPF->add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SDPOPF->add_lazy(PAD_LB.in(bus_pairs));
+    SDPOPF->add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -1871,7 +1883,7 @@ double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     OPF.run(output, tol);
 
 
-  //  ACOPF->print_solution();
+//    ACOPF->print_solution();
 
     return ACOPF->_obj->get_val();
 }
