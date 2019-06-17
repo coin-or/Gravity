@@ -100,14 +100,14 @@ int main (int argc, char * argv[]) {
     num_bags = atoi(opt["b"].c_str());
     
     double max_time = 60;
-    max_time = op::str2double(opt["t"]);
+   // max_time = op::str2double(opt["t"]);
     
     
     cout << "\nnum bags = " << num_bags << endl;
     
     PowerNet grid;
     grid.readgrid(fname);
-    grid.get_tree_decomp_bags(false,true);
+    //grid.get_tree_decomp_bags(false,true);
     
     
     

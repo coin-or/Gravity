@@ -16,6 +16,7 @@
 #include <gravity/Auxiliary.h>
 #include <stdio.h>
 #include <map>
+#include <math.h>
 #include <iterator>
 #include <queue>
 #include <list>
@@ -7124,8 +7125,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(cos(p1._range->first),cos(p1._range->second));
-        res._range->second = gravity::max(cos(p1._range->first),cos(p1._range->second));
+        res._range->first = gravity::min(std::cos(p1._range->first),std::cos(p1._range->second));
+        res._range->second = gravity::max(std::cos(p1._range->first),std::cos(p1._range->second));
         if(p1._range->first <0 && p1._range->second >0){
             res._range->second = 1;
         }
@@ -7151,8 +7152,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(sin(p1._range->first),sin(p1._range->second));
-        res._range->second = gravity::max(sin(p1._range->first),sin(p1._range->second));
+        res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
+        res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
