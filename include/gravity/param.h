@@ -1704,6 +1704,7 @@ namespace gravity {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
             res._name += ".in("+ids._name+")";
+            res._indices->_name = ids._name;
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";

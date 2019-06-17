@@ -1263,7 +1263,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 {
-    bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true;
+    bool relax, sdp_cuts = false,  llnc=true, lazy_bool = false, current=true;
     loss=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -1506,32 +1506,31 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
             auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
             auto Wii_ = Wii.in_bags(grid._bags, 3);
             auto nb_bags3 = Wij_[0]._indices->size();
-            Constraint<Cpx> Rank_type2("RankType2");
-            Rank_type2=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-            SDPOPF->add(Rank_type2.in(indices(1,nb_bags3))==0, true);
+
+            Constraint<Cpx> Rank_type2a("RankType2a");
+            Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+            SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
             
+            Constraint<Cpx> Rank_type2b("RankType2b");
+            Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+            SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
             
-            //                SDP.print();
-            //        SDP.print_symbolic();
+            Constraint<Cpx> Rank_type2c("RankType2c");
+            Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+            SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
             
+            auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
+            DebugOn("firstfirst");
+            ref_bus_pairs_ijkl.first.first.print();
+            ref_bus_pairs_ijkl.first.second.print();
+            ref_bus_pairs_ijkl.second.first.print();
+            ref_bus_pairs_ijkl.second.second.print();
+            DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
             
+            Constraint<Cpx> Rank_type3("RankType3");
+            Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
+            SDPOPF->add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
             
-//            var<> RWij_ij("RWij_ij"), RWii_jj("RWii_jj");
-//            SDPOPF->add(RWij_ij.in(bus_pairs));
-//            SDPOPF->add(RWii_jj.in(bus_pairs));
-//
-//
-//            Constraint<Cpx> Linking_Wij_ij("Linking_Wij_ij");
-//            Linking_Wij_ij = RWij_ij -Wij*conj(Wij);
-//            SDPOPF->add(Linking_Wij_ij.in(bus_pairs)==0, convexify);
-//
-//            Constraint<Cpx> Linking_Wii_jj("Linking_Wii_jj");
-//            Linking_Wii_jj = RWii_jj -Wii.from(bus_pairs)*Wii.to(bus_pairs);
-//            SDPOPF->add(Linking_Wii_jj.in(bus_pairs)==0, convexify);
-//
-//            Constraint<> Rank1a("Rank1a");
-//            Rank1a=RWij_ij-RWii_jj;
-//            SDPOPF->add(Rank1a.in(bus_pairs)==0);
     }
     
     
@@ -1965,8 +1964,8 @@ pair<pair<indices,indices>,pair<indices,indices>> PowerNet:: get_pairsof_bus_pai
     indices kl = indices("kl");
     indices il = indices("il");
     indices jk = indices("jk");
-    indices p1=bus_pairs.exclude(bus_pairs.last());
-    indices p2=bus_pairs.exclude(bus_pairs.first());
+    indices p1=bus_pairs_chord.exclude(bus_pairs_chord.last());
+    indices p2=bus_pairs_chord.exclude(bus_pairs_chord.first());
     pair<pair<indices,indices>,pair<indices,indices>> res;
     for(auto &bp:*p1._keys)
     {

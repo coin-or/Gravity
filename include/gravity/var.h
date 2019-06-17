@@ -364,6 +364,14 @@ namespace gravity {
             new_lb.in(vec1, forward<Args>(args)...);
             new_ub.in(vec1, forward<Args>(args)...);
             res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
             return res;
         }
         

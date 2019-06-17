@@ -20,7 +20,7 @@ using namespace gravity;
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool sdp_cuts = true;
+    bool sdp_cuts = false;
     bool current_from = true, llnc=true, current_to=true, loss=false, loss_bounds=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -121,7 +121,7 @@ int main (int argc, char * argv[]) {
    // auto bags_three=grid.get_tree_decomp_bags_three(false,true);
     grid.get_tree_decomp_bags(false,true);
     auto bags_3d=grid.decompose_bags_3d();
-    auto bags_4d=grid.decompose_bags_4d();
+   // auto bags_4d=grid.decompose_bags_4d();
     
 //   grid.get_tree_decomp_bags(false,true);
     
@@ -213,6 +213,12 @@ int main (int argc, char * argv[]) {
     if(current_from){
         SDP.add(lij.in(arcs));
     }
+    
+    var<> V_mag("V_mag", v_min, v_max);
+    var<> theta("theta", 0, 2*pi);
+    
+    SDP.add(V_mag.in(nodes));
+    SDP.add(theta.in(nodes));
     
 //    if(current_from){
 //        SDP.add(lji.in(arcs));
@@ -320,6 +326,8 @@ int main (int argc, char * argv[]) {
 
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+        var<> Vi_Vj("Vi_Vj", pos_);
+        SDP.add(Vi_Vj.in(arcs));
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
         Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
@@ -331,56 +339,90 @@ int main (int argc, char * argv[]) {
         Linking_Wi = Wii - Vi*conj(Vi);
         SDP.add(Linking_Wi.in(nodes)==0, convexify);
         
-//        Constraint<Cpx> Vol_limit_LB("Vol_limit_LB");
-//        Vol_limit_LB = Vi*conj(Vi);
-//        SDP.add(Vol_limit_LB.in(nodes)>=pow(v_min,2), convexify);
-//        SDP.print();
+        Constraint<Cpx> Linking_Wi_V_mag("Linking_Wi_V_mag");
+        Linking_Wi_V_mag = Wii - V_mag*V_mag;
+        SDP.add(Linking_Wi_V_mag.in(nodes)==0, convexify);
+        
+        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
+        Linking_V_mag_i_V_mag_j = Vi_Vj - V_mag.from(arcs)*V_mag.to(arcs);
+        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
+        
+       // var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
+      //  var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
+        
+        var<> costhetaij("costhetaij", 0, 1.0), sinthetaij("sinthetaij", -1, 1);
+        SDP.add(sinthetaij.in(arcs));
+        SDP.add(costhetaij.in(arcs));
+        
+//        Constraint<> costhetaij_lb("costhetaij_lb");
+//        costhetaij_lb=costhetaij-min(cos(theta.get_ub().from(arcs)-theta.get_lb().to(arcs)), cos(theta.get_lb().from(arcs)-theta.get_ub().to(arcs)));
+//        SDP.add(costhetaij_lb.in(arcs)>=0);
+        
+        Constraint<> sinthetaij_lb("sinthetaij_lb");
+      //  sinthetaij_lb=sinthetaij-sin(theta.get_lb().from(arcs));
+      //  SDP.add(sinthetaij_lb.in(arcs)>=0);
+        
+        Constraint<Cpx> Linking_V_mag_V_mag("Linking_V_mag_V_mag");
+        Linking_V_mag_V_mag = Wii - V_mag*V_mag;
+        SDP.add(Linking_Wi_V_mag.in(nodes)==0, convexify);
+        
+        
+
         auto Im_L = SDP.get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
         auto R_L = SDP.get_var<double>("Lift_R_Vi.in(Nodes)_R_Vi.in(Nodes).in(Nodes)");
         Constraint<> Vol_limit_LB("Vol_limit_LB");
-        Vol_limit_LB = Im_L + R_L - pow(v_min.in(nodes),2);
+        Vol_limit_LB = Im_L + R_L - pow(Wii.get_lb().in(nodes),2);
         SDP.add(Vol_limit_LB.in(nodes)>=0);
         
         Constraint<Cpx> Rank_type1("RankType1");
         Rank_type1= Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
         SDP.add(Rank_type1.in(bus_pairs_chord)>=0, convexify);
         
+//
+//        auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(bags_3d, 3);
+//        auto Wii_ = Wii.in_bags(bags_3d, 3);
+//        auto nb_bags3 = Wij_[0]._indices->size();
+//
+//        Constraint<Cpx> Rank_type2a("RankType2a");
+//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//        SDP.add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
+//
+//        Constraint<Cpx> Rank_type2b("RankType2b");
+//        Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+//        SDP.add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
+//
+//        Constraint<Cpx> Rank_type2c("RankType2c");
+//        Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+//        SDP.add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
+//
+//        DebugOn("3d bags");
+//        for(auto ot:bags_3d)
+//        {
+//            for(auto it:ot)
+//            {
+//                DebugOn(it->_name<<"\t");
+//            }
+//            DebugOn(endl);
+//        }
 
-        auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(bags_3d, 3);
-        auto Wii_ = Wii.in_bags(bags_3d, 3);
-        auto nb_bags3 = Wij_[0]._indices->size();
-        Constraint<Cpx> Rank_type2("RankType2");
-        Rank_type2=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-        SDP.add(Rank_type2.in(indices(1,nb_bags3))==0, true);
-
-        DebugOn("3d bags");
-        for(auto ot:bags_3d)
-        {
-            for(auto it:ot)
-            {
-                DebugOn(it->_name<<"\t");
-            }
-            DebugOn(endl);
-        }
-
+//        
+//        DebugOn("4d bags");
+//        for(auto ot:bags_4d)
+//        {
+//            for(auto it:ot)
+//            {
+//                DebugOn(it->_name<<"\t");
+//            }
+//            DebugOn(endl);
+//        }
         
-        DebugOn("4d bags");
-        for(auto ot:bags_4d)
-        {
-            for(auto it:ot)
-            {
-                DebugOn(it->_name<<"\t");
-            }
-            DebugOn(endl);
-        }
-        
-        if(!bags_4d.empty()){
-            auto Wij4_ = Wij.in(bus_pairs_chord).pairs_in_bags(bags_4d, 4);
-            auto nb_bags4 = Wij4_[0]._indices->size();
-            Constraint<Cpx> Rank_type3("RankType3");
-            Rank_type3=Wij4_[0]*Wij4_[2]-conj(Wij4_[1])*Wij4_[3];
-            SDP.add(Rank_type3.in(indices(1,nb_bags4))==0, true);
-        }
+//        if(!bags_4d.empty()){
+//            auto Wij4_ = Wij.in(bus_pairs_chord).pairs_in_bags(bags_4d, 4);
+//            auto nb_bags4 = Wij4_[0]._indices->size();
+//            Constraint<Cpx> Rank_type3("RankType3");
+//            Rank_type3=Wij4_[0]*Wij4_[2]-conj(Wij4_[1])*Wij4_[3];
+//            SDP.add(Rank_type3.in(indices(1,nb_bags4))==0, true);
+//        }
  
         
         //                SDP.print();
@@ -389,17 +431,17 @@ int main (int argc, char * argv[]) {
         
 
 //
-//        auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
-//        DebugOn("firstfirst");
-//        ref_bus_pairs_ijkl.first.first.print();
-//        ref_bus_pairs_ijkl.first.second.print();
-//        ref_bus_pairs_ijkl.second.first.print();
-//        ref_bus_pairs_ijkl.second.second.print();
-//        DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
-//
-//        Constraint<Cpx> Rank_type3("RankType3");
-//        Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
-//         SDP.add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
+        auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
+        DebugOn("ijkl_size\t"<<ref_bus_pairs_ijkl.first.first.size());
+        ref_bus_pairs_ijkl.first.first.print();
+        ref_bus_pairs_ijkl.first.second.print();
+        ref_bus_pairs_ijkl.second.first.print();
+        ref_bus_pairs_ijkl.second.second.print();
+        DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
+
+        Constraint<Cpx> Rank_type3("RankType3");
+        Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
+         SDP.add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
 
         
     }
@@ -415,38 +457,38 @@ int main (int argc, char * argv[]) {
     
     
     /** Constraints */
-    if(grid.add_3d_nlin && sdp_cuts) {
-        auto bag_size = bags_3d.size();
-        DebugOn("\nNum of bags = " << bag_size << endl);
-        DebugOn("Adding 3d determinant polynomial cuts\n");
-        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
-        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
-        auto Wii_ = Wii.in_bags(bags_3d, 3);
-        
-//        auto bag_size = grid._bags.size();
+//    if(grid.add_3d_nlin && sdp_cuts) {
+//        auto bag_size = bags_3d.size();
 //        DebugOn("\nNum of bags = " << bag_size << endl);
 //        DebugOn("Adding 3d determinant polynomial cuts\n");
-//        auto R_Wij_ = R_Wij.pairs_in_bags(grid._bags, 3);
-//        auto Im_Wij_ = Im_Wij.pairs_in_bags(grid._bags, 3);
-//        auto Wii_ = Wii.in_bags(grid._bags, 3);
-
-
-        Constraint<> SDP3("SDP_3D");
-        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
-        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
-        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-        if (lazy_bool) {
-            SDP.add_lazy(SDP3 >= 0);
-        }
-        else {
-            SDP.add(SDP3 >= 0);
-            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
-        }
-        
-    }
+//        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
+//        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
+//        auto Wii_ = Wii.in_bags(bags_3d, 3);
+//
+////        auto bag_size = grid._bags.size();
+////        DebugOn("\nNum of bags = " << bag_size << endl);
+////        DebugOn("Adding 3d determinant polynomial cuts\n");
+////        auto R_Wij_ = R_Wij.pairs_in_bags(grid._bags, 3);
+////        auto Im_Wij_ = Im_Wij.pairs_in_bags(grid._bags, 3);
+////        auto Wii_ = Wii.in_bags(grid._bags, 3);
+//
+//
+//        Constraint<> SDP3("SDP_3D");
+//        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+//        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+//        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+//        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+//        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//        if (lazy_bool) {
+//            SDP.add_lazy(SDP3 >= 0);
+//        }
+//        else {
+//            SDP.add(SDP3 >= 0);
+//            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+//        }
+//
+//    }
     
     /** Constraints */
     /* Second-order cone constraints */
@@ -548,8 +590,8 @@ int main (int argc, char * argv[]) {
 //        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
 //
 //
-//        //        func<> lji=lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))/pow(tr.in(arcs),2)*Wii.from(arcs)+(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
-//        //        +(4*ch_half.in(arcs)*g.in(arcs))/pow(tr.in(arcs),2)*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+//                func<> lji=lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))/pow(tr.in(arcs),2)*Wii.from(arcs)+(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
+//                +(4*ch_half.in(arcs)*g.in(arcs))/pow(tr.in(arcs),2)*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
 //
 //        Constraint<> I_to_L("I_to_L");
 //        I_to_L = (pow(Pf_to, 2) + pow(Qf_to, 2))-Wii.get_ub().to(arcs)*lji;
@@ -564,22 +606,22 @@ int main (int argc, char * argv[]) {
 //        I_to_U1 = Wii.get_lb().to(arcs)*lji - pow(S_max,2);
 //        SDP.add(I_to_U1.in(arcs) <= 0);
         
-        //ljitr=lji times pow(tr,2)
-//                func<> ljitr=pow(tr.in(arcs),2)*lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.from(arcs)+pow(tr.in(arcs),2)*(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
-//                +(4*ch_half.in(arcs)*g.in(arcs))*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
-//
-//        Constraint<> I_to_L("I_to_L");
-//        I_to_L = pow(tr.in(arcs),2)*(pow(Pf_to, 2) + pow(Qf_to, 2))-Wii.get_ub().to(arcs)*ljitr;
-//        SDP.add(I_to_L.in(arcs) <= 0);
-//
-//
-//        Constraint<> I_to_U("I_to_U");
-//        I_to_U = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*(max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
-//        SDP.add(I_to_U.in(arcs) <= 0);
-//
-//        Constraint<> I_to_U1("I_to_U1");
-//        I_to_U1 = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*pow(S_max,2);
-//        SDP.add(I_to_U1.in(arcs) <= 0);
+       // ljitr=lji times pow(tr,2)
+        func<> ljitr=pow(tr.in(arcs),2)*lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.from(arcs)+pow(tr.in(arcs),2)*(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
+                +(4*ch_half.in(arcs)*g.in(arcs))*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+
+        Constraint<> I_to_L("I_to_L");
+        I_to_L = pow(tr.in(arcs),2)*(pow(Pf_to, 2) + pow(Qf_to, 2))-Wii.get_ub().to(arcs)*ljitr;
+        SDP.add(I_to_L.in(arcs) <= 0);
+
+
+        Constraint<> I_to_U("I_to_U");
+        I_to_U = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*(max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
+        SDP.add(I_to_U.in(arcs) <= 0);
+
+        Constraint<> I_to_U1("I_to_U1");
+        I_to_U1 = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*pow(S_max,2);
+        SDP.add(I_to_U1.in(arcs) <= 0);
         
         
     }
@@ -600,8 +642,7 @@ int main (int argc, char * argv[]) {
     
     
     Constraint<> R_L("R_L");
-    R_L=min(cos(theta_L.in(bus_pairs)),cos(theta_U.in(bus_pairs)))*sqrt(Wii.get_lb().from(bus_pairs)*
-                                                                        Wii.get_lb().to(bus_pairs))-R_Wij;
+    R_L=min(cos(theta_L.in(bus_pairs)),cos(theta_U.in(bus_pairs)))*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs))-R_Wij;
     SDP.add(R_L.in(bus_pairs)<=0);
 
     
