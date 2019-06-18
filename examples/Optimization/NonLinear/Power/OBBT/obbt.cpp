@@ -99,8 +99,10 @@ int main (int argc, char * argv[]) {
     }
     num_bags = atoi(opt["b"].c_str());
     
-    double max_time = 60;
-   // max_time = op::str2double(opt["t"]);
+
+//    double max_time = 40;
+    auto max_time = op::str2double(opt["t"]);
+
     
     
     cout << "\nnum bags = " << num_bags << endl;
@@ -116,11 +118,48 @@ int main (int argc, char * argv[]) {
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
     int nb_threads = 3*thread::hardware_concurrency();
-//   int nb_threads = 4;
-    double upper_bound = grid.solve_acopf();
+  //int nb_threads = 4;
+    
+    auto OPF=build_ACOPF(grid, ACRECT);
+    solver<> OPFUB(OPF, solv_type);
+    OPFUB.run(output = 5, tol = 1e-6, "ma97");
+    
+   //double upper_bound = grid.solve_acopf();
+    //solve_acopf
+        OPF->print_solution();
+    auto rv= OPF->get_var<double>("vr.in(Nodes)");
+    DebugOn("W_orig\n");
+    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
+    
+    for(auto &k:*rv.get_keys())
+    {
+        rvv.push_back(rv.eval(k));
+        ivv.push_back(OPF->get_var<double>("vi.in(Nodes)").eval(k));
+        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
+        DebugOn(w_orig.back()<<endl);
+    }
+    DebugOn("RRwij\tIIwij"<<endl);
+    
+    for (auto &k:*(grid.bus_pairs._keys))
+    {
+        auto k1=k.substr(0, k.find_first_of(","));
+        auto k2=k.substr(k.find_first_of(",")+1);
+        auto rva=OPF->get_var<double>("vr.in(Nodes)").eval(k1);
+        auto rvb=OPF->get_var<double>("vr.in(Nodes)").eval(k2);
+        auto iva=OPF->get_var<double>("vi.in(Nodes)").eval(k1);
+        auto ivb=OPF->get_var<double>("vi.in(Nodes)").eval(k2);
+    
+        rrwij.push_back(rva*rvb+iva*ivb);
+        iiwij.push_back(iva*rvb-ivb*rva);
+        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
+        
+    }
+    
+    double upper_bound=OPF->get_obj_val();
+    
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma57");
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDP->get_obj_val();
     SDP->print();
     SDP->print_solution();
@@ -194,7 +233,7 @@ int main (int argc, char * argv[]) {
             //                    }
             //                }
             //            }
-            while(solver_time<=max_time && !terminate && iter<=5)
+            while(solver_time<=max_time && !terminate)
             {
                 iter++;
                 terminate=true;
@@ -220,12 +259,12 @@ int main (int argc, char * argv[]) {
                         interval_new[p]=v.get_ub(key)-v.get_lb(key);
                         if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                         {
-fixed_point[p]=true;
+                            fixed_point[p]=true;
                             //Reset bounds when updated bounds become lesser than the range_tolerance value
                             //Do not reset if interval is zero itself
-                            double oaa=v.get_ub(key);
-                            double oab=v.get_lb(key);
-                            double oap=abs(v.get_ub(key)-v.get_lb(key));
+//                            double oaa=v.get_ub(key);
+//                            double oab=v.get_lb(key);
+//                            double oap=abs(v.get_ub(key)-v.get_lb(key));
                             if(abs(v.get_ub(key)-v.get_lb(key))>zero_tol)
                             {
                                 //Do not reset if original interval is itself less than range_tol
@@ -242,28 +281,28 @@ fixed_point[p]=true;
                                     {
                                         v.set_ub(key, right);
                                         v.set_lb(key, left);
-                                        DebugOn("Entered if 1"<<endl);
+                                      //  DebugOn("Entered if 1"<<endl);
                                     }
                                     else if(right>ub_original[p])
                                     {
                                         
                                         v.set_ub(key, ub_original[p]);
                                         v.set_lb(key, ub_original[p]-range_tol);
-                                              DebugOn("Entered if 2"<<endl);
+                                            //  DebugOn("Entered if 2"<<endl);
                                     }
                                     else if(left<lb_original[p])
                                     {
                                         v.set_lb(key, lb_original[p]);
                                         v.set_ub(key, lb_original[p]+range_tol);
-                                              DebugOn("Entered if 3"<<endl);
+                                            //  DebugOn("Entered if 3"<<endl);
                                         
                                     }
                                   
-                                    double ar=ub_original[p];
-                                    double ar1=lb_original[p];
-                                oaa1=v.get_ub(key);
-                                     oab1=v.get_lb(key);
-                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
+//                                    double ar=ub_original[p];
+//                                    double ar1=lb_original[p];
+//                                oaa1=v.get_ub(key);
+//                                     oab1=v.get_lb(key);
+//                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
                                     
                                     
                                 }
@@ -384,6 +423,7 @@ fixed_point[p]=true;
                 if(break_flag==true)
                 {
                     DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
+                    DebugOn("Iterations\t"<<iter<<endl);
                     SDP->print();
                     break;
                 }
@@ -445,7 +485,7 @@ fixed_point[p]=true;
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-6, "ma27");
+            SDPLB1.run(output = 5, tol=1e-6, "ma97");
             
          
             
@@ -466,6 +506,11 @@ fixed_point[p]=true;
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
                    SDP->print_solution();
+                
+                DebugOn("Var_map");
+                for(auto it:SDP->_vars_name)
+                    DebugOn(it.first<<endl);
+                
                 DebugOn("SOC"<<endl);
                 auto c=SDP->get_constraint("SOC");
                 c->print();
@@ -473,35 +518,39 @@ fixed_point[p]=true;
                 DebugOn(k<<"\t"<<c->eval(k)<<endl);
                 
             
-                DebugOn("Var_map");
-                for(auto it:SDP->_vars_name)
-                    DebugOn(it.first<<endl);
+  
                 
                 DebugOn("RealRankType1"<<endl);
                 c=SDP->get_constraint("Real(RankType1)_lifted");
-                c->print();
+                //c->print();
                 for (auto k=0;k<c->get_nb_instances();k++)
                     DebugOn(c->eval(k)<<endl);
                 
-                DebugOn("SDP"<<endl);
-                auto c1=SDP->get_constraint("SDP_3D");
-                for (auto k=0;k<c1->get_nb_instances();k++)
-                    DebugOn(c1->eval(k)<<endl);
+//                DebugOn("SDP"<<endl);
+//                auto c1=SDP->get_constraint("SDP_3D");
+//                for (auto k=0;k<c1->get_nb_instances();k++)
+//                    DebugOn(c1->eval(k)<<endl);
                 
-                 vector<double> rva,rvb,imva,imvb,rwab,imwab;
-                DebugOn("Im_Wij"<<endl);
-                auto vw=SDP->get_var<double>("Im_Wij.in(bus_pairs_chordal)");
+                 vector<double> rva,rvb,imva,imvb,rwab,imwab, rwij_gap, imwij_gap;
+                DebugOn("RWij_gap and Im_Wij_gap"<<endl);
+                auto vw=SDP->get_var<double>("Im_Wij.in(bus_pairs)");
                 for (auto &k:*vw.get_keys())
                 {
                     imwab.push_back(vw.eval(k));
-                    rwab.push_back(SDP->get_var<double>("R_Wij.in(bus_pairs_chordal)").eval(k));
+                    rwab.push_back(SDP->get_var<double>("R_Wij.in(bus_pairs)").eval(k));
                     auto k1=k.substr(0, k.find_first_of(","));
                     auto k2=k.substr(k.find_first_of(",")+1);
-                    
+                    rva.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k1));
+                    rvb.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k2));
+                    imva.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k1));
+                    imvb.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k2));
+                    rwij_gap.push_back(rwab.back()-rva.back()*rvb.back()-imva.back()*imvb.back());
+                    imwij_gap.push_back(imwab.back()-imva.back()*rvb.back()+imvb.back()*rva.back());
+                     DebugOn(k<<"\t"<<rwij_gap.back()<<"\t"<<imwij_gap.back()<<endl);
                     
                 }
                 DebugOn("R_Wij"<<endl);
-                auto vr=SDP->get_var<double>("R_Wij.in(bus_pairs_chordal)");
+                auto vr=SDP->get_var<double>("R_Wij.in(bus_pairs)");
                 for (auto &k:*vr.get_keys())
                 DebugOn(k<<"\t"<<vr.eval(k)<<endl);
                 
@@ -648,7 +697,7 @@ fixed_point[p]=true;
     ////    SDP->print();
     //    solver<> SDPLB1(SDP,solv_type);
     //
-    //    SDPLB1.run(output = 5, tol = 1e-6, "ma57");
+    //    SDPLB1.run(output = 5, tol = 1e-6, "ma97");
     //
     //    SDP->print_solution();
     //
