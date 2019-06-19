@@ -163,9 +163,9 @@ namespace gravity {
         string get_name(bool in_func, bool exclude_indexing) const{
 //            return _name;
             string name = _name;
-//            if(_indices && exclude_indexing){
-//                name = name.substr(0, name.find_first_of("."));
-//            }
+            if(_indices && exclude_indexing){
+                name = name.substr(0, name.find_first_of("."));
+            }
             if (!in_func && _is_transposed) {
                 name += "\u1D40";
             }
@@ -178,7 +178,7 @@ namespace gravity {
 
         string get_name(size_t inst) const {/*< Get the name of the indexed version of this variable */
             string name = _name;
-//            name = name.substr(0, name.find_first_of("."));
+            name = name.substr(0, name.find_first_of("."));
             if(_is_imag || _is_real || _is_angle || _is_conjugate){
                 if (name.find(")")==std::string::npos) {
                     name += ")";
@@ -343,7 +343,7 @@ namespace gravity {
                         _dim[0] = dim;
                     }
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
             }
             else { /**< Add each key in ids individually */
                 _indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -390,7 +390,7 @@ namespace gravity {
                 else {
                     _dim[0]=_indices->_ids->size();
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
                 if(!excluded.empty()){
                     excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                     _name += "\{" + excluded + "}";
@@ -1492,7 +1492,7 @@ namespace gravity {
                     }
                 }
                 param res(*this);
-                res._name += ".in("+ids._name+")";
+                res._name += ".in("+ids.get_name()+")";
                 return res;
             }
             string key, excluded;
@@ -1531,7 +1531,7 @@ namespace gravity {
                             res._dim[0]=res._indices->size();
                         }
                     }
-                    res._name += ".in("+ids._name+")";
+                    res._name += ".in("+ids.get_name()+")";
                     res.reset_range();
                     return res;
                 }
@@ -1586,7 +1586,7 @@ namespace gravity {
                         res._indices->_ids->at(inst).at(idx) = it1->second;
                     }
                 }
-                res._name += ".in("+ids._name+")";
+                res._name += ".in("+ids.get_name()+")";
                 if(res._is_transposed){
                     res._dim[1]=res._indices->size();
                 }
@@ -1703,8 +1703,8 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            res._name += ".in("+ids._name+")";
-            res._indices->_name = ids._name;
+            res._name += ".in("+ids.get_name()+")";
+            res._indices->set_name(ids.get_name());
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
@@ -1743,7 +1743,7 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            res._name += ".in_pairs("+ids._name+")";
+            res._name += ".in_pairs("+ids.get_name()+")";
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";

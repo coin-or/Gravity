@@ -222,10 +222,12 @@ namespace gravity{
     };
     
     class indices{
+    private:
+        string                                  _name;/**< index set can be given a name */
         
     public:
         
-        string                                  _name;/**< index set can be given a name */
+        
         IndexType                               _type = unindexed_;/**< index type */
         bool                                    _time_extended = false;/*<< indices are time extended */
         size_t                                  _time_pos = 0;/*<< number of commas before time extension */
@@ -237,6 +239,20 @@ namespace gravity{
         set<size_t>                             _excluded_keys; /*<< A set storing all indices that should be excluded */
         shared_ptr<vector<vector<size_t>>>      _ids = nullptr;
         
+        string get_name() const{
+            string name = _name;
+            if(_type==from_){
+                name = "from("+name+")";
+            }
+            else if(_type==to_){
+                name = "to("+name+")";
+            }
+            return name;
+        }
+        
+        void set_name(const string& name){
+            _name = name;
+        }
         
         indices(string name){
             _name = name;
