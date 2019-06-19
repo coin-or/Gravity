@@ -2843,6 +2843,9 @@ namespace gravity {
         }
         
         type get_val(size_t i) const{
+            if(func_is_number()){
+                return _val->at(0);
+            }
             auto idx = get_id_inst(i);
             if (is_indexed()) {
                 if (_indices->_ids->size()>1) {
@@ -3177,21 +3180,39 @@ namespace gravity {
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
+                            if(f->func_is_number()){
+                                return ((func<bool>*)(f))->_val->at(0);
+                            }
                             return ((func<bool>*)(f))->_val->at(i);
                             break;
                         case short_:
+                            if(f->func_is_number()){
+                                return ((func<short>*)(f))->_val->at(0);
+                            }
                             return ((func<short>*)(f))->_val->at(i);
                             break;
                         case integer_:
+                            if(f->func_is_number()){
+                                return ((func<int>*)(f))->_val->at(0);
+                            }
                             return ((func<int>*)(f))->_val->at(i);
                             break;
                         case float_:
+                            if(f->func_is_number()){
+                                return ((func<float>*)(f))->_val->at(0);
+                            }
                             return ((func<float>*)(f))->_val->at(i);
                             break;
                         case double_:
+                            if(f->func_is_number()){
+                                return ((func<double>*)(f))->_val->at(0);
+                            }
                             return ((func<double>*)(f))->_val->at(i);
                             break;
                         case long_:
+                            if(f->func_is_number()){
+                                return ((func<long double>*)(f))->_val->at(0);
+                            }
                             return ((func<long double>*)(f))->_val->at(i);
                             break;
                         default:
@@ -6623,6 +6644,17 @@ namespace gravity {
     func<T2> operator/(const func<T1>& f1, const param<T2>& p2){
         return func<T2>(f1)/=p2;
     }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    func<T1> operator/(T1 f1, const param<T2>& p2){
+        return func<T1>(f1)/=p2;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    func<T2> operator/(T1 f1, const param<T2>& p2){
+        return func<T2>(f1)/=p2;
+    }
+    
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator/(const param<T1>& p1, const func<T2>& f2){
