@@ -1266,7 +1266,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 {
-    bool relax, sdp_cuts = false,  llnc=true, lazy_bool = false, current=true;
+    bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true;
     loss=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -1506,7 +1506,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
             
             Constraint<Cpx> Linking_V_mag_c("Linking_V_mag_c");
             Linking_V_mag_c = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
-//            SDPOPF->add(Linking_V_mag_c.in(nodes)>=0, convexify);
+            SDPOPF->add(Linking_V_mag_c.in(nodes)>=0, convexify);
             
             Constraint<Cpx> Linking_V_mag("Linking_V_mag");
             Linking_V_mag = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
