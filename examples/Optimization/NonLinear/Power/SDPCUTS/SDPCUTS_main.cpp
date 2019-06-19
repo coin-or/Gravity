@@ -371,57 +371,49 @@ int main (int argc, char * argv[]) {
         
         
         
-//        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
-//        Linking_V_mag_i_V_mag_j = Vi_Vj - V_mag.from(arcs)*V_mag.to(arcs);
-//        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
+        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
+        Linking_V_mag_i_V_mag_j = Vi_Vj - V_mag.from(arcs)*V_mag.to(arcs);
+        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
         
-//        var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
-//        var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
+        var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
+        var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
+
+        SDP.add(sinthetaij.in(arcs));
+        SDP.add(costhetaij.in(arcs));
+
+        Constraint<> costhetaij_lb("costhetaij_lb");
+        costhetaij_lb=costhetaij-min(cos(theta.get_ub().from(arcs)-theta.get_lb().to(arcs)), cos(theta.get_lb().from(arcs)-theta.get_ub().to(arcs)));
+        SDP.add(costhetaij_lb.in(arcs)>=0);
+
+        Constraint<> sinthetaij_lb("sinthetaij_lb");
+        sinthetaij_lb=sinthetaij-sin(theta.get_lb().from(arcs)-theta.get_ub().to(arcs));
+        SDP.add(sinthetaij_lb.in(arcs)>=0);
+
+        Constraint<> sinthetaij_ub("sinthetaij_ub");
+        sinthetaij_ub=sinthetaij-sin(theta.get_ub().from(arcs)-theta.get_lb().to(arcs));
+        SDP.add(sinthetaij_ub.in(arcs)<=0);
+
+        func<> thetaij_m;
+        thetaij_m=max(theta.get_ub().from(arcs)-theta.get_lb().to(arcs), theta.get_ub().to(arcs)-theta.get_lb().from(arcs));
+        thetaij_m.eval_all();
+
+        Constraint<> sinenvup("sinenvup");
+        sinenvup=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)-thetaij_m*0.5)-sin(thetaij_m*0.5);
+          SDP.add(sinenvup.in(arcs)<=0);
+
+        Constraint<> sinenvlow("sinenvlow");
+        sinenvlow=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)+thetaij_m*0.5)+sin(thetaij_m*0.5);
+        SDP.add(sinenvlow.in(arcs)>=0);
+
+        Constraint<> cosenvup("sinenvup");
+        cosenvup=costhetaij*pow(thetaij_m,2)-1.0*pow(thetaij_m,2)+(1-cos(thetaij_m))*pow((theta.from(arcs)-theta.to(arcs)), 2);
+        SDP.add(sinenvup.in(arcs)<=0);
+
+        Constraint<> cosenvlow("sinenvlow");
+        cosenvlow=costhetaij-cos(thetaij_m);
+        SDP.add(sinenvlow.in(arcs)>=0);
         
-        //var<> costhetaij("costhetaij", 0, 1.0);
-        //var<> sinthetaij("sinthetaij", -1, 1);
-//        SDP.add(sinthetaij.in(arcs));
-//        SDP.add(costhetaij.in(arcs));
-//
-//        Constraint<> costhetaij_lb("costhetaij_lb");
-//        costhetaij_lb=costhetaij-min(cos(theta.get_ub().from(arcs)-theta.get_lb().to(arcs)), cos(theta.get_lb().from(arcs)-theta.get_ub().to(arcs)));
-//        SDP.add(costhetaij_lb.in(arcs)>=0);
-//
-//        Constraint<> sinthetaij_lb("sinthetaij_lb");
-//        sinthetaij_lb=sinthetaij-sin(theta.get_lb().from(arcs)-theta.get_ub().to(arcs));
-//        SDP.add(sinthetaij_lb.in(arcs)>=0);
-//
-//        Constraint<> sinthetaij_ub("sinthetaij_ub");
-//        sinthetaij_ub=sinthetaij-sin(theta.get_ub().from(arcs)-theta.get_lb().to(arcs));
-//        SDP.add(sinthetaij_ub.in(arcs)<=0);
-//
-//        func<> thetaij_U;
-//
-//        Constraint<> sinenvup("sinenvup");
-//        sinenvup=sinthetaij-cos(max((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5, (theta.get_ub().to(arcs)-theta.get_lb().from(arcs))*0.5))*(theta.from(arcs)-theta.to(arcs)-(theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)-sin((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5);
-//          SDP.add(sinenvup.in(arcs)<=0);
-//
-//        Constraint<> sinenvlow("sinenvlow");
-//        sinenvlow=sinthetaij-cos((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)*(theta.from(arcs)-theta.to(arcs)+(theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)+sin((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5);
-//        SDP.add(sinenvlow.in(arcs)>=0);
-//
-//        Constraint<> cosenvup("sinenvup");
-//        cosenvup=costhetaij-cos((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)*(theta.from(arcs)-theta.to(arcs)-(theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)-sin((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5);
-//        SDP.add(sinenvup.in(arcs)<=0);
-//
-//        Constraint<> cosenvlow("sinenvlow");
-//        cosenvlow=costhetaij-cos((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)*(theta.from(arcs)-theta.to(arcs)+(theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5)+sin((theta.get_ub().from(arcs)-theta.get_lb().to(arcs))*0.5);
-//        SDP.add(sinenvlow.in(arcs)>=0);
-//
-        
-        
-//        Constraint<Cpx> Linking_V_mag_V_mag("Linking_V_mag_V_mag");
-//        Linking_V_mag_V_mag = Wii - V_mag*V_mag;
-//        SDP.add(Linking_Wi_V_mag.in(nodes)==0, convexify);
-        
-//        Constraint<> Linking_V_mag_V_mag("Linking_V_mag_V_mag");
-//        Linking_V_mag_V_mag = Wii - V_mag*V_mag;
-//        SDP.add(SDP.lift_quad(Linking_V_mag_V_mag.in(nodes)).in(nodes)==0);
+
         
 
         auto Im_L = SDP.get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
