@@ -21,7 +21,7 @@ double oaa1, oab1;
 /* main */
 int main (int argc, char * argv[]) {
     int output = 0;
-    bool loss_from = true;
+    bool loss_from = false;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -109,7 +109,7 @@ int main (int argc, char * argv[]) {
     
     PowerNet grid;
     grid.readgrid(fname);
-    //grid.get_tree_decomp_bags(false,true);
+    grid.get_tree_decomp_bags(false,true);
     
     
     
@@ -316,7 +316,7 @@ int main (int argc, char * argv[]) {
                                 func<double> o=*(SDP->_obj);
                                 Constraint<> UpperB("UpperB");
                                 UpperB=o;
-                                modelk->add(UpperB<=upper_bound*(1e-4));
+                                modelk->add(UpperB<=upper_bound);
                                 mname=vname+"|"+key+"|"+dir;
                                 modelk->set_name(mname);
                                 
@@ -495,159 +495,159 @@ int main (int argc, char * argv[]) {
             SDP->print();
             if(SDP->_status==0)
             {
-                double gap = 100*(upper_bound - 1e4*lower_bound)/upper_bound;
+                double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-                gap = 100*(upper_bound - 1e4*(SDP->get_obj_val()))/upper_bound;
+                gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
                 
                 DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                 DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                DebugOn("Lower bound = " << to_string(1e4*(SDP->get_obj_val())) << "."<<endl);
+                DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
                 DebugOn("Time\t"<<solver_time<<endl);
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
                    SDP->print_solution();
                 
-                DebugOn("Var_map");
-                for(auto it:SDP->_vars_name)
-                    DebugOn(it.first<<endl);
-                
-                DebugOn("SOC"<<endl);
-                auto c=SDP->get_constraint("SOC");
-                c->print();
-                for (auto k=0;k<c->get_nb_instances();k++)
-                DebugOn(k<<"\t"<<c->eval(k)<<endl);
-                
-            
-  
-                
-                DebugOn("RealRankType1"<<endl);
-                c=SDP->get_constraint("Real(RankType1)_lifted");
-                //c->print();
-                for (auto k=0;k<c->get_nb_instances();k++)
-                    DebugOn(c->eval(k)<<endl);
-                
-//                DebugOn("SDP"<<endl);
-//                auto c1=SDP->get_constraint("SDP_3D");
-//                for (auto k=0;k<c1->get_nb_instances();k++)
-//                    DebugOn(c1->eval(k)<<endl);
-                
-                 vector<double> rva,rvb,imva,imvb,rwab,imwab, rwij_gap, imwij_gap;
-                DebugOn("RWij_gap and Im_Wij_gap"<<endl);
-                auto vw=SDP->get_var<double>("Im_Wij");
-                for (auto &k:*vw.get_keys())
-                {
-                    imwab.push_back(vw.eval(k));
-                    rwab.push_back(SDP->get_var<double>("R_Wij").eval(k));
-                    auto k1=k.substr(0, k.find_first_of(","));
-                    auto k2=k.substr(k.find_first_of(",")+1);
-                    rva.push_back(SDP->get_var<double>("R_Vi").eval(k1));
-                    rvb.push_back(SDP->get_var<double>("R_Vi").eval(k2));
-                    imva.push_back(SDP->get_var<double>("Im_Vi").eval(k1));
-                    imvb.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
-                    rwij_gap.push_back(rwab.back()-rva.back()*rvb.back()-imva.back()*imvb.back());
-                    imwij_gap.push_back(imwab.back()-imva.back()*rvb.back()+imvb.back()*rva.back());
-                     DebugOn(k<<"\t"<<rwij_gap.back()<<"\t"<<imwij_gap.back()<<endl);
-                    
-                }
-                DebugOn("R_Wij"<<endl);
-                auto vr=SDP->get_var<double>("R_Wij");
-                for (auto &k:*vr.get_keys())
-                DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                
-                
-                
-                vector<double> pf,pt;
-                DebugOn("Pf_from"<<endl);
-                vr=SDP->get_var<double>("Pf_from");
-                for (auto &k:*vr.get_keys())
-                {
-                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                    pf.push_back(vr.eval(k));
-                }
-                
-                DebugOn("Pf_to"<<endl);
-                vr=SDP->get_var<double>("Pf_to");
-                for (auto &k:*vr.get_keys())
-                {
-                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                      pt.push_back(vr.eval(k));
-                }
-                vector<double> qf,qt;
-                DebugOn("Qf_from"<<endl);
-                vr=SDP->get_var<double>("Qf_from");
-                vector<double> b_k;
-                  vector<double> rvi,rvj,imvi,imvj;
-                for (auto &k:*vr.get_keys())
-                {
-                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                    qf.push_back(vr.eval(k));
-                     b_k.push_back(grid.b.eval(k));
-                    auto k1=k.substr(k.find_first_of(",")+1);
-                    auto k2=k1.substr(0, k1.find_first_of(","));
-                    auto k3=k1.substr(k1.find_first_of(",")+1);
-                    rvi.push_back(SDP->get_var<double>("R_Vi").eval(k2));
-                    rvj.push_back(SDP->get_var<double>("R_Vi").eval(k3));
-                    imvi.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
-                    imvj.push_back(SDP->get_var<double>("Im_Vi").eval(k3));
-                }
-                
-                vector<double> Wiii, rviii, imviii;
-             //   DebugOn("Wii.in(Nodes)"<<endl);
-                          DebugOn("Wii-rv^2-iv^2"<<endl);
-                vr=SDP->get_var<double>("Wii");
-                for (auto &k:*vr.get_keys())
-                {
-                        Wiii.push_back(vr.eval(k));
-                    rviii.push_back(SDP->get_var<double>("R_Vi").eval(k));
-                    imviii.push_back(SDP->get_var<double>("Im_Vi").eval(k));
-                    DebugOn(k<<"\t"<<Wiii.back()-pow(rviii.back(),2)-pow(imviii.back(),2)<<endl);
-                }
-//                DebugOn("Wii-rv^2-iv^2"<<endl);
-//                for(auto it=0;it<Wiii.size();it++)
+//                DebugOn("Var_map");
+//                for(auto it:SDP->_vars_name)
+//                    DebugOn(it.first<<endl);
+//
+//                DebugOn("SOC"<<endl);
+//                auto c=SDP->get_constraint("SOC");
+//                c->print();
+//                for (auto k=0;k<c->get_nb_instances();k++)
+//                DebugOn(k<<"\t"<<c->eval(k)<<endl);
+//
+//
+//
+//
+//                DebugOn("RealRankType1"<<endl);
+//                c=SDP->get_constraint("Real(RankType1)_lifted");
+//                //c->print();
+//                for (auto k=0;k<c->get_nb_instances();k++)
+//                    DebugOn(c->eval(k)<<endl);
+//
+////                DebugOn("SDP"<<endl);
+////                auto c1=SDP->get_constraint("SDP_3D");
+////                for (auto k=0;k<c1->get_nb_instances();k++)
+////                    DebugOn(c1->eval(k)<<endl);
+//
+//                 vector<double> rva,rvb,imva,imvb,rwab,imwab, rwij_gap, imwij_gap;
+//                DebugOn("RWij_gap and Im_Wij_gap"<<endl);
+//                auto vw=SDP->get_var<double>("Im_Wij");
+//                for (auto &k:*vw.get_keys())
 //                {
+//                    imwab.push_back(vw.eval(k));
+//                    rwab.push_back(SDP->get_var<double>("R_Wij").eval(k));
+//                    auto k1=k.substr(0, k.find_first_of(","));
+//                    auto k2=k.substr(k.find_first_of(",")+1);
+//                    rva.push_back(SDP->get_var<double>("R_Vi").eval(k1));
+//                    rvb.push_back(SDP->get_var<double>("R_Vi").eval(k2));
+//                    imva.push_back(SDP->get_var<double>("Im_Vi").eval(k1));
+//                    imvb.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
+//                    rwij_gap.push_back(rwab.back()-rva.back()*rvb.back()-imva.back()*imvb.back());
+//                    imwij_gap.push_back(imwab.back()-imva.back()*rvb.back()+imvb.back()*rva.back());
+//                     DebugOn(k<<"\t"<<rwij_gap.back()<<"\t"<<imwij_gap.back()<<endl);
 //
 //                }
-              //  DebugOn("Value of b\t"<<b_k);
-                DebugOn("Qf_to"<<endl);
-                vr=SDP->get_var<double>("Qf_to");
-                for (auto &k:*vr.get_keys())
-                {
-                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                    qt.push_back(vr.eval(k));
-                }
-                for (auto it=0;it<pf.size();it++)
-                {
-                         DebugOn("RVI\t"<<rvi[it]<<endl);
-                }
-                DebugOn("Real_Loss"<<endl);
-                for (auto it=0;it<pf.size();it++)
-                {
-                    DebugOn(pf[it]+pt[it]<<endl);
-               
-                }
-                  DebugOn("Imaginary_Loss"<<endl);
-                for (auto it=0;it<qf.size();it++)
-                {
-                    DebugOn(qf[it]+qt[it]<<endl);
-                    
-                }
-                
-                DebugOn("Lij"<<endl);
-                 vr=SDP->get_var<double>("lij");
-                for (auto &k:*vr.get_keys())
-                {
-                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
-                }
-                for (auto it=0;it<qf.size();it++)
-                {
-                    DebugOn(qf[it]+qt[it]<<endl);
-                    
-                }
+//                DebugOn("R_Wij"<<endl);
+//                auto vr=SDP->get_var<double>("R_Wij");
+//                for (auto &k:*vr.get_keys())
+//                DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//
+//
+//
+//                vector<double> pf,pt;
+//                DebugOn("Pf_from"<<endl);
+//                vr=SDP->get_var<double>("Pf_from");
+//                for (auto &k:*vr.get_keys())
+//                {
+//                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//                    pf.push_back(vr.eval(k));
+//                }
+//
+//                DebugOn("Pf_to"<<endl);
+//                vr=SDP->get_var<double>("Pf_to");
+//                for (auto &k:*vr.get_keys())
+//                {
+//                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//                      pt.push_back(vr.eval(k));
+//                }
+//                vector<double> qf,qt;
+//                DebugOn("Qf_from"<<endl);
+//                vr=SDP->get_var<double>("Qf_from");
+//                vector<double> b_k;
+//                  vector<double> rvi,rvj,imvi,imvj;
+//                for (auto &k:*vr.get_keys())
+//                {
+//                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//                    qf.push_back(vr.eval(k));
+//                     b_k.push_back(grid.b.eval(k));
+//                    auto k1=k.substr(k.find_first_of(",")+1);
+//                    auto k2=k1.substr(0, k1.find_first_of(","));
+//                    auto k3=k1.substr(k1.find_first_of(",")+1);
+//                    rvi.push_back(SDP->get_var<double>("R_Vi").eval(k2));
+//                    rvj.push_back(SDP->get_var<double>("R_Vi").eval(k3));
+//                    imvi.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
+//                    imvj.push_back(SDP->get_var<double>("Im_Vi").eval(k3));
+//                }
+//
+//                vector<double> Wiii, rviii, imviii;
+//             //   DebugOn("Wii.in(Nodes)"<<endl);
+//                          DebugOn("Wii-rv^2-iv^2"<<endl);
+//                vr=SDP->get_var<double>("Wii");
+//                for (auto &k:*vr.get_keys())
+//                {
+//                        Wiii.push_back(vr.eval(k));
+//                    rviii.push_back(SDP->get_var<double>("R_Vi").eval(k));
+//                    imviii.push_back(SDP->get_var<double>("Im_Vi").eval(k));
+//                    DebugOn(k<<"\t"<<Wiii.back()-pow(rviii.back(),2)-pow(imviii.back(),2)<<endl);
+//                }
+////                DebugOn("Wii-rv^2-iv^2"<<endl);
+////                for(auto it=0;it<Wiii.size();it++)
+////                {
+////
+////                }
+//              //  DebugOn("Value of b\t"<<b_k);
+//                DebugOn("Qf_to"<<endl);
+//                vr=SDP->get_var<double>("Qf_to");
+//                for (auto &k:*vr.get_keys())
+//                {
+//                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//                    qt.push_back(vr.eval(k));
+//                }
+//                for (auto it=0;it<pf.size();it++)
+//                {
+//                         DebugOn("RVI\t"<<rvi[it]<<endl);
+//                }
+//                DebugOn("Real_Loss"<<endl);
+//                for (auto it=0;it<pf.size();it++)
+//                {
+//                    DebugOn(pf[it]+pt[it]<<endl);
+//
+//                }
+//                  DebugOn("Imaginary_Loss"<<endl);
+//                for (auto it=0;it<qf.size();it++)
+//                {
+//                    DebugOn(qf[it]+qt[it]<<endl);
+//
+//                }
+//
+//                DebugOn("Lij"<<endl);
+//                 vr=SDP->get_var<double>("lij");
+//                for (auto &k:*vr.get_keys())
+//                {
+//                    DebugOn(k<<"\t"<<vr.eval(k)<<endl);
+//                }
+//                for (auto it=0;it<qf.size();it++)
+//                {
+//                    DebugOn(qf[it]+qt[it]<<endl);
+//
+//                }
                 
             }
             else
             {
-                double gap = 100*(upper_bound - 1e4*lower_bound)/upper_bound;
+                double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
                 DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
                 DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
