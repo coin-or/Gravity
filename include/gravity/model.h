@@ -1634,7 +1634,7 @@ namespace gravity {
             auto lb2 = v2.get_lb(v2.get_id_inst());
             auto ub1 = v1.get_ub(v1.get_id_inst());
             auto ub2 = v2.get_ub(v2.get_id_inst());
-            param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_ = ub2_ = v2.get_ub();
+            param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
             if(!lb1_.func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
             }
