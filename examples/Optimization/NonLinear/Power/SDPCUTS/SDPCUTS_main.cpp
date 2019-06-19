@@ -292,8 +292,8 @@ int main (int argc, char * argv[]) {
 //    //    cos_L.allocate_mem();
     cos_L= (min(cos(theta_L.in(bus_pairs)), cos(theta_U.in(bus_pairs)))).in(bus_pairs);
     cos_L.eval_all();
-//    theta_L.eval_all();
-//    theta_U.eval_all();
+    theta_L.eval_all();
+    theta_U.eval_all();
     
     
     
