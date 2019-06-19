@@ -204,7 +204,7 @@ indices PowerNet::get_ref_bus_pairs_from()
 
 indices PowerNet::out_arcs_per_node() const{
     auto ids = indices(arcs);
-    ids._name = "out_arcs_per_node";
+    ids.set_name("out_arcs_per_node");
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
     string key;
@@ -230,7 +230,7 @@ indices PowerNet::out_arcs_per_node() const{
 
 indices PowerNet::in_arcs_per_node() const{
     auto ids = indices(arcs);
-    ids._name = "in_arcs_per_node";
+    ids.set_name("in_arcs_per_node");
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
     string key;
@@ -1522,11 +1522,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 
             
 
-            auto Im_L = SDPOPF->get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
-            auto R_L = SDPOPF->get_var<double>("Lift_R_Vi.in(Nodes)_R_Vi.in(Nodes).in(Nodes)");
-            Constraint<> Vol_limit_LB("Vol_limit_LB");
-            Vol_limit_LB = Im_L + R_L - Wii.get_lb();
-            SDPOPF->add(Vol_limit_LB.in(nodes)>=0);
+            Constraint<Cpx> Vol_limit_LB("Vol_limit_LB");
+            Vol_limit_LB = pow(Im_Vi,2) + pow(R_Vi,2) - Wii.get_lb();
+            SDPOPF->add(Vol_limit_LB.in(nodes)>=0,convexify);
             
             Constraint<Cpx> Rank_type1("RankType1");
             Rank_type1 += Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);

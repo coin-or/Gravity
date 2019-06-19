@@ -57,7 +57,7 @@ public:
     std::vector<Path*> cycle_basis;
     
     /** Horton subnetwork */
-    Net* horton_net;
+    Net* horton_net = nullptr;
     
     /** Is a tree */
     bool _tree = false;

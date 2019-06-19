@@ -46,6 +46,10 @@ namespace gravity {
         DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
         for (size_t idx = i; idx < j; idx++) {
             auto c = v[idx];
+//            c->print_symbolic();
+//            if(c->_name == "Real(Linking_V_mag)_lifted"){
+//                cout << "ok";
+//            }
             c->_new = false;
             c->_evaluated = false;
             size_t nb_ins = c->get_nb_inst();
@@ -379,8 +383,8 @@ namespace gravity {
         
         template <typename T>
         void add_var(var<T>& v){//Add variables by copy
-//            auto name = v._name.substr(0,v._name.find_first_of("."));
-            auto name = v._name;
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -405,8 +409,8 @@ namespace gravity {
         void add_var(var<T>&& v){//Add variables by copy
             if(v.get_dim()==0)
                 return;
-//            auto name = v._name.substr(0,v._name.find_first_of("."));
-            auto name = v._name;
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -772,8 +776,15 @@ namespace gravity {
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
-                var<type> vlift("Lift_"+o1._name+"_"+o2._name, lb, ub);
-                auto it = _vars_name.find(vlift._name);
+                string name;
+                if(o1==o2){
+                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+")^2)";
+                }
+                else {
+                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+"),"+o2.get_name(true,true)+"("+o2._indices->get_name()+")";
+                }
+                var<type> vlift(name, lb, ub);
+                auto it = _vars_name.find(name);
                 if(it==_vars_name.end()){
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);

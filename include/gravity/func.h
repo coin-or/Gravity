@@ -1592,7 +1592,7 @@ namespace gravity {
                         _dim[0] = dim;
                     }
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
             }
             else { /**< Add each key in ids individually */
                 _indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -1636,7 +1636,7 @@ namespace gravity {
                 else {
                     _dim[0]=_indices->_ids->at(0).size();
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
                 if(!excluded.empty()){
                     excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                     _name += "\{" + excluded + "}";
@@ -2926,17 +2926,21 @@ namespace gravity {
         type eval(size_t i=0) {
             if(is_zero()){
                 if (func_is_number()){
+                    assert(_val->size()>0);
                     _val->at(0) = this->_range->first;
                     return _val->at(0);
                 }
+                assert(_val->size()>i);
                 _val->at(i) = this->_range->first;
                 return _range->first;
             }
 //            if (is_constant() && _evaluated) {
             if (_evaluated) {
                 if (func_is_number()){
+                    assert(_val->size()>0);
                     return _val->at(0);
                 }
+                assert(_val->size()>i);
                 return _val->at(i);
             }
             type res = 0;
@@ -3049,6 +3053,7 @@ namespace gravity {
             if(_expr)
                 res += eval_expr(_expr,i);
             if (func_is_number()) {
+                assert(_val->size()>0);
                 _val->at(0) = res;
                 _evaluated = true;
             }
@@ -3057,6 +3062,7 @@ namespace gravity {
 //                if (i==_val->size()-1) {
 //                    _evaluated = true;
 //                }
+                assert(_val->size()>i);
                 _val->at(i) = res;
             }
             return res;

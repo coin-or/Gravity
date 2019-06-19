@@ -127,14 +127,14 @@ int main (int argc, char * argv[]) {
    //double upper_bound = grid.solve_acopf();
     //solve_acopf
         OPF->print_solution();
-    auto rv= OPF->get_var<double>("vr.in(Nodes)");
+    auto rv= OPF->get_var<double>("vr");
     DebugOn("W_orig\n");
     vector<double> rvv, ivv, w_orig, rrwij, iiwij;
     
     for(auto &k:*rv.get_keys())
     {
         rvv.push_back(rv.eval(k));
-        ivv.push_back(OPF->get_var<double>("vi.in(Nodes)").eval(k));
+        ivv.push_back(OPF->get_var<double>("vi").eval(k));
         w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
         DebugOn(w_orig.back()<<endl);
     }
@@ -144,10 +144,10 @@ int main (int argc, char * argv[]) {
     {
         auto k1=k.substr(0, k.find_first_of(","));
         auto k2=k.substr(k.find_first_of(",")+1);
-        auto rva=OPF->get_var<double>("vr.in(Nodes)").eval(k1);
-        auto rvb=OPF->get_var<double>("vr.in(Nodes)").eval(k2);
-        auto iva=OPF->get_var<double>("vi.in(Nodes)").eval(k1);
-        auto ivb=OPF->get_var<double>("vi.in(Nodes)").eval(k2);
+        auto rva=OPF->get_var<double>("vr").eval(k1);
+        auto rvb=OPF->get_var<double>("vr").eval(k2);
+        auto iva=OPF->get_var<double>("vi").eval(k1);
+        auto ivb=OPF->get_var<double>("vi").eval(k2);
     
         rrwij.push_back(rva*rvb+iva*ivb);
         iiwij.push_back(iva*rvb-ivb*rva);
@@ -335,7 +335,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
+                                    run_parallel(batch_models,ipopt,1e-7,1, "ma57");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -533,24 +533,24 @@ int main (int argc, char * argv[]) {
                 
                  vector<double> rva,rvb,imva,imvb,rwab,imwab, rwij_gap, imwij_gap;
                 DebugOn("RWij_gap and Im_Wij_gap"<<endl);
-                auto vw=SDP->get_var<double>("Im_Wij.in(bus_pairs)");
+                auto vw=SDP->get_var<double>("Im_Wij");
                 for (auto &k:*vw.get_keys())
                 {
                     imwab.push_back(vw.eval(k));
-                    rwab.push_back(SDP->get_var<double>("R_Wij.in(bus_pairs)").eval(k));
+                    rwab.push_back(SDP->get_var<double>("R_Wij").eval(k));
                     auto k1=k.substr(0, k.find_first_of(","));
                     auto k2=k.substr(k.find_first_of(",")+1);
-                    rva.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k1));
-                    rvb.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k2));
-                    imva.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k1));
-                    imvb.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k2));
+                    rva.push_back(SDP->get_var<double>("R_Vi").eval(k1));
+                    rvb.push_back(SDP->get_var<double>("R_Vi").eval(k2));
+                    imva.push_back(SDP->get_var<double>("Im_Vi").eval(k1));
+                    imvb.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
                     rwij_gap.push_back(rwab.back()-rva.back()*rvb.back()-imva.back()*imvb.back());
                     imwij_gap.push_back(imwab.back()-imva.back()*rvb.back()+imvb.back()*rva.back());
                      DebugOn(k<<"\t"<<rwij_gap.back()<<"\t"<<imwij_gap.back()<<endl);
                     
                 }
                 DebugOn("R_Wij"<<endl);
-                auto vr=SDP->get_var<double>("R_Wij.in(bus_pairs)");
+                auto vr=SDP->get_var<double>("R_Wij");
                 for (auto &k:*vr.get_keys())
                 DebugOn(k<<"\t"<<vr.eval(k)<<endl);
                 
@@ -558,7 +558,7 @@ int main (int argc, char * argv[]) {
                 
                 vector<double> pf,pt;
                 DebugOn("Pf_from"<<endl);
-                vr=SDP->get_var<double>("Pf_from.in(Arc)");
+                vr=SDP->get_var<double>("Pf_from");
                 for (auto &k:*vr.get_keys())
                 {
                     DebugOn(k<<"\t"<<vr.eval(k)<<endl);
@@ -566,7 +566,7 @@ int main (int argc, char * argv[]) {
                 }
                 
                 DebugOn("Pf_to"<<endl);
-                vr=SDP->get_var<double>("Pf_to.in(Arc)");
+                vr=SDP->get_var<double>("Pf_to");
                 for (auto &k:*vr.get_keys())
                 {
                     DebugOn(k<<"\t"<<vr.eval(k)<<endl);
@@ -574,7 +574,7 @@ int main (int argc, char * argv[]) {
                 }
                 vector<double> qf,qt;
                 DebugOn("Qf_from"<<endl);
-                vr=SDP->get_var<double>("Qf_from.in(Arc)");
+                vr=SDP->get_var<double>("Qf_from");
                 vector<double> b_k;
                   vector<double> rvi,rvj,imvi,imvj;
                 for (auto &k:*vr.get_keys())
@@ -585,21 +585,21 @@ int main (int argc, char * argv[]) {
                     auto k1=k.substr(k.find_first_of(",")+1);
                     auto k2=k1.substr(0, k1.find_first_of(","));
                     auto k3=k1.substr(k1.find_first_of(",")+1);
-                    rvi.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k2));
-                    rvj.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k3));
-                    imvi.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k2));
-                    imvj.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k3));
+                    rvi.push_back(SDP->get_var<double>("R_Vi").eval(k2));
+                    rvj.push_back(SDP->get_var<double>("R_Vi").eval(k3));
+                    imvi.push_back(SDP->get_var<double>("Im_Vi").eval(k2));
+                    imvj.push_back(SDP->get_var<double>("Im_Vi").eval(k3));
                 }
                 
                 vector<double> Wiii, rviii, imviii;
              //   DebugOn("Wii.in(Nodes)"<<endl);
                           DebugOn("Wii-rv^2-iv^2"<<endl);
-                vr=SDP->get_var<double>("Wii.in(Nodes)");
+                vr=SDP->get_var<double>("Wii");
                 for (auto &k:*vr.get_keys())
                 {
                         Wiii.push_back(vr.eval(k));
-                    rviii.push_back(SDP->get_var<double>("R_Vi.in(Nodes)").eval(k));
-                    imviii.push_back(SDP->get_var<double>("Im_Vi.in(Nodes)").eval(k));
+                    rviii.push_back(SDP->get_var<double>("R_Vi").eval(k));
+                    imviii.push_back(SDP->get_var<double>("Im_Vi").eval(k));
                     DebugOn(k<<"\t"<<Wiii.back()-pow(rviii.back(),2)-pow(imviii.back(),2)<<endl);
                 }
 //                DebugOn("Wii-rv^2-iv^2"<<endl);
@@ -609,7 +609,7 @@ int main (int argc, char * argv[]) {
 //                }
               //  DebugOn("Value of b\t"<<b_k);
                 DebugOn("Qf_to"<<endl);
-                vr=SDP->get_var<double>("Qf_to.in(Arc)");
+                vr=SDP->get_var<double>("Qf_to");
                 for (auto &k:*vr.get_keys())
                 {
                     DebugOn(k<<"\t"<<vr.eval(k)<<endl);
@@ -633,7 +633,7 @@ int main (int argc, char * argv[]) {
                 }
                 
                 DebugOn("Lij"<<endl);
-                 vr=SDP->get_var<double>("lij.in(Arc)");
+                 vr=SDP->get_var<double>("lij");
                 for (auto &k:*vr.get_keys())
                 {
                     DebugOn(k<<"\t"<<vr.eval(k)<<endl);
