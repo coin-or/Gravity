@@ -1160,11 +1160,7 @@ namespace gravity {
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        bool has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
-            //    if (!_has_lazy) {
-            //        return false;
-            //    }
-            //    int cid = 0;
+        bool print_constraints_stats(type tol){/*<< Prints stats on constraints active status with the current solution and tolerance tol */
             size_t nb_inst = 0, nb_viol = 0, nb_viol_all = 0;
             size_t nb_active = 0, nb_active_all = 0;
             double diff = 0;
@@ -1288,6 +1284,138 @@ namespace gravity {
             auto nb_ineq = get_nb_ineq();
             DebugOn("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
             DebugOn("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
+            return violated;
+        }
+        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        bool has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
+            //    if (!_has_lazy) {
+            //        return false;
+            //    }
+            //    int cid = 0;
+            size_t nb_inst = 0, nb_viol = 0, nb_viol_all = 0;
+            size_t nb_active = 0, nb_active_all = 0;
+            double diff = 0;
+            shared_ptr<Constraint<type>> c = nullptr;
+            bool violated = false;
+            for(auto& c_p: _cons_name)
+            {
+                c = c_p.second;
+                //        cid = c->_id;
+                nb_inst = c->get_nb_inst();
+                nb_viol = 0;
+                nb_active = 0;
+                c->_all_satisfied = true;
+                c->_violated.resize(nb_inst);
+                c->_active.resize(nb_inst);
+                switch (c->get_ctype()) {
+                    case eq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            diff = abs(c->eval(inst));
+                            if(diff > tol) {
+                                DebugOff("Violated equation: ");
+                                //                        c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                                //                        c->_violated[inst] = true;
+                            }
+                            else {
+                                //                        c->_violated[inst] = false;
+                            }
+                            //                    nb_active++;
+                        }
+                        break;
+                    case leq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
+                            diff = c->eval(inst);
+                            if(diff > tol) {
+                                DebugOff("Violated inequality: ");
+                                //                                c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    //                                    *c->_all_lazy = false;
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                            }
+                            else if (abs(diff)>tol) {
+                                c->_active[inst] = false;
+                                //                        if (*c->_all_lazy) {
+                                //                            c->_lazy[inst] = true;
+                                //                        }
+                            }
+                            else {
+                                nb_active++;
+                            }
+                        }
+                        break;
+                    case geq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
+                            diff = c->eval(inst);
+                            if(diff < -tol) {
+                                DebugOff("Violated inequality: ");
+                                //                        c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    //                                    *c->_all_lazy = false;
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                            }
+                            else if (abs(diff)> tol) {
+                                c->_active[inst] = false;
+                                //                        if (*c->_all_lazy) {
+                                //                            c->_lazy[inst] = true;
+                                //                        }
+                            }
+                            else {
+                                nb_active++;
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        break;
+                }
+                //        *c->_all_lazy = false;
+                nb_viol_all += nb_viol;
+                nb_active_all += nb_active;
+                if (nb_viol>0 && c->get_ctype()!=eq) {
+                    DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                }
+                if (c->get_ctype()!=eq) {
+                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                }
+            }
+            auto nb_ineq = get_nb_ineq();
+            DebugOff("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
+            DebugOff("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
             return violated;
         }
         
