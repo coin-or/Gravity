@@ -335,8 +335,6 @@ int main (int argc, char * argv[]) {
 
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
-        var<> Vi_Vj("Vi_Vj", pos_);
-        SDP.add(Vi_Vj.in(arcs));
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
         Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
         Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
@@ -370,10 +368,10 @@ int main (int argc, char * argv[]) {
 
         
         
-        
-        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
-        Linking_V_mag_i_V_mag_j = Vi_Vj - V_mag.from(arcs)*V_mag.to(arcs);
-        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
+//        auto Vi_Vj = SDP.get_var<double>("");
+//        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
+//        Linking_V_mag_i_V_mag_j =  - V_mag.from(arcs)*V_mag.to(arcs);
+//        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
         
         var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
         var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
@@ -383,15 +381,15 @@ int main (int argc, char * argv[]) {
 
         Constraint<> costhetaij_lb("costhetaij_lb");
         costhetaij_lb=costhetaij-min(cos(theta.get_ub().from(arcs)-theta.get_lb().to(arcs)), cos(theta.get_lb().from(arcs)-theta.get_ub().to(arcs)));
-        SDP.add(costhetaij_lb.in(arcs)>=0);
+        //SDP.add(costhetaij_lb.in(arcs)>=0);
 
         Constraint<> sinthetaij_lb("sinthetaij_lb");
         sinthetaij_lb=sinthetaij-sin(theta.get_lb().from(arcs)-theta.get_ub().to(arcs));
-        SDP.add(sinthetaij_lb.in(arcs)>=0);
+       // SDP.add(sinthetaij_lb.in(arcs)>=0);
 
         Constraint<> sinthetaij_ub("sinthetaij_ub");
         sinthetaij_ub=sinthetaij-sin(theta.get_ub().from(arcs)-theta.get_lb().to(arcs));
-        SDP.add(sinthetaij_ub.in(arcs)<=0);
+       // SDP.add(sinthetaij_ub.in(arcs)<=0);
 
         func<> thetaij_m;
         thetaij_m=max(theta.get_ub().from(arcs)-theta.get_lb().to(arcs), theta.get_ub().to(arcs)-theta.get_lb().from(arcs));
@@ -399,28 +397,32 @@ int main (int argc, char * argv[]) {
 
         Constraint<> sinenvup("sinenvup");
         sinenvup=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)-thetaij_m*0.5)-sin(thetaij_m*0.5);
-          SDP.add(sinenvup.in(arcs)<=0);
+         // SDP.add(sinenvup.in(arcs)<=0);
 
         Constraint<> sinenvlow("sinenvlow");
         sinenvlow=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)+thetaij_m*0.5)+sin(thetaij_m*0.5);
-        SDP.add(sinenvlow.in(arcs)>=0);
+        //SDP.add(sinenvlow.in(arcs)>=0);
 
-        Constraint<> cosenvup("sinenvup");
+        Constraint<> cosenvup("cosenvup");
         cosenvup=costhetaij*pow(thetaij_m,2)-1.0*pow(thetaij_m,2)+(1-cos(thetaij_m))*pow((theta.from(arcs)-theta.to(arcs)), 2);
-        SDP.add(sinenvup.in(arcs)<=0);
+        SDP.add(cosenvup.in(arcs)<=0);
 
-        Constraint<> cosenvlow("sinenvlow");
+        Constraint<> cosenvlow("cosenvlow");
         cosenvlow=costhetaij-cos(thetaij_m);
-        SDP.add(sinenvlow.in(arcs)>=0);
+        //SDP.add(cosenvlow.in(arcs)>=0);
         
 
-        
-
-        auto Im_L = SDP.get_var<double>("Lift_Im_Vi.in(Nodes)_Im_Vi.in(Nodes).in(Nodes)");
-        auto R_L = SDP.get_var<double>("Lift_R_Vi.in(Nodes)_R_Vi.in(Nodes).in(Nodes)");
-        Constraint<> Vol_limit_LB("Vol_limit_LB");
-        Vol_limit_LB = Im_L + R_L - pow(Wii.get_lb().in(nodes),2);
-        SDP.add(Vol_limit_LB.in(nodes)>=0);
+//        Constraint<Cpx> Linking_RW_Vtheta("Linking_RW_Vtheta");
+//        Linking_RW_Vtheta = R_Wij.in(arcs) - Vi_Vj.in(arcs)*costhetaij.in(arcs);
+//        SDP.add(Linking_RW_Vtheta.in(arcs)==0, convexify);
+//
+//        Constraint<Cpx> Linking_ImW_Vtheta("Linking_ImW_Vtheta");
+//        Linking_ImW_Vtheta = Im_Wij - Vi_Vj*sinthetaij;
+//        SDP.add(Linking_ImW_Vtheta.in(arcs)==0, convexify);
+     
+        Constraint<Cpx> Vol_limit_LB("Vol_limit_LB");
+        Vol_limit_LB = pow(Im_Vi,2) + pow(R_Vi, 2) - pow(Wii.get_lb().in(nodes),2);
+        SDP.add(Vol_limit_LB.in(nodes)>=0, convexify);
         
         Constraint<Cpx> Rank_type1("RankType1");
         Rank_type1= Wij*conj(Wij) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);

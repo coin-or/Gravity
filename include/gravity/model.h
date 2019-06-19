@@ -1506,10 +1506,19 @@ namespace gravity {
             auto lb2 = v2.get_lb(v2.get_id_inst());
             auto ub1 = v1.get_ub(v1.get_id_inst());
             auto ub2 = v2.get_ub(v2.get_id_inst());
-            auto lb1_ = v1.get_lb().in(*v1._indices);
-            auto lb2_ = v2.get_lb().in(*v2._indices);
-            auto ub1_ = v1.get_ub().in(*v1._indices);
-            auto ub2_ = v2.get_ub().in(*v2._indices);
+            param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_ = ub2_ = v2.get_ub();
+            if(!lb1_.func_is_number()){
+                lb1_ = v1.get_lb().in(*v1._indices);
+            }
+            if(!lb2_.func_is_number()){
+                lb2_ = v2.get_lb().in(*v2._indices);
+            }
+            if(!ub1_.func_is_number()){
+                ub1_ = v1.get_ub().in(*v1._indices);
+            }
+            if(!ub2_.func_is_number()){
+                ub2_ = v2.get_ub().in(*v2._indices);
+            }
             bool template_cstr = v1._dim[0]>1;
             bool var_equal=false;
             if(v1._name==v2._name)
