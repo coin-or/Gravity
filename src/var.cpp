@@ -76,7 +76,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 //    set<vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
-        ids_vec[i]._name = "pairs_"+to_string(i);
+        ids_vec[i].set_name("pairs_"+to_string(i));
         if(ids_vec[i]._ids){
             ids_vec[i]._ids = nullptr;
         }
@@ -129,7 +129,7 @@ vector<var<type>> var<type>::in_bags(const vector<vector<Node*>>& bags, size_t b
     set<vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
-        ids_vec[i]._name = "nodes_"+to_string(i);
+        ids_vec[i].set_name("nodes_"+to_string(i));
     }
     for (auto &bag: bags) {
         /* Make sure it's a new bag with size=bag_size */
