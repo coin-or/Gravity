@@ -263,6 +263,8 @@ public:
     
     gravity::indices get_ref_bus_pairs_to();
     
+    gravity::indices bus_pairs_no_line_charge();
+    
     pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
     
     void update_ref_bus();

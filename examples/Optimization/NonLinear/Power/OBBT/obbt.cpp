@@ -184,6 +184,8 @@ int main (int argc, char * argv[]) {
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
     {
+             for(auto i = 0; i<2 ;i++){
+                 terminate=false;
         for(auto &it:SDP->_vars_name)
         {
             string vname=it.first;
@@ -209,7 +211,7 @@ int main (int argc, char * argv[]) {
         //        }
         
         solver_time= get_wall_time()-solver_time_start;
-        for(auto i = 0; i<1 ;i++){
+//        for(auto i = 0; i<1 ;i++){
             
             //            for (auto it=SDP->_vars_name.begin(); it!=SDP->_vars_name.end(); it++)
             //            {
