@@ -1691,12 +1691,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         
         Constraint<> I_from_L("I_from_L");
         I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-Wii.get_ub().from(arcs)*lij;
-      //  I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
-       // SDPOPF->add(I_from_L.in(arcs) <= 0);
+       I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-w_max.from(arcs)*lij;
+        SDPOPF->add(I_from_L.in(arcs) <= 0);
         
         Constraint<> I_from_U("I_from_U");
         I_from_U = Wii.get_lb().from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
-       // SDPOPF->add(I_from_U.in(arcs) <= 0);
+        SDPOPF->add(I_from_U.in(arcs) <= 0);
         
         Constraint<> I_from_U1("I_from_U1");
        I_from_U1 = Wii.get_lb().from(arcs)*lij - pow(tr,2)*pow(S_max,2);
