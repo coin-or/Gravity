@@ -127,9 +127,9 @@ int main (int argc, char * argv[]) {
    // auto bags_4d=grid.decompose_bags_4d();
     
 //   grid.get_tree_decomp_bags(false,true);
-    current_from=false;
-    add_original=false;
-    loss=false;
+    current_from=true;
+    add_original=true;
+    loss=true;
     
     /* Grid Stats */
     auto nb_gen = grid.get_nb_active_gens();
@@ -225,8 +225,7 @@ int main (int argc, char * argv[]) {
     t_min.in(nodes);t_max.in(nodes);
     t_min.set_val(-2*pi);
     t_max.set_val(2*pi);
-    var<> V_mag("V_mag", v_min, v_max);
-    var<> theta("theta", t_min, t_max);
+
     
     param<> pf_by_v_L("pf_by_v_L"), pf_by_v_U("pf_by_v_U"), qf_by_v_L("pf_by_v_L"), qf_by_v_U("pf_by_v_U");
     pf_by_v_L.in(arcs);pf_by_v_U.in(arcs);qf_by_v_L.in(arcs);qf_by_v_U.in(arcs);
@@ -244,15 +243,31 @@ int main (int argc, char * argv[]) {
         pf_by_v_U.set_val(a, (da)/(db));
         qf_by_v_U.set_val(a, (da)/(db));
     }
+    
+    
+    param<> ViVj_L("ViVj_L"), ViVj_U("ViVj_U");
+    ViVj_L.in(bus_pairs);ViVj_U.in(bus_pairs);
+    for(auto &a:*bus_pairs._keys)
+    {
+      auto b1 = a.substr(0, a.find_first_of(","));
+      auto b2=  a.substr(a.find_first_of(",")+1);
+    ViVj_L.set_val(a, v_min.eval(b1)*v_min.eval(b2));
+    ViVj_U.set_val(a, v_max.eval(b1)*v_max.eval(b2));
+        
+    }
+    
 //
 //    var<> pf_by_v("pf_by_v", pf_by_v_L, pf_by_v_U), qf_by_v("qf_by_v", qf_by_v_L, qf_by_v_U);
 //    SDP.add(pf_by_v.in(arcs), qf_by_v.in(arcs));
     
     
-    
+    var<> V_mag("V_mag", v_min, v_max);
+    var<> theta("theta", t_min, t_max);
     SDP.add(V_mag.in(nodes));
-   SDP.add(theta.in(nodes));
+    SDP.add(theta.in(nodes));
     
+    var<> Vi_Vj("Vi_Vj", ViVj_L, ViVj_U);
+    SDP.add(Vi_Vj.in(bus_pairs));
 
     
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
@@ -283,6 +298,7 @@ int main (int argc, char * argv[]) {
         SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
         R_Vi.initialize_all(1);
     }
+    
 
 //    func<> theta_L, theta_U;
 //    //    theta_L1.allocate_mem();
@@ -404,54 +420,57 @@ int main (int argc, char * argv[]) {
         SDP.add(Vol_limit_LB.in(nodes)>=0,convexify);
         
 
+   
         
+        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
+        Linking_V_mag_i_V_mag_j =  Vi_Vj- V_mag.from(bus_pairs)*V_mag.to(bus_pairs);
+        SDP.add(Linking_V_mag_i_V_mag_j.in(bus_pairs)==0, convexify);
         
-//        auto Vi_Vj = SDP.get_var<double>("");
-//        Constraint<Cpx> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
-//        Linking_V_mag_i_V_mag_j =  - V_mag.from(arcs)*V_mag.to(arcs);
-//        SDP.add(Linking_V_mag_i_V_mag_j.in(arcs)==0, convexify);
-        
-//        var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
-//        var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
-////
-//        SDP.add(sinthetaij.in(arcs));
-//        SDP.add(costhetaij.in(arcs));
-////
+        var<> costhetaij("costhetaij", min(cos(th_min), cos(th_max)), 1.0);
+        var<> sinthetaij("sinthetaij", sin(th_min), sin(th_max));
 //
+        SDP.add(sinthetaij.in(arcs));
+        SDP.add(costhetaij.in(arcs));
 //
-////
+
+
 //
-////
-//        func<> thetaij_m;
-//        thetaij_m=max(min(theta.get_ub().from(arcs)-theta.get_lb().to(arcs), th_max.in(arcs)),(max(theta.get_lb().from(arcs)-theta.get_ub().to(arcs), th_min.in(arcs)))*(-1));
-//        thetaij_m.eval_all();
-//        DebugOn("thetaij_m");
-//        thetaij_m.print();
+
 //
-//        Constraint<> sinenvup("sinenvup");
-//        sinenvup=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)-thetaij_m*0.5)-sin(thetaij_m*0.5);
-//       SDP.add(sinenvup.in(arcs)<=0);
-//
-//        Constraint<> sinenvlow("sinenvlow");
-//        sinenvlow=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)+thetaij_m*0.5)+sin(thetaij_m*0.5);
-//        SDP.add(sinenvlow.in(arcs)>=0);
-//
-//        Constraint<> cosenvup("cosenvup");
-//        cosenvup=costhetaij*pow(thetaij_m,2)-1.0*pow(thetaij_m,2)+(1-cos(thetaij_m))*pow((theta.from(arcs)-theta.to(arcs)), 2);
-//        SDP.add(cosenvup.in(arcs)<=0);
-//
-//        Constraint<> cosenvlow("cosenvlow");
-//        cosenvlow=costhetaij-cos(thetaij_m);
-//        SDP.add(cosenvlow.in(arcs)>=0);
-//
+        func<> thetaij_m;
+        thetaij_m=max(min(theta.get_ub().from(arcs)-theta.get_lb().to(arcs), th_max.in(arcs)),(max(theta.get_lb().from(arcs)-theta.get_ub().to(arcs), th_min.in(arcs)))*(-1));
+        thetaij_m.eval_all();
+        DebugOn("thetaij_m");
+        thetaij_m.print();
+
+        Constraint<> sinenvup("sinenvup");
+        sinenvup=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)-thetaij_m*0.5)-sin(thetaij_m*0.5);
+       SDP.add(sinenvup.in(arcs)<=0);
+
+        Constraint<> sinenvlow("sinenvlow");
+        sinenvlow=sinthetaij-cos(thetaij_m*0.5)*(theta.from(arcs)-theta.to(arcs)+thetaij_m*0.5)+sin(thetaij_m*0.5);
+        SDP.add(sinenvlow.in(arcs)>=0);
+
+        Constraint<> cosenvup("cosenvup");
+        cosenvup=costhetaij*pow(thetaij_m,2)-1.0*pow(thetaij_m,2)+(1-cos(thetaij_m))*pow((theta.from(arcs)-theta.to(arcs)), 2);
+        SDP.add(cosenvup.in(arcs)<=0);
+
+        Constraint<> cosenvlow("cosenvlow");
+        cosenvlow=costhetaij-cos(thetaij_m);
+        SDP.add(cosenvlow.in(arcs)>=0);
+
 
 //        Constraint<Cpx> Linking_RW_Vtheta("Linking_RW_Vtheta");
 //        Linking_RW_Vtheta = R_Wij.in(arcs) - Vi_Vj.in(arcs)*costhetaij.in(arcs);
-//        SDP.add(Linking_RW_Vtheta.in(arcs)==0, convexify);
-//
-//        Constraint<Cpx> Linking_ImW_Vtheta("Linking_ImW_Vtheta");
-//        Linking_ImW_Vtheta = Im_Wij - Vi_Vj*sinthetaij;
-//        SDP.add(Linking_ImW_Vtheta.in(arcs)==0, convexify);
+//      //  SDP.add(Linking_RW_Vtheta.in(arcs)==0, convexify);
+        
+        Constraint<Cpx> Linking_RW_Vtheta("Linking_RW_Vtheta");
+        Linking_RW_Vtheta = R_Wij.in(bus_pairs) - Vi_Vj.in(bus_pairs)*costhetaij.in(bus_pairs);
+        SDP.add(Linking_RW_Vtheta.in(bus_pairs)==0, convexify);
+
+        Constraint<Cpx> Linking_ImW_Vtheta("Linking_ImW_Vtheta");
+        Linking_ImW_Vtheta = Im_Wij - Vi_Vj*sinthetaij;
+       // SDP.add(Linking_ImW_Vtheta.in(arcs)==0, convexify);
      
 
 
@@ -531,13 +550,17 @@ int main (int argc, char * argv[]) {
     
     /** Constraints */
     /* Second-order cone constraints */
-//    Constraint<> SOC("SOC");
-//    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-//    SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
     
     Constraint<> SOC1("SOC1");
-    SOC1 = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC1.in(bus_pairs_chord) >= -1e-3);
+    SOC1 = sqrt(pow(R_Wij, 2) + pow(Im_Wij, 2)) - Vi_Vj;
+    SDP.add(SOC1.in(bus_pairs) <= 0);
+    
+//    Constraint<> SOC1("SOC1");
+//    SOC1 = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+//    SDP.add(SOC1.in(bus_pairs_chord) >= -1e-3);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -765,10 +788,7 @@ int main (int argc, char * argv[]) {
         p_U=(Pf_from+Pf_to)*pow(tr,2)-g*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cosl)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
         SDP.add(p_U.in(arcs)<=0);
         //
-        Constraint<> p_L("p_L");
-        p_L=(Pf_from+Pf_to)*pow(tr,2)-g*cosl*min(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2));
-        //  SDP.add(p_L.in(arcs)>=0);
-        //
+  
         Constraint<> q_U("q_U");
         q_U=(Qf_from+Qf_to)*pow(tr,2)+b*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cosl)+ch_half)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
         SDP.add(q_U.in(arcs)<=0);
