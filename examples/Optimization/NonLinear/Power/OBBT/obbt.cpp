@@ -122,7 +122,7 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 5, tol = 1e-6, "ma97");
+    OPFUB.run(output = 5, tol = 1e-7, "ma57");
     
    //double upper_bound = grid.solve_acopf();
     //solve_acopf
@@ -162,6 +162,7 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDP->get_obj_val();
     SDP->print();
+    SDP->print_constraints_stats(tol);
     SDP->print_solution();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -267,48 +268,10 @@ int main (int argc, char * argv[]) {
 //                            double oaa=v.get_ub(key);
 //                            double oab=v.get_lb(key);
 //                            double oap=abs(v.get_ub(key)-v.get_lb(key));
-                            if(abs(v.get_ub(key)-v.get_lb(key))>zero_tol)
-                            {
+//                            if(abs(v.get_ub(key)-v.get_lb(key))>zero_tol)
+//                            {
                                 //Do not reset if original interval is itself less than range_tol
-                                if(interval_original[p]>=range_tol)
-                                {
-                                    DebugOn("Entered reset");
-                                    double mid=(v.get_ub(key)+v.get_lb(key))/2.0;
-                                    
-                                    double left=mid-range_tol/2.0;
-                                    double right=mid+range_tol/2.0;
-                                      DebugOn("UbO"<<ub_original[p]<<endl);
-                                      DebugOn("LbO"<<lb_original[p]<<endl);
-                                    if(right<=ub_original[p] && left>=lb_original[p])
-                                    {
-                                        v.set_ub(key, right);
-                                        v.set_lb(key, left);
-                                      //  DebugOn("Entered if 1"<<endl);
-                                    }
-                                    else if(right>ub_original[p])
-                                    {
-                                        
-                                        v.set_ub(key, ub_original[p]);
-                                        v.set_lb(key, ub_original[p]-range_tol);
-                                            //  DebugOn("Entered if 2"<<endl);
-                                    }
-                                    else if(left<lb_original[p])
-                                    {
-                                        v.set_lb(key, lb_original[p]);
-                                        v.set_ub(key, lb_original[p]+range_tol);
-                                            //  DebugOn("Entered if 3"<<endl);
-                                        
-                                    }
-                                  
-//                                    double ar=ub_original[p];
-//                                    double ar1=lb_original[p];
-//                                oaa1=v.get_ub(key);
-//                                     oab1=v.get_lb(key);
-//                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
-                                    
-                                    
-                                }
-                            }
+                            
                         }
                         if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end()))
                         {
@@ -337,7 +300,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -406,6 +369,48 @@ int main (int argc, char * argv[]) {
                                                     terminate=false;
                                                 }
                                                 
+                                            }
+                                            if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                            {
+                                            if(interval_original[pk]>=range_tol && vk.get_ub(keyk)!=0 && vk.get_lb(keyk)!=0)
+                                            {
+                                                DebugOn("Entered reset");
+                                                double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+                                                
+                                                double left=mid-range_tol/2.0;
+                                                double right=mid+range_tol/2.0;
+                                                DebugOn("UbO"<<ub_original[pk]<<endl);
+                                                DebugOn("LbO"<<lb_original[pk]<<endl);
+                                                if(right<=ub_original[pk] && left>=lb_original[pk])
+                                                {
+                                                    vk.set_ub(keyk, right);
+                                                    vk.set_lb(keyk, left);
+                                                    //  DebugOn("Entered if 1"<<endl);
+                                                }
+                                                else if(right>ub_original[pk])
+                                                {
+                                                    
+                                                    vk.set_ub(keyk, ub_original[pk]);
+                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                    //  DebugOn("Entered if 2"<<endl);
+                                                }
+                                                else if(left<lb_original[pk])
+                                                {
+                                                    vk.set_lb(keyk, lb_original[pk]);
+                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                    //  DebugOn("Entered if 3"<<endl);
+                                                    
+                                                }
+                                                
+                                                //                                    double ar=ub_original[p];
+                                                //                                    double ar1=lb_original[p];
+                                                //                                oaa1=v.get_ub(key);
+                                                //                                     oab1=v.get_lb(key);
+                                                //                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
+                                                
+                                                
+                                                // }
+                                            }
                                             }
                                         }
                                         else
@@ -699,7 +704,7 @@ int main (int argc, char * argv[]) {
     ////    SDP->print();
     //    solver<> SDPLB1(SDP,solv_type);
     //
-    //    SDPLB1.run(output = 5, tol = 1e-6, "ma97");
+    //    SDPLB1.run(output = 5, tol = 1e-6, "ma57");
     //
     //    SDP->print_solution();
     //

@@ -265,6 +265,10 @@ public:
     
     gravity::indices bus_pairs_no_line_charge();
     
+    gravity::indices arcs_inductive_only();
+    
+    gravity::indices arcs_line_charge();
+    
     pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
     
     void update_ref_bus();
