@@ -392,19 +392,19 @@ int main (int argc, char * argv[]) {
         }
         Constraint<Cpx> RW_RV("RW_RV");
         RW_RV=R_Wij.in(ref_bus_pairs_from)-R_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
-        SDP.add(RW_RV.in(ref_bus_pairs_from)==0, true);
+      //  SDP.add(RW_RV.in(ref_bus_pairs_from)==0, true);
         
         Constraint<Cpx> IW_IV("IW_IV");
         IW_IV=Im_Wij.in(ref_bus_pairs_from)-Im_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
-        SDP.add(IW_IV.in(ref_bus_pairs_from)==0, true);
+       // SDP.add(IW_IV.in(ref_bus_pairs_from)==0, true);
         
         Constraint<Cpx> RW_RV1("RW_RV1");
         RW_RV1=R_Wij.in(ref_bus_pairs_to)-R_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
-        SDP.add(RW_RV1.in(ref_bus_pairs_to)==0, true);
+       // SDP.add(RW_RV1.in(ref_bus_pairs_to)==0, true);
         
         Constraint<Cpx> IW_IV1("IW_IV1");
         IW_IV1=Im_Wij.in(ref_bus_pairs_to)+Im_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
-        SDP.add(IW_IV1.in(ref_bus_pairs_to)==0, true);
+      //  SDP.add(IW_IV1.in(ref_bus_pairs_to)==0, true);
         
         bool convexify = true;
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
