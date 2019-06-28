@@ -122,7 +122,7 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 5, tol = 1e-7, "ma57");
+    OPFUB.run(output = 5, tol = 1e-6, "ma97");
     
    //double upper_bound = grid.solve_acopf();
     //solve_acopf
@@ -159,7 +159,7 @@ int main (int argc, char * argv[]) {
     
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma97");
+    SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print();
     SDP->print_constraints_stats(tol);
@@ -179,7 +179,7 @@ int main (int argc, char * argv[]) {
     
     bool break_flag=false, time_limit = false;
     
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-3;
+    const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
     
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
@@ -300,7 +300,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -326,13 +326,13 @@ int main (int argc, char * argv[]) {
                                         if(model->_status==0)
                                         {
                                             objk=model->get_obj_val();
-                                            if(abs(objk)<=zero_val)
-                                                objk=0.0;
+//                                            if(abs(objk)<=zero_val)
+//                                                objk=0.0;
                                             if(dirk=="LB")
                                                 boundk1=vk.get_lb(keyk);
                                             else
                                             {
-                                                if(abs(objk)>=zero_val)
+//                                                if(abs(objk)>=zero_val)
                                                     objk*=-1;
                                                 boundk1=vk.get_ub(keyk);
                                             }
@@ -372,7 +372,7 @@ int main (int argc, char * argv[]) {
                                             }
                                             if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                             {
-                                            if(interval_original[pk]>=range_tol && vk.get_ub(keyk)!=0 && vk.get_lb(keyk)!=0)
+                                            if(interval_original[pk]>=range_tol && !(vk.get_ub(keyk)==0 && vk.get_lb(keyk)==0))
                                             {
                                                 DebugOn("Entered reset");
                                                 double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;

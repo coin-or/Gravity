@@ -1268,7 +1268,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 {
     bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true;
-    loss=true;
+    loss=false;
     size_t num_bags = 0;
     string num_bags_s = "100";
     double ilb, iub;
@@ -1520,21 +1520,21 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
                 Im_Vi.set_ub(ngb, iub);
             }
             
-            Constraint<Cpx> RW_RV("RW_RV");
-            RW_RV=R_Wij.in(ref_bus_pairs_from)-R_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
-            SDPOPF->add(RW_RV.in(ref_bus_pairs_from)==0, true);
-            
-            Constraint<Cpx> IW_IV("IW_IV");
-            IW_IV=Im_Wij.in(ref_bus_pairs_from)-Im_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
-            SDPOPF->add(IW_IV.in(ref_bus_pairs_from)==0, true);
-            
-            Constraint<Cpx> RW_RV1("RW_RV1");
-            RW_RV1=R_Wij.in(ref_bus_pairs_to)-R_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
-            SDPOPF->add(RW_RV1.in(ref_bus_pairs_to)==0, true);
-            
-            Constraint<Cpx> IW_IV1("IW_IV1");
-            IW_IV1=Im_Wij.in(ref_bus_pairs_to)+Im_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
-            SDPOPF->add(IW_IV1.in(ref_bus_pairs_to)==0, true);
+//            Constraint<Cpx> RW_RV("RW_RV");
+//            RW_RV=R_Wij.in(ref_bus_pairs_from)-R_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
+//            SDPOPF->add(RW_RV.in(ref_bus_pairs_from)==0, true);
+//
+//            Constraint<Cpx> IW_IV("IW_IV");
+//            IW_IV=Im_Wij.in(ref_bus_pairs_from)-Im_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
+//            SDPOPF->add(IW_IV.in(ref_bus_pairs_from)==0, true);
+//
+//            Constraint<Cpx> RW_RV1("RW_RV1");
+//            RW_RV1=R_Wij.in(ref_bus_pairs_to)-R_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
+//            SDPOPF->add(RW_RV1.in(ref_bus_pairs_to)==0, true);
+//
+//            Constraint<Cpx> IW_IV1("IW_IV1");
+//            IW_IV1=Im_Wij.in(ref_bus_pairs_to)+Im_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
+//            SDPOPF->add(IW_IV1.in(ref_bus_pairs_to)==0, true);
             
             
             bool convexify = true;
@@ -1601,29 +1601,29 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
                 auto Wii_ = Wii.in_bags(grid._bags, 3);
                 auto nb_bags3 = Wij_[0]._indices->size();
 
-                Constraint<Cpx> Rank_type2a("RankType2a");
-                Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-                SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
-    
-                Constraint<Cpx> Rank_type2b("RankType2b");
-                Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
-                SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
-    
-                Constraint<Cpx> Rank_type2c("RankType2c");
-                Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
-                SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
-    
-                auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
-                DebugOn("firstfirst");
-                ref_bus_pairs_ijkl.first.first.print();
-                ref_bus_pairs_ijkl.first.second.print();
-                ref_bus_pairs_ijkl.second.first.print();
-                ref_bus_pairs_ijkl.second.second.print();
-                DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
-    
-                Constraint<Cpx> Rank_type3("RankType3");
-                Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
-                SDPOPF->add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
+//                Constraint<Cpx> Rank_type2a("RankType2a");
+//                Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//                SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
+//    
+//                Constraint<Cpx> Rank_type2b("RankType2b");
+//                Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+//                SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
+//    
+//                Constraint<Cpx> Rank_type2c("RankType2c");
+//                Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+//                SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
+//    
+//                auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
+//                DebugOn("firstfirst");
+//                ref_bus_pairs_ijkl.first.first.print();
+//                ref_bus_pairs_ijkl.first.second.print();
+//                ref_bus_pairs_ijkl.second.first.print();
+//                ref_bus_pairs_ijkl.second.second.print();
+//                DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
+//    
+//                Constraint<Cpx> Rank_type3("RankType3");
+//                Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
+//                SDPOPF->add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
             }
             
     }
