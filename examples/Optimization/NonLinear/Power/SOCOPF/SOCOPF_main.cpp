@@ -103,10 +103,14 @@ int main (int argc, char * argv[])
     SOCP.add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
     
     /* Real part of Wij = ViVj */
+//    var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
+//    /* Magnitude of Wii = Vi^2 */
+    
     var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
-    /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP.add(Wii.in(nodes));
     SOCP.add(R_Wij.in(bus_pairs));
