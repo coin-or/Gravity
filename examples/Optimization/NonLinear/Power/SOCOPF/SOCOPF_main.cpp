@@ -58,6 +58,7 @@ int main (int argc, char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     
+    
     /* Grid Stats */
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_gen = grid.get_nb_active_gens();
@@ -132,9 +133,8 @@ int main (int argc, char * argv[])
     bool convexify;
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    SOCP.add(SOC.in(bus_pairs) == 0, convexify=true);
-    SOCP.print_symbolic();
-    SOCP.print();
+    SOCP.add(SOC.in(bus_pairs) <= 0);
+
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gen_nodes) + grid.gs*Wii;
@@ -146,19 +146,19 @@ int main (int argc, char * argv[])
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij + grid.b_ft*Im_Wij);
+    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij.in(arcs) + grid.b_ft*Im_Wij.in(arcs));
     SOCP.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij - grid.b_tf*Im_Wij);
+    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij.in(arcs) - grid.b_tf*Im_Wij.in(arcs));
     SOCP.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij);
+    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in(arcs) - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij.in(arcs));
     SOCP.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij + grid.g_tf*Im_Wij;
+    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij.in(arcs) + grid.g_tf*Im_Wij.in(arcs);
     SOCP.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */

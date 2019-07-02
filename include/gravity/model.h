@@ -1030,14 +1030,14 @@ namespace gravity {
                 if(convexify){
                     if(newc->func<type>::is_convex() && newc->_ctype==eq){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
-                        Constraint<type> c_cvx(newc->_name+"_convex");
-                        c_cvx = *newc;
+                        Constraint<type> c_cvx(*newc);
+                        c_cvx._name = newc->_name+"_convex";
                         add_constraint(c_cvx <= 0);
                     }
                     if(newc->func<type>::is_concave() && newc->_ctype==eq){
                         DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
-                        Constraint<type> c_ccve(newc->_name+"_concave");
-                        c_ccve = *newc;
+                        Constraint<type> c_ccve(*newc);
+                        c_ccve._name = newc->_name+"_concave";
                         add_constraint(c_ccve >= 0);
                     }
                     auto lifted = lift_quad(*newc);
