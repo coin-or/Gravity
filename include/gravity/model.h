@@ -826,6 +826,8 @@ namespace gravity {
             lifted._all_sign = c._all_sign;
             lifted._ftype = lin_;
             lifted._ctype = c._ctype;
+            lifted._indices = c._indices;
+            lifted._dim[0] = c._dim[0];
             return lifted;
         }
         
