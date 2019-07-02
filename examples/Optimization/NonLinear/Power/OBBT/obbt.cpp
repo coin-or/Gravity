@@ -300,7 +300,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -351,6 +351,7 @@ int main (int argc, char * argv[]) {
                                             else
                                             {
                                                 if(dirk=="LB"){
+                                                    
                                                     vk.set_lb(keyk, objk);
                                                 }
                                                 else{
@@ -372,7 +373,9 @@ int main (int argc, char * argv[]) {
                                             }
                                             if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                             {
-                                            if(interval_original[pk]>=range_tol && !(vk.get_ub(keyk)==0 && vk.get_lb(keyk)==0))
+//
+                                                  if(interval_original[pk]>=range_tol)
+//                                                        if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && (abs(vk.get_lb(keyk))<=zero_val)))
                                             {
                                                 DebugOn("Entered reset");
                                                 double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
@@ -492,7 +495,7 @@ int main (int argc, char * argv[]) {
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-6, "ma97");
+            SDPLB1.run(output = 5, tol=1e-8, "ma97");
             
             SDP->print_constraints_stats(tol);
             
