@@ -316,87 +316,7 @@ namespace gravity {
 
         /** Operators */
         
-        template<typename... Args>
-        void index_in(const indices& ids1, Args&&... args) {
-            auto ids = indices(ids1,args...);
-            if(!_indices || _indices->empty()){/**< No need to add each key individually */
-                if(!ids._excluded_keys.empty()){
-                    ids.remove_excluded();
-                }
-                _indices = make_shared<indices>(ids);
-                auto dim = _indices->size();
-                if(ids._type==matrix_){
-                    if(_is_transposed){
-                        _dim[0] = ids._dim->at(1);
-                        _dim[1] = ids._dim->at(0);
-                    }
-                    else {
-                        _dim[1] = ids._dim->at(0);
-                        _dim[0] = ids._dim->at(1);
-                    }
-                }
-                else {
-                    if(_is_transposed){
-                        _dim[1] = dim;
-                    }
-                    else {
-                        _dim[0] = dim;
-                    }
-                }
-                _name += ".in("+ids.get_name()+")";
-            }
-            else { /**< Add each key in ids individually */
-                _indices->_ids = make_shared<vector<vector<size_t>>>();
-                _indices->_ids->resize(1);
-                if(ids.empty()){
-                    DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                    _name += "_EMPTY";
-                    return;
-                }
-                string excluded;
-                size_t idx = 0;
-                /* Used for truncating extra indices */
-//                auto nb_sep1 = _indices->_dim->size();
-//                auto nb_sep1 = ids._dim->size();
-//                auto nb_sep2 = ids._dim->size();
-                
-                for(auto key: *ids._keys){
-                    if(ids._excluded_keys.count(idx++)!=0){
-                        excluded += key + ",";
-                        continue;
-                    }
-                    if(_indices->_type==to_){
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    else if(_indices->_type==from_){
-                        key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                    auto nb_sep2 = count(key.begin(), key.end(), ',');
-                    if(nb_sep2>nb_sep1){
-                        auto pos = nthOccurrence(key, ",", nb_sep1+1);
-                        key = key.substr(0,pos);
-                    }
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
-                    }
-                    _indices->_ids->at(0).push_back(it1->second);
-                }
-                if(_is_transposed){
-                    _dim[1]=_indices->_ids->at(0).size();
-                }
-                else {
-                    _dim[0]=_indices->_ids->size();
-                }
-                _name += ".in("+ids.get_name()+")";
-                if(!excluded.empty()){
-                    excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
-                    _name += "\{" + excluded + "}";
-                }
-            }
-        }
+        
         
         /**
          Index the current object using incoming edges for nodes stored in vec. This is a double indexing where each row corresponds to a node, and columns correspond to the edge ids.
@@ -1713,6 +1633,10 @@ namespace gravity {
             return res;
         }
 
+        template<typename... Args>
+        void index_in(const indices& ids1, Args&&... args) {
+            *this = this->in(ids1,args...);
+        }
 
         param in_pairs(const indices& ids) {
             param res(*this);
