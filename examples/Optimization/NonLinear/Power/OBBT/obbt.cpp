@@ -185,7 +185,7 @@ int main (int argc, char * argv[]) {
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
     {
-             for(auto i = 0; i<2 ;i++){
+             for(auto i = 0; i<1 ;i++){
                  terminate=false;
         for(auto &it:SDP->_vars_name)
         {
