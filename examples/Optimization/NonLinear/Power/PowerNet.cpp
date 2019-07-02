@@ -1480,8 +1480,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 //    cos_L= (min(cos(theta_L.in(bus_pairs)), cos(theta_U.in(bus_pairs)))).in(bus_pairs);
 //    cos_L.eval_all();
     
-    func<> theta_L = -1*acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
-    func<> theta_U = acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
+//    func<> theta_L = -1*acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
+//    func<> theta_U = acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
+//    func<> theta_L = asin(min((Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)))));
+//    func<> theta_U = asin(max((Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)))));
+    func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
+    func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
     theta_L.eval_all();
     theta_U.eval_all();
 
@@ -1815,18 +1819,20 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 
     
     Constraint<> Im_U("Im_U");
-    Im_U=pow(Im_Wij, 2) - max(pow(sin(theta_L.in(bus_pairs)),2),pow(sin(theta_U.in(bus_pairs)),2))*Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    Im_U=pow(Im_Wij.in(bus_pairs), 2) - max(pow(sin(theta_L.in(bus_pairs)),2),pow(sin(theta_U.in(bus_pairs)),2))*Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SDPOPF->add(Im_U.in(bus_pairs)<=0);
 
     Constraint<> Im_L("Im_L");
     Im_L=min(sin(theta_L.in(bus_pairs))*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)),sin(theta_L.in(bus_pairs))*
-         sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) -Im_Wij;
+         sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) - Im_Wij.in(bus_pairs);
   SDPOPF->add(Im_L.in(bus_pairs)<=0);
+//    Im_L.print_symbolic();
+//    Im_L.print();
 
 
     Constraint<> R_L("R_L");
     R_L=min(cos(theta_L.in(bus_pairs)),cos(theta_U.in(bus_pairs)))*sqrt(Wii.get_lb().from(bus_pairs)*
-    Wii.get_lb().to(bus_pairs))-R_Wij;
+    Wii.get_lb().to(bus_pairs))-R_Wij.in(bus_pairs);
    SDPOPF->add(R_L.in(bus_pairs)<=0);
     
     if(loss){
