@@ -7599,6 +7599,11 @@ namespace gravity {
     }
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> atan2(const param<T>& f1, const param<T>& f2){
+        return atan2(func<T>(f1), func<T>(f2));
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> atan2(const func<T>& f1, const func<T>& f2){
         func<T> res(bexpr<T>(atan2_, f1.copy(), f2.copy()));
         res._all_convexity = undet_;
@@ -7612,9 +7617,9 @@ namespace gravity {
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> atan(const func<T>& f){
-        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
-            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
-        }
+//        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+//            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+//        }
         func<T> res(uexpr<T>(atan_, f.copy()));
         if (f.is_linear()) {
             if(f.is_non_positive()){
@@ -7640,9 +7645,9 @@ namespace gravity {
     
     template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
     func<T> atan(const func<T>& f){
-        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
-            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
-        }
+//        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+//            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+//        }
         func<T> res(uexpr<T>(atan_, f.copy()));
         if (f.is_linear()) {
             if(f.is_non_positive()){
