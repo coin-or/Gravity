@@ -702,6 +702,30 @@ namespace gravity {
                 lifted_imag._dim[0] = c._dim[0];
                 add_constraint(lifted_real);
                 add_constraint(lifted_imag);
+                if(c_real.func<type>::is_convex() && c_real._ctype==eq){
+                    DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                    Constraint<type> c_real_cvx(c_real._name+"_convex");
+                    c_real_cvx = c_real;
+                    add_constraint(c_real_cvx <= 0);
+                }
+                if(c_real.func<type>::is_concave() && c_real._ctype==eq){
+                    DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                    Constraint<type> c_real_ccve(c_real._name+"_concave");
+                    c_real_ccve = c_real;
+                    add_constraint(c_real_ccve >= 0);
+                }
+                if(c_imag.func<type>::is_convex() && c_real._ctype==eq){
+                    DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                    Constraint<type> c_imag_cvx(c_imag._name+"_convex");
+                    c_imag_cvx = c_imag;
+                    add_constraint(c_imag_cvx <= 0);
+                }
+                if(c_imag.func<type>::is_concave() && c_real._ctype==eq){
+                    DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                    Constraint<type> c_imag_ccve(c_imag._name+"_concave");
+                    c_imag_ccve = c_imag;
+                    add_constraint(c_imag_ccve >= 0);
+                }
             }
             else {
                 add_constraint(c_real);
@@ -900,20 +924,20 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c){
+        void add(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c);
+            add_constraint(c,convexify);
         }
         
         
-        void add_lazy(Constraint<type>& c){
+        void add_lazy(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
             c.make_lazy();
-            add_constraint(c);
+            add_constraint(c, convexify);
             _has_lazy = true;
         }
         
@@ -964,7 +988,7 @@ namespace gravity {
         }
         
         
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -997,9 +1021,26 @@ namespace gravity {
                             break;
                     }
                     Warning("WARNING: Adding redundant constant constraint, Gravity will be ignoring it.\n");
+                    newc->print();
                     return newc;
                 }
                 newc->update_str();
+                if(convexify){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
+                        DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                        Constraint<type> c_cvx(newc->_name+"_convex");
+                        c_cvx = *newc;
+                        add_constraint(c_cvx <= 0);
+                    }
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
+                        DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                        Constraint<type> c_ccve(newc->_name+"_concave");
+                        c_ccve = *newc;
+                        add_constraint(c_ccve >= 0);
+                    }
+                    auto lifted = lift_quad(*newc);
+                    return add_constraint(lifted);
+                }
                 embed(newc, false);
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);

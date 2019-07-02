@@ -84,7 +84,8 @@ int main (int argc, char * argv[])
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
     
-
+    double upper_bound = grid.solve_acopf(ACRECT);
+    
     
     /** MODEL DECLARATION */
     Model<> SOCP("SCOPF Model");
@@ -128,10 +129,12 @@ int main (int argc, char * argv[])
     
     /** Constraints */
     /* Second-order cone constraints */
+    bool convexify;
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    SOCP.add(SOC.in(bus_pairs) <= 0);
-    
+    SOCP.add(SOC.in(bus_pairs) == 0, convexify=true);
+    SOCP.print_symbolic();
+    SOCP.print();
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gen_nodes) + grid.gs*Wii;
@@ -231,5 +234,10 @@ int main (int argc, char * argv[])
     /* SOCP.print(); */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(SOCP.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
+    double gap = 100*(upper_bound - SOCP.get_obj_val())/upper_bound;
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(SOCP.get_obj_val()) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(SOCP.get_obj_val()) << " " << to_string(total_time)<<endl);
     return 0;
 }
