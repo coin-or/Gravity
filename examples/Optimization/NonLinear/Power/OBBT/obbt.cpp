@@ -117,7 +117,7 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    int nb_threads = 3*thread::hardware_concurrency();
+    int nb_threads = thread::hardware_concurrency()-1;
     //int nb_threads = 4;
     
     auto OPF=build_ACOPF(grid, ACRECT);
@@ -126,34 +126,34 @@ int main (int argc, char * argv[]) {
     
     //double upper_bound = grid.solve_acopf();
     //solve_acopf
-    OPF->print_solution();
-    auto rv= OPF->get_var<double>("vr");
-    DebugOn("W_orig\n");
-    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
-    
-    for(auto &k:*rv.get_keys())
-    {
-        rvv.push_back(rv.eval(k));
-        ivv.push_back(OPF->get_var<double>("vi").eval(k));
-        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
-        DebugOn(w_orig.back()<<endl);
-    }
-    DebugOn("RRwij\tIIwij"<<endl);
-    
-    for (auto &k:*(grid.bus_pairs._keys))
-    {
-        auto k1=k.substr(0, k.find_first_of(","));
-        auto k2=k.substr(k.find_first_of(",")+1);
-        auto rva=OPF->get_var<double>("vr").eval(k1);
-        auto rvb=OPF->get_var<double>("vr").eval(k2);
-        auto iva=OPF->get_var<double>("vi").eval(k1);
-        auto ivb=OPF->get_var<double>("vi").eval(k2);
-        
-        rrwij.push_back(rva*rvb+iva*ivb);
-        iiwij.push_back(iva*rvb-ivb*rva);
-        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
-        
-    }
+//    OPF->print_constraints_stats(tol);
+//    auto rv= OPF->get_var<double>("vr");
+//    DebugOn("W_orig\n");
+//    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
+//
+//    for(auto &k:*rv.get_keys())
+//    {
+//        rvv.push_back(rv.eval(k));
+//        ivv.push_back(OPF->get_var<double>("vi").eval(k));
+//        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
+//        DebugOn(w_orig.back()<<endl);
+//    }
+//    DebugOn("RRwij\tIIwij"<<endl);
+//
+//    for (auto &k:*(grid.bus_pairs._keys))
+//    {
+//        auto k1=k.substr(0, k.find_first_of(","));
+//        auto k2=k.substr(k.find_first_of(",")+1);
+//        auto rva=OPF->get_var<double>("vr").eval(k1);
+//        auto rvb=OPF->get_var<double>("vr").eval(k2);
+//        auto iva=OPF->get_var<double>("vi").eval(k1);
+//        auto ivb=OPF->get_var<double>("vi").eval(k2);
+//
+//        rrwij.push_back(rva*rvb+iva*ivb);
+//        iiwij.push_back(iva*rvb-ivb*rva);
+//        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
+//
+//    }
     
     double upper_bound=OPF->get_obj_val();
     
@@ -163,6 +163,8 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
+    double gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     //    SDP->print_solution();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -506,8 +508,9 @@ int main (int argc, char * argv[]) {
                 
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
-                DebugOn("Solution Print"<<endl);
-                SDP->print_solution();
+//                DebugOn("Solution Print"<<endl);
+//                SDP->print_solution();
+                SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
                 gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;

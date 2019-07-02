@@ -1947,17 +1947,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(!is_indexed()){
-                for (auto v:*_val) {
-                    if(_range->first > v){
-                        _range->first = v;
-                    }
-                    if(_range->second  < v){
-                        _range->second = v;
-                    }
-                }
-            }
-            else if(is_double_indexed()){
+            if(is_double_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
@@ -1972,8 +1962,7 @@ namespace gravity {
                 }
             }
             else {
-                for (auto idx:_indices->_ids->at(0)){
-                    auto v = _val->at(idx);
+                for (auto v:*_val) {
                     if(_range->first > v){
                         _range->first = v;
                     }
