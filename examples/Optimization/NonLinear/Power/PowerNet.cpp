@@ -1428,9 +1428,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
 
-    var<> V_mag("V_mag", v_min, v_max);
-
-    SDPOPF->add(V_mag.in(nodes));
+//    var<> V_mag("V_mag", v_min, v_max);
+//    SDPOPF->add(V_mag.in(nodes));
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
@@ -1551,18 +1550,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
             
             Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
             
-            Constraint<Cpx> Linking_Wi("Linking_Wi");
-            Linking_Wi = Wii - Vi*conj(Vi);
-            SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
-            
-            
             Constraint<> Linking_Wi_c("Linking_Wi_c");
             Linking_Wi_c = Wii - pow(R_Vi, 2) -pow(Im_Vi,2);
-            SDPOPF->add(Linking_Wi_c.in(nodes)==0);
+            SDPOPF->add(Linking_Wi_c.in(nodes)==0, convexify);
             
-            Constraint<Cpx> Linking_Wi_V_mag_c("Linking_Wi_V_mag_c");
-            Linking_Wi_V_mag_c = Wii - V_mag*V_mag;
-            SDPOPF->add(Linking_Wi_V_mag_c.in(nodes)==0);
+//            Constraint<> Linking_Wi_V_mag_c("Linking_Wi_V_mag_c");
+//            Linking_Wi_V_mag_c = Wii - V_mag*V_mag;
+//            SDPOPF->add(Linking_Wi_V_mag_c.in(nodes)==0, convexify);
             
 //            Constraint<Cpx> Linking_Wi_V_mag("Linking_Wi_V_mag");
 //            Linking_Wi_V_mag = Wii - V_mag*V_mag;
@@ -1572,9 +1566,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 //            Linking_V_mag_c = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
 //            SDPOPF->add(Linking_V_mag_c.in(nodes)>=0);
 //
-            Constraint<Cpx> Linking_V_mag("Linking_V_mag");
-            Linking_V_mag = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
-            SDPOPF->add(Linking_V_mag.in(nodes)==0, convexify);
+//            Constraint<> Linking_V_mag("Linking_V_mag");
+//            Linking_V_mag = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
+//            SDPOPF->add(Linking_V_mag.in(nodes)==0, convexify);
 //
 //            Constraint<> LNC_simple1("LNC_simple1");
 //            LNC_simple1=(sin(theta_L.in(bus_pairs))-sin(theta_U.in(bus_pairs)))*R_Wij.in(bus_pairs)-V_mag.from(bus_pairs)*V_mag.get_lb().to(bus_pairs)*sin(theta_L.in(bus_pairs)-theta_U.in(bus_pairs)) + (cos(theta_L.in(bus_pairs))-cos(theta_U.in(bus_pairs)))*Im_Wij.in(bus_pairs);
@@ -1587,13 +1581,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 //
 //
 //
-            Constraint<Cpx> Vol_limit_LB("Vol_limit_LB");
+            Constraint<> Vol_limit_LB("Vol_limit_LB");
             Vol_limit_LB = pow(Im_Vi,2) + pow(R_Vi,2) - Wii.get_lb();
             SDPOPF->add(Vol_limit_LB.in(nodes)>=0,convexify);
 //
             Constraint<> SOC("SOC_EQ");
-            SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SDPOPF->add(SOC.in(bus_pairs) == 0, convexify=true);
+            SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+            SDPOPF->add(SOC.in(bus_pairs_chord) == 0, convexify=true);
 
     
 
@@ -1793,7 +1787,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
 //        SDPOPF->add(I_from_Pf.in(arcs)>=0);
         
         
-        Constraint<Cpx> I_from_Pf_mc("I_from_Pf_mc");
+        Constraint<> I_from_Pf_mc("I_from_Pf_mc");
         I_from_Pf_mc=lij.in(arcs)*Wii.from(arcs)-pow(tr,2)*(Pf_from.in(arcs)*Pf_from.in(arcs)+Qf_from.in(arcs)*Qf_from.in(arcs));
        SDPOPF->add(I_from_Pf_mc.in(arcs)==0, true);
         
