@@ -487,7 +487,7 @@ namespace gravity {
             var in(const space& s){
                 set_size(s._dim);
                 if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
-                    this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+                    this->_indices = make_shared<indices>(range(0,s._dim[0]-1));
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);
