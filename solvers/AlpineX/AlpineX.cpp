@@ -107,7 +107,7 @@ int main (int argc, char * argv[]) {
     
     PowerNet grid;
     grid.readgrid(fname);
-    grid.get_tree_decomp_bags(false,true);
+    grid.get_tree_decomp_bags();
     
     
     
