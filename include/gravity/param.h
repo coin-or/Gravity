@@ -3,8 +3,8 @@
 //
 //
 //  Created by Hassan on 13/05/2016.
-//
-//
+
+
 
 #ifndef ____param__
 #define ____param__
@@ -24,9 +24,8 @@
 #include <math.h>
 #include <random>
 #ifdef USE_QPP
-	#include "qpp.h"
+    #include "qpp.h"
 #endif
-#include <Eigen/Sparse>
 
 using namespace std;
 
@@ -34,69 +33,50 @@ using namespace std;
 
 
 
-namespace gravity {
+namespace gravity {    
     
     /** Backbone class for parameter */
     class param_: public constant_ {
-        
+
     protected:
-        
+
         NType                                          _intype; /**< internal storage type **/
-        
+
+        void set_intype(NType type) {
+            _intype = type;
+        }
+
     public:
-        
-        string                                         _name;
+
+        string                                         _name = "noname";
         shared_ptr<size_t>                             _id = make_shared<size_t>(0); /**< index of current param/var */
-        shared_ptr<size_t>                             _vec_id = nullptr; /**< index of the corresponding vector (for Cplex). **/
+        shared_ptr<size_t>                             _vec_id = make_shared<size_t>(0);; /**< index of the corresponding vector (for Cplex). **/
         shared_ptr<indices>                            _indices = nullptr; /*< If indexed, point to the indexing set */
         bool                                           _is_relaxed = false; /*< Is this an integer parameter/variable that has been relaxed? */
         bool                                           _new = true; /**< Will become false once this parameter/variable is added to a program. Useful for iterative model solving. */
+
+        bool                                           _is_conjugate = false; /**< True if the parameter/variable is a complex number and is conjugated */
+        bool                                           _is_sqrmag = false; /**< True if the parameter/variable is the magnitude squared of a complex number */
+        bool                                           _is_angle = false; /**< True if the parameter/variable is the angle of a complex number */
+        bool                                           _is_real = false; /**< True if the parameter/variable is the real part of a complex number */
+        bool                                           _is_imag = false; /**< True if the parameter/variable is the imaginary part of a complex number */
+        
+        shared_ptr<param_>                                        _real = nullptr; /**< Pointer to the real variable in case this is a complex var */
+        shared_ptr<param_>                                        _imag = nullptr; /**< Pointer to the imaginary variable in case this is a complex var */
+
+        shared_ptr<param_>                                        _mag = nullptr; /**< Pointer to the magnitude variable in case this is a complex var */
+        shared_ptr<param_>                                        _ang = nullptr; /**< Pointer to the angle variable in case this is a complex var */
+
+        
+        /* For Ipopt Use */
         vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
         vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
         
-        
-        virtual ~param_() {};
-        
-        void set_id(size_t idx) {
-            *_id = idx;            
-        };
-        
-        void set_vec_id(size_t idx) {
-            *_vec_id = idx;
-        };
-        
-        size_t get_id() const {
-            return *_id;
-        };
-        
-        size_t get_vec_id() const {
-            return *_vec_id;
-        };
-        
-        size_t get_id_inst(size_t inst = 0) const {
-            assert(!is_matrix());
-            if (is_indexed()) {
-                if(_indices->_ids->at(0).size() <= inst){
-                    throw invalid_argument("get_id_inst out of range");
-                }
-                return _indices->_ids->at(0).at(inst);
-            }
-            auto dim = get_dim();
-            return min(dim-1, inst);
-        };
-        
-        size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_indexed()) {
-                if (_indices->_ids->size()==1) {
-                    return _indices->_ids->at(0).at(inst2);
-                }
-                return _indices->_ids->at(inst1).at(inst2);
-            }
-            return get_id_inst(inst2);
-//            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
-        };
-        
-        void copy(const param_& p) {
+        /**
+         A shallow copy of p (ignoring _val and _range)
+         @param[in] p param_ to copy from.
+         */
+        void shallow_copy(const param_& p) {
             _id = p._id;
             _vec_id = p._vec_id;
             _name = p._name;
@@ -107,37 +87,95 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
+
+        virtual void reset_range(){};
         
-        string get_name(bool in_func = false, bool exclude_indexing = true) const{
-            if(in_func){/*< true if this param/var is wraped in a function */
-                auto name = _name;
-                if(_indices && exclude_indexing){
-                    return name.substr(0, name.find_last_of("."));
+        /** let p share the values and indices of current var */
+        virtual void share_vals(const shared_ptr<param_>& p){};
+        virtual void initialize_uniform(){};
+        virtual void initialize_zero(){};
+        virtual shared_ptr<param_> pcopy() const{return nullptr;};
+        
+        virtual void print(){};
+        
+        virtual void print_vals(int prec){};
+        
+        virtual void print_symbolic() const{};
+        
+        virtual void print(int prec){};                
+
+        void set_id(size_t idx) {
+            *_id = idx;
+        };
+
+        void set_vec_id(size_t idx) {
+            *_vec_id = idx;
+        };
+
+        size_t get_id() const {
+            return *_id;
+        };
+
+        size_t get_vec_id() const {
+            return *_vec_id;
+        };
+
+        indices get_indices() const{return *_indices;};
+        
+        inline size_t get_id_inst(size_t inst = 0) const {
+            if (is_indexed()) {
+                if(_indices->_ids->at(0).size() <= inst){
+                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
-                return name;
+                return _indices->_ids->at(0).at(inst);
             }
+//            auto dim = get_dim();
+//            if(inst > dim-1){
+//                throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+//            }
+            if(_dim[0]==1 && _dim[1]==1){/* unidimensional param */
+                return 0;
+            }
+            return inst;
+        };
+
+        size_t get_id_inst(size_t inst1, size_t inst2) const {
+            if (is_double_indexed()) {
+                if (_indices->_ids->size()<=inst1) {
+                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
+                }
+                if (_indices->_ids->at(inst1).size()<=inst2) {
+                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst2 out of range\n");
+                }
+                return _indices->_ids->at(inst1).at(inst2);
+            }
+            return get_id_inst(inst2);
+//            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
+        };
+
+
+        string get_name(bool in_func, bool exclude_indexing) const{
+//            return _name;
             string name = _name;
             if(_indices && exclude_indexing){
-                name = name.substr(0, name.find_last_of("."));
+                name = name.substr(0, name.find_first_of("."));
             }
-//            if (_is_vector) {
-//                name = "[" + name + "]";
-//            }
-            if (_is_transposed) {
+            if (!in_func && _is_transposed) {
                 name += "\u1D40";
             }
-            
             return name;
         };
-        
+
         void set_name(const string s) {
             _name = s;
         };
-        
+
         string get_name(size_t inst) const {/*< Get the name of the indexed version of this variable */
             string name = _name;
             name = name.substr(0, name.find_first_of("."));
@@ -166,15 +204,15 @@ namespace gravity {
                 size_t rev_idx = _indices->_ids->at(0).at(inst);
                 name += "["+_indices->_keys->at(rev_idx)+"]";
             }
-            else if(_indices){                
-                name += "["+to_string(get_id_inst(inst))+"]";
+            else if(_indices){
+                name += "["+_indices->_keys->at(get_id_inst(inst))+"]";
             }
             else {
                 name += "["+to_string(inst)+"]";
             }
             return name;
         };
-        
+
         string get_name(size_t inst1, size_t inst2) const {
             string name = _name;
             name = name.substr(0, name.find_first_of("."));
@@ -203,157 +241,445 @@ namespace gravity {
                 name += "["+_indices->_keys->at(_indices->_ids->at(inst1).at(inst2))+"]";
             }
             else if(_indices){
-                name += "["+_indices->_keys->at(inst2)+"]";
+                name += "["+_indices->_keys->at(inst1)+","+_indices->_keys->at(inst2)+"]";
             }
             else{
-                name += "["+to_string(inst2)+"]";
-            }            
+                name += "["+to_string(inst1)+","+to_string(inst2)+"]";
+            }
             return name;
         };
-        
+
         NType get_intype() const {
             return _intype;
         }
-        
+
         shared_ptr<map<string,size_t>> get_keys_map() const {
             if(_indices){
                 return _indices->_keys_map;
             }
             throw invalid_argument("Calling get_keys_map() on a non-indexed param/var.");
         }
-        
+
         shared_ptr<vector<string>> get_keys() const {
             if(_indices){
                 return _indices->_keys;
             }
             throw invalid_argument("Calling get_keys() on a non-indexed param/var.");
         }
-        
-        
+
+
         shared_ptr<vector<vector<size_t>>> get_ids() const {
             if(_indices){
                 return _indices->_ids;
             }
             throw invalid_argument("Calling get_ids() on a non-indexed param/var.");
         }
-        
-        void set_type(NType type) {
-            _intype = type;
-        }
-        
-        /** Querries */
-        
-        bool is_indexed() const{
+
+
+        /* Querries */
+
+        inline bool is_indexed() const{
             return (_indices && _indices->_ids);
         }
         
+        bool is_double_indexed() const{
+            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+        }
+
         bool is_binary() const {
             return (_intype==binary_);
         };
-        
+
         bool is_integer() const {
-            return (_intype==integer_);
+            return (_intype==integer_ || _intype==short_);
         };
-        
+
         bool is_float() const {
             return (_intype==float_);
         };
-        
+
         bool is_double() const {
             return (_intype==double_);
         };
-        
+
         bool is_long() const {
             return (_intype==long_);
         };
-        
+
         bool is_complex() const {
             return (_intype==complex_);
         };
+
+//        Sign get_all_sign() const{return unknown_;}; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
+//        virtual Sign get_sign(size_t idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
         
-        Sign get_all_sign() const; /**< If all instances of the current parameter/variable have the same sign, it returns it, otherwise, it returns unknown. **/
-        Sign get_sign(size_t idx = 0) const; /**< returns the sign of one instance of the current parameter/variable. **/
-        pair<double,double>* get_range() const;
-        
+
         /** Operators */
+        
+        
+        
+        /**
+         Index the current object using incoming edges for nodes stored in vec. This is a double indexing where each row corresponds to a node, and columns correspond to the edge ids.
+         @param[in] vec vector of nodes
+         */
+        void index_in_arcs(const vector<Node*>& vec) {
+            _indices->_ids = make_shared<vector<vector<size_t>>>();
+            if(vec.empty()){
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                _name += "_EMPTY";
+                return;
+            }
+            string key;
+            size_t inst = 0;
+            for(auto it = vec.begin(); it!= vec.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                _indices->_ids->push_back(vector<size_t>());
+                for (auto &a:(*it)->get_in()) {
+                    if (!a->_active) {
+                        continue;
+                    }
+                    key = a->_name;
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.index_in_arcs(const vector<Node*>& vec), unknown arc key.");
+                    }
+                    _indices->_ids->at(inst).push_back(it1->second);
+                }
+                ++inst;
+            }
+        }
+        
+        /**
+         Index the current object using outgoing edges for nodes stored in vec. This is a double indexing where each row corresponds to a node, and columns correspond to the edge ids.
+         @param[in] vec vector of nodes
+         */
+        void index_out_arcs(const vector<Node*>& vec) {
+            _indices->_ids = make_shared<vector<vector<size_t>>>();
+            if(vec.empty()){
+                DebugOff("In function param.index_out_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                _name += "_EMPTY";
+                return;
+            }
+            string key;
+            size_t inst = 0;
+            for(auto it = vec.begin(); it!= vec.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                _indices->_ids->push_back(vector<size_t>());
+                for (auto &a:(*it)->get_out()) {
+                    if (!a->_active) {
+                        continue;
+                    }
+                    key = a->_name;
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in_arcs(const vector<Node*>& vec), unknown arc key.");
+                    }
+                    _indices->_ids->at(inst).push_back(it1->second);
+                }
+                ++inst;
+            }
+        }
+        
+        /** Index param/var based on auxiliary objects attached to nodes in vec
+         @param[in] vec vector of nodes
+         */
+        void index_in_aux(const vector<Node*>& vec, const string& aux_type) {
+            _indices->_ids = make_shared<vector<vector<size_t>>>();
+            if(vec.empty()){
+                DebugOff("In function param.index_in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                _name += "_EMPTY";
+                return;
+            }
+            string key;
+            size_t inst = 0;
+            for(auto it = vec.begin(); it!= vec.end(); it++) {
+                if(!(*it)->_active) {
+                    continue;
+                }
+                _indices->_ids->push_back(vector<size_t>());
+                for (auto &a:(*it)->get_aux(aux_type)) {
+                    if (!a->_active) {
+                        continue;
+                    }
+                    key = a->_name;
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in_aux(const vector<Node*>& vec), unknown arc key.");
+                    }
+                    _indices->_ids->at(inst).push_back(it1->second);
+                }
+                ++inst;
+            }
+        }
+        
         bool operator==(const param_& p) const {
             return (_id==p._id && _type==p._type && _intype==p._intype && get_name(false,false)==p.get_name(false,false));
         }
-//        size_t get_nb_instances() const {
-//            if (is_indexed()) {
-//                if (_indices->_ids->size()>1) {
-//                    throw invalid_argument("get_nb_instances should be called with index here\n");
-//                }
-//                return _indices->_ids->at(0).size();
-//            }
-//            return get_dim();
-//        }
-        
+
         size_t get_dim() const{
             return constant_::get_dim();
         }
-        
+
         size_t get_dim(size_t i) const{
-            if (is_indexed() && _indices->_ids->size()>i) {
+            if(is_double_indexed()){
+                if(i>_indices->_ids->size()){
+                    throw invalid_argument("get_dim(size_t i) i out of range\n");
+                }
                 return _indices->_ids->at(i).size();
             }
-            else if(is_matrix() && i==1){
-                return _dim[1];
+            if(is_indexed()){
+                return _indices->_ids->at(0).size();
             }
-            return _dim[0];
+            return this->_dim[0];
         }
         
-//        size_t get_nb_instances(size_t inst) const {
-//            if (is_indexed() && _indices->_ids->size()>inst) {
-//                return _indices->_ids->at(inst).size();
-//            }
-//            return 1;
-//        }
+        size_t get_nb_inst() const{
+            if(is_double_indexed())
+                return _indices->_ids->size();
+            if(is_indexed() && !_is_transposed){
+                return _indices->_ids->at(0).size();
+            }
+            return this->_dim[0];
+        }
+        
+        /** set the _evaluated flag to false for the variable's bounds */
+        virtual void reset_bounds(){};
+        
+        /** Fill x with the variable's values */
+        virtual void set_double_val(double* x){};
+        /** Fill the variable's values from x */
+        virtual void get_double_val(const double* x){};
+        
+        /** Fill the variable's value at pos to x */
+        virtual void get_double_val(size_t pos, double x){};
+        
+        /** Fill x from the variable's value at pos */
+        virtual void set_double_val(size_t pos, double& x){};
+        
+        /** round the value stored at position i to the nearest integer */
+        virtual void round_vals(){};
+
+        /** Fill x with the variable's lower bound values */
+        virtual void set_double_lb(double* x){};
+        /** Fill x with the variable's upper bound values */
+        virtual void set_double_ub(double* x){};
+        
+        /** Return lower bound violation */
+        virtual double get_lb_violation(size_t i){return 0;};
+        /** Return upper bound violation */
+        virtual double get_ub_violation(size_t i){return 0;};
+        
+        virtual void copy_vals(const shared_ptr<param_>& p){};
+        virtual void copy_bounds(const shared_ptr<param_>& p){};
+        virtual double get_double_lb(size_t i) const{return 0;};
+        virtual double get_double_ub(size_t i) const{return 0;};
+
     };
-    
-    
-    /** A parameter can be a bool, a short, an int, a float or a double*/
+
+
+    /** A parameter can be a bool, a short, an int, a float, a double, a long double or a complex<double>. */
     template<typename type = double>
     class param: public param_ {
-        
+
     public:
-        
-        shared_ptr<vector<type>>                _val; /**< stored values **/
-        shared_ptr<pair<type,type>>             _range; /**< (Min,Max) values in vals **/
-        
+
+        shared_ptr<vector<type>>                _val = nullptr; /**< vector of values **/
+        shared_ptr<pair<type,type>>             _range = nullptr; /**< (Min,Max) values in vals **/
+
         param() {
             update_type();
+            init_range();
             _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>();
         }
         
-        ~param() {
+        shared_ptr<param_> pcopy() const{return make_shared<param>(*this);};
+
+        shared_ptr<constant_> copy()const{return make_shared<param>(*this);};
+        
+        ~param(){};
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        param (const param<T2>& p) {
+            *this = p;            
         }
-        
-        
-        param (const param& p) {
+
+        param (const param& p):param() {
             *this = p;
         }
         
-        param (param&& p) {
+        param (param&& p):param() {
             *this = move(p);
         }
         
+        /** let this share the values, indices and range of p */
+        void share_vals_ids(param<type>& p){
+            if(p._indices){
+                this->_indices = p._indices;
+            }
+            this->_dim[0] = p._dim[0];
+            this->_dim[1] = p._dim[1];
+            this->_val = p._val;
+            this->_range = p._range;
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(param<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(param<T2>& pp){
+            this->_val = pp._val;
+        }
+        
+        /** let this share the values of p */
+        void share_vals(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<param<bool>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<param<short>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<param<int>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<param<float>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (param<double>*)(p.get());
+                    share_vals_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<param<long double>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<param<Cpx>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        param deep_copy() const{
+            param res;
+            res._type = _type;
+            res._polar = _polar;
+            res._intype = _intype;
+//            res._id = make_shared<size_t>();
+//            res._vec_id = make_shared<size_t>();
+//            res._val = make_shared<vector<type>>(*_val);
+            res._val = make_shared<vector<type>>();
+            res._val->resize(_val->size());
+//            res._val = make_shared<vector<type>>(*_val);
+            res._range = make_shared<pair<type,type>>(*_range);
+            res._name = _name;
+            res._is_transposed = _is_transposed;
+            res._is_vector = _is_vector;
+            res._new = _new;
+            res._is_relaxed = _is_relaxed;
+            res._is_angle = _is_angle;
+            res._is_sqrmag = _is_sqrmag;
+            res._is_conjugate = _is_conjugate;
+            res._is_real = _is_real;
+            res._is_imag = _is_imag;
+            res._real = _real;
+            res._imag = _imag; res._mag = res._mag; res._ang = _ang;
+            if(_indices){
+                res._indices = make_shared<indices>();
+                res._indices->shallow_copy(_indices);
+            }
+            res._dim[0] = _dim[0];
+            res._dim[1] = _dim[1];
+            return res;
+        }
+
         param& operator=(const param& p) {
             _type = p._type;
+            _polar = p._polar;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
             _val = p._val;
-            _name = p._name;
             _range = p._range;
+            _name = p._name;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _new = p._new;
+            _is_relaxed = p._is_relaxed;
             _is_angle = p._is_angle;
             _is_sqrmag = p._is_sqrmag;
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
+            if(p._indices){
+                _indices = make_shared<indices>();
+                _indices->shallow_copy(p._indices);
+            }
+            _dim[0] = p._dim[0];
+            _dim[1] = p._dim[1];
+            return *this;
+        }
+        
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        param& operator=(const param<T2>& p) {
+            update_type();
+            _id = p._id;
+            _polar = p._polar;
+            _vec_id = p._vec_id;
+            _val = make_shared<vector<type>>();
+            _val->resize(p._val->size());
+            for(auto i = 0; i<p._val->size();i++){
+                _val->at(i) = p._val->at(i);
+            }
+            _range = make_shared<pair<type,type>>();
+            _range->first = p._range->first;
+            _range->second = p._range->second;
+            _name = p._name;
+            _is_transposed = p._is_transposed;
+            _is_vector = p._is_vector;
+            _new = p._new;
+            _is_relaxed = p._is_relaxed;
+            _is_angle = p._is_angle;
+            _is_sqrmag = p._is_sqrmag;
+            _is_conjugate = p._is_conjugate;
+            _is_real = p._is_real;
+            _is_imag = p._is_imag;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>(*p._indices);
             }
@@ -361,55 +687,53 @@ namespace gravity {
             _dim[1] = p._dim[1];
             return *this;
         }
-        
+
         param& operator=(param&& p) {
             _type = p._type;
+            _polar = p._polar;
             _intype = p._intype;
             _id = p._id;
             _vec_id = p._vec_id;
             _val = move(p._val);
+            _range = move(p._range);
             _name = p._name;
-            _range = p._range;
             _is_transposed = p._is_transposed;
             _is_vector = p._is_vector;
+            _new = p._new;
+            _is_relaxed = p._is_relaxed;
             _is_angle = p._is_angle;
             _is_sqrmag = p._is_sqrmag;
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
+            _real = p._real;
+            _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = move(p._indices);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             return *this;
         }
-        
+
         param tr() const {
             auto p = param(*this);
             p.constant_::transpose();
             p._name = "["+p._name+"]";
             return p;
         }
-        
+
         param vec() const {
             auto p = param(*this);
             p._is_vector = true;
             p._name = "["+p._name+"]";
             return p;
         }
-        
-        
+
+
         shared_ptr<vector<type>> get_vals() const {
             return _val;
         }
-        
-        void set_type(CType t) {
-            _type = t;
-        }
-        
-        void set_intype(NType t) {
-            _intype = t;
-        }
-        
+
+
         void update_type() {
             _type = par_c;
             if(typeid(type)==typeid(bool)) {
@@ -436,68 +760,60 @@ namespace gravity {
                 _intype = long_;
                 return;
             }
-            if(typeid(type)==typeid(complex<double>)) {
+            if(typeid(type)==typeid(Cpx)) {
                 _intype = complex_;
                 return;
             }
-            throw bad_alloc();
+            throw invalid_argument("Unsupported numerical parameter type");
         }
-        
-        
-        param(const string& s) {
+
+
+        param(const string& s): param(){
             _name = s;
-            _vec_id = make_shared<size_t>(0);
-            update_type();
-            _val = make_shared<vector<type>>();
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
         }
-        
+
         NType get_intype() const {
             return _intype;
         }
-        
-        type eval() const {
+
+        inline type eval() const {
             if (is_indexed()) {
                 return _val->at(_indices->_ids->at(0).back());
             }
             return _val->back();
         }
-        
-        type eval(size_t i) const {
-            if(is_matrix()){
-                throw invalid_argument("eval() should be called with double index here\n");
-            }
+
+        inline type eval(size_t i) const {
+//            if(is_matrix()){
+//                throw invalid_argument("eval() should be called with double index here\n");
+//            }
             auto idx = get_id_inst(i);
-            if (is_indexed()) {
-                if (_indices->_ids->size()>1) {
-                    throw invalid_argument("eval() should be called with double index here\n");
-                }
-                if (_val->size()<=idx){
-                    throw invalid_argument("Param eval out of range");
-                }
-                return _val->at(idx);
-            }
-            if (_val->size()<=idx){
-                throw invalid_argument("Param eval out of range");
-            }
+//            if (is_indexed()) {
+//                if (_indices->_ids->size()>1) {
+//                    throw invalid_argument("eval() should be called with double index here\n");
+//                }
+//                if (_val->size()<=idx){
+//                    throw invalid_argument("Param eval out of range");
+//                }
+//                return _val->at(idx);
+//            }
+//            if (_val->size()<=idx){
+//                throw invalid_argument("Param eval out of range");
+//            }
             return _val->at(idx);
         }
-        
-        
+
+
         type eval(const string& key) const{
             return _val->at(param_::_indices->_keys_map->at(key));
         }
-        
-        type eval(const index_pair& idp) const{
-            return _val->at(param_::_indices->_keys_map->at(idp._name));
-        }
-        
-        type eval(size_t i, size_t j) const {
-            
+
+        inline type eval(size_t i, size_t j) const {
+
             if (is_indexed() && _indices->_ids->size()>1) {
-                if (_indices->_ids->at(i).at(j) >= _val->size()) {
-                    throw invalid_argument("eval(i,j): out of range");
-                }
+//                if (_indices->_ids->at(i).at(j) >= _val->size()) {
+//                    throw invalid_argument("eval(i,j): out of range");
+//                }
                 return _val->at(_indices->_ids->at(i).at(j));
             }
 
@@ -509,9 +825,45 @@ namespace gravity {
             }
             return _val->at(i*_dim[1]+j);
         }
-        
-        
+
+
         /* Modifiers */
+        
+        void mag_ang(const param<>& pmag, const param<>& pang){
+            this->_mag = make_shared<param<>>(pmag);
+            this->_ang = make_shared<param<>>(pang);
+            this->_polar = true;
+        }
+        
+        void real_imag(const param<>& pr, const param<>& pi){
+            this->_real = make_shared<param<>>(pr);
+            this->_imag = make_shared<param<>>(pi);
+        }
+        
+        void set_real(const param<>& p){
+            _real = make_shared<param<>>(p);
+        }
+        
+        void set_imag(const param<>& p){
+            _imag = make_shared<param<>>(p);
+        }
+        
+
+        
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+        }
+        
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+        }
+
+        
         void    set_size(vector<size_t> dims){
             if (dims.size()==1) {
                 set_size(dims[0]);
@@ -523,28 +875,38 @@ namespace gravity {
                 throw invalid_argument("In Function set_size(vector<size_t> dims), dims.size() should be less or equal 2. \n");
             }
         }
-        
+
         void   set_size(size_t s1, size_t s2) {
-            _is_vector = true;
             _dim[0] = s1;
             _dim[1] = s2;
             auto dim = _dim[0]*_dim[1];
             _val->resize(dim);
+            if (is_matrix()) {
+                _is_vector = true;
+            }
         };
-        
+
         void   set_size(size_t s) {
             _val->resize(s);
             _dim[0] = s;
         };
-        
-        
+
+
         void add_val(type val) {
+            if(is_matrix()){
+                throw invalid_argument("Cannot call param::add_val(type val) on matrix");
+            }
             _val->push_back(val);
             update_range(val);
             _dim[0] = _val->size();
         }
         
-        
+        void set_range(type v){
+            _range->first = v;
+            _range->second = v;
+        }
+
+
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void update_range(T val) {
             if (val < _range->first) {
                 _range->first = val;
@@ -553,40 +915,62 @@ namespace gravity {
                 _range->second = val;
             }
         }
-        
+
         void add_val(size_t i, type val) {
+            if(is_matrix()){
+                throw invalid_argument("Cannot call param::add_val(type val) on matrix");
+            }
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
             _val->at(i) = val;
             update_range(val);
         }
-        
+
         void set_val(size_t i, size_t j, type val) {
-            if(!is_matrix()){
-                throw invalid_argument("Function set_val(size_t i, size_t j, type val) should be called on a matrix");
-            }
-            if(_dim[0] <= i || _dim[1] <= j){
-                throw invalid_argument("In Function set_val(size_t i, size_t j, type val), i or j are out of bounds");
-            }
-            if (_is_transposed) {
-                _val->at(_dim[0]*j+i) = val;
-            }
-            _val->at(_dim[1]*i+j) = val;
+//            if(!is_matrix()){
+//                throw invalid_argument("Function set_val(size_t i, size_t j, type val) should be called on a matrix");
+//            }
+//            if(_dim[0] <= i || _dim[1] <= j){
+//                throw invalid_argument("In Function set_val(size_t i, size_t j, type val), i or j are out of bounds");
+//            }
             update_range(val);
+            if (_is_transposed) {
+//                if(_val->at(_dim[0]*j+i)==_range->first ||  _val->at(_dim[0]*j+i)==_range->second || val<_range->first || val>_range->second){
+                    _val->at(_dim[0]*j+i) = val;
+//                    reset_range();
+//                }
+//                else {
+//                    _val->at(_dim[0]*j+i) = val;
+//                }
+            }
+           else {
+//                if(_val->at(_dim[1]*i+j)==_range->first ||  _val->at(_dim[1]*i+j)==_range->second || val<_range->first || val>_range->second){
+//                    _val->at(_dim[1]*i+j) = val;
+//                    reset_range();
+//                }
+//                else {
+                    _val->at(_dim[1]*i+j) = val;
+//                }
+           }
         }
-        
-        
-        
+
+
+
         size_t set_val(const string& key, type val) {
             auto it = _indices->_keys_map->find(key);
             if (it == _indices->_keys_map->end()){
-                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key");
+                throw invalid_argument("in Function size_t set_val(const string& key, type val), unknown key"+key);
             }
-            _val->at(it->second) = val;
-            update_range(val);
+            if(_val->at(it->second)==_range->first ||  _val->at(it->second)==_range->second || val<_range->first || val>_range->second){
+                _val->at(it->second) = val;
+                reset_range();
+            }
+            else {
+                _val->at(it->second) = val;
+            }
             return it->second;
         }
-        
+
         size_t add_val(const string& key, type val) {
             if(!_indices){
                 _indices = make_shared<indices>();
@@ -604,12 +988,11 @@ namespace gravity {
             }
             else {
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
-                _val->at(pp.first->second) = val;
-                update_range(val);
+                set_val(key,val);
                 return pp.first->second;
             }
         }
-        
+
         void add_val(size_t i, size_t j, type val) {
             _is_vector = true;
             _dim[0] = max(_dim[0],i+1);
@@ -619,7 +1002,7 @@ namespace gravity {
             _val->at(index) = val;
             update_range(val);
         }
-        
+
         void set_val(size_t i, type val) {
             if(is_matrix()){
                 throw invalid_argument("set_val(size_t i, type val) should be called with double index here\n");
@@ -632,22 +1015,45 @@ namespace gravity {
                     throw invalid_argument("Param set_val(size_t i, type val) out of range");
                 }
                 _val->at(_indices->_ids->at(0).at(i)) = val;
+                if(_val->at(_indices->_ids->at(0).at(i))==_range->first ||  _val->at(_indices->_ids->at(0).at(i))==_range->second || val<_range->first || val>_range->second){
+                    reset_range();
+                }
             }
             if (_val->size()<=i){
                 throw invalid_argument("Param set_val(size_t i, type val) out of range");
             }
-            _val->at(i) = val;
-            update_range(val);
-        }
-        
-        void set_val(type val) {
-            for (auto &v: *_val) {
-                v = val;
+            if(_val->at(i)==_range->first ||  _val->at(i)==_range->second || val<_range->first || val>_range->second){
+                _val->at(i) = val;
+                reset_range();
             }
-            _range->first = val;
-            _range->second = val;
+            else{
+                _val->at(i) = val;
+            }
         }
-        
+
+        void set_val(type val) {
+            if(is_indexed()){
+                update_range(val);
+                bool reset = false;
+                for(auto &idx: _indices->_ids->at(0)){
+                    if(_val->at(idx)==_range->first ||  _val->at(idx)==_range->second){
+                        reset = true;
+                    }
+                    _val->at(idx) = val;
+                }
+                if(reset){
+                    reset_range();
+                }
+            }
+            else {
+                for (auto i = 0; i<_val->size() ;i++) {
+                    _val->at(i) = val;
+                }
+                _range->first = val;
+                _range->second = val;
+            }
+        }
+
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_sign(size_t idx) const{
             if (_val->at(idx)==0) {
@@ -662,8 +1068,35 @@ namespace gravity {
             return unknown_;
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_sign(size_t idx) const{
+            if (_val->at(idx) == Cpx(0,0)) {
+                return zero_;
+            }
+            if ((_val->at(idx).real() < 0 && _val->at(idx).imag() < 0)) {
+                return neg_;
+            }
+            if ((_val->at(idx).real() > 0 && _val->at(idx).imag() > 0)) {
+                return pos_;
+            }
+            if ((_val->at(idx).real() <= 0 && _val->at(idx).imag() <= 0)) {
+                return non_pos_;
+            }
+            if ((_val->at(idx).real() >= 0 && _val->at(idx).imag() >= 0)) {
+                return non_neg_;
+            }
+            return unknown_;
+        }
+
+
+//        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+//        shared_ptr<constant_> add(shared_ptr<param<T2>> c1){
+//            
+//        }
+        Sign get_all_sign() const{
+            return get_all_sign_();
+        }
         
-        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign_cpx() const{
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> Sign get_all_sign_() const{
             if (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)) {
                 return zero_;
             }
@@ -673,16 +1106,17 @@ namespace gravity {
             if ((_range->second.real() > 0 && _range->second.imag() > 0)) {
                 return pos_;
             }
-            if (_range->second == Cpx(0,0)) {
+            if (_range->second <= Cpx(0,0)) {
                 return non_pos_;
             }
-            if (_range->first == Cpx(0,0)) {
+            if (_range->first >= Cpx(0,0)) {
                 return non_neg_;
             }
             return unknown_;
         }
-        
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> Sign get_all_sign() const {
+
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> Sign get_all_sign_() const {
             if (_range->first == 0 && _range->second == 0) {
                 return zero_;
             }
@@ -700,64 +1134,79 @@ namespace gravity {
             }
             return unknown_;
         }
+
+
+        bool is_unit() const{
+            return is_unit_();
+        }
         
-        
-        
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit_() const { /**< Returns true if all values of this paramter are 1 **/
             return (_range->first == 1 && _range->second == 1);
         }
         
-//        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_zero() const { /**< Returns true if all values of this paramter are 0 **/
-//            return (_range->first == 0 && _range->second == 0);
-//        }
-        
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
-            return (_range->second <= 0   && _range->first <= 0);
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_unit_() const{
+            return (_range->first == Cpx(1,0) && _range->second == Cpx(1,0));
+        }
+
+
+        bool is_zero() const{
+            return is_zero_();
         }
         
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_positive() const { /**< Returns true if all values of this paramter are positive **/
-            return (_range->first > 0 && _range->second > 0);
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0);
+        }
+
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
+            return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
         }
         
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_non_negative() const { /**< Returns true if all values of this paramter are >= 0 **/
-            return (_range->first >= 0  && _range->second >= 0);
+        bool is_non_positive() const { /**< Returns true if all values of this paramter are <= 0 **/
+            auto sgn = get_all_sign();
+            return (sgn==non_pos_ || sgn==zero_ || sgn==neg_);
         }
-        
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> bool is_negative() const { /**< Returns true if all values of this paramter are positive **/
-            return (_range->second < 0  && _range->first < 0);
+
+        bool is_positive() const { /**< Returns true if all values of this paramter are positive **/
+            return (get_all_sign()==pos_);
         }
-        
+
+        bool is_non_negative() const { /**< Returns true if all values of this paramter are >= 0 **/
+            auto sgn = get_all_sign();
+            return (sgn==non_neg_ || sgn==zero_ || sgn==pos_);
+        }
+
+        bool is_negative() const { /**< Returns true if all values of this paramter are positive **/
+            return (get_all_sign()==neg_);
+        }
+
         /** Operators */
         bool operator==(const param& p) const {
-            return (get_name(false,false)==p.get_name(false,false) && _type==p._type && _intype==p._intype && _dim[0]==p._dim[0] && _dim[1]==p._dim[1] && _indices==p._indices);
+            if (get_name(false,false)!=p.get_name(false,false) || _type!=p._type || _intype!=p._intype || _dim[0]!=p._dim[0] || _dim[1]!=p._dim[1]) return false;
+            if(_indices==p._indices) return true; /* accounts for both being nullptr */
+            if((_indices && !p._indices) || (p._indices && !_indices) || (*_indices != *p._indices)) return false;
+            return true;
         }
         
+        bool operator!=(const param& p) const {
+            return !(*this==p);
+        }
+
         template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void initialize_normal(double mean, double dev) {
             if (!is_double()) {
                 throw invalid_argument("Function void initialize_normal(double mean, double dev) is only implemented for double typed params/vars");
             }
             std::default_random_engine generator;
-            std::normal_distribution<double> distribution(mean,dev);
+            std::normal_distribution<type> distribution(mean,dev);
             for (size_t i = 0; i<_val->size(); i++) {
                 _val->at(i) = distribution(generator);
             }
         }
-        
-       
-        template<class T=type, class = typename enable_if<is_arithmetic<T>::value>::type> void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
-            for (size_t k=0; k<SM.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
-                    set_val(2*it.row(), 2*it.col(), it.value().real());
-                    set_val(2*it.row()+1, 2*it.col()+1, it.value().real());
-                    set_val(2*it.row()+1, 2*it.col(), it.value().imag());
-                    set_val(2*it.row(), 2*it.col()+1, -it.value().imag());
-                }
-            }
-        }
-        
 
-        
-#ifdef USE_QPP 
+
+
+
+#ifdef USE_QPP
         /* Matrix representation of a Quantum T gate */
         void QuantumT(size_t qubit_pos, size_t nb_qubits, bool transpose=false) {
             using namespace qpp;
@@ -774,7 +1223,7 @@ namespace gravity {
                 set_vals(U.sparseView());
             }
         }
-        
+
         /* Matrix representation of a Quantum Hadamard gate */
         void QuantumH(size_t qubit_pos, size_t nb_qubits) {
             using namespace qpp;
@@ -783,7 +1232,7 @@ namespace gravity {
             Debug(disp(U) << "\n");
             set_vals(U.sparseView());
         }
-        
+
         /* Matrix representation of a Quantum Rx gate */
         void QuantumRx(size_t qubit_pos, size_t nb_qubits) {
             using namespace qpp;
@@ -792,7 +1241,7 @@ namespace gravity {
             Debug(disp(U) << "\n");
             set_vals(U.sparseView());
         }
-        
+
         /* Matrix representation of a Quantum S gate */
         void QuantumS(size_t qubit_pos, size_t nb_qubits) {
             using namespace qpp;
@@ -803,7 +1252,7 @@ namespace gravity {
             Debug(to_str(true));
         }
 
-        
+
         /* Matrix representation of a Quantum S conjugate gate */
         void QuantumSt(size_t qubit_pos, size_t nb_qubits) {
             using namespace qpp;
@@ -836,33 +1285,29 @@ namespace gravity {
             Debug(to_str(true));
         }
 #endif
-        
-        void set_val_all(type v) {
-            if(is_indexed()){
-                for(auto &idx: _indices->_ids->at(0)){
-                    _val->at(idx) = v;
-                }
-            }
-            else {
-                for (size_t i = 0; i<_val->size(); i++) {
-                    _val->at(i) = v;
-                }
-            }
-            _range->first = v;
-            _range->second = v;
-        }
-        
 
         param& operator=(type v) {
-            if(is_indexed()){
-                set_val_all(v);
+            if(_indices){
+                set_val(v);
             }
             else {
                 add_val(v);
             }
             return *this;
         }
-        
+
+        param& operator=(const initializer_list<type>& l) {
+            if(_indices){
+                for(auto &v:l)
+                    set_val(v);
+            }
+            else {
+                for(auto &v:l)
+                    add_val(v);
+            }
+            return *this;
+        }
+
         param operator()(size_t i, size_t j){
             if(!is_matrix()){
                 throw invalid_argument("Current param/var is not a matrix, cannot call: param(i,j).");
@@ -879,21 +1324,23 @@ namespace gravity {
             else{
                 res._indices->_ids->at(0).push_back(i*_dim[1]+j);
             }
+            res._name += "["+to_string(i)+","+to_string(j)+"]";
             return res;
         }
-        
+
         param operator()(size_t idx) {
             if(!_indices){
                 throw invalid_argument("Current param/var is not indexed.");
             }
             param res(*this);
+            res._name += "["+to_string(idx)+"]";
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_ids->at(0).push_back(idx);
             res._dim[0] = 1;
             return res;
         }
-        
+
         template<bool...> struct bool_pack;
         template<bool... bs>
         using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;
@@ -911,13 +1358,14 @@ namespace gravity {
             if (it1 == _indices->_keys_map->end()){
                 throw invalid_argument("In operator()(string key1, Args&&... args), unknown key");
             }
+            res._name += "["+key._name+"]";
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_ids->at(0).push_back(it1->second);
             res._dim[0] = 1;
             return res;
         }
-        
+
         /* Use this for dense indexing, prefer indices() for sparse indexing */
         param& in(const space& s){
             set_size(s._dim);
@@ -926,32 +1374,22 @@ namespace gravity {
             }
             return *this;
         }
-        
+
         param in(const node_pairs& np){
             return this->in(np._keys);
         }
-        
-        
-        int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
-        {
-            size_t  pos = 0;
-            int     cnt = 0;
-            
-            while( cnt != nth )
-            {
-                pos+=1;
-                pos = str.find(findMe, pos);
-                if ( pos == std::string::npos )
-                    return -1;
-                cnt++;
-            }
-            return pos;
-        }
 
+        void reverse_sign(){
+            throw invalid_argument("Cannot reverse sign of param");
+        }
+        
         template<typename... Args>
         param in(const indices& vec1, Args&&... args) {
             auto ids = indices(vec1,args...);
-            if(!_indices || _indices->empty()){ /* Unindexed param/var */
+            if(!ids._excluded_keys.empty()){
+                ids.remove_excluded();
+            }
+            if(!_indices || _indices->empty()){/**< No need to add each key individually */
                 _indices = make_shared<indices>(ids);
                 auto dim = _indices->size();
                 _val->resize(dim);
@@ -974,57 +1412,204 @@ namespace gravity {
                     }
                 }
                 param res(*this);
-                res._name += ".in("+ids._name+")";
-                return res;
-            }
-            if(ids._ids){ /* ids already indexed  */
-                param res(*this);
-                res._indices = make_shared<indices>(ids);
-                auto dim = res._indices->size();
-                if(_is_transposed){
-                    res._dim[1] = dim;
-                }
-                else {
-                    res._dim[0] = dim;
-                }
-
-                res._name += ".in("+ids._name+")";
-                return res;
-            }
-            param res(*this);
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            if(ids.empty()){
-                DebugOn("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "_EMPTY";
+                res._name += ".in("+ids.get_name()+")";
                 return res;
             }
             string key, excluded;
+            size_t nb_inst=1;
+            param res(*this);
+            if(ids.is_indexed()){/* Double-indexed set */
+                size_t idx_excl = 0;
+                nb_inst = ids._ids->size();
+                //TODO check that the current param has the keys found in ids
+                bool has_all_keys = true;
+                for(auto key: *ids._keys){
+                    if(ids._excluded_keys.count(idx_excl++)!=0){
+                        continue;
+                    }
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        has_all_keys = false;
+                        break;
+                    }
+                }
+                if(has_all_keys){
+                    res._indices = make_shared<indices>(ids);
+                    if(res._is_transposed){
+                        if(res.is_double_indexed()){
+                            res._dim[1]=_indices->size();
+                        }
+                        else {
+                            res._dim[1]=res._indices->size();
+                        }
+                    }
+                    else {
+                        if(res.is_double_indexed()){
+                            res._dim[0]=_indices->size();
+                        }
+                        else {
+                            res._dim[0]=res._indices->size();
+                        }
+                    }
+                    res._name += ".in("+ids.get_name()+")";
+                    res.reset_range();
+                    return res;
+                }
+                res._indices->_ids = make_shared<vector<vector<size_t>>>();
+                res._indices->_ids->resize(nb_inst);
+                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+                auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+                int pos = 0;
+                if(nb_sep2>nb_sep1){
+                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
+                }
+                else if(nb_sep1>nb_sep2){
+                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
+                }
+                for(size_t inst = 0; inst<nb_inst;inst++){
+                    auto nb_idx = ids._ids->at(inst).size();
+                    res._indices->_ids->at(inst).resize(nb_idx);
+                    for(size_t idx = 0; idx<nb_idx; idx++){
+                        key = ids._keys->at(ids._ids->at(inst).at(idx));
+                        if(ids._excluded_keys.count(idx)!=0){
+                            excluded += key + ",";
+                            continue;
+                        }
+                        if(_indices->_type==to_ || _indices->_type==from_){
+                            string pref;
+                            if(nb_sep2>2){/* key has a prefix */
+                                pref = key.substr(0, key.find_last_of(","));
+                                pref = pref.substr(0, pref.find_last_of(","));
+                                pref = pref.substr(0, pref.find_last_of(",")+1);
+                            }
+                            if(_indices->_type==to_){
+                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
+                            }
+                            else if(_indices->_type==from_){
+                                key = key.substr(0, key.find_last_of(","));
+                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
+                            }
+                        }
+                        else {
+                            /* Compare indexing and truncate extra indices */
+                            if(nb_sep2>nb_sep1){
+                                key = key.substr(pos+1);
+                            }
+                            else if(nb_sep1>nb_sep2){
+                                key = _indices->_keys->front().substr(0,pos) + "," + key;
+                            }
+                        }
+                        auto it1 = _indices->_keys_map->find(key);
+                        if (it1 == _indices->_keys_map->end()){
+                            throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                        }
+                        res._indices->_ids->at(inst).at(idx) = it1->second;
+                    }
+                }
+                res._name += ".in("+ids.get_name()+")";
+                if(res._is_transposed){
+                    res._dim[1]=res._indices->size();
+                }
+                else {
+                    res._dim[0]=res._indices->size();
+                }
+                res.reset_range();
+                return res;
+            }
             size_t idx = 0;
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_ids->resize(1);
+            if(ids.empty()){
+                DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                res._name += "_EMPTY";
+                res._dim[0] = 0;
+                res._dim[1] = 0;
+//                res.set_range(0);
+                res.reset_range();
+                return res;
+            }
+            auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+            int pos = 0;
+            bool is_prefix = false, is_suffix = false;
+            if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep2>nb_sep1){
+                pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
+                key = ids._keys->front().substr(pos+1);
+                auto it1 = _indices->_keys_map->find(key);
+                if (it1 == _indices->_keys_map->end()){
+                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep1+1);
+                    key = ids._keys->front().substr(0,pos);
+                    it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                    }
+                    else {
+                        is_prefix = true;
+                    }
+                }
+                else {
+                    is_suffix = true;
+                }
+            }
+            else if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep1>nb_sep2){
+                pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
+                key = _indices->_keys->front().substr(0,pos) + "," + ids._keys->front();
+                auto it1 = _indices->_keys_map->find(key);
+                if (it1 == _indices->_keys_map->end()){
+                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep2+1);
+                    key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
+                    it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                    }
+                    else {
+                        is_prefix = true;
+                    }
+                }
+                else {
+                    is_suffix = true;
+                }
+            }
             for(auto key: *ids._keys){
                 if(ids._excluded_keys.count(idx++)!=0){
                     excluded += key + ",";
                     continue;
                 }
-                if(!res._indices->_time_extended && ids._time_extended){/* truncate time indices */
-                    auto pos = nthOccurrence(key, ",", ids._time_pos);
-                    key = key.substr(0,pos);
-                }
-                if(_indices){
+                if(_indices->_type==to_ || _indices->_type==from_){
+                    string pref;
+                    if(nb_sep2>2){/* key has a prefix */
+                        pref = key.substr(0, key.find_last_of(","));
+                        pref = pref.substr(0, pref.find_last_of(","));
+                        pref = pref.substr(0, pref.find_last_of(",")+1);
+                    }
                     if(_indices->_type==to_){
-                        key = key.substr(key.find_last_of(",")+1,key.size());
+                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
                     }
                     else if(_indices->_type==from_){
                         key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
+                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
                     }
                 }
-                /* Compare indexing and truncate extra indices */
-                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                auto nb_sep2 = count(key.begin(), key.end(), ',');
-                if(nb_sep2>nb_sep1){
-                    auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                    key = key.substr(pos+1,key.size()-1);
+                else {
+                    /* Compare indexing and truncate extra indices */
+                    if(nb_sep2>nb_sep1){
+                        if(is_suffix){
+                            pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
+                            key = key.substr(pos+1);
+                        }
+                        else {
+                            pos = nthOccurrence(key, ",", nb_sep1+1);
+                            key = key.substr(0,pos);
+                        }
+                    }
+                    else if(nb_sep1>nb_sep2){
+                        if(is_suffix){
+                            key = _indices->_keys->front().substr(0,pos) + "," + key;
+                        }
+                        else {
+                            key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
+                        }
+                    }
                 }
                 auto it1 = _indices->_keys_map->find(key);
                 if (it1 == _indices->_keys_map->end()){
@@ -1038,22 +1623,27 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            
-            res._name += ".in("+ids._name+")";
+            res._name += ".in("+ids.get_name()+")";
+            res._indices->set_name(ids.get_name());
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
+            res.reset_range();
             return res;
         }
-        
-        
+
+        template<typename... Args>
+        void index_in(const indices& ids1, Args&&... args) {
+            *this = this->in(ids1,args...);
+        }
+
         param in_pairs(const indices& ids) {
             param res(*this);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(ids.empty()){
-                DebugOn("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1077,26 +1667,23 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            res._name += ".in_pairs("+ids._name+")";
+            res._name += ".in_pairs("+ids.get_name()+")";
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
             return res;
         }
-        
-        param in_pairs(){
-            param<type> res(*this);
-            res._name += ".in_pairs";
-            res._indices->_type = in_pairs_;
-            return res;
-        }
-        
+
         param from(){
             param<type> res(*this);
             res._name += ".from";
             res._indices->_type = from_;
             return res;
+        }
+        
+        param from(const indices& ids){
+            return this->from().in(ids);
         }
         
         
@@ -1107,35 +1694,17 @@ namespace gravity {
             return res;
         }
         
-        
-        param out_arcs(){
-            param<type> res(*this);
-            res._name += ".out_arcs";
-            res._indices->_type = out_arcs_;
-            return res;
+        param to(const indices& ids){
+            return this->to().in(ids);
         }
-        
-        param in_arcs(){
-            param<type> res(*this);
-            res._name += ".in_arcs";
-            res._indices->_type = in_arcs_;
-            return res;
-        }
-        
-        param in_gens(){
-            param<type> res(*this);
-            res._name += ".in_gens";
-            res._indices->_type = in_gens_;
-            return res;
-        }
-        
+
         /* Index param/var based on incoming arcs out of nodes in vec */
         param in_arcs(const vector<Node*>& vec) {
             param res(*this);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(vec.empty()){
-                DebugOn("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1164,16 +1733,16 @@ namespace gravity {
 //            res._name += ".in_arcs";
             return res;
         }
-        
-        
-        
+
+
+
         /* Index param/var based on outgoing arcs out of nodes in vec */
         param out_arcs(const vector<Node*>& vec) {
             param res(*this);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             if(vec.empty()){
-                DebugOn("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_arcs(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1202,14 +1771,14 @@ namespace gravity {
 //            res._name += ".out_arcs";
             return res;
         }
-        
-        
+
+
         /* Index param/var based on auxiliary objects attached to nodes in vec */
         param in_aux(const vector<Node*>& vec, const string& aux_type) {
             param res(*this);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             if(vec.empty()){
-                DebugOn("In function param.in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                DebugOff("In function param.in_aux(const vector<Node*>& vec), vec is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
                 res._name += "_EMPTY";
                 return res;
             }
@@ -1236,11 +1805,11 @@ namespace gravity {
 //            res._name += "("+aux_type+")";
             return res;
         }
-        
-        
+
+
         /** Output */
-        
-        string to_str(size_t index1, size_t index2, int prec = 10) const {
+
+        string to_str(size_t index1, size_t index2, int prec) {
             if (is_matrix()){
                 return to_string_with_precision(eval(index1,index2),prec);
             }
@@ -1251,8 +1820,12 @@ namespace gravity {
                 return to_string_with_precision(eval(index2),prec);
             }
         }
+
+        string to_str(){
+            return get_name(false,false);
+        }
         
-        string to_str(size_t index, int prec = 10) const {
+        string to_str(size_t index, int prec) {
             if (is_indexed()) {
                 return to_string_with_precision(eval(index), prec);
             }
@@ -1261,35 +1834,82 @@ namespace gravity {
             }
         }
         
-        void print(size_t index, int prec = 10) const {
-            cout << to_str(index,prec);
+        
+//        inline size_t get_id_inst(unsigned inst = 0) const {
+//            if (is_indexed()) {
+////                if(_indices->_ids->at(0).size() <= inst){
+////                    throw invalid_argument("get_id_inst out of range");
+////                }
+//                return _indices->_ids->at(0).at(inst);
+//            }
+//            return inst;
+//        };
+//
+//        size_t get_id_inst(unsigned inst1, unsigned inst2) const {
+//            if (is_indexed()) {
+//                if (_indices->_ids->size()==1) {
+////                    if(_indices->_ids->at(0).size() <= inst2){
+////                        throw invalid_argument("get_id_inst out of range");
+////                    }
+//                    return _indices->_ids->at(0).at(inst2);
+//                }
+//                return _indices->_ids->at(inst1).at(inst2);
+//            }
+//            return inst2;
+//        };
+        size_t get_max_cell_size(){
+            auto max_size = 0;
+            for (size_t i = 0; i<_dim[0]; i++) {
+                for (size_t j = 0; j<_dim[1]; j++) {
+                    eval(i,j);
+                    auto cell = to_str(i,j,5);
+                    if(max_size < cell.size()){
+                        max_size = cell.size();
+                    }
+                }
+            }
+            return max_size;
         }
         
-        void print(size_t i, size_t j, int prec = 10) const {
-            cout << to_str(i,j,prec);
-        }
-        
-        string to_str(bool vals = true, int prec = 10) const {
-            string str = get_name();
+        string to_str_vals(bool vals, int prec = 10) {
+            string str = get_name(false,true);
             auto name = str.substr(0, str.find_last_of("."));
             str = name;
             if (vals) {
                 str += " = { \n";
-                if(is_matrix()){
-                    for (size_t i = 0; i < _dim[0]; i++) {
-                        for (size_t j = 0; j < _dim[1]; j++) {
-                            str += to_string_with_precision(this->eval(i,j),prec);
-                            str += " ";
+                auto space_size = str.size();
+                if (is_matrix()) {
+                    auto max_cell_size = get_max_cell_size();
+                    for (size_t i = 0; i<_dim[0]; i++) {
+                        str.insert(str.end(), space_size, ' ');
+                        str += "|";
+                        for (size_t j = 0; j<_dim[1]; j++) {
+                            auto cell = to_str(i,j,prec);
+                            auto cell_size = cell.size();
+                            cell.insert(0, floor((max_cell_size+1 - cell_size)/2.), ' ');
+                            cell.append(ceil((max_cell_size+1 - cell_size)/2.), ' ');
+                            str += cell;
+                            if(j!=_dim[1]-1){
+                                str += " ";
+                            }
                         }
-                        str += "\n";
+                        str += "|\n";
                     }
-                    str += "};\n";
+                    str += "}\n";
                     return str;
                 }
                 if(_indices) {
-                    for (size_t i = 0; i < _dim[0]; i++) {
-                        str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
-                        str += " \n";
+                    if (is_indexed()) {
+                        for (size_t i = 0; i < _dim[0]; i++) {
+                            str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
+                            str += " \n";
+                        }
+                    }
+                    else {
+                        for (size_t i = 0; i < _dim[0]; i++) {
+                            str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
+                            str += " \n";
+                        }
                     }
                 }
                 else {
@@ -1303,25 +1923,148 @@ namespace gravity {
             return str;
         }
         
-        void print(bool vals=true, int prec = 10) const {
-            cout << this->to_str(vals, prec);
+        
+        void print() {
+            print(16);
+        }
+
+        void print_vals(int prec){
+            cout << this->to_str_vals(true, prec);
         }
         
-        
+        void print(int prec) {
+            print_vals(prec);
+        }
+
+
         type getvalue() const {
-            if (_indices) {
-              //return (_val->at(_indices->last()));
-              return (_val->at(_indices->size()-1));
+            return _val->back();
+        }
+        
+        void update_range(const Cpx& val);
+        /**
+         Recompute range based on stored values.
+         */
+        void reset_range(){
+            init_range();
+            if(is_double_indexed()){
+                for(auto i = 0; i<_indices->_ids->size();i++){
+                    for(auto j = 0; j<_indices->_ids->at(i).size();j++){
+                        auto idx = _indices->_ids->at(i).at(j);
+                        auto v = _val->at(idx);
+                        if(_range->first > v){
+                            _range->first = v;
+                        }
+                        if(_range->second  < v){
+                            _range->second = v;
+                        }
+                    }
+                }
             }
             else {
-                return _val->at(0);
+                for (auto v:*_val) {
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
             }
         }
-        void update_range(const complex<double>& val);
-//        void set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM);
+//        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
+        
+        void set_double_val(double* x){set_double_val_(x);};
+            
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void set_double_val_(double* x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                x[vid+i] = (double)_val->at(i);
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_double_val_(double* x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
+        }
+        
+        void get_double_val(const double* x){get_double_val_(x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_double_val_(const double* x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i) = x[vid+i];
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void get_double_val_(const double* x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
+        
+        
+        void get_double_val(size_t pos, double x){get_double_val_(pos,x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_double_val_(size_t pos, double x){
+            _val->at(pos) = x;
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void get_double_val_(size_t i, double x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
+        
+        void set_double_val(size_t pos, double& x){set_double_val_(pos,x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void set_double_val_(size_t pos, double& x){
+            x = _val->at(pos);
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_double_val_(size_t i, double& x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
+        
+        /** round the value stored at position i to the nearest integer */
+        void round_vals(){round_vals_();};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void round_vals_(){
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i) = std::round((T)_val->at(i));
+            }
+        };
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void round_vals_(){
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i).real(std::round(_val->at(i).real()));
+                _val->at(i).imag(std::round(_val->at(i).imag()));
+            }
+        };
+        
+        
+        
+        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
+        void copy_vals(const param<T>& p){
+            auto dim = p.get_dim();
+            _val->resize(dim);
+            for (size_t i = 0; i < dim; i++) {
+                _val->at(i) = p._val->at(i);
+            }
+        }
+        
+        void copy_vals(const shared_ptr<param_>& p);
+                
        
+
+
     };
-    
+
     param<Cpx> conj(const param<Cpx>& p);
     param<Cpx> ang(const param<Cpx>& p);
     param<Cpx> sqrmag(const param<Cpx>& p);
@@ -1331,7 +2074,7 @@ namespace gravity {
     template<typename type>
     param<type> diag(const param<type>& p){
         param<type> res("diag("+p._name+")");
-        if(p.i_matrix()){
+        if(p.is_matrix()){
             res.set_size(min(p._dim[0], p._dim[1]));
             for (auto i = 0; i<res._dim[0]; i++) {
                 res.set_val(i,p.eval(i,i));
@@ -1345,6 +2088,6 @@ namespace gravity {
         }
         return res;
     }
-    
+
 }
 #endif /* defined(____param__) */

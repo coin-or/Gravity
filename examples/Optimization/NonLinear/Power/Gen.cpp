@@ -34,7 +34,7 @@ Gen::~Gen(){
 
 //void Gen::init_complex(){
 //    _S_ = Complex("S", &pg, &qg);
-//    _S_._name.append(_name);    
+//    _S_._name.append(_name);
 //}
 
 /** @brief Prints generator infos */

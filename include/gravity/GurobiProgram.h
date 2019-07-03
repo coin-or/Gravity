@@ -8,17 +8,17 @@
 using namespace gravity;
 
 
-class GurobiProgram: public Program{
+class GurobiProgram: public Program<>{
 private:
 
     GRBModel* grb_mod;
     GRBEnv* grb_env;
     vector<GRBVar> _grb_vars; /** Mapping variables to Gurobi variables */
 public:
-    Model*  _model;
+    shared_ptr<Model<>>  _model;
     int     _output;
     GurobiProgram();
-    GurobiProgram(Model* m);
+    GurobiProgram(const shared_ptr<Model<>>& m);
     ~GurobiProgram();
     void reset_model();
 

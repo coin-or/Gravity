@@ -2,7 +2,7 @@
 //  CplexProgram.h
 //  Gravity
 //
-//  Created by Guanglei Wang on 06/06/2017.
+//  Created by Hassan Hijazi on 06/06/2017.
 //
 //
 
@@ -20,19 +20,18 @@
 #include <gravity/model.h>
 using namespace gravity;
 
-class CplexProgram: public Program{
+class CplexProgram: public Program<>{
 private:
     
-    IloModel* _cplex_model;
-    IloEnv* _cplex_env;
+    shared_ptr<IloModel> _cplex_model;
+    shared_ptr<IloEnv> _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
 public:
-    Model* _model;
+    shared_ptr<Model<>> _model;
     int _output;
     CplexProgram();
-    CplexProgram(Model* m);
-    ~CplexProgram();
+    CplexProgram(const shared_ptr<Model<>>& m);    
     void update_model();
     void reset_model();
     
@@ -41,9 +40,9 @@ public:
     }
     
     bool solve(bool relax=false, double mipgap = 0.01);
-    void prepare_model();    
+    void prepare_model();
     void relax_model();
-    
+    void warm_start();
     void fill_in_cplex_vars();
     void create_cplex_constraints();
     void set_cplex_objective();

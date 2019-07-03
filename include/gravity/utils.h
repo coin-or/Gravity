@@ -32,6 +32,10 @@
 double get_wall_time();
 double get_cpu_time();
 
+string clean_print(bool pos, const string& v, bool brackets = false);
+
+int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
+
 
 op::OptionParser readOptions(int argc, char * argv[]);
 
@@ -40,15 +44,74 @@ op::OptionParser readOptions(int argc, char * argv[]);
 //Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
 //if possible the function will split mem into equal chuncks, if not
 //the last chunck will be slightly larger
-std::vector<int> bounds(int parts, int mem);
+std::vector<size_t> bounds(unsigned parts, size_t mem);
 
+
+gravity::Sign reverse(gravity::Sign s);
+
+gravity::Sign sign_add(gravity::Sign s1, gravity::Sign s2);
+
+gravity::Sign sign_product(gravity::Sign s1, gravity::Sign s2);
 
 gravity::indices time(unsigned p1 ,unsigned p2);
 
 template<typename... Args>
 gravity::indices time(std::string idx1, Args&&... args) {
-    gravity::indices res(idx1,(args)...);
+    gravity::indices res("time");
+    res.init(idx1,args...);
     res._time_extended = true;
     return res;
 }
+
+
+bool operator <(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
+
+bool operator >(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
+
+bool operator <=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
+
+bool operator >=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
+
+namespace gravity{
+    
+    set<int> get_phases(string phases);
+//    Cpx min (const Cpx& a, const Cpx& b);
+//    Cpx max (const Cpx& a, const Cpx& b);
+    
+    template<class T, typename enable_if<is_same<T,gravity::Cpx>::value>::type* = nullptr>
+    T min (const T& a, const T& b){
+        gravity::Cpx res(a);
+        if (res.real()>b.real()) {
+            res.real(b.real());
+        }
+        if (res.imag()>b.imag()) {
+            res.imag(b.imag());
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_same<T,gravity::Cpx>::value>::type* = nullptr>
+    T max(const T& a, const T& b){
+        gravity::Cpx res(a);
+        if (res.real()<b.real()) {
+            res.real(b.real());
+        }
+        if (res.imag()<b.imag()) {
+            res.imag(b.imag());
+        }
+        return res;
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T min (const T& a, const T& b){
+        return std::min(a,b);
+    }
+    
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    T max(const T& a, const T& b){
+        return std::max(a,b);
+    }
+}
+
 #endif

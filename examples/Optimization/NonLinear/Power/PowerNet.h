@@ -85,7 +85,7 @@ public:
 typedef enum { ACPOL, ACRECT, DISTF, CDISTF, LDISTF, QC, QC_SDP, OTS, DF, SOCP, SDP, DC, QC_OTS_L, QC_OTS_N, QC_OTS_O, SOCP_OTS, GRB_TEST } PowerModelType;
 // A PowerNet extends a standard network by incorporating additional parameters related to power systems.
 class PowerNet: public Net {
-
+    
 public:
     bool add_3d_nlin = true;
     string ref_bus;
@@ -100,9 +100,12 @@ public:
     
     param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<double> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
-    param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */    
+    param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */
     param<double> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
     param<double> pv_out; /**< Normalized PV generation on bus */
+    param<double> pf_from_min, pf_from_max, qf_from_min, qf_from_max, pf_to_min, pf_to_max, qf_to_min, qf_to_max;
+    param<double> lij_min, lij_max;
+    param<double> lji_min, lji_max;
     param<double> c0, c1, c2; /**< Generation costs */
     param<double> p_factor; /**< Participation factor for generators */
     param<double> ramp_up, ramp_down; /**< Generation ramp up/down params */
@@ -110,7 +113,7 @@ public:
     param<int> min_ut, min_dt; /**< Minimum Uptime and Downtime for Generators */
     int max_ident_units; /**< Maximum number of identical units */
     param<int> min_diesel_invest, max_diesel_invest; /**< Minimum and Maximum number of Diesel generation investment at a given bus */
-    param<int> min_batt_invest, max_batt_invest; /**< Minimum and Maximum number of Battery investment at a given bus */    
+    param<int> min_batt_invest, max_batt_invest; /**< Minimum and Maximum number of Battery investment at a given bus */
     param<double> th_min, th_max, tan_th_min, tan_th_max, cphi, sphi, cos_d; /**< Upper and lower bounds on phase angles. tan is for the tangent of the angles */
     param<double> v_min, v_max, v_s; /**< Voltage bounds and nominal values (default set points) */
     param<double> v_diff_max; /**< Voltage bounds difference upper bound */
@@ -122,9 +125,9 @@ public:
     unsigned _nb_conting = 0;/**< Number of contingencies for N-1 */
     indices _eff_pieces;/**< Set of indices for pieces for the efficiency curves */
     param<double> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
-    param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
-    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt; /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
-    param<Cpx> Y, Ych, T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max;
+    param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max, cc, dd; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
+    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, bt = param<>("bt"), cht= param<>("cht"), ch_half=param<>("ch_half"), cht_half=param<>("cht_half"), rty=param<>("rty"), ity=param<>("ity"); /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
+    param<Cpx> Y, Ych,T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max;
     
     /** Set of all diesel generators */
     std::vector<Gen*> gens;
@@ -158,7 +161,7 @@ public:
     std::vector<PV*> _existing_PV_gens;
     
     /** Set of existing + potential diesel generators */
-//    std::vector<DieselGen*> _diesel_gens;
+    //    std::vector<DieselGen*> _diesel_gens;
     
     /** Set of existing + potential diesel generators */
     std::vector<WindGen*> _wind_gens;
@@ -187,9 +190,11 @@ public:
     
     /** Data on PV gens */
     PVData _PV_data;
-
+    
     
     /** Indices Sets */
+    
+    
     indices hours; /**< Hours */
     //    indices months = time("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); /**< Months */
     indices months = time("apr", "aug", "dec"); /**< Months */
@@ -250,38 +255,62 @@ public:
     void save_all_sol(const string& fname);
     
     /** get set indexed by bus pairs in the chordal extension */
-    gravity::indices get_bus_pairs_chord();
-
+    gravity::indices get_bus_pairs_chord(const vector<std::vector<Node*>>& bags);
     
-    /** Power Models */
+    gravity::indices get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags);
     
-    vector<shared_ptr<Model>> conting_mods;/* < Contingency models */
+    gravity::indices get_ref_bus_pairs_from();
     
-    void update_status(unique_ptr<Model> model);
+    gravity::indices get_ref_bus_pairs_to();
+    
+    gravity::indices bus_pairs_no_line_charge();
+    
+    gravity::indices arcs_inductive_only();
+    
+    gravity::indices arcs_line_charge();
+    
+    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
+    
+    void update_ref_bus();
+    
+    
+    /** Power Model<>s */
+    
+    vector<shared_ptr<Model<>>> conting_mods;/* < Contingency Model<>s */
+    
+    void update_status(unique_ptr<Model<>> Model);
     
     void fix_investment();
-    shared_ptr<Model> build_ACOPF(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
-    unique_ptr<Model> build_ACOPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
     
-    unique_ptr<Model> build_SOCP_OPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
+    unique_ptr<Model<>> build_ACOPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
     
-    unique_ptr<Model> build_SOCP_OPF_MINLP(PowerModelType model=SOCP, int output=0, double tol=1e-6);
+    unique_ptr<Model<>> build_SOCP_OPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6, bool sdp_cuts = false);
     
-    unique_ptr<Model> build_ACOPF_MINLP(PowerModelType model, int output, double tol,const vector<bool>& cont_in);
+    unique_ptr<Model<>> build_SOCP_OPF_MINLP(PowerModelType Model=SOCP, int output=0, double tol=1e-6);
     
-    unique_ptr<Model> build_soft_ACOPF_N_1(PowerModelType model=ACPOL, int output=0, double tol=1e-6, double obj_pen=1e10);
+    unique_ptr<Model<>> build_ACOPF_MINLP(PowerModelType Model, int output, double tol,const vector<bool>& cont_in);
+    
+    unique_ptr<Model<>> build_soft_ACOPF_N_1(PowerModelType Model=ACPOL, int output=0, double tol=1e-6, double obj_pen=1e10);
     
     vector<param<>> signs();
     
-    unique_ptr<Model> build_fixed_ACOPF_N_1(PowerModelType model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
-    double solve_acopf(PowerModelType model=ACPOL, int output=0, double tol=1e-6);
-    unique_ptr<Model> build_ROMDST(PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
-    shared_ptr<Model> build_SCOPF(PowerModelType model=LDISTF, int output=5, double tol=1e-6);
-    shared_ptr<Model> build_ROMDST_contingency(const string& name, PowerModelType model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
-    shared_ptr<Model> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
-    shared_ptr<Model> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType model=ACPOL, int output=5, double tol=1e-6);
+    indices gens_per_node() const;
+    indices out_arcs_per_node() const;
+    indices in_arcs_per_node() const;
+    
+    unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
+    double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+    double solve_sdpopf(bool loss_from, int output, double tol);
+    unique_ptr<Model<>> build_ROMDST(PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
+    shared_ptr<Model<>> build_SCOPF(PowerModelType Model=LDISTF, int output=5, double tol=1e-6);
+    shared_ptr<Model<>> build_ROMDST_contingency(const string& name, PowerModelType Model=LDISTF, int output=5, double tol=1e-6, int nb_hours = 24);
+    shared_ptr<Model<>> build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType Model=ACPOL, int output=5, double tol=1e-6);
+    shared_ptr<Model<>> build_SCOPF_line_contingency(int cont, const string& name, PowerModelType Model=ACPOL, int output=5, double tol=1e-6);
     
     void fill_wbnds();
 };
+
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, double upper_bound=1E8);
 
 #endif

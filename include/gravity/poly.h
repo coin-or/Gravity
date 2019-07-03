@@ -23,25 +23,13 @@ using namespace std;
 
 namespace gravity {
     
-    class func_;
-    double t_eval(const constant_* c, size_t i=0);
-    double t_eval(const constant_* c, size_t i, size_t j);
     
-    string poly_to_str(const constant_* c);
-    string poly_to_str(const constant_* c, size_t inst);
-    string poly_to_str(const constant_* c, size_t inst1, size_t inst2);
-    
-    
-    constant_* copy(const constant_& c2); /**< Copy c2 into a new constant_* detecting the right class, i.e., constant<>, param<>, var<> or function */
-    bool equals(const constant_* c1, const constant_* c2);/**< Checks if c2 equals c1 detecting the right class, i.e., constant<>, param<>, uexpr or bexpr. */
-    void set_val(param_* p, double val, size_t i = 0); /**< Polymorphic set_val */
-    /** A class to represent a linear term, e.g. 2x. */
     class lterm{
         
     public:
-        constant_*              _coef = nullptr; // coefficent
-        param_*                 _p = nullptr; // terms.
-        bool                    _sign = true; /**< True if +, flase if - */    
+        shared_ptr<constant_>               _coef = nullptr; /**< Coefficient */
+        shared_ptr<param_>                  _p = nullptr; /**< Variable */
+        bool                                _sign = true; /**< True if +, false if - */
         
         lterm(){};
         
@@ -54,19 +42,19 @@ namespace gravity {
         };
         
         
-        lterm(param_* p):lterm(true,p){
-        };
+//        lterm(shared_ptr<param_> p):lterm(true,p){
+//        };
+//        
+//        
+//        lterm(bool sign, shared_ptr<param_> p){
+//            _coef = make_shared<constant<double>>(1);
+//            _p = p;
+//            _sign = sign;
+//        };
         
+        lterm(shared_ptr<constant_> coef, shared_ptr<param_> p):lterm(true,coef,p){};
         
-        lterm(bool sign, param_* p){
-            _coef = new constant<double>(1);
-            _p = p;
-            _sign = sign;
-        };
-        
-        lterm(constant_* coef, param_* p):lterm(true,coef,p){};
-        
-        lterm(bool sign, constant_* coef, param_* p);
+        lterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p);
         
         void reverse_sign() {
             _sign = ! _sign;
@@ -89,12 +77,6 @@ namespace gravity {
             return sign;
         }
         
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~lterm(){
-            delete _coef;
-        };
         
         bool operator==(const lterm& l) const;
         bool operator!=(const lterm& l) const;
@@ -102,8 +84,11 @@ namespace gravity {
         lterm& operator=(const lterm& l);
         lterm& operator=(lterm&& l);
         
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+        string print_transposed(int prec) const;
+        string print_transposed(size_t idx, int prec) const;
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
     };
 
@@ -112,36 +97,32 @@ namespace gravity {
     class qterm{
         
     public:
-        constant_*                  _coef;
-        pair<param_*,param_*>*      _p;
-        bool                        _sign = true; /**< True if +, flase if - */
-        bool                        _c_p1_transposed = false; /**< True if the qterm is (coef*p1)^T*p2 */
+        shared_ptr<constant_>                                        _coef = nullptr;
+        shared_ptr<pair<shared_ptr<param_>,shared_ptr<param_>>>      _p = nullptr;
+        bool                                                         _sign = true; /**< True if +, false if - */
+        bool                                                         _coef_p1_tr = false; /**< True if the qterm is (coef*p1)^T*p2 */
         
-        qterm(){
-            _coef = nullptr;
-            _p = nullptr;
-        }
+        qterm(){}
+        
+        qterm(const qterm& t){
+            *this = t;
+        };
         
         qterm(qterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _p = t._p;
-            t._p = nullptr;
-            _sign = t._sign;
-            _c_p1_transposed = t._c_p1_transposed;
+            *this = move(t);
         };
         
         
-        qterm(param_* p1, param_* p2):qterm(true, p1, p2){};
+//        qterm(shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, p1, p2){};
         
         
-        qterm(constant_* coef, param_* p1, param_* p2):qterm(true, coef, p1, p2){};
+        qterm(shared_ptr<constant_> coef, shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, coef, p1, p2){};
         
-        qterm(bool sign, param_* p1, param_* p2):qterm(true, new constant<double>(1), p1, p2){};
+//        qterm(bool sign, shared_ptr<param_> p1, shared_ptr<param_> p2):qterm(true, unit<type>(), p1, p2){};
         
-        qterm(bool sign, constant_* coef, param_* p1, param_* p2){
+        qterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p1, shared_ptr<param_> p2){
             _coef = coef;
-            _p = new pair<param_*, param_*>(make_pair(p1,p2));
+            _p = make_shared<pair<shared_ptr<param_>, shared_ptr<param_>>>(make_pair(p1,p2));
             _sign = sign;
 //            if (coef->_is_transposed){
 //                p1->_is_vector=true;
@@ -156,7 +137,8 @@ namespace gravity {
 //                p1->_is_vector=true;
 //            }
             if (coef->_is_transposed && p1->_is_transposed) {
-                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
+                _coef_p1_tr = true;
+//                throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
 //            if (p1->_is_transposed) {
 //                if (p1->get_dim() != p2->get_dim()) {
@@ -189,28 +171,37 @@ namespace gravity {
             return sign;
         }
         
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~qterm(){
-            delete _coef;
-            if (_p) {
-                delete _p;
+        Convexity get_convexity() const {
+            if(_p->first == _p->second){
+                if (_sign && _coef->is_non_negative()) {
+                    return convex_;
+                }
+                if (_sign && _coef->is_non_positive()) {
+                    return concave_;
+                }
+                if (!_sign && _coef->is_non_negative()) {
+                    return concave_;
+                }
+                if (!_sign && _coef->is_non_positive()) {
+                    return convex_;
+                }
             }
-        };
-        
-        func_ get_lb();
-        func_ get_ub();
+            return undet_;
+        }
+
         
         bool operator==(const qterm& l) const;
         bool operator!=(const qterm& l) const;
         
         qterm& operator=(const qterm& l);
         qterm& operator=(qterm&& l);
-        
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
+        string print_transposed(int prec) const;
+        string print_transposed(size_t idx, int prec) const;
     };
 
 
@@ -218,17 +209,14 @@ namespace gravity {
     class pterm{
         
     public:
-        constant_*                      _coef;
-        list<pair<param_*, int>>*       _l; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
-        bool                            _sign = true; /**< True if +, flase if - */
+        shared_ptr<constant_>                                 _coef = nullptr;
+        shared_ptr<list<pair<shared_ptr<param_>, int>>>       _l = nullptr; /**< A polynomial term is represented as a list of pairs <param_*,int> where the first element points to the parameter and the second indicates the exponent */
+        bool                                                  _sign = true; /**< True if +, false if - */
         
-        pterm(){
-            _coef = nullptr;
-            _l = nullptr;
-        }
+        pterm(){}
         
         
-        pterm(bool sign, constant_* coef, param_* p, int exp){
+        pterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p, int exp){
             _coef = coef;
             if (coef->_is_transposed && p->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
@@ -236,23 +224,22 @@ namespace gravity {
             if (p->_is_transposed) {
                 throw invalid_argument("Check the transpose operator, there seems to be a dimension issue\n");
             }
-            _l = new list<pair<param_*, int>>();
+            _l = make_shared<list<pair<shared_ptr<param_>, int>>>();
             _l->push_back(make_pair<>(p, exp));
             _sign = sign;
         };
         
-        
-        pterm(pterm&& t){
-            _coef = t._coef;
-            t._coef = nullptr;
-            _l = t._l;
-            t._l = nullptr;
-            _sign = t._sign;
+        pterm(const pterm& t){
+            *this = t;
         };
         
-        pterm(bool sign, constant_* coef, list<pair<param_*, int>>* l){
-            param_* p1 = nullptr;
-            param_* p2 = nullptr;
+        pterm(pterm&& t){
+            *this = move(t);
+        };
+        
+        pterm(bool sign, shared_ptr<constant_> coef, shared_ptr<list<pair<shared_ptr<param_>, int>>> l){
+            shared_ptr<param_> p1 = nullptr;
+            shared_ptr<param_> p2 = nullptr;
             for (auto it = l->begin(); it != l->end(); it++){
                 p1 = it->first;
                 if (p1->_is_transposed && next(it)!=l->end()) {
@@ -291,25 +278,19 @@ namespace gravity {
             }
             return sign;
         }
-        
-        double eval(size_t i) const;
-        double eval(size_t i, size_t j) const;
-        
-        ~pterm(){
-            delete _coef;
-            if (_l) {
-                delete _l;
-            }
-        };
+                
         
         bool operator==(const pterm& l) const;
         bool operator!=(const pterm& l) const;
         
         pterm& operator=(const pterm& l);
         pterm& operator=(pterm&& l);
-        
-        string to_str(size_t ind) const;
-        string to_str(size_t ind, size_t inst) const;
+        string print_poly_vars() const;
+        string print_poly_vars(size_t ind) const;
+        string print_poly_vars(size_t ind1, size_t ind2) const;
+        string to_str() const;
+        string to_str(size_t ind, int prec) const;
+        string to_str(size_t ind, size_t inst, int prec) const;
         void print(size_t ind) const;
         
     };

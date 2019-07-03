@@ -1,7 +1,7 @@
 //
 //  Node.cpp
 //  Cycle_Basis_PF
-//  adapt from power tools 
+//  adapt from power tools
 //  Created by Hassan on 17/06/2014.
 
 //
@@ -27,6 +27,12 @@ Node* Node::clone(){
     return copy;
 };
 
+
+/* number of incident lines */
+int Node::degree(){
+    return (int)branches.size();
+}
+
 /*
  @brief Adds a to the list of incident arcs
  */
@@ -43,7 +49,7 @@ void Node::addArc(Arc* a){
 int Node::removeArc(Arc* a){
     vector<Arc*>::iterator it = branches.begin();
     while (it != branches.end()) {
-        if((*it) == a){            
+        if((*it) == a){
             it = branches.erase(it);
             return 0;
         }
@@ -103,7 +109,7 @@ std::vector<Arc*> Node::get_in(){
     return res;
 }
 
-std::set<Node*> Node::get_neighbours(){
+std::set<Node*> Node::get_neighbours() const{
     set<Node*> res;
     for (auto a:branches) {
         //if(a->_dest->_id=_id && std::find(res.begin(),res.end(), a->_src)== res.end()){
@@ -122,3 +128,15 @@ std::set<Node*> Node::get_neighbours(){
     return res;
 }
 
+size_t Node::get_degree() const{
+    return get_neighbours().size();
+}
+
+std::vector<Node*> Node::get_neighbours_vec() const{
+    auto n_set = get_neighbours();
+    vector<Node*> res;
+    for (auto n:n_set) {
+        res.push_back(n);
+    }
+    return res;
+}

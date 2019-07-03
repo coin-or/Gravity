@@ -12,44 +12,22 @@ namespace gravity {
 
     
     
-template<typename type> var<type>::var():param<type>() {
-    param<type>::set_type(var_c);
-};
-
-template<typename type> var<type>::var(const string& name):param<type>(name) {
-    param<type>::set_type(var_c);
-    if (this->is_binary()) {
-        _lb = make_shared<func_>(constant<>(0));
-        _ub = make_shared<func_>(constant<>(1));
-    }
-    else if(numeric_limits<type>::is_specialized){
-        _lb = make_shared<func_>(constant<type>(numeric_limits<type>::lowest()));
-        _ub = make_shared<func_>(constant<type>(numeric_limits<type>::max()));
-    }
-    else if(this->is_complex()){
-        _lb = make_shared<func_>(constant<Cpx>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
-        _ub = make_shared<func_>(constant<Cpx>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
-    }
-    else{
-        throw invalid_argument("unsupported numerical type");
-    }
-};
     
-template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
-    param<type>::set_type(var_c);
-    _lb = make_shared<func_>();
-    _ub = make_shared<func_>();
-    if (s==non_neg_ || s==pos_) {
-        if(numeric_limits<type>::is_specialized){
-            add_lb_only(0);
-        }
-    }
-    else if (s==non_pos_ || s==neg_) {
-        if(numeric_limits<type>::is_specialized){
-            add_ub_only(0);
-        }
-    }
-};
+//template<typename type> var<type>::var(const string& name, Sign s):param<type>(name) {
+//    constant_::set_type(var_c);
+//    _lb = make_shared<func<type>>();
+//    _ub = make_shared<func<type>>();
+//    if (s==non_neg_ || s==pos_) {
+//        if(numeric_limits<type>::is_specialized){
+//            add_lb_only(0);
+//        }
+//    }
+//    else if (s==non_pos_ || s==neg_) {
+//        if(numeric_limits<type>::is_specialized){
+//            add_ub_only(0);
+//        }
+//    }
+//};
 
 template<typename type> var<type>::var(const var<type>& v){
     *this = v;
@@ -59,24 +37,29 @@ template<typename type> var<type>::var(var<type>&& v){
     *this = move(v);
 };
 
-    
-
+template<typename type>
+var<type> var<type>::deep_copy() const{
+    var<type> res;
+    res.param<type>::operator=(this->param<type>::deep_copy());
+    res.constant_::set_type(var_c);
+    res._lb = make_shared<func<type>>(*_lb);
+    res._ub = make_shared<func<type>>(*_ub);
+    return res;
+}
 
 template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     this->param<type>::operator=(v);
-    param<type>::set_type(var_c);
+    constant_::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
-    param<type>::_is_relaxed = v._is_relaxed;
     return *this;
 };
 
 template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     this->param<type>::operator=(move(v));
-    param<type>::set_type(var_c);
+    constant_::set_type(var_c);
     _lb = move(v._lb);
     _ub = move(v._ub);
-    param<type>::_is_relaxed = v._is_relaxed;
     return *this;
 };
 
@@ -85,7 +68,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     /* Create a vector of variables indexed as pair of nodes from bags of size bag_size (WARNING assumes bags are unique in bags)*/
     template<typename type>
     vector<var<type>> var<type>::pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size){
-    vector<var> res;
+    vector<var<type>> res;
     vector<indices> ids_vec;
     string key;
     res.resize(bag_size);
@@ -93,7 +76,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
 //    set<vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
-        ids_vec[i]._name = "pairs_"+to_string(i);
+        ids_vec[i].set_name("pairs_"+to_string(i));
         if(ids_vec[i]._ids){
             ids_vec[i]._ids = nullptr;
         }
@@ -113,6 +96,25 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     }
     for (auto i = 0; i<bag_size; i++) {
         res[i] = this->in(ids_vec[i]);
+        if(res[i].is_complex()){
+            if(res[i]._real){
+                res[i]._real->_name = "R_"+res[i]._name;
+                res[i]._real->_indices = res[i]._indices;
+            }
+            if(res[i]._imag){
+                res[i]._imag->_name = "Im_"+res[i]._name;;
+                res[i]._imag->_indices = res[i]._indices;
+            }
+            if(res[i]._ang){
+                res[i]._ang->_name += "pairs_"+to_string(i);
+                res[i]._ang->_indices = res[i]._indices;
+            }
+            if(res[i]._mag){
+                res[i]._mag->_name += "pairs_"+to_string(i);
+                res[i]._mag->_indices = res[i]._indices;
+            }
+        }
+
     }
     return res;
 }
@@ -127,7 +129,7 @@ vector<var<type>> var<type>::in_bags(const vector<vector<Node*>>& bags, size_t b
     set<vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
-        ids_vec[i]._name = "nodes_"+to_string(i);
+        ids_vec[i].set_name("nodes_"+to_string(i));
     }
     for (auto &bag: bags) {
         /* Make sure it's a new bag with size=bag_size */
@@ -153,7 +155,7 @@ template<typename type> void   var<type>::set_size(size_t s) {
 
 template<typename type>
 type    var<type>::get_lb(size_t i) const {
-    if (_lb->is_number()) {
+    if (_lb->func_is_number()) {
         return _lb->_val->at(0);
     }
     return _lb->eval(i);
@@ -161,11 +163,53 @@ type    var<type>::get_lb(size_t i) const {
 
 template<typename type>
 type    var<type>::get_ub(size_t i) const {
-    if (_ub->is_number()) {
+    if (_ub->func_is_number()) {
         return _ub->_val->at(0);
     }
     return _ub->eval(i);
 };
+    
+    template<typename type>
+    type    var<type>::get_lb(const string& key) const {
+        auto i = this->_indices->_keys_map->at(key);
+        if (_lb->func_is_number()) {
+            return _lb->_val->at(0);
+        }
+        return _lb->eval(i);
+    };
+    
+    template<typename type>
+    type    var<type>::get_ub(const string& key) const {
+        auto i = this->_indices->_keys_map->at(key);
+        if (_ub->func_is_number()) {
+            return _ub->_val->at(0);
+        }
+        return _ub->eval(i);
+    };
+    
+    template<typename type>
+    param<type>    var<type>::get_lb() const {
+        param<type> lb(this->_name+"_lb");
+        _lb->eval_all();
+        lb.index_in(*this->_indices);
+        lb._val = _lb->_val;
+        lb._range = _lb->_range;
+        lb._dim[0] = _lb->_dim[0];
+        lb._dim[1] = _lb->_dim[1];
+        return lb;
+    };
+    
+    template<typename type>
+    param<type>    var<type>::get_ub() const {
+        param<type> ub(this->_name+"_ub");
+        _ub->eval_all();
+        ub.index_in(*this->_indices);
+        ub._val = _ub->_val;
+        ub._range = _ub->_range;
+        ub._dim[0] = _ub->_dim[0];
+        ub._dim[1] = _ub->_dim[1];
+        return ub;        
+    };
     
     template <typename type>
     template<typename T,
@@ -212,12 +256,12 @@ type    var<type>::get_ub(size_t i) const {
         return unknown_;
     }
     
-    template Sign var<bool>::get_sign(size_t t) const;
-    template Sign var<short>::get_sign(size_t t) const;
-    template Sign var<int>::get_sign(size_t t) const;
-    template Sign var<float>::get_sign(size_t t) const;
-    template Sign var<double>::get_sign(size_t t) const;
-    template Sign var<long double>::get_sign(size_t t) const;
+//    template Sign var<bool>::get_sign(size_t t) const;
+//    template Sign var<short>::get_sign(size_t t) const;
+//    template Sign var<int>::get_sign(size_t t) const;
+//    template Sign var<float>::get_sign(size_t t) const;
+//    template Sign var<double>::get_sign(size_t t) const;
+//    template Sign var<long double>::get_sign(size_t t) const;
     
 //template<typename type> void  var<type>::add_bounds(type lb, type ub) {
 //    if (ub<lb) {
@@ -265,11 +309,46 @@ template<typename type> void   var<type>::add_ub_only(type val) {
 
     
 template<typename type> void   var<type>::set_lb(type val) {
-    param<type>::_range->first = val;
+    if(this->is_indexed()){
+        _lb->set_val(this->get_id_inst(),val);
+        _lb->update_range(val);
+        this->update_range(val);
+        _lb->_evaluated = true;
+    }
+    else {
+        *_lb = constant<type>(val);
+        param<type>::_range->first = val;
+    }
+}
+    
+template<typename type> void  var<type>::set_lb(const string& key, type val){
+    auto i = this->_indices->_keys_map->at(key);
+    _lb->eval_all();
+    _lb->_val->at(i) = val;
+    _lb->update_range(val);
+    this->update_range(val);
 }
 
+template<typename type> void  var<type>::set_ub(const string& key, type val){
+    auto i = this->_indices->_keys_map->at(key);
+    _ub->eval_all();
+    _ub->_val->at(i) = val;
+    _ub->update_range(val);
+    this->update_range(val);
+}
+
+    
 template<typename type> void   var<type>::set_ub(type val) {
-    param<type>::_range->second = val;
+    if(this->is_indexed()){
+        _ub->set_val(this->get_id_inst(),val);
+        _ub->update_range(val);
+        this->update_range(val);
+        _ub->_evaluated = true;
+    }
+    else {
+        *_ub = constant<type>(val);
+        param<type>::_range->second = val;
+    }
 }
 
 template<typename type> void   var<type>::in_q_cone() {
@@ -313,13 +392,13 @@ template<typename type> bool var<type>::operator!=(const var& v) const {
 }
 
 /* Output */
-template<typename type> string var<type>::to_str(bool bounds, int prec) const {
-    string str = param<type>::to_str(false, prec);
+template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
+    string str = param<type>::to_str_vals(false, prec);
     if (!bounds) {
         return str;
     }
-    if(_lb->is_number() && _ub->is_number()){
-        str += " ∈ [" + _lb->to_str() +"," + _ub->to_str() +"];\n";        
+    if(_lb->func_is_number() && _ub->func_is_number()){
+        str += " ∈ [" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"]^" + to_string(this->get_dim()) + "\n";
         return str;
     }
     str += " : ";
@@ -331,23 +410,29 @@ template<typename type> string var<type>::to_str(bool bounds, int prec) const {
             }
             auto idx = this->get_id_inst(i);
             str += "(" + this->_indices->_keys->at(idx) + ") ∈ ";
-            str += " [" + _lb->to_str(i) + "," + _ub->to_str(i) + "]\n";
+            str += " [" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "]\n";
             str += " \n";
         }
     }
     else {
         for (size_t idx = 0; idx < this->_dim[0]; idx++) {
             str += "["+to_string(idx) + "] = ";
-            str += " [" + _lb->to_str(idx) + "," + _ub->to_str(idx) + "]\n";
+            str += " [" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "]\n";
             str += " \n";
         }
     }
     str+= ";\n";
     return str;
 }
+
+template<typename type> void var<type>::print() {
+    print(16);
+}
+
     
-template<typename type> void var<type>::print(bool bounds, int prec) const {
-    cout << to_str(bounds,prec);
+    
+template<typename type> void var<type>::print(int prec) {
+    cout << to_str_bounds(true,prec);
 }
     
 var<Cpx> conj(const var<Cpx>& v){
