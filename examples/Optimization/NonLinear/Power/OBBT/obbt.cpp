@@ -163,6 +163,8 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
+    bool print_only_relaxed;
+    SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     //    SDP->print_solution();
@@ -497,7 +499,8 @@ int main (int argc, char * argv[]) {
             SDPLB1.run(output = 5, tol=1e-8, "ma57");
             
             SDP->print_constraints_stats(tol);
-            
+            bool print_only_relaxed;
+            SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
             
             
