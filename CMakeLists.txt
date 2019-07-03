@@ -40,7 +40,6 @@ option(Qpp "Link to QPP libraries" OFF)
 # Find CLP (optional)
 option(Clp "Link to CLP libraries" OFF)
 
-
 # Find Ipopt.
 if (Ipopt)
 	message(STATUS "Enable IPOPT")
@@ -131,6 +130,7 @@ if (Boost)
     include_directories("/usr/local/include/")
     set(LIBS ${LIBS} "usr/local/lib/")
 endif()
+
 
 set(UNZIPPED OFF CACHE BOOL "Already unzipped")
 if(NOT UNZIPPED)

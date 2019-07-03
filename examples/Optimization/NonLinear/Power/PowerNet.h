@@ -255,7 +255,23 @@ public:
     void save_all_sol(const string& fname);
     
     /** get set indexed by bus pairs in the chordal extension */
-    gravity::indices get_bus_pairs_chord();
+    gravity::indices get_bus_pairs_chord(const vector<std::vector<Node*>>& bags);
+    
+    gravity::indices get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags);
+    
+    gravity::indices get_ref_bus_pairs_from();
+    
+    gravity::indices get_ref_bus_pairs_to();
+    
+    gravity::indices bus_pairs_no_line_charge();
+    
+    gravity::indices arcs_inductive_only();
+    
+    gravity::indices arcs_line_charge();
+    
+    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
+    
+    void update_ref_bus();
     
     
     /** Power Model<>s */
