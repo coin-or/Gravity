@@ -58,6 +58,7 @@ int main (int argc, char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     
+    
     /* Grid Stats */
     auto bus_pairs = grid.get_bus_pairs();
     auto nb_gen = grid.get_nb_active_gens();
@@ -84,7 +85,8 @@ int main (int argc, char * argv[])
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
     
-
+    double upper_bound = grid.solve_acopf(ACRECT);
+    
     
     /** MODEL DECLARATION */
     Model<> SOCP("SCOPF Model");
@@ -103,10 +105,14 @@ int main (int argc, char * argv[])
     SOCP.add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
     
     /* Real part of Wij = ViVj */
+//    var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
+//    /* Magnitude of Wii = Vi^2 */
+    
     var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
-    /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP.add(Wii.in(nodes));
     SOCP.add(R_Wij.in(bus_pairs));
@@ -124,10 +130,11 @@ int main (int argc, char * argv[])
     
     /** Constraints */
     /* Second-order cone constraints */
+    bool convexify;
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOCP.add(SOC.in(bus_pairs) <= 0);
-    
+
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gen_nodes) + grid.gs*Wii;
@@ -139,19 +146,19 @@ int main (int argc, char * argv[])
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij + grid.b_ft*Im_Wij);
+    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij.in(arcs) + grid.b_ft*Im_Wij.in(arcs));
     SOCP.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij - grid.b_tf*Im_Wij);
+    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij.in(arcs) - grid.b_tf*Im_Wij.in(arcs));
     SOCP.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij);
+    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in(arcs) - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij.in(arcs));
     SOCP.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij + grid.g_tf*Im_Wij;
+    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij.in(arcs) + grid.g_tf*Im_Wij.in(arcs);
     SOCP.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
@@ -227,5 +234,10 @@ int main (int argc, char * argv[])
     /* SOCP.print(); */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string_with_precision(SOCP.get_obj_val(),10) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
+    double gap = 100*(upper_bound - SOCP.get_obj_val())/upper_bound;
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(SOCP.get_obj_val()) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(SOCP.get_obj_val()) << " " << to_string(total_time)<<endl);
     return 0;
 }

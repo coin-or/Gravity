@@ -508,7 +508,7 @@ string Net::remove_end_node() {
 }
 
 // use greedy fill-in algorithm.
-void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
+void Net::get_tree_decomp_bags() {
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -572,66 +572,102 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-        
-//        if (true) {
-            //            DebugOn("bag_copy = {");
-            //            for (int i=0; i<bag_copy.size();     i++) {
-            //                cout << bag_copy.at(i)->_name << " ";
-            //            }
-            //            DebugOn("}" << endl);
-//            DebugOff("bag = {");
-//            for (int i=0; i<bag.size();     i++) {
-//                cout << bag.at(i)->_name << " ";
-//            }
-//            DebugOff("}" << endl);
-//        }
-        //        _bags_copy.push_back(bag_copy);
         if(unique_bags.insert(bag).second){
             _bags.push_back(bag); // bag original
+            if (bag_copy.size()==3) {
+                nb++;
+            }
         }
         
-        if (bag_copy.size()==3) {
-            nb++;
-        }
         if (bag_copy.size()>max_size) {
             max_size = bag_copy.size();
         }
-        else if(decompose && bag_copy.size()>3){
+        delete n;
+    }
+    
+    
+    DebugOn("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Max clique size = " << max_size << endl);
+    if(max_size==2){
+        this->_tree = true;
+    }
+    
+    delete graph_clone;
+    
+}
+
+std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
+    set<vector<Node*>> unique_bags;
+    vector<std::vector<Node*>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.size()==3){
+            if(unique_bags.insert(bag_copy).second){
+                res.push_back(bag_copy);
+            }
+        }
+        else if(bag_copy.size()>3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
             for (auto i = 0; i<bag_copy.size()-2; i++) {
                 for (auto j = i+1; j<bag_copy.size()-1; j++) {
                     for (auto k = j+1; k<bag_copy.size(); k++) {
                         vector<Node*> new_bag;
-                        new_bag.push_back(bag[i]);
-                        new_bag.push_back(bag[j]);
-                        new_bag.push_back(bag[k]);
+                        new_bag.push_back(bag_copy[i]);
+                        new_bag.push_back(bag_copy[j]);
+                        new_bag.push_back(bag_copy[k]);
                         DebugOff("new bag = {");
-//                        for (int i=0; i<new_bag.size();     i++) {
-//                            cout << new_bag.at(i)->_name << " ";
-//                        }
+                        //                        for (int i=0; i<new_bag.size();     i++) {
+                        //                            cout << new_bag.at(i)->_name << " ";
+                        //                        }
                         DebugOff("}" << endl);
                         if(unique_bags.insert(new_bag).second){
-                            _bags.push_back(new_bag);
+                            res.push_back(new_bag);
                         }
                     }
                 }
             }
         }
-        delete n;
     }
-    //    sort(_bags.begin(), _bags.end(), bag_compare);
-    
-    
-    Debug("\n Number of 3D bags = " << nb << endl);
-    DebugOn("\n Max clique size = " << max_size << endl);
-    if(max_size==2){
-        this->_tree = true;
+    return res;
+}
+
+std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
+{
+    set<vector<Node*>> unique_bags;
+    vector<std::vector<Node*>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.size()==4){
+            if(unique_bags.insert(bag_copy).second){
+                res.push_back(bag_copy);
+            }
+        }
+        else if(bag_copy.size()>4){
+            DebugOff("Decomposing bigger bag into 4d bags\n");
+            
+            for (auto i = 0; i<bag_copy.size()-3; i++) {
+                for (auto j = i+1; j<bag_copy.size()-2; j++) {
+                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
+                        for (auto l = k+1; l<bag_copy.size(); l++) {
+                            vector<Node*> new_bag;
+                            new_bag.push_back(bag_copy[i]);
+                            new_bag.push_back(bag_copy[j]);
+                            new_bag.push_back(bag_copy[k]);
+                            new_bag.push_back(bag_copy[l]);
+                            DebugOff("new bag = {");
+                            //                        for (int i=0; i<new_bag.size();     i++) {
+                            //                            cout << new_bag.at(i)->_name << " ";
+                            //                        }
+                            DebugOff("}" << endl);
+                            if(unique_bags.insert(new_bag).second){
+                                res.push_back(new_bag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-//    DebugOn("\n Total number of bags = " << _bags.size() << endl);
-    
-    delete graph_clone;
-    
+    return res;
 }
 
 /** Return the vector of arcs ignoring parallel lines **/
@@ -647,7 +683,243 @@ indices Net::get_bus_pairs(){
     return bus_pairs;
 }
 
+void Net::Fast_Horton(){
+    
+    Net* copy_net = clone();
+    copy_net->horton_net = new Net();
+    
+    
+    Fast_Horton(copy_net);
+    delete(copy_net);
+}
 
+/* Compare function for Dijkstra's pripority queue based on the distance from the source */
+struct comparator {
+    bool operator() (Node* arg1, Node* arg2) {
+        return (*arg1).distance > (*arg2).distance;
+    }
+};
+
+/* Reset all distances to max value */
+void Net::resetDistance(){
+    for (vector<Node*>::iterator it = nodes.begin(); it != nodes.end(); it++){
+        (*it)->distance = (int)nodes.size()+1;
+        (*it)->predecessor = NULL;
+    }
+}
+
+/* sets the cycle member fo all odes to be false */
+void Net::reset_nodeCycle(){
+    vector<Node*>::iterator it = nodes.begin();
+    while (it != nodes.end()) {
+        (*it)->cycle = false;
+        it++;
+    }
+}
+
+/* sets all nodesto unexplored */
+void Net::reset_nodeExplored(){
+    vector<Node*>::iterator it = nodes.begin();
+    while (it != nodes.end()) {
+        (*it)->explored = false;
+        it++;
+    }
+}
+
+/* Computes and returns the shortest path between src and dest in net */
+Path* Net::Dijkstra(Node* src, Node* dest, Net* net){
+    priority_queue<Node*, vector<Node*> , comparator> p_queue;
+    net->resetDistance();
+    src->distance = 0;
+    p_queue.push(src);
+    Node* current = NULL;
+    Arc* arc = NULL;
+    while (!p_queue.empty() && current != dest) {
+        current = p_queue.top();
+        p_queue.pop();
+        if (current != dest) {
+            for (vector<Arc*>::iterator it = current->branches.begin(); it != current->branches.end(); ++it) {
+                arc = (*it);
+                if (arc->neighbour(current)->distance > current->distance + 1) {
+                    arc->neighbour(current)->distance = current->distance + 1;
+                    arc->neighbour(current)->predecessor = current;
+                    p_queue.push(arc->neighbour(current));
+                }
+            }
+        }
+        /* Stop when reaching destination */
+        else
+            break;
+    }
+    
+    /* If there is no path between src and dest */
+    if(dest->predecessor==NULL)
+        return NULL;
+    /* Reconstruct path backward */
+    Path* p = new Path();
+    current = dest;
+    while (current) {
+        /* The path should contain a pointer to the original nodes not the current copy */
+        Node* n = get_node(current->_name);
+        p->nodes.push_front(n);
+        current = current->predecessor;
+    }
+    return p;
+}
+
+
+void Net::add_horton_nodes(Net* net){
+    Node* copy = NULL;
+    /* Add all neighbours of the end node (lowest degree) */
+    Node* end_n = net->nodes.back();
+    vector<Arc*>::iterator it = end_n->branches.begin();
+    while(it != end_n->branches.end()){
+        copy = (*it)->neighbour(end_n)->clone();
+        net->horton_net->add_node(copy);
+        it++;
+    }
+}
+
+
+void Net::add_horton_branches(Net* net){
+    Node* src;
+    Node* dest;
+    Path* shortest;
+    Arc* arc;
+    for (int i=0; i<net->horton_net->nodes.size()-1; i++) {
+        src = net->horton_net->nodes[i];
+        for (int j=i+1; j<net->horton_net->nodes.size(); j++) {
+            dest = net->horton_net->nodes[j];
+            /* computing shortest paths between neighbours of x in G-x */
+            shortest = Dijkstra(net->get_node(src->_name), net->get_node(dest->_name), net);
+            if (shortest!=NULL) {
+                arc = new Arc(src, dest);
+                arc->horton_path = shortest;
+                arc->weight = shortest->length();
+                net->horton_net->add_arc(arc);
+            }
+        }
+    }
+}
+
+/* Compare function for fast_horton algorithm, ranking nodes in decreasing degree */
+bool compareNodes(Node* n1, Node* n2){
+    return n1->degree() > n2->degree();
+}
+
+/* Compare function for minimal_spanning_tree algorithm, ranking arcs in decreasing wheight */
+bool compareArcs(Arc* a1, Arc* a2){
+    return a1->weight > a2->weight;
+}
+
+/* Sort nodes in decreasing degree */
+void Net::orderNodes(Net* net){
+    if(!net->nodes.empty())
+        sort(net->nodes.begin(), net->nodes.end(), compareNodes);
+}
+
+
+/* Sort nodes in decreasing degree */
+void Net::orderArcs(Net* net){
+    if(!net->arcs.empty())
+        sort(net->arcs.begin(), net->arcs.end(), compareArcs);
+}
+
+/* Erase Horton network and free memory for cloned nodes and created arcs */
+void Net::clear_horton_net(){
+    if (!horton_net->nodes.empty()) {
+        for (vector<Node*>::iterator it = horton_net->nodes.begin(); it != horton_net->nodes.end(); ++it) {
+            delete(*it);
+        }
+        horton_net->nodes.clear();
+    }
+    if (!horton_net->arcs.empty()) {
+        for (vector<Arc*>::iterator it = horton_net->arcs.begin(); it != horton_net->arcs.end(); ++it) {
+            delete(*it);
+        }
+        horton_net->arcs.clear();
+    }
+    
+    horton_net->nodeID.clear();
+    
+}
+    
+/*  @brief Computes a spanning tree of minimal weight in horton's network, then adds the corresponding cycles to the original network by connecting to src
+ @note Implements Kruskal’s greedy algorithm
+ */
+void Net::minimal_spanning_tree(Node* src, Net* net){
+    
+    /* Check if the network has atleast one line */
+    if (net->arcs.empty()) {
+        return;
+    }
+    
+    Path* min_tree = new Path();
+    int n = (int)net->nodes.size();
+    orderArcs(net);
+    Arc* a = NULL;
+    a = net->arcs.back();
+    min_tree->nodes.push_back(a->_src);
+    while (min_tree->nodes.size()<n) {
+        a = net->arcs.back();
+        /* Check if at least one node of the arc is not already in the path, in order to avoid creating a cycle */
+        if(find(min_tree->nodes.begin(), min_tree->nodes.end(), a->_src) == min_tree->nodes.end() && find(min_tree->nodes.begin(), min_tree->nodes.end(), a->_dest) == min_tree->nodes.end()){
+            min_tree->nodes.push_back(a->_src);
+            min_tree->nodes.push_back(a->_dest);
+            combine(src, a->horton_path);
+            cycle_basis.push_back(a->horton_path);
+        }
+        else if(find(min_tree->nodes.begin(), min_tree->nodes.end(), a->_src) == min_tree->nodes.end()){
+            min_tree->nodes.push_back(a->_src);
+            combine(src, a->horton_path);
+            cycle_basis.push_back(a->horton_path);
+        }
+        else if (find(min_tree->nodes.begin(), min_tree->nodes.end(), a->_dest) == min_tree->nodes.end()){
+            min_tree->nodes.push_back(a->_dest);
+            combine(src, a->horton_path);
+            cycle_basis.push_back(a->horton_path);
+        }
+        net->arcs.pop_back();
+    }
+    delete min_tree;
+}
+
+void Net::Fast_Horton(Net *net){
+    
+    
+    /* Arranging nodes in descending order of degree */
+    orderNodes(net);
+    
+    /* Removing all nodes of degree 1 */
+    while (!net->nodes.empty() && net->nodes.back()->degree()<2) {
+        net->remove_end_node();
+        orderNodes(net);
+    }
+    
+    /* net has no cycles */
+    if(net->nodes.size()<3)
+        return;
+    
+    /* Erase Horton network */
+    net->clear_horton_net();
+    
+    
+    /* Adding nodes to Horton network */
+    add_horton_nodes(net);
+    
+    /* Removing the end node from the original network */
+    string n_id = net->remove_end_node();
+    
+    /* Computing the shortest paths among neighbours of n and creating the corresponding horton network */
+    add_horton_branches(net);
+    
+    /* Computing the minimal spanning tree on the corresponding Horton network */
+    
+    minimal_spanning_tree(get_node(n_id), net->horton_net);
+    
+    while (net->nodes.size()>2)
+        Fast_Horton(net);
+}
 
 
 
@@ -779,10 +1051,19 @@ Net::~Net() {
         }
         arcs.clear();
     }
+    if (horton_net!=NULL)
+        delete horton_net;
     for (pair<string,set<Arc*>*> it:arcID) {
         delete it.second;
     }
 }
+
+/* Combines the src node with the path p to form a cycle */
+void Net::combine(Node* src, Path* p){
+    p->nodes.insert(p->nodes.begin(), src);
+    p->nodes.push_back(src);
+}
+
 
 //Net* Net::get_clique_tree(){
 //    Net* cliquetree = new Net();
