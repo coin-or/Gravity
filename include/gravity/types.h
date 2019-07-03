@@ -301,21 +301,7 @@ namespace gravity{
 //            *this = indices(l);
 //        }
         
-        indices(size_t p1 ,size_t p2){
-            auto n = p2 - p1 + 1;
-            assert(n >= 0);
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _keys->resize(n);
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(1);
-            _dim->at(0) = n;
-            size_t index = 0;
-            for (int i = p1; i <= p2; i++){
-                (*_keys_map)[to_string(i)]= index;
-                (*_keys)[index++] = to_string(i);
-            }
-        }
+        
         
         template<typename... Args>
         void init(string idx1, Args&&... args) {
@@ -724,6 +710,8 @@ namespace gravity{
             return _keys->back();
         }
     };
+    
+    
     
     indices operator-(const indices& s1, const indices& s2);
     
