@@ -157,12 +157,12 @@ int main (int argc, char * argv[])
         
         
         // define the number of partitions for variables
-        int num_partitions1 = 7; //number of partitions for Wii(from)
-        int num_partitions2 = 7; //number of partitions for Wii(to)
-        int num_partitions3 = 7; //number of partitions for R_Wi
+        int num_partitions1 = 5; //number of partitions for Wii(from)
+        int num_partitions2 = 5; //number of partitions for Wii(to)
+        int num_partitions3 = 5; //number of partitions for R_Wi
         
         /************** THIS SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-        int num_partitions4 = 7; //number of partitions for Im_Wij
+        int num_partitions4 = 5; //number of partitions for Im_Wij
         
         // allocate the partition bound arrays
         vector<double> p1(num_partitions1+1); //bounds for Wii(from)
