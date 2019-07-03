@@ -508,7 +508,7 @@ string Net::remove_end_node() {
 }
 
 // use greedy fill-in algorithm.
-void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
+void Net::get_tree_decomp_bags() {
     Node* n = nullptr;
     Node* u = nullptr;
     Node* nn = nullptr;
@@ -572,20 +572,6 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-        
-//        if (true) {
-            //            DebugOn("bag_copy = {");
-            //            for (int i=0; i<bag_copy.size();     i++) {
-            //                cout << bag_copy.at(i)->_name << " ";
-            //            }
-            //            DebugOn("}" << endl);
-//            DebugOff("bag = {");
-//            for (int i=0; i<bag.size();     i++) {
-//                cout << bag.at(i)->_name << " ";
-//            }
-//            DebugOff("}" << endl);
-//        }
-        //        _bags_copy.push_back(bag_copy);
         if(unique_bags.insert(bag).second){
             _bags.push_back(bag); // bag original
             if (bag_copy.size()==3) {
@@ -596,31 +582,8 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
         if (bag_copy.size()>max_size) {
             max_size = bag_copy.size();
         }
-//        else if(decompose && bag_copy.size()>3){
-//            DebugOff("Decomposing bigger bag into 3d bags\n");
-//
-//            for (auto i = 0; i<bag_copy.size()-2; i++) {
-//                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-//                    for (auto k = j+1; k<bag_copy.size(); k++) {
-//                        vector<Node*> new_bag;
-//                        new_bag.push_back(bag[i]);
-//                        new_bag.push_back(bag[j]);
-//                        new_bag.push_back(bag[k]);
-//                        DebugOff("new bag = {");
-////                        for (int i=0; i<new_bag.size();     i++) {
-////                            cout << new_bag.at(i)->_name << " ";
-////                        }
-//                        DebugOff("}" << endl);
-//                        if(unique_bags.insert(new_bag).second){
-//                            _bags.push_back(new_bag);
-//                        }
-//                    }
-//                }
-//            }
-//        }
         delete n;
     }
-    //    sort(_bags.begin(), _bags.end(), bag_compare);
     
     
     DebugOn("\n Number of 3D bags = " << nb << endl);
@@ -628,7 +591,6 @@ void Net::get_tree_decomp_bags(bool print_bags, bool decompose) {
     if(max_size==2){
         this->_tree = true;
     }
-//    DebugOn("\n Total number of bags = " << _bags.size() << endl);
     
     delete graph_clone;
     
