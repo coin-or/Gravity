@@ -222,10 +222,12 @@ namespace gravity{
     };
     
     class indices{
+    private:
+        string                                  _name;/**< index set can be given a name */
         
     public:
         
-        string                                  _name;/**< index set can be given a name */
+        
         IndexType                               _type = unindexed_;/**< index type */
         bool                                    _time_extended = false;/*<< indices are time extended */
         size_t                                  _time_pos = 0;/*<< number of commas before time extension */
@@ -237,6 +239,20 @@ namespace gravity{
         set<size_t>                             _excluded_keys; /*<< A set storing all indices that should be excluded */
         shared_ptr<vector<vector<size_t>>>      _ids = nullptr;
         
+        string get_name() const{
+            string name = _name;
+            if(_type==from_){
+                name = "from("+name+")";
+            }
+            else if(_type==to_){
+                name = "to("+name+")";
+            }
+            return name;
+        }
+        
+        void set_name(const string& name){
+            _name = name;
+        }
         
         indices(string name){
             _name = name;
@@ -244,7 +260,14 @@ namespace gravity{
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
         }
-        
+      
+      indices(int name){
+        _name = to_string(name);
+        _keys_map = make_shared<map<string,size_t>>();
+        _keys = make_shared<vector<string>>();
+        _dim = make_shared<vector<size_t>>();
+      }
+      
         indices(){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
@@ -278,21 +301,7 @@ namespace gravity{
 //            *this = indices(l);
 //        }
         
-        indices(size_t p1 ,size_t p2){
-            auto n = p2 - p1 + 1;
-            assert(n >= 0);
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _keys->resize(n);
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(1);
-            _dim->at(0) = n;
-            size_t index = 0;
-            for (int i = p1; i <= p2; i++){
-                (*_keys_map)[to_string(i)]= index;
-                (*_keys)[index++] = to_string(i);
-            }
-        }
+        
         
         template<typename... Args>
         void init(string idx1, Args&&... args) {
@@ -580,7 +589,7 @@ namespace gravity{
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
-            vecs = {forward<Args>(args)...};
+          vecs = {forward<Args>(args)...};
             vecs.push_front(vec1);
             *this = indices(vecs);
         }
@@ -701,6 +710,8 @@ namespace gravity{
             return _keys->back();
         }
     };
+    
+    
     
     indices operator-(const indices& s1, const indices& s2);
     
