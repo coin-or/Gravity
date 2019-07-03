@@ -6,10 +6,20 @@
 //
 //
 #include <gravity/param.h>
+#include <gravity/func.h>
 
 namespace gravity {
     
     
+    template<typename T>
+    void param<T>::copy_vals(const shared_ptr<param_>& p){
+        auto dim = p->get_dim();
+        func<T> f;
+        _val->resize(dim);
+        for (size_t i = 0; i < dim; i++) {
+            _val->at(i) = f.eval(p,i);
+        }
+    }
     
     template<>
     void param<complex<double>>::update_range(const complex<double>& val) {
@@ -27,45 +37,7 @@ namespace gravity {
         }
     }
     
-    
-    //    template<>
-    //    void param<complex<double>>::set_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM){
-    //        if (!is_complex()) {
-    //            throw invalid_argument("Function void set_complex_vals(const Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>& SM) is only implemented for complex<double> typed params/vars");
-    //        }
-    //        for (size_t k=0; k<SM.outerSize(); ++k) {
-    //            for (Eigen::SparseMatrix<complex<double>,Eigen::RowMajor>::InnerIterator it(SM,k); it; ++it){
-    //                set_val(it.row(), it.col(), it.value());
-    //            }
-    //        }
-    //    }
-    
-    pair<double, double>* param_::get_range() const{
-        switch (get_intype()) {
-            case binary_:
-                return new pair<double,double>(((param<bool>*)this)->_range->first, ((param<bool>*)this)->_range->second);
-                break;
-            case short_:
-                return new pair<double,double>(((param<short>*)this)->_range->first, ((param<short>*)this)->_range->second);
-                break;
-            case integer_:
-                return new pair<double,double>(((param<int>*)this)->_range->first, ((param<int>*)this)->_range->second);
-                break;
-            case float_:
-                return new pair<double,double>(((param<float>*)this)->_range->first, ((param<float>*)this)->_range->second);
-            case double_:
-                return new pair<double,double>(((param<double>*)this)->_range->first, ((param<double>*)this)->_range->second);
-                break;
-            case long_:
-                return new pair<double,double>(((param<long double>*)this)->_range->first, ((param<long double>*)this)->_range->second);
-                break;
-            default:
-                return new pair<double,double>(numeric_limits<double>::lowest(),numeric_limits<double>::max());
-                //                throw invalid_argument("get_range() only supports arithmetic types");
-                break;
-        }
         
-    }
     
     param<Cpx> conj(const param<Cpx>& p){
         param<Cpx> newp(p);
@@ -75,6 +47,7 @@ namespace gravity {
         else {
             newp._name = "conj("+newp._name+")";
         }
+        newp._is_conjugate = !newp._is_conjugate;
         return newp;
     }
     
@@ -105,4 +78,12 @@ namespace gravity {
         newp._is_imag = true;
         return newp;
     }
+    
+    template class param<bool>;
+    template class param<short>;
+    template class param<int>;
+    template class param<float>;
+    template class param<double>;
+    template class param<long double>;
+    template class param<Cpx>;
 }

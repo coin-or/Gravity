@@ -50,6 +50,18 @@ PowerNet::PowerNet() {
     pv_varcost.set_name("pv_varcost");
     pg_s.set_name("pg_s");
     qg_s.set_name("qg_s");
+    pf_from_min.set_name("pf_from_min");
+    pf_from_max.set_name("pf_from_max");
+    qf_from_min.set_name("qf_from_min");
+    qf_from_max.set_name("qf_from_max");
+    pf_to_min.set_name("pf_to_min");
+    pf_to_max.set_name("pf_to_max");
+    qf_to_min.set_name("qf_to_min");
+    qf_to_max.set_name("qf_to_max");
+    lij_min.set_name("lij_min");
+    lij_max.set_name("lij_max");
+    lji_min.set_name("lji_min");
+    lji_max.set_name("lji_min");
     cb_f.set_name("cb_f");
     cb_v.set_name("cb_v");
     c0.set_name("c0");
@@ -104,7 +116,6 @@ PowerNet::PowerNet() {
     g_ft.set_name("g_ft");
     g_tf.set_name("g_tf");
     g_tt.set_name("g_tt");
-
     b_ff.set_name("b_ff");
     b_ft.set_name("b_ft");
     b_tf.set_name("b_tf");
@@ -117,6 +128,8 @@ PowerNet::PowerNet() {
     Ych.set_name("Ych");
     T.set_name("T");
     Sd.set_name("Sd");
+    cc.set_name("cc");
+    dd.set_name("dd");
 }
 
 PowerNet::~PowerNet() {
@@ -136,6 +149,110 @@ PowerNet::~PowerNet() {
     arcs.clear();
 }
 
+indices PowerNet::gens_per_node() const{
+    indices ids("gens_per_node");
+    ids = indices(gens);
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for(auto g: ((Bus*)n)->_gen){
+                if (!g->_active) {
+                    continue;
+                }
+                key = g->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function gen_ids(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
+indices PowerNet::get_ref_bus_pairs_from()
+{
+    
+    gravity::indices ref_bus_pairs_from("ref_bus_pairs_from");
+    for (auto a: arcs) {
+        if (!a->_parallel && a->_dest->_name==ref_bus)
+        {
+            ref_bus_pairs_from.add(a->_src->_name+","+a->_dest->_name);
+        }
+    }
+    return ref_bus_pairs_from;
+}
+
+            indices PowerNet::get_ref_bus_pairs_to()
+        {
+            
+            gravity::indices ref_bus_pairs_to("ref_bus_pairs_to");
+            for (auto a: arcs) {
+                if (!a->_parallel && a->_src->_name==ref_bus) {
+                    ref_bus_pairs_to.add(a->_src->_name+","+a->_dest->_name);
+                }
+                    }
+                    return ref_bus_pairs_to;
+                    }
+
+
+
+
+indices PowerNet::out_arcs_per_node() const{
+    auto ids = indices(arcs);
+    ids.set_name("out_arcs_per_node");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for (auto a:n->get_out()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function out_arcs_per_node(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::in_arcs_per_node() const{
+    auto ids = indices(arcs);
+    ids.set_name("in_arcs_per_node");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for (auto a:n->get_in()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function in_arcs_per_node(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
 
 unsigned PowerNet::get_nb_active_gens() const {
     unsigned nb=0;
@@ -150,9 +267,9 @@ unsigned PowerNet::get_nb_active_gens() const {
 unsigned PowerNet::get_nb_active_bus_pairs() const {
     unsigned nb=0;
     for (auto bp: _bus_pairs._keys) {
-//        if (bp->_active) {
+        if (bp->_active) {
             nb++;
-//        }
+        }
     }
     return nb;
 }
@@ -181,619 +298,6 @@ unsigned PowerNet::get_nb_active_nodes() const {
     return nb;
 }
 
-//void PowerNet::time_expand(const indices& T) {
-////    c0.time_expand(T);
-////    c1.time_expand(T);
-////    c2.time_expand(T);
-//    pl._time_extended = true;
-//    pl_ratio._time_extended = true;
-//    ql._time_extended = true;
-//    pv_out._time_extended = true;
-//    pw_min._time_extended = true;
-//    pw_max._time_extended = true;
-////    S_max.time_expand(T);
-////    th_min.time_expand(T);
-////    th_max.time_expand(T);
-////    tan_th_min.time_expand(T);
-////    tan_th_max.time_expand(T);
-////    r.time_expand(T);
-////    x.time_expand(T);
-////    pg_min.time_expand(T);
-////    pg_max.time_expand(T);
-////    pv_min.time_expand(T);
-////    pv_max.time_expand(T);
-////    qg_min.time_expand(T);
-////    qg_max.time_expand(T);
-////    pb_min.time_expand(T);
-////    pb_max.time_expand(T);
-////    qb_min.time_expand(T);
-////    qb_max.time_expand(T);
-////    w_min.time_expand(T);
-////    w_max.time_expand(T);
-////    v_min.time_expand(T);
-////    v_max.time_expand(T);
-////    eff_a.time_expand(T);
-////    eff_b.time_expand(T);
-//}
-
-//void PowerNet::time_expand(unsigned T) {
-//    c0.time_expand(T);
-//    c1.time_expand(T);
-//    c2.time_expand(T);
-//    S_max.time_expand(T);
-//    th_min.time_expand(T);
-//    th_max.time_expand(T);
-//    tan_th_min.time_expand(T);
-//    tan_th_max.time_expand(T);
-//    g_tt.time_expand(T);
-//    g_ff.time_expand(T);
-//    g_ft.time_expand(T);
-//    g_tf.time_expand(T);
-//    b_tt.time_expand(T);
-//    b_ff.time_expand(T);
-//    b_ft.time_expand(T);
-//    b_tf.time_expand(T);
-//    pg_min.time_expand(T);
-//    pg_max.time_expand(T);
-//    qg_min.time_expand(T);
-//    qg_max.time_expand(T);
-//    w_min.time_expand(T);
-//    w_max.time_expand(T);
-//    gs.time_expand(T);
-//    bs.time_expand(T);
-//    pl.time_expand(T);
-//    ql.time_expand(T);
-//    v_min.time_expand(T);
-//    v_max.time_expand(T);
-//}
-
-int PowerNet::readGAMS(const string& fname) {
-    double pi = 4.*atan(1.);
-    string name;
-    double kvb = 0;
-    //    int id = 0;
-    unsigned index = 0;
-    cout << "Loading file " << fname << endl;
-    ifstream file(fname, std::ifstream::in);
-    if(!file.is_open()) {
-        auto new_fname = "../" + string(fname);
-        file.open(new_fname);
-        if(!file.is_open()) {
-            throw invalid_argument("Could not open file\n");
-        }
-    }
-    string word;
-    while (word.compare("BaseMVA")) {
-        file >> word;
-    }
-    getline(file, word);
-    getline(file, word,'/');
-    bMVA = atoi(word.c_str());
-    DebugOn("bMVA = " << bMVA << endl);
-    //  cout << _name << endl;
-    while (word.compare("branches(*)")) {
-        file >> word;
-    }
-    
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        auto arc = new Line(word);
-        _exist_arcs.push_back(arc);
-        arcMap[word] = arc;
-        file >> word;
-    }
-    DebugOn("Number of lines = " << _exist_arcs.size() << endl);
-    
-    while (word.compare("buses(*)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        auto bus = new Bus(word);
-        add_node(bus);
-        file >> word;
-    }
-    ref_bus = nodes[0]->_name;
-    DebugOn("Number of buses = " << nodes.size() << endl);
-    
-    while (word.compare("contingencies(*)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        auto pos = word.find('*');
-        if (pos!=string::npos) {
-            int loperand= atoi(word.substr(0,pos).c_str());
-            int roperand= atoi(word.substr(pos+1,word.size()-1).c_str());
-            _nb_conting = loperand*roperand;
-        }
-        else {
-            _nb_conting  = atoi(word.c_str());
-        }
-        file >> word;
-    }
-    DebugOn("Number of contingencies = " << _nb_conting << endl);
-    v_cont.resize(_nb_conting);
-    theta_cont.resize(_nb_conting);
-    Qg_cont.resize(_nb_conting);
-    v_diff_n_cont.resize(_nb_conting);
-    v_diff_p_cont.resize(_nb_conting);
-    _delta.resize(_nb_conting);
-    p_from.resize(_nb_conting);
-    q_from.resize(_nb_conting);
-    p_to.resize(_nb_conting);
-    q_to.resize(_nb_conting);
-    
-    /* Generator data */
-    while (word.compare("generators(*)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        auto gen = new Gen(word);
-        gens.push_back(gen);
-        genMap[word] = gen;
-        file >> word;
-    }
-    DebugOn("Number of generators = " << gens.size() << endl);
-    
-    /* Branch origin/dest */
-    while (word.compare("ijOrigin(i,j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    unsigned idx = 0;
-    while (word.compare("/;")) {
-        word =word.substr(word.find('.')+1, word.size()-1);
-        auto arc = _exist_arcs[idx++];
-        arc->_src = get_node(word);
-        file >> word;
-    }
-    while (word.compare("ijDestination(i,j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        word =word.substr(word.find('.')+1, word.size()-1);
-        auto arc = _exist_arcs[idx++];
-        arc->_dest = get_node(word);
-        file >> word;
-    }
-    while (word.compare("icMap(i,c)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        auto pos = word.find('.');
-        word =word.substr(pos+1, word.size()-1);
-        auto arc = _exist_arcs[idx++];
-        if (word.find("\"")!=std::string::npos) {
-            word = word.substr(1,word.size()-2);
-        }
-        arc->_circuit_id = word;
-        file >> word;
-    }
-    
-    
-    while (word.compare("ljMap(l,j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        word =word.substr(word.find('.')+1, word.size()-1);
-        auto gen = gens[idx++];
-        gen->_bus = (Bus*)get_node(word);
-        gen->_bus->_gen.push_back(gen);
-        file >> word;
-    }
-    
-    while (word.compare("luMap(l,u)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        word =word.substr(word.find(".")+1, word.size()-1);
-        if (word.find("\"")!=std::string::npos) {
-            word = word.substr(1,word.size()-1);
-        }
-        if (word.find("'")!=std::string::npos) {
-            word += " '";
-        }
-        auto gen = gens[idx++];
-        gen->_unit_name = word;
-        getline(file, word);
-        file >> word;
-    }
-    
-    while (word.compare("ikInactive(i,k)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        word = word.substr(0, word.find('.'));
-        auto arc = arcMap.at(word);
-        _conting_lines.push_back(arc);        
-        file >> word;
-    }
-    DebugOn("Number of line contingencies = " << _conting_lines.size() << endl);
-    
-    while (word.compare("lkInactive(l,k)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    while (word.compare("/;")) {
-        word = word.substr(0, word.find('.'));
-        auto gen = genMap.at(word);
-        _conting_gens.push_back(gen);
-        file >> word;
-    }
-    DebugOn("Number of generator contingencies = " << _conting_gens.size() << endl);
-    
-    while (word.compare("jShuntConductance(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->_cond.at(0)->_gs = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("jShuntSusceptance(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->_cond.at(0)->_bs = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("jVoltageMagnitudeMin(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->vbound.min = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("jVoltageMagnitudeMax(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->vbound.max = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("jRealPowerDemand(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->_cond.at(0)->_pl = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("jReactivePowerDemand(j)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto bus = (Bus*)nodes[idx++];
-        bus->_cond.at(0)->_ql = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("iSeriesResistance(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->r = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("iSeriesReactance(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->x = atof(word.c_str());
-        auto res = pow(arc->r,2) + pow(arc->x,2);
-        
-        if (res==0) {
-            cerr << " line with r = x = 0" << endl;
-            exit(-1);
-        }
-        // define g and b for each conductor.
-        arc->g = arc->r/res;
-        arc->b = -arc->x/res;
-        file >> word;
-    }
-    while (word.compare("iChargingSusceptance(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->ch = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("iTapRatio(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->tr = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("iPhaseShift(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;    
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->as = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("iPowerMagnitudeMax(i)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto arc = (Line*)_exist_arcs[idx++];
-        arc->smax = atof(word.c_str());
-        arc->limit = arc->smax/bMVA;
-        file >> word;
-    }
-    while (word.compare("lRealPowerMin(l)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_pbound.min = atof(word.c_str())/bMVA;
-        file >> word;
-    }
-    while (word.compare("lRealPowerMax(l)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_pbound.max = atof(word.c_str())/bMVA;
-        file >> word;
-    }
-    while (word.compare("lReactivePowerMin(l)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_qbound.min = atof(word.c_str())/bMVA;
-        file >> word;
-    }
-    while (word.compare("lReactivePowerMax(l)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_qbound.max = atof(word.c_str())/bMVA;
-        file >> word;
-    }
-    while (word.compare("lmRealPowerCostCoefficient(l,m)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_cost->c0 = atof(word.c_str());
-        file >> word;
-        file >> word;
-        gen->_cost->c1 = atof(word.c_str());
-        file >> word;
-        file >> word;
-        gen->_cost->c2 = atof(word.c_str());
-        file >> word;
-    }
-    while (word.compare("lParticipationFactor(l)")) {
-        file >> word;
-    }
-    getline(file, word);
-    file >> word;
-    idx = 0;
-    double tot_part_fact = 0;
-    while (word.compare("/;")) {
-        file >> word;
-        auto gen = gens[idx++];
-        gen->_part_factor = atof(word.c_str());
-        tot_part_fact +=gen->_part_factor;
-        file >> word;
-    }
-    
-    DebugOn("Bus Data : "<<endl);
-    for (auto n: nodes) {
-        auto b = (Bus*)n;
-        b->print();
-        name = b->_name;
-        pl.add_val(name,b->pl()/bMVA);
-        ql.add_val(name,b->ql()/bMVA);
-        gs.add_val(name,b->gs()/bMVA);
-        bs.add_val(name,b->bs()/bMVA);
-        v_max.add_val(name,b->vmax());
-        v_min.add_val(name,b->vmin());
-        w_min.add_val(name,pow(b->vmin(), 2));
-        w_max.add_val(name,pow(b->vmax(), 2));
-    }
-    DebugOn("Gen Data : "<<endl);
-    for (auto gen:gens) {
-        gen->print();
-        name = gen->_name;
-        qg_max.add_val(name,gen->_qbound.max);
-        qg_min.add_val(name,gen->_qbound.min);
-        pg_max.add_val(name,gen->_pbound.max);
-        pg_min.add_val(name,gen->_pbound.min);
-        c0.add_val(name, gen->_cost->c0);
-        c1.add_val(name, gen->_cost->c1*bMVA);
-        c2.add_val(name, gen->_cost->c2*pow(bMVA,2));
-        p_factor.add_val(name, gen->_part_factor/tot_part_fact);
-//        p_factor.add_val(name, gen->_part_factor);
-    }
-    
-    /* Lines data */
-    Bus* bus_s = nullptr;
-    Bus* bus_d = nullptr;
-    string src, dest;
-    set<string> bus_pair_names;
-    DebugOn("Line Data : "<<endl);
-    for(auto a: _exist_arcs) {
-        auto arc = (Line*)a;
-        bus_s = (Bus*)arc->_src;
-        bus_d = (Bus*)arc->_dest;
-        src = arc->_src->_name;
-        dest = arc->_dest->_name;
-        arc->_name += "," + src + "," + dest;
-        name = arc->_name;
-        g.add_val(name,arc->g);
-        b.add_val(name,arc->b);
-        tr.add_val(name,arc->tr);
-        as.add_val(name,arc->as);
-        arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
-        arc->dd = arc->tr*sin(arc->as);
-        g_ff.add_val(name,arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        g_ft.add_val(name,(-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        g_tt.add_val(name,arc->g);
-        g_tf.add_val(name,(-arc->g*arc->cc - arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        b_ff.add_val(name,(arc->ch*0.5 + arc->b)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        b_ft.add_val(name,(-arc->b*arc->cc - arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        b_tt.add_val(name,(arc->ch*0.5 + arc->b));
-        b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
-        ch.add_val(name,arc->ch);
-        S_max.add_val(name,arc->limit);
-        arc->connect();
-        add_arc(arc);
-        arc->tbound.min = -30*pi/180;
-        arc->tbound.max = 30*pi/180;
-        m_theta_lb += arc->tbound.min;
-        m_theta_ub += arc->tbound.max;
-        arc->print();
-        /* Switching to bus_pairs keys */
-        name = src + "," + dest;
-        if (arc->_active && bus_pair_names.count(name)==0) {
-//            _bus_pairs._keys.push_back(new index_pair(index_(src), index_(dest), arc->_active));
-            bus_pair_names.insert(name);
-        }
-        if (!arc->_parallel) {
-            th_min.add_val(name,arc->tbound.min);
-            th_max.add_val(name,arc->tbound.max);
-            tan_th_min.add_val(name,tan(arc->tbound.min));
-            tan_th_max.add_val(name,tan(arc->tbound.max));
-            
-        }
-        else {
-            th_min.add_val(name,max(th_min.eval(name), arc->tbound.min));
-            th_max.add_val(name,min(th_max.eval(name), arc->tbound.max));
-            tan_th_min.add_val(name,tan(th_min.eval(name)));
-            tan_th_max.add_val(name,tan(th_max.eval(name)));
-        }
-        if (arc->tbound.min >= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval()));
-        };
-        if (arc->tbound.max <= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
-        }
-        if (arc->tbound.min < 0 && arc->tbound.max > 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min(name).eval()), cos(th_max(name).eval())));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
-        }
-        cphi.add_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
-        sphi.add_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
-        cos_d.add_val(name, cos(0.5*(arc->tbound.max-arc->tbound.min)));
-        getline(file, word,'\n');
-        file >> word;
-    }
-    DebugOff(ch.to_str(true) << endl);
-    DebugOff(as.to_str(true) << endl);
-    DebugOff(tr.to_str(true) << endl);    
-    file.close();
-    return 0;
-}
 
 
 int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
@@ -834,13 +338,14 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 //    Bus* bus_clone= NULL;
     file >> word;
     int status;
+    double total_p_load = 0, total_q_load = 0;
     while(word.compare("];")) {
         name = word.c_str();
         file >> ws >> word;
         status = atoi(word.c_str());
         if (status==3) {
             ref_bus = name;
-            DebugOff("Ref bus = " << ref_bus << endl);
+            DebugOn("Ref bus = " << ref_bus << endl);
         }
         file >> ws >> word;
         pl.add_val(name,atof(word.c_str())/bMVA);
@@ -865,6 +370,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 
         bus = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
 //        bus_clone = new Bus(name, pl.eval(), ql.eval(), gs.eval(), bs.eval(), v_min.eval(), v_max.eval(), kvb, 1);
+        total_p_load += pl.eval();
+        total_q_load += ql.eval();
         bus->vs = v_s.eval();
         V_min.add_val(name,Cpx(-1*bus->vbound.max, -1*bus->vbound.max));
         V_max.add_val(name,Cpx(bus->vbound.max, bus->vbound.max));
@@ -877,7 +384,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
 
         this->Net::add_node(bus);
         if (status>=4) {
-            DebugOff("INACTIVE NODE!\n" << name << endl);
+            DebugOn("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -1006,8 +513,14 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         file >> word;
         arc->r = atof(word.c_str());
+        if(arc->r==0){
+            DebugOn("Branch with zero resistance: " << arc->_name << endl);
+        }
         file >> word;
         arc->x = atof(word.c_str());
+        if(arc->x==0){
+            DebugOn("Branch with zero reactance: " << arc->_name << endl);
+        }
         res = pow(arc->r,2) + pow(arc->x,2);
         
         if (res==0) {
@@ -1029,7 +542,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         else
             arc->tr = atof(word.c_str());
         file >> ws >> word;
-        arc->as = atof(word.c_str())*pi/180.;
+        arc->as = (atof(word.c_str())*pi)/180.;
         file >> ws >> word;
         
         
@@ -1045,8 +558,8 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
             DebugOn("Angle bounds are equal to zero. Setting them to -+60");
-            arc->tbound.min = -60*pi/180.;
-            arc->tbound.max = 60*pi/180.;
+            arc->tbound.min = -60.*pi/180.;
+            arc->tbound.max = 60.*pi/180.;
             
         }
         if (reversed && reverse_arcs) {
@@ -1061,21 +574,31 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         }
         arc->cc = arc->tr*cos(arc->as); // Rectangular values for transformer phase shifters
         arc->dd = arc->tr*sin(arc->as);
+        name = arc->_name;
+        cc.add_val(name, arc->cc);
+        dd.add_val(name, arc->dd);
+        bt.add_val(name,arc->b/pow(arc->tr,2));
+        cht.add_val(name, arc->ch/pow(arc->tr,2));
+        ch_half.add_val(name, arc->ch*0.5);
+        cht_half.add_val(name, arc->ch*0.5/pow(arc->tr,2));
+        rty.add_val(name, arc->g*arc->cc-arc->b*arc->dd);
+        ity.add_val(name, arc->b*arc->cc+arc->g*arc->dd);
+        
         //        arc->tbound.max = 30*pi/180;
         m_theta_ub += arc->tbound.max;
         
         Bus* bus_s = (Bus*)(arc->_src);
         Bus* bus_d = (Bus*)(arc->_dest);
         
-        arc->smax = max(
+        arc->smax = gravity::max(
                         pow(bus_s->vbound.max,2)*(arc->g*arc->g + arc->b*arc->b)*(pow(bus_s->vbound.max,2) + pow(bus_d->vbound.max,2)),
                         pow(bus_d->vbound.max,2)*(arc->g*arc->g+arc->b*arc->b)*(pow(bus_d->vbound.max,2) + pow(bus_s->vbound.max,2))
                         );
-        name = arc->_name;
         g.add_val(name,arc->g);
         b.add_val(name,arc->b);
         tr.add_val(name,arc->tr);
         as.add_val(name,arc->as);
+        //(g+g_fr)/tm^2
         g_ff.add_val(name,arc->g/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         g_ft.add_val(name,(-arc->g*arc->cc + arc->b*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
@@ -1090,7 +613,21 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         b_tf.add_val(name,(-arc->b*arc->cc + arc->g*arc->dd)/(pow(arc->cc, 2) + pow(arc->dd, 2)));
         
         ch.add_val(name,arc->ch);
+//        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
+        pf_from_max.add_val(name, arc->limit);
+        pf_from_min.add_val(name, (arc->limit)*(-1));
+        qf_from_max.add_val(name, arc->limit);
+        qf_from_min.add_val(name, (arc->limit)*(-1));
+        pf_to_max.add_val(name, arc->limit);
+        pf_to_min.add_val(name, (arc->limit)*(-1));
+        qf_to_max.add_val(name, arc->limit);
+        qf_to_min.add_val(name, (arc->limit)*(-1));
+        lij_min.add_val(name, 0);
+        lij_max.add_val(name, pow(arc->tr,2)*pow(arc->limit, 2)/pow(bus_s->vbound.min,2));
+        lji_min.add_val(name, 0);
+        lji_max.add_val(name, pow(arc->limit, 2)/pow(bus_d->vbound.min,2));
+        
         
         /* Complex params */
         Y.add_val(name,Cpx(arc->g,arc->b));
@@ -1099,7 +636,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOn("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
@@ -1117,28 +654,28 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             
         }
         else {
-            th_min.set_val(name,max(th_min.eval(name), arc->tbound.min));
-            th_max.set_val(name,min(th_max.eval(name), arc->tbound.max));
+            th_min.set_val(name,gravity::max(th_min.eval(name), arc->tbound.min));
+            th_max.set_val(name,gravity::min(th_max.eval(name), arc->tbound.max));
             tan_th_min.set_val(name,tan(th_min.eval(name)));
             tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
         if (arc->tbound.min >= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_min.eval(name)));
         };
         if (arc->tbound.max <= 0) {
-            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max(name).eval()));
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min(name).eval()));
-            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_max.eval(name)));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_min.eval(name)));
+            wi_max.add_val(name,bus_s->vbound.min*bus_d->vbound.min*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         if (arc->tbound.min < 0 && arc->tbound.max > 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max);
-            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*min(cos(th_min(name).eval()), cos(th_max(name).eval())));
-            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max(name).eval()));
-            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min(name).eval()));
+            wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*gravity::min(cos(th_min.eval(name)), cos(th_max.eval(name))));
+            wi_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_max.eval(name)));
+            wi_min.add_val(name,bus_s->vbound.max*bus_d->vbound.max*sin(th_min.eval(name)));
         }
         cphi.add_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
         sphi.add_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
@@ -1295,10 +832,10 @@ void PowerNet::update_net(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0){
                 cos_max_ = 1;
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             } else{
-                cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
@@ -1346,607 +883,53 @@ void PowerNet::update_net(){
     }
 }
 
-//void PowerNet::update_status(unique_ptr<Model> model){
-//    for (auto &v_p:model->_vars) {
-//        if (v_p.second->is_integer() || v_p.second->is_binary()) {
-//            auto v = v_p.second;
-//            auto new_v = new var<double>(v_p.second->_name, 0,1);
-//            new_v->copy(*v);
-//            new_v->_is_relaxed = true;
-//            new_v->_val->resize(new_v->get_dim());
-//            if (v->get_intype()==integer_) {
-//                auto real_var = (var<int>*)v;
-//                for (int i = 0; i < real_var->get_dim(); i++) {
-//                    new_v->_val->at(i) = real_var->_val->at(i);
-//                }
-//            }
-//            if (v->get_intype()==short_) {
-//                auto real_var = (var<short>*)v;
-//                for (int i = 0; i < real_var->get_dim(); i++) {
-//                    new_v->_val->at(i) = real_var->_val->at(i);
-//                }
-//            }
-//            if (v->get_intype()==binary_) {
-//                auto real_var = (var<bool>*)v;
-//                _model->_bin_vars[v_p.second->get_vec_id()] = *real_var;
-//                for (int i = 0; i < real_var->get_dim(); i++) {
-//                    new_v->_val->at(i) = real_var->_val->at(i);
-//                }
-//            }
-//            v_p.second = new_v;
-//        }
-//    }
-//}
-
-shared_ptr<Model> PowerNet::build_SCOPF_gen_contingency(int cont, const string& name, PowerModelType pmt, int output, double tol){
-    /** MODEL DECLARATION */
-    shared_ptr<Model> CSCOPF(new Model(name));
-    return CSCOPF;
-}
-
-shared_ptr<Model> PowerNet::build_SCOPF_line_contingency(int cont, const string& name, PowerModelType pmt, int output, double tol){
-    /** MODEL DECLARATION */
-    shared_ptr<Model> CSCOPF(new Model(name));
-    bool polar = (pmt==ACPOL);
-    if (polar) {
-        DebugOn("Using polar model\n");
-    }
-    else {
-        DebugOn("Using rectangular model\n");
-    }
-    /** Variables */
-    /* Power generation variables */
-    var<double> Pg("Pg_cont", pg_min, pg_max);
-    var<double> Qg ("Qg_cont", qg_min, qg_max);
-    var<double> Sp ("Sp", pos_);
-    var<double> Sn ("Sn", pos_);
-    CSCOPF->add(Pg.in(gens), Qg.in(gens), Sp.in(gens), Sn.in(gens));
-    Qg_cont[cont] = Qg;
-    
-    /* Power flow variables */
-    var<double> Pf_from("Pf_from",  S_max);
-    var<double> Qf_from("Qf_from",  S_max);
-    var<double> Pf_to("Pf_to",  S_max);
-    var<double> Qf_to("Qf_to",  S_max);
-    CSCOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    
-    p_from[cont] = Pf_from;
-    q_from[cont] = Qf_from;
-    p_to[cont] = Pf_to;
-    q_to[cont] = Qf_to;
-    
-    var<double> delta("delta", pos_);
-    CSCOPF->add(delta.in(R(1)));
-    _delta[cont] = delta;
-    
-    indices Ng; /*<< Nodes with generators */
-    for (auto node: nodes) {
-        auto bus = (Bus*)node;
-        if (bus->_gen.size()>0) {
-            Ng.add(bus->_name);
-        }
-    }
-    var<double> v_diff("v_diff", pos_);
-    CSCOPF->add(v_diff.in(Ng));
-    
-    /** Voltage related variables */
-    var<double> theta("theta");
-    var<double> v("v_cont", v_min, v_max);
-    var<double> vr("vr");
-    var<double> vi("vi");
-    
-    if (polar) {
-        CSCOPF->add_var(v.in(nodes));
-        CSCOPF->add_var(theta.in(nodes));
-        v.initialize_all(1);
-    }
-    else {
-        CSCOPF->add_var(vr.in(nodes));
-        CSCOPF->add_var(vi.in(nodes));
-        vr.initialize_all(1.0);
-    }
-    v_cont[cont] = v;
-    theta_cont[cont] = theta;
-    
-    /** Construct the objective function */
-    CSCOPF->min(sum(v_diff) + sum(Sp) + sum(Sn));
-//    CSCOPF->min(1);
-    
-/** Define constraints */
-    
-    /* OBJ Constraints */
-    
-    Constraint V_diff_p("V_diff_p");
-    V_diff_p = v_diff - (v - v_base);
-    CSCOPF->add(V_diff_p.in(Ng) >= 0);
-    
-    Constraint V_diff_n("V_diff_n");
-    V_diff_n = v_diff - (v_base - v);
-    CSCOPF->add(V_diff_n.in(Ng) >= 0);
-//    CSCOPF->get_constraint("V_diff_n")->print_expanded();
-    
-    /* Generator Constraints */
-    Constraint Gen_resp("g_resp");
-    Gen_resp = Pg - (Pg_base + p_factor*delta) - (Sp - Sn);
-    CSCOPF->add(Gen_resp.in(indices(gens)) == 0);
-//    CSCOPF->get_constraint("g_resp")->print_expanded();
-    /* REF BUS */
-    Constraint Ref_Bus("Ref_Bus");
-    if (polar) {
-        Ref_Bus = theta(ref_bus);
-    }
-    else {
-        Ref_Bus = vi(ref_bus);
-    }
-    CSCOPF->add(Ref_Bus == 0);
-    
-    /** KCL Flow conservation */
-    Constraint KCL_P("KCL_P");
-    Constraint KCL_Q("KCL_Q");
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-    /* Shunts */
-    if (polar) {
-        KCL_P +=  gs*power(v,2);
-        KCL_Q -=  bs*power(v,2);
-    }
-    else {
-        KCL_P +=  gs*(power(vr,2)+power(vi,2));
-        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-    }
-    CSCOPF->add(KCL_P.in(nodes) == 0);
-    CSCOPF->add(KCL_Q.in(nodes) == 0);
-    
-    /** AC Power Flows */
-    Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From += Pf_from;
-    if (polar) {
-        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-    }
-    else {
-        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-    }
-    CSCOPF->add(Flow_P_From.in(arcs)==0);
-    
-    Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To += Pf_to;
-    if (polar) {
-        Flow_P_To -= g*power(v.to(), 2);
-        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-    }
-    else {
-        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-    }
-    CSCOPF->add(Flow_P_To.in(arcs)==0);
-    
-    Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From += Qf_from;
-    if (polar) {
-        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-    }
-    else {
-        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-    }
-    CSCOPF->add(Flow_Q_From.in(arcs)==0);
-    Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To += Qf_to;
-    if (polar) {
-        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-    }
-    else {
-        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-    }
-    CSCOPF->add(Flow_Q_To.in(arcs)==0);
-    
-    /** AC voltage limit constraints. */
-    if (!polar) {
-        Constraint Vol_limit_UB("Vol_limit_UB");
-        Vol_limit_UB = power(vr, 2) + power(vi, 2);
-        Vol_limit_UB -= power(v_max, 2);
-        CSCOPF->add(Vol_limit_UB.in(nodes) <= 0);
-        
-        Constraint Vol_limit_LB("Vol_limit_LB");
-        Vol_limit_LB = power(vr, 2) + power(vi, 2);
-        Vol_limit_LB -= power(v_min,2);
-        CSCOPF->add(Vol_limit_LB.in(nodes) >= 0);
-    }
-    
-    
-    
-    /*  Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-    Thermal_Limit_from -= power(S_max, 2);
-    CSCOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-    
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-    Thermal_Limit_to -= power(S_max,2);
-    CSCOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-//    CSCOPF->print_expanded();
-    return CSCOPF;
-}
-
-
-//shared_ptr<Model> PowerNet::build_ROMDST_contingency(const string& name, PowerModelType pmt, int output, double tol, int max_nb_hours){
-//
-//
-//    auto new_Et = Et_opt;
-//    auto new_Gt = indices(gens,T);
-//    auto new_Bt = Bt_opt;
-//    auto new_Bt1 = Bt1_opt; /**< Excluding first hour */
-//    auto new_PVt = PVt_opt;
-//
-//    /** MODEL DECLARATION */
-//    shared_ptr<Model> ROMDST(new Model(name));
-//    /** VARIABLES */
-//
-//
-//    /* Diesel power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    var<double> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
-//    ROMDST->add(Pg.in(new_Gt),Pg_.in(new_Gt),Qg.in(new_Gt));
-//
-//
-//    /* Battery power generation variables */
-//    var<double> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
-//    var<double> Pb_diff("Pb_diff", pos_);/**< Difference in active power generation outside and inside the battery */
-//    var<double> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
-//    var<double> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
-////    var<double> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
-//    ROMDST->add(Pb.in(new_Bt), Qb.in(new_Bt), Pb_.in(new_Bt), Pb_diff.in(new_Bt));
-//
-//
-//    /* PV power generation variables */
-//    var<double> Pv("Pv", pos_);
-//    ROMDST->add(Pv.in(new_PVt));
-//
-//    /* Battery state of charge variables */
-//    var<double> Sc("Sc", pos_);
-//    ROMDST->add(Sc.in(new_Bt));
-//
-//    /* Wind power generation variables */
-//    var<double> Pw("Pw", pw_min, pw_max);
-//    //    pw_max.print(true);
-//    ROMDST->add(Pw.in(Wt));
-//
-//    /* Power flow variables */
-//    var<double> Pij("Pfrom", S_max);
-//    var<double> Qij("Qfrom", S_max);
-//    var<double> Pji("Pto", S_max);
-//    var<double> Qji("Qto", S_max);
-//
-//    var<double> P_shed("P_shed", pos_);
-//    var<double> P_shed_max("P_shed_max", pos_);
-////    var<double> Q_shed("Q_shed", pos_);
-//
-//    ROMDST->add(Pij.in(new_Et),Qij.in(new_Et), P_shed.in(Nt), P_shed_max.in(R(1)));
-//    if (pmt!=LDISTF) {
-//        ROMDST->add(Pji.in(new_Et),Qji.in(new_Et));
-//    }
-//
-//    /** Voltage magnitude (squared) variables */
-//    var<double> v("v", vmin, vmax);
-//    ROMDST->add(v.in(Nt));
-//    v.initialize_all(0.64);
-//
-//    /** Power loss variables */
-//    var<double> loss("loss", pos_);
-//    if (pmt==DISTF || pmt==CDISTF) {
-//        ROMDST->add(loss.in(Nt));
-//    }
-//
-//    /** OBJECTIVE FUNCTION */
-//    ROMDST->min(100*P_shed_max);
-//
-//
-//    /** CONSTRAINTS **/
-//
-///** Max Load Shed **/
-//
-//    Constraint max_load_shed("max_load_shed");
-////    max_load_shed = bMVA*P_shed/(pl*bMVA-1e-5) - P_shed_max;//TODO fix this
-//    max_load_shed = P_shed*pl_ratio - P_shed_max;
-//    ROMDST->add(max_load_shed.in(Nt_load)<=0);
-////    ROMDST->get_constraint("max_load_shed")->print_expanded();
-//
-//    Constraint no_load_shed("no_load_shed");
-//    no_load_shed = P_shed;
-//    ROMDST->add(no_load_shed.in(Nt_no_load)==0);
-////    ROMDST->get_constraint("no_load_shed")->print_expanded();
-//
-///** FLOW CONSERVATION **/
-//
-//    /** KCL P and Q */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-////    if (pmt==LDISTF) {
-////        KCL_P  = sum(Pij.out_arcs()) - sum(Pij.in_arcs()) + pl - sum(Pg.in_gens()) - sum(Pb.in_bats()) - sum(Pw.in_wind()) - sum(Pv.in_pv()) - P_shed;
-////        //        KCL_P  = sum(Pij.out_arcs()) - sum(Pij.in_arcs()) + pl - sum(Pg.in_gens()) - sum(Pb.in_bats()) - sum(Pw.in_wind());
-////        KCL_Q  = sum(Qij.out_arcs()) - sum(Qij.in_arcs()) + ql - sum(Qg.in_gens()) - sum(Qb.in_bats());
-////    }
-////    else{
-////        KCL_P  = sum(Pij.out_arcs()) + sum(Pji.in_arcs()) + pl - sum(Pg.in_gens())- sum(Pb.in_bats()) - sum(Pw.in_wind()) - sum(Pv.in_pv()) - P_shed;
-////        KCL_Q  = sum(Qij.out_arcs()) + sum(Qji.in_arcs()) + ql - sum(Qg.in_gens()) - sum(Qb.in_bats());
-////    }
-//    ROMDST->add(KCL_P.in(nodes, T) == 0);
-//    ROMDST->add(KCL_Q.in(nodes, T) == 0);
-//
-///**  THERMAL LIMITS **/
-//
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pij, 2) + power(Qij, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ROMDST->add(Thermal_Limit_from.in(new_Et) <= 0);
-//
-//
-//
-///**  POWER FLOW **/
-//
-//    /** Power Flow Constraints */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From = v.from() - 2*(r*Pij + x*Qij) - v.to();
-//    ROMDST->add(Flow_P_From.in(arcs, T)==0);
-//
-//
-//    /**  PV **/
-//
-//    /*  On/Off on newly installed PV */
-//    Constraint OnOffPV("OnOffPV");
-//    OnOffPV += Pv - Pv_cap_*pv_out;
-//    ROMDST->add(OnOffPV.in(new_PVt) <= 0);
-//
-//
-///**  BATTERIES **/
-//
-//    /*  Apparent Power Limit on existing and installed Batteries */
-//    Constraint Apparent_Limit_Batt_Pot("Apparent_Limit_Batt");
-//    Apparent_Limit_Batt_Pot += power(Pb, 2) + power(Qb, 2);
-//    Apparent_Limit_Batt_Pot -= power(pb_max, 2);
-//    ROMDST->add(Apparent_Limit_Batt_Pot.in(new_Bt) <= 0);
-//
-//    /*  State Of Charge */
-//    Constraint State_Of_Charge("State_Of_Charge");
-//    State_Of_Charge = Sc - Sc.prev() + Pb_;
-//    ROMDST->add(State_Of_Charge.in(new_Bt1) == 0);
-//
-//    /*  State Of Charge 0 */
-//    auto Bat0 = indices(_battery_inverters,T.start());
-//    Constraint State_Of_Charge0("State_Of_Charge0");
-//    State_Of_Charge0 = Sc;
-//    ROMDST->add(State_Of_Charge0.in(Bat0) == 0);
-//    Constraint Pb0("Pb0");
-//    Pb0 = Pb;
-//    ROMDST->add(Pb0.in(Bat0) == 0);
-//
-//    /*  Efficiencies */
-//    Constraint DieselEff("DieselEff");
-//    DieselEff += Pg - gen_eff*Pg_;
-//    ROMDST->add(DieselEff.in(new_Gt) == 0);
-//
-//    Constraint EfficiencyExist("BatteryEfficiency");
-//    EfficiencyExist += Pb  - eff_a*Pb_ - eff_b;//TODO without time extending eff_a and eff_b
-//    ROMDST->add(EfficiencyExist.in(indices(_eff_pieces,new_Bt)) <= 0);
-//
-////    Constraint PbDiff_P("PbDiff_P");
-////    PbDiff_P += Pb - Pb_ - Pb_diff;
-////    ROMDST->add(PbDiff_P.in(new_Bt) <= 0);
-////
-////    Constraint PbDiff_N("PbDiff_N");
-////    PbDiff_N += Pb_ - Pb - Pb_diff;
-////    ROMDST->add(PbDiff_N.in(new_Bt) <= 0);
-//
-////    ROMDST->_obj -= *ROMDST->get_constraint("BatteryEfficiency");
-//
-///*  GENERATOR RAMP UP/DOWN */
-//    Constraint RampDown("RampDown");
-//    RampDown +=  Pg_ - (Pg_base - ramp_down*pg_max);
-//    ROMDST->add(RampDown.in(new_Gt) >= 0);
-//
-//    Constraint RampUp("RampUp");
-//    RampUp +=  Pg_ - (Pg_base + ramp_up*pg_max);
-//    ROMDST->add(RampUp.in(new_Gt) <= 0);
-//
-//    return ROMDST;
-//}
-
-void PowerNet::save_base_case_sol(const string& fname){
-    ofstream myfile;
-    myfile.open (fname);
-    myfile << "--generation dispatch\n";
-    myfile << "bus id,unit id,pg(MW),qg(MVar)\n";
-    auto pg_vals = Pg_base.get_vals();
-    auto qg_vals = Qg_base.get_vals();
-    unsigned idx = 0;
-    for (auto gen:gens) {
-        myfile << gen->_bus->_name << "," << gen->_unit_name << "," << to_string_with_precision(pg_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(qg_vals->at(idx)*bMVA,12) << endl;
-        idx++;
-    }
-    myfile << "--end of generation dispatch" << endl;
-    myfile.close();
-}
-
-void PowerNet::save_all_sol(const string& fname){
-    double pi = 4.*atan(1.);
-    ofstream myfile;
-    myfile.open (fname);
-    myfile << "--contingency generator\n";
-    myfile << "conID,genID,busID,unitID,q(MW)\n";
-    unsigned idx = 0;
-    auto cont = 0;
-    for (cont = 0; cont<_conting_lines.size(); cont++) {
-        auto qg_vals = Qg_cont[cont].get_vals();
-        idx = 0;
-        for (auto gen:gens) {
-            myfile << cont+1 << "," << gen->_name<< "," << gen->_bus->_name << "," << gen->_unit_name << "," << to_string_with_precision(qg_vals->at(idx)*bMVA,12) << endl;
-            idx++;
-        }
-    }
-    auto g_idx = 0;
-    for (; cont<_nb_conting; cont++) {
-        auto qg_vals = Qg_cont[cont].get_vals();
-        idx = 0;
-        for (auto gen:gens) {
-            if (_conting_gens[g_idx]==gen) {
-                continue;
+void PowerNet::update_ref_bus()
+{
+    string ref_bus1=ref_bus;
+    int deg=0, ref_deg=0;
+    ref_deg=get_node(ref_bus)->get_degree();
+    if (ref_deg!=get_nb_active_nodes()-1)
+    {
+        for(auto n:nodes)
+        {
+            deg=(*n).get_degree();
+            if(deg>ref_deg)
+            {
+                ref_bus1=n->_name;
+                ref_deg=deg;
             }
-            myfile << cont+1 << "," << gen->_name<< "," << gen->_bus->_name << "," << gen->_unit_name << "," << to_string_with_precision(qg_vals->at(idx)*bMVA,12) << endl;
-            idx++;
         }
-        g_idx++;
+        ref_bus=ref_bus1;
     }
-    myfile << "--end of contingency generator" << endl;
-    myfile << "--bus" << endl;
-    myfile << "contingency id,bus id,v(pu),theta(deg)" << endl;
-    idx = 0;
-    auto v_vals = v_base.get_vals();
-    auto theta_vals = theta_base.get_vals();
-    for (auto node:nodes) {
-        myfile << "0," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./pi,12) << endl;
-        idx++;
-    }
-    for (auto cont = 0; cont<_nb_conting; cont++) {
-        auto v_vals = v_cont[cont].get_vals();
-        auto theta_vals = theta_cont[cont].get_vals();
-        idx = 0;
-        for (auto node:nodes) {
-            myfile << cont+1 << "," << node->_name << "," << to_string_with_precision(v_vals->at(idx),12) << "," << to_string_with_precision(theta_vals->at(idx)*180./pi,12) << endl;
-            idx++;
-        }
-    }
-    myfile << "--end of bus" << endl;
-    myfile << "--Delta" << endl;
-    myfile << "contingency id,Delta(MW)" << endl;
-    for (auto cont = 0; cont<_nb_conting; cont++) {
-        myfile << cont+1 << ","<< to_string_with_precision(_delta[cont].eval()*bMVA,12) << endl;
-    }
-    myfile << "--end of Delta" << endl;
-    myfile << "--line flow" << endl;
-    myfile << "contingency id,line id,origin bus id,destination bus id,circuit id,p_origin(MW),q_origin(MVar),p_destination(MW),q_destination(MVar)" << endl;
-    auto p_from_vals = p_from_base.get_vals();
-    auto q_from_vals = q_from_base.get_vals();
-    auto p_to_vals = p_to_base.get_vals();
-    auto q_to_vals = q_to_base.get_vals();
-    idx = 0;
-    for (auto arc:arcs) {
-        myfile << "0," << arc->_name << "," << arc->_circuit_id << "," << to_string_with_precision(p_from_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_from_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(p_to_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_to_vals->at(idx)*bMVA,12) << endl;
-        idx++;
-    }
-    cont = 0;
-    /** Line Contingencies **/
-    for (cont = 0; cont<_conting_lines.size(); cont++) {
-        auto p_from_vals = p_from[cont].get_vals();
-        auto q_from_vals = q_from[cont].get_vals();
-        auto p_to_vals = p_to[cont].get_vals();
-        auto q_to_vals = q_to[cont].get_vals();
-        idx = 0;
-        for (auto arc:arcs) {
-            if (arc == _conting_lines[cont]) {
-                continue;
-            }
-            myfile << cont+1 << "," << arc->_name << "," << arc->_circuit_id << "," << to_string_with_precision(p_from_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_from_vals->at(idx)*bMVA,12)<< "," << to_string_with_precision(p_to_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_to_vals->at(idx)*bMVA,12) << endl;
-            idx++;
-        }
-    }
-    /** Gen Contingencies **/
-    for (; cont<_nb_conting; cont++) {
-        auto p_from_vals = p_from[cont].get_vals();
-        auto q_from_vals = q_from[cont].get_vals();
-        auto p_to_vals = p_to[cont].get_vals();
-        auto q_to_vals = q_to[cont].get_vals();
-        idx = 0;
-        for (auto arc:arcs) {
-            myfile << cont+1 << "," << arc->_name << "," << arc->_circuit_id << "," << to_string_with_precision(p_from_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_from_vals->at(idx)*bMVA,12)<< "," << to_string_with_precision(p_to_vals->at(idx)*bMVA,12) << "," << to_string_with_precision(q_to_vals->at(idx)*bMVA,12) << endl;
-            idx++;
-        }
-    }
-    myfile << "--end of line flow" << endl;
-    myfile.close();
+   // ref_bus = "1";
 }
 
-//void PowerNet::fix_investment(){
-//    auto vals = w_g.get_vals();
-//    for (auto i = 0; i<vals->size(); i++) {
-//        if (!vals->at(i)) {//This generator was not built
-//            clog << "Excluding Generator: " << _potential_diesel_gens[i]->_name << endl;
-//            _potential_diesel_gens[i]->_active = false;
-//        }
-//    }
-//    vals = w_b.get_vals();
-//    for (auto i = 0; i<vals->size(); i++) {
-//        if (!vals->at(i)) {//This battery was not built
-//            clog << "Excluding Battery: " << _potential_battery_inverters[i]->_name << endl;
-//            _potential_battery_inverters[i]->_active = false;
-//        }
-//    }
-//    vals = w_pv.get_vals();
-//    for (auto i = 0; i<vals->size(); i++) {
-//        if (!vals->at(i)) {//This PV was not built
-//            clog << "Excluding PV: " << _potential_PV_gens[i]->_name << endl;
-//            _potential_PV_gens[i]->_active = false;
-//        }
-//    }
-//    vals = w_e.get_vals();
-//    for (auto i = 0; i<vals->size(); i++) {
-//        if (!vals->at(i)) {//This edge was not built
-//            clog << "Excluding Edge Expansion: " << _potential_expansion[i]->_name << endl;
-//            _potential_expansion[i]->_active = false;
-//        }
-//    }
-//    Pv_cap_ = Pv_cap;
-//    for (auto pv:_existing_PV_gens) {
-//        Pv_cap_(pv->_name) = pv->_max_cap;
-//    }
-//    Pg_base = Pg_;
-//    Et_opt = indices(arcs, T);
-//    Gt_opt = indices(gens, T);
-//    Bt_opt = indices(_battery_inverters, T);
-//    Bt1_opt = indices(_battery_inverters,T.exclude(T.start())); /**< Excluding first hour */
-//    PVt_opt = indices(_all_PV_gens,T);
-//}
 
-shared_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
-    
+
+
+
+shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double tol){
     auto bus_pairs = get_bus_pairs();
     /** MODEL DECLARATION */
-    shared_ptr<Model> SOCPF(new Model("SCOPF Model"));
+    shared_ptr<Model<>> SOCPF(new Model<>("SCOPF Model"));
     /** Variables */
     /* power generation variables */
     var<double> Pg("Pg", pg_min, pg_max);
     var<double> Qg ("Qg", qg_min, qg_max);
     SOCPF->add(Pg.in(gens));
     SOCPF->add(Qg.in(gens));
-    
-    
+
+
     /* power flow variables */
-    var<double> Pf_from("Pf_from", S_max);
-    var<double> Qf_from("Qf_from", S_max);
-    var<double> Pf_to("Pf_to", S_max);
-    var<double> Qf_to("Qf_to", S_max);
+    var<double> Pf_from("Pf_from", -1*S_max,S_max);
+    var<double> Qf_from("Qf_from", -1*S_max,S_max);
+    var<double> Pf_to("Pf_to", -1*S_max,S_max);
+    var<double> Qf_to("Qf_to", -1*S_max,S_max);
     SOCPF->add(Pf_from.in(arcs));
     SOCPF->add(Qf_from.in(arcs));
     SOCPF->add(Pf_to.in(arcs));
     SOCPF->add(Qf_to.in(arcs));
-    
+
     /* Real part of Wij = ViVj */
     var<double>  R_Wij("R_Wij", wr_min, wr_max);
     /* Imaginary part of Wij = ViVj */
@@ -1956,2816 +939,1014 @@ shared_ptr<Model> PowerNet::build_SCOPF(PowerModelType pmt, int output, double t
     SOCPF->add(Wii.in(nodes));
     SOCPF->add(R_Wij.in(bus_pairs));
     SOCPF->add(Im_Wij.in(bus_pairs));
+
+    /* Initialize variables */
+    R_Wij.initialize_all(1.0);
+    Wii.initialize_all(1.001);
+    
+    /** Sets */
+    auto gens = gens_per_node();
+    auto out_arcs = out_arcs_per_node();
+    auto in_arcs = in_arcs_per_node();
+
+    /**  Objective */
+    auto obj = c1.tr()*Pg + c2.tr()*pow(Pg,2) + sum(c0);
+    SOCPF->min(obj);
+
+    /** Constraints */
+    /* Second-order cone constraints */
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    SOCPF->add(SOC.in(bus_pairs) <= 0);
+
+    /* Flow conservation */
+    Constraint<> KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gens) + gs*Wii;
+    SOCPF->add(KCL_P.in(nodes) == 0);
+
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gens) - bs*Wii;
+    SOCPF->add(KCL_Q.in(nodes) == 0);
+
+    /* AC Power Flow */
+    Constraint<> Flow_P_From("Flow_P_From");
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij + b_ft*Im_Wij);
+    SOCPF->add(Flow_P_From.in(arcs) == 0);
+
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij - b_tf*Im_Wij);
+    SOCPF->add(Flow_P_To.in(arcs) == 0);
+
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij - b_ff*Wii.from(arcs) - b_ft*R_Wij);
+    SOCPF->add(Flow_Q_From.in(arcs) == 0);
+
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To = Qf_to + (b_tt*Wii.to(arcs) + b_tf*R_Wij + g_tf*Im_Wij);
+    SOCPF->add(Flow_Q_To.in(arcs) == 0);
+
+    /* Phase Angle Bounds constraints */
+    Constraint<> PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij;
+    PAD_UB <= tan_th_max*R_Wij;
+    SOCPF->add(PAD_UB);
+
+    Constraint<> PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij;
+    PAD_LB >= tan_th_min*R_Wij;
+    SOCPF->add(PAD_LB);
+
+    /* Thermal Limit Constraints */
+    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from <= pow(S_max,2);
+    SOCPF->add(Thermal_Limit_from);
+
+
+    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
+    Thermal_Limit_to <= pow(S_max,2);
+    SOCPF->add(Thermal_Limit_to);
+
+    /* Lifted Nonlinear Cuts */
+    Constraint<> LNC1("LNC1");
+    LNC1 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
+    LNC1 -= v_max.to(bus_pairs)*cos_d*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC1 -= v_max.from(bus_pairs)*cos_d*(v_min.from(bus_pairs)+v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC1 -= v_max.from(bus_pairs)*v_max.to(bus_pairs)*cos_d*(v_min.from(bus_pairs)*v_min.to(bus_pairs) - v_max.from(bus_pairs)*v_max.to(bus_pairs));
+    SOCPF->add(LNC1.in(bus_pairs) >= 0);
+
+    Constraint<> LNC2("LNC2");
+    LNC2 += (v_min.from(bus_pairs)+v_max.from(bus_pairs))*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*(sphi*Im_Wij + cphi*R_Wij);
+    LNC2 -= v_min.to(bus_pairs)*cos_d*(v_min.to(bus_pairs)+v_max.to(bus_pairs))*Wii.from(bus_pairs);
+    LNC2 -= v_min.from(bus_pairs)*cos_d*(v_min.from(bus_pairs)+v_max.from(bus_pairs))*Wii.to(bus_pairs);
+    LNC2 += v_min.from(bus_pairs)*v_min.to(bus_pairs)*cos_d*(v_min.from(bus_pairs)*v_min.to(bus_pairs) - v_max.from(bus_pairs)*v_max.to(bus_pairs));
+    SOCPF->add(LNC2.in(bus_pairs) >= 0);
+    return SOCPF;
+}
+
+
+
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, double tol){
+    /** Sets */
+    auto bus_pairs = grid.get_bus_pairs();
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+   
+    auto gens = indices(grid.gens);
+    auto gen_nodes = grid.gens_per_node();
+    auto out_arcs = grid.out_arcs_per_node();
+    auto in_arcs = grid.in_arcs_per_node();
+    
+    /* Grid Parameters */
+    auto pg_min = grid.pg_min.in(gens);
+    auto pg_max = grid.pg_max.in(gens);
+    auto qg_min = grid.qg_min.in(gens);
+    auto qg_max = grid.qg_max.in(gens);
+    auto c1 = grid.c1.in(gens);
+    auto c2 = grid.c2.in(gens);
+    auto c0 = grid.c0.in(gens);
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(bus_pairs);
+    auto th_max = grid.th_max.in(bus_pairs);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto v_min = grid.v_min.in(nodes);
+    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
+    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    
+    grid.update_ref_bus();
+    
+    bool polar = (pmt==ACPOL);
+    if (polar) {
+        DebugOn("Using polar model\n");
+    }
+    else {
+        DebugOn("Using rectangular model\n");
+    }
+    auto ACOPF = make_shared<Model<>>("AC-OPF Model");
+    /** Variables */
+    /* Power generation variables */
+    var<> Pg("Pg", pg_min, pg_max);
+    var<> Qg ("Qg", qg_min, qg_max);
+    ACOPF->add(Pg.in(gens),Qg.in(gens));
+    //    Pg.copy_vals(grid.pg_s);
+    //    Pg.initialize_av();
+    //    Qg.initialize_uniform();
+    /* Power flow variables */
+    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+    var<> Qf_to("Qf_to", -1.*S_max,S_max);
+    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
+    
+    /** Voltage related variables */
+    var<> theta("theta");
+    var<> v("|V|", v_min, v_max);
+    var<> vr("vr", -1.*v_max,v_max);
+    var<> vi("vi", -1.*v_max,v_max);
+    
+    var<> v_from, v_to, theta_from, theta_to;
+    var<> vr_from, vr_to, vi_from, vi_to;
+    if (polar) {
+        ACOPF->add(v.in(nodes));
+        ACOPF->add(theta.in(nodes));
+        v.initialize_all(1.0);
+        v_from = v.from(arcs);
+        v_to = v.to(arcs);
+        theta_from = theta.from(arcs);
+        theta_to = theta.to(arcs);
+        
+    }
+    else {
+        ACOPF->add(vr.in(nodes));
+        ACOPF->add(vi.in(nodes));
+        vr.initialize_all(1);
+        vr_from = vr.from(arcs);
+        vr_to = vr.to(arcs);
+        vi_from = vi.from(arcs);
+        vi_to = vi.to(arcs);
+        //        vr.initialize_uniform(0.99,1.01);
+    }
+    
+    /** Construct the objective function */
+    /**  Objective */
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    ACOPF->min(obj);
+    
+    /** Define constraints */
+    
+    /* REF BUS */
+    Constraint<> Ref_Bus("Ref_Bus");
+    if (polar) {
+        Ref_Bus = theta(grid.ref_bus);
+    }
+    else {
+        Ref_Bus = vi(grid.ref_bus);
+    }
+    ACOPF->add(Ref_Bus == 0);
+    
+    /** KCL Flow conservation */
+    Constraint<> KCL_P("KCL_P");
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes);
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes);
+    /* Shunts */
+    if (polar) {
+        KCL_P +=  gs*pow(v,2);
+        KCL_Q -=  bs*pow(v,2);
+    }
+    else {
+        KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
+        KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
+    }
+    ACOPF->add(KCL_P.in(nodes) == 0);
+    ACOPF->add(KCL_Q.in(nodes) == 0);
+    
+    /** AC Power Flows */
+    /** TODO write the constraints in Complex form */
+    Constraint<> Flow_P_From("Flow_P_From");
+    Flow_P_From += Pf_from;
+    if (polar) {
+        Flow_P_From -= g/pow(tr,2)*pow(v_from,2);
+        Flow_P_From += g/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_P_From += b/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+    }
+    else {
+        Flow_P_From -= g_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_P_From -= g_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_From -= b_ft*(vi_from*vr_to - vr_from*vi_to);
+    }
+    ACOPF->add(Flow_P_From.in(arcs)==0);
+    
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To += Pf_to;
+    if (polar) {
+        Flow_P_To -= g*pow(v_to, 2);
+        Flow_P_To += g/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_P_To += b/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
+    }
+    ACOPF->add(Flow_P_To.in(arcs)==0);
+    
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From += Qf_from;
+    if (polar) {
+        Flow_Q_From += (0.5*ch+b)/pow(tr,2)*pow(v_from,2);
+        Flow_Q_From -= b/tr*(v_from*v_to*cos(theta_from - theta_to - as));
+        Flow_Q_From += g/tr*(v_from*v_to*sin(theta_from - theta_to - as));
+    }
+    else {
+        Flow_Q_From += b_ff*(pow(vr_from, 2) + pow(vi_from, 2));
+        Flow_Q_From += b_ft*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_From -= g_ft*(vi_from*vr_to - vr_from*vi_to);
+    }
+    ACOPF->add(Flow_Q_From.in(arcs)==0);
+    
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To += Qf_to;
+    if (polar) {
+        Flow_Q_To += (0.5*ch+b)*pow(v_to,2);
+        Flow_Q_To -= b/tr*(v_from*v_to*cos(theta_to - theta_from + as));
+        Flow_Q_To += g/tr*(v_from*v_to*sin(theta_to - theta_from + as));
+    }
+    else {
+        Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
+        Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
+        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
+    }
+    ACOPF->add(Flow_Q_To.in(arcs)==0);
+    
+    /** AC voltage limit constraints. */
+    if (!polar) {
+        Constraint<> Vol_limit_UB("Vol_limit_UB");
+        Vol_limit_UB = pow(vr, 2) + pow(vi, 2);
+        Vol_limit_UB -= pow(v_max, 2);
+        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
+        
+        Constraint<> Vol_limit_LB("Vol_limit_LB");
+        Vol_limit_LB = pow(vr, 2) + pow(vi, 2);
+        Vol_limit_LB -= pow(v_min,2);
+        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
+    }
+    
+    
+    /* Phase Angle Bounds constraints */
+    Constraint<> PAD_UB("PAD_UB");
+    Constraint<> PAD_LB("PAD_LB");
+    if (polar) {
+        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_UB -= th_max;
+        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_LB -= th_min;
+    }
+    else {
+        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
+        PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_UB -= tan_th_max*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
+        
+        PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
+        PAD_LB -= tan_th_min*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
+    }
+    ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
+    ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
+    
+    
+    /*  Thermal Limit Constraints */
+    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from -= pow(S_max, 2);
+    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
+    
+    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
+    Thermal_Limit_to -= pow(S_max,2);
+    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
+    return ACOPF;
+}
+
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
+{
+    bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true;
+    loss=true;
+    size_t num_bags = 0;
+    string num_bags_s = "100";
+    double ilb, iub;
+    num_bags = atoi(num_bags_s.c_str());
+    
+    cout << "\nnum bags = " << num_bags << endl;
+    
+    
+    grid.update_ref_bus();
+    
+    /* Grid Stats */
+    auto nb_gen = grid.get_nb_active_gens();
+    auto nb_lines = grid.get_nb_active_arcs();
+    auto nb_buses = grid.get_nb_active_nodes();
+    DebugOn("nb active gens = " << nb_gen << endl);
+    DebugOn("nb active lines = " << nb_lines << endl);
+    DebugOn("nb active buses = " << nb_buses << endl);
+    
+    /** Sets */
+    auto bags_3d=grid.decompose_bags_3d();
+    auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
+        bus_pairs_chord = bus_pairs;
+    }
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    auto gen_nodes = grid.gens_per_node();
+    auto out_arcs = grid.out_arcs_per_node();
+    auto in_arcs = grid.in_arcs_per_node();
+    
+    /* Grid Parameters */
+    auto pg_min = grid.pg_min.in(gens);
+    auto pg_max = grid.pg_max.in(gens);
+    auto qg_min = grid.qg_min.in(gens);
+    auto qg_max = grid.qg_max.in(gens);
+    auto pf_from_min=grid.pf_from_min.in(arcs);
+    auto pf_from_max=grid.pf_from_max.in(arcs);
+    auto qf_from_min=grid.qf_from_min.in(arcs);
+    auto qf_from_max=grid.qf_from_max.in(arcs);
+    auto pf_to_min=grid.pf_to_min.in(arcs);
+    auto pf_to_max=grid.pf_to_max.in(arcs);
+    auto qf_to_min=grid.qf_to_min.in(arcs);
+    auto qf_to_max=grid.qf_to_max.in(arcs);
+    auto lij_min=grid.lij_min.in(arcs);
+    auto lij_max=grid.lij_max.in(arcs);
+    auto lji_min=grid.lji_min.in(arcs);
+    auto lji_max=grid.lji_max.in(arcs);
+    auto c1 = grid.c1.in(gens);
+    auto c2 = grid.c2.in(gens);
+    auto c0 = grid.c0.in(gens);
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(bus_pairs);
+    auto th_max = grid.th_max.in(bus_pairs);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto v_min = grid.v_min.in(nodes);
+    auto w_max = grid.w_max.in(nodes);
+    auto w_min = grid.w_min.in(nodes);
+    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
+    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    auto wr_min = grid.wr_min.in(bus_pairs_chord);
+    auto wr_max = grid.wr_max.in(bus_pairs_chord);
+    auto wi_min = grid.wi_min.in(bus_pairs_chord);
+    auto wi_max = grid.wi_max.in(bus_pairs_chord);
+    auto cc=grid.cc.in(arcs);
+    auto dd=grid.dd.in(arcs);
+    auto ch_half=grid.ch_half.in(arcs);
+    
+//    auto arcs_charged=grid.arcs_line_charge();
+//    auto arcs_inductive=grid.arcs_inductive_only();
+    /** Build model */
+    
+    auto SDPOPF = make_shared<Model<>>("SDP-OPF Model");
+    
+    /** Variables */
+    /* Power generation variables */
+    var<> Pg("Pg", pg_min, pg_max);
+    var<> Qg("Qg", qg_min, qg_max);
+    SDPOPF->add(Pg.in(gens),Qg.in(gens));
+    
+    /* Power flow variables */
+    var<> Pf_from("Pf_from", pf_from_min,pf_from_max);
+    var<> Qf_from("Qf_from", qf_from_min,qf_from_max);
+    var<> Pf_to("Pf_to", pf_to_min,pf_to_max);
+    var<> Qf_to("Qf_to", qf_to_min,qf_to_max);
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
+    //var<> obv("obv", 0, upper_bound);
+    //SDPOPF->add(obv);
+    if(current){
+        SDPOPF->add(lij.in(arcs));
+        SDPOPF->add(lji.in(arcs));
+    }
+    SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
+    
+//    param<> pf_by_v_L("pf_by_v_L"), pf_by_v_U("pf_by_v_U"), qf_by_v_L("qf_by_v_L"), qf_by_v_U("qf_by_v_U");
+//    pf_by_v_L.in(arcs);pf_by_v_U.in(arcs);qf_by_v_L.in(arcs);qf_by_v_U.in(arcs);
+//    param<> pt_by_v_L("pt_by_v_L"), pt_by_v_U("pt_by_v_U"), qt_by_v_L("qt_by_v_L"), qt_by_v_U("qt_by_v_U");
+//    pt_by_v_L.in(arcs);pt_by_v_U.in(arcs);qt_by_v_L.in(arcs);qt_by_v_U.in(arcs);
+//    for(auto &a:*arcs._keys)
+//    {
+//        // double da=Pf_from._lb->eval(a);
+//        double da=S_max.eval(a);
+//        auto ngb = a.substr(a.find_first_of(",")+1, a.find_last_of(","));
+//        auto ngba=ngb.substr(0, ngb.find_first_of(","));
+//        auto ngbb=ngb.substr(ngb.find_first_of(",")+1);
+//        auto db=v_min.eval(ngba);
+//        double dc=v_min.eval(ngbb);
+//        pf_by_v_L.set_val(a, (da*(-1))/(db));
+//        qf_by_v_L.set_val(a, (da*(-1))/(db));
+//        //  da=Pf_from.get_ub(a);
+//        pf_by_v_U.set_val(a, (da)/(db));
+//        qf_by_v_U.set_val(a, (da)/(db));
+//
+//        pt_by_v_L.set_val(a, (da*(-1))/(dc));
+//        qt_by_v_L.set_val(a, (da*(-1))/(dc));
+//        //  da=Pf_from.get_ub(a);
+//        pt_by_v_U.set_val(a, (da)/(dc));
+//        qt_by_v_U.set_val(a, (da)/(dc));
+//    }
+////
+////
+//   var<> pf_by_v("pf_by_v", pf_by_v_L, pf_by_v_U), qf_by_v("qf_by_v", qf_by_v_L, qf_by_v_U);
+//   var<> pt_by_v("pt_by_v", pt_by_v_L, pt_by_v_U), qt_by_v("qt_by_v", qt_by_v_L, qt_by_v_U);
+//    SDPOPF->add(pf_by_v.in(arcs), qf_by_v.in(arcs));
+//    SDPOPF->add(pt_by_v.in(arcs), qt_by_v.in(arcs));
+    
+    var<>  R_Vi("R_Vi", -1*v_max, v_max);
+    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+    bool add_original = true;
+    if(add_original){
+        SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+        R_Vi.initialize_all(1);
+    }
+    /* Real part of Wij = ViVj */
+    var<>  R_Wij("R_Wij", wr_min, wr_max);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
+    /* Magnitude of Wii = Vi^2 */
+    var<>  Wii("Wii", w_min, w_max);
+    SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
+
+//    var<> V_mag("V_mag", v_min, v_max);
+//    SDPOPF->add(V_mag.in(nodes));
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
     /**  Objective */
-    auto obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-    SOCPF->min(obj.in(gens));
+  auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+//    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    //auto obj=obv;
+    SDPOPF->min(obj);
+    
+    //    Constraint<> UB("UB");
+    //    UB=product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    //    SDPOPF->add(UB<=upper_bound);
+
+
+    
+    
+    
+//    func<> inter_1;
+//    //  inter_1.allocate_mem();
+//    inter_1=min((Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs))));
+//    func<> theta_L2;
+//    //  theta_L2.allocate_mem();
+//    theta_L2= asin(inter_1.in(bus_pairs));
+//    func<> inter_2;
+//    // inter_2.allocate_mem();
+//    inter_2=max((Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs))));
+//    func<> theta_U2;
+//    // theta_U2.allocate_mem();
+//    theta_U2= asin(inter_2.in(bus_pairs));
+//
+//    func<> inter_U;
+//    //  inter_U.allocate_mem();
+//    inter_U=min(theta_L1.in(bus_pairs)*(-1.0), theta_U2.in(bus_pairs));
+//    func<> theta_U;
+//    //theta_U.allocate_mem();
+//    theta_U=min(inter_U.in(bus_pairs), th_max.in(bus_pairs));
+//
+//    func<> inter_L;
+//    //    inter_L.allocate_mem();
+//    inter_L=max(theta_L1.in(bus_pairs), theta_L2.in(bus_pairs));
+//    func<> theta_L;
+//    //    theta_L.allocate_mem();
+//    theta_L=max(inter_L.in(bus_pairs), th_min.in(bus_pairs));
+//    func<>  cos_L;
+//    //    //    cos_L.allocate_mem();
+//    cos_L= (min(cos(theta_L.in(bus_pairs)), cos(theta_U.in(bus_pairs)))).in(bus_pairs);
+//    cos_L.eval_all();
+    
+//    func<> theta_L = -1*acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
+//    func<> theta_U = acos((R_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))));
+//    func<> theta_L = asin(min((Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_lb().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)))));
+//    func<> theta_U = asin(max((Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))), (Im_Wij.get_ub().in(bus_pairs))/(sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)))));
+//    func<> theta_L = atan(min(Im_Wij.get_lb().in(arcs)/R_Wij.get_ub().in(arcs),Im_Wij.get_lb().in(arcs)/R_Wij.get_lb().in(arcs)));
+//    func<> theta_U = atan(max(Im_Wij.get_ub().in(arcs)/R_Wij.get_lb().in(arcs),Im_Wij.get_ub().in(arcs)/R_Wij.get_ub().in(arcs)));
+//    theta_L.eval_all();
+//    theta_U.eval_all();
+    
+    func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
+    func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
+    theta_L.eval_all();
+    theta_U.eval_all();
+    
+//    func<> theta_L_arcs = atan(min(Im_Wij.get_lb().in(arcs)/R_Wij.get_ub().in(arcs),Im_Wij.get_lb().in(arcs)/R_Wij.get_lb().in(arcs)));
+//    func<> theta_U_arcs = atan(max(Im_Wij.get_ub().in(arcs)/R_Wij.get_lb().in(arcs),Im_Wij.get_ub().in(arcs)/R_Wij.get_ub().in(arcs)));
+//    theta_L_arcs.eval_all();
+//    theta_U_arcs.eval_all();
+//    func<> cos_L=min(cos(theta_L_arcs.in(arcs)-as.in(arcs)),cos(theta_U_arcs.in(arcs)-as.in(arcs)));
+//    cos_L.eval_all();
+
+    
+        if(add_original){
+            Im_Vi.set_lb((grid.ref_bus),0);
+            Im_Vi.set_ub((grid.ref_bus),0);
+            
+            R_Vi.set_lb((grid.ref_bus),v_min.eval(grid.ref_bus));
+            R_Vi.set_ub((grid.ref_bus),v_max.eval(grid.ref_bus));
+            
+//            Constraint<> R_V_mag("R_V_mag");
+//            R_V_mag=R_Vi(grid.ref_bus)-V_mag(grid.ref_bus);
+//            SDPOPF->add(R_V_mag==0);
+            
+//            auto ref_bus_pairs_from=grid.get_ref_bus_pairs_from();
+//            auto ref_bus_pairs_to=grid.get_ref_bus_pairs_to();
+//
+//            for (auto &p: *ref_bus_pairs_from._keys)
+//            {
+//                auto ngb = p.substr(0,p.find_first_of(","));
+//                R_Vi.set_lb(ngb, v_min.eval(ngb)*cos_L.eval(p));
+//                R_Vi.set_ub(ngb, v_max.eval(ngb));
+//                ilb=gravity::min(v_min.eval(ngb)*sin(theta_L.eval(p)), v_max.eval(ngb)*sin(theta_L.eval(p)));
+//                iub=gravity::max(v_min.eval(ngb)*sin(theta_U.eval(p)), v_max.eval(ngb)*sin(theta_U.eval(p)));
+//                Im_Vi.set_lb(ngb, ilb);
+//                Im_Vi.set_ub(ngb, iub);
+//            }
+//            for (auto &p: *ref_bus_pairs_to._keys)
+//            {
+//                auto ngb = p.substr(p.find_first_of(",")+1);
+//                R_Vi.set_lb(ngb, v_min.eval(ngb)*cos_L.eval(p));
+//                R_Vi.set_ub(ngb, v_max.eval(ngb));
+//                ilb=gravity::min(v_min.eval(ngb)*sin(theta_L.eval(p)), v_max.eval(ngb)*sin(theta_L.eval(p)));
+//                iub=gravity::max(v_min.eval(ngb)*sin(theta_U.eval(p)), v_max.eval(ngb)*sin(theta_U.eval(p)));
+//                Im_Vi.set_lb(ngb, ilb);
+//                Im_Vi.set_ub(ngb, iub);
+//            }
+//
+//            Constraint<> RW_RV("RW_RV");
+//            RW_RV=R_Wij.in(ref_bus_pairs_from)-R_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
+//            SDPOPF->add(RW_RV.in(ref_bus_pairs_from)==0, true);
+//
+//            Constraint<> IW_IV("IW_IV");
+//            IW_IV=Im_Wij.in(ref_bus_pairs_from)-Im_Vi.from(ref_bus_pairs_from)*V_mag.to(ref_bus_pairs_from);
+//            SDPOPF->add(IW_IV.in(ref_bus_pairs_from)==0, true);
+//
+//            Constraint<> RW_RV1("RW_RV1");
+//            RW_RV1=R_Wij.in(ref_bus_pairs_to)-R_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
+//            SDPOPF->add(RW_RV1.in(ref_bus_pairs_to)==0, true);
+//
+//            Constraint<> IW_IV1("IW_IV1");
+//            IW_IV1=Im_Wij.in(ref_bus_pairs_to)+Im_Vi.to(ref_bus_pairs_to)*V_mag.from(ref_bus_pairs_to);
+//            SDPOPF->add(IW_IV1.in(ref_bus_pairs_to)==0, true);
+            
+            
+            bool convexify = true;
+            var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+            Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+            Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+            Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+            
+            Constraint<Cpx> Linking_Wij("Linking_Wij");
+            Linking_Wij = Wij - Vi*conj(Vj);
+            SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+            
+            Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+            
+            Constraint<> Linking_Wi("Linking_Wi");
+            Linking_Wi = Wii - pow(R_Vi, 2) -pow(Im_Vi,2);
+            SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
+            
+//            Constraint<> Linking_Wi_V_mag("Linking_Wi_V_mag");
+//            Linking_Wi_V_mag = Wii - V_mag*V_mag;
+//            SDPOPF->add(Linking_Wi_V_mag.in(nodes)==0, convexify);
+//
+//            Constraint<> Linking_V_mag("Linking_V_mag");
+//            Linking_V_mag = V_mag*V_mag - pow(R_Vi,2) - pow(Im_Vi,2);
+//            SDPOPF->add(Linking_V_mag.in(nodes)==0, convexify);
+//
+//            Constraint<> LNC_simple1("LNC_simple1");
+//            LNC_simple1=(sin(theta_L.in(bus_pairs))-sin(theta_U.in(bus_pairs)))*R_Wij.in(bus_pairs)-V_mag.from(bus_pairs)*V_mag.get_lb().to(bus_pairs)*sin(theta_L.in(bus_pairs)-theta_U.in(bus_pairs)) + (cos(theta_L.in(bus_pairs))-cos(theta_U.in(bus_pairs)))*Im_Wij.in(bus_pairs);
+//            SDPOPF->add(LNC_simple1.in(bus_pairs)<=0);
+//            LNC_simple1.print_symbolic();
+//
+//            Constraint<> LNC_simple2("LNC_simple2");
+//            LNC_simple2=(sin(theta_L.in(bus_pairs))-sin(theta_U.in(bus_pairs)))*R_Wij.in(bus_pairs)-V_mag.get_lb().from(bus_pairs)*V_mag.to(bus_pairs)*sin(theta_L.in(bus_pairs)-theta_U.in(bus_pairs)) + (cos(theta_L.in(bus_pairs))-cos(theta_U.in(bus_pairs)))*Im_Wij.in(bus_pairs);
+//            SDPOPF->add(LNC_simple2.in(bus_pairs)<=0);
+//
+//
+//
+            Constraint<> Vol_limit_LB("Vol_limit_LB");
+            Vol_limit_LB = pow(Im_Vi,2) + pow(R_Vi,2) - Wii.get_lb();
+            SDPOPF->add(Vol_limit_LB.in(nodes)>=0,convexify);
+            
+            Constraint<> Vol_limit_UB("Vol_limit_UB");
+            Vol_limit_UB = pow(Im_Vi,2) + pow(R_Vi,2) - Wii.get_ub();
+            SDPOPF->add(Vol_limit_UB.in(nodes)<=0);
+//
+            Constraint<> SOC("SOC_EQ");
+            SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+            SDPOPF->add(SOC.in(bus_pairs_chord) == 0, convexify=true);
+
+    
+
+            if(!grid._tree){
+            
+                auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
+                auto Wii_ = Wii.in_bags(grid._bags, 3);
+                auto nb_bags3 = Wij_[0]._indices->size();
+
+//                Constraint<Cpx> Rank_type2a("RankType2a");
+//                Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//                SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
+//    
+//                Constraint<Cpx> Rank_type2b("RankType2b");
+//                Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+//                SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
+//    
+//                Constraint<Cpx> Rank_type2c("RankType2c");
+//                Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+//                SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
+//    
+//                auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
+//                DebugOn("firstfirst");
+//                ref_bus_pairs_ijkl.first.first.print();
+//                ref_bus_pairs_ijkl.first.second.print();
+//                ref_bus_pairs_ijkl.second.first.print();
+//                ref_bus_pairs_ijkl.second.second.print();
+//                DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
+//    
+//                Constraint<Cpx> Rank_type3("RankType3");
+//                Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
+//                SDPOPF->add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
+            }
+            
+    }
+    
     
     /** Constraints */
-    /* Second-order cone constraints */
-    Constraint SOC("SOC");
-    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-    SOCPF->add(SOC.in(bus_pairs) <= 0);
     
+    if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
+        auto bag_size = bags_3d.size();
+        DebugOn("\nNum of bags = " << bag_size << endl);
+        DebugOn("Adding 3d determinant polynomial cuts\n");
+        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
+        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = Wii.in_bags(bags_3d, 3);
+        
+        Constraint<> SDP3("SDP_3D");
+        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        if (lazy_bool) {
+            SDPOPF->add_lazy(SDP3 >= 0);
+        }
+        else {
+            SDPOPF->add(SDP3 >= 0);
+            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+        }
+    }
+    
+    /** Constraints */
     /* Flow conservation */
-    Constraint KCL_P("KCL_P");
-    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens()) + gs*Wii;
-    SOCPF->add(KCL_P.in(nodes) == 0);
+    Constraint<> KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
+    SDPOPF->add(KCL_P.in(nodes) == 0);
     
-    Constraint KCL_Q("KCL_Q");
-    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens()) - bs*Wii;
-    SOCPF->add(KCL_Q.in(nodes) == 0);
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
+    SDPOPF->add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
-    Constraint Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (g_ff*Wii.from() + g_ft*R_Wij.in_pairs() + b_ft*Im_Wij.in_pairs());
-    SOCPF->add(Flow_P_From.in(arcs) == 0);
+    Constraint<> Flow_P_From("Flow_P_From");
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs));
+    SDPOPF->add(Flow_P_From.in(arcs) == 0);
     
-    Constraint Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (g_tt*Wii.to() + g_tf*R_Wij.in_pairs() - b_tf*Im_Wij.in_pairs());
-    SOCPF->add(Flow_P_To.in(arcs) == 0);
+    Constraint<> Flow_P_To("Flow_P_To");
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs));
+    SDPOPF->add(Flow_P_To.in(arcs) == 0);
     
-    Constraint Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs() - b_ff*Wii.from() - b_ft*R_Wij.in_pairs());
-    SOCPF->add(Flow_Q_From.in(arcs) == 0);
+    Constraint<> Flow_Q_From("Flow_Q_From");
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs));
+    SDPOPF->add(Flow_Q_From.in(arcs) == 0);
     
-    Constraint Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + (b_tt*Wii.to() + b_tf*R_Wij.in_pairs() + g_tf*Im_Wij.in_pairs());
-    SOCPF->add(Flow_Q_To.in(arcs) == 0);
+    Constraint<> Flow_Q_To("Flow_Q_To");
+    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs);
+    SDPOPF->add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
-    Constraint PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij;
-    PAD_UB <= tan_th_max*R_Wij;
-    SOCPF->add(PAD_UB.in(bus_pairs));
+    Constraint<> PAD_UB("PAD_UB");
+    PAD_UB = Im_Wij.in(bus_pairs);
+    PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
+    SDPOPF->add(PAD_UB.in(bus_pairs));
     
-    Constraint PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij;
-    PAD_LB >= tan_th_min*R_Wij;
-    SOCPF->add(PAD_LB.in(bus_pairs));
+    Constraint<> PAD_LB("PAD_LB");
+    PAD_LB =  Im_Wij.in(bus_pairs);
+    PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
+    SDPOPF->add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
-    Constraint Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from = power(Pf_from, 2) + power(Qf_from, 2);
-    Thermal_Limit_from <= power(S_max,2);
-    SOCPF->add(Thermal_Limit_from.in(arcs));
-    SOCPF->add(Thermal_Limit_from.in(arcs));
+    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
+    Thermal_Limit_from <= pow(S_max,2);
+    SDPOPF->add(Thermal_Limit_from.in(arcs));
     
     
-    Constraint Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to = power(Pf_to, 2) + power(Qf_to, 2);
-    Thermal_Limit_to <= power(S_max,2);
-    SOCPF->add(Thermal_Limit_to.in(arcs));
-    SOCPF->add(Thermal_Limit_to.in(arcs));
+    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+    Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
+    Thermal_Limit_to <= pow(S_max,2);
+    SDPOPF->add(Thermal_Limit_to.in(arcs));
     
-    /* Lifted Nonlinear Cuts */
-    Constraint LNC1("LNC1");
-    LNC1 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
-    LNC1 -= v_max.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
-    LNC1 -= v_max.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
-    LNC1 -= v_max.from()*v_max.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
-    SOCPF->add(LNC1.in(bus_pairs) >= 0);
+    if(current){
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L_from("L_from"), W("W");
+        T.real_imag(cc.in(arcs), dd.in(arcs));
+        Y.real_imag(g.in(arcs), b.in(arcs));
+        Ych.set_imag(ch_half.in(arcs));
+        
+        
+        L_from.set_real(lij.in(arcs));
+        W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
+        
+        Constraint<Cpx> I_from("I_from");
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SDPOPF->add_real(I_from.in(arcs)==pow(tr,2)*L_from.in(arcs));
+        
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs);
+        SDPOPF->add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+        
+//        Constraint<Cpx> I_to("I_to");
+//        I_to = pow(tr.in(arcs),2)*lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.from(arcs)+pow(tr.in(arcs),2)*(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)+(4*ch_half.in(arcs)*g.in(arcs))*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+//        SDPOPF->add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+        
+        
+//        Constraint<> I_from_L("I_from_L");
+//        I_from_L = (pow(Pf_from, 2) + pow(Qf_from, 2))*pow(tr,2)-Wii.get_ub().from(arcs)*lij;
+       // SDPOPF->add(I_from_L.in(arcs) <= 0);
+        
+//        Constraint<> I_from_U("I_from_U");
+//        I_from_U = Wii.get_lb().from(arcs)*lij - pow(tr,2)*(max(pow(Pf_from.get_ub(), 2),pow(Pf_from.get_lb(), 2))+max(pow(Qf_from.get_ub(),2),pow(Qf_from.get_lb(),2)));
+        //SDPOPF->add(I_from_U.in(arcs) <= 0);
+        
+//        Constraint<> I_from_U1("I_from_U1");
+//       I_from_U1 = Wii.get_lb().from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+         // I_from_U1 = w_min.from(arcs)*lij - pow(tr,2)*pow(S_max,2);
+    //  SDPOPF->add(I_from_U1.in(arcs) <= 0);
+        
+        //ljitr=lji times pow(tr,2)
+//        func<> ljitr=pow(tr.in(arcs),2)*lij.in(arcs)-(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.from(arcs)+pow(tr.in(arcs),2)*(pow(ch_half.in(arcs), 2)+2*grid.b.in(arcs)*ch_half.in(arcs))*Wii.to(arcs)
+//        +(4*ch_half.in(arcs)*g.in(arcs))*(dd.in(arcs)*R_Wij.in(arcs)-cc.in(arcs)*Im_Wij.in(arcs));
+//
+//        Constraint<> I_to_pos("I_to_pos");
+//        I_to_pos=ljitr.in(arcs);
+//        SDPOPF->add(I_to_pos.in(arcs) >= 0);
+        
+        
+//        Constraint<> I_to_U("I_to_U");
+//        I_to_U = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*(max(pow(Pf_to.get_ub(), 2),pow(Pf_to.get_lb(), 2))+max(pow(Qf_to.get_ub(),2),pow(Qf_to.get_lb(),2)));
+        //SDPOPF->add(I_to_U.in(arcs) <= 0);
+        
+//        Constraint<> I_to_U1("I_to_U1");
+//        I_to_U1 = Wii.get_lb().to(arcs)*ljitr - pow(tr.in(arcs),2)*pow(S_max,2);
+       // SDPOPF->add(I_to_U1.in(arcs) <= 0);
+        
+//        Constraint<Cpx> Linking_pf_by_v("Linking_pf_by_v");
+//        Linking_pf_by_v= Pf_from - pf_by_v*V_mag.from(arcs);
+//        SDPOPF->add(Linking_pf_by_v.in(arcs)==0, true);
+//
+//        Constraint<Cpx> Linking_qf_by_v("Linking_qf_by_v");
+//        Linking_qf_by_v= Qf_from - qf_by_v*V_mag.from(arcs);
+//        SDPOPF->add(Linking_qf_by_v.in(arcs)==0, true);
+////
+//        Constraint<Cpx> Linking_pt_by_v("Linking_pt_by_v");
+//        Linking_pt_by_v= Pf_to - pt_by_v*V_mag.to(arcs);
+//        SDPOPF->add(Linking_pt_by_v.in(arcs)==0, true);
+//
+//        Constraint<Cpx> Linking_qt_by_v("Linking_qt_by_v");
+//        Linking_qt_by_v= Qf_to - qt_by_v*V_mag.to(arcs);
+//        SDPOPF->add(Linking_qt_by_v.in(arcs)==0, true);
+////
+////        Constraint<> I_from_Pf_n("I_from_Pf_n");
+////        I_from_Pf_n=lij-pow(tr,2)*(pow(pf_by_v,2)+pow(qf_by_v, 2));
+////        SDPOPF->add(I_from_Pf_n.in(arcs)==0);
+//
+//
+//        Constraint<Cpx> I_from_Pf_mc_n("I_from_Pf_mc_n");
+//        I_from_Pf_mc_n=lij-pow(tr,2)*(pf_by_v*pf_by_v+qf_by_v*qf_by_v);
+//        SDPOPF->add(I_from_Pf_mc_n.in(arcs)==0, true);
+//
+////        Constraint<> I_to_Pf_n("I_to_Pf_n");
+////        I_to_Pf_n=ljitr-pow(tr,2)*(pow(pt_by_v,2)+pow(qt_by_v, 2));
+////      SDPOPF->add(I_to_Pf_n.in(arcs)>=0);
+////
+////
+//        Constraint<Cpx> I_to_Pf_mc_n("I_to_Pf_mc_n");
+//        I_to_Pf_mc_n=ljitr-pow(tr,2)*(pt_by_v*pt_by_v+qt_by_v*qt_by_v);
+//        SDPOPF->add(I_to_Pf_mc_n.in(arcs)==0, true);
+//
+        
+//        Constraint<> I_from_Pf("I_from_Pf");
+//        I_from_Pf=lij.in(arcs)*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2)+pow(Qf_from, 2));
+//        SDPOPF->add(I_from_Pf.in(arcs)>=0);
+        
+        
+        Constraint<> I_from_Pf("I_from_Pf");
+        I_from_Pf=lij.in(arcs)*Wii.from(arcs)-pow(tr,2)*(Pf_from*Pf_from+Qf_from*Qf_from);
+       SDPOPF->add(I_from_Pf.in(arcs)==0, true);
+        
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji.in(arcs).in(arcs)*Wii.to(arcs)-(pow(Pf_to,2)+pow(Qf_to, 2));
+        SDPOPF->add(I_to_Pf.in(arcs)==0, true);
+        
+        
+//        Constraint<Cpx> I_to_Pf_mc("I_to_Pf_mc");
+//        I_to_Pf_mc=ljitr.in(arcs)*Wii.to(arcs)-pow(tr,2)*(Pf_to.in(arcs)*Pf_to.in(arcs)+Qf_to.in(arcs)*Qf_to.in(arcs));
+        //SDPOPF->add(I_to_Pf_mc.in(arcs)<=0, true);
+        
+//        Constraint<> I_orig("I_orig");
+//        I_orig=pow(b,2)*(pow(R_Vi.from(arcs_inductive)-R_Vi.to(arcs_inductive), 2)+pow(Im_Vi.from(arcs_inductive)-Im_Vi.to(arcs_inductive), 2))-lij.in(arcs_inductive);
+//       SDPOPF->add(I_orig.in(arcs_inductive)<=0);
+        
+        
+//        Constraint<Cpx> I_orig_mc("I_orig_mc");
+//        I_orig_mc=pow(b,2)*(pow(R_Vi.from(arcs_inductive)-R_Vi.to(arcs_inductive), 2)+pow(Im_Vi.from(arcs_inductive)-Im_Vi.to(arcs_inductive), 2))-lij.in(arcs_inductive);
+       // SDPOPF->add(I_orig_mc.in(arcs_inductive)==0, true);
+        
+        
+
+    }
+
     
-    Constraint LNC2("LNC2");
-    LNC2 += (v_min.from()+v_max.from())*(v_min.to()+v_max.to())*(sphi*Im_Wij + cphi*R_Wij);
-    LNC2 -= v_min.to()*cos_d*(v_min.to()+v_max.to())*Wii.from();
-    LNC2 -= v_min.from()*cos_d*(v_min.from()+v_max.from())*Wii.to();
-    LNC2 += v_min.from()*v_min.to()*cos_d*(v_min.from()*v_min.to() - v_max.from()*v_max.to());
-    SOCPF->add(LNC2.in(bus_pairs) >= 0);
-    return SOCPF;
+    Constraint<> Im_U("Im_U");
+    Im_U=pow(Im_Wij.in(bus_pairs), 2) - max(pow(sin(theta_L.in(bus_pairs)),2),pow(sin(theta_U.in(bus_pairs)),2))*Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    SDPOPF->add(Im_U.in(bus_pairs)<=0);
+
+    Constraint<> Im_L("Im_L");
+    Im_L=min(sin(theta_L.in(bus_pairs))*sqrt(Wii.get_lb().from(bus_pairs)*Wii.get_lb().to(bus_pairs)),sin(theta_L.in(bus_pairs))*
+         sqrt(Wii.get_ub().from(bus_pairs)*Wii.get_ub().to(bus_pairs))) - Im_Wij.in(bus_pairs);
+  SDPOPF->add(Im_L.in(bus_pairs)<=0);
+//    Im_L.print_symbolic();
+//    Im_L.print();
+
+
+    Constraint<> R_L("R_L");
+    R_L=min(cos(theta_L.in(bus_pairs)),cos(theta_U.in(bus_pairs)))*sqrt(Wii.get_lb().from(bus_pairs)*
+    Wii.get_lb().to(bus_pairs))-R_Wij.in(bus_pairs);
+   SDPOPF->add(R_L.in(bus_pairs)<=0);
+    
+    if(loss){
+        
+//
+//
+//
+//
+//        Constraint<> p_U("p_U");
+//        p_U=(Pf_from+Pf_to)*pow(tr,2)-g*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))-g*(1-cos_L)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//        SDPOPF->add(p_U.in(arcs)<=0);
+//
+//
+//        Constraint<> q_U("q_U");
+//        q_U=(Qf_from+Qf_to)*pow(tr,2)+b*max(pow(sqrt(Wii.get_ub().from(arcs))-tr*sqrt(Wii.get_lb().to(arcs)), 2),pow(sqrt(Wii.get_lb().from(arcs))-tr*sqrt(Wii.get_ub().to(arcs)), 2))+(b*(1-cos_L)+ch_half)*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//        SDPOPF->add(q_U.in(arcs)<=0);
+//
+//        Constraint<> q_L("q_L");
+//        q_L=(Qf_from+Qf_to)*pow(tr,2)+ch_half*(Wii.from(arcs)+pow(tr,2)*Wii.to(arcs));
+//        SDPOPF->add(q_L.in(arcs)>=0);
+//
+//
+//        auto bus_pairs_nolinecharge=grid.bus_pairs_no_line_charge();
+//
+//        Constraint<> Loss_Current("Loss_Current");
+//        Loss_Current=g.in(bus_pairs_nolinecharge)*(Pf_from.in(bus_pairs_nolinecharge)+Pf_to.in(bus_pairs_nolinecharge))-b.in(bus_pairs_nolinecharge)*(Qf_from.in(bus_pairs_nolinecharge)+Qf_to.in(bus_pairs_nolinecharge))-lij.in(bus_pairs_nolinecharge);
+       // SDPOPF->add(Loss_Current.in(bus_pairs_nolinecharge)==0);
+
+    }
+    if (llnc)
+    {
+        
+        
+        func<> phi=0.5*(theta_U.in(bus_pairs)+theta_L.in(bus_pairs));
+        Debug("phi");
+//        phi.print();
+        func<> del=0.5*(theta_U.in(bus_pairs)-theta_L.in(bus_pairs));
+        Debug("del");
+//        del.print();
+        
+        Constraint<> LNC1("LNC1");
+        LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(Im_Wij.in(bus_pairs)*sin(phi.in(bus_pairs)) + R_Wij.in(bus_pairs)*cos(phi.in(bus_pairs)));
+        
+        LNC1 -= sqrt(Wii.get_ub().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+        
+        LNC1 -= sqrt(Wii.get_ub().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+        
+        LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))*
+            sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+        
+        SDPOPF->add(LNC1.in(bus_pairs) >= 0);
+        Constraint<> LNC2("LNC2");
+        LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(sin(phi.in(bus_pairs))*Im_Wij.in(bus_pairs) + cos(phi.in(bus_pairs))*R_Wij.in(bus_pairs));
+        LNC2 -= sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+        LNC2 -= sqrt(Wii.get_lb().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+        LNC2-=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
+            sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
+        SDPOPF->add(LNC2.in(bus_pairs) >= 0);
+//
+//                        Constraint<> LNC2("LNC2");
+//                        LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+//                        LNC2 -= sqrt(Wii.get_lb().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+//                        LNC2 -= sqrt(Wii.get_lb().from(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+//                        LNC2 += sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+//                        SDPOPF->add(LNC2.in(bus_pairs) >= 0);
+//
+//                Constraint<> LNC1("LNC1");
+//                LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+//                LNC1 -= sqrt(Wii.get_ub().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+//                LNC1 -= sqrt(Wii.get_ub().from(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+//                LNC1 -=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*grid.cos_d*(sqrt(Wii.get_lb().from(bus_pairs))*
+//                    sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
+//                SDPOPF->add(LNC1.in(bus_pairs) >= 0);
+//
+
+        
+        
+    }
+//    SDPOPF->print();
+    return SDPOPF;
+
 }
 
-//unique_ptr<Model> PowerNet::build_ROMDST(PowerModelType pmt, int output, double tol, int max_nb_hours){
-//    /** Indices Sets */
-//    hours = time(1,max_nb_hours); /**< Hours */
-////        indices months = time("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"); /**< Months */
-////    indices months = time("jan","feb","mar","apr","may","jun"); /**< Months */
-////    months = time("apr", "aug", "dec"); /**< Months */
-//        indices months = time("jan");
-//    //        indices months = time("jan", "feb", "mar","apr","may","jun");
-//    typical_days = time("week","peak","weekend");
-////        indices typical_days = time("week");
-//    T = indices(months,typical_days,hours);
-//    double nT = T.size();
-//    DebugOn("number of time periods = " << nT << endl);
-//    time_expand(T);
-//    Nt = indices(nodes,T);
-//    Nt_load._time_extended = true;
-//    Nt_no_load._time_extended = true;
-//    for (auto &nt:*Nt._indices) {
-//        if (pl.eval(nt)!=0) {
-//            Nt_load.add(nt);
-//        }
-//        else{
-//            Nt_no_load.add(nt);
-//        }
-//    }
-//    Et = indices(arcs,T);
-//    Gt = indices(gens,T);
-//    exist_Gt = indices(_existing_diesel_gens,T);
-//    exist_Bt = indices(_existing_battery_inverters,T);
-//    exist_Et = indices(_exist_arcs,T);
-//    pot_Gt = indices(_potential_diesel_gens,T);
-//    pot_Bt = indices(_potential_battery_inverters,T);
-//    pot_Et = indices(_potential_expansion,T);
-//    Bt = indices(_battery_inverters,T);
-//    auto T1 = T.exclude(T.start());/**< Excluding first time step */
-//    Bt1 = indices(_battery_inverters,T1);
-//    Gt1 = indices(gens,T1);
-//    Wt = indices(_wind_gens,T);
-//    PVt = indices(_all_PV_gens,T);
-//    PV_pot_t = indices(_potential_PV_gens,T);
-//    pot_gen = indices(_potential_diesel_gens);
-//    pot_batt = indices(_potential_battery_inverters);
-//    pot_edges = indices(_potential_expansion);
-//
-//
-//    /** MODEL DECLARATION */
-//    unique_ptr<Model> ROMDST(new Model("ROMDST Model"));
-//    /** VARIABLES */
-//
-//
-//    /* Investment binaries */
-//
-////    var<double> Pv_cap("Pv_cap", 0, pv_max); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
-//    var<double> Pv_cap("Pv_cap", pos_); /**< Real variable indicating the extra capacity of PV to be installed on bus b */
-//    auto pot_pv = indices(_potential_PV_gens);
-//    ROMDST->add(Pv_cap.in(pot_pv));
-////        var<double> w_g("w_g",0,1); /**< Binary variable indicating if generator g is built on bus */
-////        var<double> w_b("w_b",0,1); /**< Binary variable indicating if battery b is built on bus */
-////        var<double> w_e("w_e",0,1); /**< Binary variable indicating if expansion is selected for edge e */
-////        var<double> w_pv("w_pv",0,1); /**< Binary variable indicating if expansion is selected for edge e */
-////        w_g._is_relaxed = true;
-////        w_b._is_relaxed = true;
-////        w_e._is_relaxed = true;
-////        w_pv._is_relaxed = true;
-//
-//    var<bool> w_g("w_g"); /**< Binary variable indicating if generator g is built on bus */
-//    var<bool> w_b("w_b"); /**< Binary variable indicating if battery b is built on bus */
-//    var<bool> w_e("w_e"); /**< Binary variable indicating if expansion is selected for edge e */
-//    var<bool> w_pv("w_pv"); /**< Binary variable indicating if PV is installed on bus b */
-//
-//
-//
-//    ROMDST->add(w_g.in(pot_gen),w_b.in(pot_batt),w_e.in(pot_edges),w_pv.in(pot_pv));
-//    w_g.initialize_all(1);
-//    w_b.initialize_all(1);
-//    w_e.initialize_all(1);
-//    w_pv.initialize_all(1);
-//
-//    this->w_g = w_g;
-//    this->w_b = w_b;
-//    this->w_e = w_e;
-//    this->w_pv = w_pv;
-//    this->Pv_cap = Pv_cap;
-//
-//    DebugOff("size w_g = " << w_g.get_dim() << endl);
-//    DebugOff("size w_b = " << w_b.get_dim() << endl);
-//    DebugOff("size w_e = " << w_e.get_dim() << endl);
-//    DebugOff("size w_pv = " << w_pv.get_dim() << endl);
-//    DebugOff("size Pv_cap = " << Pv_cap.get_dim() << endl);
-//
-//
-//    /* Diesel power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    var<double> Pg_ ("Pg_", pg_min, pg_max);/**< Active power generation before losses */
-////    var<double> Pg2("Pg2", 0, power(pg_max,2));/**< Square of Pg */
-//    var<double> Pg2("Pg2", pos_);/**< Square of Pg */
-//    ROMDST->add(Pg.in(Gt),Pg_.in(Gt),Qg.in(Gt),Pg2.in(pot_Gt));
-//    DebugOff("size Pg = " << Pg.get_dim() << endl);
-//    DebugOff("size Pg_ = " << Pg_.get_dim() << endl);
-//    DebugOff("size Qg = " << Qg.get_dim() << endl);
-//    DebugOff("size Pg2 = " << Pg2.get_dim() << endl);
-////    Pg.initialize_all(0.001);
-////    Qg.initialize_all(0.0001);
-//
-//    this->Pg_ = Pg_;
-//
-//    /* Battery power generation variables */
-//    var<double> Pb("Pb", pb_min, pb_max);/**< Active power generation outside the battery */
-//    var<double> Qb ("Qb", qb_min, qb_max);/**< Reactive power generation outside the battery */
-//    var<double> Pb_("Pb_", pb_min, pb_max);/**< Active power generation in the battery */
-////    var<double> Qb_("Qb_", qb_min, qb_max);/**< Reactive power generation in the battery */
-//    ROMDST->add(Pb.in(Bt), Qb.in(Bt), Pb_.in(Bt));
-//    DebugOff("size Pb = " << Pb.get_dim() << endl);
-//    DebugOff("size Qb = " << Qb.get_dim() << endl);
-//
-//
-//    /* PV power generation variables */
-////    var<double> Pv("Pv", 0,pv_max);
-//    var<double> Pv("Pv", pos_);
-//    ROMDST->add(Pv.in(PVt));
-//    DebugOff("size Pv = " << Pv.get_dim() << endl);
-//
-//    /* Battery state of charge variables */
-//    var<double> Sc("Sc", pos_);
-//    ROMDST->add(Sc.in(Bt));
-//    DebugOff("size Sc = " << Sc.get_dim() << endl);
-//
-//    /* Wind power generation variables */
-//    var<double> Pw("Pw", pw_min, pw_max);
-//    //    pw_max.print(true);
-//    ROMDST->add(Pw.in(Wt));
-//    DebugOff("size Pw = " << Pw.get_dim() << endl);
-//
-//    /* Power flow variables */
-//    var<double> Pij("Pfrom", S_max);
-//    var<double> Qij("Qfrom", S_max);
-//    var<double> Pji("Pto", S_max);
-//    var<double> Qji("Qto", S_max);
-//
-//    ROMDST->add(Pij.in(Et),Qij.in(Et));
-//    DebugOff("size Pij = " << Pij.get_dim() << endl);
-//    if (pmt!=LDISTF) {
-//        ROMDST->add(Pji.in(Et),Qji.in(Et));
-//    }
-//
-//    /** Voltage magnitude (squared) variables */
-//    var<double> v("v", vmin, vmax);
-//    ROMDST->add(v.in(Nt));
-//    DebugOff("size v = " << v.get_dim() << endl);
-////    v.initialize_all(0.64);
-//
-//    /** Power loss variables */
-//    var<double> loss("loss", pos_);
-//    if (pmt==DISTF || pmt==CDISTF) {
-//        ROMDST->add(loss.in(Nt));
-//    }
-//
-//    /** OBJECTIVE FUNCTION */
-//    func_ obj = product(c1.in(exist_Gt), Pg_.in(exist_Gt)) + product(c1.in(pot_Gt), Pg_.in(pot_Gt)) + product(c2.in(exist_Gt), power(Pg_.in(exist_Gt),2)) + product(c2.in(pot_Gt), Pg2.in(pot_Gt)) + sum(c0.in(exist_Gt));
-////    obj *= 12./months.size();
-//    obj += nT*product(c0.in(pot_gen),w_g.in(pot_gen));
-//    obj += product(gen_capcost.in(pot_gen), w_g.in(pot_gen));
-//    obj += product(inverter_capcost.in(pot_batt), w_b.in(pot_batt));
-//    obj += product(expansion_capcost.in(pot_edges), w_e.in(pot_edges));
-//    obj += product(pv_capcost.in(pot_pv), w_pv.in(pot_pv));
-//    obj += product(pv_varcost.in(pot_pv), Pv_cap.in(pot_pv));
-//    obj *= 1e-3;
-//    ROMDST->min(obj);
-//
-////    obj.print_expanded();
-//
-//    /** CONSTRAINTS **/
-//
-///** FLOW CONSERVATION **/
-//
-//    /** KCL P and Q */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    if (pmt==LDISTF) {
-//        KCL_P  = sum(Pij.out_arcs()) - sum(Pij.in_arcs()) + pl - sum(Pg.in_gens()) - sum(Pb.in_bats()) - sum(Pw.in_wind()) - sum(Pv.in_pv());
-//        //        KCL_P  = sum(Pij.out_arcs()) - sum(Pij.in_arcs()) + pl - sum(Pg.in_gens()) - sum(Pb.in_bats()) - sum(Pw.in_wind());
-//        KCL_Q  = sum(Qij.out_arcs()) - sum(Qij.in_arcs()) + ql - sum(Qg.in_gens()) - sum(Qb.in_bats());
-//    }
-//    else{
-//        KCL_P  = sum(Pij.out_arcs()) + sum(Pji.in_arcs()) + pl - sum(Pg.in_gens())- sum(Pb.in_bats()) - sum(Pw.in_wind()) - sum(Pv.in_pv());
-//        KCL_Q  = sum(Qij.out_arcs()) + sum(Qji.in_arcs()) + ql - sum(Qg.in_gens()) - sum(Qb.in_bats());
-//    }
-//    ROMDST->add(KCL_P.in(nodes, T) == 0);
-//    ROMDST->add(KCL_Q.in(nodes, T) == 0);
-//
-///**  THERMAL LIMITS **/
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pij, 2) + power(Qij, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ROMDST->add(Thermal_Limit_from.in(exist_Et) <= 0);
-//
-//
-//    /*  Thermal Limit Constraints for expansion edges */
-//    Constraint Thermal_Limit_from_exp("Thermal_Limit_From_Exp");
-//    Thermal_Limit_from_exp += power(Pij, 2) + power(Qij, 2);
-//    Thermal_Limit_from_exp -= power(w_e,2)*power(S_max, 2);
-//    ROMDST->add(Thermal_Limit_from_exp.in(pot_Et) <= 0);
-////    ROMDST->get_constraint("Thermal_Limit_From_Exp")->print_expanded();
-//
-///**  GENERATOR INVESTMENT **/
-//
-//    /*  On/Off status */
-//    Constraint OnOff_maxP("OnOff_maxP");
-//    OnOff_maxP += Pg_ - pg_max*w_g;
-//    ROMDST->add(OnOff_maxP.in(pot_Gt) <= 0);
-//
-//    Constraint Perspective_OnOff("Perspective_OnOff");
-//    Perspective_OnOff += power(Pg_,2) - Pg2*w_g;
-//    ROMDST->add(Perspective_OnOff.in(pot_Gt) <= 0);
-//
-//    Constraint OnOff_maxQ("OnOff_maxQ");
-//    OnOff_maxQ += Qg - qg_max*w_g;
-//    ROMDST->add(OnOff_maxQ.in(pot_Gt) <= 0);
-//
-//    Constraint OnOff_maxQ_N("OnOff_maxQ_N");
-//    OnOff_maxQ_N += Qg + qg_max*w_g;
-//    ROMDST->add(OnOff_maxQ_N.in(pot_Gt) >= 0);
-//
-///**  POWER FLOW **/
-//
-//    /** Power Flow Constraints */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From = v.from() - 2*(r*Pij + x*Qij) - v.to();
-//    ROMDST->add(Flow_P_From.in(_exist_arcs, T)==0);
-//
-//    Constraint Flow_P_Expansion_L("Flow_P_Expansion_L");
-//    Flow_P_Expansion_L = v.from() - 2*(r*Pij + x*Qij) - v.to() - (1-w_e)*(v_diff_max);
-//    ROMDST->add(Flow_P_Expansion_L.in(_potential_expansion, T)<=0);
-//
-//    Constraint Flow_P_Expansion_U("Flow_P_Expansion_U");
-//    Flow_P_Expansion_U = v.from() - 2*(r*Pij + x*Qij) - v.to() + (1-w_e)*(v_diff_max);
-//    ROMDST->add(Flow_P_Expansion_U.in(_potential_expansion, T)>=0);
-//
-//
-///**  PV **/
-//
-//    /*  On/Off on Potential PV */
-//    Constraint OnOffPV("OnOffPV");
-//    OnOffPV += Pv_cap - w_pv*pv_max;
-//    ROMDST->add(OnOffPV.in(indices(_potential_PV_gens)) <= 0);
-////    ROMDST->get_constraint("OnOffPV")->print_expanded();
-//
-//    /*  Max Cap on Potential PV */
-//    Constraint MaxCapPV("MaxCapPV");
-//    MaxCapPV += Pv - Pv_cap*pv_out;
-//    ROMDST->add(MaxCapPV.in(PV_pot_t) <= 0);
-////    ROMDST->get_constraint("MaxCapPV")->print_expanded();
-//
-//    /*  Existing PV */
-//    Constraint existPV("existPV");
-//    existPV += Pv - pv_max*pv_out;
-//    ROMDST->add(existPV.in(indices(_existing_PV_gens, T)) <= 0);
-////    ROMDST->get_constraint("existPV")->print_expanded();
-//
-//
-///**  BATTERIES **/
-//
-//    /*  Apparent Power Limit on Potential Batteries */
-//    Constraint Apparent_Limit_Batt_Pot("Apparent_Limit_Batt_Potential");
-//    Apparent_Limit_Batt_Pot += power(Pb, 2) + power(Qb, 2);
-//    Apparent_Limit_Batt_Pot -= power(w_b,2)*power(pb_max, 2);
-//    ROMDST->add(Apparent_Limit_Batt_Pot.in(pot_Bt) <= 0);
-//
-//    /*  Apparent Power Limit on Existing Batteries */
-//    Constraint Apparent_Limit_Batt("Apparent_Limit_Batt_Existing");
-//    Apparent_Limit_Batt += power(Pb, 2) + power(Qb, 2);
-//    Apparent_Limit_Batt -= power(pb_max, 2);
-//    ROMDST->add(Apparent_Limit_Batt.in(exist_Bt) <= 0);
-//
-//
-//    /*  State Of Charge */
-//    Constraint State_Of_Charge("State_Of_Charge");
-//    State_Of_Charge = Sc - Sc.prev() + Pb_;
-//    ROMDST->add(State_Of_Charge.in(Bt1) == 0);
-//
-//    /*  State Of Charge 0 */
-//    auto Bat0 = indices(_battery_inverters,T.start());
-//    Constraint State_Of_Charge0("State_Of_Charge0");
-//    State_Of_Charge0 = Sc;
-//    ROMDST->add(State_Of_Charge0.in(Bat0) == 0);
-//    Constraint Pb0("Pb0");
-//    Pb0 = Pb_;
-//    ROMDST->add(Pb0.in(Bat0) == 0);
-//
-///*  EFFICIENCIES */
-//    Constraint DieselEff("DieselEff");
-//    DieselEff += Pg - gen_eff*Pg_;
-//    ROMDST->add(DieselEff.in(Gt) == 0);
-//
-//    Constraint EfficiencyExist("BatteryEfficiencyExisting");
-//    EfficiencyExist += Pb  - eff_a*Pb_ - eff_b;//TODO without time extending eff_a and eff_b
-//    ROMDST->add(EfficiencyExist.in(indices(_eff_pieces,exist_Bt)) <= 0);
-//
-//    Constraint EfficiencyPot("BatteryEfficiencyPotential");
-//    EfficiencyPot += Pb  - eff_a*Pb_ - eff_b*w_b;
-//    ROMDST->add(EfficiencyPot.in(indices(_eff_pieces,pot_Bt)) <= 0);
-//
-//
-//    for (auto n:nodes) {
-//        auto b = (Bus*)n;
-////        b->print();
-//        for (auto i = 0; i < b->_pot_gen.size(); i++) {
-//            auto gen = b->_pot_gen[i];
-//            if(min_diesel_invest.eval(gen->_name)==max_diesel_invest.eval(gen->_name)){
-//                Constraint FixedDieselInvest("FixedDieselInvest"+gen->_name);
-//                FixedDieselInvest += w_g(gen->_name);
-//                ROMDST->add(FixedDieselInvest == 1);
-//                for (auto j = i+1; j < b->_pot_gen.size(); j++) {
-//                    auto gen2 = b->_pot_gen[j];
-//                    if (gen2->_gen_type==gen->_gen_type) {
-//                        Constraint FixedDieselInvest("FixedDieselInvest"+gen2->_name);
-//                        FixedDieselInvest += w_g(gen2->_name);
-//                        ROMDST->add(FixedDieselInvest == 1);
-//                    }
-//                }
-//            }
-//            else {
-//                Constraint MinDieselInvest("MinDieselInvest_"+b->_name+"_DG"+to_string(gen->_gen_type));
-//                MinDieselInvest += w_g(gen->_name);
-//                for (auto j = i+1; j < b->_pot_gen.size(); j++) {
-//                    auto gen2 = b->_pot_gen[j];
-//                    if (gen2->_gen_type==gen->_gen_type) {
-//                        MinDieselInvest += w_g(gen2->_name);
-//                    }
-//                }
-//                auto rhs = min_diesel_invest.eval(gen->_name);
-//                if (rhs>0) {
-//                    ROMDST->add(MinDieselInvest >= rhs);
-//                }
-//            }
-//        }
-//        for (auto i = 0; i < b->_pot_bat.size(); i++) {
-//            auto bat = b->_pot_bat[i];
-//            if(min_batt_invest.eval(bat->_name)==max_batt_invest.eval(bat->_name)){
-//                Constraint FixedBattInvest("FixedBattInvest"+bat->_name);
-//                FixedBattInvest += w_b(bat->_name);
-//                ROMDST->add(FixedBattInvest == 1);
-//                for (auto j = i+1; j < b->_pot_bat.size(); j++) {
-//                    auto bat2 = b->_pot_bat[j];
-//                    if (bat2->_bat_type==bat->_bat_type) {
-//                        Constraint FixedBattInvest("FixedBattInvest"+bat2->_name);
-//                        FixedBattInvest += w_b(bat2->_name);
-//                        ROMDST->add(FixedBattInvest == 1);
-//                    }
-//                }
-//            }
-//            else {
-//                Constraint MinBattInvest("MinBattInvest_"+b->_name+"_DG"+to_string(bat->_bat_type));
-//                MinBattInvest += w_b(bat->_name);
-//                for (auto j = i+1; j < b->_pot_bat.size(); j++) {
-//                    auto bat2 = b->_pot_bat[j];
-//                    if (bat2->_bat_type==bat->_bat_type) {
-//                        MinBattInvest += w_b(bat2->_name);
-//                    }
-//                }
-//                auto rhs = min_batt_invest.eval(bat->_name);
-//                if (rhs>0) {
-//                    ROMDST->add(MinBattInvest >= rhs);
-//                }
-//            }
-//        }
-//    }
-////    ROMDST->print_expanded();
-//    return ROMDST;
-//}
-
-//unique_ptr<Model> PowerNet::build_fixed_ACOPF_N_1(PowerModelType pmt, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n){
-//    bool polar = (pmt==ACPOL);
-//    if (polar) {
-//        Debug("Using polar model\n");
-//    }
-//    else {
-//        Debug("Using rectangular model\n");
-//    }
-//    unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    ACOPF->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//
-//
-//    /** Voltage related variables */
-//
-//    var<double> theta("theta_base", -6.3, 6.3);
-//    var<double> v("v_base", v_min, v_max);
-//
-//    //    var<double> vr("vr");
-//    //    var<double> vi("vi");
-//    var<double> vr("vr", v_max);
-//    var<double> vi("vi", v_max);
-//
-//    if (polar) {
-//        ACOPF->add(v.in(nodes), theta.in(nodes));
-//        v.initialize_all(1);
-//    }
-//    else {
-//        ACOPF->add_var(vr.in(nodes));
-//        ACOPF->add_var(vi.in(nodes));
-//        vr.initialize_all(1.0);
-//    }
-//    v_base = v;
-//    theta_base = theta;
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    ACOPF->min(obj.in(gens));
-//
-//    /** Define constraints */
-//
-//
-//    /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    if (polar) {
-//        Ref_Bus = theta(ref_bus);
-//    }
-//    else {
-//        Ref_Bus = vi(ref_bus);
-//    }
-//    ACOPF->add(Ref_Bus == 0);
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    if (polar) {
-//        KCL_P +=  gs*power(v,2);
-//        KCL_Q -=  bs*power(v,2);
-//    }
-//    else {
-//        KCL_P +=  gs*(power(vr,2)+power(vi,2));
-//        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-//    }
-//    ACOPF->add(KCL_P.in(nodes) == 0);
-//    ACOPF->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From += Pf_from;
-//    if (polar) {
-//        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-//        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    if (polar) {
-//        Flow_P_To -= g*power(v.to(), 2);
-//        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    if (polar) {
-//        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-//        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_Q_From.in(arcs)==0);
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    if (polar) {
-//        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-//        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_Q_To.in(arcs)==0);
-//
-//    /** AC voltage limit constraints. */
-//    if (!polar) {
-//        Constraint Vol_limit_UB("Vol_limit_UB");
-//        Vol_limit_UB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_UB -= power(v_max, 2);
-//        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-//
-//        Constraint Vol_limit_LB("Vol_limit_LB");
-//        Vol_limit_LB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_LB -= power(v_min,2);
-//        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-//        DebugOff(v_min.to_str(true) << endl);
-//        DebugOff(v_max.to_str(true) << endl);
-//    }
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-//    //    ACOPF->print_expanded();
-//    //    ACOPF->_obj*=1e-4;
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
-//
-//
-//        Qg_cont[cont] = Qg_c;
-//        indices Ng; /*<< Nodes with generators not fixed to upper and lower bound */
-//        for (auto node: nodes) {
-//            auto bus = (Bus*)node;
-//            if (bus->_gen.empty()) {
-//                continue;
-//            }
-//            if (!ids_p[cont].empty() && ids_p[cont]._indices_map->count(bus->_name)!=0) {
-//                Qg_c.print(true);
-//                for (auto gen:bus->_gen) {
-//                    auto idx = qg_min.get_indices()->at(gen->_name);
-//                    Qg_c._ub->add_val(idx, qg_min.eval(idx));
-//                }
-//                Qg_c.print(true);
-//            }
-//            else if(!ids_n[cont].empty() && ids_n[cont]._indices_map->count(bus->_name)!=0){
-//                Qg_c.print(true);
-//                for (auto gen:bus->_gen) {
-//                    auto idx = qg_max.get_indices()->at(gen->_name);
-//                    Qg_c._lb->add_val(idx, qg_max.eval(idx));
-//                }
-//                Qg_c.print(true);
-//            }
-//            else {
-//                Ng.add(bus->_name);
-//            }
-//        }
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        ACOPF->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//
-//        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-//        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
-//
-//        ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
-//        v_c.initialize_all(1);
-//        v_cont[cont] = v_c;
-//        theta_cont[cont] = theta_c;
-//
-////        Constraint V_eq_base("V_eq_base"+to_string(cont));// v < v_c
-////        V_eq_base = v_c - v_cont[cont];
-////        ACOPF->add(V_eq_base.in(Ng) == 0);
-////
-////        Constraint T_eq_base("T_eq_base"+to_string(cont));// v < v_c
-////        T_eq_base = theta_c - theta_cont[cont];
-////        ACOPF->add(T_eq_base.in(Ng) == 0);
-//
-//        Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-//        V_eq = (v_c - v);
-//        ACOPF->add(V_eq.in(Ng) == 0);
-////        ACOPF->get_constraint("V_eq"+to_string(cont))->print_expanded();
-//
-//
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        ACOPF->add(Gen_resp.in(indices(gens)) == 0);
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        if (polar) {
-//            KCL_P_c +=  gs*power(v_c,2);
-//            KCL_Q_c -=  bs*power(v_c,2);
-//        }
-//        ACOPF->add(KCL_P_c.in(nodes) == 0);
-//        ACOPF->add(KCL_Q_c.in(nodes) == 0);
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c += Pf_from_c;
-//        Flow_P_From_c -= g/power(tr,2)*power(v_c.from(),2);
-//        Flow_P_From_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_P_From_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_P_From_c.in(arcs)==0);
-//
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c += Pf_to_c;
-//        Flow_P_To_c -= g*power(v_c.to(), 2);
-//        Flow_P_To_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_P_To_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c += Qf_from_c;
-//        Flow_Q_From_c += (0.5*ch+b)/power(tr,2)*power(v_c.from(),2);
-//        Flow_Q_From_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_Q_From_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_Q_From_c.in(arcs)==0);
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c += Qf_to_c;
-//        Flow_Q_To_c += (0.5*ch+b)*power(v_c.to(),2);
-//        Flow_Q_To_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_Q_To_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        ACOPF->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        ACOPF->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//        cont++;
-//    }
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-//    //    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << ACOPF->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << ACOPF->get_nb_cons() - ACOPF->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << ACOPF->get_nb_ineq()<<endl);
-//
-//    return ACOPF;
-//}
-
-//vector<param<>> PowerNet::signs() {
-//    vector<param<>> res;
-//    string key;
-//    size_t idx;
-//    res.resize(3);
-//    for (int i = 0; i<3; i++) {
-//        res[i].set_name("I_sign_"+to_string(i));
-//    }
-//    set<vector<unsigned>> ids;
-//    for (auto &bag: _bags) {
-//        if (bag.size() != 3) {
-//            continue;
-//        }
-//        vector<unsigned> ids_bag;
-//        for (int i = 0; i<3; i++) {
-//            ids_bag.push_back(bag[i]->_id);
-//        }
-//        if(ids.count(ids_bag)==0) {
-//            ids.insert(ids_bag);
-//        } else {
-//            continue;
-//        }
-//        for (int i = 0; i< 2; i++) {
-//            if(has_directed_arc(bag[i], bag[i+1])) {
-//                key = bag[i]->_name + "," + bag[i+1]->_name;
-//                idx = res[i].add_val(key,1.0);
-//                res[i]._ids->at(0).push_back(idx);
-//            }
-//            else {
-//                key = bag[i+1]->_name + "," + bag[i]->_name;
-//                DebugOff("\nreversed arc " << key);
-//                idx = res[i].add_val(key,-1.0);
-//                res[i]._ids->at(0).push_back(idx);
-//            }
-//        }
-//        /* Loop back pair */
-//        if(has_directed_arc(bag[0], bag[2])) {
-//            key = bag[0]->_name + "," + bag[2]->_name;
-//            idx = res[2].add_val(key,1.0);
-//            res[2]._ids->at(0).push_back(idx);
-//        }
-//        else{
-//            key = bag[2]->_name + "," + bag[0]->_name;
-//            DebugOff("\nreversed arc " << key);
-//            idx = res[2].add_val(key,-1.0);
-//            res[2]._ids->at(0).push_back(idx);
-//        }
-//    }
-//    for (int i = 0; i<3; i++) {
-//        res[i]._dim[0]=res[i]._ids->at(0).size();
-//        res[i]._is_indexed = true;
-//    }
-//    return res;
-//}
-
-//unique_ptr<Model> PowerNet::build_SOCP_OPF_N_1(PowerModelType pmt, int output, double tol, bool sdp_cuts){
-//    bool socp = (pmt==SOCP);
-//    if (socp) {
-//        Debug("Using SOCP model\n");
-//    }
-//    else {
-//        Debug("Using QC model\n");
-//    }
-//    unique_ptr<Model> SOCP(new Model("SOCP Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    SOCP->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    SOCP->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//
-//    indices Ng; /*<< Nodes with generators */
-//    for (auto node: nodes) {
-//        auto bus = (Bus*)node;
-//        if (bus->_gen.size()>0) {
-//            Ng.add(bus->_name);
-//        }
-//    }
-//
-//    /** Voltage related variables */
-//
-//    /* Real part of Wij = ViVj */
-//    var<double>  R_Wij("R_Wij", wr_min, wr_max);
-//    /* Imaginary part of Wij = ViVj */
-//    var<double>  Im_Wij("Im_Wij", wi_min, wi_max);
-//    /* Magnitude of Wii = Vi^2 */
-//    var<double>  Wii("Wii", w_min, w_max);
-//    SOCP->add_var(Wii.in(nodes));
-//    auto bus_pairs = get_bus_pairs();
-//    auto bus_pairs_chord = get_bus_pairs_chord();
-//    if (sdp_cuts) {
-//        SOCP->add_var(R_Wij.in(bus_pairs_chord));
-//        SOCP->add_var(Im_Wij.in(bus_pairs_chord));
-//    }
-//    else {
-//        SOCP->add_var(R_Wij.in(bus_pairs));
-//        SOCP->add_var(Im_Wij.in(bus_pairs));
-//    }
-//
-//    /* Initialize variables */
-//    R_Wij.initialize_all(1.0);
-//    Wii.initialize_all(1.001);
-//
-//
-//    if (sdp_cuts) {
-////        auto R_Wij_ = R_Wij.pairs_in_directed(*this, _bags, 3);
-////        auto Im_Wij_ = Im_Wij.pairs_in_directed(*this, _bags, 3);
-////        auto Wii_ = Wii.in(_bags, 3);
-////        auto I_sgn = signs();
-////        Constraint SDP3("SDP_3D");
-////        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_[1] * Im_Wij_[2]);
-////        SDP3 += 2 * I_sgn[0] * Im_Wij_[0] * (R_Wij_[1] * I_sgn[2] * Im_Wij_[2] - I_sgn[1] * Im_Wij_[1] * R_Wij_[2]);
-////        SDP3 -= (power(R_Wij_[0], 2) + power(Im_Wij_[0], 2)) * Wii_[2];
-////        SDP3 -= (power(R_Wij_[1], 2) + power(Im_Wij_[1], 2)) * Wii_[0];
-////        SDP3 -= (power(R_Wij_[2], 2) + power(Im_Wij_[2], 2)) * Wii_[1];
-////        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-////        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-////        SOCP->add(SDP3 >= 0);
-//    }
-//
-//    /* Second-order cone constraints */
-//    Constraint SOC("SOC");
-//    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-//    if (sdp_cuts) {
-//        SOCP->add(SOC.in(bus_pairs_chord) <= 0);
-//    }
-//    else {
-//        SOCP->add(SOC.in(bus_pairs) <= 0);
-//    }
-//
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    SOCP->min(obj.in(gens));
-//
-//    /** Define constraints */
-//
-//
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    KCL_P +=  gs*Wii;
-//    KCL_Q -=  bs*Wii;
-//
-//    SOCP->add(KCL_P.in(nodes) == 0);
-//    SOCP->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From = Pf_from - (g_ff*Wii.from() + g_ft*R_Wij.in_pairs() + b_ft*Im_Wij.in_pairs());
-//    SOCP->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To = Pf_to - (g_tt*Wii.to() + g_tf*R_Wij.in_pairs() - b_tf*Im_Wij.in_pairs());
-//    SOCP->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs() - b_ff*Wii.from() - b_ft*R_Wij.in_pairs());
-//    SOCP->add(Flow_Q_From.in(arcs) == 0);
-//
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To = Qf_to + (b_tt*Wii.to() + b_tf*R_Wij.in_pairs() + g_tf*Im_Wij.in_pairs());
-//    SOCP->add(Flow_Q_To.in(arcs) == 0);
-//
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    SOCP->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    SOCP->add(Thermal_Limit_to.in(arcs) <= 0);
-//    //    ACOPF->print_expanded();
-//    //    ACOPF->_obj*=1e-4;
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        SOCP->add(Pg_c.in(gens), Qg_c.in(gens));
-//        Qg_cont[cont] = Qg_c;
-//
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        SOCP->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        SOCP->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//        /* Real part of Wij = ViVj */
-//        var<double>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
-//        /* Imaginary part of Wij = ViVj */
-//        var<double>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
-//        /* Magnitude of Wii = Vi^2 */
-//        var<double>  Wii_c("Wii"+to_string(cont), w_min, w_max);
-//        SOCP->add_var(Wii_c.in(nodes));
-//        SOCP->add_var(R_Wij_c.in(bus_pairs));
-//        SOCP->add_var(Im_Wij_c.in(bus_pairs));
-//
-//        /* Initialize variables */
-//        R_Wij_c.initialize_all(1.0);
-//        Wii_c.initialize_all(1.001);
-//
-//        /* Second-order cone constraints */
-//        Constraint SOC_c("SOC"+to_string(cont));
-//        SOC_c = power(R_Wij_c, 2) + power(Im_Wij_c, 2) - Wii_c.from()*Wii_c.to();
-//        SOCP->add(SOC_c.in(bus_pairs) <= 0);
-//
-//        //        auto R_Wij_c_ = R_Wij_c.pairs_in_directed(*this, _bags, 3);
-//        //        auto Im_Wij_c_ = Im_Wij_c.pairs_in_directed(*this, _bags, 3);
-//        //        auto Wii_c_ = Wii_c.in_bags(_bags, 3);
-//        //        Constraint SDP3_c("SDP_3D"+to_string(cont));
-//        //        SDP3_c = 2 * R_Wij_c_[0] * (R_Wij_c_[1] * R_Wij_c_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_c_[1] * Im_Wij_c_[2]);
-//        //        SDP3_c += 2 * I_sgn[0] * Im_Wij_c_[0] * (R_Wij_c_[1] * I_sgn[2] * Im_Wij_c_[2] - I_sgn[1] * Im_Wij_c_[1] * R_Wij_c_[2]);
-//        //        SDP3_c -= (power(R_Wij_c_[0], 2) + power(Im_Wij_c_[0], 2)) * Wii_c_[2];
-//        //        SDP3_c -= (power(R_Wij_c_[1], 2) + power(Im_Wij_c_[1], 2)) * Wii_c_[0];
-//        //        SDP3_c -= (power(R_Wij_c_[2], 2) + power(Im_Wij_c_[2], 2)) * Wii_c_[1];
-//        //        SDP3_c += Wii_c_[0] * Wii_c_[1] * Wii_c_[2];
-//        ////        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-//        //        SOCP->add(SDP3_c >= 0);
-//
-//        Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-//        V_eq = (Wii_c - Wii);
-//        SOCP->add(V_eq.in(Ng) == 0);
-//
-//
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        SOCP->add(Gen_resp.in(indices(gens)) == 0);
-//
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        KCL_P_c +=  gs*Wii_c;
-//        KCL_Q_c -=  bs*Wii_c;
-//
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c = Pf_from_c - (g_ff*Wii_c.from() + g_ft*R_Wij_c.in_pairs() + b_ft*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_P_From_c.in(arcs)==0);
-//
-//
-//
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c = Pf_to_c - (g_tt*Wii_c.to() + g_tf*R_Wij_c.in_pairs() - b_tf*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c = Qf_from_c - (g_ft*Im_Wij_c.in_pairs() - b_ff*Wii_c.from() - b_ft*R_Wij_c.in_pairs());
-//        SOCP->add(Flow_Q_From_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c = Qf_to_c + (b_tt*Wii_c.to() + b_tf*R_Wij_c.in_pairs() + g_tf*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        SOCP->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        SOCP->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//        cont++;
-//    }
-//    _conting_lines.back()->_active = true;
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//
-//
-//
-//
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-//    //    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << SOCP->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << SOCP->get_nb_cons() - SOCP->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << SOCP->get_nb_ineq()<<endl);
-//
-//    return SOCP;
-//}
-
-//unique_ptr<Model> PowerNet::build_SOCP_OPF_MINLP(PowerModelType pmt, int output, double tol){
-//    bool socp = (pmt==SOCP);
-//    if (socp) {
-//        Debug("Using SOCP model\n");
-//    }
-//    else {
-//        Debug("Using QC model\n");
-//    }
-//    unique_ptr<Model> SOCP(new Model("SOCP Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    SOCP->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    SOCP->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//
-//    indices Ng; /*<< Nodes with generators */
-//    for (auto node: nodes) {
-//        auto bus = (Bus*)node;
-//        if (bus->_gen.size()>0) {
-//            Ng.add(bus->_name);
-//        }
-//    }
-//
-//    /** Voltage related variables */
-//
-//
-//    /* Real part of Wij = ViVj */
-//    var<double>  R_Wij("R_Wij", wr_min, wr_max);
-//    /* Imaginary part of Wij = ViVj */
-//    var<double>  Im_Wij("Im_Wij", wi_min, wi_max);
-//    /* Magnitude of Wii = Vi^2 */
-//    var<double>  Wii("Wii", w_min, w_max);
-//    SOCP->add_var(Wii.in(nodes));
-//    auto bus_pairs = get_bus_pairs();
-//    auto bus_pairs_chord = get_bus_pairs_chord();
-//    SOCP->add_var(R_Wij.in(bus_pairs));
-//    SOCP->add_var(Im_Wij.in(bus_pairs));
-//
-//    /* Initialize variables */
-//    R_Wij.initialize_all(1.0);
-//    Wii.initialize_all(1.001);
-//
-//
-//
-//    /** Define constraints */
-//
-//    /* Second-order cone constraints */
-//    Constraint SOC("SOC");
-//    SOC = power(R_Wij, 2) + power(Im_Wij, 2) - Wii.from()*Wii.to();
-//    SOCP->add(SOC.in(bus_pairs) <= 0);
-//
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    SOCP->min(obj.in(gens));
-//
-//
-//
-//
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    KCL_P +=  gs*Wii;
-//    KCL_Q -=  bs*Wii;
-//
-//    SOCP->add(KCL_P.in(nodes) == 0);
-//    SOCP->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From = Pf_from - (g_ff*Wii.from() + g_ft*R_Wij.in_pairs() + b_ft*Im_Wij.in_pairs());
-//    SOCP->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To = Pf_to - (g_tt*Wii.to() + g_tf*R_Wij.in_pairs() - b_tf*Im_Wij.in_pairs());
-//    SOCP->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs() - b_ff*Wii.from() - b_ft*R_Wij.in_pairs());
-//    SOCP->add(Flow_Q_From.in(arcs) == 0);
-//
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To = Qf_to + (b_tt*Wii.to() + b_tf*R_Wij.in_pairs() + g_tf*Im_Wij.in_pairs());
-//    SOCP->add(Flow_Q_To.in(arcs) == 0);
-//
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    SOCP->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    SOCP->add(Thermal_Limit_to.in(arcs) <= 0);
-//    //    ACOPF->print_expanded();
-//    //    ACOPF->_obj*=1e-4;
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        SOCP->add(Pg_c.in(gens), Qg_c.in(gens));
-//        Qg_cont[cont] = Qg_c;
-//
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        SOCP->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        SOCP->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//        /* Real part of Wij = ViVj */
-//        var<double>  R_Wij_c("R_Wij"+to_string(cont), wr_min, wr_max);
-//        /* Imaginary part of Wij = ViVj */
-//        var<double>  Im_Wij_c("Im_Wij"+to_string(cont), wi_min, wi_max);
-//        /* Magnitude of Wii = Vi^2 */
-//        var<double>  Wii_c("Wii"+to_string(cont), w_min, w_max);
-//        SOCP->add_var(Wii_c.in(nodes));
-//        SOCP->add_var(R_Wij_c.in(bus_pairs));
-//        SOCP->add_var(Im_Wij_c.in(bus_pairs));
-//
-//        /* Initialize variables */
-//        R_Wij_c.initialize_all(1.0);
-//        Wii_c.initialize_all(1.001);
-//
-//
-//        //        auto R_Wij_c_ = R_Wij_c.pairs_in_directed(*this, _bags, 3);
-//        //        auto Im_Wij_c_ = Im_Wij_c.pairs_in_directed(*this, _bags, 3);
-//        //        auto Wii_c_ = Wii_c.in_bags(_bags, 3);
-//        //        Constraint SDP3_c("SDP_3D"+to_string(cont));
-//        //        SDP3_c = 2 * R_Wij_c_[0] * (R_Wij_c_[1] * R_Wij_c_[2] + I_sgn[1] * I_sgn[2] * Im_Wij_c_[1] * Im_Wij_c_[2]);
-//        //        SDP3_c += 2 * I_sgn[0] * Im_Wij_c_[0] * (R_Wij_c_[1] * I_sgn[2] * Im_Wij_c_[2] - I_sgn[1] * Im_Wij_c_[1] * R_Wij_c_[2]);
-//        //        SDP3_c -= (power(R_Wij_c_[0], 2) + power(Im_Wij_c_[0], 2)) * Wii_c_[2];
-//        //        SDP3_c -= (power(R_Wij_c_[1], 2) + power(Im_Wij_c_[1], 2)) * Wii_c_[0];
-//        //        SDP3_c -= (power(R_Wij_c_[2], 2) + power(Im_Wij_c_[2], 2)) * Wii_c_[1];
-//        //        SDP3_c += Wii_c_[0] * Wii_c_[1] * Wii_c_[2];
-//        ////        DebugOn("\nsdp nb inst = " << SDP3.get_nb_instances() << endl);
-//        //        SOCP->add(SDP3_c >= 0);
-//        /* Binary vars for complementarity, on = 1 <=> v_c = v */
-//        var<bool> on("on"+to_string(cont));
-//        SOCP->add_var(on.in(Ng));
-//        /* Binary vars for complementarity, low = 1 <=> qg_c = qg_min forall gens attached to n */
-//        var<bool> low("low"+to_string(cont));
-//        SOCP->add_var(low.in(Ng));
-//        /* Binary vars for complementarity, up = 1 <=> qg_c = qg_max forall gens attached to n */
-//        var<bool> up("up"+to_string(cont));
-//        SOCP->add_var(up.in(Ng));
-//
-//        SOCP->_obj -= sum(on);
-//
-//        /* logic constraints */
-//        Constraint Disj("Disjunction"+to_string(cont));
-//        Disj = low + up + on;
-//        SOCP->add(Disj.in(Ng) == 1);
-//
-//        Constraint On_c_u("On_c_u"+to_string(cont));
-//        On_c_u =  Wii - Wii_c - (1-on)*(w_max - w_min);
-//        SOCP->add(On_c_u.in(Ng) <= 0);
-//
-//        Constraint On_c_l("On_c_l"+to_string(cont));
-//        On_c_l =  Wii - Wii_c - (1-on)*(w_min - w_max);
-//        SOCP->add(On_c_l.in(Ng) >= 0);
-//
-//        //        Constraint Fix_on("Fix_on"+to_string(cont));
-//        //        Fix_on =  on;
-//        //        SOCP->add(Fix_on.in(Ng) == 1);
-//        for (auto n:nodes) {
-//            auto bus = (Bus*)n;
-//            if (bus->_gen.empty()) {
-//                continue;
-//            }
-//            for (auto gen: bus->_gen) {
-//                Constraint Low_c("Low_c_"+gen->_name+"_"+to_string(cont));
-//                auto gname = gen->_name;
-//                Low_c =  Qg_c(gname) - qg_min(gname) - (1-low(bus->_name))*(qg_max(gname) - qg_min(gname));
-//                SOCP->add(Low_c <= 0);
-//
-//                Constraint Up_c("Up_c"+gen->_name+"_"+to_string(cont));
-//                Up_c =  Qg_c(gname) - qg_max(gname) - (1-up(bus->_name))*(qg_min(gname) - qg_max(gname));
-//                SOCP->add(Up_c >= 0);
-//            }
-//        }
-//        //
-//        //        Constraint Low_c_l("Low_c_l"+to_string(cont));
-//        //        Low_c_l =  Wii - Wii_c - (1-on)*(w_min - w_max);
-//        //        SOCP->add(Low_c_l.in(Ng) >= 0);
-//
-//        //        Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-//        //        V_eq = (Wii_c - Wii);
-//        //        SOCP->add(V_eq.in(Ng) == 0);
-//
-//        Constraint SOC_c("SOC"+to_string(cont));
-//        SOC_c = power(R_Wij_c, 2) + power(Im_Wij_c, 2) - Wii_c.from()*Wii_c.to();
-//        SOCP->add(SOC_c.in(bus_pairs) <= 0);
-//
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        SOCP->add(Gen_resp.in(indices(gens)) == 0);
-//
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        KCL_P_c +=  gs*Wii_c;
-//        KCL_Q_c -=  bs*Wii_c;
-//        SOCP->add(KCL_P_c.in(nodes) == 0);
-//        SOCP->add(KCL_Q_c.in(nodes) == 0);
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c = Pf_from_c - (g_ff*Wii_c.from() + g_ft*R_Wij_c.in_pairs() + b_ft*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_P_From_c.in(arcs)==0);
-//
-//
-//
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c = Pf_to_c - (g_tt*Wii_c.to() + g_tf*R_Wij_c.in_pairs() - b_tf*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c = Qf_from_c - (g_ft*Im_Wij_c.in_pairs() - b_ff*Wii_c.from() - b_ft*R_Wij_c.in_pairs());
-//        SOCP->add(Flow_Q_From_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c = Qf_to_c + (b_tt*Wii_c.to() + b_tf*R_Wij_c.in_pairs() + g_tf*Im_Wij_c.in_pairs());
-//        SOCP->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        SOCP->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        SOCP->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//        cont++;
-//    }
-//    _conting_lines.back()->_active = true;
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-//    //    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << SOCP->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << SOCP->get_nb_cons() - SOCP->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << SOCP->get_nb_ineq()<<endl);
-//
-//    return SOCP;
-//}
-
-//unique_ptr<Model> PowerNet::build_ACOPF_MINLP(PowerModelType pmt, int output, double tol, const vector<bool>& cont_in){
-//    DebugOn("Using MINLP model\n");
-//    unique_ptr<Model> ACOPF(new Model("ACOPF_MINLP Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    ACOPF->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//
-//    indices Ng; /*<< Nodes with generators */
-//    for (auto node: nodes) {
-//        auto bus = (Bus*)node;
-//        if (bus->_gen.size()>0) {
-//            Ng.add(bus->_name);
-//        }
-//    }
-//
-//    /** Voltage related variables */
-//
-//
-//    var<double> theta("theta_base", -6.3, 6.3);
-//    var<double> v("v_base", v_min, v_max);
-//
-//    /** Define constraints */
-//
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    ACOPF->min(obj.in(gens));
-//
-//
-//
-//
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    KCL_P +=  gs*power(v,2);
-//    KCL_Q -=  bs*power(v,2);
-//
-//    ACOPF->add(KCL_P.in(nodes) == 0);
-//    ACOPF->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    Ref_Bus = theta(ref_bus);
-//
-//    ACOPF->add(Ref_Bus == 0);
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From += Pf_from;
-//    Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-//    Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//    Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    ACOPF->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    Flow_P_To -= g*power(v.to(), 2);
-//    Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//    Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    ACOPF->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-//    Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//    Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    ACOPF->add(Flow_Q_From.in(arcs) == 0);
-//
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-//    Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//    Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    ACOPF->add(Flow_Q_To.in(arcs) == 0);
-//
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
-//        Qg_cont[cont] = Qg_c;
-//
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        ACOPF->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//
-//        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-//        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
-//
-//        ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
-//        v_c.initialize_all(1);
-//        v_cont[cont] = v_c;
-//        theta_cont[cont] = theta_c;
-//
-//        if (cont_in[cont]) {
-//            /* Binary vars for complementarity, low = 1 <=> qg_c = qg_min forall gens attached to n */
-//            var<bool> low("low"+to_string(cont));
-//            ACOPF->add_var(low.in(Ng));
-//            /* Binary vars for complementarity, up = 1 <=> qg_c = qg_max forall gens attached to n */
-//            var<bool> up("up"+to_string(cont));
-//            ACOPF->add_var(up.in(Ng));
-//
-//            ACOPF->_obj += sum(low) + sum(up);
-//
-//            /* logic constraints */
-//    //        Constraint Disj("Disjunction"+to_string(cont));
-//    //        Disj = low + up + on;
-//    //        ACOPF->add(Disj.in(Ng) == 1);
-//
-//            Constraint Disj("Disjunction"+to_string(cont));
-//            Disj = low + up;
-//            ACOPF->add(Disj.in(Ng) <= 1);
-//
-//
-//            Constraint On_c_u("On_c_u"+to_string(cont));
-//            On_c_u =  v - v_c - (low + up)*(v_max - v_min);
-//            ACOPF->add(On_c_u.in(Ng) <= 0);
-//
-//            Constraint On_c_l("On_c_l"+to_string(cont));
-//            On_c_l =  v - v_c - (low + up)*(v_min - v_max);
-//            ACOPF->add(On_c_l.in(Ng) >= 0);
-//
-//    //        Constraint Fix_on("Fix_on"+to_string(cont));
-//    //        Fix_on =  on;
-//    //        SOCP->add(Fix_on.in(Ng) == 1);
-//            for (auto n:nodes) {
-//                auto bus = (Bus*)n;
-//                if (bus->_gen.empty()) {
-//                    continue;
-//                }
-//                for (auto gen: bus->_gen) {
-//                    Constraint Low_c("Low_c_"+gen->_name+"_"+to_string(cont));
-//                    auto gname = gen->_name;
-//                    Low_c =  Qg_c(gname) - qg_min(gname) - (1-low(bus->_name))*(qg_max(gname) - qg_min(gname));
-//                    ACOPF->add(Low_c <= 0);
-//
-//                    Constraint Up_c("Up_c"+gen->_name+"_"+to_string(cont));
-//                    Up_c =  Qg_c(gname) - qg_max(gname) - (1-up(bus->_name))*(qg_min(gname) - qg_max(gname));
-//                    ACOPF->add(Up_c >= 0);
-//                }
-//            }
-//        }
-//        else {
-//            Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-//            V_eq = (v_c - v);
-//            ACOPF->add(V_eq.in(Ng) == 0);
-//        }
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        ACOPF->add(Gen_resp.in(indices(gens)) == 0);
-//
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        KCL_P_c +=  gs*power(v_c,2);
-//        KCL_Q_c -=  bs*power(v_c,2);
-//        ACOPF->add(KCL_P_c.in(nodes) == 0);
-//        ACOPF->add(KCL_Q_c.in(nodes) == 0);
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c += Pf_from_c;
-//        Flow_P_From_c -= g/power(tr,2)*power(v_c.from(),2);
-//        Flow_P_From_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_P_From_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_P_From_c.in(arcs)==0);
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c += Pf_to_c;
-//        Flow_P_To_c -= g*power(v_c.to(), 2);
-//        Flow_P_To_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_P_To_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c += Qf_from_c;
-//        Flow_Q_From_c += (0.5*ch+b)/power(tr,2)*power(v_c.from(),2);
-//        Flow_Q_From_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_Q_From_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_Q_From_c.in(arcs)==0);
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c += Qf_to_c;
-//        Flow_Q_To_c += (0.5*ch+b)*power(v_c.to(),2);
-//        Flow_Q_To_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_Q_To_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        ACOPF->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        ACOPF->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//
-//        cont++;
-//    }
-//    _conting_lines.back()->_active = true;
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-//    //    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << ACOPF->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << ACOPF->get_nb_cons() - ACOPF->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << ACOPF->get_nb_ineq()<<endl);
-//
-//    return ACOPF;
-//}
-
-//unique_ptr<Model> PowerNet::build_ACOPF_N_1(PowerModelType pmt, int output, double tol){
-//    bool polar = (pmt==ACPOL);
-//    if (polar) {
-//        Debug("Using polar model\n");
-//    }
-//    else {
-//        Debug("Using rectangular model\n");
-//    }
-//    unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    ACOPF->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//
-//    indices Ng; /*<< Nodes with generators */
-//    for (auto node: nodes) {
-//        auto bus = (Bus*)node;
-//        if (bus->_gen.size()>0) {
-//            Ng.add(bus->_name);
-//        }
-//    }
-//
-//    /** Voltage related variables */
-//
-//    var<double> theta("theta_base", -6.3, 6.3);
-//    var<double> v("v_base", v_min, v_max);
-//
-//    //    var<double> vr("vr");
-//    //    var<double> vi("vi");
-//    var<double> vr("vr", v_max);
-//    var<double> vi("vi", v_max);
-//
-//    if (polar) {
-//        ACOPF->add(v.in(nodes), theta.in(nodes));
-//        v.initialize_all(1);
-//    }
-//    else {
-//        ACOPF->add_var(vr.in(nodes));
-//        ACOPF->add_var(vi.in(nodes));
-//        vr.initialize_all(1.0);
-//    }
-//    v_base = v;
-//    theta_base = theta;
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    ACOPF->min(obj.in(gens));
-//
-//    /** Define constraints */
-//
-//
-//    /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    if (polar) {
-//        Ref_Bus = theta(ref_bus);
-//    }
-//    else {
-//        Ref_Bus = vi(ref_bus);
-//    }
-//    ACOPF->add(Ref_Bus == 0);
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    if (polar) {
-//        KCL_P +=  gs*power(v,2);
-//        KCL_Q -=  bs*power(v,2);
-//    }
-//    else {
-//        KCL_P +=  gs*(power(vr,2)+power(vi,2));
-//        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-//    }
-//    ACOPF->add(KCL_P.in(nodes) == 0);
-//    ACOPF->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From += Pf_from;
-//    if (polar) {
-//        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-//        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    if (polar) {
-//        Flow_P_To -= g*power(v.to(), 2);
-//        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    if (polar) {
-//        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-//        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_Q_From.in(arcs)==0);
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    if (polar) {
-//        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-//        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_Q_To.in(arcs)==0);
-//
-//    /** AC voltage limit constraints. */
-//    if (!polar) {
-//        Constraint Vol_limit_UB("Vol_limit_UB");
-//        Vol_limit_UB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_UB -= power(v_max, 2);
-//        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-//
-//        Constraint Vol_limit_LB("Vol_limit_LB");
-//        Vol_limit_LB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_LB -= power(v_min,2);
-//        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-//        DebugOff(v_min.to_str(true) << endl);
-//        DebugOff(v_max.to_str(true) << endl);
-//    }
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-//    //    ACOPF->print_expanded();
-//    //    ACOPF->_obj*=1e-4;
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
-//        Qg_cont[cont] = Qg_c;
-//
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        ACOPF->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//
-//        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-//        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
-//
-//        ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
-//        v_c.initialize_all(1);
-//        v_cont[cont] = v_c;
-//        theta_cont[cont] = theta_c;
-//
-//        Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-//        V_eq = (v_c - v);
-//        ACOPF->add(V_eq.in(Ng) == 0);
-//
-//
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        ACOPF->add(Gen_resp.in(indices(gens)) == 0);
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        if (polar) {
-//            KCL_P_c +=  gs*power(v_c,2);
-//            KCL_Q_c -=  bs*power(v_c,2);
-//        }
-//        ACOPF->add(KCL_P_c.in(nodes) == 0);
-//        ACOPF->add(KCL_Q_c.in(nodes) == 0);
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c += Pf_from_c;
-//        Flow_P_From_c -= g/power(tr,2)*power(v_c.from(),2);
-//        Flow_P_From_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_P_From_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_P_From_c.in(arcs)==0);
-//
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c += Pf_to_c;
-//        Flow_P_To_c -= g*power(v_c.to(), 2);
-//        Flow_P_To_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_P_To_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c += Qf_from_c;
-//        Flow_Q_From_c += (0.5*ch+b)/power(tr,2)*power(v_c.from(),2);
-//        Flow_Q_From_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_Q_From_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_Q_From_c.in(arcs)==0);
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c += Qf_to_c;
-//        Flow_Q_To_c += (0.5*ch+b)*power(v_c.to(),2);
-//        Flow_Q_To_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_Q_To_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        ACOPF->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        ACOPF->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//        cont++;
-//    }
-//    _conting_lines.back()->_active = true;
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-//    //    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << ACOPF->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << ACOPF->get_nb_cons() - ACOPF->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << ACOPF->get_nb_ineq()<<endl);
-//
-//    return ACOPF;
-//}
-
-//unique_ptr<Model> PowerNet::build_soft_ACOPF_N_1(PowerModelType pmt, int output, double tol, double obj_pen){
-//    bool polar = (pmt==ACPOL);
-//    if (polar) {
-//        Debug("Using polar model\n");
-//    }
-//    else {
-//        Debug("Using rectangular model\n");
-//    }
-//    unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    ACOPF->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-////    Pg.initialize_uniform();
-////    Qg.initialize_uniform();
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-////    Pf_from.initialize_normal(0, 1);
-////    Qf_from.initialize_normal(0, 1);
-////    Pf_to.initialize_normal(0, 1);
-////    Qf_to.initialize_normal(0, 1);
-//
-//    indices Ng; /*<< Nodes with generators */
-//    for (auto node: nodes) {
-//        auto bus = (Bus*)node;
-//        if (bus->_gen.size()>0) {
-//            Ng.add(bus->_name);
-//        }
-//    }
-//
-//    /** Voltage related variables */
-//
-//    var<double> theta("theta_base", -6.3, 6.3);
-//    var<double> v("v_base", v_min, v_max);
-//
-//    //    var<double> vr("vr");
-//    //    var<double> vi("vi");
-//    var<double> vr("vr", v_max);
-//    var<double> vi("vi", v_max);
-//
-//    if (polar) {
-//        ACOPF->add(v.in(nodes), theta.in(nodes));
-//        v.initialize_all(1);
-////        v.initialize_uniform();
-////        theta.initialize_normal(0, 1);
-//    }
-//    else {
-//        ACOPF->add_var(vr.in(nodes));
-//        ACOPF->add_var(vi.in(nodes));
-//        vr.initialize_all(1.0);
-//    }
-//    v_base = v;
-//    theta_base = theta;
-//
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    ACOPF->min(obj.in(gens));
-//
-//    /** Define constraints */
-//
-//
-//    /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    if (polar) {
-//        Ref_Bus = theta(ref_bus);
-//    }
-//    else {
-//        Ref_Bus = vi(ref_bus);
-//    }
-//        ACOPF->add(Ref_Bus == 0);
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    if (polar) {
-//        KCL_P +=  gs*power(v,2);
-//        KCL_Q -=  bs*power(v,2);
-//    }
-//    else {
-//        KCL_P +=  gs*(power(vr,2)+power(vi,2));
-//        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-//    }
-//    ACOPF->add(KCL_P.in(nodes) == 0);
-//    ACOPF->add(KCL_Q.in(nodes) == 0);
-//
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From += Pf_from;
-//    if (polar) {
-//        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-//        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    if (polar) {
-//        Flow_P_To -= g*power(v.to(), 2);
-//        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    if (polar) {
-//        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-//        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_Q_From.in(arcs)==0);
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    if (polar) {
-//        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-//        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_Q_To.in(arcs)==0);
-//
-//    /** AC voltage limit constraints. */
-//    if (!polar) {
-//        Constraint Vol_limit_UB("Vol_limit_UB");
-//        Vol_limit_UB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_UB -= power(v_max, 2);
-//        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-//
-//        Constraint Vol_limit_LB("Vol_limit_LB");
-//        Vol_limit_LB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_LB -= power(v_min,2);
-//        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-//        DebugOff(v_min.to_str(true) << endl);
-//        DebugOff(v_max.to_str(true) << endl);
-//    }
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-//    //    ACOPF->print_expanded();
-////    ACOPF->_obj*=1e-4;
-//
-//    unsigned nb_added = 0, nb_total = 0, nb_gens_cont = _conting_gens.size(), nb_lines_cont = _conting_lines.size();
-//    clog << "Building contingency models for lines." << endl;
-//    auto cont = 0;
-//    double start_built_time = get_wall_time();
-//    for (auto i = 0; i<nb_lines_cont; i++) {
-//        clog << "Switching Off Line: " << _conting_lines[i]->_name << endl;
-//        _conting_lines[i]->_active = false;
-//        if (i>0) {
-//            _conting_lines[i-1]->_active = true;
-//        }
-//        var<double> Pg_c("Pg_cont"+to_string(cont), pg_min, pg_max);
-//        var<double> Qg_c ("Qg_cont"+to_string(cont), qg_min, qg_max);
-//        //    var<double> Sp ("Sp", pos_);
-//        //    var<double> Sn ("Sn", pos_);
-//        ACOPF->add(Pg_c.in(gens), Qg_c.in(gens));
-//        Qg_cont[cont] = Qg_c;
-//
-////        Pg_c.initialize_uniform();
-////        Qg_c.initialize_uniform();
-//
-//        var<double> v_diff_p("v_diff_p"+to_string(cont), pos_);
-//        ACOPF->add(v_diff_p.in(Ng));
-//        var<double> v_diff_n("v_diff_n"+to_string(cont), pos_);
-//        ACOPF->add(v_diff_n.in(Ng));
-//
-//        v_diff_p_cont[cont] = v_diff_p;
-//        v_diff_n_cont[cont] = v_diff_n;
-////
-//        ACOPF->_obj += obj_pen*sum(v_diff_p) + obj_pen*sum(v_diff_n);
-//
-////        ACOPF->_obj*=1e-4;
-//
-//        var<double> Pf_from_c("Pf_from_c"+to_string(cont), S_max);
-//        var<double> Qf_from_c("Qf_from_c"+to_string(cont), S_max);
-//        var<double> Pf_to_c("Pf_to_c"+to_string(cont), S_max);
-//        var<double> Qf_to_c("Qf_to_c"+to_string(cont), S_max);
-//        ACOPF->add(Pf_from_c.in(arcs), Qf_from_c.in(arcs),Pf_to_c.in(arcs),Qf_to_c.in(arcs));
-//
-//        p_from[cont] = Pf_from_c;
-//        q_from[cont] = Qf_from_c;
-//        p_to[cont] = Pf_to_c;
-//        q_to[cont] = Qf_to_c;
-//
-////        Pf_from_c.initialize_normal(0, 1);
-////        Qf_from_c.initialize_normal(0, 1);
-////        Pf_to_c.initialize_normal(0, 1);
-////        Qf_to_c.initialize_normal(0, 1);
-//
-//        var<double> delta("delta"+to_string(cont), pos_);
-//        ACOPF->add(delta.in(R(1)));
-//        _delta[cont] = delta;
-//
-//        var<double> theta_c("theta_c"+to_string(cont), -6.3, 6.3);
-//        var<double> v_c("v_c"+to_string(cont), v_min, v_max);
-//
-//        ACOPF->add(v_c.in(nodes), theta_c.in(nodes));
-//        v_c.initialize_all(1);
-//        v_cont[cont] = v_c;
-//        theta_cont[cont] = theta_c;
-//
-////        v_c.initialize_uniform();
-////        theta_c.initialize_normal(0, 1);
-//
-////        Constraint V_eq("V_eq"+to_string(cont));// v < v_c
-////        V_eq = (v_c - v);
-////        ACOPF->add(V_eq.in(Ng) == 0);
-//
-//        Constraint V_diff_def("V_diff_def"+to_string(cont));// v < v_c
-//        V_diff_def = 1e3*((v_diff_p - v_diff_n) - (v_c - v));
-////        V_diff_def = ((v_diff_p - v_diff_n) - (v_c - v));
-//        ACOPF->add(V_diff_def.in(Ng) == 0);
-//
-////        Constraint V_diff_p("V_diff_p"+to_string(cont));// v < v_c
-////        V_diff_p = v_diff_p - (v_c - v);
-////        ACOPF->add(V_diff_p.in(Ng) >= 0);
-////
-////        Constraint V_diff_n("V_diff_n"+to_string(cont));// v > v_c
-////        V_diff_n = v_diff_n - (v - v_c);
-////        ACOPF->add(V_diff_n.in(Ng) >= 0);
-////
-////        Constraint Complement_p("Complement_p"+to_string(cont));
-////        Complement_p = v_diff_p*(Qg_c - qg_min);
-////        ACOPF->add(Complement_p.in(Ng) <= 0);
-//////
-////        Constraint Complement_n("Complement_n"+to_string(cont));
-////        Complement_n = v_diff_n*(qg_max - Qg_c);
-////        ACOPF->add(Complement_n.in(Ng) <= 0);
-//
-//
-//
-//        /* Generator Constraints */
-//        Constraint Gen_resp("g_resp"+to_string(cont));
-//        Gen_resp = Pg_c - (Pg + p_factor*delta);
-//        ACOPF->add(Gen_resp.in(indices(gens)) == 0);
-//        /** KCL Flow conservation */
-//        Constraint KCL_P_c("KCL_P_c_"+to_string(cont));
-//        Constraint KCL_Q_c("KCL_Q_c"+to_string(cont));
-//        KCL_P_c  = sum(Pf_from_c.out_arcs()) + sum(Pf_to_c.in_arcs()) + pl - sum(Pg_c.in_gens());
-//        KCL_Q_c  = sum(Qf_from_c.out_arcs()) + sum(Qf_to_c.in_arcs()) + ql - sum(Qg_c.in_gens());
-//        /* Shunts */
-//        if (polar) {
-//            KCL_P_c +=  gs*power(v_c,2);
-//            KCL_Q_c -=  bs*power(v_c,2);
-//        }
-//        ACOPF->add(KCL_P_c.in(nodes) == 0);
-//        ACOPF->add(KCL_Q_c.in(nodes) == 0);
-//
-//        Constraint Flow_P_From_c("Flow_P_From_c"+to_string(cont));
-//        Flow_P_From_c += Pf_from_c;
-//        Flow_P_From_c -= g/power(tr,2)*power(v_c.from(),2);
-//        Flow_P_From_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_P_From_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_P_From_c.in(arcs)==0);
-//
-//        Constraint Flow_P_To_c("Flow_P_To_c"+to_string(cont));
-//        Flow_P_To_c += Pf_to_c;
-//        Flow_P_To_c -= g*power(v_c.to(), 2);
-//        Flow_P_To_c += g/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_P_To_c += b/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_P_To_c.in(arcs)==0);
-//
-//        Constraint Flow_Q_From_c("Flow_Q_From_c"+to_string(cont));
-//        Flow_Q_From_c += Qf_from_c;
-//        Flow_Q_From_c += (0.5*ch+b)/power(tr,2)*power(v_c.from(),2);
-//        Flow_Q_From_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.from() - theta_c.to() - as));
-//        Flow_Q_From_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.from() - theta_c.to() - as));
-//        ACOPF->add(Flow_Q_From_c.in(arcs)==0);
-//        Constraint Flow_Q_To_c("Flow_Q_To_c"+to_string(cont));
-//        Flow_Q_To_c += Qf_to_c;
-//        Flow_Q_To_c += (0.5*ch+b)*power(v_c.to(),2);
-//        Flow_Q_To_c -= b/tr*(v_c.from()*v_c.to()*cos(theta_c.to() - theta_c.from() + as));
-//        Flow_Q_To_c += g/tr*(v_c.from()*v_c.to()*sin(theta_c.to() - theta_c.from() + as));
-//        ACOPF->add(Flow_Q_To_c.in(arcs)==0);
-//
-//        /*  Thermal Limit Constraints */
-//        Constraint Thermal_Limit_from_c("Thermal_Limit_from_c"+to_string(cont));
-//        Thermal_Limit_from_c += power(Pf_from_c, 2) + power(Qf_from_c, 2);
-//        Thermal_Limit_from_c -= power(S_max, 2);
-//        ACOPF->add(Thermal_Limit_from_c.in(arcs) <= 0);
-//
-//        Constraint Thermal_Limit_to_c("Thermal_Limit_to_c"+to_string(cont));
-//        Thermal_Limit_to_c += power(Pf_to_c, 2) + power(Qf_to_c, 2);
-//        Thermal_Limit_to_c -= power(S_max,2);
-//        ACOPF->add(Thermal_Limit_to_c.in(arcs) <= 0);
-//        cont++;
-//    }
-//    _conting_lines.back()->_active = true;
-//    if (nb_gens_cont>0) {
-//        clog << "Building contingency models for generators." << endl;
-//    }
-//    else {
-//        clog << "No generator contingencies." << endl;
-//    }
-//    for (auto i = 0; i<nb_gens_cont; i++) {
-//        clog << "Deactivating Generator: " << _conting_gens[i]->_name << endl;
-//        _conting_gens[i]->_active = false;
-//        if (i>0) {
-//            _conting_gens[i-1]->_active = true;
-//        }
-//        cont++;
-//    }
-//    nb_total = nb_gens_cont + nb_lines_cont;
-//    double end_build_time = get_wall_time();
-//    auto model_build_time = end_build_time - start_built_time;
-////    ACOPF->print_expanded();
-//    DebugOn("Total time for building continency constraints = " << model_build_time << endl);
-//    DebugOn("nb_vars = " << ACOPF->get_nb_vars()<<endl);
-//    DebugOn("nb_eqs = " << ACOPF->get_nb_cons() - ACOPF->get_nb_ineq()<<endl);
-//    DebugOn("nb_ineqs = " << ACOPF->get_nb_ineq()<<endl);
-//
-//    return ACOPF;
-//}
-
-shared_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
-        bool polar = (pmt==ACPOL);
-        if (polar) {
-            Debug("Using polar model\n");
-        }
-        else {
-            Debug("Using rectangular model\n");
-        }
-        shared_ptr<Model> ACOPF(new Model("AC-OPF Model"));
-        /** Variables */
-        /* Power generation variables */
-        var<double> Pg("Pg", pg_min, pg_max);
-        var<double> Qg ("Qg", qg_min, qg_max);
-        ACOPF->add(Pg.in(gens), Qg.in(gens));
-        Pg_base = Pg;
-        Qg_base = Qg;
-    
-        /* Power flow variables */
-        var<double> Pf_from("Pf_from", S_max);
-        var<double> Qf_from("Qf_from", S_max);
-        var<double> Pf_to("Pf_to", S_max);
-        var<double> Qf_to("Qf_to", S_max);
-        ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-        p_from_base = Pf_from;
-        p_to_base = Pf_to;
-        q_from_base = Qf_from;
-        q_to_base = Qf_to;
-        /** Voltage related variables */
-        var<double> theta("theta", -6.3, 6.3);
-        var<double> v("|V|", v_min, v_max);
-        //    var<double> vr("vr");
-        //    var<double> vi("vi");
-        var<double> vr("vr", v_max);
-        var<double> vi("vi", v_max);
-    
-        if (polar) {
-            ACOPF->add_var(v.in(nodes));
-            ACOPF->add_var(theta.in(nodes));
-            v.initialize_all(1);
-        }
-        else {
-            ACOPF->add_var(vr.in(nodes));
-            ACOPF->add_var(vi.in(nodes));
-            vr.initialize_all(1.0);
-        }
-        v_base = v;
-        theta_base = theta;
-    
-        /** Construct the objective function */
-        func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-        ACOPF->min(obj.in(gens));
-    
-        /** Define constraints */
-    
-        /* REF BUS */
-        Constraint Ref_Bus("Ref_Bus");
-        if (polar) {
-            Ref_Bus = theta(ref_bus);
-        }
-        else {
-            Ref_Bus = vi(ref_bus);
-        }
-        ACOPF->add(Ref_Bus == 0);
-    
-        /** KCL Flow conservation */
-        Constraint KCL_P("KCL_P");
-        Constraint KCL_Q("KCL_Q");
-        KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-        KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-        /* Shunts */
-        if (polar) {
-            KCL_P +=  gs*power(v,2);
-            KCL_Q -=  bs*power(v,2);
-        }
-        else {
-            KCL_P +=  gs*(power(vr,2)+power(vi,2));
-            KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-        }
-        ACOPF->add(KCL_P.in(nodes) == 0);
-        ACOPF->add(KCL_Q.in(nodes) == 0);
-    
-        /** AC Power Flows */
-        /** TODO write the constraints in Complex form */
-        Constraint Flow_P_From("Flow_P_From");
-        Flow_P_From += Pf_from;
-        if (polar) {
-            Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-            Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-            Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-        }
-        else {
-            Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-            Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-        }
-        ACOPF->add(Flow_P_From.in(arcs)==0);
-    
-        Constraint Flow_P_To("Flow_P_To");
-        Flow_P_To += Pf_to;
-        if (polar) {
-            Flow_P_To -= g*power(v.to(), 2);
-            Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-            Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-        }
-        else {
-            Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-            Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-        }
-        ACOPF->add(Flow_P_To.in(arcs)==0);
-    
-        Constraint Flow_Q_From("Flow_Q_From");
-        Flow_Q_From += Qf_from;
-        if (polar) {
-            Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-            Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-            Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-        }
-        else {
-            Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-            Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-        }
-        ACOPF->add(Flow_Q_From.in(arcs)==0);
-        Constraint Flow_Q_To("Flow_Q_To");
-        Flow_Q_To += Qf_to;
-        if (polar) {
-            Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-            Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-            Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-        }
-        else {
-            Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-            Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-            Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-        }
-        ACOPF->add(Flow_Q_To.in(arcs)==0);
-    
-        /** AC voltage limit constraints. */
-        if (!polar) {
-            Constraint Vol_limit_UB("Vol_limit_UB");
-            Vol_limit_UB = power(vr, 2) + power(vi, 2);
-            Vol_limit_UB -= power(v_max, 2);
-            ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-    
-            Constraint Vol_limit_LB("Vol_limit_LB");
-            Vol_limit_LB = power(vr, 2) + power(vi, 2);
-            Vol_limit_LB -= power(v_min,2);
-            ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-            DebugOff(v_min.to_str(true) << endl);
-            DebugOff(v_max.to_str(true) << endl);
-        }
-    
-    
-        /* Phase Angle Bounds constraints */
-        Constraint PAD_UB("PAD_UB");
-        Constraint PAD_LB("PAD_LB");
-        auto bus_pairs = get_bus_pairs();
-        if (polar) {
-            PAD_UB = theta.from() - theta.to();
-            PAD_UB -= th_max;
-            PAD_LB = theta.from() - theta.to();
-            PAD_LB -= th_min;
-            DebugOff(th_min.to_str(true) << endl);
-            DebugOff(th_max.to_str(true) << endl);
-        }
-        else {
-            DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-            PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-            PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
-    
-            PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-            PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
-            DebugOff(th_min.to_str(true) << endl);
-            DebugOff(th_max.to_str(true) << endl);
-        }
-        ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
-        ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
-    
-    
-        /*  Thermal Limit Constraints */
-        Constraint Thermal_Limit_from("Thermal_Limit_from");
-        Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-        Thermal_Limit_from -= power(S_max, 2);
-        ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-    
-        Constraint Thermal_Limit_to("Thermal_Limit_to");
-        Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-        Thermal_Limit_to -= power(S_max,2);
-        ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-        return ACOPF;
-}
-
-    
-//unique_ptr<Model> PowerNet::build_ACOPF(PowerModelType pmt, int output, double tol){
-//    bool polar = (pmt==ACPOL);
-//    if (polar) {
-//        Debug("Using polar model\n");
-//    }
-//    else {
-//        Debug("Using rectangular model\n");
-//    }
-//    unique_ptr<Model> ACOPF(new Model("AC-OPF Model"));
-//    /** Variables */
-//    /* Power generation variables */
-//    var<double> Pg("Pg", pg_min, pg_max);
-//    var<double> Qg ("Qg", qg_min, qg_max);
-//    ACOPF->add(Pg.in(gens), Qg.in(gens));
-//    Pg_base = Pg;
-//    Qg_base = Qg;
-//
-//    /* Power flow variables */
-//    var<double> Pf_from("Pf_from", S_max);
-//    var<double> Qf_from("Qf_from", S_max);
-//    var<double> Pf_to("Pf_to", S_max);
-//    var<double> Qf_to("Qf_to", S_max);
-//    ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-//    p_from_base = Pf_from;
-//    p_to_base = Pf_to;
-//    q_from_base = Qf_from;
-//    q_to_base = Qf_to;
-//    /** Voltage related variables */
-//    var<double> theta("theta", -6.3, 6.3);
-//    var<double> v("|V|", v_min, v_max);
-//    //    var<double> vr("vr");
-//    //    var<double> vi("vi");
-//    var<double> vr("vr", v_max);
-//    var<double> vi("vi", v_max);
-//
-//    if (polar) {
-//        ACOPF->add_var(v.in(nodes));
-//        ACOPF->add_var(theta.in(nodes));
-//        v.initialize_all(1);
-//    }
-//    else {
-//        ACOPF->add_var(vr.in(nodes));
-//        ACOPF->add_var(vi.in(nodes));
-//        vr.initialize_all(1.0);
-//    }
-//    v_base = v;
-//    theta_base = theta;
-//
-//    /** Construct the objective function */
-//    func_ obj = product(c1, Pg) + product(c2, power(Pg,2)) + sum(c0);
-//    ACOPF->min(obj.in(gens));
-//
-//    /** Define constraints */
-//
-//    /* REF BUS */
-//    Constraint Ref_Bus("Ref_Bus");
-//    if (polar) {
-//        Ref_Bus = theta(ref_bus);
-//    }
-//    else {
-//        Ref_Bus = vi(ref_bus);
-//    }
-//    ACOPF->add(Ref_Bus == 0);
-//
-//    /** KCL Flow conservation */
-//    Constraint KCL_P("KCL_P");
-//    Constraint KCL_Q("KCL_Q");
-//    KCL_P  = sum(Pf_from.out_arcs()) + sum(Pf_to.in_arcs()) + pl - sum(Pg.in_gens());
-//    KCL_Q  = sum(Qf_from.out_arcs()) + sum(Qf_to.in_arcs()) + ql - sum(Qg.in_gens());
-//    /* Shunts */
-//    if (polar) {
-//        KCL_P +=  gs*power(v,2);
-//        KCL_Q -=  bs*power(v,2);
-//    }
-//    else {
-//        KCL_P +=  gs*(power(vr,2)+power(vi,2));
-//        KCL_Q -=  bs*(power(vr,2)+power(vi,2));
-//    }
-//    ACOPF->add(KCL_P.in(nodes) == 0);
-//    ACOPF->add(KCL_Q.in(nodes) == 0);
-//
-//    /** AC Power Flows */
-//    /** TODO write the constraints in Complex form */
-//    Constraint Flow_P_From("Flow_P_From");
-//    Flow_P_From += Pf_from;
-//    if (polar) {
-//        Flow_P_From -= g/power(tr,2)*power(v.from(),2);
-//        Flow_P_From += g/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_P_From += b/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_P_From -= g_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_P_From -= g_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_From -= b_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_P_From.in(arcs)==0);
-//
-//    Constraint Flow_P_To("Flow_P_To");
-//    Flow_P_To += Pf_to;
-//    if (polar) {
-//        Flow_P_To -= g*power(v.to(), 2);
-//        Flow_P_To += g/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_P_To += b/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_P_To -= g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_P_To -= g_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_P_To -= b_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_P_To.in(arcs)==0);
-//
-//    Constraint Flow_Q_From("Flow_Q_From");
-//    Flow_Q_From += Qf_from;
-//    if (polar) {
-//        Flow_Q_From += (0.5*ch+b)/power(tr,2)*power(v.from(),2);
-//        Flow_Q_From -= b/tr*(v.from()*v.to()*cos(theta.from() - theta.to() - as));
-//        Flow_Q_From += g/tr*(v.from()*v.to()*sin(theta.from() - theta.to() - as));
-//    }
-//    else {
-//        Flow_Q_From += b_ff*(power(vr.from(), 2) + power(vi.from(), 2));
-//        Flow_Q_From += b_ft*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_From -= g_ft*(vi.from()*vr.to() - vr.from()*vi.to());
-//    }
-//    ACOPF->add(Flow_Q_From.in(arcs)==0);
-//    Constraint Flow_Q_To("Flow_Q_To");
-//    Flow_Q_To += Qf_to;
-//    if (polar) {
-//        Flow_Q_To += (0.5*ch+b)*power(v.to(),2);
-//        Flow_Q_To -= b/tr*(v.from()*v.to()*cos(theta.to() - theta.from() + as));
-//        Flow_Q_To += g/tr*(v.from()*v.to()*sin(theta.to() - theta.from() + as));
-//    }
-//    else {
-//        Flow_Q_To += b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
-//        Flow_Q_To += b_tf*(vr.from()*vr.to() + vi.from()*vi.to());
-//        Flow_Q_To -= g_tf*(vi.to()*vr.from() - vr.to()*vi.from());
-//    }
-//    ACOPF->add(Flow_Q_To.in(arcs)==0);
-//
-//    /** AC voltage limit constraints. */
-//    if (!polar) {
-//        Constraint Vol_limit_UB("Vol_limit_UB");
-//        Vol_limit_UB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_UB -= power(v_max, 2);
-//        ACOPF->add(Vol_limit_UB.in(nodes) <= 0);
-//
-//        Constraint Vol_limit_LB("Vol_limit_LB");
-//        Vol_limit_LB = power(vr, 2) + power(vi, 2);
-//        Vol_limit_LB -= power(v_min,2);
-//        ACOPF->add(Vol_limit_LB.in(nodes) >= 0);
-//        DebugOff(v_min.to_str(true) << endl);
-//        DebugOff(v_max.to_str(true) << endl);
-//    }
-//
-//
-//    /* Phase Angle Bounds constraints */
-//    Constraint PAD_UB("PAD_UB");
-//    Constraint PAD_LB("PAD_LB");
-//    auto bus_pairs = get_bus_pairs();
-//    if (polar) {
-//        PAD_UB = theta.from() - theta.to();
-//        PAD_UB -= th_max;
-//        PAD_LB = theta.from() - theta.to();
-//        PAD_LB -= th_min;
-//        DebugOff(th_min.to_str(true) << endl);
-//        DebugOff(th_max.to_str(true) << endl);
-//    }
-//    else {
-//        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-//        PAD_UB = vi.from()*vr.to() - vr.from()*vi.to();
-//        PAD_UB -= tan_th_max*(vr.from()*vr.to() + vi.from()*vi.to());
-//
-//        PAD_LB = vi.from()*vr.to() - vr.from()*vi.to();
-//        PAD_LB -= tan_th_min*(vr.from()*vr.to() + vi.from()*vi.to());
-//        DebugOff(th_min.to_str(true) << endl);
-//        DebugOff(th_max.to_str(true) << endl);
-//    }
-////    ACOPF->add(PAD_UB.in(bus_pairs) <= 0);
-////    ACOPF->add(PAD_LB.in(bus_pairs) >= 0);
-//
-//
-//    /*  Thermal Limit Constraints */
-//    Constraint Thermal_Limit_from("Thermal_Limit_from");
-//    Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
-//    Thermal_Limit_from -= power(S_max, 2);
-//    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-//
-//    Constraint Thermal_Limit_to("Thermal_Limit_to");
-//    Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
-//    Thermal_Limit_to -= power(S_max,2);
-//    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-////    ACOPF->print_expanded();
-//    return ACOPF;
-//}
 
 /** Return the vector of arcs of the chordal completion ignoring parallel lines **/
-indices PowerNet::get_bus_pairs_chord(){
+indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
+    if(!this->bus_pairs_chord.empty()){
+        return this->bus_pairs_chord;
+    }
     set<pair<Node*,Node*>> unique_pairs;
-    indices bpairs("bus_pairs");
     for (auto a: arcs) {
         if (!a->_parallel) {
             unique_pairs.insert({a->_src,a->_dest});
-            bpairs.add(a->_src->_name+","+a->_dest->_name);
+            bus_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
         }
     }
     string key;
@@ -4776,10 +1957,10 @@ indices PowerNet::get_bus_pairs_chord(){
         cos_min_ = -1;
     } else if (m_theta_lb < 0 && m_theta_ub > 0){
         cos_max_ = 1;
-        cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
     } else{
-        cos_max_ = max(cos(m_theta_lb),cos(m_theta_ub));
-        cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+        cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
     }
     if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
         sin_max_ = 1;
@@ -4788,7 +1969,7 @@ indices PowerNet::get_bus_pairs_chord(){
         sin_max_ = sin(m_theta_ub);
         sin_min_ = sin(m_theta_lb);
     }
-    for (auto &bag: _bags) {
+    for (auto &bag: bags) {
         for (size_t i = 0; i< bag.size()-1; i++) {
             if (unique_pairs.insert({bag[i],bag[i+1]}).second) {
                 auto bus_s = (Bus*)bag[i];
@@ -4807,7 +1988,7 @@ indices PowerNet::get_bus_pairs_chord(){
                 wr_min.add_val(name,wr_min_);
                 wi_max.add_val(name,wi_max_);
                 wi_min.add_val(name,wi_min_);
-                bpairs.add(name);
+                bus_pairs_chord.add(name);
             }
         }
         /* Loop back pair */
@@ -4828,20 +2009,204 @@ indices PowerNet::get_bus_pairs_chord(){
             wr_min.add_val(name,wr_min_);
             wi_max.add_val(name,wi_max_);
             wi_min.add_val(name,wi_min_);
-            bpairs.add(name);
+            bus_pairs_chord.add(name);
         }
     }
-    return bpairs;
+    return bus_pairs_chord;
 }
 
+indices PowerNet::get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags){
+    if(!this->bus_pairs_chord.empty()){
+        return this->bus_pairs_chord;
+    }
+    set<pair<Node*,Node*>> unique_pairs;
+    for (auto a: arcs) {
+        if (!a->_parallel) {
+            unique_pairs.insert({a->_src,a->_dest});
+            bus_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
+        }
+    }
+    string key;
+    double cos_max_, cos_min_, sin_max_, sin_min_;
+    double wr_max_, wr_min_, wi_max_, wi_min_, w_max_, w_min_;
+    if (m_theta_lb < -3.14 && m_theta_ub > 3.14) {
+        cos_max_ = 1;
+        cos_min_ = -1;
+    } else if (m_theta_lb < 0 && m_theta_ub > 0){
+        cos_max_ = 1;
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+    } else{
+        cos_max_ = gravity::max(cos(m_theta_lb),cos(m_theta_ub));
+        cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
+    }
+    if(m_theta_lb < -1.57 && m_theta_ub > 1.57){
+        sin_max_ = 1;
+        sin_min_ = -1;
+    } else{
+        sin_max_ = sin(m_theta_ub);
+        sin_min_ = sin(m_theta_lb);
+    }
+    for (auto &bag: bags) {
+        for (size_t i = 0; i< bag.size()-1; i++) {
+            if (unique_pairs.insert({bag[i],bag[i+1]}).second) {
+                auto bus_s = (Bus*)bag[i];
+                auto bus_d = (Bus*)bag[i+1];
+                w_max_ = bus_s->vbound.max*bus_d->vbound.max;
+                w_min_ = bus_s->vbound.min*bus_d->vbound.min;
+                wr_max_ = cos_max_*w_max_;
+                if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
+                else wr_min_ = cos_min_*w_min_;
+                if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
+                else wi_max_ = sin_max_*w_min_;
+                if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
+                else wi_min_ = sin_min_*w_max_;
+                auto name = bag[i]->_name + "," + bag[i+1]->_name;
+                wr_max.add_val(name,wr_max_);
+                wr_min.add_val(name,wr_min_);
+                wi_max.add_val(name,wi_max_);
+                wi_min.add_val(name,wi_min_);
+                bus_pairs_chord.add(name);
+            }
+        }
+        /* Loop back pair */
+        if (unique_pairs.insert({bag[0],bag[bag.size()-1]}).second) {
+            auto name = bag[0]->_name + "," + bag[bag.size()-1]->_name;
+            auto bus_s = (Bus*)bag[0];
+            auto bus_d = (Bus*)bag[bag.size()-1];
+            w_max_ = bus_s->vbound.max*bus_d->vbound.max;
+            w_min_ = bus_s->vbound.min*bus_d->vbound.min;
+            wr_max_ = cos_max_*w_max_;
+            if(cos_min_ < 0) wr_min_ = cos_min_*w_max_;
+            else wr_min_ = cos_min_*w_min_;
+            if(sin_max_ > 0) wi_max_ = sin_max_*w_max_;
+            else wi_max_ = sin_max_*w_min_;
+            if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
+            else wi_min_ = sin_min_*w_max_;
+            wr_max.add_val(name,wr_max_);
+            wr_min.add_val(name,wr_min_);
+            wi_max.add_val(name,wi_max_);
+            wi_min.add_val(name,wi_min_);
+            bus_pairs_chord.add(name);
+        }
+    }
+    return bus_pairs_chord;
+}
+
+
+gravity::indices PowerNet:: bus_pairs_no_line_charge()
+{
+    indices bus_pairs_nolinecharge = indices("bus_pairs_nolinecharge");
+       for(auto &bp:arcs)
+       {
+           if(ch_half.eval(bp->_name)==0.0 && tr.eval(bp->_name)==1)
+           {
+               bus_pairs_nolinecharge.add(bp->_name);
+           }
+       }
+    return(bus_pairs_nolinecharge);
+}
+
+
+gravity::indices PowerNet:: arcs_line_charge()
+{
+    indices arcs_charged = indices("arcs_charged");
+    for(auto &bp:arcs)
+    {
+        if(ch_half.eval(bp->_name)!=0.0)
+        {
+            arcs_charged.add(bp->_name);
+        }
+    }
+    return(arcs_charged);
+}
+
+gravity::indices PowerNet:: arcs_inductive_only()
+{
+    indices arcs_inductive = indices("arcs_inductive");
+    for(auto &bp:arcs)
+    {
+        if(ch_half.eval(bp->_name)==0.0 && g.eval(bp->_name)==0 && tr.eval(bp->_name)==1 && cc.eval(bp->_name)==1)
+        {
+            arcs_inductive.add(bp->_name);
+        }
+    }
+    return(arcs_inductive);
+}
+
+
+pair<pair<indices,indices>,pair<indices,indices>> PowerNet:: get_pairsof_bus_pairs_ijkl()
+{
+    indices ij = indices("ij");
+    indices kl = indices("kl");
+    indices il = indices("il");
+    indices jk = indices("jk");
+    indices p1=bus_pairs_chord.exclude(bus_pairs_chord.last());
+    indices p2=bus_pairs_chord.exclude(bus_pairs_chord.first());
+    pair<pair<indices,indices>,pair<indices,indices>> res;
+    for(auto &bp:*p1._keys)
+    {
+        auto n1 = bp.substr(0,bp.find_first_of(","));
+        auto n2 = bp.substr(bp.find_first_of(",")+1);
+        for(auto &ip:*p2._keys)
+        {
+            auto n3=ip.substr(0, ip.find_first_of(","));
+            auto n4=ip.substr(ip.find_first_of(",")+1);
+            
+            if(n1!=n3 && n1!=n4 && n2!=n3 && n2!=n4)
+            {
+                
+                auto il_n=n1+","+n4;
+                auto jk_n=n2+","+n3;
+         
+               // DebugOn(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
+                if(bus_pairs._keys_map->find(il_n)!=bus_pairs._keys_map->end() && bus_pairs._keys_map->find(jk_n)!=bus_pairs._keys_map->end())
+                {
+                   
+
+                
+                    ij.add(bp);
+                    kl.add(ip);
+                    jk.add(jk_n);
+                    il.add(il_n);
+                    DebugOn("innermost");
+                    DebugOn(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
+                }
+                
+              
+                
+            }
+        }
+        p2.exclude(p2.first());
+    }
+    
+    auto pair1=make_pair(ij,kl);
+    auto pair2=make_pair(jk,il);
+    res=make_pair(pair1,pair2);
+    return res;
+    
+}
 double PowerNet::solve_acopf(PowerModelType pmt, int output, double tol){
     
-    auto ACOPF = build_ACOPF();
+    auto ACOPF = build_ACOPF(*this,pmt,output,tol);
     bool relax;
-    solver OPF(*ACOPF,ipopt);
-    auto mipgap = 1e-6;
-    OPF.run(output, relax = false, tol, mipgap, "mumps");
-    return ACOPF->_obj_val;
+    solver<> OPF(ACOPF,ipopt);
+//    auto mipgap = 1e-6;
+    OPF.run(output, tol);
+
+
+//    ACOPF->print_solution();
+
+    return ACOPF->_obj->get_val();
+}
+
+double PowerNet::solve_sdpopf(bool loss_from, int output, double tol){
+    bool relax;
+    double upper_bound=solve_acopf(ACPOL, output, tol);
+    auto SDPOPF = build_SDPOPF(*this, loss_from, upper_bound);
+    solver<> OPF(SDPOPF,ipopt);
+    //    auto mipgap = 1e-6;
+    OPF.run(output, tol);
+    return SDPOPF->_obj->get_val();
 }
 
 
@@ -4862,10 +2227,10 @@ void PowerNet::fill_wbnds(){
                 cos_min_ = -1;
             } else if (m_theta_lb < 0 && m_theta_ub > 0) {
                 cos_max_ = 1;
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             } else {
-                cos_max_ = max(cos(m_theta_lb), cos(m_theta_ub));
-                cos_min_ = min(cos(m_theta_lb), cos(m_theta_ub));
+                cos_max_ = gravity::max(cos(m_theta_lb), cos(m_theta_ub));
+                cos_min_ = gravity::min(cos(m_theta_lb), cos(m_theta_ub));
             }
             w_max_ = bus_s->vbound.max * bus_d->vbound.max;
             w_min_ = bus_s->vbound.min * bus_d->vbound.min;

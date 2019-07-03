@@ -9,12 +9,15 @@
 #define Gravity___Type_h
 #include <memory>
 #include <list>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <map>
 #include <set>
 #include <assert.h>
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <complex>      // std::complex
 
 namespace gravity{
 #define EPS 0.00001
@@ -24,7 +27,8 @@ namespace gravity{
 #define Binary bool
 #define Debug(x)
 #define DebugOn(x) cout << x
-#define Warning(x)
+#define Warning(x) cout << x
+#define WarningOff(x)
 #define DebugOff(x)
     
     typedef unsigned int uint; /* Index type */
@@ -47,7 +51,7 @@ namespace gravity{
     typedef enum { const_, lin_, quad_, pol_, nlin_ } FType;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { lin_m, quad_m, pol_m, nlin_m } MType;  /* Model type: Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { minimize, maximize } ObjectiveType;
-    typedef enum { id_, number_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_} OperatorType;  /* Operation type in the expression tree */
+    typedef enum { id_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_, tan_, acos_, asin_, atan_, atan2_, relu_, unit_step_, min_, max_} OperatorType;  /* Operation type in the expression tree */
     
     typedef enum { R_, R_p_, C_} SpaceType;  /* Real, Positive Reals, Complex */
     
@@ -56,7 +60,13 @@ namespace gravity{
     
     typedef enum { unindexed_, in_, in_pairs_, out_, from_, to_, prev_, in_at_, in_time_, from_time_, to_time_, in_arcs_, out_arcs_, in_gens_, in_pot_gens_, in_bats_, in_pot_bats_,in_wind_, in_pv_, min_time_, excl_, matrix_} IndexType;  /* Index type */
     
+    
+   
+    
+    
     using namespace std;
+    
+    static double pi = 4.*atan(1.);
     
     class space{
     public:
@@ -212,10 +222,12 @@ namespace gravity{
     };
     
     class indices{
+    private:
+        string                                  _name;/**< index set can be given a name */
         
     public:
         
-        string                                  _name;/**< index set can be given a name */
+        
         IndexType                               _type = unindexed_;/**< index type */
         bool                                    _time_extended = false;/*<< indices are time extended */
         size_t                                  _time_pos = 0;/*<< number of commas before time extension */
@@ -227,6 +239,20 @@ namespace gravity{
         set<size_t>                             _excluded_keys; /*<< A set storing all indices that should be excluded */
         shared_ptr<vector<vector<size_t>>>      _ids = nullptr;
         
+        string get_name() const{
+            string name = _name;
+            if(_type==from_){
+                name = "from("+name+")";
+            }
+            else if(_type==to_){
+                name = "to("+name+")";
+            }
+            return name;
+        }
+        
+        void set_name(const string& name){
+            _name = name;
+        }
         
         indices(string name){
             _name = name;
@@ -291,10 +317,8 @@ namespace gravity{
             }
         }
         
-        
-        
         template<typename... Args>
-        indices(string idx1, Args&&... args) {
+        void init(string idx1, Args&&... args) {
             list<string> indices;
             indices = {forward<string>(args)...};
             indices.push_front(idx1);
@@ -314,13 +338,71 @@ namespace gravity{
         }
         
         
+        template<typename... Args>
+        indices(string idx1, Args&&... args) {
+            init(idx1, args...);
+        }
+        
+        bool operator==(const indices& cpy) const{
+            if (_name != cpy._name || _type != cpy._type || _time_extended!=cpy._time_extended || _time_pos != cpy._time_pos || *_dim!=*cpy._dim || _excluded_keys != cpy._excluded_keys || *_keys_map != *cpy._keys_map) return false;
+            if(_ids==cpy._ids) return true; /* accounts for both being nullptr */
+            if((_ids && !cpy._ids) || (cpy._ids && !_ids) || (*_ids != *cpy._ids)) return false;
+            return true;
+        }
+        
+        bool operator!=(const indices& cpy) const{
+            return !(*this==cpy);
+        }
+        
+        void shallow_copy(shared_ptr<indices> cpy){
+            _name = cpy->_name;
+            _type = cpy->_type;
+            _keys_map = cpy->_keys_map;
+            _keys = cpy->_keys;
+            _dim = cpy->_dim;
+            _excluded_keys = cpy->_excluded_keys;
+            if(cpy->_ids){
+                _ids = make_shared<vector<vector<size_t>>>(*cpy->_ids);
+            }
+            _time_extended = cpy->_time_extended;
+            _time_pos = cpy->_time_pos;
+        }
+        
+        void time_expand(const indices& T) {//Fix this to expand ids size
+            _time_extended = true;
+            auto dim = this->size()*(T.size() - T._excluded_keys.size());
+            /* update the indices of the old parameter*/
+            string key;
+            auto keys = *_keys;
+            //CLEAR OLD ENTRIES
+            _keys->clear();
+            _keys_map->clear();
+            _keys->resize(dim);
+            _ids->at(0).clear();
+            //STORE NEW ENTRIES
+            unsigned index = 0;
+            for (auto i = 0; i<keys.size();i++) {
+                for(unsigned t = 0; t < T.size(); t++ ) {
+                    if(T._excluded_keys.count(t)!=0){
+                        continue;
+                    }
+                    key = keys[i];
+                    key += ",";
+                    key += T._keys->at(t);
+                    _keys_map->insert(make_pair<>(key, index));
+                    _keys->at(index++) = key;
+                }
+            }
+            _name += ".time_expanded";
+        }
+        
         indices& operator=(const indices& cpy){
             _name = cpy._name;
             _type = cpy._type;
             _keys_map = cpy._keys_map;
-            _excluded_keys = cpy._excluded_keys;
             _keys = cpy._keys;
             _dim = cpy._dim;
+            _excluded_keys = cpy._excluded_keys;
             if(cpy._ids){
                 _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
             }
@@ -380,14 +462,14 @@ namespace gravity{
         //        }
         
         template<typename Tobj>
-        indices(const vector<Tobj*>& vec){
+        indices(const vector<Tobj*>& vec, bool include_inactive = false){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
             _dim->resize(1);
             size_t i = 0;
             for (auto idx:vec) {
-                if(idx->_active){
+                if(include_inactive || idx->_active){
                     (*_keys_map)[idx->_name]= i;
                     _keys->push_back(idx->_name);
                     i++;
@@ -400,14 +482,14 @@ namespace gravity{
         }
         
         template<typename Tobj>
-        indices(const vector<Tobj>& vec){
+        indices(const vector<Tobj>& vec, bool include_inactive = false){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
             _dim->resize(1);
             size_t i = 0;
             for (auto idx:vec) {
-                if(idx._active){
+                if(include_inactive || idx._active){
                     (*_keys_map)[idx._name]= i;
                     _keys->push_back(idx._name);
                     i++;
@@ -419,11 +501,41 @@ namespace gravity{
             _dim->at(0) = _keys->size();
         }
         
+        void insert(const string& key){
+            _keys->push_back(key);
+            _keys_map->insert(make_pair<>(key,_keys->size()-1));
+        }
+        
+        void extend(const indices& T) {
+            if(!_ids){
+                *this = indices(*this,T);
+                return;
+            }
+            if (_ids->size()>1) {//double indexed
+                auto dim = _ids->size();
+                auto new_dim = T.size()*dim;
+                _ids->resize(new_dim);
+                for (auto i =dim; i<new_dim; i++) {
+                    _ids->at(i).resize(_ids->at(i%dim).size());
+                    for (auto j =0; j<_ids->at(i).size(); j++) {
+                        _ids->at(i).at(j) = _ids->at(i%dim).at(j);
+                    }
+                }
+            }
+            else {
+                auto dim = _ids->at(0).size();
+                auto new_dim = T.size()*dim;
+                _ids->at(0).resize(new_dim);
+                for (auto i = dim; i<new_dim; i++) {
+                    _ids->at(0).at(i) = _ids->at(0).at(i%dim);
+                }
+            }
+        }
         
         indices(const list<indices>& vecs) {
-            if (vecs.size()==2) {
-                _type = matrix_;
-            }
+//            if (vecs.size()==2) {
+//                _type = matrix_;
+//            }
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
@@ -433,7 +545,7 @@ namespace gravity{
             vector<size_t> dims;
             for(auto &vec: vecs){
                 if(vec.empty()){
-                    Warning("\n\nWARNING: Defining indices with an empty vector!\n\n");
+                    WarningOff("\n\nWARNING: Defining indices with an empty vector!\n\n");
                     //                    exit(-1);
                 }
                 if(vec._time_extended){
@@ -486,6 +598,8 @@ namespace gravity{
             }
         }
         
+        
+        
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
@@ -516,8 +630,32 @@ namespace gravity{
                 it++;
             }
         }
+        
+        
+        
+        
         bool is_indexed() const{
             return (_ids!=nullptr);
+        }
+        
+        void remove_excluded(){
+            _ids = nullptr;
+            map<string,size_t> new_keys_map;
+            for(auto &key_id: _excluded_keys){
+                auto key = _keys->at(key_id);
+                _keys_map->erase(key);
+            }
+            _keys->clear();
+            _keys->resize(_keys_map->size());
+            size_t idx = 0;
+            for(auto &key_id: *_keys_map){
+                _keys->at(idx) = key_id.first;
+                new_keys_map[key_id.first] = idx++;
+            }
+            *_keys_map = new_keys_map;
+            _excluded_keys.clear();
+            _dim->resize(1);
+            _dim->at(0) = _keys->size();
         }
         
         void reindex(){
@@ -531,15 +669,30 @@ namespace gravity{
         
         indices exclude(string key){
             auto res =  *this;
+            res._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+            res._keys = make_shared<vector<string>>(*_keys);
             res._excluded_keys.insert(res._keys_map->at(key));
-            if(!is_indexed()){
-                res._ids = make_shared<vector<vector<size_t>>>();
-                res._ids->resize(1);
-            }
-            res.reindex();
+//            if(!is_indexed()){
+//                res._ids = make_shared<vector<vector<size_t>>>();
+//                res._ids->resize(1);
+//            }
+//            res.reindex();
+            res._name += "\\{" + key+"}";
+            res.remove_excluded();
             return res;
         }
         
+        size_t get_max_nb_columns() const {
+            assert(is_indexed());
+            auto nb_inst = _ids->size();
+            size_t max_dim = 0;
+            for(size_t inst = 0; inst<nb_inst; inst++){
+                auto nb_idx = _ids->at(inst).size();
+                max_dim = max(max_dim,nb_idx);
+            }
+            return max_dim;
+        }
+            
         size_t size() const {
             if(is_indexed()){
                 return _ids->at(0).size();
@@ -572,6 +725,7 @@ namespace gravity{
         }
     };
     
+    indices operator-(const indices& s1, const indices& s2);
     
     class node_pairs{
         
@@ -602,6 +756,8 @@ namespace gravity{
     std::string type_name(const T& t) {
         return t._type_name;
     }
+    
+    indices range(size_t i, size_t j);
 }
 
 #endif

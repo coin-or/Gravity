@@ -1,6 +1,7 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
 
+
 # add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
 #SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -8,6 +9,7 @@ include_directories(${PROJECT_INCLUDE_DIR})
 
 # the RPATH to be used when installing, but only if it's not a system directory
 #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
+file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.h)
 
 file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/ModelLearning/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/MinKPart/*.cpp)
@@ -18,14 +20,14 @@ file(GLOB CPXOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/P
 file(GLOB SOCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SOCOPF/*.cpp)
 file(GLOB DCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/Linear/Power/DCOPF/*.cpp)
 file(GLOB SDPOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SDPCUTS/*.cpp)
-file(GLOB ACUC_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/ACUC/*.cpp)
+file(GLOB OBBT_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/OBBT/*.cpp)
 file(GLOB ML_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/*.cpp)
 file(GLOB SVM_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/Classification/SVM/*.cpp)
 file(GLOB QUANTUM_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MINLP/Quantum/*.cpp)
 file(GLOB NEURALNET_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/Classification/NeuralNet/*.cpp)
 
 add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
-add_executable(ising ${ISING_SOURCES}) 
+#add_executable(ising ${ISING_SOURCES})
 #add_executable(quantum ${QUANTUM_SOURCES})
 add_executable(stable_set ${STABLE_S_SOURCES})
 add_executable(acopf ${ACOPF_SOURCES} ${Power_SOURCES})
@@ -34,13 +36,14 @@ add_executable(dcopf ${DCOPF_SOURCES} ${Power_SOURCES})
 add_executable(socopf ${SOCOPF_SOURCES} ${Power_SOURCES})
 #add_executable(acuc ${ACUC_SOURCES} ${Power_SOURCES})
 add_executable(sdpcuts ${SDPOPF_SOURCES} ${Power_SOURCES})
+add_executable(obbt ${Power_SOURCES} ${OBBT_SOURCES} ${HEADERS})
 #add_executable(sdpchordal ${SDPSTATIC_SOURCES} ${Power_SOURCES})
 add_executable(svm ${ML_SOURCES} ${SVM_SOURCES})
 #add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
 #add_executable(microgid ${MICROGRID_SOURCES} ${Power_SOURCES})
 #add_executable(min_k_part ${MINK_SOURCES})
 
-target_link_libraries(ising gravity)
+#target_link_libraries(ising gravity)
 #target_link_libraries(quantum gravity)
 target_link_libraries(stable_set gravity)
 target_link_libraries(acopf gravity)
@@ -49,6 +52,7 @@ target_link_libraries(dcopf gravity)
 target_link_libraries(socopf gravity)
 #target_link_libraries(min_k_part gravity)
 #target_link_libraries(acuc gravity)
+target_link_libraries(obbt gravity)
 target_link_libraries(sdpcuts gravity)
 #target_link_libraries(sdpchordal gravity)
 target_link_libraries(gravity_test gravity)

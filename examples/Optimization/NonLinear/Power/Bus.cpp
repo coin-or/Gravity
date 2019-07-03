@@ -40,7 +40,7 @@ Bus::~Bus(){
 //    else {
 //        _V_ = Complex("V", &vr, &vi);
 //    }
-//    _V_._name.append(_name);    
+//    _V_._name.append(_name);
 //}
 
 //void Bus::init_lifted_complex(){

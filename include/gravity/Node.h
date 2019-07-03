@@ -12,11 +12,12 @@
     a name
     an ID.
     a set of branches.
-    Name is the unique lable of a node. 
+    Name is the unique lable of a node.
     ID is determined if it is within a container of nodes.
  */
 
 class Arc;
+class Path;
 
 class Node{
     
@@ -24,8 +25,16 @@ public:
     std::string _name="noname";
     std::string _type_name="Nodes";
     int _id=-1;
+    set<int> _phases;
     bool _active = true;
     std::vector<Arc*> branches;
+    /* marks the node if it has been explored or not */
+    bool explored = false;
+    /* true if node is in cycle */
+    bool cycle = false;
+
+    Node* predecessor = nullptr;
+    int distance = 0;
     
     /* the number of edges needed to make the subgraph formed by adjacent nodes a clique */
     int fill_in = 0;
@@ -36,6 +45,8 @@ public:
     virtual ~Node();
     Node* clone();
     
+    /* number of incident lines */
+    int degree();
       /*
      @brief Adds a to the list of incident arcs
      */
@@ -71,7 +82,11 @@ public:
     
 
     /* return its neighbours */
-    std::set<Node*> get_neighbours();
+    std::set<Node*> get_neighbours() const;
+    
+    std::vector<Node*> get_neighbours_vec() const;
+    
+     size_t get_degree() const;
 };
 
 #endif

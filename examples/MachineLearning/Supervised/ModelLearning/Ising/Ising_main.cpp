@@ -92,7 +92,7 @@ bool read_samples(const char* fname){
 
 void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false, string mehrotra="yes"){
     for (unsigned main_spin = spin1; main_spin<spin2; main_spin++) {
-        param<short> nodal_stat("nodal_stat");
+        param<> nodal_stat("nodal_stat");
         double val;
         for (unsigned conf = 0; conf<nb_conf; conf++) {
             for (unsigned spin = 0; spin<nb_spins; spin++) {
@@ -108,7 +108,7 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         }
         DebugOn(RED << "############ SPIN NUMBER "<< main_spin << " ############\n "<< RESET);
         
-        Model Ising("Ising Model");
+        Model<> Ising("Ising Model");
         /** Variables */
         var<double> x("x"), z("z", pos_), obj("obj");
         auto Rn = R(nb_spins);
@@ -120,31 +120,33 @@ void solve_spin(unsigned spin1, unsigned spin2, int log_lev=0, bool relax=false,
         /** Constraints */
         
         if (lambda>0) {
-            Constraint Absp("Absp");
+            Constraint<> Absp("Absp");
             Absp += z - x;
             Ising.add_constraint(Absp >= 0);
-            Constraint Absn("Absn");
+            Constraint<> Absn("Absn");
             Absn += z + x;
             Ising.add_constraint(Absn >= 0);
         }
     
-        Constraint Obj("Obj");
+        Constraint<> Obj("Obj");
         if (lambda > 0) {
-            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x))) - lambda*sum(z.excl(main_spin));
+            Obj += obj - nb_samples_pu.tr()*exp(-1*product(nodal_stat,x)) - lambda*sum(z.excl(main_spin));
         }
         else {
-            Obj += obj - product(nb_samples_pu,expo(-1*product(nodal_stat,x)));
+            Obj += obj - nb_samples_pu.tr()*exp(-1*product(nodal_stat,x));
         }
-        Obj.set_first_derivative(x.vec(), (nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
-        Obj.set_second_derivative(x.vec(),x.vec(),(nodal_stat.tr()*(expo(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
-        Ising.add_constraint(Obj>=0);        
+        Obj.set_first_derivative(x.vec(), (nodal_stat.tr()*(exp(-1*product(nodal_stat,x))).tr())*nb_samples_pu.vec());
+        Obj.set_second_derivative(x.vec(),x.vec(),(nodal_stat.tr()*(exp(-1*product(nodal_stat,x))).tr())*(-1*product(nb_samples_pu,nodal_stat)));
+        Ising.add_constraint(Obj>=0);
+        Ising.print_symbolic();
+        Ising.print();
         /** Solver */
-        solver NLP(Ising,ipopt);
+        solver<> NLP(Ising,ipopt);
         auto solver_time_start = get_wall_time();
-        NLP.run(log_lev,relax=false,1e-12,1e-6,"mumps",mehrotra);
+        NLP.run(log_lev,1e-6);
         auto solver_time_end = get_wall_time();
         solver_time[main_spin] = solver_time_end - solver_time_start;
-        obj_val[main_spin] = Ising._obj_val;
+        obj_val[main_spin] = Ising.get_obj_val();
         solution[main_spin].resize(nb_spins);
         for (unsigned spin = 0; spin<nb_spins; spin++) {
             solution[main_spin][spin] = x.eval(spin);
@@ -221,7 +223,7 @@ int main (int argc, char * argv[])
     
     vector<thread> threads;
     /* Split subproblems into nr_threads parts */
-    vector<int> limits = bounds(nr_threads, nb_spins);
+    vector<size_t> limits = bounds(nr_threads, nb_spins);
     /* Launch all threads in parallel */
     for (int i = 0; i < nr_threads; ++i) {
         threads.push_back(thread(solve_spin, limits[i], limits[i+1], output, relax, mehrotra));
