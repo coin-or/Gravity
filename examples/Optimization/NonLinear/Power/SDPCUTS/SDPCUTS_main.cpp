@@ -346,7 +346,7 @@ int main (int argc, char * argv[]) {
     //SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6, "ma97");
     SDP.print_constraints_stats(tol);
-    
+    SDP.print_nonzero_constraints(tol);
     
     
     double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
