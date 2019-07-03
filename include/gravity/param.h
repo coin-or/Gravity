@@ -1389,7 +1389,7 @@ namespace gravity {
                 res._indices->_ids->at(0).push_back(j*_dim[0]+i);
             }
             else{
-                res._indices->_ids->at(0).push_back(i*_dim[1]+j);
+                res._indices->_ids->at(0) .push_back(i*_dim[1]+j);
             }
             res._name += "["+to_string(i)+","+to_string(j)+"]";
             return res;
