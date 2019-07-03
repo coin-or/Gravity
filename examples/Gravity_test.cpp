@@ -1087,3 +1087,47 @@ TEST_CASE("Alpine issue") {
     relax.print_solution();
 }
 
+
+TEST_CASE("testing normal distributions") {
+    
+    param<> A("A");
+    int n = 200, p = 300;
+    A.in(R(n,p));
+    double mean = 0, dev = 1;
+    A.initialize_normal(mean, dev);
+    
+    Model<> M("Normal");
+    var<> X("X", -1, 1), Xp("Xp", pos_);
+    M.add(X.in(R(p)), Xp.in(R(p)));
+    
+    var<> s("slack");
+    M.add(s.in(R(n)));
+    
+    M.min(sum(Xp) + 1e3*product(1,pow(s,2)));
+    
+    Constraint<> Abs_p("x_abs_p");
+    Abs_p = X - Xp;
+    M.add(Abs_p <= 0);
+    
+    Constraint<> Abs_n("x_abs_n");
+    Abs_n = Xp + X;
+    M.add(Abs_n >= 0);
+    
+    Constraint<> Norm2("norm2");
+    Norm2 = product(1,pow(X,2));
+    M.add(Norm2==1);
+    
+    Constraint<> Lin("lin");
+    Lin = product(A,X);
+    M.add(Lin==s);
+    
+    M.print_symbolic();
+//    M.print();
+    solver<> NLP(M,ipopt);
+    int output;
+    double tol;
+    string lin_solver;
+    NLP.run(output=5,tol=1e-6,lin_solver="ma57");
+    M.print_solution();
+    
+}
