@@ -1,6 +1,17 @@
 if(APPLE)
-message("HOME = $ENV{HOME}")
-file(GLOB dirs $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio*)
+set(CPLEX_ROOT_DIR "$ENV{CPLEX_ROOT_DIR}" CACHE PATH "Cplex root directory.")
+message("Looking for Cplex in ${CPLEX_ROOT_DIR}")
+
+if ("${CPLEX_ROOT_DIR}" STREQUAL "")
+	message("CPLEX_ROOT_DIR unspecified, looking for Cplex in $ENV{HOME}/Applications/IBM/ILOG/")
+	file(GLOB dirs $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio*)
+else()	
+	file(GLOB dirs ${CPLEX_ROOT_DIR}/CPLEX_Studio*)
+endif()
+
+
+
+
 
 foreach(d in ${dirs})
 	string(REGEX MATCH "Studio[0-9]+" CPLEX_VERSION "${d}")
@@ -14,12 +25,17 @@ endforeach(d)
 endif() 
 
 message("Cplex version ${CPLEX_VERSION}")
-if(APPLE)
-string(CONCAT CPLEX_DIR $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio;${CPLEX_VERSION};/cplex)
-string(CONCAT CONCERT_DIR $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio;${CPLEX_VERSION};/concert)
-elseif(UNIX)
-    string(CONCAT CPLEX_DIR /opt/ibm/ILOG/CPLEX_Studio;${CPLEX_VERSION};/cplex)
-    string(CONCAT CONCERT_DIR /opt/ibm/ILOG/CPLEX_Studio;${CPLEX_VERSION};/concert)
+if ("${CPLEX_ROOT_DIR}" STREQUAL "")
+	if(APPLE)
+		string(CONCAT CPLEX_DIR $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio;${CPLEX_VERSION};/cplex)
+		string(CONCAT CONCERT_DIR $ENV{HOME}/Applications/IBM/ILOG/CPLEX_Studio;${CPLEX_VERSION};/concert)
+	elseif(UNIX)
+    	string(CONCAT CPLEX_DIR /opt/ibm/ILOG/CPLEX_Studio;${CPLEX_VERSION};/cplex)
+    	string(CONCAT CONCERT_DIR /opt/ibm/ILOG/CPLEX_Studio;${CPLEX_VERSION};/concert)
+	endif()
+else()	
+	string(CONCAT CPLEX_DIR ${CPLEX_ROOT_DIR}/CPLEX_Studio;${CPLEX_VERSION};/cplex)
+	string(CONCAT CONCERT_DIR ${CPLEX_ROOT_DIR}/CPLEX_Studio;${CPLEX_VERSION};/concert)
 endif()
 message("Looking for Cplex in ${CPLEX_DIR}")
 

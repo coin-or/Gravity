@@ -71,7 +71,7 @@ int main (int argc, char * argv[]) {
     else if(solver_str.compare("cplex")==0) {
         solv_type = cplex;
     }else if(solver_str.compare("Mosek")==0) {
-        solv_type = mosek;
+        solv_type = _mosek;
     }
     lazy_s = opt["lz"];
     if (lazy_s.compare("no")==0) {
