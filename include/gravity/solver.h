@@ -133,7 +133,7 @@ namespace gravity {
                 cplexNotAvailable();
 #endif
             }
-            else if(_stype == mosek)
+            else if(_stype == _mosek)
             {
 #ifdef USE_MOSEK
                 _prog = make_shared<MosekProgram>(_model);
@@ -356,7 +356,7 @@ namespace gravity {
                     cplexNotAvailable();
 #endif
                 }
-                else if(_stype == mosek)
+                else if(_stype == _mosek)
                 {
 #ifdef USE_MOSEK
                     try{

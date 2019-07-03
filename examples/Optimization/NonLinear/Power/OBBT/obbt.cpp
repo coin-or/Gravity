@@ -75,7 +75,7 @@ int main (int argc, char * argv[]) {
     else if(solver_str.compare("cplex")==0) {
         solv_type = cplex;
     }else if(solver_str.compare("Mosek")==0) {
-        solv_type = mosek;
+        solv_type = _mosek;
     }
     lazy_s = opt["lz"];
     if (lazy_s.compare("no")==0) {
@@ -189,6 +189,7 @@ int main (int argc, char * argv[]) {
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
     {
+
         for(auto i = 0; i<1 ;i++){
             terminate=false;
             for(auto &it:SDP->_vars_name)
@@ -367,6 +368,7 @@ int main (int argc, char * argv[]) {
                                                     double tempa=vk.get_lb(keyk);
                                                     vk.set_ub(keyk, tempa);
                                                     vk.set_lb(keyk, temp);
+
                                                 }
                                                 else {
                                                     fixed_point[pk]=false;
