@@ -18,7 +18,9 @@
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
-using namespace gravity;
+#include <gravity/CplexCallback.h>
+
+using namespace gravity;   
 
 class CplexProgram: public Program<>{
 private:
@@ -27,6 +29,10 @@ private:
     shared_ptr<IloEnv> _cplex_env;
     vector<IloNumVarArray>   _cplex_vars; /** Mapping variables to Cplex variables */
     IloObjective        _cplex_obj;
+    
+    CPXLONG _cplex_contextmask = 0; /** Context mask for the callback location */
+    CplexCallback _cplex_callback; /** instantiating a callback object */
+    
 public:
     shared_ptr<Model<>> _model;
     int _output;
@@ -46,6 +52,7 @@ public:
     void fill_in_cplex_vars();
     void create_cplex_constraints();
     void set_cplex_objective();
+    void create_callback();
     
     void print_constraints();
 };

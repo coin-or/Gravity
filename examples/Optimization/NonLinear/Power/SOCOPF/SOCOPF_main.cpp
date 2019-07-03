@@ -116,8 +116,7 @@ int main (int argc, char * argv[])
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    
-    
+
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SOCP.min(obj);
@@ -214,7 +213,7 @@ int main (int argc, char * argv[])
 //    }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,ipopt);
+        solver<> SOCOPF(SOCP,cplex);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output, tol=1e-6);
         solver_time_end = get_wall_time();
