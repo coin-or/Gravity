@@ -1086,3 +1086,4 @@ TEST_CASE("Alpine issue") {
     s2.run();
     relax.print_solution();
 }
+

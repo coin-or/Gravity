@@ -86,8 +86,7 @@ namespace gravity {
         shared_ptr<constant_> copy() const{return make_shared<var>(*this);};
         
         //@{
-        
-        
+                
 //        var(const string& name, type lb, type ub){
 //            this->_name = name;
 //            constant_::set_type(var_c);
