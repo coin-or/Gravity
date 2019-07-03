@@ -26,18 +26,30 @@ set<int> gravity::get_phases(string phases){
 }
 
 gravity::indices time(unsigned p1 ,unsigned p2){
-    gravity::indices res(p1,p2);
+    auto res = range(p1,p2);
     res._time_extended = true;
     return res;
 }
 
-gravity::indices gravity::range(size_t i, size_t j){
-    gravity::indices res(to_string(i)+":"+to_string(j));
-    for(auto idx = i; idx <=j; idx++){
-        res.add(to_string(idx));
+gravity::indices gravity::range(size_t p1 ,size_t p2){
+    indices res("range("+to_string(p1)+"<"+to_string(p2)+")");
+    auto n = p2 - p1 + 1;
+    assert(n >= 0);
+    res._keys_map = make_shared<map<string,size_t>>();
+    res._keys = make_shared<vector<string>>();
+    res._keys->resize(n);
+    res._dim = make_shared<vector<size_t>>();
+    res._dim->resize(1);
+    res._dim->at(0) = n;
+    size_t index = 0;
+    for (auto i = p1; i <= p2; i++){
+        (*res._keys)[index] = to_string(i);
+        (*res._keys_map)[res._keys->at(index)] = index;
+        index++;
     }
     return res;
 }
+
 
 gravity::indices gravity::operator-(const gravity::indices& s1, const gravity::indices& s2){
     gravity::indices res;
