@@ -21,7 +21,7 @@ int main (int argc, char * argv[])
     string mehrotra = "no", log_level="0";
     
     //    Specify the use of partitioning scheme
-    bool do_partition = true;
+    bool do_partition = false;
     bool do_Model_III = false;
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
@@ -57,6 +57,7 @@ int main (int argc, char * argv[])
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
+    grid.get_tree_decomp_bags();
     
     /* Grid Stats */
     auto bus_pairs = grid.get_bus_pairs();

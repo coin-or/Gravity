@@ -46,6 +46,10 @@ namespace gravity {
         DebugOff("Calling compute_constrts with i =  " << i << "and j = "<< j << endl);
         for (size_t idx = i; idx < j; idx++) {
             auto c = v[idx];
+//            c->print_symbolic();
+//            if(c->_name == "Real(Linking_V_mag)_lifted"){
+//                cout << "ok";
+//            }
             c->_new = false;
             c->_evaluated = false;
             size_t nb_ins = c->get_nb_inst();
@@ -380,8 +384,8 @@ namespace gravity {
         
         template <typename T>
         void add_var(var<T>& v){//Add variables by copy
-            //            auto name = v._name.substr(0,v._name.find_first_of("."));
-            auto name = v._name;
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -406,8 +410,8 @@ namespace gravity {
         void add_var(var<T>&& v){//Add variables by copy
             if(v.get_dim()==0)
                 return;
-            //            auto name = v._name.substr(0,v._name.find_first_of("."));
-            auto name = v._name;
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+//            auto name = v._name;
             v._name = name;
             
             if (_vars_name.count(v._name)==0) {
@@ -687,7 +691,9 @@ namespace gravity {
             c_imag._indices = c._indices;
             c_imag._dim[0] = c._dim[0];
             if(convexify){
+                c_real.check_soc();c_real.check_rotated_soc();
                 auto lifted_real = lift_quad(c_real);
+                c_imag.check_soc();c_imag.check_rotated_soc();
                 auto lifted_imag = lift_quad(c_imag);
                 lifted_real._ctype = c._ctype;
                 lifted_real._indices = c._indices;
@@ -697,6 +703,34 @@ namespace gravity {
                 lifted_imag._dim[0] = c._dim[0];
                 add_constraint(lifted_real);
                 add_constraint(lifted_imag);
+                if(c_real.func<type>::is_convex() && c_real._ctype==eq){
+                    DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                    Constraint<type> c_real_cvx(c_real._name+"_convex");
+                    c_real_cvx = c_real;
+                    c_real_cvx._relaxed = true;
+                    add_constraint(c_real_cvx <= 0);
+                }
+                if(c_real.func<type>::is_concave() && c_real._ctype==eq){
+                    DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                    Constraint<type> c_real_ccve(c_real._name+"_concave");
+                    c_real_ccve = c_real;
+                    c_real_ccve._relaxed = true;
+                    add_constraint(c_real_ccve >= 0);
+                }
+                if(c_imag.func<type>::is_convex() && c_real._ctype==eq){
+                    DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                    Constraint<type> c_imag_cvx(c_imag._name+"_convex");
+                    c_imag_cvx = c_imag;
+                    c_imag_cvx._relaxed = true;
+                    add_constraint(c_imag_cvx <= 0);
+                }
+                if(c_imag.func<type>::is_concave() && c_real._ctype==eq){
+                    DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                    Constraint<type> c_imag_ccve(c_imag._name+"_concave");
+                    c_imag_ccve = c_imag;
+                    c_imag_ccve._relaxed = true;
+                    add_constraint(c_imag_ccve >= 0);
+                }
             }
             else {
                 add_constraint(c_real);
@@ -771,8 +805,15 @@ namespace gravity {
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
-                var<type> vlift("Lift_"+o1._name+"_"+o2._name, lb, ub);
-                auto it = _vars_name.find(vlift._name);
+                string name;
+                if(o1==o2){
+                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+")^2)";
+                }
+                else {
+                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+"),"+o2.get_name(true,true)+"("+o2._indices->get_name()+")";
+                }
+                var<type> vlift(name, lb, ub);
+                auto it = _vars_name.find(name);
                 if(it==_vars_name.end()){
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);
@@ -790,6 +831,8 @@ namespace gravity {
             lifted._all_sign = c._all_sign;
             lifted._ftype = lin_;
             lifted._ctype = c._ctype;
+            lifted._indices = c._indices;
+            lifted._dim[0] = c._dim[0];
             return lifted;
         }
         
@@ -888,20 +931,20 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c){
+        void add(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c);
+            add_constraint(c,convexify);
         }
         
         
-        void add_lazy(Constraint<type>& c){
+        void add_lazy(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return;
             }
             c.make_lazy();
-            add_constraint(c);
+            add_constraint(c, convexify);
             _has_lazy = true;
         }
         
@@ -961,7 +1004,7 @@ namespace gravity {
         }
         
         
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -994,9 +1037,28 @@ namespace gravity {
                             break;
                     }
                     Warning("WARNING: Adding redundant constant constraint, Gravity will be ignoring it.\n");
+                    newc->print();
                     return newc;
                 }
                 newc->update_str();
+                if(convexify){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
+                        DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
+                        Constraint<type> c_cvx(*newc);
+                        c_cvx._name = newc->_name+"_convex";
+                        c_cvx._relaxed = true;
+                        add_constraint(c_cvx <= 0);
+                    }
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
+                        DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
+                        Constraint<type> c_ccve(*newc);
+                        c_ccve._name = newc->_name+"_concave";
+                        c_ccve._relaxed = true;
+                        add_constraint(c_ccve >= 0);
+                    }
+                    auto lifted = lift_quad(*newc);
+                    return add_constraint(lifted);
+                }
                 embed(newc, false);
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);
@@ -1031,7 +1093,15 @@ namespace gravity {
                 return newc;
             }
             else {
-                throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+                DebugOn("constraint with same name: " << c.get_name() << endl);
+                c.update_str();
+                if(!_cons_name.at(c.get_name())->equal(c)) {
+                    throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+                }
+                else{
+                    DebugOn("Both constraints are identical, ignoring this one." << endl);
+                    return nullptr;
+                }
             }
         };
         
@@ -1146,6 +1216,182 @@ namespace gravity {
         
         void set_objective_type(ObjectiveType t) {
             _objt = t;
+        }
+        
+        /** Prints the constraints that have a non-zero value at the current solution where zero <= tol
+            @param[tol] zero value tolerance
+            @param[only_relaxed] if set to true, only print non-zero values of inequalities that were generated by relaxing non-convex equations
+         */
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void print_nonzero_constraints(double tol, bool only_relaxed = false) const{
+            size_t nb_inst = 0;
+            shared_ptr<Constraint<type>> c = nullptr;
+            for(auto& c_p: _cons_name)
+            {
+                c = c_p.second;
+                if(only_relaxed && !c->_relaxed){
+                    continue;
+                }
+                nb_inst = c->get_nb_inst();
+                switch (c->get_ctype()) {
+                    case eq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = abs(c->eval(inst));
+                            if(diff>tol){
+                                DebugOn(c->_name << " Non-zero equation: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                            }
+                        }
+                        break;
+                    case leq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff < -tol) {
+                                DebugOn(c->_name << " Non-zero <= inequality: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                            }
+                        }
+                        break;
+                    case geq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff > tol) {
+                                DebugOn(c->_name << " Non-zero >= inequality: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        break;
+                }
+            }
+        }
+        
+        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        bool print_constraints_stats(type tol){/*<< Prints stats on constraints active status with the current solution and tolerance tol */
+            size_t nb_inst = 0, nb_viol = 0, nb_viol_all = 0;
+            size_t nb_active = 0, nb_active_all = 0;
+            double diff = 0;
+            shared_ptr<Constraint<type>> c = nullptr;
+            bool violated = false;
+            for(auto& c_p: _cons_name)
+            {
+                c = c_p.second;
+                //        cid = c->_id;
+                nb_inst = c->get_nb_inst();
+                nb_viol = 0;
+                nb_active = 0;
+                c->_all_satisfied = true;
+                c->_violated.resize(nb_inst);
+                c->_active.resize(nb_inst);
+                switch (c->get_ctype()) {
+                    case eq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            diff = abs(c->eval(inst));
+                            if(diff > tol) {
+                                DebugOff("Violated equation: ");
+                                //                        c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                                //                        c->_violated[inst] = true;
+                            }
+                            else {
+                                //                        c->_violated[inst] = false;
+                            }
+                            //                    nb_active++;
+                        }
+                        break;
+                    case leq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
+                            diff = c->eval(inst);
+                            if(diff > tol) {
+                                DebugOff("Violated inequality: ");
+                                //                                c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    //                                    *c->_all_lazy = false;
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                            }
+                            else if (abs(diff)>tol) {
+                                c->_active[inst] = false;
+                                //                        if (*c->_all_lazy) {
+                                //                            c->_lazy[inst] = true;
+                                //                        }
+                            }
+                            else {
+                                nb_active++;
+                            }
+                        }
+                        break;
+                    case geq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
+                            diff = c->eval(inst);
+                            if(diff < -tol) {
+                                DebugOff("Violated inequality: ");
+                                //                        c->print(inst);
+                                DebugOff(", violation = "<< diff << endl);
+                                nb_viol++;
+                                //                        violated = true;
+                                if (*c->_all_lazy) {
+                                    //                                    *c->_all_lazy = false;
+                                    c->_all_satisfied = false;
+                                    c->_violated[inst] = true;
+                                    violated = true;
+                                    c->_lazy[inst] = false;
+                                }
+                                else {
+                                    //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                }
+                            }
+                            else if (abs(diff)> tol) {
+                                c->_active[inst] = false;
+                                //                        if (*c->_all_lazy) {
+                                //                            c->_lazy[inst] = true;
+                                //                        }
+                            }
+                            else {
+                                nb_active++;
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        break;
+                }
+                //        *c->_all_lazy = false;
+                nb_viol_all += nb_viol;
+                nb_active_all += nb_active;
+                if (nb_viol>0 && c->get_ctype()!=eq) {
+                    DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                }
+                if (c->get_ctype()!=eq) {
+                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                }
+            }
+            auto nb_ineq = get_nb_ineq();
+            DebugOn("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
+            DebugOn("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
+            return violated;
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -1271,12 +1517,12 @@ namespace gravity {
                     DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
             auto nb_ineq = get_nb_ineq();
-            DebugOn("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
-            DebugOn("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
+            DebugOff("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
+            DebugOff("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
             return violated;
         }
         
@@ -2082,10 +2328,19 @@ namespace gravity {
             auto lb2 = v2.get_lb(v2.get_id_inst());
             auto ub1 = v1.get_ub(v1.get_id_inst());
             auto ub2 = v2.get_ub(v2.get_id_inst());
-            auto lb1_ = v1.get_lb().in(*v1._indices);
-            auto lb2_ = v2.get_lb().in(*v2._indices);
-            auto ub1_ = v1.get_ub().in(*v1._indices);
-            auto ub2_ = v2.get_ub().in(*v2._indices);
+            param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
+            if(!lb1_.func_is_number()){
+                lb1_ = v1.get_lb().in(*v1._indices);
+            }
+            if(!lb2_.func_is_number()){
+                lb2_ = v2.get_lb().in(*v2._indices);
+            }
+            if(!ub1_.func_is_number()){
+                ub1_ = v1.get_ub().in(*v1._indices);
+            }
+            if(!ub2_.func_is_number()){
+                ub2_ = v2.get_ub().in(*v2._indices);
+            }
             bool template_cstr = v1._dim[0]>1;
             bool var_equal=false;
             if(v1._name==v2._name)
@@ -2101,6 +2356,7 @@ namespace gravity {
                     MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
                 }
                 MC1 >= 0;
+                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
                 add(MC1.in(*vlift._indices));
                 //    MC1.print();
                 Constraint<type> MC2(name+"_McCormick2");
@@ -2112,6 +2368,7 @@ namespace gravity {
                     MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
                 }
                 MC2 >= 0;
+                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
                 add(MC2.in(*vlift._indices));
                 
                 //    //    MC2.print();
@@ -2124,6 +2381,7 @@ namespace gravity {
                     MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
                 }
                 MC3 <= 0;
+                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
                 add(MC3.in(*vlift._indices));
                 //    //    MC3.print();
                 Constraint<type> MC4(name+"_McCormick4");
@@ -2135,6 +2393,7 @@ namespace gravity {
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
                 }
                 MC4 <= 0;
+                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
             }
             else {
@@ -2147,6 +2406,7 @@ namespace gravity {
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
                 }
                 MC4 <= 0;
+                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
                 Constraint<type> MC5(name+"_McCormick_squared");
                 if(var_equal)
@@ -2156,6 +2416,7 @@ namespace gravity {
                     MC5 -= v1*v1;
                     
                     MC5 >= 0;
+                    MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
                 }
             }

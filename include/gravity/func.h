@@ -16,6 +16,7 @@
 #include <gravity/Auxiliary.h>
 #include <stdio.h>
 #include <map>
+#include <math.h>
 #include <iterator>
 #include <queue>
 #include <list>
@@ -1591,7 +1592,7 @@ namespace gravity {
                         _dim[0] = dim;
                     }
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
             }
             else { /**< Add each key in ids individually */
                 _indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -1635,7 +1636,7 @@ namespace gravity {
                 else {
                     _dim[0]=_indices->_ids->at(0).size();
                 }
-                _name += ".in("+ids._name+")";
+                _name += ".in("+ids.get_name()+")";
                 if(!excluded.empty()){
                     excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                     _name += "\{" + excluded + "}";
@@ -2842,6 +2843,9 @@ namespace gravity {
         }
         
         type get_val(size_t i) const{
+            if(func_is_number()){
+                return _val->at(0);
+            }
             auto idx = get_id_inst(i);
             if (is_indexed()) {
                 if (_indices->_ids->size()>1) {
@@ -2912,6 +2916,9 @@ namespace gravity {
         }
         
         void eval_all(){
+            if(_val->size()==0){
+                allocate_mem();
+            }
             auto nb_inst = get_nb_inst();
             for (size_t inst = 0; inst<nb_inst; inst++) {
                 eval(inst);
@@ -2922,17 +2929,21 @@ namespace gravity {
         type eval(size_t i=0) {
             if(is_zero()){
                 if (func_is_number()){
+                    assert(_val->size()>0);
                     _val->at(0) = this->_range->first;
                     return _val->at(0);
                 }
+                assert(_val->size()>i);
                 _val->at(i) = this->_range->first;
                 return _range->first;
             }
 //            if (is_constant() && _evaluated) {
             if (_evaluated) {
                 if (func_is_number()){
+                    assert(_val->size()>0);
                     return _val->at(0);
                 }
+                assert(_val->size()>i);
                 return _val->at(i);
             }
             type res = 0;
@@ -3045,6 +3056,7 @@ namespace gravity {
             if(_expr)
                 res += eval_expr(_expr,i);
             if (func_is_number()) {
+                assert(_val->size()>0);
                 _val->at(0) = res;
                 _evaluated = true;
             }
@@ -3053,6 +3065,7 @@ namespace gravity {
 //                if (i==_val->size()-1) {
 //                    _evaluated = true;
 //                }
+                assert(_val->size()>i);
                 _val->at(i) = res;
             }
             return res;
@@ -3167,21 +3180,39 @@ namespace gravity {
                     auto f = ((func_*)(c.get()));
                     switch (f->get_return_type()) {
                         case binary_:
+                            if(f->func_is_number()){
+                                return ((func<bool>*)(f))->_val->at(0);
+                            }
                             return ((func<bool>*)(f))->_val->at(i);
                             break;
                         case short_:
+                            if(f->func_is_number()){
+                                return ((func<short>*)(f))->_val->at(0);
+                            }
                             return ((func<short>*)(f))->_val->at(i);
                             break;
                         case integer_:
+                            if(f->func_is_number()){
+                                return ((func<int>*)(f))->_val->at(0);
+                            }
                             return ((func<int>*)(f))->_val->at(i);
                             break;
                         case float_:
+                            if(f->func_is_number()){
+                                return ((func<float>*)(f))->_val->at(0);
+                            }
                             return ((func<float>*)(f))->_val->at(i);
                             break;
                         case double_:
+                            if(f->func_is_number()){
+                                return ((func<double>*)(f))->_val->at(0);
+                            }
                             return ((func<double>*)(f))->_val->at(i);
                             break;
                         case long_:
+                            if(f->func_is_number()){
+                                return ((func<long double>*)(f))->_val->at(0);
+                            }
                             return ((func<long double>*)(f))->_val->at(i);
                             break;
                         default:
@@ -4570,8 +4601,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-//            return (func_is_number() && _range->first == 0 && _range->second == 0);
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         
@@ -6615,6 +6646,17 @@ namespace gravity {
     }
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
+    func<T1> operator/(T1 f1, const param<T2>& p2){
+        return func<T1>(f1)/=p2;
+    }
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
+    func<T2> operator/(T1 f1, const param<T2>& p2){
+        return func<T2>(f1)/=p2;
+    }
+    
+    
+    template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator/(const param<T1>& p1, const func<T2>& f2){
         return func<T1>(p1)/=f2;
     }
@@ -7121,8 +7163,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(cos(p1._range->first),cos(p1._range->second));
-        res._range->second = gravity::max(cos(p1._range->first),cos(p1._range->second));
+        res._range->first = gravity::min(std::cos(p1._range->first),std::cos(p1._range->second));
+        res._range->second = gravity::max(std::cos(p1._range->first),std::cos(p1._range->second));
         if(p1._range->first <0 && p1._range->second >0){
             res._range->second = 1;
         }
@@ -7148,8 +7190,8 @@ namespace gravity {
             res._all_convexity = conv_sign.first;
         }
         res._all_sign = conv_sign.second;
-        res._range->first = gravity::min(sin(p1._range->first),sin(p1._range->second));
-        res._range->second = gravity::max(sin(p1._range->first),sin(p1._range->second));
+        res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
+        res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
@@ -7557,6 +7599,11 @@ namespace gravity {
     }
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+    func<T> atan2(const param<T>& f1, const param<T>& f2){
+        return atan2(func<T>(f1), func<T>(f2));
+    }
+    
+    template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> atan2(const func<T>& f1, const func<T>& f2){
         func<T> res(bexpr<T>(atan2_, f1.copy(), f2.copy()));
         res._all_convexity = undet_;
@@ -7570,9 +7617,9 @@ namespace gravity {
     
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> atan(const func<T>& f){
-        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
-            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
-        }
+//        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+//            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+//        }
         func<T> res(uexpr<T>(atan_, f.copy()));
         if (f.is_linear()) {
             if(f.is_non_positive()){
@@ -7598,9 +7645,9 @@ namespace gravity {
     
     template<class T, typename enable_if<is_same<T,Cpx>::value>::type* = nullptr>
     func<T> atan(const func<T>& f){
-        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
-            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
-        }
+//        if(f._range->first<=-pi/2 || f._range->second>=pi/2){
+//            throw invalid_argument("Calling atan(const func<T1>& f) outside ]-pi/2,pi/2[");
+//        }
         func<T> res(uexpr<T>(atan_, f.copy()));
         if (f.is_linear()) {
             if(f.is_non_positive()){

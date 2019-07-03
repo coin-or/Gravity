@@ -86,8 +86,7 @@ namespace gravity {
         shared_ptr<constant_> copy() const{return make_shared<var>(*this);};
         
         //@{
-        
-        
+                
 //        var(const string& name, type lb, type ub){
 //            this->_name = name;
 //            constant_::set_type(var_c);
@@ -364,6 +363,14 @@ namespace gravity {
             new_lb.in(vec1, forward<Args>(args)...);
             new_ub.in(vec1, forward<Args>(args)...);
             res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
             return res;
         }
         
@@ -414,7 +421,7 @@ namespace gravity {
         /* Create a vector of variables indexed as pair of nodes from bags of size bag_size
          e.g., given bag { 1, 5, 7 } index the first variable (1,5), the second (5,7) and the last (1,7)
          */
-        vector<var> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
+        vector<var<type>> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
         
         /* Querries */
         
@@ -480,7 +487,7 @@ namespace gravity {
             var in(const space& s){
                 set_size(s._dim);
                 if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
-                    this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+                    this->_indices = make_shared<indices>(range(0,s._dim[0]-1));
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);

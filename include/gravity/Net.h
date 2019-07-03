@@ -56,6 +56,9 @@ public:
     /** Vector of cycles forming a cycle basis */
     std::vector<Path*> cycle_basis;
     
+    /** Horton subnetwork */
+    Net* horton_net = nullptr;
+    
     /** Is a tree */
     bool _tree = false;
     /** Indices */
@@ -118,6 +121,8 @@ public:
      */
     std::string remove_end_node();
 
+    /** Erase Horton network */
+    void clear_horton_net();
 
     /**  @brief Remove node and all incident arcs from the network
      @note Does not remove the incident arcs from the list of arcs in the network!
@@ -126,9 +131,51 @@ public:
     void remove_arc(Arc* a);
 
     /** Compute the tree decomposition bags **/
-    void get_tree_decomp_bags(bool print_bags = false, bool decompose = false);
+    void get_tree_decomp_bags();
+    
+    std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
+    std::vector<std::vector<Node*>> decompose_bags_3d(bool print_bags=false);
 
+    
+    /** Sort nodes in decreasing degree */
+    void orderNodes(Net* net);
+    
+    /** Sort arcs in decreasing weight */
+    void orderArcs(Net* net);
+    
+    void add_horton_nodes(Net* net);
+    
+    void add_horton_branches(Net* net);
+    
+    /* Algorithms */
+    
+    /** Reset all distances to max value */
+    void resetDistance();
+    
+    /** sets the cycle member fo all Nodes to be false */
+    void reset_nodeCycle();
+    
+    /** sets all nodes to unexplored */
+    void reset_nodeExplored();
+    
+    /** Computes and returns the shortest path between src and dest in net */
+    Path* Dijkstra(Node* src, Node* dest, Net* net);
+    
+    /** Computes a spanning tree of minimal weight in horton's network, then adds the corresponding cycles to the original network by connecting to src
+     @note Implements Kruskal’s greedy algorithm
+     */
+    void minimal_spanning_tree(Node* src, Net* net);
+    
+    /** Combines the src node with the path p to form a cycle */
+    void combine(Node* src, Path* p);
+    
+    void Fast_Horton();
+    
+    void Fast_Horton(Net *net);
 
+    
+    
+    
     /** get algorithmic graph */
     void get_algorithmic_graph(); // a cloned graph without in-active, parallel lines.
 
@@ -137,6 +184,10 @@ public:
 
     /** Compute the vector of bus pairs, ignoring parallel lines **/
     gravity::indices get_bus_pairs();
+    
+    
+     /** Compute the vector of reference bus pairs, ignoring parallel lines **/
+     gravity::indices get_ref_bus_pairs();
     
 
     /** Compute the tree decomposition bags **/

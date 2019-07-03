@@ -163,9 +163,9 @@ namespace gravity {
         string get_name(bool in_func, bool exclude_indexing) const{
 //            return _name;
             string name = _name;
-//            if(_indices && exclude_indexing){
-//                name = name.substr(0, name.find_first_of("."));
-//            }
+            if(_indices && exclude_indexing){
+                name = name.substr(0, name.find_first_of("."));
+            }
             if (!in_func && _is_transposed) {
                 name += "\u1D40";
             }
@@ -178,7 +178,7 @@ namespace gravity {
 
         string get_name(size_t inst) const {/*< Get the name of the indexed version of this variable */
             string name = _name;
-//            name = name.substr(0, name.find_first_of("."));
+            name = name.substr(0, name.find_first_of("."));
             if(_is_imag || _is_real || _is_angle || _is_conjugate){
                 if (name.find(")")==std::string::npos) {
                     name += ")";
@@ -316,87 +316,7 @@ namespace gravity {
 
         /** Operators */
         
-        template<typename... Args>
-        void index_in(const indices& ids1, Args&&... args) {
-            auto ids = indices(ids1,args...);
-            if(!_indices || _indices->empty()){/**< No need to add each key individually */
-                if(!ids._excluded_keys.empty()){
-                    ids.remove_excluded();
-                }
-                _indices = make_shared<indices>(ids);
-                auto dim = _indices->size();
-                if(ids._type==matrix_){
-                    if(_is_transposed){
-                        _dim[0] = ids._dim->at(1);
-                        _dim[1] = ids._dim->at(0);
-                    }
-                    else {
-                        _dim[1] = ids._dim->at(0);
-                        _dim[0] = ids._dim->at(1);
-                    }
-                }
-                else {
-                    if(_is_transposed){
-                        _dim[1] = dim;
-                    }
-                    else {
-                        _dim[0] = dim;
-                    }
-                }
-                _name += ".in("+ids._name+")";
-            }
-            else { /**< Add each key in ids individually */
-                _indices->_ids = make_shared<vector<vector<size_t>>>();
-                _indices->_ids->resize(1);
-                if(ids.empty()){
-                    DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                    _name += "_EMPTY";
-                    return;
-                }
-                string excluded;
-                size_t idx = 0;
-                /* Used for truncating extra indices */
-//                auto nb_sep1 = _indices->_dim->size();
-//                auto nb_sep1 = ids._dim->size();
-//                auto nb_sep2 = ids._dim->size();
-                
-                for(auto key: *ids._keys){
-                    if(ids._excluded_keys.count(idx++)!=0){
-                        excluded += key + ",";
-                        continue;
-                    }
-                    if(_indices->_type==to_){
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    else if(_indices->_type==from_){
-                        key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                    auto nb_sep2 = count(key.begin(), key.end(), ',');
-                    if(nb_sep2>nb_sep1){
-                        auto pos = nthOccurrence(key, ",", nb_sep1+1);
-                        key = key.substr(0,pos);
-                    }
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
-                    }
-                    _indices->_ids->at(0).push_back(it1->second);
-                }
-                if(_is_transposed){
-                    _dim[1]=_indices->_ids->at(0).size();
-                }
-                else {
-                    _dim[0]=_indices->_ids->size();
-                }
-                _name += ".in("+ids._name+")";
-                if(!excluded.empty()){
-                    excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
-                    _name += "\{" + excluded + "}";
-                }
-            }
-        }
+        
         
         /**
          Index the current object using incoming edges for nodes stored in vec. This is a double indexing where each row corresponds to a node, and columns correspond to the edge ids.
@@ -711,8 +631,14 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
-            _real = p._real;
-            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>();
                 _indices->shallow_copy(p._indices);
@@ -746,8 +672,14 @@ namespace gravity {
             _is_conjugate = p._is_conjugate;
             _is_real = p._is_real;
             _is_imag = p._is_imag;
-            _real = p._real;
-            _imag = p._imag; _mag = p._mag; _ang = p._ang;
+            if(p._real)
+                _real = p._real->pcopy();
+            if(p._imag)
+                _imag = p._imag->pcopy();
+            if(p._mag)
+                _mag = p._mag->pcopy();
+            if(p._ang)
+                _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>(*p._indices);
             }
@@ -1046,8 +978,8 @@ namespace gravity {
             auto index = param_::_indices->size();
             auto pp = param_::_indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
+                _val->resize(std::max(_val->size(),index+1));
+                _dim[0] = std::max(_dim[0],_val->size());
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
@@ -1222,7 +1154,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
@@ -1437,7 +1370,7 @@ namespace gravity {
         param& in(const space& s){
             set_size(s._dim);
             if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
-                this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+                this->_indices = make_shared<indices>(range(0,s._dim[0]-1));
             }
             return *this;
         }
@@ -1479,7 +1412,7 @@ namespace gravity {
                     }
                 }
                 param res(*this);
-                res._name += ".in("+ids._name+")";
+                res._name += ".in("+ids.get_name()+")";
                 return res;
             }
             string key, excluded;
@@ -1518,7 +1451,7 @@ namespace gravity {
                             res._dim[0]=res._indices->size();
                         }
                     }
-                    res._name += ".in("+ids._name+")";
+                    res._name += ".in("+ids.get_name()+")";
                     res.reset_range();
                     return res;
                 }
@@ -1573,7 +1506,7 @@ namespace gravity {
                         res._indices->_ids->at(inst).at(idx) = it1->second;
                     }
                 }
-                res._name += ".in("+ids._name+")";
+                res._name += ".in("+ids.get_name()+")";
                 if(res._is_transposed){
                     res._dim[1]=res._indices->size();
                 }
@@ -1690,7 +1623,8 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            res._name += ".in("+ids._name+")";
+            res._name += ".in("+ids.get_name()+")";
+            res._indices->set_name(ids.get_name());
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
@@ -1699,6 +1633,10 @@ namespace gravity {
             return res;
         }
 
+        template<typename... Args>
+        void index_in(const indices& ids1, Args&&... args) {
+            *this = this->in(ids1,args...);
+        }
 
         param in_pairs(const indices& ids) {
             param res(*this);
@@ -1729,7 +1667,7 @@ namespace gravity {
             else {
                 res._dim[0]=res._indices->_ids->at(0).size();
             }
-            res._name += ".in_pairs("+ids._name+")";
+            res._name += ".in_pairs("+ids.get_name()+")";
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
@@ -2009,17 +1947,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(!is_indexed()){
-                for (auto v:*_val) {
-                    if(_range->first > v){
-                        _range->first = v;
-                    }
-                    if(_range->second  < v){
-                        _range->second = v;
-                    }
-                }
-            }
-            else if(is_double_indexed()){
+            if(is_double_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
@@ -2034,8 +1962,7 @@ namespace gravity {
                 }
             }
             else {
-                for (auto idx:_indices->_ids->at(0)){
-                    auto v = _val->at(idx);
+                for (auto v:*_val) {
                     if(_range->first > v){
                         _range->first = v;
                     }
