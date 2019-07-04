@@ -52,6 +52,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     constant_::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
+    _lift=v._lift;
     return *this;
 };
 
@@ -60,6 +61,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     constant_::set_type(var_c);
     _lb = move(v._lb);
     _ub = move(v._ub);
+    _lift=v._lift;
     return *this;
 };
 
@@ -191,7 +193,7 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_lb() const {
         param<type> lb(this->_name+"_lb");
         _lb->eval_all();
-        lb._indices = this->_indices;
+        lb.index_in(*this->_indices);
         lb._val = _lb->_val;
         lb._range = _lb->_range;
         lb._dim[0] = _lb->_dim[0];
@@ -203,7 +205,7 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_ub() const {
         param<type> ub(this->_name+"_ub");
         _ub->eval_all();
-        ub._indices = this->_indices;
+        ub.index_in(*this->_indices);
         ub._val = _ub->_val;
         ub._range = _ub->_range;
         ub._dim[0] = _ub->_dim[0];
