@@ -77,6 +77,9 @@ int main (int argc, char * argv[]) {
     if (lazy_s.compare("no")==0) {
         lazy_bool = false;
     }
+    else if(lazy_s.compare("yes")==0) {
+        lazy_bool = true;
+    }
     
     current_from_s = opt["If"];
     if (current_from_s.compare("no")==0) {
