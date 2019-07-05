@@ -18,7 +18,7 @@
 #include <ilcplex/ilocplex.h>
 #endif
 #include <gravity/model.h>
-#include <gravity/CplexCallback.h>
+//#include <gravity/CplexCallback.h>
 
 using namespace gravity;   
 
@@ -31,7 +31,7 @@ private:
     IloObjective        _cplex_obj;
     
     CPXLONG _cplex_contextmask = 0; /** Context mask for the callback location */
-    CplexCallback _cplex_callback; /** instantiating a callback object */
+//    CplexCallback _cplex_callback; /** instantiating a callback object */
     
 public:
     shared_ptr<Model<>> _model;

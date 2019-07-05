@@ -2356,7 +2356,7 @@ namespace gravity {
                     MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
                 }
                 MC1 >= 0;
-                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
+//                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
                 add(MC1.in(*vlift._indices));
                 //    MC1.print();
                 Constraint<type> MC2(name+"_McCormick2");
@@ -2368,7 +2368,7 @@ namespace gravity {
                     MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
                 }
                 MC2 >= 0;
-                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
+//                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
                 add(MC2.in(*vlift._indices));
                 
                 //    //    MC2.print();
@@ -2381,7 +2381,7 @@ namespace gravity {
                     MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
                 }
                 MC3 <= 0;
-                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
+//                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
                 add(MC3.in(*vlift._indices));
                 //    //    MC3.print();
                 Constraint<type> MC4(name+"_McCormick4");
@@ -2393,7 +2393,7 @@ namespace gravity {
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
                 }
                 MC4 <= 0;
-                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
+//                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
             }
             else {
@@ -2406,7 +2406,6 @@ namespace gravity {
                     MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
                 }
                 MC4 <= 0;
-                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
                 Constraint<type> MC5(name+"_McCormick_squared");
                 if(var_equal)

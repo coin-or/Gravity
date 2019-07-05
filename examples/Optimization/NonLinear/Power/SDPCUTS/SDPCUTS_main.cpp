@@ -133,7 +133,7 @@ int main (int argc, char * argv[]) {
     /** Sets */
     auto bus_pairs = grid.get_bus_pairs();
     auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
-    if (!sdp_cuts) {
+     if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
         bus_pairs_chord = bus_pairs;
     }
     auto nodes = indices(grid.nodes);
@@ -187,6 +187,8 @@ int main (int argc, char * argv[]) {
     auto dd=grid.dd.in(arcs);
     auto ch_half=grid.ch_half.in(arcs);
     auto arcs_inductive=grid.arcs_inductive_only();
+    auto lji_min=grid.lji_min.in(arcs);
+    auto lji_max=grid.lji_max.in(arcs);
     
     
     double upper_bound = grid.solve_acopf(ACRECT);
@@ -194,12 +196,14 @@ int main (int argc, char * argv[]) {
     
     /** Build model */
     Model<> SDP("SDP Model");
+    Model<> ACOPF("ACOPF Model");
     
     /** Variables */
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
     SDP.add(Pg.in(gens),Qg.in(gens));
+    ACOPF.add(Pg.in(gens),Qg.in(gens));
     
     /* Power flow variables */
     var<> Pf_from("Pf_from", -1.*S_max,S_max);
@@ -208,6 +212,7 @@ int main (int argc, char * argv[]) {
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
     
     SDP.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
+    ACOPF.add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     
     /* Real part of Wij = ViVj */
@@ -216,57 +221,25 @@ int main (int argc, char * argv[]) {
     var<>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", w_min, w_max);
-    SDP.add(Wii.in(nodes));
-    SDP.add(R_Wij.in(bus_pairs_chord));
-    SDP.add(Im_Wij.in(bus_pairs_chord));
+    SDP.add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
+    ACOPF.add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    var<>  R_Vi("R_Vi", -1*v_max, v_max);
-    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-    
-    
-    
-    if(add_original){
-        SDP.add(R_Vi.in(nodes),Im_Vi.in(nodes));
-        R_Vi.initialize_all(1);
-    }
-    
-    if(add_original){
-        Im_Vi.set_lb((grid.ref_bus),0);
-        Im_Vi.set_ub((grid.ref_bus),0);
-        
-         R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-         R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
-    
-        
-        bool convexify = true;
-        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
-        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-        
-        
-        Constraint<Cpx> Linking_Wij("Linking_Wij");
-        Linking_Wij = Wij - Vi*conj(Vj);
-        SDP.add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
-        
-        
-        Wi.set_real(Wii.in(nodes));
-        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
-        Constraint<Cpx> Linking_Wi("Linking_Wi");
-        Linking_Wi = Wii - Vi*conj(Vi);
-        SDP.add(Linking_Wi.in(nodes)==0, convexify);
-        //                SDP.print();
-        //        SDP.print_symbolic();
+    bool current = true;
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
+    if(current){
+        SDP.add(lij.in(arcs),lji.in(arcs));
     }
     
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
     SDP.min(obj);
+    ACOPF.min(obj);
     
     
     /** Constraints */
@@ -301,56 +274,67 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    SDP.add(SOC.in(bus_pairs_chord) >= 0,true);
+    ACOPF.add(SOC.in(bus_pairs_chord) >= 0);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SDP.add(KCL_P.in(nodes) == 0);
+    ACOPF.add(KCL_P.in(nodes) == 0);
     
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SDP.add(KCL_Q.in(nodes) == 0);
+    ACOPF.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs));
     SDP.add(Flow_P_From.in(arcs) == 0);
+    ACOPF.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs));
     SDP.add(Flow_P_To.in(arcs) == 0);
+    ACOPF.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs));
     SDP.add(Flow_Q_From.in(arcs) == 0);
+    ACOPF.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs);
     SDP.add(Flow_Q_To.in(arcs) == 0);
+    ACOPF.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
     SDP.add(PAD_UB.in(bus_pairs));
+    ACOPF.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SDP.add(PAD_LB.in(bus_pairs));
+    ACOPF.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     SDP.add(Thermal_Limit_from.in(arcs));
+    ACOPF.add(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
+    ACOPF.add(Thermal_Limit_to.in(arcs));
 
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -377,6 +361,73 @@ int main (int argc, char * argv[]) {
     sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SDP.add(LNC2.in(bus_pairs) >= 0);
     
+    if(current){
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L_from("L_from"), Wij("Wij");
+        T.real_imag(cc.in(arcs), dd.in(arcs));
+        Y.real_imag(g.in(arcs), b.in(arcs));
+        Ych.set_imag(ch_half.in(arcs));
+        
+        
+        L_from.set_real(lij.in(arcs));
+        Wij.real_imag(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs));
+        var<Cpx> Sij("Sij"), Sji("Sji");
+        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
+        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+        
+        Constraint<> PLoss("PLoss");
+        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
+        PLoss -= pow((g_ff*Wii.from(bus_pairs) + g_ft*R_Wij + b_ft*Im_Wij),2);
+        PLoss += pow((g_tt*Wii.to(bus_pairs) + g_tf*R_Wij - b_tf*Im_Wij),2);
+        SDP.add(PLoss.in(arcs)==0,true);
+        
+        Constraint<> QLoss("QLoss");
+        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
+        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
+        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
+        SDP.add(QLoss.in(arcs)==0,true);
+        SDP.print();
+        
+        Constraint<Cpx> I_from("I_from");
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from.in(arcs));
+        
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+        
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+    
+        Constraint<> I_from_Pf("I_from_Pf");
+        I_from_Pf=lij.in(arcs)*Wii.from(arcs)-pow(tr,2)*(Pf_from*Pf_from+Qf_from*Qf_from);
+        SDP.add(I_from_Pf.in(arcs)==0, true);
+        
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji.in(arcs).in(arcs)*Wii.to(arcs)-(pow(Pf_to,2)+pow(Qf_to, 2));
+        SDP.add(I_to_Pf.in(arcs)==0, true);
+        
+    }
+    
+    auto L_P_fr = SDP.get_var<double>("Lift(Pf_from(Arc)^2)");
+    Constraint<> newSecant4("newSecant4");
+    newSecant4 = -1.5*Pf_from("0,1,4") + L_P_fr("0,1,4") + 0.5;
+    SDP.add(newSecant4<=0);
+
+    Constraint<> newSecant5("newSecant5");
+    newSecant5 = -1.5*Pf_from("3,3,6") + L_P_fr("3,3,6") + 0.55;
+    SDP.add(newSecant5<=0);
+
+    Constraint<> newSecant6("newSecant6");
+    newSecant6 = -1.8*Pf_from("6,2,8") + L_P_fr("6,2,8") + 0.8;
+    SDP.add(newSecant6<=0);
+    
+    Constraint<> newSecant7("newSecant7");
+    newSecant7 = -1.5*Pf_from("1,4,5") + L_P_fr("1,4,5") + 0.55;
+//    SDP.add(newSecant7<=0);
+    
+ 
+    
     total_time_start = get_wall_time();
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
@@ -384,23 +435,34 @@ int main (int argc, char * argv[]) {
     
     //SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+    SDP.print_solution();
     SDP.print_constraints_stats(tol);
-    SDP.print_nonzero_constraints(tol);
+    SDP.print_nonzero_constraints(tol,true);
+    auto lower_bound = SDP.get_obj_val();
     
-    
-    double gap = 100*(upper_bound - SDP.get_obj_val())/upper_bound;
+    double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(SDP.get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(SDP.get_obj_val()) << "."<<endl);
-    DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " << to_string(total_time)<<endl);
+    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(lower_bound) << " " << to_string(total_time)<<endl);
     
+    solver<> ACOPFS(ACOPF,solv_type);
     
+    //SDP.print();
+//    ACOPFS.run(output = 5, tol = 1e-6, "ma97");
+//    ACOPF.print_constraints_stats(tol);
+//    ACOPF.print_nonzero_constraints(tol,true);
+//    upper_bound = ACOPF.get_obj_val();
+//    gap = 100*(upper_bound - lower_bound)/upper_bound;
+//    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+//    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+//    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     //
     //        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
     //        ofstream fout(result_name.c_str(), ios_base::app);
