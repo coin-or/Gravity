@@ -1856,7 +1856,24 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
    SDPOPF->add(R_L.in(bus_pairs)<=0);
     
     if(loss){
+//        Constraint<> Loss("Loss");
+//        Loss = pow(Pf_from,2) + pow(Pf_to,2);
+//        Loss -= Pf_from*(g_ff*Wii.from(bus_pairs) + g_ft*R_Wij + b_ft*Im_Wij);
+//        Loss -= Pf_to*(g_tt*Wii.to(bus_pairs) + g_tf*R_Wij - b_tf*Im_Wij);
+//        SDPOPF->add(Loss.in(arcs)==0,true);
         
+        
+//        Constraint<> PLoss("PLoss");
+//        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
+//        PLoss -= pow((g_ff*Wii.from(bus_pairs) + g_ft*R_Wij + b_ft*Im_Wij),2);
+//        PLoss += pow((g_tt*Wii.to(bus_pairs) + g_tf*R_Wij - b_tf*Im_Wij),2);
+//        SDPOPF->add(PLoss.in(arcs)==0,true);
+//
+//        Constraint<> QLoss("QLoss");
+//        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
+//        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
+//        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
+//        SDPOPF->add(QLoss.in(arcs)==0,true);
 //
 //
 //
