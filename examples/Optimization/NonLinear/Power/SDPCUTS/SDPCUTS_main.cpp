@@ -409,23 +409,6 @@ int main (int argc, char * argv[]) {
         
     }
     
-    auto L_P_fr = SDP.get_var<double>("Lift(Pf_from(Arc)^2)");
-    Constraint<> newSecant4("newSecant4");
-    newSecant4 = -1.5*Pf_from("0,1,4") + L_P_fr("0,1,4") + 0.5;
-    SDP.add(newSecant4<=0);
-
-    Constraint<> newSecant5("newSecant5");
-    newSecant5 = -1.5*Pf_from("3,3,6") + L_P_fr("3,3,6") + 0.55;
-    SDP.add(newSecant5<=0);
-
-    Constraint<> newSecant6("newSecant6");
-    newSecant6 = -1.8*Pf_from("6,2,8") + L_P_fr("6,2,8") + 0.8;
-    SDP.add(newSecant6<=0);
-    
-    Constraint<> newSecant7("newSecant7");
-    newSecant7 = -1.5*Pf_from("1,4,5") + L_P_fr("1,4,5") + 0.55;
-//    SDP.add(newSecant7<=0);
-    
  
     
     total_time_start = get_wall_time();
