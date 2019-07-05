@@ -209,18 +209,18 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-//    else if (use_gurobi) {
-//        solver<> SCOPF_GRB(SOCP, gurobi);
-//        auto solver_time_start = get_wall_time();
-//        SCOPF_GRB.run(output, relax = false, tol = 1e-6);
-//        solver_time_end = get_wall_time();
-//        total_time_end = get_wall_time();
-//        solve_time = solver_time_end - solver_time_start;
-//        total_time = total_time_end - total_time_start;
-//    }
+    else if (use_gurobi) {
+        solver<> SCOPF_GRB(SOCP, gurobi);
+        auto solver_time_start = get_wall_time();
+        SCOPF_GRB.run(output = 5, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,cplex);
+        solver<> SOCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output, tol=1e-6);
         solver_time_end = get_wall_time();
