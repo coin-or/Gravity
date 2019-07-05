@@ -978,8 +978,8 @@ namespace gravity {
             auto index = param_::_indices->size();
             auto pp = param_::_indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
-                _val->resize(max(_val->size(),index+1));
-                _dim[0] = max(_dim[0],_val->size());
+                _val->resize(std::max(_val->size(),index+1));
+                _dim[0] = std::max(_dim[0],_val->size());
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
@@ -1370,7 +1370,7 @@ namespace gravity {
         param& in(const space& s){
             set_size(s._dim);
             if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
-                this->_indices = make_shared<indices>(indices(0,s._dim[0]-1));
+                this->_indices = make_shared<indices>(range(0,s._dim[0]-1));
             }
             return *this;
         }
@@ -1947,17 +1947,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(!is_indexed()){
-                for (auto v:*_val) {
-                    if(_range->first > v){
-                        _range->first = v;
-                    }
-                    if(_range->second  < v){
-                        _range->second = v;
-                    }
-                }
-            }
-            else if(is_double_indexed()){
+            if(is_double_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
@@ -1972,8 +1962,7 @@ namespace gravity {
                 }
             }
             else {
-                for (auto idx:_indices->_ids->at(0)){
-                    auto v = _val->at(idx);
+                for (auto v:*_val) {
                     if(_range->first > v){
                         _range->first = v;
                     }

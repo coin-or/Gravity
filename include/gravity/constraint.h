@@ -20,6 +20,7 @@ namespace gravity {
         size_t                      _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
         vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
+        bool                        _relaxed = false; /**< True if this constraint is a relaxed version of an non-convex constraint, i.e. McCormick or from == to <= or >= */
         bool                        _all_active = true;
         vector<bool>                _active;
         shared_ptr<bool>            _all_lazy;
@@ -157,6 +158,7 @@ namespace gravity {
             _lazy = c._lazy;
             _all_satisfied = c._all_satisfied;
             _violated = c._violated;
+            _relaxed = c._relaxed;
             this->func<type>::operator=(c);
             this->_name = c._name;
             this->_is_constraint = true;
@@ -180,6 +182,7 @@ namespace gravity {
             _lazy = c._lazy;
             _all_satisfied = c._all_satisfied;
             _violated = c._violated;
+            _relaxed = c._relaxed;
             this->func<type>::operator=(move(c));
             this->_name = c._name;
             this->_is_constraint = true;

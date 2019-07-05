@@ -75,7 +75,7 @@ int main (int argc, char * argv[]) {
     else if(solver_str.compare("cplex")==0) {
         solv_type = cplex;
     }else if(solver_str.compare("Mosek")==0) {
-        solv_type = mosek;
+        solv_type = _mosek;
     }
     lazy_s = opt["lz"];
     if (lazy_s.compare("no")==0) {
@@ -109,7 +109,7 @@ int main (int argc, char * argv[]) {
     
     PowerNet grid;
     grid.readgrid(fname);
-    grid.get_tree_decomp_bags(false,true);
+    grid.get_tree_decomp_bags();
     
     
     
@@ -117,8 +117,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    int nb_threads = 3*thread::hardware_concurrency();
-    //int nb_threads = 4;
+    //int nb_threads = thread::hardware_concurrency()-1;
+    int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -126,34 +126,34 @@ int main (int argc, char * argv[]) {
     
     //double upper_bound = grid.solve_acopf();
     //solve_acopf
-    OPF->print_solution();
-    auto rv= OPF->get_var<double>("vr");
-    DebugOn("W_orig\n");
-    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
-    
-    for(auto &k:*rv.get_keys())
-    {
-        rvv.push_back(rv.eval(k));
-        ivv.push_back(OPF->get_var<double>("vi").eval(k));
-        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
-        DebugOn(w_orig.back()<<endl);
-    }
-    DebugOn("RRwij\tIIwij"<<endl);
-    
-    for (auto &k:*(grid.bus_pairs._keys))
-    {
-        auto k1=k.substr(0, k.find_first_of(","));
-        auto k2=k.substr(k.find_first_of(",")+1);
-        auto rva=OPF->get_var<double>("vr").eval(k1);
-        auto rvb=OPF->get_var<double>("vr").eval(k2);
-        auto iva=OPF->get_var<double>("vi").eval(k1);
-        auto ivb=OPF->get_var<double>("vi").eval(k2);
-        
-        rrwij.push_back(rva*rvb+iva*ivb);
-        iiwij.push_back(iva*rvb-ivb*rva);
-        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
-        
-    }
+//    OPF->print_constraints_stats(tol);
+//    auto rv= OPF->get_var<double>("vr");
+//    DebugOn("W_orig\n");
+//    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
+//
+//    for(auto &k:*rv.get_keys())
+//    {
+//        rvv.push_back(rv.eval(k));
+//        ivv.push_back(OPF->get_var<double>("vi").eval(k));
+//        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
+//        DebugOn(w_orig.back()<<endl);
+//    }
+//    DebugOn("RRwij\tIIwij"<<endl);
+//
+//    for (auto &k:*(grid.bus_pairs._keys))
+//    {
+//        auto k1=k.substr(0, k.find_first_of(","));
+//        auto k2=k.substr(k.find_first_of(",")+1);
+//        auto rva=OPF->get_var<double>("vr").eval(k1);
+//        auto rvb=OPF->get_var<double>("vr").eval(k2);
+//        auto iva=OPF->get_var<double>("vi").eval(k1);
+//        auto ivb=OPF->get_var<double>("vi").eval(k2);
+//
+//        rrwij.push_back(rva*rvb+iva*ivb);
+//        iiwij.push_back(iva*rvb-ivb*rva);
+//        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
+//
+//    }
     
     double upper_bound=OPF->get_obj_val();
     
@@ -163,6 +163,10 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
+    bool print_only_relaxed;
+    SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
+    double gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     //    SDP->print_solution();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -185,6 +189,7 @@ int main (int argc, char * argv[]) {
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
     {
+
         for(auto i = 0; i<1 ;i++){
             terminate=false;
             for(auto &it:SDP->_vars_name)
@@ -245,7 +250,7 @@ int main (int argc, char * argv[]) {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
                     lifted_var=v._lift;
-                    if(!lifted_var)
+                    if(!lifted_var || true)
                     {
                     auto v_keys=v.get_keys();
                     for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
@@ -366,6 +371,7 @@ int main (int argc, char * argv[]) {
                                                     double tempa=vk.get_lb(keyk);
                                                     vk.set_ub(keyk, tempa);
                                                     vk.set_lb(keyk, temp);
+
                                                 }
                                                 else {
                                                     fixed_point[pk]=false;
@@ -503,7 +509,8 @@ int main (int argc, char * argv[]) {
             SDPLB1.run(output = 5, tol=1e-8, "ma57");
             
             SDP->print_constraints_stats(tol);
-            
+            bool print_only_relaxed;
+            SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
             
             
@@ -516,6 +523,7 @@ int main (int argc, char * argv[]) {
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
                 SDP->print_solution();
+                SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
                 gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;

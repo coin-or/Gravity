@@ -260,7 +260,14 @@ namespace gravity{
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
         }
-        
+      
+      indices(int name){
+        _name = to_string(name);
+        _keys_map = make_shared<map<string,size_t>>();
+        _keys = make_shared<vector<string>>();
+        _dim = make_shared<vector<size_t>>();
+      }
+      
         indices(){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
@@ -294,21 +301,7 @@ namespace gravity{
 //            *this = indices(l);
 //        }
         
-        indices(size_t p1 ,size_t p2){
-            auto n = p2 - p1 + 1;
-            assert(n >= 0);
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _keys->resize(n);
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(1);
-            _dim->at(0) = n;
-            size_t index = 0;
-            for (int i = p1; i <= p2; i++){
-                (*_keys_map)[to_string(i)]= index;
-                (*_keys)[index++] = to_string(i);
-            }
-        }
+        
         
         template<typename... Args>
         void init(string idx1, Args&&... args) {
@@ -596,7 +589,7 @@ namespace gravity{
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
-            vecs = {forward<Args>(args)...};
+          vecs = {forward<Args>(args)...};
             vecs.push_front(vec1);
             *this = indices(vecs);
         }
@@ -718,6 +711,8 @@ namespace gravity{
         }
     };
     
+    
+    
     indices operator-(const indices& s1, const indices& s2);
     
     class node_pairs{
@@ -738,7 +733,7 @@ namespace gravity{
         }
     };
     
-    typedef enum { ipopt, gurobi, bonmin, cplex, sdpa, mosek, clp} SolverType;  /* Solver type */
+    typedef enum { ipopt, gurobi, bonmin, cplex, sdpa, _mosek, clp} SolverType;  /* Solver type */
     
     // settings of solvers. used by solvers like sdpa.
     typedef enum {unsolved = -1, penalty=0, fast=1, medium=2, stable=3} SolverSettings;
