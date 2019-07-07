@@ -26,12 +26,14 @@ before_install:
 - cd ThirdParty/Mumps
 - "./get.Mumps"
 - cd ../..
-- "./configure"
+- mkdir build
+- cd build
+- "../configure"
 - make -j5
 - sudo make install
 - ls include/coin
 - ls lib
-- cd ../../
+- cd ../../../
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
