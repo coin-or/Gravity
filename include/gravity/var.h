@@ -39,7 +39,7 @@ namespace gravity {
         shared_ptr<func<type>>   _ub; /**< Upper Bound */
         bool _in_q_cone = false; /**< Used by Mosek */
         bool _psd = false; /**< Has to be positive semidefinite */
-        
+        bool _lift=false;/*flag to show if variable is a lifted variable*/
         /* Constructors */
         //@{
         /** Unbounded variable constructor */
