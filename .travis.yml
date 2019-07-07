@@ -26,9 +26,11 @@ before_install:
 - cd ThirdParty/Mumps
 - "./get.Mumps"
 - cd ../..
-- "./configure --prefix=/usr/local"
+- "./configure"
 - make -j5
 - sudo make install
+- ls include/coin
+- ls lib
 - cd ../../
 - echo $LANG
 - echo $LC_ALL
