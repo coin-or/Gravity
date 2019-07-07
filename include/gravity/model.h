@@ -907,6 +907,7 @@ namespace gravity {
                 var<type> vlift(prod_name, lb, ub);
                 auto it = _vars_name.find(prod_name);
                 if(it==_vars_name.end()){
+                    vlift._lift=true;
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);
 //                    add_McCormick(pair.first, vlift, o1, o2);
