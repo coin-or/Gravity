@@ -855,10 +855,14 @@ namespace gravity {
                     auto added = vlift->add_bounds(lb,ub);
                     lt._p = make_shared<var<type>>(vlift->in(ids));
                     if(!added.empty()){
-                        assert(added.size()==o1._indices->size());
-                        assert(added.size()==o2._indices->size());
+                        assert(o1._indices->size()==o2._indices->size());
+                        if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                            auto keep_refs = ids.diff_refs(added);
+                            o1_ids.filter_refs(keep_refs);
+                            o2_ids.filter_refs(keep_refs);
+                        }
                         reindex_vars();
-                        add_McCormick(pair.first, vlift->in(added), o1, o2);
+                        add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
                     }
                 }
                 
