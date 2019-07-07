@@ -880,23 +880,21 @@ namespace gravity {
                     auto coef = *static_pointer_cast<constant<type>>(term._coef);
                     lt._coef = constant<type>(coef).copy();
                 }
-                func<> prod = 1;
+                func<type> prod = 1;
                 string prod_name = "Lift(";
-                for (auto vp:*term._l){
-                    auto list = pair.second._l;
-                    for (auto &ppi: *list) {
-                        auto p = ppi.first;
-                        auto orig_var = *static_pointer_cast<var<type>>(p);
-                        if(ppi.second>1){
-                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
-                            //TODO Lift univarite power function
-                        }
-                        else{
-                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
-                        }
-                        prod *= pow(orig_var,ppi.second);
+                auto list = pair.second._l;
+                for (auto &ppi: *list) {
+                    auto p = ppi.first;
+                    auto orig_var = *static_pointer_cast<var<type>>(p);
+                    if(ppi.second>1){
+                        prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                        //TODO Lift univarite power function
                     }
-                }
+                    else{
+                        prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
+                    }
+                    prod *= pow(orig_var,ppi.second);
+                }                
                 prod_name += ")";
                 
                 auto ids = *c._indices;
