@@ -855,10 +855,14 @@ namespace gravity {
                     auto added = vlift->add_bounds(lb,ub);
                     lt._p = make_shared<var<type>>(vlift->in(ids));
                     if(!added.empty()){
-                        assert(added.size()==o1._indices->size());
-                        assert(added.size()==o2._indices->size());
+                        assert(o1._indices->size()==o2._indices->size());
+                        if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                            auto keep_refs = ids.diff_refs(added);
+                            o1_ids.filter_refs(keep_refs);
+                            o2_ids.filter_refs(keep_refs);
+                        }
                         reindex_vars();
-                        add_McCormick(pair.first, vlift->in(added), o1, o2);
+                        add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
                     }
                 }
                 
@@ -880,23 +884,21 @@ namespace gravity {
                     auto coef = *static_pointer_cast<constant<type>>(term._coef);
                     lt._coef = constant<type>(coef).copy();
                 }
-                func<> prod = 1;
+                func<type> prod = 1;
                 string prod_name = "Lift(";
-                for (auto vp:*term._l){
-                    auto list = pair.second._l;
-                    for (auto &ppi: *list) {
-                        auto p = ppi.first;
-                        auto orig_var = *static_pointer_cast<var<type>>(p);
-                        if(ppi.second>1){
-                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
-                            //TODO Lift univarite power function
-                        }
-                        else{
-                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
-                        }
-                        prod *= pow(orig_var,ppi.second);
+                auto list = pair.second._l;
+                for (auto &ppi: *list) {
+                    auto p = ppi.first;
+                    auto orig_var = *static_pointer_cast<var<type>>(p);
+                    if(ppi.second>1){
+                        prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                        //TODO Lift univarite power function
                     }
-                }
+                    else{
+                        prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
+                    }
+                    prod *= pow(orig_var,ppi.second);
+                }                
                 prod_name += ")";
                 
                 auto ids = *c._indices;

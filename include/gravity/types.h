@@ -306,6 +306,23 @@ namespace gravity{
             return *this;
         }
         
+        /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
+        vector<bool> diff_refs(const indices& ids) const{
+            vector<bool> res;
+            assert(_ids);
+            set<size_t> unique_ids;
+            for (auto &idx:_ids->at(0)) {
+                if(ids._keys_map->count(_keys->at(idx))){
+                    res.push_back(true);
+                }
+                else {
+                    res.push_back(false);
+                }
+            }
+            return res;
+        }
+
+        
         /** Returns a vector of bools indicating if a reference is unique so far. The function iterates over key references in _ids. */
         vector<bool> get_unique_refs() const{
             vector<bool> res;
@@ -849,6 +866,7 @@ namespace gravity{
     }
     
     indices range(size_t i, size_t j);
+    
     
     /** Combine each ith key of each index set with the other ith keys in the other index sets
      \warning all index sets must have the same size
