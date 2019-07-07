@@ -1723,7 +1723,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         
         
         L_from.set_real(lij.in(arcs));
-        W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));
+        W.real_imag(R_Wij.in(arcs), Im_Wij.in(arcs));//update bounds on W
         
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);

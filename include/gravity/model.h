@@ -387,7 +387,8 @@ namespace gravity {
             auto name = v._name.substr(0,v._name.find_first_of("."));
 //            auto name = v._name;
             v._name = name;
-            
+            v._lb->eval_all();
+            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -413,7 +414,8 @@ namespace gravity {
             auto name = v._name.substr(0,v._name.find_first_of("."));
 //            auto name = v._name;
             v._name = name;
-            
+            v._lb->eval_all();
+            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -451,6 +453,14 @@ namespace gravity {
         
         
         /* Accessors */
+        
+        void update_nb_vars(){
+            size_t n = 0;
+            for (auto &vp:_vars) {
+                n += vp.second->get_dim();
+            }
+            _nb_vars = n;
+        };
         
         size_t get_nb_vars() const{
             return _nb_vars;
@@ -646,7 +656,7 @@ namespace gravity {
         }
         
         
-        void init_indices(){/**< Initialize the indices of all variables involved in the model */
+        void reindex_vars(){/**< Re-index all variables involved in the model and update total number of variables */
             shared_ptr<param_> v= nullptr;
             size_t idx = 0, vec_idx = 0;
             for(auto& v_p: _vars)
@@ -654,10 +664,9 @@ namespace gravity {
                 v = v_p.second;
                 v->set_vec_id(vec_idx++);
                 v->set_id(idx);
-                for (size_t i = 0; i < v->get_dim(); i++) {
-                    idx++;
-                }
+                idx += v->get_dim();
             }
+            _nb_vars = idx;
         }
         
         
@@ -668,7 +677,7 @@ namespace gravity {
                 delete it->second;
                 _vars.erase(it);
             }
-            init_indices();
+            reindex_vars();
         };
         
         
@@ -692,9 +701,9 @@ namespace gravity {
             c_imag._dim[0] = c._dim[0];
             if(convexify){
                 c_real.check_soc();c_real.check_rotated_soc();
-                auto lifted_real = lift_quad(c_real);
+                auto lifted_real = lift(c_real);
                 c_imag.check_soc();c_imag.check_rotated_soc();
-                auto lifted_imag = lift_quad(c_imag);
+                auto lifted_imag = lift(c_imag);
                 lifted_real._ctype = c._ctype;
                 lifted_real._indices = c._indices;
                 lifted_real._dim[0] = c._dim[0];
@@ -740,12 +749,12 @@ namespace gravity {
             //            c_imag.print_symbolic();
         }
         
-        Constraint<type> lift_quad(const Constraint<type>& c){
+        Constraint<type> lift(const Constraint<type>& c){
             if(c.is_constant() || c.is_linear() || c.is_convex()){
                 return c;
             }
-            if(!c.is_quadratic()){
-                throw invalid_argument("lift_quad can only be called on a quadratic constraint");
+            if(c.is_nonlinear()){
+                throw invalid_argument("lift can only be called on polynomial constraints");
             }
             Constraint<type> lifted(c._name+"_lifted");
             if (!c.get_cst()->is_zero()) {
@@ -799,31 +808,113 @@ namespace gravity {
                 }
                 auto o1 = *static_pointer_cast<var<type>>(term._p->first);
                 auto o2 = *static_pointer_cast<var<type>>(term._p->second);
-                auto ids = *c._indices;
+                string name;
+                indices ids;
+                if(o1==o2){
+                    name = "Lift("+o1.get_name(true,true)+"^2)";
+                    ids = *o1._indices;
+                }
+                else {
+                    name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    auto it = _vars_name.find(name);
+                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
+                        o2 = *static_pointer_cast<var<type>>(term._p->first);
+                        o1 = *static_pointer_cast<var<type>>(term._p->second);
+                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    }
+                    it = _vars_name.find(name);
+                    if(it==_vars_name.end()){/* Switch back to original order */
+                        o1 = *static_pointer_cast<var<type>>(term._p->first);
+                        o2 = *static_pointer_cast<var<type>>(term._p->second);
+                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    }
+                    ids = combine(*o1._indices,*o2._indices);
+                }
+                auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys onlly */
+                auto o1_ids = *o1._indices;
+                auto o2_ids = *o2._indices;
+                if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                    auto keep_refs = ids.get_unique_refs();
+                    o1_ids.filter_refs(keep_refs);
+                    o2_ids.filter_refs(keep_refs);
+                }
                 param<type> lb("lb"), ub("ub");
-                lb.in(ids);ub.in(ids);
+                lb.in(unique_ids);ub.in(unique_ids);
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
-                string name;
-                if(o1==o2){
-                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+")^2)";
+                auto it = _vars_name.find(name);
+                if(it==_vars_name.end()){
+                    var<type> vlift(name, lb, ub);
+                    add(vlift.in(unique_ids));
+                    lt._p = make_shared<var<type>>(vlift.in(ids));
+                    add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
                 }
                 else {
-                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+"),"+o2.get_name(true,true)+"("+o2._indices->get_name()+")";
+                    auto vlift = static_pointer_cast<var<type>>(it->second);
+                    auto added = vlift->add_bounds(lb,ub);
+                    lt._p = make_shared<var<type>>(vlift->in(ids));
+                    if(!added.empty()){
+                        assert(added.size()==o1._indices->size());
+                        assert(added.size()==o2._indices->size());
+                        reindex_vars();
+                        add_McCormick(pair.first, vlift->in(added), o1, o2);
+                    }
                 }
-                var<type> vlift(name, lb, ub);
-                auto it = _vars_name.find(name);
+                
+                lifted.insert(lt);
+            }
+            for (auto &pair:*c._pterms) {
+                auto term = pair.second;
+                lterm lt;
+                lt._sign = term._sign;
+                if (term._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<type>>(term._coef);
+                    lt._coef = func<type>(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<type>>(term._coef);
+                    lt._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *static_pointer_cast<constant<type>>(term._coef);
+                    lt._coef = constant<type>(coef).copy();
+                }
+                func<> prod = 1;
+                string prod_name = "Lift(";
+                for (auto vp:*term._l){
+                    auto list = pair.second._l;
+                    for (auto &ppi: *list) {
+                        auto p = ppi.first;
+                        auto orig_var = *static_pointer_cast<var<type>>(p);
+                        if(ppi.second>1){
+                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                            //TODO Lift univarite power function
+                        }
+                        else{
+                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
+                        }
+                        prod *= pow(orig_var,ppi.second);
+                    }
+                }
+                prod_name += ")";
+                
+                auto ids = *c._indices;
+                param<type> lb("lb"), ub("ub");
+                lb.in(ids);ub.in(ids);
+                lb.set_val(prod._range->first);
+                ub.set_val(prod._range->second);
+                var<type> vlift(prod_name, lb, ub);
+                auto it = _vars_name.find(prod_name);
                 if(it==_vars_name.end()){
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);
-                    add_McCormick(pair.first, vlift, o1, o2);
+//                    add_McCormick(pair.first, vlift, o1, o2);
                 }
                 else {
                     vlift = *static_pointer_cast<var<type>>(it->second);
                     lt._p = make_shared<var<type>>(vlift);
                 }
-                
                 lifted.insert(lt);
             }
             lifted._range = c._range;
@@ -881,8 +972,8 @@ namespace gravity {
             c_imag._ctype = c._ctype;
             c_imag._indices = c._indices;
             if(convexify){
-                add(lift_quad(c_real));
-                add(lift_quad(c_imag));
+                add(lift(c_real));
+                add(lift(c_imag));
             }
             else {
                 add_constraint(c_real);
@@ -970,7 +1061,7 @@ namespace gravity {
             auto vid = *v->_vec_id;
             delete _vars.at(vid);
             _vars.erase(vid);
-            init_indices();
+            reindex_vars();
         }
         
         
@@ -1056,7 +1147,7 @@ namespace gravity {
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-                    auto lifted = lift_quad(*newc);
+                    auto lifted = lift(*newc);
                     return add_constraint(lifted);
                 }
                 embed(newc, false);
@@ -2324,10 +2415,6 @@ namespace gravity {
         template<typename T1>
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
             Constraint<type> MC1(name+"_McCormick1");
-            auto lb1 = v1.get_lb(v1.get_id_inst());
-            auto lb2 = v2.get_lb(v2.get_id_inst());
-            auto ub1 = v1.get_ub(v1.get_id_inst());
-            auto ub2 = v2.get_ub(v2.get_id_inst());
             param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
             if(!lb1_.func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
@@ -2341,7 +2428,6 @@ namespace gravity {
             if(!ub2_.func_is_number()){
                 ub2_ = v2.get_ub().in(*v2._indices);
             }
-            bool template_cstr = v1._dim[0]>1;
             bool var_equal=false;
             if(v1._name==v2._name)
                 var_equal=true;
@@ -2349,24 +2435,14 @@ namespace gravity {
             {
                 Constraint<type> MC1(name+"_McCormick1");
                 MC1 += vlift;
-                if(template_cstr){//Template constraint
-                    MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
-                }
-                else {
-                    MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
-                }
+                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
                 MC1 >= 0;
 //                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
                 add(MC1.in(*vlift._indices));
                 //    MC1.print();
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 += vlift;
-                if(template_cstr){//Template constraint
-                    MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
-                }
-                else {
-                    MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
-                }
+                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
                 MC2 >= 0;
 //                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
                 add(MC2.in(*vlift._indices));
@@ -2374,24 +2450,14 @@ namespace gravity {
                 //    //    MC2.print();
                 Constraint<type> MC3(name+"_McCormick3");
                 MC3 += vlift;
-                if(template_cstr){//Template constraint
-                    MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
-                }
-                else {
-                    MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
-                }
+                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
                 MC3 <= 0;
 //                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
                 add(MC3.in(*vlift._indices));
                 //    //    MC3.print();
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 += vlift;
-                if(template_cstr){//Template constraint
-                    MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
-                }
-                else{
-                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-                }
+                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
                 MC4 <= 0;
 //                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
@@ -2399,12 +2465,7 @@ namespace gravity {
             else {
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
-                if(template_cstr){//Template constraint
-                    MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
-                }
-                else{
-                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-                }
+                MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
                 add(MC4.in(*vlift._indices));
                 Constraint<type> MC5(name+"_McCormick_squared");

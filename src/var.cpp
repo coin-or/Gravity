@@ -87,11 +87,11 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
         if (bag.size() == bag_size) {
             for (size_t i = 0; i< bag_size-1; i++) {
                 key = bag[i]->_name + "," + bag[i+1]->_name;
-                ids_vec[i].add(key);
+                ids_vec[i].add_ref(key);
             }
             /* Loop back pair */
             key = bag[0]->_name + "," + bag[bag_size-1]->_name;
-            ids_vec[bag_size-1].add(key);
+            ids_vec[bag_size-1].add_ref(key);
         }
     }
     for (auto i = 0; i<bag_size; i++) {
@@ -135,7 +135,7 @@ vector<var<type>> var<type>::in_bags(const vector<vector<Node*>>& bags, size_t b
         /* Make sure it's a new bag with size=bag_size */
         if (bag.size() == bag_size && unique_bags.insert(bag).second) {
             for (size_t i = 0; i< bag_size; i++) {
-                ids_vec[i].add(bag[i]->_name);
+                ids_vec[i].add_ref(bag[i]->_name);
             }
         }
     }
@@ -322,17 +322,35 @@ template<typename type> void   var<type>::set_lb(type val) {
 }
     
 template<typename type> void  var<type>::set_lb(const string& key, type val){
-    auto i = this->_indices->_keys_map->at(key);
+    auto key_it = this->_indices->_keys_map->find(key);
+    /* First check if variable has this key */
+    if(key_it== this->_indices->_keys_map->end()){
+        throw invalid_argument("in set_lb(string, val), unknown key" + key);
+    }
+    /* Also check if lower-bound has this key */
+    key_it = _lb->_indices->_keys_map->find(key);
+    if(key_it== _lb->_indices->_keys_map->end()){
+        throw invalid_argument("in set_ub(string, val), unknown key " + key);
+    }
     _lb->eval_all();
-    _lb->_val->at(i) = val;
+    _lb->_val->at(key_it->second) = val;
     _lb->update_range(val);
     this->update_range(val);
 }
 
 template<typename type> void  var<type>::set_ub(const string& key, type val){
-    auto i = this->_indices->_keys_map->at(key);
+    auto key_it = this->_indices->_keys_map->find(key);
+    /* First check if variable has this key */
+    if(key_it== this->_indices->_keys_map->end()){
+        throw invalid_argument("in set_ub(string, val), unknown key " + key);
+    }
+    /* Also check if upper-bound has this key */
+    key_it = _ub->_indices->_keys_map->find(key);
+    if(key_it== _ub->_indices->_keys_map->end()){
+        throw invalid_argument("in set_ub(string, val), unknown key " + key);
+    }
     _ub->eval_all();
-    _ub->_val->at(i) = val;
+    _ub->_val->at(key_it->second) = val;
     _ub->update_range(val);
     this->update_range(val);
 }
