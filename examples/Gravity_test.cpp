@@ -124,7 +124,7 @@ TEST_CASE("testing param indexing, add_val() and set_val() functions") {
     CHECK(ip._range->first==1.5);
     CHECK(ip._range->second==2);
     indices ids("index_set");
-    ids = {"id1", "id2", "key3"};
+    ids.add({"id1", "id2", "key3"});
     param<> dp("dp");
     dp.in(ids);
     dp.print();
@@ -185,7 +185,7 @@ TEST_CASE("testing param sign functions") {
 
 TEST_CASE("testing variables indexing") {
     indices ids("index_set");
-    ids = {"id1", "id2", "key3"};
+    ids.add({"id1", "id2", "key3"});
     var<> iv("iv",-2, 5);
     iv.in(ids);
     iv.print();
@@ -291,7 +291,7 @@ TEST_CASE("testing vector dot product"){
 //
 TEST_CASE("testing complex numbers") {
     indices ids("index_set");
-    ids = {"id1", "id2", "key3", "key4"};
+    ids.add({"id1", "id2", "key3", "key4"});
     var<> iv("x",-2, 5);
     iv.in(ids);
     var<Cpx> cv("y", Cpx(0,-1),Cpx(1,1));
@@ -353,7 +353,7 @@ TEST_CASE("2d Polynomial") {
 
 TEST_CASE("testing range propagation") {
     indices ids("index_set");
-    ids = {"id1", "id2", "key3", "key4"};
+    ids.add({"id1", "id2", "key3", "key4"});
     var<> x("x",-2, 5);
     x.in(ids);
     auto f = 2*x + 2;
@@ -541,7 +541,7 @@ TEST_CASE("testing bounds copy"){
 
 TEST_CASE("testing bounds get"){
     indices ids("index_set");
-    ids = {"id1", "id2"};
+    ids.add({"id1", "id2"});
     param<> lb("lb");
     lb.in(ids);
     lb.print();
@@ -742,7 +742,7 @@ TEST_CASE("testing nonlinear Model"){
 TEST_CASE("testing complex constraint expansion"){
     Model<> M("test");
     auto ids = indices("ids");
-    ids = {"id1", "id2"};
+    ids.add({"id1", "id2"});
     var<> x("x"), y("y"), u1("u1"), v1("v1"), u2("u2"), v2("v2");
     M.add(x.in(ids),y.in(ids),u1.in(ids),v1.in(ids),u2.in(ids),v2.in(ids));
     var<Cpx> w1("w1"), w2("w2"), z("z");
