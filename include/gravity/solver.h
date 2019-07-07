@@ -183,7 +183,7 @@ namespace gravity {
         }
         
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
-            return run(output, tol, max_iter, 1e-6, true, {false,""}, 1e+6);
+            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
         /* run model */
         int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){

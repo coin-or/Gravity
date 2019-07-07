@@ -348,21 +348,27 @@ namespace gravity {
         var in(const indices& vec1, Args&&... args) {
 //            bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
+            bool first_time_indexing = this->_indices==nullptr;
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
             res._type = var_c;
-//            if(!indexed && !res._lb->is_number()){
-//                (res._lb->index_in(*res._indices));
-//            }
-//            if(!indexed && !res._ub->is_number()){
-//                (res._ub->index_in(*res._indices));
-//            }
-            res._lb->allocate_mem();
-            res._ub->allocate_mem();
-            auto new_lb(*res._lb);
-            auto new_ub(*res._ub);
-            new_lb.in(vec1, forward<Args>(args)...);
-            new_ub.in(vec1, forward<Args>(args)...);
-            res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
+            if(first_time_indexing){
+                _lb->index_in(*res._indices);
+                _ub->index_in(*res._indices);
+                res._lb = _lb;
+                res._ub = _ub;
+                res._lb->allocate_mem();
+                res._ub->allocate_mem();
+                res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+            }
+            else {
+                res._lb->allocate_mem();
+                res._ub->allocate_mem();
+                auto new_lb(*res._lb);
+                auto new_ub(*res._ub);
+                new_lb.in(vec1, forward<Args>(args)...);
+                new_ub.in(vec1, forward<Args>(args)...);
+                res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
+            }
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
                 res._real = make_shared<var<>>(real_var->in(*res._indices));
@@ -479,6 +485,63 @@ namespace gravity {
         var& operator=(type v) {
             this->set_val(v);
             return *this;
+        }
+        /**
+         \brief Update dimensions based on the current indexing-set
+         \todo sparse matrix/double indexing
+         */
+        void update_dim(){
+            this->_dim[0] = this->_indices->size();
+            this->_val->resize(this->get_dim());
+            _lb->_dim[0] = _lb->_indices->size();
+            _ub->_dim[0] = _ub->_indices->size();
+            _lb->_val->resize(_lb->get_dim());
+            _ub->_val->resize(_ub->get_dim());
+        }
+        
+        /**
+         \brief Add bounds to the current variable
+         \warning Assumes identical index sets for lb and ub
+         \warning Will also increase the variable index set to include new indices found in lb and ub
+         \warning Will update the bounds if the same indices already exist
+         @return index set of added indices.
+         */
+        template<typename T=type>
+        indices add_bounds(const param<T>& lb, const param<T>& ub){
+            /* Make sure lb and ub indices are identical */
+            assert(*ub._indices==*lb._indices);
+            auto ids = *lb._indices;
+            /* If the variable hasn't been indexed yet */
+            if(!this->_indices){
+                this->index_in(ids);
+                this->_lb = make_shared<func<T>>(lb);
+                this->_ub = make_shared<func<T>>(ub);
+                return ids;
+            }
+            else{
+                /* Add indices and update dimension on variable and bounds*/
+                auto added = this->_indices->add(ids);
+                if(!added.empty()){
+                    _lb->_indices->add(ids);
+                    _ub->_indices->add(ids);
+                    this->update_dim();
+                    for (auto i = 0; i< ids.size(); i++) {
+                        auto idx = lb.get_id_inst(i);
+                        auto key = ids._keys->at(idx);
+                        auto lb_idx = _lb->_indices->_keys_map->at(key);
+                        auto lb_val = lb._val->at(idx);
+                        _lb->_val->at(lb_idx) = lb_val; /* Update the bound */
+                        _lb->update_range(lb_val);
+                        this->update_range(lb_val);
+                        auto ub_idx = _ub->_indices->_keys_map->at(key);
+                        auto ub_val = ub._val->at(idx);
+                        _ub->_val->at(ub_idx) = ub_val; /* Update the bound */
+                        _ub->update_range(ub_val);
+                        this->update_range(ub_val);
+                    }
+                }
+                return added;
+            }
         }
         
         bool operator==(const var& v) const;

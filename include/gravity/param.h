@@ -1322,7 +1322,7 @@ namespace gravity {
                 res._indices->_ids->at(0).push_back(j*_dim[0]+i);
             }
             else{
-                res._indices->_ids->at(0).push_back(i*_dim[1]+j);
+                res._indices->_ids->at(0) .push_back(i*_dim[1]+j);
             }
             res._name += "["+to_string(i)+","+to_string(j)+"]";
             return res;
@@ -1679,6 +1679,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".from";
             res._indices->_type = from_;
+            res._indices->set_name("from("+res._indices->get_name()+")");
             return res;
         }
         
@@ -1691,6 +1692,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".to";
             res._indices->_type = to_;
+            res._indices->set_name("to("+res._indices->get_name()+")");
             return res;
         }
         

@@ -146,7 +146,8 @@ namespace gravity {
         
         
     public:
-
+        
+        bool                            _has_callback = false; /**< Has callback option. */
         bool                            _has_lazy = false; /**< Has lazy constraints. */
         bool                            _built = false; /**< Indicates if this model has been already built. */
         bool                            _first_run = true; /**< Indicates if a solver was ran on this model. */
@@ -386,7 +387,8 @@ namespace gravity {
             auto name = v._name.substr(0,v._name.find_first_of("."));
 //            auto name = v._name;
             v._name = name;
-            
+            v._lb->eval_all();
+            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -412,7 +414,8 @@ namespace gravity {
             auto name = v._name.substr(0,v._name.find_first_of("."));
 //            auto name = v._name;
             v._name = name;
-            
+            v._lb->eval_all();
+            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -450,6 +453,14 @@ namespace gravity {
         
         
         /* Accessors */
+        
+        void update_nb_vars(){
+            size_t n = 0;
+            for (auto &vp:_vars) {
+                n += vp.second->get_dim();
+            }
+            _nb_vars = n;
+        };
         
         size_t get_nb_vars() const{
             return _nb_vars;
@@ -645,7 +656,7 @@ namespace gravity {
         }
         
         
-        void init_indices(){/**< Initialize the indices of all variables involved in the model */
+        void reindex_vars(){/**< Re-index all variables involved in the model and update total number of variables */
             shared_ptr<param_> v= nullptr;
             size_t idx = 0, vec_idx = 0;
             for(auto& v_p: _vars)
@@ -653,10 +664,9 @@ namespace gravity {
                 v = v_p.second;
                 v->set_vec_id(vec_idx++);
                 v->set_id(idx);
-                for (size_t i = 0; i < v->get_dim(); i++) {
-                    idx++;
-                }
+                idx += v->get_dim();
             }
+            _nb_vars = idx;
         }
         
         
@@ -667,7 +677,7 @@ namespace gravity {
                 delete it->second;
                 _vars.erase(it);
             }
-            init_indices();
+            reindex_vars();
         };
         
         
@@ -691,9 +701,9 @@ namespace gravity {
             c_imag._dim[0] = c._dim[0];
             if(convexify){
                 c_real.check_soc();c_real.check_rotated_soc();
-                auto lifted_real = lift_quad(c_real);
+                auto lifted_real = lift(c_real);
                 c_imag.check_soc();c_imag.check_rotated_soc();
-                auto lifted_imag = lift_quad(c_imag);
+                auto lifted_imag = lift(c_imag);
                 lifted_real._ctype = c._ctype;
                 lifted_real._indices = c._indices;
                 lifted_real._dim[0] = c._dim[0];
@@ -735,16 +745,16 @@ namespace gravity {
                 add_constraint(c_real);
                 add_constraint(c_imag);
             }
-//            c_real.print_symbolic();
-//            c_imag.print_symbolic();
+            //            c_real.print_symbolic();
+            //            c_imag.print_symbolic();
         }
         
-        Constraint<type> lift_quad(const Constraint<type>& c){
+        Constraint<type> lift(const Constraint<type>& c){
             if(c.is_constant() || c.is_linear() || c.is_convex()){
                 return c;
             }
-            if(!c.is_quadratic()){
-                throw invalid_argument("lift_quad can only be called on a quadratic constraint");
+            if(c.is_nonlinear()){
+                throw invalid_argument("lift can only be called on polynomial constraints");
             }
             Constraint<type> lifted(c._name+"_lifted");
             if (!c.get_cst()->is_zero()) {
@@ -798,32 +808,114 @@ namespace gravity {
                 }
                 auto o1 = *static_pointer_cast<var<type>>(term._p->first);
                 auto o2 = *static_pointer_cast<var<type>>(term._p->second);
-                auto ids = *c._indices;
+                string name;
+                indices ids;
+                if(o1==o2){
+                    name = "Lift("+o1.get_name(true,true)+"^2)";
+                    ids = *o1._indices;
+                }
+                else {
+                    name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    auto it = _vars_name.find(name);
+                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
+                        o2 = *static_pointer_cast<var<type>>(term._p->first);
+                        o1 = *static_pointer_cast<var<type>>(term._p->second);
+                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    }
+                    it = _vars_name.find(name);
+                    if(it==_vars_name.end()){/* Switch back to original order */
+                        o1 = *static_pointer_cast<var<type>>(term._p->first);
+                        o2 = *static_pointer_cast<var<type>>(term._p->second);
+                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    }
+                    ids = combine(*o1._indices,*o2._indices);
+                }
+                auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys onlly */
+                auto o1_ids = *o1._indices;
+                auto o2_ids = *o2._indices;
+                if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                    auto keep_refs = ids.get_unique_refs();
+                    o1_ids.filter_refs(keep_refs);
+                    o2_ids.filter_refs(keep_refs);
+                }
                 param<type> lb("lb"), ub("ub");
-                lb.in(ids);ub.in(ids);
+                lb.in(unique_ids);ub.in(unique_ids);
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
-                string name;
-                if(o1==o2){
-                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+")^2)";
+                auto it = _vars_name.find(name);
+                if(it==_vars_name.end()){
+                    var<type> vlift(name, lb, ub);
+                    add(vlift.in(unique_ids));
+                    lt._p = make_shared<var<type>>(vlift.in(ids));
+                    add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
                 }
                 else {
-                    name = "Lift("+o1.get_name(true,true)+"("+o1._indices->get_name()+"),"+o2.get_name(true,true)+"("+o2._indices->get_name()+")";
+                    auto vlift = static_pointer_cast<var<type>>(it->second);
+                    auto added = vlift->add_bounds(lb,ub);
+                    lt._p = make_shared<var<type>>(vlift->in(ids));
+                    if(!added.empty()){
+                        assert(added.size()==o1._indices->size());
+                        assert(added.size()==o2._indices->size());
+                        reindex_vars();
+                        add_McCormick(pair.first, vlift->in(added), o1, o2);
+                    }
                 }
-                var<type> vlift(name, lb, ub);
-                auto it = _vars_name.find(name);
+                
+                lifted.insert(lt);
+            }
+            for (auto &pair:*c._pterms) {
+                auto term = pair.second;
+                lterm lt;
+                lt._sign = term._sign;
+                if (term._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<type>>(term._coef);
+                    lt._coef = func<type>(coef).copy();
+                }
+                else if(term._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<type>>(term._coef);
+                    lt._coef = param<type>(coef).copy();
+                }
+                else if(term._coef->is_number()) {
+                    auto coef = *static_pointer_cast<constant<type>>(term._coef);
+                    lt._coef = constant<type>(coef).copy();
+                }
+                func<> prod = 1;
+                string prod_name = "Lift(";
+                for (auto vp:*term._l){
+                    auto list = pair.second._l;
+                    for (auto &ppi: *list) {
+                        auto p = ppi.first;
+                        auto orig_var = *static_pointer_cast<var<type>>(p);
+                        if(ppi.second>1){
+                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                            //TODO Lift univarite power function
+                        }
+                        else{
+                            prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
+                        }
+                        prod *= pow(orig_var,ppi.second);
+                    }
+                }
+                prod_name += ")";
+                
+                auto ids = *c._indices;
+                param<type> lb("lb"), ub("ub");
+                lb.in(ids);ub.in(ids);
+                lb.set_val(prod._range->first);
+                ub.set_val(prod._range->second);
+                var<type> vlift(prod_name, lb, ub);
+                auto it = _vars_name.find(prod_name);
                 if(it==_vars_name.end()){
                     vlift._lift=true;
                     add(vlift.in(ids));
                     lt._p = make_shared<var<type>>(vlift);
-                    add_McCormick(pair.first, vlift, o1, o2);
+//                    add_McCormick(pair.first, vlift, o1, o2);
                 }
                 else {
                     vlift = *static_pointer_cast<var<type>>(it->second);
                     lt._p = make_shared<var<type>>(vlift);
                 }
-                
                 lifted.insert(lt);
             }
             lifted._range = c._range;
@@ -881,8 +973,8 @@ namespace gravity {
             c_imag._ctype = c._ctype;
             c_imag._indices = c._indices;
             if(convexify){
-                add(lift_quad(c_real));
-                add(lift_quad(c_imag));
+                add(lift(c_real));
+                add(lift(c_imag));
             }
             else {
                 add_constraint(c_real);
@@ -948,6 +1040,15 @@ namespace gravity {
             _has_lazy = true;
         }
         
+        void add_callback(Constraint<type>& c){/**<  Adds a callback to the model with given constraints (maybe parameters and variables are needed!). */
+            if (c.get_dim()==0) {
+                return;
+            }
+            //            c.make_lazy();   //Should we do a similar thing like this?
+            add_constraint(c);
+            _has_callback = true;
+        }
+        
         template<typename T>
         void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
             for (auto &c_p: _cons_name) {
@@ -961,7 +1062,7 @@ namespace gravity {
             auto vid = *v->_vec_id;
             delete _vars.at(vid);
             _vars.erase(vid);
-            init_indices();
+            reindex_vars();
         }
         
         
@@ -999,9 +1100,9 @@ namespace gravity {
             if (c.get_dim()==0) {
                 return nullptr;
             }
-//            if(c.is_redundant(1e-8)){/* TO DO move this test to the solve part */
-//                DebugOn(c._name << " is redundant, not adding it to the model" << endl);
-//            }
+            //            if(c.is_redundant(1e-8)){/* TO DO move this test to the solve part */
+            //                DebugOn(c._name << " is redundant, not adding it to the model" << endl);
+            //            }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
                 newc->_val = c._val;
@@ -1047,7 +1148,7 @@ namespace gravity {
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-                    auto lifted = lift_quad(*newc);
+                    auto lifted = lift(*newc);
                     return add_constraint(lifted);
                 }
                 embed(newc, false);
@@ -1726,12 +1827,595 @@ namespace gravity {
         }
         
         template<typename T1>
+        void partition(std::string name, std::string model_type, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2, const vector<T1>& p1, const vector<T1>& p2) {
+            // *************SHOULD I USE SOMETHING LIKE THIS??? add(MC4.in(*vlift._indices)); ***************//
+            if(v1._name!=v2._name)
+            {
+                if ((model_type == "Model_II") || (model_type == "Model_III")) {
+                    
+                    // Obtain the number of partitions
+                    int num_partition1 = p1.size()-1;  // number of partition on v1
+                    int num_partition2 = p2.size()-1;  // number of partition on v2
+                    
+                    /** Parameters */
+                    // Bounds on variable v1
+                    param<double> bounds1(name+"_bounds on variable v1");
+                    bounds1.in(R(num_partition1+1));
+                    for (int i=0; i<num_partition1+1; ++i) {
+                        bounds1.set_val(i,p1[i]);
+                    }
+                    // Bounds on variable v2
+                    param<double> bounds2(name+"_bounds on variable v2");
+                    bounds2.in(R(num_partition2+1));
+                    for (int i=0; i<num_partition2+1; ++i) {
+                        bounds2.set_val(i,p2[i]);
+                    }
+                    // Function values on the extreme points
+                    param<double> EP(name+"_function values in the grid");
+                    EP.in(R((num_partition1+1)*(num_partition2+1)));
+                    for (int j=0; j<num_partition2+1; ++j) {
+                        for (int i=0; i<num_partition1+1; ++i) {
+                            EP.set_val(i+j*(num_partition1+1),p1[i]*p2[j]);
+                        }
+                    }
+                    
+                    // Lambda coefficient matrix when linking with partition variables
+                    param<> lambdaCOEF(name+"_lambda linking coefficients");
+                    
+                    // Partition coefficient matrix when linking with lambda variables
+                    param<> zCOEF(name+"_partition linking coefficients");
+                    
+                    // Partition assignment coefficients
+                    param<> zASGNCOEF(name+"_partition assignment coefficients");
+                    
+                    if (model_type == "Model_II"){
+                        // check if both of the variables involve a partition
+                        if ((num_partition1>1) && (num_partition2>1)) {
+                            
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size(num_partition1+num_partition2+2,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Coefficients related to partition on x2
+                            for (int i=0; i<num_partition2+1; ++i) {
+                                for (int j=0; j<num_partition1+1; ++j) {
+                                    lambdaCOEF.set_val(i,j+i*(num_partition1+1),1);
+                                }
+                            }
+                            
+                            // Collect the corresponding indices of lambda related to partition on v1
+                            vector<int> myIndexVector(num_partition2+1); //initial index vector for lambdas bounding partition variables for v1
+                            for (int i = 0; i<myIndexVector.size(); ++i) {
+                                myIndexVector[i] = (i*(num_partition1+1));
+                            }
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1+1; ++i) {
+                                for (int j=0; j<num_partition2+1; ++j) {
+                                    lambdaCOEF.set_val(i+num_partition2+1,myIndexVector[j]+i,1);
+                                }
+                            }
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size(num_partition1+num_partition2+2, num_partition1+num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            zCOEF.set_val(0, num_partition1, 1);
+                            for (int i=1; i<num_partition2; ++i) {
+                                zCOEF.set_val(i,num_partition1+i-1,1);
+                                zCOEF.set_val(i,num_partition1+i, 1);
+                            }
+                            zCOEF.set_val(num_partition2, num_partition1+num_partition2-1, 1);
+                            
+                            // Coefficients related to partition on v1
+                            zCOEF.set_val(num_partition2+1, 0, 1);
+                            for (int i=2; i<num_partition1+1; ++i) {
+                                zCOEF.set_val(i+num_partition2,i-2,1);
+                                zCOEF.set_val(i+num_partition2,i-1,1);
+                            }
+                            zCOEF.set_val(num_partition1+num_partition2+1, num_partition1-1, 1);
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(2,num_partition1+num_partition2);
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1; ++i) {
+                                zASGNCOEF.set_val(0,i,1);
+                            }
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition2; ++i) {
+                                zASGNCOEF.set_val(1,i+num_partition1,1);
+                            }
+                        }
+                        // check if the first variable v1 involves a partition
+                        else if (num_partition1>1){
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size(num_partition1+1,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Collect the corresponding indices of lambda related to partition on v1
+                            vector<int> myIndexVector(num_partition2+1); //initial index vector for lambdas bounding partition variables for x1
+                            for (int i = 0; i<myIndexVector.size(); ++i) {
+                                myIndexVector[i] = (i*(num_partition1+1));
+                            }
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1+1; ++i) {
+                                for (int j=0; j<num_partition2+1; ++j) {
+                                    lambdaCOEF.set_val(i,myIndexVector[j]+i,1);
+                                }
+                            }
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size(num_partition1+1, num_partition1);
+                            
+                            // Coefficients related to partition on v1
+                            zCOEF.set_val(0, 0, 1);
+                            for (int i=1; i<num_partition1; ++i) {
+                                zCOEF.set_val(i,i-1,1);
+                                zCOEF.set_val(i,i,1);
+                            }
+                            zCOEF.set_val(num_partition1, num_partition1-1, 1);
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(num_partition1);
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1; ++i) {
+                                zASGNCOEF.set_val(i,1);
+                            }
+                        }
+                        // check if the first variable v2 involves a partition
+                        else if (num_partition2>1){
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size(num_partition2+1,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition2+1; ++i) {
+                                for (int j=0; j<num_partition1+1; ++j) {
+                                    lambdaCOEF.set_val(i,j+i*(num_partition1+1),1);
+                                }
+                            }
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size(num_partition2+1, num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            zCOEF.set_val(0, 0, 1);
+                            for (int i=1; i<num_partition2; ++i) {
+                                zCOEF.set_val(i,i-1,1);
+                                zCOEF.set_val(i,i, 1);
+                            }
+                            zCOEF.set_val(num_partition2, num_partition2-1, 1);
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition2; ++i) {
+                                zASGNCOEF.set_val(i,1);
+                            }
+                        }
+                    }
+                    else if (model_type == "Model_III"){
+                        // check if both of the variables involve a partition
+                        if ((num_partition1>1) && (num_partition2>1)) {
+                            
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size((num_partition1-2)*2+2+(num_partition2-2)*2+2,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition1+1; i++) {
+                                lambdaCOEF.set_val(0,i,1);
+                            }
+                            
+                            for (int i=1; i<(num_partition2-2)*2+1; i=i+2) {
+                                for (int j=(i-1)/2 + 2; j<num_partition2+1; ++j) {
+                                    for(int k=0; k<num_partition1+1; ++k){
+                                        lambdaCOEF.set_val(i,k+j*(num_partition1+1),1);
+                                        lambdaCOEF.set_val(i+1,k+j*(num_partition1+1),-1);
+                                    }
+                                }
+                            }
+                            
+                            for (int i=0; i<num_partition1+1; i++) {
+                                lambdaCOEF.set_val((num_partition2-2)*2+1,i+(num_partition2)*(num_partition1+1),1);
+                            }
+                            
+                            
+                            // Collect the corresponding indices of lambda related to partition on v1
+                            vector<int> myIndexVector(num_partition2+1); //initial index vector for lambdas bounding partition variables for x1
+                            for (int i = 0; i<myIndexVector.size(); ++i) {
+                                myIndexVector[i] = (i*(num_partition1+1));
+                            }
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition2+1; i++) {
+                                lambdaCOEF.set_val((num_partition2-2)*2+2,myIndexVector[i],1);
+                            }
+                            
+                            for (int i=1; i<(num_partition1-2)*2+1; i=i+2) {
+                                for (int j=(i-1)/2 + 2; j<num_partition1+1; ++j) {
+                                    for(int k=0; k<num_partition2+1; ++k){
+                                        lambdaCOEF.set_val(i+(num_partition2-2)*2+2,myIndexVector[k]+j,1);
+                                        lambdaCOEF.set_val(i+(num_partition2-2)*2+3,myIndexVector[k]+j,-1);
+                                    }
+                                }
+                            }
+                            
+                            for (int i=0; i<num_partition2+1; i++) {
+                                lambdaCOEF.set_val((num_partition1-2)*2+2+(num_partition2-2)*2+1,myIndexVector[i]+num_partition1,1);
+                            }
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size((num_partition1-2)*2+2+(num_partition2-2)*2+2, num_partition1+num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            zCOEF.set_val(0, num_partition1, 1);
+                            for (int i=1; i<num_partition2; ++i) {
+                                zCOEF.set_val(1, num_partition1+i, 1);
+                            }
+                            
+                            for (int i=2; i<(num_partition2-2)*2+2; i=i+2) {
+                                for (int j=i/2+1; j<num_partition2; ++j) {
+                                    zCOEF.set_val(i, num_partition1+j, -1);
+                                    zCOEF.set_val(i+1, num_partition1+j, 1);
+                                }
+                            }
+                            
+                            // Coefficients related to partition on v1
+                            zCOEF.set_val((num_partition2-2)*2+2, 0, 1);
+                            for (int i=1; i<num_partition1; ++i) {
+                                zCOEF.set_val((num_partition2-2)*2+3, i, 1);
+                            }
+                            
+                            for (int i=2; i<(num_partition1-2)*2+2; i=i+2) {
+                                for (int j=i/2+1; j<num_partition1; ++j) {
+                                    zCOEF.set_val(i+(num_partition2-2)*2+2, j, -1);
+                                    zCOEF.set_val(i+(num_partition2-2)*2+3, j, 1);
+                                }
+                            }
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(2,num_partition1+num_partition2);
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1; ++i) {
+                                zASGNCOEF.set_val(0,i,1);
+                            }
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition2; ++i) {
+                                zASGNCOEF.set_val(1,i+num_partition1,1);
+                            }
+                        }
+                        // check if the first variable v1 involves a partition
+                        else if (num_partition1>1){
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size((num_partition1-2)*2+2,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Collect the corresponding indices of lambda related to partition on v1
+                            vector<int> myIndexVector(num_partition2+1); //initial index vector for lambdas bounding partition variables for x1
+                            for (int i = 0; i<myIndexVector.size(); ++i) {
+                                myIndexVector[i] = (i*(num_partition1+1));
+                            }
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition2+1; i++) {
+                                lambdaCOEF.set_val(0,myIndexVector[i],1);
+                            }
+                            
+                            for (int i=1; i<(num_partition1-2)*2+1; i=i+2) {
+                                for (int j=(i-1)/2 + 2; j<num_partition1+1; ++j) {
+                                    for(int k=0; k<num_partition2+1; ++k){
+                                        lambdaCOEF.set_val(i,myIndexVector[k]+j,1);
+                                        lambdaCOEF.set_val(i+1,myIndexVector[k]+j,-1);
+                                    }
+                                }
+                            }
+                            
+                            for (int i=0; i<num_partition2+1; i++) {
+                                lambdaCOEF.set_val((num_partition1-2)*2+1,myIndexVector[i]+num_partition1,1);
+                            }
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size((num_partition1-2)*2+2, num_partition1);
+                            
+                            // Coefficients related to partition on v1
+                            zCOEF.set_val(0, 0, 1);
+                            for (int i=1; i<num_partition1; ++i) {
+                                zCOEF.set_val(1, i, 1);
+                            }
+                            
+                            for (int i=2; i<(num_partition1-2)*2+2; i=i+2) {
+                                for (int j=i/2+1; j<num_partition1; ++j) {
+                                    zCOEF.set_val(i, j, -1);
+                                    zCOEF.set_val(i+1, j, 1);
+                                }
+                            }
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(num_partition1);
+                            
+                            // Coefficients related to partition on v1
+                            for (int i=0; i<num_partition1; ++i) {
+                                zASGNCOEF.set_val(i,1);
+                            }
+                        }
+                        // check if the first variable v2 involves a partition
+                        else if (num_partition2>1){
+                            // Lambda coefficient matrix when linking with partition variables
+                            lambdaCOEF.set_size((num_partition2-2)*2+2,((num_partition1+1)*(num_partition2+1)));
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition1+1; i++) {
+                                lambdaCOEF.set_val(0,i,1);
+                            }
+                            
+                            for (int i=1; i<(num_partition2-2)*2+1; i=i+2) {
+                                for (int j=(i-1)/2 + 2; j<num_partition2+1; ++j) {
+                                    for(int k=0; k<num_partition1+1; ++k){
+                                        lambdaCOEF.set_val(i,k+j*(num_partition1+1),1);
+                                        lambdaCOEF.set_val(i+1,k+j*(num_partition1+1),-1);
+                                    }
+                                }
+                            }
+                            
+                            for (int i=0; i<num_partition1+1; i++) {
+                                lambdaCOEF.set_val((num_partition2-2)*2+1,i+(num_partition2)*(num_partition1+1),1);
+                            }
+                            
+                            
+                            // Partition coefficient matrix when linking with lambda variables
+                            zCOEF.set_size((num_partition2-2)*2+2, num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            zCOEF.set_val(0, 0, 1);
+                            for (int i=1; i<num_partition2; ++i) {
+                                zCOEF.set_val(1, i, 1);
+                            }
+                            
+                            for (int i=2; i<(num_partition2-2)*2+2; i=i+2) {
+                                for (int j=i/2+1; j<num_partition2; ++j) {
+                                    zCOEF.set_val(i, j, -1);
+                                    zCOEF.set_val(i+1, j, 1);
+                                }
+                            }
+                            
+                            // Partition assignment coefficients
+                            zASGNCOEF.set_size(num_partition2);
+                            
+                            // Coefficients related to partition on v2
+                            for (int i=0; i<num_partition2; ++i) {
+                                zASGNCOEF.set_val(i,1);
+                            }
+                        }
+                    }
+                    
+                    
+                    /** Variables */
+                    // Convex combination variables
+                    var<type> lambda(name+"_lambda",pos_);
+                    lambda.in(R((num_partition1+1)*(num_partition2+1)));
+                    add(lambda);
+                    
+                    /** Constraints */
+                    // Representation of the bilinear term with convex combination
+                    Constraint<type> BLNREP(name+"_Representation of bilinear term");
+                    BLNREP = EP.tr()*lambda - vlift;
+                    add(BLNREP == 0);
+                    
+                    // Representation of v1 with convex combination
+                    Constraint<type> v1REP(name+"_Representation of v1");
+                    for(int i=0;i<num_partition2+1;i++)
+                    {
+                        v1REP += bounds1.tr()*lambda.in(range(i*(num_partition1+1),i*(num_partition1+1)+num_partition1));
+                    }
+                    v1REP -= v1;
+                    add(v1REP == 0);
+                    
+                    // Representation of v2 with convex combination
+                    Constraint<type> v2REP(name+"_Representation of v2");
+                    for(int i=0;i<num_partition2+1;i++)
+                    {
+                        v2REP += bounds2.eval(i)*sum(lambda.in(range(i*(num_partition1+1),i*(num_partition1+1)+num_partition1)));
+                    }
+                    v2REP -= v2;
+                    add(v2REP == 0);
+                    
+                    // check if any of the variables involve a partition
+                    if ((num_partition1>1) || (num_partition2>1)){
+                        // Partition variables
+                        var<int> z(name+"_z",0,1);
+                        z.in(R((num_partition1)*(num_partition1>1)+(num_partition2)*(num_partition2>1)));
+                        add(z);
+                        
+                        // Partition Assignment
+                        Constraint<type> zASGN(name+"_Partition assignment");
+                        zASGN = product(zASGNCOEF,z);
+                        add(zASGN == 1);
+                        
+                        // Linking partition variables with lambda
+                        Constraint<type> zLINKlambda(name+"_Linking the partition variables to lambda");
+                        zLINKlambda = product(lambdaCOEF,lambda) - product(zCOEF,z);
+                        add(zLINKlambda<= 0);
+                    }
+                    
+                    // Summation over lambda is 1
+                    Constraint<type> lambdaSUM(name+"_Summation over lambda");
+                    lambdaSUM = sum(lambda);
+                    add(lambdaSUM == 1);
+                    
+                    
+                }
+                else{
+                    throw invalid_argument("Model type is invalid. The options are 'Model_II' and 'Model_III'!\n");
+                }
+            }
+            else{ //this case means the two variables are same and the approximation is now on quadratic term
+                if ((model_type == "Model_II") || (model_type == "Model_III")) {
+                    
+                    if (p1 == p2) //the partition vectors must be same since the variables are same
+                    {
+                        // Obtain the number of partitions
+                        int num_partition1 = p1.size()-1;  // number of partition on v1 & v2 (they are same)
+                        
+                        /** Parameters */
+                        // Bounds on variable v1 & v2
+                        param<double> bounds1(name+"_bounds on variables v1&v2");
+                        bounds1.in(R(num_partition1+1));
+                        for (int i=0; i<num_partition1+1; ++i) {
+                            bounds1.set_val(i,p1[i]);
+                        }
+                        
+                        // Function values on the extreme points
+                        param<double> EP(name+"_function values in the grid");
+                        EP.in(R((num_partition1+1)));
+                        for (int i=0; i<num_partition1+1; ++i) {
+                            EP.set_val(i,p1[i]*p1[i]);
+                            }
+                        
+                        // Lambda coefficient matrix when linking with partition variables
+                        param<> lambdaCOEF(name+"_lambda linking coefficients");
+                        
+                        // Partition coefficient matrix when linking with lambda variables
+                        param<> zCOEF(name+"_partition linking coefficients");
+                        
+                        // Partition assignment coefficients
+                        param<> zASGNCOEF(name+"_partition assignment coefficients");
+                        
+                        if (model_type == "Model_II"){
+                            // check if the the variables involve a partition
+                            if (num_partition1>1){
+                                // Lambda coefficient matrix when linking with partition variables
+                                lambdaCOEF.set_size(num_partition1+1,num_partition1+1);
+                                
+                                // Coefficients related to partition on variables v1 & v2
+                                for (int i=0; i<num_partition1+1; ++i) {
+                                        lambdaCOEF.set_val(i,i,1);
+                                    }
+                                
+                                // Partition coefficient matrix when linking with lambda variables
+                                zCOEF.set_size(num_partition1+1, num_partition1);
+                                
+                                // Coefficients related to partition on variables v1 & v2
+                                zCOEF.set_val(0, 0, 1);
+                                for (int i=1; i<num_partition1; ++i) {
+                                    zCOEF.set_val(i,i-1,1);
+                                    zCOEF.set_val(i,i,1);
+                                }
+                                zCOEF.set_val(num_partition1, num_partition1-1, 1);
+                                
+                                // Partition assignment coefficients
+                                zASGNCOEF.set_size(num_partition1);
+                                
+                                // Coefficients related to partition on variables v1 & v2
+                                for (int i=0; i<num_partition1; ++i) {
+                                    zASGNCOEF.set_val(i,1);
+                                }
+                            }
+                        }
+                        else if (model_type == "Model_III"){
+                            // check if both of the variables involve a partition
+                            if (num_partition1>1){
+                                // Lambda coefficient matrix when linking with partition variables
+                                lambdaCOEF.set_size((num_partition1-2)*2+2,num_partition1+1);
+                                
+                                // Coefficients related to partition on variables v1 & v2
+                                lambdaCOEF.set_val(0,0,1);
+                                
+                                for (int i=1; i<(num_partition1-2)*2+1; i=i+2) {
+                                    for (int j=(i-1)/2 + 2; j<num_partition1+1; ++j) {
+                                            lambdaCOEF.set_val(i,j,1);
+                                            lambdaCOEF.set_val(i+1,j,-1);
+                                    }
+                                }
+                                    lambdaCOEF.set_val((num_partition1-2)*2+1,num_partition1,1);
+                                
+                                // Partition coefficient matrix when linking with lambda variables
+                                zCOEF.set_size((num_partition1-2)*2+2, num_partition1);
+                                
+                                // Coefficients related to partition on v1
+                                zCOEF.set_val(0, 0, 1);
+                                for (int i=1; i<num_partition1; ++i) {
+                                    zCOEF.set_val(1, i, 1);
+                                }
+                                
+                                for (int i=2; i<(num_partition1-2)*2+2; i=i+2) {
+                                    for (int j=i/2+1; j<num_partition1; ++j) {
+                                        zCOEF.set_val(i, j, -1);
+                                        zCOEF.set_val(i+1, j, 1);
+                                    }
+                                }
+                                
+                                // Partition assignment coefficients
+                                zASGNCOEF.set_size(num_partition1);
+                                
+                                // Coefficients related to partition on v1
+                                for (int i=0; i<num_partition1; ++i) {
+                                    zASGNCOEF.set_val(i,1);
+                                }
+                            }
+                        }
+                        
+                        /** Variables */
+                        // Convex combination variables
+                        var<type> lambda(name+"_lambda",pos_);
+                        lambda.in(R((num_partition1+1)));
+                        add(lambda);
+                        
+                        /** Constraints */
+                        // Representation of the bilinear term with secant
+                        Constraint<type> BLNREP_UB(name+"_Representation of quadratic term (UB)");
+                        BLNREP_UB = EP.tr()*lambda - vlift;
+                        add(BLNREP_UB >= 0); /*using it as the upper bound to be valid*/
+                        
+                        Constraint<type> BLNREP_LB(name+"_Representation of quadratic term (LB)");
+                        BLNREP_LB = pow(v1,2) - vlift;
+                        add(BLNREP_LB <= 0); /*using it as the lower bound to be valid*/
+                        
+                        // Representation of v1=v2 with convex combination
+                        Constraint<type> v1REP(name+"_Representation of v1");
+                        v1REP == bounds1.tr()*lambda - v1;
+                        add(v1REP == 0);
+                        
+                        // check if any of the variables involve a partition
+                        if (num_partition1>1) {
+                            // Partition variables
+                            var<int> z(name+"_z",0,1);
+                            z.in(R((num_partition1)));
+                            add(z);
+                            
+                            // Partition Assignment
+                            Constraint<type> zASGN(name+"_Partition assignment");
+                            zASGN = product(zASGNCOEF,z);
+                            add(zASGN == 1);
+                            
+                            // Linking partition variables with lambda
+                            Constraint<type> zLINKlambda(name+"_Linking the partition variables to lambda");
+                            zLINKlambda = product(lambdaCOEF,lambda) - product(zCOEF,z);
+                            add(zLINKlambda<= 0);
+                        }
+                        
+                        // Summation over lambda is 1
+                        Constraint<type> lambdaSUM(name+"_Summation over lambda");
+                        lambdaSUM = sum(lambda);
+                        add(lambdaSUM == 1);
+                    }
+                    else
+                    {
+                        throw invalid_argument("Partition bounds must be same since the two varibles are same.\n");
+                    }
+                }
+                else{
+                    throw invalid_argument("Model type is invalid. The options are 'Model_II' and 'Model_III'!\n");
+                }
+            }
+        }
+        
+        
+        template<typename T1>
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
             Constraint<type> MC1(name+"_McCormick1");
-            auto lb1 = v1.get_lb(v1.get_id_inst());
-            auto lb2 = v2.get_lb(v2.get_id_inst());
-            auto ub1 = v1.get_ub(v1.get_id_inst());
-            auto ub2 = v2.get_ub(v2.get_id_inst());
             param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
             if(!lb1_.func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
@@ -1745,7 +2429,6 @@ namespace gravity {
             if(!ub2_.func_is_number()){
                 ub2_ = v2.get_ub().in(*v2._indices);
             }
-            bool template_cstr = v1._dim[0]>1;
             bool var_equal=false;
             if(v1._name==v2._name)
                 var_equal=true;
@@ -1753,64 +2436,38 @@ namespace gravity {
             {
                 Constraint<type> MC1(name+"_McCormick1");
                 MC1 += vlift;
-                if(template_cstr){//Template constraint
-                    MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
-                }
-                else {
-                    MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
-                }
+                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
                 MC1 >= 0;
-                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
+//                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
                 add(MC1.in(*vlift._indices));
                 //    MC1.print();
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 += vlift;
-                if(template_cstr){//Template constraint
-                    MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
-                }
-                else {
-                    MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
-                }
+                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
                 MC2 >= 0;
-                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
+//                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
                 add(MC2.in(*vlift._indices));
                 
                 //    //    MC2.print();
                 Constraint<type> MC3(name+"_McCormick3");
                 MC3 += vlift;
-                if(template_cstr){//Template constraint
-                    MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
-                }
-                else {
-                    MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
-                }
+                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
                 MC3 <= 0;
-                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
+//                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
                 add(MC3.in(*vlift._indices));
                 //    //    MC3.print();
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 += vlift;
-                if(template_cstr){//Template constraint
-                    MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
-                }
-                else{
-                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-                }
+                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
                 MC4 <= 0;
-                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
+//                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
             }
             else {
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
-                if(template_cstr){//Template constraint
-                    MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
-                }
-                else{
-                    MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-                }
+                MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
-                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
                 add(MC4.in(*vlift._indices));
                 Constraint<type> MC5(name+"_McCormick_squared");
                 if(var_equal)
@@ -1824,66 +2481,65 @@ namespace gravity {
                     add(MC5.in(*vlift._indices));
                 }
             }
-
             //    MC4.print();
         }
         
-//        template<typename T1>
-//        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
-//            Constraint<type> MC1(name+"_McCormick1");
-//            auto lb1 = v1.get_lb(v1.get_id_inst());
-//            auto lb2 = v2.get_lb(v2.get_id_inst());
-//            auto ub1 = v1.get_ub(v1.get_id_inst());
-//            auto ub2 = v2.get_ub(v2.get_id_inst());
-//            auto lb1_ = v1.get_lb().in(*v1._indices);
-//            auto lb2_ = v2.get_lb().in(*v2._indices);
-//            auto ub1_ = v1.get_ub().in(*v1._indices);
-//            auto ub2_ = v2.get_ub().in(*v2._indices);
-//            bool template_cstr = v1._dim[0]>1;
-//            MC1 += vlift;
-//            if(template_cstr){//Template constraint
-//                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
-//            }
-//            else {
-//                MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
-//            }
-//            MC1 >= 0;
-//            add(MC1.in(*vlift._indices));
-//            //    MC1.print();
-//            Constraint<type> MC2(name+"_McCormick2");
-//            MC2 += vlift;
-//            if(template_cstr){//Template constraint
-//                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
-//            }
-//            else {
-//                MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
-//            }
-//            MC2 >= 0;
-//            add(MC2.in(*vlift._indices));
-//            //    //    MC2.print();
-//            Constraint<type> MC3(name+"_McCormick3");
-//            MC3 += vlift;
-//            if(template_cstr){//Template constraint
-//                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
-//            }
-//            else {
-//                MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
-//            }
-//            MC3 <= 0;
-//            add(MC3.in(*vlift._indices));
-//            //    //    MC3.print();
-//            Constraint<type> MC4(name+"_McCormick4");
-//            MC4 += vlift;
-//            if(template_cstr){//Template constraint
-//                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
-//            }
-//            else{
-//                MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
-//            }
-//            MC4 <= 0;
-//            add(MC4.in(*vlift._indices));
-//            //    MC4.print();
-//        }
+        //        template<typename T1>
+        //        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
+        //            Constraint<type> MC1(name+"_McCormick1");
+        //            auto lb1 = v1.get_lb(v1.get_id_inst());
+        //            auto lb2 = v2.get_lb(v2.get_id_inst());
+        //            auto ub1 = v1.get_ub(v1.get_id_inst());
+        //            auto ub2 = v2.get_ub(v2.get_id_inst());
+        //            auto lb1_ = v1.get_lb().in(*v1._indices);
+        //            auto lb2_ = v2.get_lb().in(*v2._indices);
+        //            auto ub1_ = v1.get_ub().in(*v1._indices);
+        //            auto ub2_ = v2.get_ub().in(*v2._indices);
+        //            bool template_cstr = v1._dim[0]>1;
+        //            MC1 += vlift;
+        //            if(template_cstr){//Template constraint
+        //                MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
+        //            }
+        //            else {
+        //                MC1 -= lb1*v2 + lb2*v1 - lb1*lb2;
+        //            }
+        //            MC1 >= 0;
+        //            add(MC1.in(*vlift._indices));
+        //            //    MC1.print();
+        //            Constraint<type> MC2(name+"_McCormick2");
+        //            MC2 += vlift;
+        //            if(template_cstr){//Template constraint
+        //                MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
+        //            }
+        //            else {
+        //                MC2 -= ub1*v2 + ub2*v1 - ub1*ub2;
+        //            }
+        //            MC2 >= 0;
+        //            add(MC2.in(*vlift._indices));
+        //            //    //    MC2.print();
+        //            Constraint<type> MC3(name+"_McCormick3");
+        //            MC3 += vlift;
+        //            if(template_cstr){//Template constraint
+        //                MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
+        //            }
+        //            else {
+        //                MC3 -= lb1*v2 + ub2*v1 - lb1*ub2;
+        //            }
+        //            MC3 <= 0;
+        //            add(MC3.in(*vlift._indices));
+        //            //    //    MC3.print();
+        //            Constraint<type> MC4(name+"_McCormick4");
+        //            MC4 += vlift;
+        //            if(template_cstr){//Template constraint
+        //                MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
+        //            }
+        //            else{
+        //                MC4 -= ub1*v2 + lb2*v1 - ub1*lb2;
+        //            }
+        //            MC4 <= 0;
+        //            add(MC4.in(*vlift._indices));
+        //            //    MC4.print();
+        //        }
         
         
         /** Build the sequential McCormick relaxation for polynomial programs **/
@@ -2932,7 +3588,7 @@ namespace gravity {
             }
         }
         
-
+        
         
         void embed(expr<type>& e){/**<  Transfer all variables and parameters to the model. */
             switch (e.get_type()) {
