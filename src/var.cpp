@@ -52,6 +52,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     constant_::set_type(var_c);
     _lb = v._lb;
     _ub = v._ub;
+    _lift=v._lift;
     return *this;
 };
 
@@ -60,6 +61,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     constant_::set_type(var_c);
     _lb = move(v._lb);
     _ub = move(v._ub);
+    _lift=v._lift;
     return *this;
 };
 

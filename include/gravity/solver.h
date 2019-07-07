@@ -494,6 +494,7 @@ namespace gravity {
         int return_status = -1;
         for (auto i = start; i<end; i++) {
             return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver);
+            DebugOn("Return status\t"<<return_status);
             //            models.at(i)->print_solution(24);
         }
         return return_status;

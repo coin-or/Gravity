@@ -1,5 +1,5 @@
 //
-// Created by kbestuzheva on 12/11/17.
+// Created by smitha on 04/19.
 //
 #include <stdio.h>
 #include <iostream>
@@ -117,8 +117,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    int nb_threads = thread::hardware_concurrency()-1;
-    //int nb_threads = 4;
+    //int nb_threads = thread::hardware_concurrency()-1;
+    int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -181,7 +181,7 @@ int main (int argc, char * argv[]) {
     bool terminate=false;
     bool infeasible=false;
     
-    bool break_flag=false, time_limit = false;
+    bool break_flag=false, time_limit = false, lifted_var=false;
     
     const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
     
@@ -249,6 +249,9 @@ int main (int argc, char * argv[]) {
                 {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
+                    lifted_var=v._lift;
+                    if(!lifted_var || true)
+                    {
                     auto v_keys=v.get_keys();
                     for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                     {
@@ -376,48 +379,48 @@ int main (int argc, char * argv[]) {
                                                 }
                                                 
                                             }
-                                            //                                            if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
-                                            //                                            {
-                                            //                                            if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
-                                            //                                            {
-                                            //                                                DebugOn("Entered reset");
-                                            //                                                double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
-                                            //
-                                            //                                                double left=mid-range_tol/2.0;
-                                            //                                                double right=mid+range_tol/2.0;
-                                            //                                                DebugOn("UbO"<<ub_original[pk]<<endl);
-                                            //                                                DebugOn("LbO"<<lb_original[pk]<<endl);
-                                            //                                                if(right<=ub_original[pk] && left>=lb_original[pk])
-                                            //                                                {
-                                            //                                                    vk.set_ub(keyk, right);
-                                            //                                                    vk.set_lb(keyk, left);
-                                            //                                                    //  DebugOn("Entered if 1"<<endl);
-                                            //                                                }
-                                            //                                                else if(right>ub_original[pk])
-                                            //                                                {
-                                            //
-                                            //                                                    vk.set_ub(keyk, ub_original[pk]);
-                                            //                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
-                                            //                                                    //  DebugOn("Entered if 2"<<endl);
-                                            //                                                }
-                                            //                                                else if(left<lb_original[pk])
-                                            //                                                {
-                                            //                                                    vk.set_lb(keyk, lb_original[pk]);
-                                            //                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
-                                            //                                                    //  DebugOn("Entered if 3"<<endl);
-                                            //
-                                            //                                                }
-                                            //
-                                            //                                                //                                    double ar=ub_original[p];
-                                            //                                                //                                    double ar1=lb_original[p];
-                                            //                                                //                                oaa1=v.get_ub(key);
-                                            //                                                //                                     oab1=v.get_lb(key);
-                                            //                                                //                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
-                                            //
-                                            //
-                                            //                                                // }
-                                            //                                            }
-                                            //                                            }
+                                                                                        if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                                                                        {
+                                                                                        if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
+                                                                                        {
+                                                                                            DebugOn("Entered reset");
+                                                                                            double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+                                            
+                                                                                            double left=mid-range_tol/2.0;
+                                                                                            double right=mid+range_tol/2.0;
+                                                                                            DebugOn("UbO"<<ub_original[pk]<<endl);
+                                                                                            DebugOn("LbO"<<lb_original[pk]<<endl);
+                                                                                            if(right<=ub_original[pk] && left>=lb_original[pk])
+                                                                                            {
+                                                                                                vk.set_ub(keyk, right);
+                                                                                                vk.set_lb(keyk, left);
+                                                                                                //  DebugOn("Entered if 1"<<endl);
+                                                                                            }
+                                                                                            else if(right>ub_original[pk])
+                                                                                            {
+                                            
+                                                                                                vk.set_ub(keyk, ub_original[pk]);
+                                                                                                vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                                                                //  DebugOn("Entered if 2"<<endl);
+                                                                                            }
+                                                                                            else if(left<lb_original[pk])
+                                                                                            {
+                                                                                                vk.set_lb(keyk, lb_original[pk]);
+                                                                                                vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                                                                //  DebugOn("Entered if 3"<<endl);
+                                            
+                                                                                            }
+                                            
+                                                                                            //                                    double ar=ub_original[p];
+                                                                                            //                                    double ar1=lb_original[p];
+                                                                                            //                                oaa1=v.get_ub(key);
+                                                                                            //                                     oab1=v.get_lb(key);
+                                                                                            //                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
+                                            
+                                            
+                                                                                            // }
+                                                                                        }
+                                                                                        }
                                         }
                                         else
                                         {
@@ -433,6 +436,11 @@ int main (int argc, char * argv[]) {
                         }
                     }
                 }
+                    else
+                    {
+                        DebugOn("Did not do OBBT for \t" << vname);
+                    }
+            }
                 if(break_flag==true)
                 {
                     DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
@@ -513,8 +521,8 @@ int main (int argc, char * argv[]) {
                 
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
-//                DebugOn("Solution Print"<<endl);
-//                SDP->print_solution();
+                DebugOn("Solution Print"<<endl);
+                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
