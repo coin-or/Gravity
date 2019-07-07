@@ -31,7 +31,7 @@ int main (int argc, char * argv[]) {
     string current_from_s = "yes";
     string orig_s = "yes";
     string current_to_s="yes";
-    string lazy_s = "yes";
+    string lazy_s = "no";
     bool lazy_bool = false;
     SolverType solv_type = ipopt;
     double tol = 1e-6;
@@ -277,8 +277,8 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC.in(bus_pairs_chord) >= 0,true);
-    ACOPF.add(SOC.in(bus_pairs_chord) >= 0);
+    SDP.add(SOC.in(bus_pairs_chord) == 0,true);
+    ACOPF.add(SOC.in(bus_pairs_chord) == 0);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -377,19 +377,27 @@ int main (int argc, char * argv[]) {
         var<Cpx> Sij("Sij"), Sji("Sji");
         Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
         Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+
+//        Constraint<> PLoss("PLoss");
+//        PLoss = pow(Pf_from,2);
+//        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
+//        SDP.add(PLoss.in(arcs)==0,true);
+//        Constraint<> PLoss2("PLoss2");
+//        PLoss2 = pow(Pf_to,2);
+//        PLoss2 -= pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
+//        SDP.add(PLoss2.in(arcs)==0,true);
+//        Constraint<> PLoss("PLoss");
+//        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
+//        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
+//        PLoss += pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
+//        SDP.add(PLoss.in(arcs)==0,true);
         
-        Constraint<> PLoss("PLoss");
-        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
-        PLoss -= pow((g_ff*Wii.from(bus_pairs) + g_ft*R_Wij + b_ft*Im_Wij),2);
-        PLoss += pow((g_tt*Wii.to(bus_pairs) + g_tf*R_Wij - b_tf*Im_Wij),2);
-        SDP.add(PLoss.in(arcs)==0,true);
-        
-        Constraint<> QLoss("QLoss");
-        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
-        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
-        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
-        SDP.add(QLoss.in(arcs)==0,true);
-        SDP.print();
+//        Constraint<> QLoss("QLoss");
+//        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
+//        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
+//        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
+//        SDP.add(QLoss.in(arcs)==0,true);
+//        SDP.print();
         
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
@@ -419,7 +427,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
-    //SDP.print();
+    SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6, "ma97");
     SDP.print_solution();
     SDP.print_constraints_stats(tol);

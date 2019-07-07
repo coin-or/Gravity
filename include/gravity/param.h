@@ -1679,6 +1679,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".from";
             res._indices->_type = from_;
+            res._indices->set_name("from("+res._indices->get_name()+")");
             return res;
         }
         
@@ -1691,6 +1692,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".to";
             res._indices->_type = to_;
+            res._indices->set_name("to("+res._indices->get_name()+")");
             return res;
         }
         

@@ -1051,7 +1051,7 @@ namespace gravity {
             auto name = v.get_name(false,false);
             for (auto &lt: *_qterms) {
                 if (lt.second._p->first->get_name(false,false) == name) {
-                    res.update_dim(v);
+                    res.set_max_dim(v);
                     auto coef = lt.second._coef->copy();
                     if (coef->_is_transposed) {
                         coef->transpose();//TODO is this needed?
@@ -1089,7 +1089,7 @@ namespace gravity {
                     }
                 }
                 if (lt.second._p->second->get_name(false,false) == name) {
-                    res.update_dim(v);
+                    res.set_max_dim(v);
                     auto coef = lt.second._coef->copy();
                     if (coef->_is_transposed) {
                         coef->transpose();//TODO is this needed?
@@ -1143,7 +1143,7 @@ namespace gravity {
                         expo = it->second;
                         if(expo!=1){
                             newl->push_back(make_pair<>(vv, expo-1));
-                            res.update_dim(*vv);
+                            res.set_max_dim(*vv);
                         }
                     }
                     else {
@@ -1152,7 +1152,7 @@ namespace gravity {
                     it++;
                 }
                 if(has_v){//TODO fix range propagation for square terms
-                    res.update_dim(v);
+                    res.set_max_dim(v);
                     auto pterm_range = get_range(newl);
                     pterm_range.first *= expo;
                     pterm_range.second *= expo;
@@ -1567,81 +1567,7 @@ namespace gravity {
         
         template<typename... Args>
         void index_in(const indices& ids1, Args&&... args) {
-            auto ids = indices(ids1,args...);
-            if(!_indices || _indices->empty() || ids.is_indexed()){/**< No need to add each key individually */
-                if(!ids._excluded_keys.empty()){
-                    ids.remove_excluded();
-                }
-                _indices = make_shared<indices>(ids);
-                auto dim = _indices->size();
-                if(ids._type==matrix_){
-                    if(_is_transposed){
-                        _dim[0] = ids._dim->at(1);
-                        _dim[1] = ids._dim->at(0);
-                    }
-                    else {
-                        _dim[1] = ids._dim->at(0);
-                        _dim[0] = ids._dim->at(1);
-                    }
-                }
-                else {
-                    if(_is_transposed){
-                        _dim[1] = dim;
-                    }
-                    else {
-                        _dim[0] = dim;
-                    }
-                }
-                _name += ".in("+ids.get_name()+")";
-            }
-            else { /**< Add each key in ids individually */
-                _indices->_ids = make_shared<vector<vector<size_t>>>();
-                _indices->_ids->resize(1);
-                if(ids.empty()){
-                    DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                    _name += "_EMPTY";
-                    return;
-                }
-                string key, excluded;
-                size_t idx = 0;
-                /* Used for truncating extra indices */
-                auto nb_sep1 = _indices->_dim->size();
-                auto nb_sep2 = ids._dim->size();
-                
-                for(auto key: *ids._keys){
-                    if(ids._excluded_keys.count(idx++)!=0){
-                        excluded += key + ",";
-                        continue;
-                    }
-                    if(_indices->_type==to_){
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    else if(_indices->_type==from_){
-                        key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    if(nb_sep2>nb_sep1){
-                        auto pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                        key = key.substr(pos+1,key.size()-1);
-                    }
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: " + key);
-                    }
-                    _indices->_ids->at(0).push_back(it1->second);
-                }
-                if(_is_transposed){
-                    _dim[1]=_indices->_ids->at(0).size();
-                }
-                else {
-                    _dim[0]=_indices->_ids->at(0).size();
-                }
-                _name += ".in("+ids.get_name()+")";
-                if(!excluded.empty()){
-                    excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
-                    _name += "\{" + excluded + "}";
-                }
-            }
+            _indices = make_shared<indices>(ids1, args...);
         }
         
         void print() {
@@ -2356,9 +2282,12 @@ namespace gravity {
             _range->second = c._range->second;
             _all_sign = c.get_all_sign();
             _evaluated = false;
-            if(c.is_double_indexed()){
-                _indices = c._indices;
+            if(c._indices){
+                _indices = make_shared<indices>(*c._indices);
             }
+//            if(c.is_double_indexed()){
+//                _indices = c._indices;
+//            }
             return *this;
         }
         
@@ -5354,7 +5283,7 @@ namespace gravity {
                 return *this = f;
             }
             _evaluated = false;
-            update_dim(f);
+            set_max_dim(f);
             if (is_constant() && !f.is_constant()) {
                 func res(f);
                 res += *this;
@@ -6484,7 +6413,7 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) <= sizeof(T1)>::type* = nullptr>
     func<T1> operator+(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
-        res.update_dim(p1,p2);
+        res.set_max_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
             res.insert(true,unit<T1>(),p2);
             res.add_cst(p1);
@@ -6506,7 +6435,7 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T1) < sizeof(T2)>::type* = nullptr>
     func<T2> operator+(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
-        res.update_dim(p1,p2);
+        res.set_max_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
             res.insert(true,unit<T2>(),p2);
             res.add_cst(param<T2>(p1));
@@ -6528,7 +6457,7 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator-(const param<T1>& p1, const param<T2>& p2){
         func<T1> res;
-        res.update_dim(p1,p2);
+        res.set_max_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
             res.insert(false,unit<T1>(),p2);
             res.add_cst(p1);
@@ -6552,7 +6481,7 @@ namespace gravity {
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator-(const param<T1>& p1, const param<T2>& p2){
         func<T2> res;
-        res.update_dim(p1,p2);
+        res.set_max_dim(p1,p2);
         if(p1.is_param() && p2.is_var()){
             res.insert(false,unit<T2>(),p2);
             res.add_cst(param<T2>(p1));
@@ -7286,7 +7215,7 @@ namespace gravity {
         else {
             func<T> res;
             res.insert(p1,exp);
-            res.update_dim(p1);
+            res.set_max_dim(p1);
             res._range->first = gravity::min(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
             res._range->second = gravity::max(std::pow(p1._range->first,exp),std::pow(p1._range->second,exp));
             if(exp%2==0) {
