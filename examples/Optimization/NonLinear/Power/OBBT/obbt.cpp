@@ -506,13 +506,13 @@ int main (int argc, char * argv[]) {
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-8, "ma57");
+            SDPLB1.run(output = 5, tol=1e-8);
             
             SDP->print_constraints_stats(tol);
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-            
+            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)

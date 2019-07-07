@@ -2023,7 +2023,7 @@ namespace gravity{
         _all_sign = sign_product(_all_sign, c.get_all_sign());
     }
 //
-//    void func_::update_dim(const lterm& l){
+//    void func_::set_max_dim(const lterm& l){
 //        //        assert(_dim[0] <= l._p->_dim[0] && _dim[1] <= l._p->_dim[1]);
 //        if(l._p->is_indexed() && l._p->_indices->_ids->size()>1){//This is a multi-instance product
 //            return;
@@ -2046,7 +2046,7 @@ namespace gravity{
 //        }
 //    }
 //
-//    void func_::update_dim(const qterm& q){
+//    void func_::set_max_dim(const qterm& q){
 //        if(q._p->first->is_indexed() && q._p->first->_indices->_ids->size()>1){//This is a multi-instance product
 //            return;
 //        }
@@ -4576,7 +4576,7 @@ namespace gravity{
         if (_params->count(p->get_name(false,false))!=0) {
             throw invalid_argument("In function add_param(v,nb): parameter already contained in function");
         }
-//        update_dim(*p);
+//        set_max_dim(*p);
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
     

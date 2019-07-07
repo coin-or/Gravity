@@ -1533,7 +1533,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         
         theta.set_lb((grid.ref_bus),0);
         theta.set_ub((grid.ref_bus),0);
-        
+
         R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
         R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
         
@@ -1629,6 +1629,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
         Linking_RW_Vtheta = R_Wij.in(bus_pairs_chord) - Vi_Vj.in(bus_pairs_chord)*costhetaij.in(bus_pairs_chord);
         SDPOPF->add(Linking_RW_Vtheta.in(bus_pairs)==0, convexify);
         
+
         Constraint<Cpx> Linking_ImW_Vtheta("Linking_ImW_Vtheta");
         Linking_ImW_Vtheta = Im_Wij.in(bus_pairs_chord) - Vi_Vj.in(bus_pairs_chord)*sinthetaij.in(bus_pairs_chord);
         SDPOPF->add(Linking_ImW_Vtheta.in(bus_pairs_chord)==0, convexify);
