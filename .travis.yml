@@ -20,6 +20,14 @@ before_install:
 - sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
 - wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
 - tar xvzf Ipopt-3.12.12.tgz
+- cd Ipopt-3.12.12/
+- cd ThirdParty/Mumps
+- "./get.Mumps"
+- cd ../..
+- "./configure --prefix=/usr/local"
+- make -j5
+- sudo make install
+- cd ../
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
