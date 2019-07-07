@@ -29,7 +29,7 @@ before_install:
 - "./configure --prefix=/usr/local"
 - make -j5
 - sudo make install
-- cd ../../../
+- cd ../../
 - echo $LANG
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
