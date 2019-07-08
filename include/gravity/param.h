@@ -1383,9 +1383,12 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+        
+        /** Index parameter/variable in the product of ids1...args
+         */
         template<typename... Args>
-        param in(const indices& vec1, Args&&... args) {
-            auto ids = indices(vec1,args...);
+        param in(const indices& ids1, Args&&... args) {
+            auto ids = indices(ids1,args...);
             if(!ids._excluded_keys.empty()){
                 ids.remove_excluded();
             }
@@ -1418,7 +1421,7 @@ namespace gravity {
             string key, excluded;
             size_t nb_inst=1;
             param res(*this);
-            if(ids.is_indexed()){/* Double-indexed set */
+            if(ids._ids && ids._ids->size()>1){/* Double-indexed set */
                 size_t idx_excl = 0;
                 nb_inst = ids._ids->size();
                 //TODO check that the current param has the keys found in ids
@@ -1455,66 +1458,45 @@ namespace gravity {
                     res.reset_range();
                     return res;
                 }
-                res._indices->_ids = make_shared<vector<vector<size_t>>>();
-                res._indices->_ids->resize(nb_inst);
-                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
-                int pos = 0;
-                if(nb_sep2>nb_sep1){
-                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
-                }
-                else if(nb_sep1>nb_sep2){
-                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
-                }
-                for(size_t inst = 0; inst<nb_inst;inst++){
-                    auto nb_idx = ids._ids->at(inst).size();
-                    res._indices->_ids->at(inst).resize(nb_idx);
-                    for(size_t idx = 0; idx<nb_idx; idx++){
-                        key = ids._keys->at(ids._ids->at(inst).at(idx));
-                        if(ids._excluded_keys.count(idx)!=0){
-                            excluded += key + ",";
-                            continue;
-                        }
-                        if(_indices->_type==to_ || _indices->_type==from_){
-                            string pref;
-                            if(nb_sep2>2){/* key has a prefix */
-                                pref = key.substr(0, key.find_last_of(","));
-                                pref = pref.substr(0, pref.find_last_of(","));
-                                pref = pref.substr(0, pref.find_last_of(",")+1);
-                            }
-                            if(_indices->_type==to_){
-                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                            }
-                            else if(_indices->_type==from_){
-                                key = key.substr(0, key.find_last_of(","));
-                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                            }
-                        }
-                        else {
-                            /* Compare indexing and truncate extra indices */
-                            if(nb_sep2>nb_sep1){
-                                key = key.substr(pos+1);
-                            }
-                            else if(nb_sep1>nb_sep2){
-                                key = _indices->_keys->front().substr(0,pos) + "," + key;
-                            }
-                        }
-                        auto it1 = _indices->_keys_map->find(key);
-                        if (it1 == _indices->_keys_map->end()){
-                            throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: " + key);
-                        }
-                        res._indices->_ids->at(inst).at(idx) = it1->second;
+                throw invalid_argument("Sparse matrix indexing with unrecognized keys");
+            }
+            if(ids.is_indexed()){/* If ids has key references, use those */
+                size_t idx_excl = 0;
+                nb_inst = ids._ids->size();
+                bool has_all_keys = true;
+                for(auto key: *ids._keys){
+                    if(ids._excluded_keys.count(idx_excl++)!=0){
+                        continue;
+                    }
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        has_all_keys = false;
+                        break;
                     }
                 }
-                res._name += ".in("+ids.get_name()+")";
-                if(res._is_transposed){
-                    res._dim[1]=res._indices->size();
+                if(has_all_keys){
+                    res._indices = make_shared<indices>(ids);
+                    if(res._is_transposed){
+                        if(res.is_double_indexed()){
+                            res._dim[1]=_indices->size();
+                        }
+                        else {
+                            res._dim[1]=res._indices->size();
+                        }
+                    }
+                    else {
+                        if(res.is_double_indexed()){
+                            res._dim[0]=_indices->size();
+                        }
+                        else {
+                            res._dim[0]=res._indices->size();
+                        }
+                    }
+                    res._name += ".in("+ids.get_name()+")";
+                    res.reset_range();
+                    return res;
                 }
-                else {
-                    res._dim[0]=res._indices->size();
-                }
-                res.reset_range();
-                return res;
+                throw invalid_argument("Ids with references has unrecognized keys");
             }
             size_t idx = 0;
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -1695,6 +1677,7 @@ namespace gravity {
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
+            res.reset_range();
             return res;
         }
 
