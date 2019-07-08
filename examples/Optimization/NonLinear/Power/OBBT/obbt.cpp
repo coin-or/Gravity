@@ -183,7 +183,7 @@ int main (int argc, char * argv[]) {
     
     bool break_flag=false, time_limit = false, lifted_var=false;
     
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
+    const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6, opt_tol=1e-6;
     
     double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
@@ -325,12 +325,12 @@ int main (int argc, char * argv[]) {
                                         dirk=mkname.substr(pos+1);
                                         vk=SDP->get_var<double>(vkname);
                                         pk=vkname+"|"+keyk;
-                                        //                                    if(model->get_name()=="Lift_Im_Vi.from.in(bus_pairs_chordal)_Im_Vi.to.in(bus_pairs_chordal).in(bus_pairs_chordal)|1,2|UB")
-                                        //                                        {
-                                        //                                            model->print();
-                                        //
-                                        //
-                                        //                                        }
+//                                        if(model->get_name()=="Lift(Pf_from(Arc)^2)|3,3,6|UB")
+//                                                                                {
+//                                                                                    model->print();
+//                                        
+//                                        
+//                                                                                }
                                         if(model->_status==0)
                                         {
                                             objk=model->get_obj_val();
@@ -344,7 +344,11 @@ int main (int argc, char * argv[]) {
                                                 objk*=-1;
                                                 boundk1=vk.get_ub(keyk);
                                             }
-                                            if(abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
+                                            if(abs(objk-boundk1)<=opt_tol)
+                                            {
+                                                objk=boundk1;
+                                            }
+                                            if((abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel) && iter>1)
                                             {
                                                 fixed_point[pk]=true;
                                                 if(vk.get_ub(keyk)<vk.get_lb(keyk))
@@ -425,7 +429,7 @@ int main (int argc, char * argv[]) {
                                         else
                                         {
                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                            //                                            model->print();
+                                                                                        model->print();
                                             
                                             //                                        fixed_point[pk]=true;
                                         }
