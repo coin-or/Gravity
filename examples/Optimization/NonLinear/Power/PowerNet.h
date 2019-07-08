@@ -106,6 +106,7 @@ public:
     param<double> pf_from_min, pf_from_max, qf_from_min, qf_from_max, pf_to_min, pf_to_max, qf_to_min, qf_to_max;
     param<double> lij_min, lij_max;
     param<double> lji_min, lji_max;
+    param<double> Iij_min, Iij_max;
     param<double> c0, c1, c2; /**< Generation costs */
     param<double> p_factor; /**< Participation factor for generators */
     param<double> ramp_up, ramp_down; /**< Generation ramp up/down params */
