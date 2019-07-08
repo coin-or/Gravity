@@ -17,6 +17,8 @@
 #include <vector>
 #include <deque>
 #include <thread>
+#include <iostream>
+#include <functional>
 #ifdef USE_IPOPT
 #define HAVE_STDDEF_H
 #include <coin/IpIpoptApplication.hpp>
@@ -135,6 +137,7 @@ namespace gravity {
         }
     }
     
+    
     template<typename type = double>
     class Model {
         
@@ -184,7 +187,6 @@ namespace gravity {
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
-        
         
         void merge_vars(const shared_ptr<expr<type>>& e){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -1357,6 +1359,54 @@ namespace gravity {
                         break;
                 }
             }
+        }
+        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        vector<tuple<double, int, int>> sorted_nonzero_constraints(double tol, bool only_relaxed = false) const{
+            // the tuple has the following form <value, constraint_id, instance_id>
+            
+            vector<tuple<double, int, int>> v;
+            size_t nb_inst = 0;
+            shared_ptr<Constraint<type>> c = nullptr;
+            for(auto& c_p: _cons_name)
+            {
+                c = c_p.second;
+                if(only_relaxed && !c->_relaxed){
+                    continue;
+                }
+                nb_inst = c->get_nb_inst();
+                switch (c->get_ctype()) {
+                    case eq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = abs(c->eval(inst));
+                            if(diff>tol){
+                                v.push_back(make_tuple(abs(diff), c->_id, inst));
+                            }
+                        }
+                        break;
+                    case leq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff < -tol) {
+                                v.push_back(make_tuple(abs(diff), c->_id, inst));
+                            }
+                        }
+                        break;
+                    case geq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff > tol) {
+                                v.push_back(make_tuple(abs(diff), c->_id, inst));
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        break;
+                }
+            }
+            sort(v.begin(), v.end(), std::greater<tuple<double,int,int>>());
+            return v;
         }
         
         
@@ -4115,6 +4165,7 @@ namespace gravity {
     
     
 }
+
 
 
 
