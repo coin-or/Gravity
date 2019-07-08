@@ -183,7 +183,7 @@ namespace gravity {
         }
         
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
-            return run(output, tol, max_iter, 1e-6, true, {false,""}, 1e+6);
+            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
         /* run model */
         int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
@@ -494,6 +494,7 @@ namespace gravity {
         int return_status = -1;
         for (auto i = start; i<end; i++) {
             return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver);
+            DebugOn("Return status\t"<<return_status);
             //            models.at(i)->print_solution(24);
         }
         return return_status;

@@ -291,6 +291,83 @@ namespace gravity{
             _dim->at(0) = n;
         }
         
+        /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
+        indices get_unique_keys() const{
+            indices res(_name);
+            set<size_t> unique_ids;
+            if(_ids){
+                for (auto &idx:_ids->at(0)) {
+                    if(unique_ids.insert(idx).second){
+                        res.add(_keys->at(idx));
+                    }
+                }
+                return res;
+            }
+            return *this;
+        }
+        
+        /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
+        vector<bool> diff_refs(const indices& ids) const{
+            vector<bool> res;
+            assert(_ids);
+            set<size_t> unique_ids;
+            for (auto &idx:_ids->at(0)) {
+                if(ids._keys_map->count(_keys->at(idx))){
+                    res.push_back(true);
+                }
+                else {
+                    res.push_back(false);
+                }
+            }
+            return res;
+        }
+
+        
+        /** Returns a vector of bools indicating if a reference is unique so far. The function iterates over key references in _ids. */
+        vector<bool> get_unique_refs() const{
+            vector<bool> res;
+            set<size_t> unique_ids;
+            if(_ids){
+                for (auto &idx:_ids->at(0)) {
+                    if(unique_ids.insert(idx).second){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }
+            return res;
+        }
+        
+        /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
+        void filter_refs(const vector<bool>& keep) const{
+            if(_ids){
+                assert(keep.size()==_ids->size());
+                vector<vector<size_t>> new_ids;
+                new_ids.resize(1);
+                for (auto idx = 0; idx<keep.size();idx++) {
+                    if(keep[idx]){
+                        new_ids.at(0).push_back(_ids->at(0).at(idx));
+                    }
+                }
+                *_ids = new_ids;
+            }
+        }
+        
+        /** The function iterates over key references in _ids and keeps only the unique entries */
+        void keep_unique_keys(){
+            indices res(_name);
+            set<size_t> unique_ids;
+            if(_ids){
+                for (auto &idx:_ids->at(0)) {
+                    if(unique_ids.insert(idx).second){
+                        res.add(_keys->at(idx));
+                    }
+                }
+                *this=res;
+            }
+        }
 //        indices(const space& s){
 //            list<indices> l;
 //            _dim->resize(l.size());
@@ -323,11 +400,6 @@ namespace gravity{
             }
         }
         
-        
-        template<typename... Args>
-        indices(string idx1, Args&&... args) {
-            init(idx1, args...);
-        }
         
         bool operator==(const indices& cpy) const{
             if (_name != cpy._name || _type != cpy._type || _time_extended!=cpy._time_extended || _time_pos != cpy._time_pos || *_dim!=*cpy._dim || _excluded_keys != cpy._excluded_keys || *_keys_map != *cpy._keys_map) return false;
@@ -589,33 +661,81 @@ namespace gravity{
         template<typename... Args>
         indices(const indices& vec1, Args&&... args) {
             list<indices> vecs;
-          vecs = {forward<Args>(args)...};
-            vecs.push_front(vec1);
+            vecs = {vec1,forward<Args>(args)...};
             *this = indices(vecs);
         }
         
+        /** Adds all new keys found in ids
+         @return index set of added indices.
+         */
         template<typename... Args>
-        void add(string s1, Args&&... args) {
-            list<string> indices;
-            indices = {forward<Args>(args)...};
-            indices.push_front(s1);
-            auto it = indices.begin();
-            for (size_t i= 0; i < indices.size(); i++) {
+        indices add(const indices& ids) {
+            indices added("added");
+            auto it = ids._keys->begin();
+            for (size_t i= 0; i < ids.size(); i++) {
                 auto idx = _keys->size();
                 auto pp = _keys_map->insert(make_pair<>(*it,idx));
                 if (pp.second) {//new index inserted
                     _keys->push_back(*it);
-                }
-                else{
-                    if(!_ids){
-                        _ids = make_shared<vector<vector<size_t>>>();
-                        _ids->resize(1);
-                    }
-                    _ids->at(0).push_back(pp.first->second);
+                    added.add(*it);
                 }
                 it++;
             }
+            return added;
         }
+        
+        template<typename... Args>
+        void insert(const string& s1, Args&&... args) {
+            add(s1,args...);
+        }
+        
+        void insert(const vector<string>& all_keys) {
+            add(all_keys);
+        }
+            
+        template<typename... Args>
+        void add(const string& s1, Args&&... args) {
+            add(vector<string>({s1,args...}));
+        }
+        /** Adds a reference to the key specified as argument, i.e., adds the corresponding index in _ids
+         @throw invalid_argument if key is not part of _keys_map
+         */
+        void add_ref(const string& key){
+            if(!_ids){
+                _ids = make_shared<vector<vector<size_t>>>();
+                _ids->resize(1);
+            }
+            auto ref_it = _keys_map->find(key);
+            if(ref_it==_keys_map->end()){
+                throw invalid_argument("in indices::add_ref(string), unknown key: " + key);
+            }
+            _ids->at(0).push_back(ref_it->second);
+        }
+        
+        void add(const vector<string>& all_keys) {
+            for (auto &key: all_keys) {
+                auto idx = _keys->size();
+                auto pp = _keys_map->insert(make_pair<>(key,idx));
+                if (pp.second) {//new key inserted
+                    _keys->push_back(key);
+                }
+                else{
+                    throw invalid_argument("in indices::add(string...) cannot add same key twice: " + key);
+                }
+            }
+        }
+        
+        
+        inline size_t get_id_inst(size_t inst = 0) const {
+            if (_ids) {
+                if(_ids->at(0).size() <= inst){
+                    throw invalid_argument("indices::get_id_inst(size_t inst) inst is out of range");
+                }
+                return _ids->at(0).at(inst);
+            }
+            return inst;
+        };
+        
         
         
         
@@ -746,6 +866,44 @@ namespace gravity{
     }
     
     indices range(size_t i, size_t j);
+    
+    
+    /** Combine each ith key of each index set with the other ith keys in the other index sets
+     \warning all index sets must have the same size
+     */
+    template<typename... Args>
+    indices combine(const indices& ids1, Args&&... args){
+        indices res;
+        string res_name;
+        list<indices> all_ids = {ids1,forward<Args>(args)...};
+        for (auto &ids: all_ids) {
+            res_name += ids.get_name()+",";
+        }
+        res_name = res_name.substr(0, res_name.size()-1);/* remove last comma */
+        res.set_name(res_name);
+        auto nb_keys = ids1.size();
+        for (auto i = 0; i< nb_keys; i++) {
+            string combined_key, key = "", prev_key = "";
+            bool same_key = true;
+            for (auto &ids: all_ids) {
+                auto idx = ids.get_id_inst(i);
+                key = ids._keys->at(idx);
+                if(prev_key!="" && key!=prev_key){
+                    same_key = false;
+                }
+                prev_key = key;
+                combined_key += key +",";
+            }
+            if(same_key){
+                combined_key = key;
+            }
+            else {
+                combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
+            }
+            res.add(combined_key);
+        }
+        return res;
+    }
 }
 
 #endif

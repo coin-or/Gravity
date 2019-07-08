@@ -13,6 +13,7 @@ void CplexProgram::update_model(){
     _model->compute_funcs();
     fill_in_cplex_vars();
     create_cplex_constraints();
+    create_callback();
     set_cplex_objective();
 }
 
@@ -53,7 +54,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
             cplex.extract(*_cplex_model);
         }
         cplex.setParam(IloCplex::EpGap, mipgap);
-        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
+//        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
         cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::RootAlg, 1);
@@ -352,9 +353,15 @@ void CplexProgram::create_cplex_constraints() {
     }    
 }
 
+void CplexProgram::create_callback(){
+    
+}
+
+
 void CplexProgram::prepare_model() {
     fill_in_cplex_vars();
     create_cplex_constraints();
+    create_callback();
     set_cplex_objective();
 //    IloCplex cplex(*_cplex_model);
 //    cplex.exportModel("lpex2.lp");
