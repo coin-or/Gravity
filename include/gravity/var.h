@@ -311,7 +311,7 @@ namespace gravity {
         var in_pairs(const indices& ids) {
             bool indexed = param<type>::_indices!=nullptr;
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in(ids));
+            res.param<type>::operator=(param<type>::in_pairs(ids));
             if(!indexed && !res._lb->is_number()){
                 (res._lb->in(*res._indices));
             }

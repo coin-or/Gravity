@@ -512,7 +512,7 @@ int main (int argc, char * argv[]) {
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-            SDP->print_solution();
+//            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)
@@ -522,7 +522,7 @@ int main (int argc, char * argv[]) {
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
-                SDP->print_solution();
+//                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
