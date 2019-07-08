@@ -1870,22 +1870,18 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     auto SDPOPF = make_shared<Model<>>("SDP-OPF Model");
     
+    /** Variables */
+    /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
     SDPOPF->add(Pg.in(gens),Qg.in(gens));
+    
     
     /* Power flow variables */
     var<> Pf_from("Pf_from", -1.*S_max,S_max);
     var<> Qf_from("Qf_from", -1.*S_max,S_max);
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
-    var<> lij("lij", lij_min,lij_max);
-    var<> lji("lji", lji_min,lji_max);
-    
-    if(current){
-        SDPOPF->add(lij.in(arcs));
-        SDPOPF->add(lji.in(arcs));
-    }
     
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
@@ -1896,23 +1892,18 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     var<>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", w_min, w_max);
-    SDPOPF->add(Wii.in(nodes));
-    SDPOPF->add(R_Wij.in(bus_pairs_chord));
-    SDPOPF->add(Im_Wij.in(bus_pairs_chord));
+    SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
-    
-    var<>  R_Vi("R_Vi", -1*v_max, v_max);
-    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-    
-    if(add_original){
-        SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
-        R_Vi.initialize_all(1);
-    }
-   
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
+    
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
+    if(current){
+        SDPOPF->add(lij.in(arcs),lji.in(arcs));
+    }
     
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
@@ -1949,41 +1940,49 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     /** Constraints */
     /* Second-order cone constraints */
-    Constraint<> SOC_EQ("SOC_EQ");
-    SOC_EQ = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDPOPF->add(SOC_EQ.in(bus_pairs_chord) == 0, convexify);
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+    SDPOPF->add(SOC.in(bus_pairs_chord) == 0,true);
+    
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SDPOPF->add(KCL_P.in(nodes) == 0);
     
+    
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SDPOPF->add(KCL_Q.in(nodes) == 0);
     
+    
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs)  + b_ft*Im_Wij.in_pairs(arcs) );
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SDPOPF->add(Flow_P_From.in(arcs) == 0);
     
+    
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs)  - b_tf*Im_Wij.in_pairs(arcs) );
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SDPOPF->add(Flow_P_To.in(arcs) == 0);
     
+    
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs)  - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs) );
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SDPOPF->add(Flow_Q_From.in(arcs) == 0);
     
+    
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs)  + g_tf*Im_Wij.in_pairs(arcs) ;
+    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SDPOPF->add(Flow_Q_To.in(arcs) == 0);
+    
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
     SDPOPF->add(PAD_UB.in(bus_pairs));
+    
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
@@ -2001,95 +2000,6 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SDPOPF->add(Thermal_Limit_to.in(arcs));
-    
-    if(add_original){
-        Im_Vi.set_lb((grid.ref_bus),0);
-        Im_Vi.set_ub((grid.ref_bus),0);
-        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
-        
-        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
-        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-        
-        Constraint<Cpx> Linking_Wij("Linking_Wij");
-        Linking_Wij = Wij - Vi*conj(Vj);
-        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
-        
-        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
-        
-        Constraint<Cpx> Linking_Wi("Linking_Wi");
-        Linking_Wi = Wii - Vi*conj(Vi);
-        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
-        
-
-        
-        if(!grid._tree)
-        {
-            
-            auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
-            auto Wii_ = Wii.in_bags(grid._bags, 3);
-            auto nb_bags3 = Wij_[0]._indices->size();
-            
-            Constraint<Cpx> Rank_type2a("RankType2a");
-            Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-            SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
-            
-            Constraint<Cpx> Rank_type2b("RankType2b");
-            Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
-            SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
-            
-            Constraint<Cpx> Rank_type2c("RankType2c");
-            Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
-            SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
-            
-            auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
-            DebugOn("firstfirst");
-            ref_bus_pairs_ijkl.first.first.print();
-            ref_bus_pairs_ijkl.first.second.print();
-            ref_bus_pairs_ijkl.second.first.print();
-            ref_bus_pairs_ijkl.second.second.print();
-            DebugOn("size "<<ref_bus_pairs_ijkl.first.first.size());
-            
-            Constraint<Cpx> Rank_type3("RankType3");
-            Rank_type3= Wij.in(ref_bus_pairs_ijkl.first.first)*Wij.in(ref_bus_pairs_ijkl.first.second)-conj(Wij).in(ref_bus_pairs_ijkl.second.first)*Wij.in(ref_bus_pairs_ijkl.second.second);
-            SDPOPF->add(Rank_type3.in(indices(1,ref_bus_pairs_ijkl.first.first.size()))==0, convexify);
-        }
-    }
-    
-    if(current){
-        param<Cpx> T("T"), Y("Y"), Ych("Ych");
-        var<Cpx> L_from("L_from"), W("W");
-        T.real_imag(cc.in(arcs), dd.in(arcs));
-        Y.real_imag(g.in(arcs), b.in(arcs));
-        Ych.set_imag(ch_half.in(arcs));
-        
-        
-        L_from.set_real(lij.in(arcs));
-        W.real_imag(R_Wij.in_pairs(arcs) , Im_Wij.in_pairs(arcs) );
-        
-        Constraint<Cpx> I_from("I_from");
-        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SDPOPF->add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-        
-        var<Cpx> L_to("L_to");
-        L_to.set_real(lji.in(arcs));
-        
-        Constraint<Cpx> I_to("I_to");
-        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs);
-        SDPOPF->add_real(I_to.in(arcs)==pow(tr,2)*L_to);
-        
-        Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SDPOPF->add(I_from_Pf.in(arcs)==0, true);
-        
-        Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-        SDPOPF->add(I_to_Pf.in(arcs)==0, true);
-        
-        
-    }
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -2115,6 +2025,42 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SDPOPF->add(LNC2.in(bus_pairs) >= 0);
+    
+    if(current){
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L_from("L_from"), Wij("Wij");
+        T.real_imag(cc.in(arcs), dd.in(arcs));
+        Y.real_imag(g.in(arcs), b.in(arcs));
+        Ych.set_imag(ch_half.in(arcs));
+        
+        
+        L_from.set_real(lij.in(arcs));
+        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
+        var<Cpx> Sij("Sij"), Sji("Sji");
+        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
+        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+
+        
+        Constraint<Cpx> I_from("I_from");
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SDPOPF->add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+        
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+        SDPOPF->add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+        
+        Constraint<> I_from_Pf("I_from_Pf");
+        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+        SDPOPF->add(I_from_Pf.in(arcs)==0, true);
+        
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+        SDPOPF->add(I_to_Pf.in(arcs)==0, true);
+        
+    }
     
     return SDPOPF;
     
