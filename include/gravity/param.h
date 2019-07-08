@@ -1322,7 +1322,7 @@ namespace gravity {
                 res._indices->_ids->at(0).push_back(j*_dim[0]+i);
             }
             else{
-                res._indices->_ids->at(0).push_back(i*_dim[1]+j);
+                res._indices->_ids->at(0) .push_back(i*_dim[1]+j);
             }
             res._name += "["+to_string(i)+","+to_string(j)+"]";
             return res;
@@ -1383,9 +1383,12 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+        
+        /** Index parameter/variable in the product of ids1...args
+         */
         template<typename... Args>
-        param in(const indices& vec1, Args&&... args) {
-            auto ids = indices(vec1,args...);
+        param in(const indices& ids1, Args&&... args) {
+            auto ids = indices(ids1,args...);
             if(!ids._excluded_keys.empty()){
                 ids.remove_excluded();
             }
@@ -1418,7 +1421,7 @@ namespace gravity {
             string key, excluded;
             size_t nb_inst=1;
             param res(*this);
-            if(ids.is_indexed()){/* Double-indexed set */
+            if(ids._ids && ids._ids->size()>1){/* Double-indexed set */
                 size_t idx_excl = 0;
                 nb_inst = ids._ids->size();
                 //TODO check that the current param has the keys found in ids
@@ -1455,66 +1458,45 @@ namespace gravity {
                     res.reset_range();
                     return res;
                 }
-                res._indices->_ids = make_shared<vector<vector<size_t>>>();
-                res._indices->_ids->resize(nb_inst);
-                auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-                auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
-                int pos = 0;
-                if(nb_sep2>nb_sep1){
-                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
-                }
-                else if(nb_sep1>nb_sep2){
-                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
-                }
-                for(size_t inst = 0; inst<nb_inst;inst++){
-                    auto nb_idx = ids._ids->at(inst).size();
-                    res._indices->_ids->at(inst).resize(nb_idx);
-                    for(size_t idx = 0; idx<nb_idx; idx++){
-                        key = ids._keys->at(ids._ids->at(inst).at(idx));
-                        if(ids._excluded_keys.count(idx)!=0){
-                            excluded += key + ",";
-                            continue;
-                        }
-                        if(_indices->_type==to_ || _indices->_type==from_){
-                            string pref;
-                            if(nb_sep2>2){/* key has a prefix */
-                                pref = key.substr(0, key.find_last_of(","));
-                                pref = pref.substr(0, pref.find_last_of(","));
-                                pref = pref.substr(0, pref.find_last_of(",")+1);
-                            }
-                            if(_indices->_type==to_){
-                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                            }
-                            else if(_indices->_type==from_){
-                                key = key.substr(0, key.find_last_of(","));
-                                key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                            }
-                        }
-                        else {
-                            /* Compare indexing and truncate extra indices */
-                            if(nb_sep2>nb_sep1){
-                                key = key.substr(pos+1);
-                            }
-                            else if(nb_sep1>nb_sep2){
-                                key = _indices->_keys->front().substr(0,pos) + "," + key;
-                            }
-                        }
-                        auto it1 = _indices->_keys_map->find(key);
-                        if (it1 == _indices->_keys_map->end()){
-                            throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
-                        }
-                        res._indices->_ids->at(inst).at(idx) = it1->second;
+                throw invalid_argument("Sparse matrix indexing with unrecognized keys");
+            }
+            if(ids.is_indexed()){/* If ids has key references, use those */
+                size_t idx_excl = 0;
+                nb_inst = ids._ids->size();
+                bool has_all_keys = true;
+                for(auto key: *ids._keys){
+                    if(ids._excluded_keys.count(idx_excl++)!=0){
+                        continue;
+                    }
+                    auto it1 = _indices->_keys_map->find(key);
+                    if (it1 == _indices->_keys_map->end()){
+                        has_all_keys = false;
+                        break;
                     }
                 }
-                res._name += ".in("+ids.get_name()+")";
-                if(res._is_transposed){
-                    res._dim[1]=res._indices->size();
+                if(has_all_keys){
+                    res._indices = make_shared<indices>(ids);
+                    if(res._is_transposed){
+                        if(res.is_double_indexed()){
+                            res._dim[1]=_indices->size();
+                        }
+                        else {
+                            res._dim[1]=res._indices->size();
+                        }
+                    }
+                    else {
+                        if(res.is_double_indexed()){
+                            res._dim[0]=_indices->size();
+                        }
+                        else {
+                            res._dim[0]=res._indices->size();
+                        }
+                    }
+                    res._name += ".in("+ids.get_name()+")";
+                    res.reset_range();
+                    return res;
                 }
-                else {
-                    res._dim[0]=res._indices->size();
-                }
-                res.reset_range();
-                return res;
+                throw invalid_argument("Ids with references has unrecognized keys");
             }
             size_t idx = 0;
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
@@ -1524,52 +1506,85 @@ namespace gravity {
                 res._name += "_EMPTY";
                 res._dim[0] = 0;
                 res._dim[1] = 0;
-//                res.set_range(0);
+                //                res.set_range(0);
                 res.reset_range();
                 return res;
             }
             auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
             auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
             int pos = 0;
-            bool is_prefix = false, is_suffix = false;
-            if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep2>nb_sep1){
-                pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
-                key = ids._keys->front().substr(pos+1);
-                auto it1 = _indices->_keys_map->find(key);
-                if (it1 == _indices->_keys_map->end()){
-                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep1+1);
-                    key = ids._keys->front().substr(0,pos);
-                    it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+            //            bool is_prefix = false, is_suffix = false;
+            //            if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep2>nb_sep1){
+            //                pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
+            //                key = ids._keys->front().substr(pos+1);
+            //                auto it1 = _indices->_keys_map->find(key);
+            //                if (it1 == _indices->_keys_map->end()){
+            //                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep1+1);
+            //                    key = ids._keys->front().substr(0,pos);
+            //                    it1 = _indices->_keys_map->find(key);
+            //                    if (it1 == _indices->_keys_map->end()){
+            //                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
+            //                    }
+            //                    else {
+            //                        is_prefix = true;
+            //                    }
+            //                }
+            //                else {
+            //                    is_suffix = true;
+            //                }
+            //            }
+            //            else if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep1>nb_sep2){
+            //                pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
+            //                key = _indices->_keys->front().substr(0,pos) + "," + ids._keys->front();
+            //                auto it1 = _indices->_keys_map->find(key);
+            //                if (it1 == _indices->_keys_map->end()){
+            //                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep2+1);
+            //                    key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
+            //                    it1 = _indices->_keys_map->find(key);
+            //                    if (it1 == _indices->_keys_map->end()){
+            //                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+            //                    }
+            //                    else {
+            //                        is_prefix = true;
+            //                    }
+            //                }
+            //                else {
+            //                    is_suffix = true;
+            //                }
+            //            }
+            int sep_pos[ids._keys->size()];
+            bool found = false;
+            size_t i = 0;
+            if(nb_sep2>nb_sep1 && _indices->_type != to_ && _indices->_type != from_){//Key_ids has more indices
+                for(auto key: *ids._keys){
+                    found = false;
+                    if(ids._excluded_keys.count(idx++)!=0){
+                        continue;
                     }
-                    else {
-                        is_prefix = true;
+                    for(auto key_param: *_indices->_keys){
+                        auto new_pos = key.find(key_param);
+                        if(new_pos!=string::npos){
+                            found = true;
+                            sep_pos[i]=new_pos;
+                            break;
+                        }
                     }
-                }
-                else {
-                    is_suffix = true;
+                    i++;
+                    if(!found){
+                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
+                    }
                 }
             }
-            else if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep1>nb_sep2){
-                pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
-                key = _indices->_keys->front().substr(0,pos) + "," + ids._keys->front();
-                auto it1 = _indices->_keys_map->find(key);
-                if (it1 == _indices->_keys_map->end()){
-                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep2+1);
-                    key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
-                    it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
-                    }
-                    else {
-                        is_prefix = true;
-                    }
-                }
-                else {
-                    is_suffix = true;
-                }
-            }
+            //            else {
+            //                auto key_ids = ids._keys->front();
+            //                for(auto key: *_indices->_keys){
+            //                    sep_pos = key.find(key_ids);
+            //                    if(sep_pos!=string::npos){
+            //                        break;
+            //                    }
+            //                }
+            //            }
+            i = 0;
             for(auto key: *ids._keys){
                 if(ids._excluded_keys.count(idx++)!=0){
                     excluded += key + ",";
@@ -1593,27 +1608,17 @@ namespace gravity {
                 else {
                     /* Compare indexing and truncate extra indices */
                     if(nb_sep2>nb_sep1){
-                        if(is_suffix){
-                            pos = nthOccurrence(key, ",", nb_sep2-nb_sep1);
-                            key = key.substr(pos+1);
-                        }
-                        else {
-                            pos = nthOccurrence(key, ",", nb_sep1+1);
-                            key = key.substr(0,pos);
-                        }
+                        key = key.substr(sep_pos[i++]);
+                        pos = nthOccurrence(key, ",", nb_sep1+1);
+                        key = key.substr(0,pos);
                     }
                     else if(nb_sep1>nb_sep2){
-                        if(is_suffix){
-                            key = _indices->_keys->front().substr(0,pos) + "," + key;
-                        }
-                        else {
-                            key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
-                        }
+                        throw invalid_argument("indexing error");
                     }
                 }
                 auto it1 = _indices->_keys_map->find(key);
                 if (it1 == _indices->_keys_map->end()){
-                    throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
+                    throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
                 }
                 res._indices->_ids->at(0).push_back(it1->second);
             }
@@ -1672,6 +1677,7 @@ namespace gravity {
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
+            res.reset_range();
             return res;
         }
 
@@ -1679,6 +1685,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".from";
             res._indices->_type = from_;
+            res._indices->set_name("from("+res._indices->get_name()+")");
             return res;
         }
         
@@ -1691,6 +1698,7 @@ namespace gravity {
             param<type> res(*this);
             res._name += ".to";
             res._indices->_type = to_;
+            res._indices->set_name("to("+res._indices->get_name()+")");
             return res;
         }
         

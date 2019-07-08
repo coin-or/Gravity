@@ -19,7 +19,7 @@ find_library(IPOPT_LIBRARY
 )
 elseif(UNIX)
 find_library(IPOPT_LIBRARY 
-	libipopt.so.0
+	libipopt.so
 	HINTS /usr/local/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib

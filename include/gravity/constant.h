@@ -273,12 +273,12 @@ namespace gravity {
         }
         
         /**
-         Update the dimensions of current object.
+         Sets the object dimension to the maximum dimension among all arguments.
          @param[in] p1 first element in list.
          @param[in] ps remaining elements in list.
          */
         template<typename... Args>
-        void update_dim(const constant_& p1, Args&&... ps){
+        void set_max_dim(const constant_& p1, Args&&... ps){
             _dim[0] = max(_dim[0], p1._dim[0]);
             list<constant_*> list = {forward<constant_*>((constant_*)&ps)...};
             for(auto &p: list){
