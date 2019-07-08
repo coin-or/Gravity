@@ -293,22 +293,22 @@ int main (int argc, char * argv[]) {
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs));
+    Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SDP.add(Flow_P_From.in(arcs) == 0);
     ACOPF.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs));
+    Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SDP.add(Flow_P_To.in(arcs) == 0);
     ACOPF.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs));
+    Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SDP.add(Flow_Q_From.in(arcs) == 0);
     ACOPF.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs);
+    Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SDP.add(Flow_Q_To.in(arcs) == 0);
     ACOPF.add(Flow_Q_To.in(arcs) == 0);
     
@@ -371,7 +371,7 @@ int main (int argc, char * argv[]) {
         
         
         L_from.set_real(lij.in(arcs));
-        Wij.real_imag(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs));
+        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
         var<Cpx> Sij("Sij"), Sji("Sji");
         Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
         Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
@@ -399,21 +399,21 @@ int main (int argc, char * argv[]) {
         
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from.in(arcs));
+        SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
         
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
         
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to.in(arcs));
+        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
     
         Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij.in(arcs)*Wii.from(arcs)-pow(tr,2)*(Pf_from*Pf_from+Qf_from*Qf_from);
+        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SDP.add(I_from_Pf.in(arcs)==0, true);
         
         Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji.in(arcs).in(arcs)*Wii.to(arcs)-(pow(Pf_to,2)+pow(Qf_to, 2));
+        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
         SDP.add(I_to_Pf.in(arcs)==0, true);
         
     }
@@ -425,9 +425,9 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
-    SDP.print();
-    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
-    SDP.print_solution();
+//    SDP.print();
+    SDPOPF.run(output = 5, tol = 1e-6);
+//    SDP.print_solution();
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
@@ -447,7 +447,7 @@ int main (int argc, char * argv[]) {
     solver<> ACOPFS(ACOPF,solv_type);
     
     //SDP.print();
-//    ACOPFS.run(output = 5, tol = 1e-6, "ma97");
+//    ACOPFS.run(output = 5, tol = 1e-6);
 //    ACOPF.print_constraints_stats(tol);
 //    ACOPF.print_nonzero_constraints(tol,true);
 //    upper_bound = ACOPF.get_obj_val();
