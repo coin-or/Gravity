@@ -159,8 +159,8 @@ int main (int argc, char * argv[]) {
     
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-    SDP->print();
-    SDPLB.run(output = 5, tol = 1e-6, "ma57");
+//    SDP->print();
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
@@ -308,7 +308,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -445,7 +445,7 @@ int main (int argc, char * argv[]) {
                 {
                     DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
                     DebugOn("Iterations\t"<<iter<<endl);
-                    SDP->print();
+//                    SDP->print();
                     break;
                 }
                 solver_time= get_wall_time()-solver_time_start;
@@ -512,7 +512,7 @@ int main (int argc, char * argv[]) {
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-            SDP->print_solution();
+//            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)
@@ -522,7 +522,7 @@ int main (int argc, char * argv[]) {
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
-                SDP->print_solution();
+//                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);

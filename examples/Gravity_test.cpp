@@ -1091,7 +1091,7 @@ TEST_CASE("Alpine issue") {
 TEST_CASE("testing normal distributions") {
     
     param<> A("A");
-    int n = 200, p = 300;
+    int n = 200, p = 50;
     A.in(R(n,p));
     double mean = 0, dev = 1;
     A.initialize_normal(mean, dev);
@@ -1127,7 +1127,7 @@ TEST_CASE("testing normal distributions") {
     int output;
     double tol;
     string lin_solver;
-    NLP.run(output=5,tol=1e-6,lin_solver="ma57");
+    NLP.run(output=5,tol=1e-6);
     M.print_solution();
     
 }
