@@ -157,10 +157,10 @@ int main (int argc, char * argv[]) {
     
     double upper_bound=OPF->get_obj_val();
     
-    auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
+    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-    SDP->print();
-    SDPLB.run(output = 5, tol = 1e-6, "ma57");
+//    SDP->print();
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
@@ -168,6 +168,7 @@ int main (int argc, char * argv[]) {
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     //    SDP->print_solution();
+    SDP->print();
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
@@ -217,30 +218,7 @@ int main (int argc, char * argv[]) {
             //        }
             
             solver_time= get_wall_time()-solver_time_start;
-            //        for(auto i = 0; i<1 ;i++){
-            
-            //            for (auto it=SDP->_vars_name.begin(); it!=SDP->_vars_name.end(); it++)
-            //            {
-            //                vname=it->first;
-            //                v = SDP->get_var<double>(vname);
-            //                auto v_keys=v.get_keys();
-            //                for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
-            //                {
-            //
-            //                    auto key = *it_key;
-            //                    if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
-            //                    {
-            //                        fixed_point[p]=true;
-            //                        if(v.get_ub(key)<v.get_lb(key)+1e-3)
-            //                        {
-            //                            double temp=v.get_ub(key);
-            //                            double tempa=v.get_lb(key)+1e-3;
-            //                            v.set_ub(key, tempa);
-            //                            v.set_lb(key, temp);
-            //                        }
-            //                    }
-            //                }
-            //            }
+
             while(solver_time<=max_time && !terminate)
             {
                 iter++;
@@ -271,14 +249,6 @@ int main (int argc, char * argv[]) {
                         if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                         {
                             fixed_point[p]=true;
-                            //Reset bounds when updated bounds become lesser than the range_tolerance value
-                            //Do not reset if interval is zero itself
-                            //                            double oaa=v.get_ub(key);
-                            //                            double oab=v.get_lb(key);
-                            //                            double oap=abs(v.get_ub(key)-v.get_lb(key));
-                            //                            if(abs(v.get_ub(key)-v.get_lb(key))>zero_tol)
-                            //                            {
-                            //Do not reset if original interval is itself less than range_tol
                             
                         }
                         if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end()))
@@ -308,7 +278,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -337,19 +307,24 @@ int main (int argc, char * argv[]) {
                                             //                                            if(abs(objk)<=zero_val)
                                             //                                                objk=0.0;
                                             if(dirk=="LB")
+                                            {
                                                 boundk1=vk.get_lb(keyk);
+                                                objk=std::max(objk*(1.0-opt_tol), boundk1);
+                                            }
                                             else
                                             {
                                                 //                                                if(abs(objk)>=zero_val)
                                                 objk*=-1;
                                                 boundk1=vk.get_ub(keyk);
+                                                objk=std::min(objk*(1.0+opt_tol), boundk1);
                                             }
-                                            if(abs(objk-boundk1)<=opt_tol)
+//                                            if(abs(objk-boundk1)<=opt_tol)
+//                                            {
+//                                                objk=boundk1;
+//                                            }
+                                            if((abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                             {
-                                                objk=boundk1;
-                                            }
-                                            if((abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel) && iter>1)
-                                            {
+                                                 if(iter>1)
                                                 fixed_point[pk]=true;
                                                 if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                                 {
@@ -386,6 +361,7 @@ int main (int argc, char * argv[]) {
                                                                                         if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                                                                         {
                                                                                         if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
+//                                                                                                if(interval_original[pk]>=range_tol)
                                                                                         {
                                                                                             DebugOn("Entered reset");
                                                                                             double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
@@ -449,7 +425,7 @@ int main (int argc, char * argv[]) {
                 {
                     DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
                     DebugOn("Iterations\t"<<iter<<endl);
-                    SDP->print();
+//                    SDP->print();
                     break;
                 }
                 solver_time= get_wall_time()-solver_time_start;
@@ -510,13 +486,13 @@ int main (int argc, char * argv[]) {
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-8, "ma57");
+            SDPLB1.run(output = 5, tol=1e-8);
             
             SDP->print_constraints_stats(tol);
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-            
+//            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)
@@ -526,7 +502,7 @@ int main (int argc, char * argv[]) {
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
-                SDP->print_solution();
+               SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);

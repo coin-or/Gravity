@@ -313,5 +313,6 @@ public:
 
 shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, double upper_bound=1E8);
+shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss_from=false, double upper_bound=1E8);
 
 #endif

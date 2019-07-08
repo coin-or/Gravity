@@ -122,8 +122,7 @@ int main (int argc, char * argv[])
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    
-    
+
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
     SOCP.min(obj);
@@ -210,15 +209,15 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-//    else if (use_gurobi) {
-//        solver<> SCOPF_GRB(SOCP, gurobi);
-//        auto solver_time_start = get_wall_time();
-//        SCOPF_GRB.run(output, relax = false, tol = 1e-6);
-//        solver_time_end = get_wall_time();
-//        total_time_end = get_wall_time();
-//        solve_time = solver_time_end - solver_time_start;
-//        total_time = total_time_end - total_time_start;
-//    }
+    else if (use_gurobi) {
+        solver<> SCOPF_GRB(SOCP, gurobi);
+        auto solver_time_start = get_wall_time();
+        SCOPF_GRB.run(output = 5, tol = 1e-6);
+        solver_time_end = get_wall_time();
+        total_time_end = get_wall_time();
+        solve_time = solver_time_end - solver_time_start;
+        total_time = total_time_end - total_time_start;
+    }
     else {
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
