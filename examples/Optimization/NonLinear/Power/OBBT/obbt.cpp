@@ -160,7 +160,7 @@ int main (int argc, char * argv[]) {
     auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
 //    SDP->print();
-    SDPLB.run(output = 5, tol = 1e-6, "ma97");
+    SDPLB.run(output = 5, tol = 1e-7, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
@@ -228,7 +228,7 @@ int main (int argc, char * argv[]) {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
                     lifted_var=v._lift;
-                    if(!lifted_var || true)
+                    if(!lifted_var)
                     {
                     auto v_keys=v.get_keys();
                     for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
@@ -278,7 +278,7 @@ int main (int argc, char * argv[]) {
                                 if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
+                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
                                     double batch_time_end = get_wall_time();
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -326,13 +326,6 @@ int main (int argc, char * argv[]) {
                                             {
                                                  if(iter>1)
                                                 fixed_point[pk]=true;
-                                                if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                                                {
-                                                    double temp=vk.get_ub(keyk);
-                                                    double tempa=vk.get_lb(keyk);
-                                                    vk.set_ub(keyk, tempa);
-                                                    vk.set_lb(keyk, temp);
-                                                }
                                                 
                                             }
                                             else
@@ -360,8 +353,8 @@ int main (int argc, char * argv[]) {
                                             }
                                                                                         if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                                                                         {
-                                                                                        if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
-//                                                                                                if(interval_original[pk]>=range_tol)
+//                                                                                        if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
+                                                                                              if(interval_original[pk]>=range_tol)
                                                                                         {
                                                                                             DebugOn("Entered reset");
                                                                                             double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
@@ -486,7 +479,7 @@ int main (int argc, char * argv[]) {
             SDP->reset_constrs();
             solver<> SDPLB1(SDP,solv_type);
             
-            SDPLB1.run(output = 5, tol=1e-8);
+            SDPLB1.run(output = 5, tol=1e-6, "ma57");
             
             SDP->print_constraints_stats(tol);
             bool print_only_relaxed;
@@ -504,6 +497,7 @@ int main (int argc, char * argv[]) {
                 DebugOn("Solution Print"<<endl);
                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
+                SDP->print_nonzero_constraints(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
                 gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
