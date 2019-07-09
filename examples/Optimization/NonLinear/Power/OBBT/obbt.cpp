@@ -126,41 +126,41 @@ int main (int argc, char * argv[]) {
     
     //double upper_bound = grid.solve_acopf();
     //solve_acopf
-//    OPF->print_constraints_stats(tol);
-//    auto rv= OPF->get_var<double>("vr");
-//    DebugOn("W_orig\n");
-//    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
-//
-//    for(auto &k:*rv.get_keys())
-//    {
-//        rvv.push_back(rv.eval(k));
-//        ivv.push_back(OPF->get_var<double>("vi").eval(k));
-//        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
-//        DebugOn(w_orig.back()<<endl);
-//    }
-//    DebugOn("RRwij\tIIwij"<<endl);
-//
-//    for (auto &k:*(grid.bus_pairs._keys))
-//    {
-//        auto k1=k.substr(0, k.find_first_of(","));
-//        auto k2=k.substr(k.find_first_of(",")+1);
-//        auto rva=OPF->get_var<double>("vr").eval(k1);
-//        auto rvb=OPF->get_var<double>("vr").eval(k2);
-//        auto iva=OPF->get_var<double>("vi").eval(k1);
-//        auto ivb=OPF->get_var<double>("vi").eval(k2);
-//
-//        rrwij.push_back(rva*rvb+iva*ivb);
-//        iiwij.push_back(iva*rvb-ivb*rva);
-//        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
-//
-//    }
+    //    OPF->print_constraints_stats(tol);
+    //    auto rv= OPF->get_var<double>("vr");
+    //    DebugOn("W_orig\n");
+    //    vector<double> rvv, ivv, w_orig, rrwij, iiwij;
+    //
+    //    for(auto &k:*rv.get_keys())
+    //    {
+    //        rvv.push_back(rv.eval(k));
+    //        ivv.push_back(OPF->get_var<double>("vi").eval(k));
+    //        w_orig.push_back(pow(rvv.back(),2)+pow(ivv.back(),2));
+    //        DebugOn(w_orig.back()<<endl);
+    //    }
+    //    DebugOn("RRwij\tIIwij"<<endl);
+    //
+    //    for (auto &k:*(grid.bus_pairs._keys))
+    //    {
+    //        auto k1=k.substr(0, k.find_first_of(","));
+    //        auto k2=k.substr(k.find_first_of(",")+1);
+    //        auto rva=OPF->get_var<double>("vr").eval(k1);
+    //        auto rvb=OPF->get_var<double>("vr").eval(k2);
+    //        auto iva=OPF->get_var<double>("vi").eval(k1);
+    //        auto ivb=OPF->get_var<double>("vi").eval(k2);
+    //
+    //        rrwij.push_back(rva*rvb+iva*ivb);
+    //        iiwij.push_back(iva*rvb-ivb*rva);
+    //        DebugOn(k<<"\t"<<rrwij.back()<<"\t"<<iiwij.back()<<endl);
+    //
+    //    }
     
     double upper_bound=OPF->get_obj_val();
     
-    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound);
+    auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDP,solv_type);
-//    SDP->print();
-    SDPLB.run(output = 5, tol = 1e-6, "ma97");
+    //    SDP->print();
+    SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
@@ -190,7 +190,7 @@ int main (int argc, char * argv[]) {
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
     {
-
+        
         for(auto i = 0; i<1 ;i++){
             terminate=false;
             for(auto &it:SDP->_vars_name)
@@ -218,7 +218,7 @@ int main (int argc, char * argv[]) {
             //        }
             
             solver_time= get_wall_time()-solver_time_start;
-
+            
             while(solver_time<=max_time && !terminate)
             {
                 iter++;
@@ -228,204 +228,204 @@ int main (int argc, char * argv[]) {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
                     lifted_var=v._lift;
-                    if(!lifted_var || true)
+                    if(!lifted_var)
                     {
-                    auto v_keys=v.get_keys();
-                    for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
-                    {
-                        
-                        auto key = *it_key;
-                        solver_time_end=get_wall_time();
-                        solver_time= solver_time_end-solver_time_start;
-                        if(solver_time>=max_time)
+                        auto v_keys=v.get_keys();
+                        for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
+                        {
                             
-                        {
-                            break_flag=true;
-                            time_limit = true;
-                            break;
-                        }
-                        p=vname+"|"+ key;
-                        interval_new[p]=v.get_ub(key)-v.get_lb(key);
-                        if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
-                        {
-                            fixed_point[p]=true;
-                            
-                        }
-                        if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end()))
-                        {
-                            for(auto &dir: dir_array)
+                            auto key = *it_key;
+                            solver_time_end=get_wall_time();
+                            solver_time= solver_time_end-solver_time_start;
+                            if(solver_time>=max_time)
+                                
                             {
-                                auto modelk = SDP->copy();
-                                func<double> o=*(SDP->_obj);
-                                Constraint<> UpperB("UpperB");
-                                UpperB=o;
-                                modelk->add(UpperB<=upper_bound);
-                                mname=vname+"|"+key+"|"+dir;
-                                modelk->set_name(mname);
+                                break_flag=true;
+                                time_limit = true;
+                                break;
+                            }
+                            p=vname+"|"+ key;
+                            interval_new[p]=v.get_ub(key)-v.get_lb(key);
+                            if(abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
+                            {
+                                fixed_point[p]=true;
                                 
-                                vark=modelk->get_var<double>(vname);
-                                if(dir=="LB")
+                            }
+                            if(fixed_point[p]==false || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end()))
+                            {
+                                for(auto &dir: dir_array)
                                 {
-                                    modelk->min(vark(key));
-                                }
-                                else
-                                {
-                                    modelk->min(vark(key)*(-1));
+                                    auto modelk = SDP->copy();
+                                    func<double> o=*(SDP->_obj);
+                                    Constraint<> UpperB("UpperB");
+                                    UpperB=o;
+                                    modelk->add(UpperB<=upper_bound);
+                                    mname=vname+"|"+key+"|"+dir;
+                                    modelk->set_name(mname);
                                     
-                                }
-                                
-                                batch_models.push_back(modelk);
-                                if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
-                                {
-                                    double batch_time_start = get_wall_time();
-                                    run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma97");
-                                    double batch_time_end = get_wall_time();
-                                    auto batch_time = batch_time_end - batch_time_start;
-                                    DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
-                                    for (auto model:batch_models)
+                                    vark=modelk->get_var<double>(vname);
+                                    if(dir=="LB")
                                     {
-                                        
-                                        //                                    model->print();
-                                        mkname=model->get_name();
-                                        std::size_t pos = mkname.find("|");
-                                        vkname.assign(mkname, 0, pos);
-                                        mkname=mkname.substr(pos+1);
-                                        pos=mkname.find("|");
-                                        keyk.assign(mkname, 0, pos);
-                                        dirk=mkname.substr(pos+1);
-                                        vk=SDP->get_var<double>(vkname);
-                                        pk=vkname+"|"+keyk;
-//                                        if(model->get_name()=="Lift(Pf_from(Arc)^2)|3,3,6|UB")
-//                                                                                {
-//                                                                                    model->print();
-//                                        
-//                                        
-//                                                                                }
-                                        if(model->_status==0)
-                                        {
-                                            objk=model->get_obj_val();
-                                            //                                            if(abs(objk)<=zero_val)
-                                            //                                                objk=0.0;
-                                            if(dirk=="LB")
-                                            {
-                                                boundk1=vk.get_lb(keyk);
-                                                objk=std::max(objk*(1.0-opt_tol), boundk1);
-                                            }
-                                            else
-                                            {
-                                                //                                                if(abs(objk)>=zero_val)
-                                                objk*=-1;
-                                                boundk1=vk.get_ub(keyk);
-                                                objk=std::min(objk*(1.0+opt_tol), boundk1);
-                                            }
-//                                            if(abs(objk-boundk1)<=opt_tol)
-//                                            {
-//                                                objk=boundk1;
-//                                            }
-                                            if((abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
-                                            {
-                                                 if(iter>1)
-                                                fixed_point[pk]=true;
-                                                if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                                                {
-                                                    double temp=vk.get_ub(keyk);
-                                                    double tempa=vk.get_lb(keyk);
-                                                    vk.set_ub(keyk, tempa);
-                                                    vk.set_lb(keyk, temp);
-                                                }
-                                                
-                                            }
-                                            else
-                                            {
-                                                if(dirk=="LB"){
-                                                    vk.set_lb(keyk, objk);
-                                                }
-                                                else{
-                                                    vk.set_ub(keyk, objk);
-                                                }
-                                                if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                                                {
-                                                    fixed_point[pk]=true;
-                                                    double temp=vk.get_ub(keyk);
-                                                    double tempa=vk.get_lb(keyk);
-                                                    vk.set_ub(keyk, tempa);
-                                                    vk.set_lb(keyk, temp);
-
-                                                }
-                                                else {
-                                                    fixed_point[pk]=false;
-                                                    terminate=false;
-                                                }
-                                                
-                                            }
-                                                                                        if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
-                                                                                        {
-                                                                                        if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
-//                                                                                                if(interval_original[pk]>=range_tol)
-                                                                                        {
-                                                                                            DebugOn("Entered reset");
-                                                                                            double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
-                                            
-                                                                                            double left=mid-range_tol/2.0;
-                                                                                            double right=mid+range_tol/2.0;
-                                                                                            DebugOn("UbO"<<ub_original[pk]<<endl);
-                                                                                            DebugOn("LbO"<<lb_original[pk]<<endl);
-                                                                                            if(right<=ub_original[pk] && left>=lb_original[pk])
-                                                                                            {
-                                                                                                vk.set_ub(keyk, right);
-                                                                                                vk.set_lb(keyk, left);
-                                                                                                //  DebugOn("Entered if 1"<<endl);
-                                                                                            }
-                                                                                            else if(right>ub_original[pk])
-                                                                                            {
-                                            
-                                                                                                vk.set_ub(keyk, ub_original[pk]);
-                                                                                                vk.set_lb(keyk, ub_original[pk]-range_tol);
-                                                                                                //  DebugOn("Entered if 2"<<endl);
-                                                                                            }
-                                                                                            else if(left<lb_original[pk])
-                                                                                            {
-                                                                                                vk.set_lb(keyk, lb_original[pk]);
-                                                                                                vk.set_ub(keyk, lb_original[pk]+range_tol);
-                                                                                                //  DebugOn("Entered if 3"<<endl);
-                                            
-                                                                                            }
-                                            
-                                                                                            //                                    double ar=ub_original[p];
-                                                                                            //                                    double ar1=lb_original[p];
-                                                                                            //                                oaa1=v.get_ub(key);
-                                                                                            //                                     oab1=v.get_lb(key);
-                                                                                            //                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
-                                            
-                                            
-                                                                                            // }
-                                                                                        }
-                                                                                        }
-                                        }
-                                        else
-                                        {
-                                            DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                                                                        model->print();
-                                            
-                                            //                                        fixed_point[pk]=true;
-                                        }
+                                        modelk->min(vark(key));
                                     }
-                                    batch_models.clear();
+                                    else
+                                    {
+                                        modelk->min(vark(key)*(-1));
+                                        
+                                    }
+                                    
+                                    batch_models.push_back(modelk);
+                                    if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
+                                    {
+                                        double batch_time_start = get_wall_time();
+                                        run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                        double batch_time_end = get_wall_time();
+                                        auto batch_time = batch_time_end - batch_time_start;
+                                        DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                        for (auto model:batch_models)
+                                        {
+                                            
+                                            //                                    model->print();
+                                            mkname=model->get_name();
+                                            std::size_t pos = mkname.find("|");
+                                            vkname.assign(mkname, 0, pos);
+                                            mkname=mkname.substr(pos+1);
+                                            pos=mkname.find("|");
+                                            keyk.assign(mkname, 0, pos);
+                                            dirk=mkname.substr(pos+1);
+                                            vk=SDP->get_var<double>(vkname);
+                                            pk=vkname+"|"+keyk;
+                                            //                                        if(model->get_name()=="Lift(Pf_from(Arc)^2)|3,3,6|UB")
+                                            //                                                                                {
+                                            //                                                                                    model->print();
+                                            //
+                                            //
+                                            //                                                                                }
+                                            if(model->_status==0)
+                                            {
+                                                objk=model->get_obj_val();
+                                                //                                            if(abs(objk)<=zero_val)
+                                                //                                                objk=0.0;
+                                                if(dirk=="LB")
+                                                {
+                                                    boundk1=vk.get_lb(keyk);
+                                                    objk=std::max(objk*(1.0-opt_tol), boundk1);
+                                                }
+                                                else
+                                                {
+                                                    //                                                if(abs(objk)>=zero_val)
+                                                    objk*=-1;
+                                                    boundk1=vk.get_ub(keyk);
+                                                    objk=std::min(objk*(1.0+opt_tol), boundk1);
+                                                }
+                                                //                                            if(abs(objk-boundk1)<=opt_tol)
+                                                //                                            {
+                                                //                                                objk=boundk1;
+                                                //                                            }
+                                                if((abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+                                                {
+                                                    if(iter>1)
+                                                        fixed_point[pk]=true;
+                                                    if(vk.get_ub(keyk)<vk.get_lb(keyk))
+                                                    {
+                                                        double temp=vk.get_ub(keyk);
+                                                        double tempa=vk.get_lb(keyk);
+                                                        vk.set_ub(keyk, tempa);
+                                                        vk.set_lb(keyk, temp);
+                                                    }
+                                                    
+                                                }
+                                                else
+                                                {
+                                                    if(dirk=="LB"){
+                                                        vk.set_lb(keyk, objk);
+                                                    }
+                                                    else{
+                                                        vk.set_ub(keyk, objk);
+                                                    }
+                                                    if(vk.get_ub(keyk)<vk.get_lb(keyk))
+                                                    {
+                                                        fixed_point[pk]=true;
+                                                        double temp=vk.get_ub(keyk);
+                                                        double tempa=vk.get_lb(keyk);
+                                                        vk.set_ub(keyk, tempa);
+                                                        vk.set_lb(keyk, temp);
+                                                        
+                                                    }
+                                                    else {
+                                                        fixed_point[pk]=false;
+                                                        terminate=false;
+                                                    }
+                                                    
+                                                }
+                                                if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                                {
+                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
+                                                        //                                                                                                if(interval_original[pk]>=range_tol)
+                                                    {
+                                                        DebugOn("Entered reset");
+                                                        double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+                                                        
+                                                        double left=mid-range_tol/2.0;
+                                                        double right=mid+range_tol/2.0;
+                                                        DebugOn("UbO"<<ub_original[pk]<<endl);
+                                                        DebugOn("LbO"<<lb_original[pk]<<endl);
+                                                        if(right<=ub_original[pk] && left>=lb_original[pk])
+                                                        {
+                                                            vk.set_ub(keyk, right);
+                                                            vk.set_lb(keyk, left);
+                                                            //  DebugOn("Entered if 1"<<endl);
+                                                        }
+                                                        else if(right>ub_original[pk])
+                                                        {
+                                                            
+                                                            vk.set_ub(keyk, ub_original[pk]);
+                                                            vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                            //  DebugOn("Entered if 2"<<endl);
+                                                        }
+                                                        else if(left<lb_original[pk])
+                                                        {
+                                                            vk.set_lb(keyk, lb_original[pk]);
+                                                            vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                            //  DebugOn("Entered if 3"<<endl);
+                                                            
+                                                        }
+                                                        
+                                                        //                                    double ar=ub_original[p];
+                                                        //                                    double ar1=lb_original[p];
+                                                        //                                oaa1=v.get_ub(key);
+                                                        //                                     oab1=v.get_lb(key);
+                                                        //                                    DebugOn("UB"<<oaa1<<endl<<"Lb"<<oab1);
+                                                        
+                                                        
+                                                        // }
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                                model->print();
+                                                
+                                                //                                        fixed_point[pk]=true;
+                                            }
+                                        }
+                                        batch_models.clear();
+                                    }
                                 }
                             }
                         }
                     }
-                }
                     else
                     {
-                        DebugOn("Did not do OBBT for \t" << vname);
+                        DebugOn("Did not do OBBT for " << vname << endl);
                     }
-            }
+                }
                 if(break_flag==true)
                 {
                     DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
                     DebugOn("Iterations\t"<<iter<<endl);
-//                    SDP->print();
+                    //                    SDP->print();
                     break;
                 }
                 solver_time= get_wall_time()-solver_time_start;
@@ -492,7 +492,7 @@ int main (int argc, char * argv[]) {
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-//            SDP->print_solution();
+            //            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)
@@ -502,7 +502,7 @@ int main (int argc, char * argv[]) {
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
-               SDP->print_solution();
+                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 double gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
