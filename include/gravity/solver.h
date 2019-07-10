@@ -12,6 +12,9 @@
 #include <gravity/GravityConfig.h>
 
 #include <gravity/model.h>
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
 #ifdef USE_IPOPT
 #include <gravity/IpoptProgram.h>
 //#include "IpoptInterfaceCommon.h"
@@ -528,6 +531,38 @@ namespace gravity {
             t.join();
         }
     }
+    
+    
+#ifdef USE_MPI
+    /** Runds models stored in the vector in parallel using MPI
+     @models vector of models to run in parallel
+     @stype Solver type
+     @tol numerical tolerance
+     @nb_threads Number of parallel threads
+     @lin_solver linear system solver
+     */
+    template<typename type>
+    void run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+        std::vector<thread> threads;
+        std::vector<bool> feasible;
+        /* Split models into nr_threads parts */
+        std::vector<size_t> limits = bounds(nr_threads, models.size());
+        DebugOn("Running on " << nr_threads << " threads." << endl);
+        DebugOff("limits size = " << limits.size() << endl);
+        for (size_t i = 0; i < limits.size(); ++i) {
+            DebugOff("limits[" << i << "] = " << limits[i] << endl);
+        }
+        /* Launch all threads in parallel */
+        auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
+        for (size_t i = 0; i < nr_threads; ++i) {
+            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
+    }
+#endif
 
 }
 
