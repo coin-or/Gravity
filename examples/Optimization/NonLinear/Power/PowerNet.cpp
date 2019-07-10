@@ -1454,32 +1454,33 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    /**  Objective */
- //   auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    //  Objective
+    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    SDPOPF->min(obj);
     
     Constraint<> obj_UB("obj_UB");
-    obj_UB=objt-upper_bound;
+    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
     SDPOPF->add(obj_UB<=0);
-    
-    Constraint<> obj_LB("obj_LB");
-    obj_LB=objt-lower_bound;
-    SDPOPF->add(obj_LB>=0);
-    
-    
-    
-    var<> Pg2("Pg2", pow(pg_min,2), pow(pg_max,2));
-    SDPOPF->add(Pg2.in(gens));
-    
-    Constraint<> PGSquare("PGSquare");
-    PGSquare = pow(Pg,2) - Pg2;
-    SDPOPF->add(PGSquare.in(gens)==0,true);
-    
-    
-    Constraint<> obj_def("obj_def");
-    obj_def=(product(c1,Pg) + product(c2,Pg2) + sum(c0))-objt;
-    SDPOPF->add(obj_def==0);
-    SDPOPF->min(objt);
-    SDPOPF->print();
+//
+//    Constraint<> obj_LB("obj_LB");
+//    obj_LB=objt-lower_bound;
+//    SDPOPF->add(obj_LB>=0);
+//
+//
+//
+//    var<> Pg2("Pg2", pow(pg_min,2), pow(pg_max,2));
+//    SDPOPF->add(Pg2.in(gens));
+//
+//    Constraint<> PGSquare("PGSquare");
+//    PGSquare = pow(Pg,2) - Pg2;
+//    SDPOPF->add(PGSquare.in(gens)==0,true);
+//
+//
+//    Constraint<> obj_def("obj_def");
+//    obj_def=(product(c1,Pg) + product(c2,Pg2) + sum(c0))-objt;
+//    SDPOPF->add(obj_def==0);
+  //  SDPOPF->min(objt);
+   // SDPOPF->print();
     
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
@@ -1657,7 +1658,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         Constraint<> trig("trig");
         trig=pow(sinthetaij, 2)+pow(costhetaij,2)-1;
 
-        SDPOPF->add(trig.in(bus_pairs_chord)==0, true);
+        SDPOPF->add(trig.in(bus_pairs)==0, true);
 
 
         Constraint<> tanU("tanU");
@@ -1725,22 +1726,28 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         
         if(!grid._tree)
         {
-            
+//          
             auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
             auto Wii_ = Wii.in_bags(grid._bags, 3);
             auto nb_bags3 = Wij_[0]._indices->size();
-            
+            //  auto thetaij_=theta_ij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
+            //auto nb_bagst=thetaij_[0]._indices->size();
+//
             Constraint<Cpx> Rank_type2a("RankType2a");
             Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-          //  SDPOPF->add(Rank_type2a.in(indices(1,nb_bags3))==0, true);
+           SDPOPF->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
             
             Constraint<Cpx> Rank_type2b("RankType2b");
             Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
-          //  SDPOPF->add(Rank_type2b.in(indices(1,nb_bags3))==0, true);
-            
+            SDPOPF->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+
             Constraint<Cpx> Rank_type2c("RankType2c");
             Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
-         //   SDPOPF->add(Rank_type2c.in(indices(1,nb_bags3))==0, true);
+            SDPOPF->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+
+//            Constraint<> Cycle_theta("Cycle_theta");
+//            Cycle_theta=thetaij_[0]+thetaij_[1]-thetaij_[2];
+//            SDPOPF->add(Cycle_theta.in(range(1,nb_bagst))==0);
             
 //            auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
 //            DebugOn("firstfirst");
@@ -2028,9 +2035,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     SDPOPF->min(obj);
     
     
-//    Constraint<> obj_UB("obj_UB");
-//        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
-//        SDPOPF->add(obj_UB<=0);
+    Constraint<> obj_UB("obj_UB");
+        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
+        SDPOPF->add(obj_UB<=0);
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         

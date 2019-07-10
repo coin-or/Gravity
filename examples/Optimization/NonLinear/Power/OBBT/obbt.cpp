@@ -161,10 +161,12 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDPL->get_obj_val();
     
-    auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
+    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
     solver<> SDPLBI(SDP,solv_type);
         SDP->print();
     SDPLBI.run(output = 5, tol = 1e-6, "ma97");
+   //auto SDP=SDPL;
+    
  //   double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
@@ -261,10 +263,10 @@ int main (int argc, char * argv[]) {
                                 for(auto &dir: dir_array)
                                 {
                                     auto modelk = SDP->copy();
-                                    auto Pg=modelk->get_var<double>("Pg");
-                                    Constraint<> obj_UB("obj_UB");
-                                    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
-                                    modelk->add(obj_UB<=0);
+//                                    auto Pg=modelk->get_var<double>("Pg");
+//                                    Constraint<> obj_UB("obj_UB");
+//                                    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
+//                                    modelk->add(obj_UB<=0);
 //                                    func<double> o=*(SDP->_obj);
 //                                    Constraint<> UpperB("UpperB");
 //                                    UpperB=o;
