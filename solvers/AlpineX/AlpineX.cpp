@@ -20,6 +20,11 @@ int main (int argc, char * argv[])
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
     
+    // Specify the additional constraints
+    bool current = true;
+    bool current_partition_lambda = false;
+    bool current_partition_on_off = true;
+    
     //    Specify the use of partitioning scheme
     bool do_partition = false;
     bool do_Model_III = false;
@@ -84,6 +89,16 @@ int main (int argc, char * argv[])
     auto c1 = grid.c1.in(gens);
     auto c2 = grid.c2.in(gens);
     auto c0 = grid.c0.in(gens);
+    auto lij_min=grid.lij_min.in(arcs);
+    auto lij_max=grid.lij_max.in(arcs);
+    auto lji_min=grid.lji_min.in(arcs);
+    auto lji_max=grid.lji_max.in(arcs);
+    auto cc=grid.cc.in(arcs);
+    auto dd=grid.dd.in(arcs);
+    auto ch_half=grid.ch_half.in(arcs);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto tr = grid.tr.in(arcs);
     
     
     
@@ -119,6 +134,12 @@ int main (int argc, char * argv[])
     ACOPF.add(R_Wij.in(bus_pairs));
     ACOPF.add(Im_Wij.in(bus_pairs));
     
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
+    if(current){
+        SOCP.add(lij.in(arcs),lji.in(arcs));
+    }
+    
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
@@ -140,7 +161,7 @@ int main (int argc, char * argv[])
         }
         
         /* Second-order cone constraints */
-        Constraint<> SOC("SOC");
+        Constraint<> SOC("SOC_original");
         SOC = R_WijWij + Im_WijWij - WijWji;
         SOCP.add(SOC.in(bus_pairs) == 0);
         
@@ -158,12 +179,12 @@ int main (int argc, char * argv[])
         
         
         // define the number of partitions for variables
-        int num_partitions1 = 5; //number of partitions for Wii(from)
-        int num_partitions2 = 5; //number of partitions for Wii(to)
-        int num_partitions3 = 5; //number of partitions for R_Wi
+        int num_partitions1 = 2; //number of partitions for Wii(from)
+        int num_partitions2 = 2; //number of partitions for Wii(to)
+        int num_partitions3 = 10; //number of partitions for R_Wi
         
         /************** THIS SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-        int num_partitions4 = 5; //number of partitions for Im_Wij
+        int num_partitions4 = 10; //number of partitions for Im_Wij
         
         // allocate the partition bound arrays
         vector<double> p1(num_partitions1+1); //bounds for Wii(from)
@@ -179,9 +200,11 @@ int main (int argc, char * argv[])
         size_t pos; //position of the delimiter
         size_t delimiter_lenght = delimiter.length();
         
+        vector<int> constraint_idx = {0,3,6};
         
-        for (int i=0; i<bus_pairs.size(); ++i) {
-            //        for (int i=0; i<1; ++i) {
+        //        for (int i=0; i<bus_pairs.size(); ++i) {
+        for (int j=0; j<constraint_idx.size(); ++j) {
+            int i = constraint_idx[j];
             myString = bus_pairs._keys->at(i);
             pos = bus_pairs._keys->at(i).find(delimiter);
             
@@ -217,6 +240,236 @@ int main (int argc, char * argv[])
         }
     }
     
+    if(current){
+        
+        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+        var<Cpx> L_from("L_from"), Wij("Wij");
+        T.real_imag(cc.in(arcs), dd.in(arcs));
+        Y.real_imag(g.in(arcs), b.in(arcs));
+        Ych.set_imag(ch_half.in(arcs));
+        
+        
+        L_from.set_real(lij.in(arcs));
+        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
+        var<Cpx> Sij("Sij"), Sji("Sji");
+        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
+        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+        
+        
+        Constraint<Cpx> I_from("I_from");
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+        SOCP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+        
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+        
+        Constraint<> I_from_Pf("I_from_Pf");
+        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+        SOCP.add(I_from_Pf.in(arcs)>=0);
+//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+        //        SOCP.add(I_from_Pf.in(arcs)==0, true);
+        
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+        SOCP.add(I_to_Pf.in(arcs)>=0);
+        SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+        //        SOCP.add(I_to_Pf.in(arcs)==0, true);
+        
+        
+        if (current_partition_lambda){
+            if (do_Model_III){
+                model_type = "Model_III";
+            }
+            
+            var<> Pf_to_squared("Pf_to_squared",pos_);
+            SOCP.add(Pf_to_squared.in(arcs));
+            
+            var<> Qf_to_squared("Qf_to_squared",pos_);
+            SOCP.add(Qf_to_squared.in(arcs));
+            
+            var<> ljiWii_to("ljiWii_to");
+            SOCP.add(ljiWii_to.in(arcs));
+            
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
+            SOCP.add(I_to_Pf_EQ.in(arcs)==0);
+            
+            //collect the bounds on variables
+            
+            //bounds for Pf_to and Qf_to
+            auto UB_Pf_to = grid.S_max; // LB is the negative of UB
+            auto UB_Qf_to = grid.S_max; // LB is the negative of UB
+            
+            //bounds for Wii
+            auto LB_Wii = grid.w_min;
+            auto UB_Wii = grid.w_max;
+            
+            // define the number of partitions for variables
+            /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
+            
+            int num_partitions3 = 4; //number of partitions for Wii(to)
+            int num_partitions4 = 4; //number of partitions for lji
+            
+            // allocate the partition bound arrays
+            vector<double> p1(num_partitions1+1); //bounds for Pf_to
+            vector<double> p2(num_partitions2+1); //bounds for Qf_to
+            vector<double> p3(num_partitions3+1); //bounds for Wii(to)
+            vector<double> p4(num_partitions4+1); //bounds for lji
+            
+            //parsing related items
+            string delimiter = ","; //delimiter for correcly seperating the keys
+            int toIDX; //to index of the key
+            string myString; //temporary string
+            size_t pos; //position of the delimiter
+            size_t delimiter_lenght = delimiter.length();
+            
+            vector<int> constraint_idx = {0,1,2,3,4,5,6,7};
+            
+            //            for (int i=0; i<arcs.size(); ++i) {
+            for (int k=0; k<constraint_idx.size(); ++k) {
+                int i = constraint_idx[k];
+                myString = bus_pairs._keys->at(i);
+                pos = bus_pairs._keys->at(i).find(delimiter);
+                toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
+                
+                //fill the partition bounds for the variables
+                for (int j=0; j<num_partitions1+1; ++j) {
+                    p1[j] = (num_partitions1-j)*(-UB_Pf_to.eval(i))+(j)*UB_Pf_to.eval(i);
+                }
+                transform(p1.begin(), p1.end(), p1.begin(), bind(divides<double>(), placeholders::_1, num_partitions1));
+                
+                for (int j=0; j<num_partitions2+1; ++j) {
+                    p2[j] = (num_partitions2-j)*(-UB_Qf_to.eval(i))+(j)*UB_Qf_to.eval(i);
+                }
+                transform(p2.begin(), p2.end(), p2.begin(), bind(divides<double>(), placeholders::_1, num_partitions2));
+                
+                for (int j=0; j<num_partitions3+1; ++j) {
+                    p3[j] = (num_partitions3-j)*LB_Wii.eval(toIDX)+(j)*UB_Wii.eval(toIDX);
+                }
+                transform(p3.begin(), p3.end(), p3.begin(), bind(divides<double>(), placeholders::_1, num_partitions3));
+                
+                for (int j=0; j<num_partitions4+1; ++j) {
+                    p4[j] = (num_partitions4-j)*lji_min.eval(i)+(j)*lji_max.eval(i);
+                }
+                transform(p4.begin(), p4.end(), p4.begin(), bind(divides<double>(), placeholders::_1, num_partitions4));
+                
+                //add the partitions&relaxation on the variables
+                SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
+                SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
+                SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
+            }
+        }
+        
+        if (current_partition_on_off){
+            
+            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
+            SOCP.add(Pf_to_squared.in(arcs));
+            Pf_to_squared._lift = true;
+            
+            var<> Qf_to_squared("Qf_to_squared", 0, grid.S_max*grid.S_max);
+            SOCP.add(Qf_to_squared.in(arcs));
+            Qf_to_squared._lift = true;
+            
+            /*need to provide bounds for the variables,
+             have a scheme to provide bounds for the bilinear case*/
+            var<> ljiWii_to("ljiWii_to",0,lij_max*grid.w_max);
+            SOCP.add(ljiWii_to.in(arcs));
+            ljiWii_to._lift = true;
+            
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
+            SOCP.add(I_to_Pf_EQ.in(arcs)==0);
+            
+            //collect the bounds on variables
+            
+            //bounds for Pf_to and Qf_to
+            auto UB_Pf_to = grid.S_max; // LB is the negative of UB
+            auto UB_Qf_to = grid.S_max; // LB is the negative of UB
+            
+            //bounds for Wii
+            auto LB_Wii = grid.w_min;
+            auto UB_Wii = grid.w_max;
+            
+            // define the number of partitions for variables
+            /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
+            
+            int num_partitions3 = 4; //number of partitions for Wii(to)
+            int num_partitions4 = 4; //number of partitions for lji
+            
+            
+            /* create an index set for all z and unify them maybe later */
+            var<int> z1("z1",0,1);
+            indices partns1("partns1");
+            partns1 = indices(range(1,num_partitions1));
+            auto var_indices1 = *Pf_to._indices;
+            auto inst_partition1 = indices(var_indices1,partns1);
+            SOCP.add(z1.in(inst_partition1));
+            
+            var<int> z2("z2",0,1);
+            indices partns2("partns2");
+            partns2 = indices(range(1,num_partitions2));
+            auto inst_partition2 = indices(var_indices1,partns2);
+            SOCP.add(z2.in(inst_partition2));
+            
+            var<int> z3("z3",0,1);
+            indices partns3("partns3");
+            partns3 = indices(range(1,num_partitions3),indices(range(1,num_partitions4)));
+            auto inst_partition3 = indices(var_indices1,partns3);
+            SOCP.add(z3.in(inst_partition3));
+            
+            //parsing related items
+            string delimiter = ","; //delimiter for correcly seperating the keys
+            int toIDX; //to index of the key
+            string myString; //temporary string
+            size_t pos; //position of the delimiter
+            size_t delimiter_lenght = delimiter.length();
+            
+            vector<int> constraint_idx = {0,1,2,3,4,5,6,7};
+            
+            //            for (int i=0; i<arcs.size(); ++i) {
+            for (int k=0; k<constraint_idx.size(); ++k) {
+                int i = constraint_idx[k];
+                myString = bus_pairs._keys->at(i);
+                pos = bus_pairs._keys->at(i).find(delimiter);
+                toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
+                
+                
+//                add the partitions&relaxation on the variables
+                auto Pf_to1 = Pf_to(i);
+                auto Pf_to_s1 = Pf_to_squared(i);
+                indices var_indices_temp("var_indices_temp");
+                var_indices_temp.add({var_indices1._keys->at(i)});
+                auto z1temp = z1.in(var_indices_temp,partns1);
+                var_indices_temp.print();
+              
+                auto Qf_to1 = Qf_to(i);
+                auto Qf_to_s1 = Qf_to_squared(i);
+                auto z2temp = z2.in(var_indices_temp,partns2);
+                
+                auto ljiWii_to1 = ljiWii_to(i);
+                auto Wii_to1 = Wii(toIDX);
+                auto lji1 = lji(i);
+                auto z3temp = z3.in(var_indices_temp,partns3);
+                
+                
+                SOCP.add_on_off_McCormick_new("Pf_to_squared"+to_string(i), Pf_to_s1, Pf_to1, Pf_to1, z1temp, num_partitions1,num_partitions1);
+//                SOCP.add_on_off_McCormick_new("Qf_to_squared" + to_string(i), Qf_to_s1, Qf_to1, Qf_to1,  z2temp, num_partitions2, num_partitions2);
+//                SOCP.add_on_off_McCormick_new("ljiWii_to" + to_string(i), ljiWii_to1,  Wii_to1, lji1, z3temp,  num_partitions3, num_partitions4);
+            }
+        }
+    }
+    
+    
+    
+    
     
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
@@ -225,13 +478,11 @@ int main (int argc, char * argv[])
     
     /** Constraints */
     
-    if (!do_partition){
-        /* Second-order cone constraints */
-        Constraint<> SOC("SOC");
-        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP.add(SOC.in(bus_pairs) <= 0);
-        SOCP.get_constraint("SOC")->_relaxed = true;
-    }
+    /* Equality of Second-order cone (for upperbound) */
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    SOCP.add(SOC.in(bus_pairs) <= 0);
+    SOCP.get_constraint("SOC")->_relaxed = true;
     
     /* Equality of Second-order cone (for upperbound) */
     Constraint<> Equality_SOC("Equality_SOC");
@@ -314,8 +565,6 @@ int main (int argc, char * argv[])
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     
-    //    SOCP.print();
-    
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
@@ -328,59 +577,69 @@ int main (int argc, char * argv[])
     //        SOCP.print_solution();
     
     /* Solver selection */
-    solver<> ACOPF_IPOPT(ACOPF, ipopt);
-    ACOPF_IPOPT.run(output, tol = 1e-6);
+    //    solver<> ACOPF_IPOPT(ACOPF, ipopt);
+    //    ACOPF_IPOPT.run(output, tol = 1e-6);
     
-    solver<> SOCOPF_CPX2(SOCP, cplex);
-    SOCOPF_CPX2.run(output, tol = 1e-6);
+    double upperbound = 2924.845670;
+    
+    //    solver<> SOCOPF_CPX2(SOCP, cplex);
+    //    SOCOPF_CPX2.run(output, tol = 1e-6);
     //        ACOPF.print_solution();
     
     
-    string out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP.get_obj_val(),10) + ", Upper bound:" + to_string(ACOPF.get_obj_val()) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
+    string out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP.get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
-    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
+    //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
+    double gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
-    auto v = SOCP.sorted_nonzero_constraints(tol,true);
     
-    for (int i = 0; i < v.size(); i++)
-        cout << get<0>(v[i])<< " "
-        << get<1>(v[i]) << " "
-        << get<2>(v[i]) << "\n";
+//    SOCP.print_constraints();
     
-    indices myIdx;
-    string inst;
+    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     
-    for (int i = 0; i < v.size(); i++){
-        inst = SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
-        cout << inst << endl;
-        cout << SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i])) << endl;
-        cout << SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i])) << endl;
-//        inst = SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i]));
-        myIdx.add(inst);
-        //   alternatively, you can do
-        //   SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
-    }
+//    for (int i = 0; i < v.size(); i++)
+//        cout << get<0>(v[i])<< " "
+//        << get<1>(v[i]) << " "
+//        << get<2>(v[i]) << "\n";
     
-    SOCP.print();
-  
     
-    /* THERE IS A BIG BUG IN HERE */
-    /* The constraint indices are correct but the variable indices are wrong and basically the first 3 constraints are produces in here. (1,4), (4,5), (5,6) are the first three constraints. */
-    Model<> asd("asd");
-    asd.add(R_Wij);
-    asd.add(Im_Wij);
-    asd.add(Wii);
-    Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    asd.add(SOC.in(myIdx) <= 0);
     
-    asd.print();
     
-    /* Run the partition based on the not-active constraints */
+    
+    /************ Collecting the indices of variables that appear in the nonzero constraints ************/
+    //    indices myIdx;
+    //    string inst;
+    //
+    //    for (int i = 0; i < v.size(); i++){
+    //        inst = SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
+    //        cout << inst << endl;
+    //        cout << SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i])) << endl;
+    //        cout << SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i])) << endl;
+    ////        inst = SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i]));
+    //        myIdx.add(inst);
+    //        //   alternatively, you can do
+    //        //   SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
+    //    }
+    //
+    //
+    //    /* THERE IS A BIG BUG IN HERE */
+    //    /* The constraint indices are correct but the variable indices are wrong and basically the first 3 constraints are produces in here. (1,4), (4,5), (5,6) are the first three constraints. */
+    //    Model<> asd("asd");
+    //    asd.add(R_Wij);
+    //    asd.add(Im_Wij);
+    //    asd.add(Wii);
+    //    Constraint<> SOC("SOC");
+    //    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    //    asd.add(SOC.in(myIdx) <= 0);
+    //
+    //    asd.print();
+    
     /* Think about the extra-partition and representation of the same W_ii in the bilinear product, we need to link lambdas somehow*/
+    
     /* Implement on-off constraints for the squared term in a symbolic way */
+    
     
     return 0;
     
