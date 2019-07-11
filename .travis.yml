@@ -36,7 +36,7 @@ before_install:
 #- cd ../../../
 #- echo $LANG
 #- echo $LC_ALL
-#- mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
+- mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
 script:
 - make -j5
 - ../bin/Release/gravity_test
