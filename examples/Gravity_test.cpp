@@ -1131,3 +1131,12 @@ TEST_CASE("testing normal distributions") {
     M.print_solution();
     
 }
+
+
+#ifdef USE_MPI
+TEST_CASE("testing OpenMPI") {
+    DebugOn("testing OpenMPI" << endl);
+    auto TestModel = make_shared<Model<>>("TestModel");
+    run_MPI<double>({TestModel});
+}
+#endif
