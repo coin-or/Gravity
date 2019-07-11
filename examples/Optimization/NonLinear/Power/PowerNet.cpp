@@ -1430,8 +1430,8 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         
     }
     
-    var<> objt("objt", oL, oU);
-    SDPOPF->add(objt);
+//    var<> objt("objt", oL, oU);
+//    SDPOPF->add(objt);
     
     var<> V_mag("V_mag", v_min, v_max);
     var<> theta("theta", t_min, t_max);
@@ -1455,6 +1455,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
+
     //  Objective
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
     SDPOPF->min(obj);
@@ -1462,6 +1463,14 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
     SDPOPF->add(obj_UB<=0);
+
+    /**  Objective */
+//    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+//    SDPOPF->min(obj);
+//    Constraint<> obj_UB("obj_UB");
+//    obj_UB=objt-upper_bound;
+//    SDPOPF->add(obj_UB<=0);
+
 //
 //    Constraint<> obj_LB("obj_LB");
 //    obj_LB=objt-lower_bound;
@@ -1480,9 +1489,10 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
 //    Constraint<> obj_def("obj_def");
 //    obj_def=(product(c1,Pg) + product(c2,Pg2) + sum(c0))-objt;
 //    SDPOPF->add(obj_def==0);
+
   //  SDPOPF->min(objt);
    // SDPOPF->print();
-    
+
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
@@ -1658,10 +1668,12 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         cosenvlow=costhetaij.in(bus_pairs)-cos(thetaij_m).in(bus_pairs);
         SDPOPF->add(cosenvlow.in(bus_pairs)>=0);
 
-        Constraint<> trig("trig");
-        trig=pow(sinthetaij, 2)+pow(costhetaij,2)-1;
 
-        SDPOPF->add(trig.in(bus_pairs)==0, true);
+//        Constraint<> trig("trig");
+//        trig=pow(sinthetaij, 2)+pow(costhetaij,2)-1;
+//
+//        SDPOPF->add(trig.in(bus_pairs_chord)==0, true);
+
 
 
         Constraint<> tanU("tanU");
@@ -1733,6 +1745,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
             auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
             auto Wii_ = Wii.in_bags(grid._bags, 3);
             auto nb_bags3 = Wij_[0]._indices->size();
+
             //  auto thetaij_=theta_ij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
             //auto nb_bagst=thetaij_[0]._indices->size();
 //
@@ -1751,6 +1764,9 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
 //            Constraint<> Cycle_theta("Cycle_theta");
 //            Cycle_theta=thetaij_[0]+thetaij_[1]-thetaij_[2];
 //            SDPOPF->add(Cycle_theta.in(range(1,nb_bagst))==0);
+
+            
+
             
 //            auto ref_bus_pairs_ijkl=grid.get_pairsof_bus_pairs_ijkl();
 //            DebugOn("firstfirst");
