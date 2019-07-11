@@ -477,6 +477,11 @@ namespace gravity {
         virtual void copy_bounds(const shared_ptr<param_>& p){};
         virtual double get_double_lb(size_t i) const{return 0;};
         virtual double get_double_ub(size_t i) const{return 0;};
+        
+        virtual int get_num_partns() const{return 0;};
+        virtual int get_cur_partn() const{return 0;};
+        
+        virtual bool get_lift() const{return 0;};
 
     };
 
