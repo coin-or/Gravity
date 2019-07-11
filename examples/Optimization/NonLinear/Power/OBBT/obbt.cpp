@@ -108,11 +108,40 @@ int main (int argc, char * argv[]) {
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
     
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
-
-    
+    auto pl = grid.pl.in(nodes);
+    auto ql = grid.ql.in(nodes);
+    auto gs = grid.gs.in(nodes);
+    auto bs = grid.bs.in(nodes);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto as = grid.as.in(arcs);
+    auto ch = grid.ch.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    auto th_min = grid.th_min.in(grid.bus_pairs);
+    auto th_max = grid.th_max.in(grid.bus_pairs);
+    auto g_ft = grid.g_ft.in(arcs);
+    auto g_ff = grid.g_ff.in(arcs);
+    auto g_tt = grid.g_tt.in(arcs);
+    auto g_tf = grid.g_tf.in(arcs);
+    auto b_ft = grid.b_ft.in(arcs);
+    auto b_ff = grid.b_ff.in(arcs);
+    auto b_tf = grid.b_tf.in(arcs);
+    auto b_tt = grid.b_tt.in(arcs);
+    auto S_max = grid.S_max.in(arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto v_min = grid.v_min.in(nodes);
+    auto w_max = grid.w_max.in(nodes);
+    auto w_min = grid.w_min.in(nodes);
+    auto cc=grid.cc.in(arcs);
+    auto dd=grid.dd.in(arcs);
+    auto ch_half=grid.ch_half.in(arcs);
     
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
@@ -240,8 +269,15 @@ int main (int argc, char * argv[]) {
                         auto v_keys=v.get_keys();
                         for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                         {
+                                auto key = *it_key;
+//                            if(vname=="Pf_from")
+//                            {
+//                                DebugOn("Key"<<endl);
+//                                DebugOn("Pf_LB\t"<<v.get_lb(key)<<endl);
+//                                DebugOn("g(key)\t"<<g.eval(key)<<endl);
+//                            }
                             
-                            auto key = *it_key;
+                        
                             solver_time_end=get_wall_time();
                             solver_time= solver_time_end-solver_time_start;
                             if(solver_time>=max_time)
