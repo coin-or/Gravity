@@ -205,8 +205,6 @@ namespace gravity {
             return nb;
         }
         
-        
-        
         string get_name() const{
             return this->_name;
         };
