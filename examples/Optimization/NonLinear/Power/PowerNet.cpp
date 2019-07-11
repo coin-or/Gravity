@@ -1434,10 +1434,11 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     SDPOPF->add(objt);
     
     var<> V_mag("V_mag", v_min, v_max);
-    //var<> theta("theta", t_min, t_max);
-   var<> theta_ij("theta_ij", th_min, th_max);
+    var<> theta("theta", t_min, t_max);
+    theta._lift=true;
+    var<> theta_ij("theta_ij", th_min, th_max);
     SDPOPF->add(V_mag.in(nodes));
-   // SDPOPF->add(theta.in(nodes));
+   SDPOPF->add(theta.in(nodes));
    SDPOPF->add(theta_ij.in(bus_pairs));
     var<> Vi_Vj("Vi_Vj", ViVj_L, ViVj_U);
     SDPOPF->add(Vi_Vj.in(bus_pairs));
@@ -1608,6 +1609,8 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         Constraint<> Linking_V_mag_i_V_mag_j("Linking_V_mag_i_V_mag_j");
         Linking_V_mag_i_V_mag_j =  Vi_Vj.in(bus_pairs)- V_mag.from(bus_pairs)*V_mag.to(bus_pairs);
         SDPOPF->add(Linking_V_mag_i_V_mag_j.in(bus_pairs)==0, convexify);
+
+        
 //
         
 //                func<> thetaij_m;
@@ -1670,9 +1673,9 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         SDPOPF->add(tanL.in(bus_pairs)>=0);
 
 
-//        Constraint<> theta_diff("theta_diff");
-//        theta_diff=theta.from(bus_pairs)-theta.to(bus_pairs)-theta_ij.in(bus_pairs);
-//        SDPOPF->add(theta_diff.in(bus_pairs)==0);
+        Constraint<> theta_diff("theta_diff");
+        theta_diff=theta.from(bus_pairs)-theta.to(bus_pairs)-theta_ij.in(bus_pairs);
+        SDPOPF->add(theta_diff.in(bus_pairs)==0);
 
 
         Constraint<> Linking_RW_Vtheta("Linking_RW_Vtheta");
