@@ -496,7 +496,7 @@ namespace gravity {
     int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver=""){
         int return_status = -1;
         for (auto i = start; i<end; i++) {
-            return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver);
+            return_status = solver<type>((models.at(i)),stype).run(5, tol, lin_solver);
             DebugOn("Return status\t"<<return_status);
             //            models.at(i)->print_solution(24);
         }
@@ -509,8 +509,7 @@ namespace gravity {
     }
     
     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-    template<typename type>
-    
+    template<typename type>    
     void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
         std::vector<thread> threads;
         std::vector<bool> feasible;
@@ -538,38 +537,62 @@ namespace gravity {
      @models vector of models to run in parallel
      @stype Solver type
      @tol numerical tolerance
-     @nb_threads Number of parallel threads
+     @nb_threads Number of parallel threads per worker
      @lin_solver linear system solver
      */
     template<typename type>
-    void run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, int nr_threads=1, const string& lin_solver=""){
-        
-        auto err_init = MPI_Init(nullptr,nullptr);
-        int rank = 0;
-        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nr_threads);
-        
-        printf("Hello, World.  I am %d of %d\n", rank, nr_threads);
-        
-        MPI_Finalize();
-//        std::vector<thread> threads;
-//        std::vector<bool> feasible;
-//        /* Split models into nr_threads parts */
-//        std::vector<size_t> limits = bounds(nr_threads, models.size());
-//        DebugOn("Running on " << nr_threads << " threads." << endl);
-//        DebugOff("limits size = " << limits.size() << endl);
-//        for (size_t i = 0; i < limits.size(); ++i) {
-//            DebugOff("limits[" << i << "] = " << limits[i] << endl);
-//        }
-//        /* Launch all threads in parallel */
-//        auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
-//        for (size_t i = 0; i < nr_threads; ++i) {
-//            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver));
-//        }
-//        /* Join the threads with the main thread */
-//        for(auto &t : threads){
-//            t.join();
-//        }
+    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        std::vector<thread> threads;
+        std::vector<bool> feasible;
+        /* Split models into nr_threads parts */
+        auto nr_threads_ = std::min((size_t)nr_threads, models.size());
+        std::vector<size_t> limits = bounds(nr_threads_*nb_workers, models.size());
+        DebugOn("Running on " << nr_threads_ << " threads." << endl);
+        DebugOff("limits size = " << limits.size() << endl);
+        for (size_t i = 0; i < limits.size(); ++i) {
+            DebugOff("limits[" << i << "] = " << limits[i] << endl);
+        }
+        /* Launch all threads in parallel */
+        auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
+        DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << worker_id << " to " << worker_id+nr_threads_-1 << endl);
+        for (size_t i = worker_id; i < worker_id+nr_threads_; ++i) {
+            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
+        if (worker_id == 0){
+            DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+            for (auto w_id = 1; w_id<nb_workers; w_id++) {
+                for (size_t i = w_id; i < w_id+nr_threads_; ++i) {
+                    auto model = models[i];
+                    auto nb_vars = model->get_nb_vars();
+                    vector<double> solution(nb_vars);
+                    MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    model->set_var(solution);
+                }
+            }
+        }
+        else{
+            DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+            for (size_t i = worker_id; i < worker_id+nr_threads_; ++i) {
+                auto model = models[i];
+                auto nb_vars = model->get_nb_vars();
+                vector<double> solution(nb_vars);
+                model->get_var(solution);
+                MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+            }
+        }
+        return max(err_rank, err_size);
+    }
+    
+    template<typename type>
+    void run_MPI(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+        run_MPI(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
     }
 #endif
 

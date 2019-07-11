@@ -1689,6 +1689,7 @@ namespace gravity {
             }
         }
         
+        
         /**
          Initialize the model variables using values from x
          @param[in] x values to initialize to
@@ -1697,6 +1698,17 @@ namespace gravity {
             for(auto &v_p: _vars)
             {
                 v_p.second->get_double_val(x);
+            }
+        }
+        
+        /**
+         Initialize the model variables using values from x
+         @param[in] x values to initialize to
+         */
+        void set_var(const vector<double>& x){
+            for(auto &v_p: _vars)
+            {
+                v_p.second->set_var(x);
             }
         }
         
@@ -3513,11 +3525,25 @@ namespace gravity {
             }
             
         }
-        
+        /**
+         Initialize x with model variables values
+         @param[out] x values to initialize
+         */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_var_init(double* x) {
             for(auto& v_p: _vars){
                 v_p.second->set_double_val(x);
+            }
+        }
+        
+        /**
+         Initialize x with model variables values
+         @param[out] x values to initialize
+         */
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_var(const vector<double>& x) {
+            for(auto& v_p: _vars){
+                v_p.second->get_var(x);
             }
         }
         
