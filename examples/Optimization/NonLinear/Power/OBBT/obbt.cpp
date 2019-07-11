@@ -111,7 +111,7 @@ int main (int argc, char * argv[]) {
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
-
+    
     
     
     
@@ -158,14 +158,14 @@ int main (int argc, char * argv[]) {
     double upper_bound=OPF->get_obj_val();
     auto SDPL= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDPL,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma97");
+    SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDPL->get_obj_val();
     
     auto SDP= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLBI(SDP,solv_type);
-        SDP->print();
-    SDPLBI.run(output = 5, tol = 1e-6, "ma97");
- //   double lower_bound=SDP->get_obj_val();
+    SDP->print();
+    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
+    //   double lower_bound=SDP->get_obj_val();
     SDP->print_constraints_stats(tol);
     bool print_only_relaxed;
     SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
@@ -204,11 +204,16 @@ int main (int argc, char * argv[]) {
                 for(auto &key: *v_keys)
                 {
                     p=vname+"|"+ key;
-                    fixed_point[p]=false;
+                    if(v._lift){
+                        fixed_point[p]=true;
+                    }
+                    else{
+                        fixed_point[p]=false;
+                    }
                     interval_original[p]=v.get_ub(key)-v.get_lb(key);
                     ub_original[p]=v.get_ub(key);
                     lb_original[p]=v.get_lb(key);
-                    //                interval_new[p]=v._ub->eval(v.get_keys_map()->at(key))-v._lb->eval(v.get_keys_map()->at(key));
+                    interval_new[p]=v.get_ub(key)-v.get_lb(key);
                 }
                 
             }
@@ -221,7 +226,7 @@ int main (int argc, char * argv[]) {
             //        }
             
             solver_time= get_wall_time()-solver_time_start;
-          
+            
             while(solver_time<=max_time && !terminate)
             {
                 iter++;
@@ -230,11 +235,8 @@ int main (int argc, char * argv[]) {
                 {
                     vname=it->first;
                     v = SDP->get_var<double>(vname);
-                    lifted_var=v._lift;
-                    if(!lifted_var)
+                    if(vname!="objt")
                     {
-                        if(vname!="objt")
-                        {
                         auto v_keys=v.get_keys();
                         for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                         {
@@ -265,10 +267,10 @@ int main (int argc, char * argv[]) {
                                     Constraint<> obj_UB("obj_UB");
                                     obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
                                     modelk->add(obj_UB<=0);
-//                                    func<double> o=*(SDP->_obj);
-//                                    Constraint<> UpperB("UpperB");
-//                                    UpperB=o;
-//                                    modelk->add(UpperB<=upper_bound);
+                                    //                                    func<double> o=*(SDP->_obj);
+                                    //                                    Constraint<> UpperB("UpperB");
+                                    //                                    UpperB=o;
+                                    //                                    modelk->add(UpperB<=upper_bound);
                                     mname=vname+"|"+key+"|"+dir;
                                     modelk->set_name(mname);
                                     
@@ -282,12 +284,13 @@ int main (int argc, char * argv[]) {
                                         modelk->min(vark(key)*(-1));
                                         
                                     }
-                                    
-                                    batch_models.push_back(modelk);
+                                    if(fixed_point[p]==false){
+                                        batch_models.push_back(modelk);
+                                    }
                                     if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                     {
                                         double batch_time_start = get_wall_time();
-                                        run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                        run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57", 1000);
                                         double batch_time_end = get_wall_time();
                                         auto batch_time = batch_time_end - batch_time_start;
                                         DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -331,7 +334,7 @@ int main (int argc, char * argv[]) {
                                                 if(abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
                                                 {
                                                     if(iter>1)
-                                                    fixed_point[pk]=true;
+                                                        fixed_point[pk]=true;
                                                     
                                                 }
                                                 else
@@ -351,7 +354,7 @@ int main (int argc, char * argv[]) {
                                                         vk.set_lb(keyk, temp);
                                                         
                                                     }
-                                                    else {
+                                                    else if(!vk._lift){
                                                         fixed_point[pk]=false;
                                                         terminate=false;
                                                     }
@@ -359,8 +362,8 @@ int main (int argc, char * argv[]) {
                                                 }
                                                 if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                                 {
-//                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
-                                                                 if(interval_original[pk]>=range_tol)
+                                                    //                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
+                                                    if(interval_original[pk]>=range_tol)
                                                     {
                                                         DebugOn("Entered reset");
                                                         double mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
@@ -390,7 +393,7 @@ int main (int argc, char * argv[]) {
                                                             
                                                         }
                                                         
-                                                    
+                                                        
                                                     }
                                                 }
                                             }
@@ -407,13 +410,12 @@ int main (int argc, char * argv[]) {
                                 }
                             }
                         }
-                        }
-                        }
+                    }
                     else
                     {
                         DebugOn("Did not do OBBT for \t" << vname);
                     }
-                        
+                    
                 }
                 if(break_flag==true)
                 {
@@ -486,7 +488,7 @@ int main (int argc, char * argv[]) {
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-                       SDP->print_solution();
+            SDP->print_solution();
             
             SDP->print();
             if(SDP->_status==0)
