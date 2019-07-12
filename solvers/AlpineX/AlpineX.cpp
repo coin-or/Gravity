@@ -25,13 +25,14 @@ int main (int argc, char * argv[])
     bool current_partition_lambda = false;
     bool current_partition_on_off = true;
     
-    //    Specify the use of partitioning scheme
+    //    Specify the use of partitioning scheme without current
     bool do_partition = false;
     bool do_Model_III = false;
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd__api.m";
+    //   string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
     //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
@@ -194,8 +195,8 @@ int main (int argc, char * argv[])
         
         //parsing related items
         string delimiter = ","; //delimiter for correcly seperating the keys
-        int fromIDX; //from index of the key
-        int toIDX; //to index of the key
+        string fromIDX; //from index of the key
+        string toIDX; //to index of the key
         string myString; //temporary string
         size_t pos; //position of the delimiter
         size_t delimiter_lenght = delimiter.length();
@@ -208,8 +209,8 @@ int main (int argc, char * argv[])
             myString = bus_pairs._keys->at(i);
             pos = bus_pairs._keys->at(i).find(delimiter);
             
-            fromIDX = stoi(myString.substr(0, pos)) - 1 ;
-            toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
+            fromIDX = myString.substr(0, pos);
+            toIDX = myString.substr(pos+delimiter_lenght);
             
             
             //fill the partition bounds for the variables
@@ -266,7 +267,7 @@ int main (int argc, char * argv[])
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
         SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
-        
+    
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SOCP.add(I_from_Pf.in(arcs)>=0);
@@ -324,7 +325,7 @@ int main (int argc, char * argv[])
             
             //parsing related items
             string delimiter = ","; //delimiter for correcly seperating the keys
-            int toIDX; //to index of the key
+            string toIDX; //to index of the key
             string myString; //temporary string
             size_t pos; //position of the delimiter
             size_t delimiter_lenght = delimiter.length();
@@ -336,7 +337,7 @@ int main (int argc, char * argv[])
                 int i = constraint_idx[k];
                 myString = bus_pairs._keys->at(i);
                 pos = bus_pairs._keys->at(i).find(delimiter);
-                toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
+                toIDX = myString.substr(pos+delimiter_lenght);
                 
                 //fill the partition bounds for the variables
                 for (int j=0; j<num_partitions1+1; ++j) {
@@ -378,7 +379,7 @@ int main (int argc, char * argv[])
             
             /*need to provide bounds for the variables,
              have a scheme to provide bounds for the bilinear case*/
-            var<> ljiWii_to("ljiWii_to",0,lij_max*grid.w_max);
+            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
             SOCP.add(ljiWii_to.in(arcs));
             ljiWii_to._lift = true;
             
@@ -398,11 +399,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 20; //number of partitions for Pf_to
-            int num_partitions2 = 20; //number of partitions for Qf_to
+            int num_partitions1 = 4; //number of partitions for Pf_to
+            int num_partitions2 = 4; //number of partitions for Qf_to
             
-            int num_partitions3 = 4; //number of partitions for Wii(to)
-            int num_partitions4 = 4; //number of partitions for lji
+            int num_partitions3 = 1; //number of partitions for Wii(to)
+            int num_partitions4 = 1; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -421,25 +422,25 @@ int main (int argc, char * argv[])
             
             var<int> z3("z3",0,1);
             indices partns3("partns3");
-            partns3 = indices(range(1,num_partitions3),indices(range(1,num_partitions4)));
+            partns3 = indices(range(1,num_partitions3),range(1,num_partitions4));
             auto inst_partition3 = indices(var_indices1,partns3);
             SOCP.add(z3.in(inst_partition3));
             
             //parsing related items
             string delimiter = ","; //delimiter for correcly seperating the keys
-            int toIDX; //to index of the key
+            string toIDX; //to index of the key
             string myString; //temporary string
             size_t pos; //position of the delimiter
             size_t delimiter_lenght = delimiter.length();
             
-            vector<int> constraint_idx = {0,1,2,3,4,5,6,7};
+            vector<int> constraint_idx = {1};
             
             //            for (int i=0; i<arcs.size(); ++i) {
             for (int k=0; k<constraint_idx.size(); ++k) {
                 int i = constraint_idx[k];
                 myString = bus_pairs._keys->at(i);
                 pos = bus_pairs._keys->at(i).find(delimiter);
-                toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
+                toIDX = myString.substr(pos+delimiter_lenght);
                 
                 
 //                add the partitions&relaxation on the variables
@@ -579,7 +580,10 @@ int main (int argc, char * argv[])
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
-    SOCOPF_CPX.run(output, tol = 1e-6);
+    
+    /** use the following line if you want to relax the integer variables **/
+//    SOCOPF_CPX.run(true);
+    SOCOPF_CPX.run(output,tol = 1e-6);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
@@ -591,7 +595,7 @@ int main (int argc, char * argv[])
     //    solver<> ACOPF_IPOPT(ACOPF, ipopt);
     //    ACOPF_IPOPT.run(output, tol = 1e-6);
     
-    double upperbound = 2924.845670;
+    double upperbound = grid.solve_acopf(ACRECT);
     
     //    solver<> SOCOPF_CPX2(SOCP, cplex);
     //    SOCOPF_CPX2.run(output, tol = 1e-6);
@@ -661,14 +665,17 @@ int main (int argc, char * argv[])
 //    temp.add_val(2);
 //    temp.add_val(4);
 //    temp.add_val(5);
+//    Constraint<> xtempcons2("xtempcons2");
+//    xtempcons2 = xtemp;
 //    xtempcons = xtemp;
 //    SOCP.add(xtempcons >= temp);
+//    SOCP.add(xtempcons2 <= temp);
 //
-//    auto asdasf = xtempcons.get_cst();
-//    asdasf->eval_all();
-////    (*asdasf + temp).print();
 //
-//    DebugOn(xtempcons.get_cst()->is_number() <<endl);
+//    xtempcons.get_cst()->print();
+//    xtempcons2.get_cst()->print();
+    
+ 
     
     return 0;
     
