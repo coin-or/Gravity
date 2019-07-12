@@ -443,26 +443,37 @@ int main (int argc, char * argv[])
                 
                 
 //                add the partitions&relaxation on the variables
-                auto Pf_to1 = Pf_to(i);
-                auto Pf_to_s1 = Pf_to_squared(i);
+                auto cur_key = var_indices1._keys->at(i);
+                auto Pf_to1 = Pf_to(cur_key);
+                auto Pf_to_s1 = Pf_to_squared(cur_key);
                 indices var_indices_temp("var_indices_temp");
-                var_indices_temp.add({var_indices1._keys->at(i)});
+                var_indices_temp.add({cur_key});
                 auto z1temp = z1.in(var_indices_temp,partns1);
-                var_indices_temp.print();
-              
-                auto Qf_to1 = Qf_to(i);
-                auto Qf_to_s1 = Qf_to_squared(i);
+                
+                Constraint<> z1Sum("z1Sum"+to_string(i));
+                z1Sum = sum(z1temp);
+                SOCP.add(z1Sum==1);
+                
+                auto Qf_to1 = Qf_to(cur_key);
+                auto Qf_to_s1 = Qf_to_squared(cur_key);
                 auto z2temp = z2.in(var_indices_temp,partns2);
                 
-                auto ljiWii_to1 = ljiWii_to(i);
+                Constraint<> z2Sum("z2Sum"+to_string(i));
+                z2Sum = sum(z2temp);
+                SOCP.add(z2Sum==1);
+                
+                auto ljiWii_to1 = ljiWii_to(cur_key);
                 auto Wii_to1 = Wii(toIDX);
-                auto lji1 = lji(i);
+                auto lji1 = lji(cur_key);
                 auto z3temp = z3.in(var_indices_temp,partns3);
                 
+                Constraint<> z3Sum("z3Sum"+to_string(i));
+                z3Sum = sum(z3temp);
+                SOCP.add(z3Sum==1);
                 
                 SOCP.add_on_off_McCormick_new("Pf_to_squared"+to_string(i), Pf_to_s1, Pf_to1, Pf_to1, z1temp, num_partitions1,num_partitions1);
-//                SOCP.add_on_off_McCormick_new("Qf_to_squared" + to_string(i), Qf_to_s1, Qf_to1, Qf_to1,  z2temp, num_partitions2, num_partitions2);
-//                SOCP.add_on_off_McCormick_new("ljiWii_to" + to_string(i), ljiWii_to1,  Wii_to1, lji1, z3temp,  num_partitions3, num_partitions4);
+                SOCP.add_on_off_McCormick_new("Qf_to_squared" + to_string(i), Qf_to_s1, Qf_to1, Qf_to1,  z2temp, num_partitions2, num_partitions2);
+              SOCP.add_on_off_McCormick_new("ljiWii_to" + to_string(i), ljiWii_to1,  Wii_to1, lji1, z3temp,  num_partitions3, num_partitions4);
             }
         }
     }
@@ -595,8 +606,9 @@ int main (int argc, char * argv[])
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
     
-//    SOCP.print_constraints();
-    
+    SOCP.print();
+    SOCP.print_solution();
+
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     
 //    for (int i = 0; i < v.size(); i++)
@@ -640,6 +652,23 @@ int main (int argc, char * argv[])
     
     /* Implement on-off constraints for the squared term in a symbolic way */
     
+//    var<> xtemp("xtemp");
+//    xtemp.in(R(5));
+//    Constraint<> xtempcons("xtempcons");
+//    param<> temp("temp");
+//    temp.add_val(1);
+//    temp.add_val(2);
+//    temp.add_val(2);
+//    temp.add_val(4);
+//    temp.add_val(5);
+//    xtempcons = xtemp;
+//    SOCP.add(xtempcons >= temp);
+//
+//    auto asdasf = xtempcons.get_cst();
+//    asdasf->eval_all();
+////    (*asdasf + temp).print();
+//
+//    DebugOn(xtempcons.get_cst()->is_number() <<endl);
     
     return 0;
     
