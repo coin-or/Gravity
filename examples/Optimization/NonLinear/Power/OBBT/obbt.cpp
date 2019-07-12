@@ -126,11 +126,11 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma57");
     double lower_bound=SDPL->get_obj_val();
     
-    // auto SDP=SDPL;
-    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
-    solver<> SDPLBI(SDP,solv_type);
-    SDP->print();
-    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
+    auto SDP=SDPL;
+//    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
+//    solver<> SDPLBI(SDP,solv_type);
+//    SDP->print();
+//    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
     
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -379,7 +379,7 @@ int main (int argc, char * argv[]) {
                 }
                 if (upper_bound-SDP->get_obj_val()<=upp_low_tol || (upper_bound-SDP->get_obj_val())/(upper_bound+zero_tol)<=upp_low_tol)
                 {
-                    DebugOn("Gap closed at iter "<< iter);
+                    DebugOn("Gap closed at iter "<< iter<<endl);
                     close=true;
                     terminate=true;
                     

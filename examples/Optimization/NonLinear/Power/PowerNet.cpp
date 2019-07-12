@@ -150,7 +150,15 @@ PowerNet::~PowerNet() {
     }
     arcs.clear();
 }
-
+void PowerNet::update_pij_bounds()
+{
+    int Pg_sum;
+    for (auto n: nodes) {
+        if (n->_active) {
+            s
+            for(auto g: ((Bus*)n)->_gen){
+    
+}
 indices PowerNet::gens_per_node() const{
     indices ids("gens_per_node");
     ids = indices(gens);
