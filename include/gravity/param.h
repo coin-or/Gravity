@@ -454,6 +454,11 @@ namespace gravity {
         /** Fill the variable's values from x */
         virtual void get_double_val(const double* x){};
         
+        /** Fill x with the variable's values */
+        virtual void get_var(const vector<double>& x){};
+        /** Fill the variable's values from x */
+        virtual void set_var(const vector<double>& x){};
+        
         /** Fill the variable's value at pos to x */
         virtual void get_double_val(size_t pos, double x){};
         
@@ -1941,6 +1946,25 @@ namespace gravity {
         }
 //        void set_vals(const Eigen::SparseMatrix<Cpx,Eigen::RowMajor>& SM);
         
+        /**
+         Initialize x with model variables values
+         @param[out] x values to initialize
+         */
+        void get_x(const vector<double>& x){set_x_(x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_x_(const vector<double>& x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                x[vid+i] = (double)_val->at(i);
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void get_x_(const vector<double>& x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
+        }
+        
         void set_double_val(double* x){set_double_val_(x);};
             
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -1968,6 +1992,25 @@ namespace gravity {
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         void get_double_val_(const double* x){
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        }
+        
+        /**
+         Initialize the model variables using values from x
+         @param[in] x values to initialize to
+         */
+        void set_x(const vector<double>& x){set_x_(x);};
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void set_x_(const vector<double>& x){
+            auto vid = get_id();
+            for (size_t i = 0; i < get_dim(); i++) {
+                _val->at(i) = x[vid+i];
+            }
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        void set_x_(const vector<double>& x){
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         

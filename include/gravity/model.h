@@ -848,6 +848,7 @@ namespace gravity {
                 auto it = _vars_name.find(name);
                 if(it==_vars_name.end()){
                     var<type> vlift(name, lb, ub);
+                    vlift._lift = true;
                     add(vlift.in(unique_ids));
                     lt._p = make_shared<var<type>>(vlift.in(ids));
                     add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
@@ -1742,6 +1743,7 @@ namespace gravity {
             }
         }
         
+        
         /**
          Initialize the model variables using values from x
          @param[in] x values to initialize to
@@ -1750,6 +1752,17 @@ namespace gravity {
             for(auto &v_p: _vars)
             {
                 v_p.second->get_double_val(x);
+            }
+        }
+        
+        /**
+         Initialize the model variables using values from x
+         @param[in] x values to initialize to
+         */
+        void set_var(const vector<double>& x){
+            for(auto &v_p: _vars)
+            {
+                v_p.second->set_var(x);
             }
         }
         
@@ -2743,6 +2756,9 @@ namespace gravity {
             compute_constrs<type>(_cons_vec, res, 0, _cons_vec.size());
             return;
             unsigned nr_threads = std::thread::hardware_concurrency();
+            if(nr_threads>_cons_vec.size()){
+                nr_threads=_cons_vec.size();
+            }
             if (nr_threads==0) {
                 nr_threads = 1;
             }
@@ -2834,6 +2850,9 @@ namespace gravity {
                 //                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
                 //                return;
                 unsigned nr_threads = std::thread::hardware_concurrency();
+                if(nr_threads>_cons_vec.size()){
+                    nr_threads=_cons_vec.size();
+                }
                 if (nr_threads==0) {
                     nr_threads = 1;
                 }
@@ -3566,11 +3585,25 @@ namespace gravity {
             }
             
         }
-        
+        /**
+         Initialize x with model variables values
+         @param[out] x values to initialize
+         */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_var_init(double* x) {
             for(auto& v_p: _vars){
                 v_p.second->set_double_val(x);
+            }
+        }
+        
+        /**
+         Initialize x with model variables values
+         @param[out] x values to initialize
+         */
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void get_var(const vector<double>& x) {
+            for(auto& v_p: _vars){
+                v_p.second->get_var(x);
             }
         }
         

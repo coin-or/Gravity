@@ -40,6 +40,20 @@ option(Qpp "Link to QPP libraries" OFF)
 # Find CLP (optional)
 option(Clp "Link to CLP libraries" OFF)
 
+# Find OpenMPI (optional)
+option(OpenMPI "Link to OpenMPI libraries" OFF)
+
+if (OpenMPI)
+    SET(CMAKE_CXX_COMPILER mpicxx)
+    SET(CMAKE_C_COMPILER mpicc)
+    message("Compilers used: ${CMAKE_C_COMPILER} and ${CMAKE_CXX_COMPILER}")
+    message(STATUS "Enable OpenMPI")
+    add_definitions(-DUSE_MPI)
+    find_package(OpenMPI REQUIRED)
+    include_directories(${OpenMPI_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
+endif()
+
 # Find Ipopt.
 if (Ipopt)
 	message(STATUS "Enable IPOPT")
