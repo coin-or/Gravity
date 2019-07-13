@@ -7138,8 +7138,8 @@ namespace gravity {
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> tan(const param<T>& p1){
         auto centered_range = *p1._range;
-        centered_range.first %= 2*pi;
-        centered_range.second %= 2*pi;
+        centered_range.first= fmod(centered_range.first, 2*pi);
+        centered_range.second=fmod(centered_range.second, 2*pi);
         if(centered_range.first<=-pi/2 || centered_range.second>=pi/2){
             throw invalid_argument("Calling tan() with discontinuous domain");
         }
@@ -7162,8 +7162,8 @@ namespace gravity {
                 res._all_sign = neg_;
             }
         }
-        res._range->first = tan(p1._range->first);
-        res._range->second = tan(p1._range->second);
+        res._range->first = std::tan(p1._range->first);
+        res._range->second = std::tan(p1._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
@@ -7648,8 +7648,8 @@ namespace gravity {
                 res._all_sign = neg_;
             }
         }
-        res._range->first = tan(f._range->first);
-        res._range->second = tan(f._range->second);
+        res._range->first = std::tan(f._range->first);
+        res._range->second = std::tan(f._range->second);
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
