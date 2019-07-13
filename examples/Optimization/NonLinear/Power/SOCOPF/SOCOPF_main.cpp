@@ -145,19 +145,19 @@ int main (int argc, char * argv[])
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
-    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij.in(arcs) + grid.b_ft*Im_Wij.in(arcs));
+    Flow_P_From = Pf_from - (grid.g_ff*Wii.from(arcs) + grid.g_ft*R_Wij.in_pairs(arcs) + grid.b_ft*Im_Wij.in_pairs(arcs));
     SOCP.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
-    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij.in(arcs) - grid.b_tf*Im_Wij.in(arcs));
+    Flow_P_To = Pf_to - (grid.g_tt*Wii.to(arcs) + grid.g_tf*R_Wij.in_pairs(arcs) - grid.b_tf*Im_Wij.in_pairs(arcs));
     SOCP.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
-    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in(arcs) - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij.in(arcs));
+    Flow_Q_From = Qf_from - (grid.g_ft*Im_Wij.in_pairs(arcs) - grid.b_ff*Wii.from(arcs) - grid.b_ft*R_Wij.in_pairs(arcs));
     SOCP.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
-    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij.in(arcs) + grid.g_tf*Im_Wij.in(arcs);
+    Flow_Q_To = Qf_to + grid.b_tt*Wii.to(arcs) + grid.b_tf*R_Wij.in_pairs(arcs) + grid.g_tf*Im_Wij.in_pairs(arcs);
     SOCP.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
