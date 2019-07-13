@@ -113,7 +113,7 @@ namespace gravity {
                 }
                 
                 if(_model->_objt==maximize){
-                    _model->_obj->reverse_sign();
+                    *_model->_obj *= -1;
                 }
                 _prog = make_shared<IpoptProgram<type>>(_model);
 #else
@@ -148,7 +148,7 @@ namespace gravity {
 #ifdef USE_BONMIN
                 _model->replace_integers();
                 if(_model->_objt==maximize){
-                    _model->_obj->reverse_sign();
+                    *_model->_obj *= -1;
                 }
                 _prog = make_shared<BonminProgram>(_model);
 #else
@@ -294,6 +294,10 @@ namespace gravity {
                     if (IsValid(iapp->Statistics())) {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();                        
+                    }
+                    if(_model->_objt==maximize){
+                        *_model->_obj *= -1;
+                        _model->_obj->_val->at(0) *= -1;
                     }
                     DebugOff("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {
@@ -453,7 +457,8 @@ namespace gravity {
                     }
                     
                     if(_model->_objt==maximize){
-                        _model->_obj_val *= -1;
+                        *_model->_obj *= -1;
+                        _model->_obj->_val->at(0) *= -1;
                     }
                     
                     return_status = ok ? 0 : -1;
