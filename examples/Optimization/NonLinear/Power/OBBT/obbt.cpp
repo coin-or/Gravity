@@ -219,14 +219,7 @@ int main (int argc, char * argv[]) {
                         for(auto &dir: dir_array)
                         {
                             auto modelk = SDP->copy();
-                            // auto Pg=modelk->get_var<double>("Pg");
-                            // Constraint<> obj_UB("obj_UB");
-                            // obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
-                            // modelk->add(obj_UB<=0);
-                            //                                    func<double> o=*(SDP->_obj);
-                            //                                    Constraint<> UpperB("UpperB");
-                            //                                    UpperB=o;
-                            //                                    modelk->add(UpperB<=upper_bound);
+                            modelk->add(UpperB<=upper_bound);
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
