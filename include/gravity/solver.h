@@ -552,7 +552,6 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         std::vector<thread> threads;
-        std::vector<bool> feasible;
         /* Split models into equal loads */
         auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
         auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
