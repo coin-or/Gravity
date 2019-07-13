@@ -366,15 +366,15 @@ namespace gravity {
                 res._ub->allocate_mem();
                 res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             }
-//            else {
-//                res._lb->allocate_mem();
-//                res._ub->allocate_mem();
-//                auto new_lb(*res._lb);
-//                auto new_ub(*res._ub);
-//                new_lb.in(vec1, forward<Args>(args)...);
-//                new_ub.in(vec1, forward<Args>(args)...);
-//                res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
-//            }
+            else {
+                res._lb->allocate_mem();
+                res._ub->allocate_mem();
+                auto new_lb(*res._lb);
+                auto new_ub(*res._ub);
+                new_lb.in(*res._indices);
+                new_ub.in(*res._indices);
+                res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
+            }
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
                 res._real = make_shared<var<>>(real_var->in(*res._indices));
