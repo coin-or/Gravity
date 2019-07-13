@@ -643,6 +643,9 @@ namespace gravity{
                     if (vec->_excluded_keys.count(real_idx)==1) {
                         excluded = true;
                     }
+                    if(vec->is_indexed()){
+                        real_idx = vec->_ids->at(0).at(real_idx);
+                    }
                     key += vec->_keys->at(real_idx);
                     if(next(it)!=vecs.end()){
                         key += ",";

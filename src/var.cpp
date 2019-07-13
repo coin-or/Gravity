@@ -53,6 +53,8 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _lb = v._lb;
     _ub = v._ub;
     _lift=v._lift;
+    _num_partns = v._num_partns;
+    _cur_partn = v._cur_partn;
     return *this;
 };
 
@@ -62,6 +64,8 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _lb = move(v._lb);
     _ub = move(v._ub);
     _lift=v._lift;
+    _num_partns = v._num_partns;
+    _cur_partn = v._cur_partn;
     return *this;
 };
 
@@ -213,19 +217,19 @@ type    var<type>::get_ub(size_t i) const {
         return ub;        
     };
     
-    template <typename type>
-    template<typename T,
-    typename std::enable_if<is_arithmetic<T>::value>::type*>
-    bool var<type>::is_bounded_above(size_t i) const {
-        return (_ub->eval(i)!=numeric_limits<type>::max());
-    };
+//    template <typename type>
+//    template<typename T,
+//    typename std::enable_if<is_arithmetic<T>::value>::type*>
+//    bool var<type>::is_bounded_above(size_t i) const {
+//        return (_ub->eval(i)!=numeric_limits<type>::max());
+//    };
     
-    template <typename type>
-    template<typename T,
-    typename std::enable_if<is_arithmetic<T>::value>::type*>
-    bool var<type>::is_bounded_below(size_t i) const {
-        return (_lb->eval(i)!=numeric_limits<type>::lowest());
-    };
+//    template <typename type>
+//    template<typename T,
+//    typename std::enable_if<is_arithmetic<T>::value>::type*>
+//    bool var<type>::is_bounded_below(size_t i) const {
+//        return (_lb->eval(i)!=numeric_limits<type>::lowest());
+//    };
     
     template <typename type>
     template<typename T,

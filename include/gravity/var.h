@@ -40,6 +40,12 @@ namespace gravity {
         bool _in_q_cone = false; /**< Used by Mosek */
         bool _psd = false; /**< Has to be positive semidefinite */
         bool _lift=false;/*flag to show if variable is a lifted variable*/
+        
+        /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
+        int _num_partns = 1;/*number of partitons*/
+        int _cur_partn = 1;/*current partition we are focused on*/
+        
+        
         /* Constructors */
         //@{
         /** Unbounded variable constructor */
@@ -365,10 +371,30 @@ namespace gravity {
                 res._ub->allocate_mem();
                 auto new_lb(*res._lb);
                 auto new_ub(*res._ub);
-                new_lb.in(vec1, forward<Args>(args)...);
-                new_ub.in(vec1, forward<Args>(args)...);
+                new_lb.in(*res._indices);
+                new_ub.in(*res._indices);
                 res._range = make_shared<pair<type,type>>(new_lb._range->first,new_ub._range->second);
             }
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            return res;
+        }
+        
+        /** Index variable in ids, look for the keys starting at the ith position
+         @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
+         @param[in] ids_ index set
+         */
+        template<typename... Args>
+        var in_ith(unsigned start_position, const indices& ids) {
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_ith(start_position, ids));//TODO assert lb dim = res dim
+            res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
                 res._real = make_shared<var<>>(real_var->in(*res._indices));
@@ -446,11 +472,15 @@ namespace gravity {
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        bool is_bounded_above(size_t i = 0) const;
+        bool is_bounded_above(size_t i = 0) const{
+            return (_ub->eval(i)!=numeric_limits<type>::max());
+        };
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        bool is_bounded_below(size_t i = 0) const;
+        bool is_bounded_below(size_t i = 0) const{
+            return (_lb->eval(i)!=numeric_limits<type>::lowest());
+        };
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -800,7 +830,6 @@ namespace gravity {
         
         double get_double_lb(size_t i) const{return get_double_lb_(i);};
         
-        
         double get_double_ub(size_t i) const{return get_double_ub_(i);};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
@@ -814,6 +843,13 @@ namespace gravity {
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
         double get_double_ub_(size_t i) const{return _ub->eval(i);};
+        
+        // should fix this by considering get_id_inst(i), but in that case _num_partns should be at least a param object
+        
+        int get_num_partns() const{ return _num_partns;};
+        int get_cur_partn() const{ return _cur_partn;};
+        
+        bool get_lift() const{return _lift;};
         
     };
     
