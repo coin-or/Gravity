@@ -3827,6 +3827,7 @@ namespace gravity {
         
         shared_ptr<func<type>> embed(const shared_ptr<func<type>>& f, bool insert_in_map = true){/**<  Transfer all variables and parameters to the model. */
             f->allocate_mem();
+            merge_vars(f);
             //            return f;
             DebugOff(f->to_str() << endl);
             for (auto &p_t: f->get_lterms()) {
