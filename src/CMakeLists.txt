@@ -38,6 +38,7 @@ endif()
 
 if (NOT Cplex)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexProgram.cpp)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexCallback.cpp)
 endif()
 
 if (NOT Clp)

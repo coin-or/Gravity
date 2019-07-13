@@ -425,12 +425,22 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
-//    SDP.print();
+    SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6);
 //    SDP.print_solution();
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
+//
+//    //SDP.print();
+//    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
+////    SDP.print_constraints_stats(tol);
+//    auto v = SDP.sorted_nonzero_constraints(tol);
+//
+//    for (int i = 0; i < v.size(); i++)
+//        cout << get<0>(v[i])<< " "
+//        << get<1>(v[i]) << " "
+//        << get<2>(v[i]) << "\n";
     
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();
