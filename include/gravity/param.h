@@ -1916,6 +1916,18 @@ namespace gravity {
                     }
                 }
             }
+            else if(is_indexed()){
+                for(auto i = 0; i<_indices->_ids->at(0).size();i++){
+                    auto idx = _indices->_ids->at(0).at(i);
+                    auto v = _val->at(idx);
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
+            }
             else {
                 for (auto v:*_val) {
                     if(_range->first > v){
