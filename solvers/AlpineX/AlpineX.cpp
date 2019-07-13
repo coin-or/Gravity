@@ -124,7 +124,7 @@ int main (int argc, char * argv[])
     Wii.initialize_all(1.001);
     
     /************** Add the lifted variables *****************/
-//     If the partition scheme is on
+    //     If the partition scheme is on
     if (do_partition){
         var<> WijWji("WijWji");
         SOCP.add(WijWji.in(bus_pairs));
@@ -149,7 +149,7 @@ int main (int argc, char * argv[])
         //bounds for Wii
         auto LB_Wii = grid.w_min;
         auto UB_Wii = grid.w_max;
-    
+        
         auto LB_R_Wij = grid.wr_min;
         auto UB_R_Wij = grid.wr_max;
         
@@ -181,20 +181,20 @@ int main (int argc, char * argv[])
         
         
         for (int i=0; i<bus_pairs.size(); ++i) {
-//        for (int i=0; i<1; ++i) {
+            //        for (int i=0; i<1; ++i) {
             myString = bus_pairs._keys->at(i);
             pos = bus_pairs._keys->at(i).find(delimiter);
             
             fromIDX = stoi(myString.substr(0, pos)) - 1 ;
             toIDX = stoi(myString.substr(pos+delimiter_lenght)) - 1;
             
-           
+            
             //fill the partition bounds for the variables
             for (int j=0; j<num_partitions1+1; ++j) {
                 p1[j] = (num_partitions1-j)*LB_Wii.eval(fromIDX)+(j)*UB_Wii.eval(fromIDX);
             }
             transform(p1.begin(), p1.end(), p1.begin(), bind(divides<double>(), placeholders::_1, num_partitions1));
-          
+            
             for (int j=0; j<num_partitions2+1; ++j) {
                 p2[j] = (num_partitions2-j)*LB_Wii.eval(toIDX)+(j)*UB_Wii.eval(toIDX);
             }
@@ -204,7 +204,7 @@ int main (int argc, char * argv[])
                 p3[j] = (num_partitions3-j)*LB_R_Wij.eval(i)+(j)*UB_R_Wij.eval(i);
             }
             transform(p3.begin(), p3.end(), p3.begin(), bind(divides<double>(), placeholders::_1, num_partitions3));
-           
+            
             for (int j=0; j<num_partitions4+1; ++j) {
                 p4[j] = (num_partitions4-j)*LB_Im_Wij.eval(i)+(j)*UB_Im_Wij.eval(i);
             }
@@ -226,10 +226,11 @@ int main (int argc, char * argv[])
     /** Constraints */
     
     if (!do_partition){
-    /* Second-order cone constraints */
-    Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    SOCP.add(SOC.in(bus_pairs) <= 0);
+        /* Second-order cone constraints */
+        Constraint<> SOC("SOC");
+        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+        SOCP.add(SOC.in(bus_pairs) <= 0);
+        SOCP.get_constraint("SOC")->_relaxed = true;
     }
     
     /* Equality of Second-order cone (for upperbound) */
@@ -312,26 +313,28 @@ int main (int argc, char * argv[])
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
-  
-    SOCP.print();
+    
+    //    SOCP.print();
     
     /* Solver selection */
-        solver<> SOCOPF_CPX(SOCP, cplex);
-        auto solver_time_start = get_wall_time();
-        SOCOPF_CPX.run(output, tol = 1e-6);
-        solver_time_end = get_wall_time();
-        total_time_end = get_wall_time();
-        solve_time = solver_time_end - solver_time_start;
-        total_time = total_time_end - total_time_start;
+    solver<> SOCOPF_CPX(SOCP, cplex);
+    auto solver_time_start = get_wall_time();
+    SOCOPF_CPX.run(output, tol = 1e-6);
+    solver_time_end = get_wall_time();
+    total_time_end = get_wall_time();
+    solve_time = solver_time_end - solver_time_start;
+    total_time = total_time_end - total_time_start;
     
-//        SOCP.print_solution();
+    //        SOCP.print_solution();
     
     /* Solver selection */
     solver<> ACOPF_IPOPT(ACOPF, ipopt);
     ACOPF_IPOPT.run(output, tol = 1e-6);
-
-//        ACOPF.print_solution();
-
+    
+    solver<> SOCOPF_CPX2(SOCP, cplex);
+    SOCOPF_CPX2.run(output, tol = 1e-6);
+    //        ACOPF.print_solution();
+    
     
     string out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP.get_obj_val(),10) + ", Upper bound:" + to_string(ACOPF.get_obj_val()) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
@@ -339,7 +342,47 @@ int main (int argc, char * argv[])
     double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
+    auto v = SOCP.sorted_nonzero_constraints(tol,true);
+    
+    for (int i = 0; i < v.size(); i++)
+        cout << get<0>(v[i])<< " "
+        << get<1>(v[i]) << " "
+        << get<2>(v[i]) << "\n";
+    
+    indices myIdx;
+    string inst;
+    
+    for (int i = 0; i < v.size(); i++){
+        inst = SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
+        cout << inst << endl;
+        cout << SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i])) << endl;
+        cout << SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i])) << endl;
+//        inst = SOCP._cons[get<1>(v[i])]->_indices->_keys->at(get<2>(v[i]));
+        myIdx.add(inst);
+        //   alternatively, you can do
+        //   SOCP._cons[get<1>(v[i])]->_vars->begin()->second.first->_indices->_keys->at(get<2>(v[i]));
+    }
+    
+    SOCP.print();
+  
+    
+    /* THERE IS A BIG BUG IN HERE */
+    /* The constraint indices are correct but the variable indices are wrong and basically the first 3 constraints are produces in here. (1,4), (4,5), (5,6) are the first three constraints. */
+    Model<> asd("asd");
+    asd.add(R_Wij);
+    asd.add(Im_Wij);
+    asd.add(Wii);
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    asd.add(SOC.in(myIdx) <= 0);
+    
+    asd.print();
+    
+    /* Run the partition based on the not-active constraints */
+    /* Think about the extra-partition and representation of the same W_ii in the bilinear product, we need to link lambdas somehow*/
+    /* Implement on-off constraints for the squared term in a symbolic way */
+    
     return 0;
     
-    
 }
+
