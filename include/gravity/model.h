@@ -2753,6 +2753,9 @@ namespace gravity {
             compute_constrs<type>(_cons_vec, res, 0, _cons_vec.size());
             return;
             unsigned nr_threads = std::thread::hardware_concurrency();
+            if(nr_threads>_cons_vec.size()){
+                nr_threads=_cons_vec.size();
+            }
             if (nr_threads==0) {
                 nr_threads = 1;
             }
@@ -2844,6 +2847,9 @@ namespace gravity {
                 //                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
                 //                return;
                 unsigned nr_threads = std::thread::hardware_concurrency();
+                if(nr_threads>_cons_vec.size()){
+                    nr_threads=_cons_vec.size();
+                }
                 if (nr_threads==0) {
                     nr_threads = 1;
                 }
