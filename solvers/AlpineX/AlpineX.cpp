@@ -379,8 +379,11 @@ int main (int argc, char * argv[])
             
             /*need to provide bounds for the variables,
              have a scheme to provide bounds for the bilinear case*/
+            auto Wii_to = Wii.to(arcs);
+            auto id_set = indices("Wii_to,Arcs");
+            id_set = combine(*Wii_to._indices, *lji._indices);
             var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
-            SOCP.add(ljiWii_to.in(arcs));
+            SOCP.add(ljiWii_to.in(id_set));
             ljiWii_to._lift = true;
             
             Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
@@ -399,11 +402,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 4; //number of partitions for Pf_to
-            int num_partitions2 = 4; //number of partitions for Qf_to
+            int num_partitions1 = 50; //number of partitions for Pf_to
+            int num_partitions2 = 50; //number of partitions for Qf_to
             
-            int num_partitions3 = 1; //number of partitions for Wii(to)
-            int num_partitions4 = 1; //number of partitions for lji
+            int num_partitions3 = 8; //number of partitions for Wii(to)
+            int num_partitions4 = 8; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -433,7 +436,7 @@ int main (int argc, char * argv[])
             size_t pos; //position of the delimiter
             size_t delimiter_lenght = delimiter.length();
             
-            vector<int> constraint_idx = {1};
+            vector<int> constraint_idx = {0,1,2};
             
             //            for (int i=0; i<arcs.size(); ++i) {
             for (int k=0; k<constraint_idx.size(); ++k) {
@@ -463,7 +466,7 @@ int main (int argc, char * argv[])
                 z2Sum = sum(z2temp);
                 SOCP.add(z2Sum==1);
                 
-                auto ljiWii_to1 = ljiWii_to(cur_key);
+                auto ljiWii_to1 = ljiWii_to(toIDX+","+cur_key);
                 auto Wii_to1 = Wii(toIDX);
                 auto lji1 = lji(cur_key);
                 auto z3temp = z3.in(var_indices_temp,partns3);
@@ -606,15 +609,15 @@ int main (int argc, char * argv[])
     DebugOn(out <<endl);
     
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
-    double gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
-    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    
     
     
     SOCP.print();
     SOCP.print_solution();
 
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
-    
+    double gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
 //    for (int i = 0; i < v.size(); i++)
 //        cout << get<0>(v[i])<< " "
 //        << get<1>(v[i]) << " "
