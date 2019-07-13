@@ -1331,25 +1331,54 @@ TEST_CASE("testing OpenMPI") {
     DebugOn("testing OpenMPI" << endl);
     int worker_id;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    if(worker_id==0){
-        unsigned nb_threads = 2;
-        double tol = 1e-6;
-        PowerNet grid1,grid2;
-        string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-        grid1.readgrid(fname);
-        fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-        grid2.readgrid(fname);
-        auto ACOPF1 = build_ACOPF(grid1,ACRECT);
-        auto SOCOPF1 = build_SDPOPF(grid1);
-        auto ACOPF2 = build_ACOPF(grid2,ACPOL);
-        auto SOCOPF2 = build_SDPOPF(grid2);
-        auto models = {ACOPF1, SOCOPF1, ACOPF2, SOCOPF2};
-        /* run in parallel */
-        run_MPI(models, ipopt, tol=1e-6, nb_threads=1);
-        CHECK(abs(ACOPF1->get_obj_val()-17551.890927)<tol);
-        CHECK(ACOPF1->is_feasible(tol));
-        SOCOPF2->print_solution();
-    }
+    unsigned nb_threads = 2;
+    double tol = 1e-6;
+    PowerNet grid1,grid2;
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    grid1.readgrid(fname);
+    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
+    grid2.readgrid(fname);
+    auto ACOPF1 = build_ACOPF(grid1,ACRECT);
+    auto SOCOPF1 = build_SDPOPF(grid1);
+    auto ACOPF2 = build_ACOPF(grid2,ACPOL);
+    auto SOCOPF2 = build_SDPOPF(grid2);
+    auto models = {ACOPF1, SOCOPF1, ACOPF2, SOCOPF2};
+    /* run in parallel */
+    run_MPI(models, ipopt, tol=1e-6, nb_threads=1);
+    CHECK(abs(ACOPF1->get_obj_val()-17551.890927)<tol);
+    CHECK(ACOPF1->is_feasible(tol));
+    SOCOPF2->print_solution();
     MPI_Finalize();
 }
 #endif
+
+TEST_CASE("testing in_ith() function") {
+    indices ids("index_set");
+    ids = indices(range(1,3),range(9,10), range(2,4));
+    param<> dp("dp");
+    dp.in(range(2,4));
+    dp.print();
+    dp("2") = 1.5;
+    dp("4") = -231.5;
+    dp.print();
+    CHECK(dp.eval("2")==1.5);
+    CHECK(dp.eval("4")==-231.5);
+    CHECK(dp._range->first==-231.5);
+    CHECK(dp._range->second==1.5);
+    REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
+    auto ndp = dp.in_ith(2,ids);
+    ndp.print();
+    CHECK(ndp.get_dim()==ids.size());
+    indices ids2("index_set2");
+    ids2 = indices(range(1,3),range(9,10), range(2,4));
+    var<> dv("dv");
+    dv.in(range(9,10));
+    int precision = 5;
+    dv.print_vals(precision=5);
+    auto ndv = dv.in_ith(1,ids2);
+    ndv.print_vals(precision=5);
+    var<> dv2("dv2");
+    dv2.in(range(1,3));
+    auto ndv2 = dv2.in_ith(0,ids2);
+    ndv2.print_vals(precision=5);
+}

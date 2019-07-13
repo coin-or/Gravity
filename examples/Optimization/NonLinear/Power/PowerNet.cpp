@@ -150,15 +150,15 @@ PowerNet::~PowerNet() {
     }
     arcs.clear();
 }
-void PowerNet::update_pij_bounds()
-{
-    int Pg_sum;
-    for (auto n: nodes) {
-        if (n->_active) {
-            s
-            for(auto g: ((Bus*)n)->_gen){
-    
-}
+//void PowerNet::update_pij_bounds()
+//{
+//    int Pg_sum;
+//    for (auto n: nodes) {
+//        if (n->_active) {
+//            s
+//            for(auto g: ((Bus*)n)->_gen){
+//    
+//}
 indices PowerNet::gens_per_node() const{
     indices ids("gens_per_node");
     ids = indices(gens);
@@ -1892,7 +1892,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     cout << "\nnum bags = " << num_bags << endl;
     
-    
+    if(!grid._tree && grid._bags.empty()){
+        grid.get_tree_decomp_bags();
+    }
     grid.update_ref_bus();
     
     /* Grid Stats */
