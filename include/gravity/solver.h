@@ -185,6 +185,14 @@ namespace gravity {
             return run(5, tol, 10000, 1e-6, true, {true,lin_solver}, time_limit);
         }
         
+        int run(int output, type tol , const string& lin_solver, int max_iter){
+            return run(output, tol, max_iter, 1e-6, true, {true,lin_solver}, 1e6);
+        }
+        
+        int run(int output, type tol , double time_limit, const string& lin_solver, int max_iter){
+            return run(output, tol, max_iter, 1e-6, true, {true,lin_solver}, time_limit);
+        }
+        
         int run(int output=5, type tol=1e-6 , int max_iter=10000){
             return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
@@ -493,19 +501,19 @@ namespace gravity {
     };
     
     template<typename type>
-    int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver=""){
+    int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6){
         int return_status = -1;
         for (auto i = start; i<end; i++) {
-            return_status = solver<type>((models.at(i)),stype).run(5, tol, lin_solver);
-            DebugOn("Return status\t"<<return_status);
+            return_status = solver<type>((models.at(i)),stype).run(5, tol, lin_solver, max_iter);
+            DebugOn("Return status "<<return_status << endl);
             //            models.at(i)->print_solution(24);
         }
         return return_status;
     }
     
     template<typename type>
-    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
-        run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
+    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", unsigned max_iter = 1e6){
+        run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
     }
     
     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
@@ -523,7 +531,7 @@ namespace gravity {
         /* Launch all threads in parallel */
         auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
         for (size_t i = 0; i < nr_threads; ++i) {
-            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver));
+            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter));
         }
         /* Join the threads with the main thread */
         for(auto &t : threads){
