@@ -53,7 +53,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         else {
             cplex.extract(*_cplex_model);
         }
-        cplex.setParam(IloCplex::EpGap, mipgap);
+//        cplex.setParam(IloCplex::EpGap, mipgap);
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
         cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
@@ -94,7 +94,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
                     _model->_vars[i]->get_double_val(j,cplex.getValue(_cplex_vars[i][j]));
                 }
                 else {
-                    _model->_vars[i]->get_double_val(0, j);
+                    _model->_vars[i]->get_double_val(j, 0);
                 }
             }
         }

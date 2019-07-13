@@ -482,6 +482,11 @@ namespace gravity {
         virtual void copy_bounds(const shared_ptr<param_>& p){};
         virtual double get_double_lb(size_t i) const{return 0;};
         virtual double get_double_ub(size_t i) const{return 0;};
+        
+        virtual int get_num_partns() const{return 0;};
+        virtual int get_cur_partn() const{return 0;};
+        
+        virtual bool get_lift() const{return 0;};
 
     };
 
@@ -1388,6 +1393,89 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+        /** Index parameter/variable in ids, look for the keys starting at the ith position
+         @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
+         @param[in] ids_ index set
+         */
+        template<typename... Args>
+        param in_ith(unsigned start_position, const indices& ids_) {
+            auto ids(ids_);
+            if(!ids._excluded_keys.empty()){
+                ids.remove_excluded();
+            }
+            if(!_indices){
+                throw invalid_argument("unindexed param/var, first call in()");
+            }
+            param res(*this);
+            if(ids.empty()){
+                DebugOff("In function param.in_ith(unsigned position, const indices& ids), ids is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                res._name += "_EMPTY";
+                res._dim[0] = 0;
+                res._dim[1] = 0;
+                //                res.set_range(0);
+                res.reset_range();
+                return res;
+            }
+            string key;
+            size_t nb_inst=1;
+            /** Number of comma separated keys in current variable */
+            auto nb_sep_var = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            /** Number of comma separated keys in ids */
+            auto nb_sep_ids = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+            if(nb_sep_var > nb_sep_ids){/* ids can have more keys if it's a super set of indices */
+                throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), ids keys have less entries than current param/var, check indexing");
+            }
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_ids->resize(1);
+            nb_inst = ids.size();
+            if(ids.is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: ids._ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    if(pos!=0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_sep_var+1);
+                    if(pos!=0){
+                        key = key.substr(0,pos);
+                    }
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
+                }
+                
+            }
+            else {
+                for(auto key: *ids._keys){
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    if(pos!=0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_sep_var+1);
+                    if(pos!=0){
+                        key = key.substr(0,pos);
+                    }
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
+                }
+            }
+
+            if(res._is_transposed){
+                res._dim[1]=res._indices->_ids->at(0).size();
+            }
+            else {
+                res._dim[0]=res._indices->_ids->at(0).size();
+            }
+            res._name += ".in("+ids.get_name()+")";
+            res._indices->set_name(ids.get_name());
+            res.reset_range();
+            return res;
+        }
         
         /** Index parameter/variable in the product of ids1...args
          */
@@ -1427,205 +1515,64 @@ namespace gravity {
             size_t nb_inst=1;
             param res(*this);
             if(ids._ids && ids._ids->size()>1){/* Double-indexed set */
-                size_t idx_excl = 0;
                 nb_inst = ids._ids->size();
-                //TODO check that the current param has the keys found in ids
-                bool has_all_keys = true;
+                /* Check that the current param has the keys found in ids */
                 for(auto key: *ids._keys){
-                    if(ids._excluded_keys.count(idx_excl++)!=0){
-                        continue;
-                    }
                     auto it1 = _indices->_keys_map->find(key);
                     if (it1 == _indices->_keys_map->end()){
-                        has_all_keys = false;
-                        break;
+                        throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
                     }
                 }
-                if(has_all_keys){
-                    res._indices = make_shared<indices>(ids);
-                    if(res._is_transposed){
-                        if(res.is_double_indexed()){
-                            res._dim[1]=_indices->size();
-                        }
-                        else {
-                            res._dim[1]=res._indices->size();
-                        }
+                res._indices = make_shared<indices>(ids);
+                if(res._is_transposed){
+                    if(res.is_double_indexed()){
+                        res._dim[1]=_indices->size();
                     }
                     else {
-                        if(res.is_double_indexed()){
-                            res._dim[0]=_indices->size();
-                        }
-                        else {
-                            res._dim[0]=res._indices->size();
-                        }
-                    }
-                    res._name += ".in("+ids.get_name()+")";
-                    res.reset_range();
-                    return res;
-                }
-                throw invalid_argument("Sparse matrix indexing with unrecognized keys");
-            }
-            if(ids.is_indexed()){/* If ids has key references, use those */
-                size_t idx_excl = 0;
-                nb_inst = ids._ids->size();
-                bool has_all_keys = true;
-                for(auto key: *ids._keys){
-                    if(ids._excluded_keys.count(idx_excl++)!=0){
-                        continue;
-                    }
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        has_all_keys = false;
-                        break;
-                    }
-                }
-                if(has_all_keys){
-                    res._indices = make_shared<indices>(ids);
-                    if(res._is_transposed){
-                        if(res.is_double_indexed()){
-                            res._dim[1]=_indices->size();
-                        }
-                        else {
-                            res._dim[1]=res._indices->size();
-                        }
-                    }
-                    else {
-                        if(res.is_double_indexed()){
-                            res._dim[0]=_indices->size();
-                        }
-                        else {
-                            res._dim[0]=res._indices->size();
-                        }
-                    }
-                    res._name += ".in("+ids.get_name()+")";
-                    res.reset_range();
-                    return res;
-                }
-                throw invalid_argument("Ids with references has unrecognized keys");
-            }
-            size_t idx = 0;
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            if(ids.empty()){
-                DebugOff("In function param.in(const indices& index_set1, Args&&... args), all index sets are empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "_EMPTY";
-                res._dim[0] = 0;
-                res._dim[1] = 0;
-                //                res.set_range(0);
-                res.reset_range();
-                return res;
-            }
-            auto nb_sep1 = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            auto nb_sep2 = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
-            int pos = 0;
-            //            bool is_prefix = false, is_suffix = false;
-            //            if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep2>nb_sep1){
-            //                pos = nthOccurrence(ids._keys->front(), ",", nb_sep2-nb_sep1);
-            //                key = ids._keys->front().substr(pos+1);
-            //                auto it1 = _indices->_keys_map->find(key);
-            //                if (it1 == _indices->_keys_map->end()){
-            //                    pos = nthOccurrence(ids._keys->front(), ",", nb_sep1+1);
-            //                    key = ids._keys->front().substr(0,pos);
-            //                    it1 = _indices->_keys_map->find(key);
-            //                    if (it1 == _indices->_keys_map->end()){
-            //                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
-            //                    }
-            //                    else {
-            //                        is_prefix = true;
-            //                    }
-            //                }
-            //                else {
-            //                    is_suffix = true;
-            //                }
-            //            }
-            //            else if(_indices->_type!=to_ && _indices->_type!=from_ && nb_sep1>nb_sep2){
-            //                pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep1-nb_sep2);
-            //                key = _indices->_keys->front().substr(0,pos) + "," + ids._keys->front();
-            //                auto it1 = _indices->_keys_map->find(key);
-            //                if (it1 == _indices->_keys_map->end()){
-            //                    pos = nthOccurrence(_indices->_keys->front(), ",", nb_sep2+1);
-            //                    key = ids._keys->front()+ "," + _indices->_keys->front().substr(pos+1);
-            //                    it1 = _indices->_keys_map->find(key);
-            //                    if (it1 == _indices->_keys_map->end()){
-            //                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key");
-            //                    }
-            //                    else {
-            //                        is_prefix = true;
-            //                    }
-            //                }
-            //                else {
-            //                    is_suffix = true;
-            //                }
-            //            }
-            int sep_pos[ids._keys->size()];
-            bool found = false;
-            size_t i = 0;
-            if(nb_sep2>nb_sep1 && _indices->_type != to_ && _indices->_type != from_){//Key_ids has more indices
-                for(auto key: *ids._keys){
-                    found = false;
-                    if(ids._excluded_keys.count(idx++)!=0){
-                        continue;
-                    }
-                    for(auto key_param: *_indices->_keys){
-                        auto new_pos = key.find(key_param);
-                        if(new_pos!=string::npos){
-                            found = true;
-                            sep_pos[i]=new_pos;
-                            break;
-                        }
-                    }
-                    i++;
-                    if(!found){
-                        throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
-                    }
-                }
-            }
-            //            else {
-            //                auto key_ids = ids._keys->front();
-            //                for(auto key: *_indices->_keys){
-            //                    sep_pos = key.find(key_ids);
-            //                    if(sep_pos!=string::npos){
-            //                        break;
-            //                    }
-            //                }
-            //            }
-            i = 0;
-            for(auto key: *ids._keys){
-                if(ids._excluded_keys.count(idx++)!=0){
-                    excluded += key + ",";
-                    continue;
-                }
-                if(_indices->_type==to_ || _indices->_type==from_){
-                    string pref;
-                    if(nb_sep2>2){/* key has a prefix */
-                        pref = key.substr(0, key.find_last_of(","));
-                        pref = pref.substr(0, pref.find_last_of(","));
-                        pref = pref.substr(0, pref.find_last_of(",")+1);
-                    }
-                    if(_indices->_type==to_){
-                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    else if(_indices->_type==from_){
-                        key = key.substr(0, key.find_last_of(","));
-                        key = pref+key.substr(key.find_last_of(",")+1,key.size());
+                        res._dim[1]=res._indices->size();
                     }
                 }
                 else {
-                    /* Compare indexing and truncate extra indices */
-                    if(nb_sep2>nb_sep1){
-                        key = key.substr(sep_pos[i++]);
-                        pos = nthOccurrence(key, ",", nb_sep1+1);
-                        key = key.substr(0,pos);
+                    if(res.is_double_indexed()){
+                        res._dim[0]=_indices->size();
                     }
-                    else if(nb_sep1>nb_sep2){
-                        throw invalid_argument("indexing error");
+                    else {
+                        res._dim[0]=res._indices->size();
                     }
                 }
-                auto it1 = _indices->_keys_map->find(key);
-                if (it1 == _indices->_keys_map->end()){
-                    throw invalid_argument("In function param.in(const vector<Tobj>& vec), vec has unknown key: "+key);
+                res._name += ".in("+ids.get_name()+")";
+                res.reset_range();
+                return res;
+            }
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_ids->resize(1);
+            nb_inst = ids.size();
+            if(ids.is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: ids._ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
                 }
-                res._indices->_ids->at(0).push_back(it1->second);
+                
+            }
+            else {
+                for(auto key: *ids._keys){
+                    if(_indices->_type==to_){/** Assumed to be the last entry in the key */
+                        key = key.substr(key.find_last_of(",")+1,key.size());
+                    }
+                    else if(_indices->_type==from_){/** Assumed to be the one to last entry in the key */
+                        key = key.substr(0, key.find_last_of(","));
+                        key = key.substr(key.find_last_of(",")+1,key.size());
+                    }
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
+                }
             }
             if(res._is_transposed){
                 res._dim[1]=res._indices->_ids->at(0).size();
@@ -1971,6 +1918,18 @@ namespace gravity {
                         if(_range->second  < v){
                             _range->second = v;
                         }
+                    }
+                }
+            }
+            else if(is_indexed()){
+                for(auto i = 0; i<_indices->_ids->at(0).size();i++){
+                    auto idx = _indices->_ids->at(0).at(i);
+                    auto v = _val->at(idx);
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
                     }
                 }
             }
