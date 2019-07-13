@@ -425,7 +425,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
-//    SDP.print();
+    SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6);
 //    SDP.print_solution();
     SDP.print_constraints_stats(tol);
