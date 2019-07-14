@@ -3613,6 +3613,7 @@ namespace gravity {
                     break;
                 }
             }
+            throw invalid_argument("Unsupported type");
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
@@ -3706,6 +3707,7 @@ namespace gravity {
                     break;
                 }
             }
+            throw invalid_argument("Unsupported type");
         }
         
         inline type eval_coef(const shared_ptr<constant_>& coef, size_t i) {
