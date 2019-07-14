@@ -2744,7 +2744,7 @@ namespace gravity {
         }
         
         void print_obj_val(int prec = 5) const{
-	    _obj->allocate_mem();
+            _obj->allocate_mem();
             cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
