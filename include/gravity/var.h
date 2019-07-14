@@ -241,17 +241,10 @@ namespace gravity {
         
         template<typename... Args>
         var operator()(size_t i) {
-            bool indexed = param<type>::_indices!=nullptr;
-            var<type> res(*this);
-            res.param<type>::operator=(param<type>::operator()(i));
-            res.param<type>::set_type(var_c);
-            if(!indexed & !res._lb->is_number()){
-                (res._lb->in(*res._indices));
+            if(!this->_indices){
+                throw invalid_argument("Current param/var is not indexed.");
             }
-            if(!indexed & !res._ub->is_number()){
-                (res._ub->in(*res._indices));
-            }
-            return res;
+            return (*this)(this->_indices->_keys->at(i));
         }
         
         

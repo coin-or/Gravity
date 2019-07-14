@@ -217,7 +217,10 @@ namespace gravity {
         }
         
         bool is_redundant() {
-            
+            if((_ctype==eq && this->is_zero()) || (_ctype==leq && this->_range.second <= 0) || (_ctype==geq && this->_range.first >=0)){
+                return true;
+            }
+            return false;
         }
             
         bool is_convex() const{

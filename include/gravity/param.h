@@ -455,9 +455,9 @@ namespace gravity {
         virtual void get_double_val(const double* x){};
         
         /** Fill x with the variable's values */
-        virtual void get_var(const vector<double>& x){};
+        virtual void get_solution(vector<double>& x) const{};
         /** Fill the variable's values from x */
-        virtual void set_var(const vector<double>& x){};
+        virtual void set_solution(const vector<double>& x){};
         
         /** Fill the variable's value at pos to x */
         virtual void get_double_val(size_t pos, double x){};
@@ -1342,13 +1342,7 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("Current param/var is not indexed.");
             }
-            param res(*this);
-            res._name += "["+to_string(idx)+"]";
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            res._indices->_ids->at(0).push_back(idx);
-            res._dim[0] = 1;
-            return res;
+            return (*this)(this->_indices->_keys->at(idx));
         }
 
         template<bool...> struct bool_pack;
@@ -1950,10 +1944,10 @@ namespace gravity {
          Initialize x with model variables values
          @param[out] x values to initialize
          */
-        void get_x(const vector<double>& x){set_x_(x);};
+        void get_solution(vector<double>& x) const{get_solution_(x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_x_(const vector<double>& x){
+        void get_solution_(vector<double>& x) const{
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 x[vid+i] = (double)_val->at(i);
@@ -1961,7 +1955,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void get_x_(const vector<double>& x){
+        void get_solution_(vector<double>& x) const{
             throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
@@ -1999,10 +1993,10 @@ namespace gravity {
          Initialize the model variables using values from x
          @param[in] x values to initialize to
          */
-        void set_x(const vector<double>& x){set_x_(x);};
+        void set_solution(const vector<double>& x){set_solution_(x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void set_x_(const vector<double>& x){
+        void set_solution_(const vector<double>& x){
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 _val->at(i) = x[vid+i];
@@ -2010,7 +2004,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_x_(const vector<double>& x){
+        void set_solution_(const vector<double>& x){
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
