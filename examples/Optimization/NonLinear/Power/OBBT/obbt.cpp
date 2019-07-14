@@ -17,7 +17,12 @@ using namespace gravity;
 
 /* main */
 int main (int argc, char * argv[]) {
-//    auto err_init = MPI_Init(nullptr,nullptr);
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     int output = 0;
     bool loss_from = false;
     size_t num_bags = 0;
@@ -116,8 +121,10 @@ int main (int argc, char * argv[]) {
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
     int nb_threads = thread::hardware_concurrency();
-    //int nb_threads =12;
-    
+    int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
+#ifdef USE_MPI
+    nb_total_threads *= nb_workers;
+#endif
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
     OPFUB.run(output = 5, tol = 1e-6, "ma57");
@@ -238,9 +245,14 @@ int main (int argc, char * argv[]) {
                                 batch_models.push_back(modelk);
                             }
                             //When batch models has reached size of nb_threads or when at the last key of last avriable
-                            if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
+                            if (batch_models.size()==nb_total_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                             {
-                                double batch_time_start = get_wall_time();                            run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                double batch_time_start = get_wall_time();
+#ifdef USE_MPI
+                                run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57");
+#else
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+#endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -457,7 +469,9 @@ int main (int argc, char * argv[]) {
         DebugOn("Time\t"<<solver_time<<endl);
         DebugOn("Iterations\t"<<iter<<endl);
     }
-//    MPI_Finalize();
+#ifdef USE_MPI
+    MPI_Finalize();
+#endif
     return 0;
 }
 
