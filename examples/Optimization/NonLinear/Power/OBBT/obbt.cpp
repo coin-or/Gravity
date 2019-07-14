@@ -293,7 +293,7 @@ int main (int argc, char * argv[]) {
                                         else
                                         {
                                             if(dirk=="LB"){
-                                                vk.set_lb(keyk, objk);
+                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
                                             }
                                             else{
                                                 vk.set_ub(keyk, objk);
@@ -421,7 +421,9 @@ int main (int argc, char * argv[]) {
         
         if(!close)
         {
-        
+#ifdef USE_MPI
+        if(worker_id==0){
+#endif
         SDP->reset_constrs();
         solver<> SDPLB1(SDP,solv_type);
         
@@ -468,6 +470,9 @@ int main (int argc, char * argv[]) {
         
         DebugOn("Time\t"<<solver_time<<endl);
         DebugOn("Iterations\t"<<iter<<endl);
+#ifdef USE_MPI
+        }
+#endif
     }
 #ifdef USE_MPI
     MPI_Finalize();
