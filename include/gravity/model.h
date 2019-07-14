@@ -2744,7 +2744,8 @@ namespace gravity {
         }
         
         void print_obj_val(int prec = 5) const{
-            cout << "Objective = " << to_string_with_precision(_obj->get_val(),prec) << endl;
+            _obj->allocate_mem();
+            cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
