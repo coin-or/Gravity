@@ -115,8 +115,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    //int nb_threads = thread::hardware_concurrency()-1;
-    int nb_threads =12;
+    int nb_threads = thread::hardware_concurrency();
+    //int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);

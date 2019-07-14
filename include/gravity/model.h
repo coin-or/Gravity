@@ -1759,10 +1759,10 @@ namespace gravity {
          Initialize the model variables using values from x
          @param[in] x values to initialize to
          */
-        void set_var(const vector<double>& x){
+        void set_solution(const vector<double>& x){
             for(auto &v_p: _vars)
             {
-                v_p.second->set_var(x);
+                v_p.second->set_solution(x);
             }
         }
         
@@ -2744,7 +2744,8 @@ namespace gravity {
         }
         
         void print_obj_val(int prec = 5) const{
-            cout << "Objective = " << to_string_with_precision(_obj->get_val(),prec) << endl;
+	    _obj->allocate_mem();
+            cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -3601,9 +3602,9 @@ namespace gravity {
          @param[out] x values to initialize
          */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_var(const vector<double>& x) {
+        void get_solution(vector<double>& x) const{
             for(auto& v_p: _vars){
-                v_p.second->get_var(x);
+                v_p.second->get_solution(x);
             }
         }
         
