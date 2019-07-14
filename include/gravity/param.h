@@ -1342,13 +1342,7 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("Current param/var is not indexed.");
             }
-            param res(*this);
-            res._name += "["+to_string(idx)+"]";
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            res._indices->_ids->at(0).push_back(idx);
-            res._dim[0] = 1;
-            return res;
+            return (*this)(this->_indices->_keys->at(idx));
         }
 
         template<bool...> struct bool_pack;
