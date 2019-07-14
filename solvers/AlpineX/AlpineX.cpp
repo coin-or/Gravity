@@ -330,7 +330,7 @@ int main (int argc, char * argv[])
             size_t pos; //position of the delimiter
             size_t delimiter_lenght = delimiter.length();
             
-            vector<int> constraint_idx = {0,1,2,3,4,5,6,7};
+            vector<int> constraint_idx = {0,1,2};
             
             //            for (int i=0; i<arcs.size(); ++i) {
             for (int k=0; k<constraint_idx.size(); ++k) {
@@ -402,11 +402,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 50; //number of partitions for Pf_to
-            int num_partitions2 = 50; //number of partitions for Qf_to
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
             
-            int num_partitions3 = 8; //number of partitions for Wii(to)
-            int num_partitions4 = 8; //number of partitions for lji
+            int num_partitions3 = 4; //number of partitions for Wii(to)
+            int num_partitions4 = 4; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -477,7 +477,7 @@ int main (int argc, char * argv[])
                 
                 SOCP.add_on_off_McCormick_new("Pf_to_squared"+to_string(i), Pf_to_s1, Pf_to1, Pf_to1, z1temp, num_partitions1,num_partitions1);
                 SOCP.add_on_off_McCormick_new("Qf_to_squared" + to_string(i), Qf_to_s1, Qf_to1, Qf_to1,  z2temp, num_partitions2, num_partitions2);
-              SOCP.add_on_off_McCormick_new("ljiWii_to" + to_string(i), ljiWii_to1,  Wii_to1, lji1, z3temp,  num_partitions3, num_partitions4);
+                SOCP.add_on_off_McCormick_new("ljiWii_to" + to_string(i), ljiWii_to1,  Wii_to1, lji1, z3temp,  num_partitions3, num_partitions4);
             }
         }
     }
@@ -579,7 +579,7 @@ int main (int argc, char * argv[])
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
-    
+    SOCP.print();
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
@@ -599,9 +599,10 @@ int main (int argc, char * argv[])
     //    ACOPF_IPOPT.run(output, tol = 1e-6);
     
     double upperbound = grid.solve_acopf(ACRECT);
-    
-    //    solver<> SOCOPF_CPX2(SOCP, cplex);
-    //    SOCOPF_CPX2.run(output, tol = 1e-6);
+    auto original_SOC = grid.build_SCOPF();
+    solver<> SOCOPF_ORIG(original_SOC, ipopt);
+    SOCOPF_ORIG.run(output, tol = 1e-6);
+    double original_LB = original_SOC->get_obj_val();
     //        ACOPF.print_solution();
     
     
@@ -616,7 +617,9 @@ int main (int argc, char * argv[])
     SOCP.print_solution();
 
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
-    double gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
+    double gap = 100*(upperbound - original_LB)/upperbound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
 //    for (int i = 0; i < v.size(); i++)
 //        cout << get<0>(v[i])<< " "
