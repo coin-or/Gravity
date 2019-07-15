@@ -1387,6 +1387,34 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+        param in_matrix() const{
+            auto res(*this);
+            return res.in(this->get_matrix_ids());
+        }
+        indices get_matrix_ids() const{
+            auto res(*this->_indices);
+            res.set_name("matrix("+_indices->get_name()+")");
+            res._ids = make_shared<vector<vector<size_t>>>();
+            string key = "", first_key="";
+            int inst = -1;
+            string prev_key = "";
+            for (auto key: *_indices->_keys) {
+                first_key = key.substr(0,key.find(","));
+                if (first_key!=prev_key) {
+                    res._ids->resize(res._ids->size()+1);
+                    inst++;
+                }
+                auto it1 = this->_indices->_keys_map->find(key);
+                if (it1 == this->_indices->_keys_map->end()){
+                    throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                }
+                res._ids->at(inst).push_back(it1->second);
+                prev_key = first_key;
+            }
+            inst++;
+            return res;
+        }
+    
         /** Index parameter/variable in ids, look for the keys starting at the ith position
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
