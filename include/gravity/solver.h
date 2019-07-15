@@ -550,14 +550,13 @@ namespace gravity {
      @tol numerical tolerance
      @nb_threads Number of parallel threads per worker
      @lin_solver linear system solver
+     @share_all propagate the solutions to all workers, if false, only worker 0 has updated solutions for all models
      */
     template<typename type>
-    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", bool share_all = false){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-	//vector<MPI_Request> reqs;
-	//reqs.resize(nb_workers);
 	MPI_Request reqs[nb_workers-1];
         /* Split models into equal loads */
         auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
@@ -573,43 +572,72 @@ namespace gravity {
             DebugOn("limits[" << i << "] = " << limits[i] << endl);
         }
         /* Launch all threads in parallel */
-        
         DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
         auto vec = vector<shared_ptr<gravity::Model<type>>>();
         for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
             vec.push_back(models[i]);
         }
         run_parallel(vec,stype,tol,nr_threads,lin_solver);
-        
-        if (worker_id == 0){
-            DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
-            for (auto w_id = 1; w_id<nb_workers; w_id++) {
+        if(!share_all){
+            if (worker_id == 0){
+                DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+                for (auto w_id = 1; w_id<nb_workers; w_id++) {
+                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                        auto model = models[i];
+                        auto nb_vars = model->get_nb_vars();
+                        vector<double> solution;
+                solution.resize(nb_vars);
+                        DebugOn("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                        MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                        DebugOn("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                        model->set_solution(solution);
+                    }
+                }
+            }
+            else{
+                DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    auto model = models[i];
+                    auto nb_vars = model->get_nb_vars();
+                    vector<double> solution;
+                    solution.resize(nb_vars);
+                    model->get_solution(solution);
+                    DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                    MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
+                    DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
+                }
+            }
+        }
+        else {
+            DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
+            for (auto w_id = 0; w_id<nb_workers; w_id++) {
+                if (worker_id == w_id){
+                    continue;
+                }
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     auto model = models[i];
                     auto nb_vars = model->get_nb_vars();
                     vector<double> solution;
-		    solution.resize(nb_vars);
-            	    DebugOn("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                    solution.resize(nb_vars);
+                    DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
                     MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            	    DebugOn("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                    DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                     model->set_solution(solution);
                 }
-            } 
-        }
-        else{
+            }
             DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
             for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                 auto model = models[i];
                 auto nb_vars = model->get_nb_vars();
                 vector<double> solution;
-		solution.resize(nb_vars);
+                solution.resize(nb_vars);
                 model->get_solution(solution);
                 DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
                 MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
                 DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
             }
         }
-	MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);
     }
     
