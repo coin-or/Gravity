@@ -491,6 +491,16 @@ namespace gravity {
             return (_lb->eval(i)!=numeric_limits<type>::lowest());
         };
         
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_below(size_t i = 0) const{
+            return (_lb->eval(i).real()!=numeric_limits<type>::lowest() && _lb->eval(i).imag()!=numeric_limits<type>::lowest());
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_above(size_t i = 0) const{
+            return (_ub->eval(i).real()!=numeric_limits<type>::max() && _ub->eval(i).imag()!=numeric_limits<type>::max());
+        };
+        
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         bool is_constant(size_t i=0) const;
