@@ -2360,7 +2360,8 @@ namespace gravity {
             _sign = f._sign;
             constant_::_is_transposed = f._is_transposed;
             constant_::_is_vector = f._is_vector;
-            _is_constraint = f._is_constraint;
+            if(f._is_constraint)
+                _is_constraint = true;
             _is_hessian = f._is_hessian;
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
@@ -2495,7 +2496,8 @@ namespace gravity {
             _sign = f._sign;
             constant_::_is_transposed = f._is_transposed;
             constant_::_is_vector = f._is_vector;
-            _is_constraint = f._is_constraint;
+            if(f._is_constraint)
+                _is_constraint = true;
             _is_hessian = f._is_hessian;
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
@@ -2548,7 +2550,8 @@ namespace gravity {
             f._sign = nullptr;
             constant_::_is_transposed = f._is_transposed;
             constant_::_is_vector = f._is_vector;
-            _is_constraint = f._is_constraint;
+            if(f._is_constraint)
+                _is_constraint = true;
             _is_hessian = f._is_hessian;
             constant_::_dim[0] = f._dim[0];
             constant_::_dim[1] = f._dim[1];
@@ -3610,6 +3613,7 @@ namespace gravity {
                     break;
                 }
             }
+            throw invalid_argument("Unsupported type");
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
@@ -3703,6 +3707,7 @@ namespace gravity {
                     break;
                 }
             }
+            throw invalid_argument("Unsupported type");
         }
         
         inline type eval_coef(const shared_ptr<constant_>& coef, size_t i) {

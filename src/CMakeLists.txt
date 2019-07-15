@@ -38,6 +38,7 @@ endif()
 
 if (NOT Cplex)
     list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexProgram.cpp)
+    list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/CplexCallback.cpp)
 endif()
 
 if (NOT Clp)
@@ -58,7 +59,7 @@ if(ADD_EIGEN)
  add_dependencies(gravity eigen)
 endif(ADD_EIGEN)
 add_dependencies(gravity opt_parser)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} liboption_parser.a)
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a)
 if(Cov)
   set_target_properties(gravity
   PROPERTIES
