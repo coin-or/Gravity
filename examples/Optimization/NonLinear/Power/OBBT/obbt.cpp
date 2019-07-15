@@ -17,6 +17,7 @@ using namespace gravity;
 
 /* main */
 int main (int argc, char * argv[]) {
+    //    auto err_init = MPI_Init(nullptr,nullptr);
     int output = 0;
     bool loss_from = false;
     size_t num_bags = 0;
@@ -114,8 +115,8 @@ int main (int argc, char * argv[]) {
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-    //int nb_threads = thread::hardware_concurrency()-1;
-    int nb_threads =12;
+    int nb_threads = thread::hardware_concurrency();
+    //int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -127,10 +128,11 @@ int main (int argc, char * argv[]) {
     double lower_bound=SDPL->get_obj_val();
     
     auto SDP=SDPL;
-//    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
-//    solver<> SDPLBI(SDP,solv_type);
-//    SDP->print();
-//    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
+    SDP->print();
+    //    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
+    //    solver<> SDPLBI(SDP,solv_type);
+    //    SDP->print();
+    //    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
     
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -219,14 +221,6 @@ int main (int argc, char * argv[]) {
                         for(auto &dir: dir_array)
                         {
                             auto modelk = SDP->copy();
-                            // auto Pg=modelk->get_var<double>("Pg");
-                            // Constraint<> obj_UB("obj_UB");
-                            // obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
-                            // modelk->add(obj_UB<=0);
-                            //                                    func<double> o=*(SDP->_obj);
-                            //                                    Constraint<> UpperB("UpperB");
-                            //                                    UpperB=o;
-                            //                                    modelk->add(UpperB<=upper_bound);
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
@@ -237,7 +231,7 @@ int main (int argc, char * argv[]) {
                             }
                             else
                             {
-                                modelk->min(vark(key)*(-1));
+                                modelk->max(vark(key));
                                 
                             }
                             
@@ -275,7 +269,6 @@ int main (int argc, char * argv[]) {
                                         }
                                         else
                                         {
-                                            objk*=-1;
                                             boundk1=vk.get_ub(keyk);
                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
                                             objk=std::min(objk+range_tol, boundk1);
@@ -314,7 +307,6 @@ int main (int argc, char * argv[]) {
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                         {
-                                            //                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
                                             //If original interval is itself smaller than range_tol, do not have to reset interval
                                             if(interval_original[pk]>=range_tol)
                                             {
@@ -335,14 +327,12 @@ int main (int argc, char * argv[]) {
                                                     
                                                     vk.set_ub(keyk, ub_original[pk]);
                                                     vk.set_lb(keyk, ub_original[pk]-range_tol);
-                                                    //  DebugOn("Entered if 2"<<endl);
                                                 }
                                                 //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
                                                 else if(left<lb_original[pk])
                                                 {
                                                     vk.set_lb(keyk, lb_original[pk]);
                                                     vk.set_ub(keyk, lb_original[pk]+range_tol);
-                                                    //  DebugOn("Entered if 3"<<endl);
                                                     
                                                 }
                                                 //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
@@ -418,11 +408,11 @@ int main (int argc, char * argv[]) {
         
         if(!close)
         {
-        
-        SDP->reset_constrs();
-        solver<> SDPLB1(SDP,solv_type);
-        
-        SDPLB1.run(output = 5, tol=1e-8);
+            
+            SDP->reset_constrs();
+            solver<> SDPLB1(SDP,solv_type);
+            
+            SDPLB1.run(output = 5, tol=1e-8);
         }
         SDP->print_constraints_stats(tol);
         bool print_only_relaxed;
@@ -466,7 +456,7 @@ int main (int argc, char * argv[]) {
         DebugOn("Time\t"<<solver_time<<endl);
         DebugOn("Iterations\t"<<iter<<endl);
     }
+    //    MPI_Finalize();
     return 0;
-    
 }
 

@@ -150,6 +150,7 @@ PowerNet::~PowerNet() {
     }
     arcs.clear();
 }
+
 void PowerNet::update_pij_bounds()
 {
     double Pg_sum_min,Pg_sum_max, p_min,p_max,pload,qload,shunt_wmax, shunt_wmin;
@@ -252,11 +253,11 @@ void PowerNet::update_pij_bounds()
         arc_name=a->_name;
         if(pf_from_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
-            pf_to_min(arc_name).add_val(std::max(pf_from_max(arc_name).eval(), pf_to_min(arc_name).eval()));
+            pf_to_min(arc_name).add_val(std::max(pf_from_max(arc_name).eval()*(-1), pf_to_min(arc_name).eval()));
         }
         if(pf_to_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
-            pf_from_min(arc_name).add_val(std::max(pf_to_max(arc_name).eval(), pf_from_min(arc_name).eval()));
+            pf_from_min(arc_name).add_val(std::max(pf_to_max(arc_name).eval()*(-1), pf_from_min(arc_name).eval()));
         }
         
         if(g(arc_name).eval()==0 && b(arc_name).eval()>=0)
@@ -285,8 +286,6 @@ void PowerNet::update_pij_bounds()
         }
     }
 }
-
-
 indices PowerNet::gens_per_node() const{
     indices ids("gens_per_node");
     ids = indices(gens);
@@ -1438,6 +1437,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
+    grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2020,7 +2020,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     cout << "\nnum bags = " << num_bags << endl;
     
-    
+    if(!grid._tree && grid._bags.empty()){
+        grid.get_tree_decomp_bags();
+    }
     grid.update_ref_bus();
     
     /* Grid Stats */
@@ -2044,6 +2046,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
+    //grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
