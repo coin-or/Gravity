@@ -69,20 +69,9 @@ public:
                                          )
     {
         _model->set_x(x);
-//        cout << "hess vals = " << endl;
-//        for (size_t i = 0; i<_model->_hess_vals.size(); i++) {
-//            if(_model->_hess_vals[i]!=0)
-//                cout << _model->_hess_vals[i];
-//        }
-//        cout << endl;
-//        _model->_obj_val = obj_value;
-        //    _model->print_solution();
-        //    _model->compute_funcs();
-        //    _model->check_feasible(x);
         if(_model->_objt==maximize){
             _model->_obj->reverse_sign();
         }
-        //    _model->_obj_val = _model->_obj.eval();
         for (auto &cp: _model->_cons_name) {
             cp.second->_dual.resize(cp.second->_dim[0]);
             auto idx = 0;
@@ -90,9 +79,6 @@ public:
                 if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                     cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
                 }
-//                else {
-//                    cp.second->_dual[inst] = 1;
-//                }
             }
         }
         for (auto &vp: _model->_vars) {
@@ -105,7 +91,6 @@ public:
                 vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
             }
         }
-//        cout << "\n************** Objective Function Value = " << _model->eval<double>(_model->_obj,0) << " **************" << endl;
     }
     
     /** Method to return the bounds for my problem */

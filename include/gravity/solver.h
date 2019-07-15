@@ -236,24 +236,13 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
-//                        dyn_max_iter *= 2;
-//                    if (true) {
-//                                    if (false) {
                         mu_init = std::exp(-1)/std::exp(2);
                         DebugOn("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
-                        
-                        //                iapp->Options()->SetNumericValue("warm_start_bound_push", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_bound_frac", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_slack_bound_frac", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_slack_bound_push", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_mult_bound_push", 1e-12);
                     }
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
-                    
-                    //mu_init, warm_start_mult_bound_push, warm_start_slack_bound_push, warm_start_bound_push
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
                     //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
