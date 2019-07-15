@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = true;
-    bool current_partition_on_off_automated = false;
+    bool current_partition_on_off_temp = false;
+    bool current_partition_on_off_automated = true;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -313,11 +313,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 20; //number of partitions for Pf_to
-            int num_partitions2 = 20; //number of partitions for Qf_to
+            int num_partitions1 = 40; //number of partitions for Pf_to
+            int num_partitions2 = 40; //number of partitions for Qf_to
             
-            int num_partitions3 = 4; //number of partitions for Wii(to)
-            int num_partitions4 = 4; //number of partitions for lji
+            int num_partitions3 = 10; //number of partitions for Wii(to)
+            int num_partitions4 = 10; //number of partitions for lji
             
             // allocate the partition bound arrays
             vector<double> p1(num_partitions1+1); //bounds for Pf_to
@@ -572,7 +572,7 @@ int main (int argc, char * argv[])
                 
                 Constraint<> z1Sum("z1Sum"+to_string(i));
                 z1Sum = sum(z1temp);
-                SOCP.add(z1Sum==1);
+//                SOCP.add(z1Sum==1);
                 
                 auto Qf_to1 = Qf_to(cur_key);
                 auto Qf_to_s1 = Qf_to_squared(cur_key);
@@ -580,7 +580,7 @@ int main (int argc, char * argv[])
                 
                 Constraint<> z2Sum("z2Sum"+to_string(i));
                 z2Sum = sum(z2temp);
-                SOCP.add(z2Sum==1);
+//                SOCP.add(z2Sum==1);
                 
                 auto ljiWii_to1 = ljiWii_to(toIDX+","+cur_key);
                 auto Wii_to1 = Wii(toIDX);
@@ -589,18 +589,25 @@ int main (int argc, char * argv[])
                 
                 Constraint<> z3Sum("z3Sum"+to_string(i));
                 z3Sum = sum(z3temp);
-                SOCP.add(z3Sum==1);
+//                SOCP.add(z3Sum==1);
                 
             }
             
+            
+            auto z1M = z1.in_matrix();
             Constraint<> z1Sum_auto("z1Sum_auto");
-            sum
+            z1Sum_auto = sum(z1M);
+            SOCP.add(z1Sum_auto.in(var_indices1)==1);
             
+            auto z2M = z2.in_matrix();
             Constraint<> z2Sum_auto("z2Sum_auto");
-            
+            z2Sum_auto = sum(z2M);
+            SOCP.add(z2Sum_auto.in(var_indices1)==1);
+
+            auto z3M = z3.in_matrix();
             Constraint<> z3Sum_auto("z3Sum_auto");
-
-
+            z3Sum_auto = sum(z3M);
+            SOCP.add(z3Sum_auto.in(var_indices1)==1);
             
             SOCP.add_on_off_McCormick_new("Pf_to_squared", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
             SOCP.add_on_off_McCormick_new("Qf_to_squared", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
@@ -612,12 +619,12 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Wii._num_partns = 4;
             lji._num_partns = 4;
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
+            Pf_to._num_partns = 10;
+            Qf_to._num_partns = 10;
             
             Constraint<> I_to_Pf2("I_to_Pf2");
-            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-            SOCP.add(I_to_Pf.in(arcs)==0, true);
+            I_to_Pf2=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+            SOCP.add(I_to_Pf2.in(arcs)==0, true);
         }
     }
     
@@ -718,7 +725,6 @@ int main (int argc, char * argv[])
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
-    SOCP.print();
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
@@ -731,8 +737,6 @@ int main (int argc, char * argv[])
     solve_time = solver_time_end - solver_time_start;
     total_time = total_time_end - total_time_start;
     
-    //        SOCP.print_solution();
-    
     /* Solver selection */
     //    solver<> ACOPF_IPOPT(ACOPF, ipopt);
     //    ACOPF_IPOPT.run(output, tol = 1e-6);
@@ -742,7 +746,6 @@ int main (int argc, char * argv[])
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
     double original_LB = original_SOC->get_obj_val();
-    //        ACOPF.print_solution();
     
     
     string out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP.get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
@@ -752,8 +755,8 @@ int main (int argc, char * argv[])
     
     
     
-    SOCP.print();
-    SOCP.print_solution();
+//    SOCP.print();
+//    SOCP.print_solution();
 
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     double gap = 100*(upperbound - original_LB)/upperbound;

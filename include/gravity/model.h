@@ -863,13 +863,20 @@ namespace gravity {
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
+                            Constraint<> onSum("onSum"+o1._name+to_string(unique_ids.size()));
+                            onSum += sum(on.in_matrix());
+                            add(onSum.in(unique_ids) == 1);
                         }
                         else{ //else add 2d partition
                             indices partns("partns");
                             partns = indices(range(1,num_partns1),range(1,num_partns2));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
+                            Constraint<> onSum("onSum"+o1._name+o2._name+to_string(unique_ids.size()));
+                            onSum += sum(on.in_matrix());
+                            add(onSum.in(unique_ids) == 1);
                         }
+                        
                         add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o1_ids), on);
                     }
                     else {
@@ -896,12 +903,18 @@ namespace gravity {
                                 partns = indices(range(1,num_partns1));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
+                                Constraint<> onSum("onSum"+o1._name+to_string(added.size()));
+                                onSum = sum(on.in_matrix());
+                                add(onSum.in(added) == 1);
                             }
                             else{ //else add 2d partition
                                 indices partns("partns");
                                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
+                                Constraint<> onSum("onSum"+o1._name+o2._name+to_string(added.size()));
+                                onSum = sum(on.in_matrix());
+                                add(onSum.in(added) == 1);
                             }
                             add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o1_ids), on);
                         }
@@ -4575,18 +4588,13 @@ namespace gravity {
                 for (int i=0 ; i<num_partns1; ++i) {
                     auto LB_partn1 = v1.get_lb() + increment1*i;
                     auto UB_partn1 = LB_partn1 + increment1;
-                    DebugOn("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl);
-//                    LB_partn1.print();
-//                    UB_partn1.print();
+
                     LB_partn1.eval_all();
                     UB_partn1.eval_all();
                     for (int j=0 ; j<num_partns2; ++j) {
                         auto LB_partn2 = v2.get_lb() + increment2*j;
                         auto UB_partn2 = LB_partn2 + increment2;
-                        DebugOn("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl);
                         LB_partn2.eval_all();
-//                        LB_partn2.print();
-//                        UB_partn2.print();
                         UB_partn2.eval_all();
                         for (size_t inst = 0; inst< nb_ins; inst++){
                             auto cur_var_idx = var_indices._keys->at(inst);
