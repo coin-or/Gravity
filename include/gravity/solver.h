@@ -570,8 +570,8 @@ namespace gravity {
             for (size_t i = 0; i < limits.size(); ++i) {
                 DebugOn("limits[" << i << "] = " << limits[i] << endl);
             }
-            if(worker_id+1>limits.size()-1){
-                throw invalid_argument("");
+            if(worker_id+1>limits.size()){
+                throw invalid_argument("worker_id " + to_string(worker_id) + " > limits.size(): " + to_string(limits.size()));
             }
             /* Launch all threads in parallel */
             if(limits[worker_id] == limits[worker_id+1]){
