@@ -1357,6 +1357,16 @@ TEST_CASE("testing in_ith() function") {
     ndv2.print_vals(precision=5);
 }
 
+TEST_CASE("testing get_matrix()") {
+    auto ids = indices(range(1,3),range(8,10));
+    var<> dv("dv");
+    dv = dv.in(ids);
+    dv.print_vals(4);
+    auto dv2 = dv.in_matrix();
+    Constraint<> Sum("Sum");
+    Sum = sum(dv2);
+    Sum.print();
+}
 
 #ifdef USE_MPI
 TEST_CASE("testing OpenMPI") {
