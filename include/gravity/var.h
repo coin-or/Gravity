@@ -525,6 +525,63 @@ namespace gravity {
             this->set_val(v);
             return *this;
         }
+        
+        /** let this share the values of p */
+        void share_vals(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<var<bool>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<var<short>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<var<int>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<var<float>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (var<double>*)(p.get());
+                    share_vals_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<var<long double>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<var<Cpx>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& pp){
+            this->_val = pp._val;
+        }
+        
         /**
          \brief Update dimensions based on the current indexing-set
          \todo sparse matrix/double indexing
