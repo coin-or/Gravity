@@ -863,7 +863,7 @@ namespace gravity {
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
-                            Constraint<> onSum("onSum"+o1._name+to_string(unique_ids.size()));
+                            Constraint<type> onSum("onSum"+o1._name+to_string(unique_ids.size()));
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
                         }
@@ -872,7 +872,7 @@ namespace gravity {
                             partns = indices(range(1,num_partns1),range(1,num_partns2));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
-                            Constraint<> onSum("onSum"+o1._name+o2._name+to_string(unique_ids.size()));
+                            Constraint<type> onSum("onSum"+o1._name+o2._name+to_string(unique_ids.size()));
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
                         }
@@ -903,7 +903,7 @@ namespace gravity {
                                 partns = indices(range(1,num_partns1));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
-                                Constraint<> onSum("onSum"+o1._name+to_string(added.size()));
+                                Constraint<type> onSum("onSum"+o1._name+to_string(added.size()));
                                 onSum = sum(on.in_matrix());
                                 add(onSum.in(added) == 1);
                             }
@@ -912,7 +912,7 @@ namespace gravity {
                                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
-                                Constraint<> onSum("onSum"+o1._name+o2._name+to_string(added.size()));
+                                Constraint<type> onSum("onSum"+o1._name+o2._name+to_string(added.size()));
                                 onSum = sum(on.in_matrix());
                                 add(onSum.in(added) == 1);
                             }
