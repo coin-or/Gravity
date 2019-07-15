@@ -2848,9 +2848,9 @@ namespace gravity {
         }
         
         void eval_all(){
-            if(_val->size()==0){
+//            if(_val->size()==0){
                 allocate_mem();
-            }
+//            }
             auto nb_inst = get_nb_inst();
             for (size_t inst = 0; inst<nb_inst; inst++) {
                 eval(inst);
