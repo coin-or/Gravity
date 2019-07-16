@@ -1471,8 +1471,13 @@ namespace gravity {
                 for(auto key: *ids._keys){
                     auto pos = nthOccurrence(key, ",", start_position);
                     first_part = key.substr(0,pos);
-                    pos = nthOccurrence(key, ",", nb_entries+1);
-                    last_part = key.substr(pos);
+                    if(pos!=0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos!=0){
+                        last_part = key.substr(pos);
+                    }
                     key = first_part+last_part;
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
