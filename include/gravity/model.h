@@ -1983,13 +1983,13 @@ namespace gravity {
                     }
                     
                     // Lambda coefficient matrix when linking with partition variables
-                    param<> lambdaCOEF(name+"_lambda linking coefficients");
+                    param<type> lambdaCOEF(name+"_lambda linking coefficients");
                     
                     // Partition coefficient matrix when linking with lambda variables
-                    param<> zCOEF(name+"_partition linking coefficients");
+                    param<type> zCOEF(name+"_partition linking coefficients");
                     
                     // Partition assignment coefficients
-                    param<> zASGNCOEF(name+"_partition assignment coefficients");
+                    param<type> zASGNCOEF(name+"_partition assignment coefficients");
                     
                     if (model_type == "Model_II"){
                         // check if both of the variables involve a partition
@@ -2398,13 +2398,13 @@ namespace gravity {
                         }
                         
                         // Lambda coefficient matrix when linking with partition variables
-                        param<> lambdaCOEF(name+"_lambda linking coefficients");
+                        param<type> lambdaCOEF(name+"_lambda linking coefficients");
                         
                         // Partition coefficient matrix when linking with lambda variables
-                        param<> zCOEF(name+"_partition linking coefficients");
+                        param<type> zCOEF(name+"_partition linking coefficients");
                         
                         // Partition assignment coefficients
-                        param<> zASGNCOEF(name+"_partition assignment coefficients");
+                        param<type> zASGNCOEF(name+"_partition assignment coefficients");
                         
                         if (model_type == "Model_II"){
                             // check if the the variables involve a partition
@@ -4136,8 +4136,8 @@ namespace gravity {
                 exit(-1);
             }
             
-            param<> M1 ("M1");
-            param<> M2 ("M2");
+            param<type> M1 ("M1");
+            param<type> M2 ("M2");
             
             size_t nb_ins = c.get_nb_inst();
             
@@ -4234,8 +4234,8 @@ namespace gravity {
         //                exit(-1);
         //            }
         //
-        //            param<> M1 ("M1");
-        //            param<> M2 ("M2");
+        //            param<type> M1 ("M1");
+        //            param<type> M2 ("M2");
         //            double M1sum;
         //            double M2sum;
         //            int i;
@@ -4364,10 +4364,10 @@ namespace gravity {
             
             size_t nb_ins = c.get_nb_inst();
             
-            param<> M1 ("M1");
+            param<type> M1 ("M1");
             M1.in(R(nb_ins));
             
-            param<> M2 ("M2");
+            param<type> M2 ("M2");
             M2.in(R(nb_ins));
             
             for (size_t inst = 0; inst<nb_ins; inst++)
@@ -4528,52 +4528,52 @@ namespace gravity {
                 //                var_indices.print();
                 //                inst_partition.print();
                 
-                param<> V1par_MC1("V1par_MC1");
+                param<type> V1par_MC1("V1par_MC1");
                 V1par_MC1.in(inst_partition);
-                param<> V2par_MC1("V2par_MC1");
+                param<type> V2par_MC1("V2par_MC1");
                 V2par_MC1.in(inst_partition);
-                param<> Cpar_MC1("Cpar_MC1");
+                param<type> Cpar_MC1("Cpar_MC1");
                 Cpar_MC1.in(inst_partition);
                 
-                param<> V1par_MC2("V1par_MC2");
+                param<type> V1par_MC2("V1par_MC2");
                 V1par_MC2.in(inst_partition);
-                param<> V2par_MC2("V2par_MC2");
+                param<type> V2par_MC2("V2par_MC2");
                 V2par_MC2.in(inst_partition);
-                param<> Cpar_MC2("Cpar_MC2");
+                param<type> Cpar_MC2("Cpar_MC2");
                 Cpar_MC2.in(inst_partition);
                 
-                param<> V1par_MC3("V1par_MC3");
+                param<type> V1par_MC3("V1par_MC3");
                 V1par_MC3.in(inst_partition);
-                param<> V2par_MC3("V2par_MC3");
+                param<type> V2par_MC3("V2par_MC3");
                 V2par_MC3.in(inst_partition);
-                param<> Cpar_MC3("Cpar_MC3");
+                param<type> Cpar_MC3("Cpar_MC3");
                 Cpar_MC3.in(inst_partition);
                 
-                param<> V1par_MC4("V1par_MC4");
+                param<type> V1par_MC4("V1par_MC4");
                 V1par_MC4.in(inst_partition);
-                param<> V2par_MC4("V2par_MC4");
+                param<type> V2par_MC4("V2par_MC4");
                 V2par_MC4.in(inst_partition);
-                param<> Cpar_MC4("Cpar_MC4");
+                param<type> Cpar_MC4("Cpar_MC4");
                 Cpar_MC4.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
-                param<> v2_on_LB("v2_on_LB");
+                param<type> v2_on_LB("v2_on_LB");
                 v2_on_LB.in(inst_partition);
-                param<> v2_off_LB("v2_off_LB");
+                param<type> v2_off_LB("v2_off_LB");
                 v2_off_LB.in(inst_partition);
                 
-                param<> v2_on_UB("v2_on_UB");
+                param<type> v2_on_UB("v2_on_UB");
                 v2_on_UB.in(inst_partition);
-                param<> v2_off_UB("v2_off_UB");
+                param<type> v2_off_UB("v2_off_UB");
                 v2_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
@@ -4703,19 +4703,19 @@ namespace gravity {
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
                 
-                param<> Vpar("Vpar");
+                param<type> Vpar("Vpar");
                 Vpar.in(inst_partition);
-                param<> Cpar("Cpar");
+                param<type> Cpar("Cpar");
                 Cpar.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
@@ -4799,52 +4799,52 @@ namespace gravity {
                 //                var_indices.print();
                 //                inst_partition.print();
                 
-                param<> V1par_MC1("V1par_MC1");
+                param<type> V1par_MC1("V1par_MC1");
                 V1par_MC1.in(inst_partition);
-                param<> V2par_MC1("V2par_MC1");
+                param<type> V2par_MC1("V2par_MC1");
                 V2par_MC1.in(inst_partition);
-                param<> Cpar_MC1("Cpar_MC1");
+                param<type> Cpar_MC1("Cpar_MC1");
                 Cpar_MC1.in(inst_partition);
                 
-                param<> V1par_MC2("V1par_MC2");
+                param<type> V1par_MC2("V1par_MC2");
                 V1par_MC2.in(inst_partition);
-                param<> V2par_MC2("V2par_MC2");
+                param<type> V2par_MC2("V2par_MC2");
                 V2par_MC2.in(inst_partition);
-                param<> Cpar_MC2("Cpar_MC2");
+                param<type> Cpar_MC2("Cpar_MC2");
                 Cpar_MC2.in(inst_partition);
                 
-                param<> V1par_MC3("V1par_MC3");
+                param<type> V1par_MC3("V1par_MC3");
                 V1par_MC3.in(inst_partition);
-                param<> V2par_MC3("V2par_MC3");
+                param<type> V2par_MC3("V2par_MC3");
                 V2par_MC3.in(inst_partition);
-                param<> Cpar_MC3("Cpar_MC3");
+                param<type> Cpar_MC3("Cpar_MC3");
                 Cpar_MC3.in(inst_partition);
                 
-                param<> V1par_MC4("V1par_MC4");
+                param<type> V1par_MC4("V1par_MC4");
                 V1par_MC4.in(inst_partition);
-                param<> V2par_MC4("V2par_MC4");
+                param<type> V2par_MC4("V2par_MC4");
                 V2par_MC4.in(inst_partition);
-                param<> Cpar_MC4("Cpar_MC4");
+                param<type> Cpar_MC4("Cpar_MC4");
                 Cpar_MC4.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
-                param<> v2_on_LB("v2_on_LB");
+                param<type> v2_on_LB("v2_on_LB");
                 v2_on_LB.in(inst_partition);
-                param<> v2_off_LB("v2_off_LB");
+                param<type> v2_off_LB("v2_off_LB");
                 v2_off_LB.in(inst_partition);
                 
-                param<> v2_on_UB("v2_on_UB");
+                param<type> v2_on_UB("v2_on_UB");
                 v2_on_UB.in(inst_partition);
-                param<> v2_off_UB("v2_off_UB");
+                param<type> v2_off_UB("v2_off_UB");
                 v2_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
@@ -4973,19 +4973,19 @@ namespace gravity {
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
                 
-                param<> Vpar("Vpar");
+                param<type> Vpar("Vpar");
                 Vpar.in(inst_partition);
-                param<> Cpar("Cpar");
+                param<type> Cpar("Cpar");
                 Cpar.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
