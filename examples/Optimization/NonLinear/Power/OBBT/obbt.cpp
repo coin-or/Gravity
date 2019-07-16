@@ -134,7 +134,7 @@ int main (int argc, char * argv[]) {
     SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDPL->get_obj_val();
     
-    gap = 100*(upper_bound - lower_bound)/upper_bound;
+    auto gap = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     
     auto SDP=SDPL;
@@ -159,10 +159,10 @@ int main (int argc, char * argv[]) {
     bool break_flag=false, time_limit = false, lifted_var=false, close=false;
     
     const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
-    const int max_iter=50,gap_count_int=6;;
+    const int max_iter=50,gap_count_int=6;
     
     
-    double solver_time_end, solver_time =0, solver_time_start = get_wall_time(), gap;
+    double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     //Check if gap is already not zero at root node
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
