@@ -406,6 +406,9 @@ namespace gravity {
                 _vars[v.get_vec_id()] = newv;
                 _nb_vars += v.get_dim();
             }
+            else {
+                throw invalid_argument("adding variable with same name, please rename: " + v._name);
+            }
         };
         
         
