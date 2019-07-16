@@ -2795,6 +2795,7 @@ namespace gravity {
         }
         
         type get_obj_val() const{
+            _obj->allocate_mem();
             return _obj->eval();
         }
         
