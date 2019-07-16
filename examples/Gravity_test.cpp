@@ -1326,7 +1326,7 @@ TEST_CASE("testing normal distributions") {
     }
 }
 
-TEST_CASE("testing in_ith() function") {
+TEST_CASE("testing from_ith() function") {
     indices ids("index_set");
     ids = indices(range(1,3),range(9,10), range(2,4));
     param<> dp("dp");
@@ -1340,7 +1340,7 @@ TEST_CASE("testing in_ith() function") {
     CHECK(dp._range->first==-231.5);
     CHECK(dp._range->second==1.5);
     REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
-    auto ndp = dp.in_ith(2,ids);
+    auto ndp = dp.from_ith(2,ids);
     ndp.print();
     CHECK(ndp.get_dim()==ids.size());
     indices ids2("index_set2");
@@ -1349,11 +1349,11 @@ TEST_CASE("testing in_ith() function") {
     dv.in(range(9,10));
     int precision = 5;
     dv.print_vals(precision=5);
-    auto ndv = dv.in_ith(1,ids2);
+    auto ndv = dv.from_ith(1,ids2);
     ndv.print_vals(precision=5);
     var<> dv2("dv2");
     dv2.in(range(1,3));
-    auto ndv2 = dv2.in_ith(0,ids2);
+    auto ndv2 = dv2.from_ith(0,ids2);
     ndv2.print_vals(precision=5);
 }
 

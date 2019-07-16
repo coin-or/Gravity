@@ -383,9 +383,9 @@ namespace gravity {
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        var in_ith(unsigned start_position, const indices& ids) {
+        var from_ith(unsigned start_position, const indices& ids) {
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in_ith(start_position, ids));//TODO assert lb dim = res dim
+            res.param<type>::operator=(param<type>::from_ith(start_position, ids));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);

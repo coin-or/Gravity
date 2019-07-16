@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <memory>
 #include <assert.h>
-#include <gravity/types.h>
+//#include <gravity/types.h>
 #include <gravity/Node.h>
 #include <gravity/Arc.h>
 #include <gravity/Path.h>
