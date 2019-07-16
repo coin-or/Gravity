@@ -565,23 +565,18 @@ namespace gravity {
             if(worker_id+1<limits.size()){
                 /* Launch all threads in parallel */
                 if(limits[worker_id] == limits[worker_id+1]){
-                    DebugOn("I'm worker ID: " << worker_id << ", I don't have any models to run!" << endl);
+                    throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
-                else{
-                    DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
-                    auto vec = vector<shared_ptr<gravity::Model<type>>>();
-                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                        vec.push_back(models[i]);
-                    }
-                    run_parallel(vec,stype,tol,nr_threads,lin_solver);
+                DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                auto vec = vector<shared_ptr<gravity::Model<type>>>();
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    vec.push_back(models[i]);
                 }
+                run_parallel(vec,stype,tol,nr_threads,lin_solver);
                 if(!share_all){
                     if (worker_id == 0){
                         DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
                         for (auto w_id = 1; w_id<nb_workers_; w_id++) {
-                            if(limits[w_id] == limits[w_id+1]){
-                                continue;
-                            }
                             for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                                 auto model = models[i];
                                 auto nb_vars = model->get_nb_vars();
@@ -594,7 +589,7 @@ namespace gravity {
                             }
                         }
                     }
-                    else if(limits[worker_id] < limits[worker_id+1]){
+                    else {
                         DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
                         for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                             auto model = models[i];
@@ -610,7 +605,7 @@ namespace gravity {
                 }
                 else {
                     DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
-                    for (auto w_id = 0; w_id<nb_workers; w_id++) {
+                    for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
                             continue;
                         }
