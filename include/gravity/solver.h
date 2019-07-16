@@ -629,13 +629,13 @@ namespace gravity {
                         if (worker_id == w_id){
                             continue;
                         }
-                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {                            
+                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                             auto model = models[i];
                             auto nb_vars = model->get_nb_vars();
                             vector<double> solution;
                             solution.resize(nb_vars);
                             DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                            MPI_Wait (send_reqs[i]);
+                            MPI_Wait (send_reqs[i],MPI_STATUS_IGNORE);
                             MPI_Irecv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &recv_reqs[i]);
                             DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                             model->set_solution(solution);
