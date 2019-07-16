@@ -612,7 +612,7 @@ namespace gravity {
                         solution.resize(nb_vars);
                         model->get_solution(solution);
                         DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                        MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, worker_id, MPI_COMM_WORLD);
+                        MPI_Ibcast(&solution[0], nb_vars, MPI_DOUBLE, worker_id, MPI_COMM_WORLD);
                         DebugOn("I'm worker ID: " << worker_id << ", I finished broadcasting solution of task " << i << endl);
                     }
                     DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
@@ -630,7 +630,7 @@ namespace gravity {
                             DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                             model->set_solution(solution);
                         }
-                    }                    
+                    }
                 }
             }
         }
