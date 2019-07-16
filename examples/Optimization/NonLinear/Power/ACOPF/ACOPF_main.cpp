@@ -298,6 +298,7 @@ int main (int argc, char * argv[])
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
     OPF.run(output=5, tol = 1e-6);
+    OPF.run(output=5, tol = 1e-6);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
