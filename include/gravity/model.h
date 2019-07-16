@@ -4145,7 +4145,7 @@ namespace gravity {
             {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
-                    double coef_val = 0;
+                    type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
@@ -4179,23 +4179,23 @@ namespace gravity {
                     
                     else if (c.get_ctype() == leq) {
                         if (coef_val < 0){
-                            double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                            type LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
                             M1.add_val(coef_val * LB_partn);
                             
                         }
                         else {
-                            double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                            type UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                             M1.add_val(coef_val * UB_partn);
                         }
                     }
                     
                     else {
                         if (coef_val < 0){
-                            double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                            auto UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                             M2.add_val(coef_val * UB_partn);
                         }
                         else {
-                            double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                            auto LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
                             M2.add_val(coef_val * LB_partn);
                             
                         }
@@ -4354,13 +4354,10 @@ namespace gravity {
                 exit(-1);
             }
             /*allocate the coefficient vectors and the sum values to update them*/
-            double M1sum;
-            double M2sum;
+            type M1sum, M2sum;
             
-            double LB;
-            double UB;
-            double LB_partn;
-            double UB_partn;
+            type LB,UB;
+            type LB_partn,UB_partn;
             
             size_t nb_ins = c.get_nb_inst();
             
@@ -4377,7 +4374,7 @@ namespace gravity {
                 
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
-                    double coef_val = 0;
+                    type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
