@@ -4454,8 +4454,8 @@ namespace gravity {
                 else M2.set_val(inst,M2sum);
             }
             
-            func<> M1shifted;
-            func<> M2shifted;
+            func<type> M1shifted;
+            func<type> M2shifted;
             
             if (!c.get_cst()->is_zero()) {
                 if (c.get_cst()->is_number()) {
