@@ -616,22 +616,24 @@ namespace gravity {
                                 continue;
                             }
                             DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                            MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD,nullptr);
+                            MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD);
                             DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
                         }
                     }
+                    
                     DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
                     for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
                             continue;
                         }
                         for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                            MPI_Request req;
                             auto model = models[i];
                             auto nb_vars = model->get_nb_vars();
                             vector<double> solution;
                             solution.resize(nb_vars);
                             DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                            MPI_Irecv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &req);
                             DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                             model->set_solution(solution);
                         }
