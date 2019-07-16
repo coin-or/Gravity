@@ -546,15 +546,16 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        auto nb_workers_ = std::min((size_t)nb_workers, models.size());
+        MPI_Request send_reqs[nb_workers_*models.size()];
+        MPI_Request recv_reqs[nb_workers_*models.size()];
+
         if(models.size()!=0){
             err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
             err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
             auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
-            auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-            MPI_Request send_reqs[nb_workers_*models.size()];
-            MPI_Request recv_reqs[nb_workers_*models.size()];
             DebugOn("I have " << nb_workers_ << " workers" << endl);
             DebugOn("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
             std::vector<size_t> limits = bounds(nb_workers_, models.size());
@@ -619,7 +620,7 @@ namespace gravity {
                             }
                             
                             DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                            MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(w_id+1)*i]);
+                            MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
                             DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
                         }
                     }
