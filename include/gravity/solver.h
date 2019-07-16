@@ -611,11 +611,15 @@ namespace gravity {
                         vector<double> solution;
                         solution.resize(nb_vars);
                         model->get_solution(solution);
-                        DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                        MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, worker_id, MPI_COMM_WORLD);
-                        DebugOn("I'm worker ID: " << worker_id << ", I finished broadcasting solution of task " << i << endl);
+                        for (auto w_id = 0; w_id<nb_workers_; w_id++) {
+                            if (worker_id == w_id){
+                                continue;
+                            }
+                            DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                            MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, worker_id, i, MPI_COMM_WORLD);
+                            DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
+                        }
                     }
-                    MPI_Barrier(MPI_COMM_WORLD);
                     DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
                     for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
@@ -627,7 +631,7 @@ namespace gravity {
                             vector<double> solution;
                             solution.resize(nb_vars);
                             DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                             DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                             model->set_solution(solution);
                         }
