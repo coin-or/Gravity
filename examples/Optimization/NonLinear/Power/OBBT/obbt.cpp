@@ -131,14 +131,17 @@ int main (int argc, char * argv[]) {
     double upper_bound=OPF->get_obj_val();
     auto SDPL= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDPL,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma57");
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDPL->get_obj_val();
     
+    gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    
     auto SDP=SDPL;
-//    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
-//    solver<> SDPLBI(SDP,solv_type);
-//    SDP->print();
-//    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
+    //    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
+    //    solver<> SDPLBI(SDP,solv_type);
+    //    SDP->print();
+    //    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
     
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -399,77 +402,77 @@ int main (int argc, char * argv[]) {
             solver_time= get_wall_time()-solver_time_start;
             DebugOn("Solved Fixed Point iteration " << iter << endl);
         }
-        vector<double> interval_gap;
-        double sum=0, avg, num_var=0.0;
-        for(auto &it:SDP->_vars_name)
-        {
-            string vname=it.first;
-            v=SDP->get_var<double>(vname);
-            auto v_keys=v.get_keys();
-            for(auto &key: *v_keys)
-            { num_var++;
-                p=vname+"|"+ key;
-                interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
-                sum+=interval_gap.back();
-                DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
-            }
-            
+    }
+    vector<double> interval_gap;
+    double sum=0, avg, num_var=0.0;
+    for(auto &it:SDP->_vars_name)
+    {
+        string vname=it.first;
+        v=SDP->get_var<double>(vname);
+        auto v_keys=v.get_keys();
+        for(auto &key: *v_keys)
+        { num_var++;
+            p=vname+"|"+ key;
+            interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
+            sum+=interval_gap.back();
+            DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
         }
-        avg=sum/num_var;
         
-        DebugOn("Average interval reduction\t"<<avg<<endl);
-        
-        if(!close)
-        {
+    }
+    avg=sum/num_var;
+    
+    DebugOn("Average interval reduction\t"<<avg<<endl);
+    
+    if(!close)
+    {
 #ifdef USE_MPI
         if(worker_id==0){
 #endif
-        SDP->reset_constrs();
-        solver<> SDPLB1(SDP,solv_type);
-        
-        SDPLB1.run(output = 5, tol=1e-8);
-        }
-        SDP->print_constraints_stats(tol);
-        bool print_only_relaxed;
-        SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
-        
-        SDP->print_solution();
-        
-        SDP->print();
-        
-        if(SDP->_status==0)
-        {
+            SDP->reset_constrs();
+            solver<> SDPLB1(SDP,solv_type);
             
-            DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
-            DebugOn("Solution Print"<<endl);
-            //                SDP->print_solution();
+            SDPLB1.run(output = 5, tol=1e-6, "ma97");
             SDP->print_constraints_stats(tol);
-            gap = 100*(upper_bound - lower_bound)/upper_bound;
-            DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-            gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
-            DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-            DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-            DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
-            DebugOn("Time\t"<<solver_time<<endl);
+            bool print_only_relaxed;
+            SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
             
-        }
-        else
-        {
-            double gap = 100*(upper_bound - lower_bound)/upper_bound;
-            DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-            DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
-            DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
-        }
-        if(time_limit){
-            DebugOn("Reached Time limit!"<<endl);
-        }
-        else {
-            DebugOn("Terminate\t"<<terminate<<endl);
-        }
-        
-        
-        DebugOn("Time\t"<<solver_time<<endl);
-        DebugOn("Iterations\t"<<iter<<endl);
+            //        SDP->print_solution();
+            
+            //        SDP->print();
+            
+            if(SDP->_status==0)
+            {
+                
+                DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
+                DebugOn("Solution Print"<<endl);
+                //                SDP->print_solution();
+                SDP->print_constraints_stats(tol);
+                gap = 100*(upper_bound - lower_bound)/upper_bound;
+                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+                gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
+                DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+                DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
+                DebugOn("Time\t"<<solver_time<<endl);
+                
+            }
+            else
+            {
+                double gap = 100*(upper_bound - lower_bound)/upper_bound;
+                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+                DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
+                DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
+            }
+            if(time_limit){
+                DebugOn("Reached Time limit!"<<endl);
+            }
+            else {
+                DebugOn("Terminate\t"<<terminate<<endl);
+            }
+            
+            
+            DebugOn("Time\t"<<solver_time<<endl);
+            DebugOn("Iterations\t"<<iter<<endl);
 #ifdef USE_MPI
         }
 #endif
