@@ -34,7 +34,7 @@ double get_cpu_time();
 
 string clean_print(bool pos, const string& v, bool brackets = false);
 
-int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
+
 
 
 op::OptionParser readOptions(int argc, char * argv[]);
@@ -73,6 +73,8 @@ bool operator <=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 bool operator >=(const gravity::Cpx& lhs, const gravity::Cpx& rhs);
 
 namespace gravity{
+    
+//    int nthOccurrence(const std::string& str, const std::string& findMe, int nth);
     
     set<int> get_phases(string phases);
 //    Cpx min (const Cpx& a, const Cpx& b);

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <gravity/utils.h>
 #include <gravity/Auxiliary.h>
 
 /** A Node has:

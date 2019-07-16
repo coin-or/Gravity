@@ -8,12 +8,14 @@
 
 #ifndef Auxiliary_h
 #define Auxiliary_h
-#include <gravity/utils.h>
+//#include <gravity/utils.h>
 
 using namespace std;
 
 namespace gravity {
 
+    set<int> get_phases(string phases);
+    
     /** Backbone class for auxiliary objects that can be attached to nodes, e.g., generators. */
     class aux{
     public:
