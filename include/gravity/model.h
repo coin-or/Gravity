@@ -2912,6 +2912,9 @@ namespace gravity {
                 if (nr_threads==0) {
                     nr_threads = 1;
                 }
+#ifdef USE_MPI
+                nr_threads = 1;
+#endif
                 vector<thread> threads;
                 /* Split cons into nr_threads parts */
                 vector<size_t> limits = bounds(nr_threads, _cons_vec.size());
