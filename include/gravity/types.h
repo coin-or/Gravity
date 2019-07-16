@@ -291,6 +291,11 @@ namespace gravity{
             _dim->at(0) = n;
         }
         
+        /** Returns the number of comma-separated fields in each key */
+        unsigned get_nb_entries() const{
+            return count(_keys->front().begin(), _keys->front().end(), ',') + 1;
+        }
+        
         /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
         indices get_unique_keys() const{
             indices res(_name);
