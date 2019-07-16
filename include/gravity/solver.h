@@ -604,6 +604,17 @@ namespace gravity {
                     }
                 }
                 else {
+                    DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
+                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                        auto model = models[i];
+                        auto nb_vars = model->get_nb_vars();
+                        vector<double> solution;
+                        solution.resize(nb_vars);
+                        model->get_solution(solution);
+                        DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                        MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, worker_id, MPI_COMM_WORLD);
+                        DebugOn("I'm worker ID: " << worker_id << ", I finished broadcasting solution of task " << i << endl);
+                    }
                     DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
                     for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
@@ -619,18 +630,7 @@ namespace gravity {
                             DebugOn("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
                             model->set_solution(solution);
                         }
-                    }
-                    DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
-                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                        auto model = models[i];
-                        auto nb_vars = model->get_nb_vars();
-                        vector<double> solution;
-                        solution.resize(nb_vars);
-                        model->get_solution(solution);
-                        DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                        MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, worker_id, MPI_COMM_WORLD);
-                        DebugOn("I'm worker ID: " << worker_id << ", I finished broadcasting solution of task " << i << endl);
-                    }
+                    }                    
                 }
             }
         }
