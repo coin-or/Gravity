@@ -1414,12 +1414,90 @@ namespace gravity {
             inst++;
             return res;
         }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        param in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids_) {
+            auto ids(ids_);
+            if(!ids._excluded_keys.empty()){
+                ids.remove_excluded();
+            }
+            if(!_indices){
+                throw invalid_argument("unindexed param/var, first call in()");
+            }
+            param res(*this);
+            if(ids.empty()){
+                DebugOff("In function param.ignore_ith(unsigned position, unsigned nb_entries, const indices& ids), ids is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
+                res._name += "_EMPTY";
+                res._dim[0] = 0;
+                res._dim[1] = 0;
+                //                res.set_range(0);
+                res.reset_range();
+                return res;
+            }
+            string key;
+            size_t nb_inst=1;
+            /** Number of comma separated keys in current variable */
+            auto nb_sep_var = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            /** Number of comma separated keys in ids */
+            auto nb_sep_ids = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
+            if(nb_sep_var > nb_sep_ids){/* ids can have more keys if it's a super set of indices */
+                throw invalid_argument("Variable " + _name + ": In function ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids_), ids keys have less entries than current param/var, check indexing");
+            }
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_ids->resize(1);
+            nb_inst = ids.size();
+            if(ids.is_indexed()){/* If ids has key references, use those */
+                string first_part, last_part;
+                for(auto &key_ref: ids._ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    first_part = key.substr(0,pos);
+                    pos = nthOccurrence(key, ",", nb_entries+1);
+                    last_part = key.substr(pos);
+                    key = first_part+last_part;
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
+                }
+                
+            }
+            else {
+                string first_part, last_part;
+                for(auto key: *ids._keys){
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    first_part = key.substr(0,pos);
+                    pos = nthOccurrence(key, ",", nb_entries+1);
+                    last_part = key.substr(pos);
+                    key = first_part+last_part;
+                    auto it = _indices->_keys_map->find(key);
+                    if (it == _indices->_keys_map->end()){
+                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
+                    }
+                    res._indices->_ids->at(0).push_back(it->second);
+                }
+            }
+            
+            if(res._is_transposed){
+                res._dim[1]=res._indices->_ids->at(0).size();
+            }
+            else {
+                res._dim[0]=res._indices->_ids->at(0).size();
+            }
+            res._name += ".in("+ids.get_name()+")";
+            res._indices->set_name(ids.get_name());
+            res.reset_range();
+            return res;
+        }
     
         /** Index parameter/variable in ids, look for the keys starting at the ith position
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
         param in_ith(unsigned start_position, const indices& ids_) {
             auto ids(ids_);
             if(!ids._excluded_keys.empty()){
