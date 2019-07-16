@@ -871,7 +871,7 @@ namespace gravity {
                             Constraint<> onSum(name1+"_binarySum");
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
-                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            add_on_off_McCormick_refined(name1+name2, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
                         else{ //else add 2d partition
                             var<int> on(name1+name2+"_binary",0,1);
@@ -903,12 +903,12 @@ namespace gravity {
                             onSumComb = sum(on.in_matrix());
                             add(onSumComb.in(unique_ids) == 1);
                             
-                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            add_on_off_McCormick_refined(name1+name2, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                     
                         }
                     }
                     else {
-                        add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
+                        add_McCormick(name1+name2, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
                     }
                 }
                 else {
@@ -936,7 +936,7 @@ namespace gravity {
 
                                 onSum = sum(on.in_matrix());
                                 add(onSum.in(added) == 1);
-                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
+                                add_on_off_McCormick_refined(name1+name2, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
                             }
                             else{ //else add 2d partition
                                 var<int> on(name1+name2+"_binary",0,1);
@@ -967,12 +967,12 @@ namespace gravity {
                                 onSumComb = sum(on.in_matrix());
                                 add(onSumComb.in(added) == 1);
                                 
-                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
+                                add_on_off_McCormick_refined(name1+name2, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
 
                             }
                         }
                         else {
-                        add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
+                        add_McCormick(name1+name2, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
                         }
                     }
                 }
