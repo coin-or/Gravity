@@ -249,7 +249,7 @@ int main (int argc, char * argv[]) {
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
 #else
                                 run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
 #endif
