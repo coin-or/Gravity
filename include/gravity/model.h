@@ -881,30 +881,31 @@ namespace gravity {
                             
                             var<int> on1(name1+"_binary",0,1);
                             var<int> on2(name2+"_binary",0,1);
-//                            add(on1.in(unique_ids,range(1,num_partns1)));
-//                            add(on2.in(unique_ids,range(1,num_partns2)));
+                            add(on1.in(unique_ids,range(1,num_partns1)));
+                            add(on2.in(unique_ids,range(1,num_partns2)));
                             
                             indices partns("partns");
                             partns = indices(range(1,num_partns1),range(1,num_partns2));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
 
+                            auto nb_entries_v = unique_ids.get_nb_entries();
+                            inst_partition.print();
+                            Constraint<> onLink(name1+name2+"_binaryLink");
+                            onLink = on1.in_ith(0, inst_partition) * on2.in_ignore_ith(nb_entries_v, 1, inst_partition) - on;
+                            add(onLink.in(unique_ids) == 0, true);
                             
-//                            Constraint<> onLink(name1+name2+"_binaryLink");
-//                            onLink = on1.in_matrix()*on2.in_matrix() - on.in_matrix();
-//                            add(onLink.in(unique_ids) == 0, true);
+                            Constraint<> onSum1(name1+"_binarySum");
+                            onSum1 = sum(on1.in_matrix());
+                            add(onSum1.in(unique_ids) == 1);
                             
-//                            Constraint<> onSum1(name1+"_binarySum");
-//                            onSum1 = sum(on1.in_matrix());
-//                            add(onSum1.in(unique_ids) == 1);
+                            Constraint<> onSum2(name2+"_binarySum");
+                            onSum2 = sum(on2.in_matrix());
+                            add(onSum2.in(unique_ids) == 1);
                             
-//                            Constraint<> onSum2(name2+"_binarySum");
-//                            onSum2 = sum(on2.in_matrix());
-//                            add(onSum2.in(unique_ids) == 1);
-                            
-                            Constraint<> onSumComb(name1+name2+"_binarySum");
-                            onSumComb = sum(on.in_matrix());
-                            add(onSumComb.in(unique_ids) == 1);
+//                            Constraint<> onSumComb(name1+name2+"_binarySum");
+//                            onSumComb = sum(on.in_matrix());
+//                            add(onSumComb.in(unique_ids) == 1);
                             
                             add_on_off_McCormick_refined(name1+name2, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                     
