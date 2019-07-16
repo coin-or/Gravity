@@ -276,17 +276,18 @@ int main (int argc, char * argv[])
 //        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         //        SOCP.add(I_from_Pf.in(arcs)==0, true);
         
-        Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-        SOCP.add(I_to_Pf.in(arcs)>=0);
-        SOCP.get_constraint("I_to_Pf")->_relaxed = true;
-        //        SOCP.add(I_to_Pf.in(arcs)==0, true);
         
         
         if (current_partition_lambda){
             if (do_Model_III){
                 model_type = "Model_III";
             }
+            
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+            SOCP.add(I_to_Pf.in(arcs)>=0);
+            SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+            //        SOCP.add(I_to_Pf.in(arcs)==0, true);
             
             var<> Pf_to_squared("Pf_to_squared",pos_);
             SOCP.add(Pf_to_squared.in(arcs));
@@ -371,6 +372,12 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off){
             
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+            SOCP.add(I_to_Pf.in(arcs)>=0);
+            SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+            //        SOCP.add(I_to_Pf.in(arcs)==0, true);
+            
             var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
             SOCP.add(Pf_to_squared.in(arcs));
             Pf_to_squared._lift = true;
@@ -404,8 +411,8 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
             
             int num_partitions3 = 4; //number of partitions for Wii(to)
             int num_partitions4 = 4; //number of partitions for lji
@@ -485,6 +492,12 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_temp){
             
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+            SOCP.add(I_to_Pf.in(arcs)>=0);
+            SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+            //        SOCP.add(I_to_Pf.in(arcs)==0, true);
+            
 //            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
             var<> Pf_to_squared("Pf_to_squared", 0, 9);
             SOCP.add(Pf_to_squared.in(arcs));
@@ -498,8 +511,8 @@ int main (int argc, char * argv[])
             /*need to provide bounds for the variables,
              have a scheme to provide bounds for the bilinear case*/
             auto Wii_to = Wii.to(arcs);
-            auto id_set = indices("Wii_to,Arcs");
-            id_set = combine(*Wii_to._indices, *lji._indices);
+            auto id_set = indices("Arcs,Wii_to");
+            id_set = combine(*lji._indices,*Wii_to._indices);
 //            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
             var<> ljiWii_to("ljiWii_to",0,13.4444444);
             SOCP.add(ljiWii_to.in(id_set));
@@ -521,8 +534,8 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 15; //number of partitions for Pf_to
+            int num_partitions2 = 15; //number of partitions for Qf_to
             
             int num_partitions3 = 3; //number of partitions for Wii(to)
             int num_partitions4 = 3; //number of partitions for lji
@@ -544,84 +557,34 @@ int main (int argc, char * argv[])
             
             var<int> z3("z3",0,1);
             indices partns3("partns3");
-            partns3 = indices(range(1,num_partitions3),range(1,num_partitions4));
-            auto inst_partition3 = indices(var_indices1,partns3);
+            auto var_indices3 = combine(*lji._indices,*Wii_to._indices);
+            partns3 = indices(range(1,num_partitions4),range(1,num_partitions3));
+            auto inst_partition3 = indices(var_indices3,partns3);
             SOCP.add(z3.in(inst_partition3));
             
-            //parsing related items
-            string delimiter = ","; //delimiter for correcly seperating the keys
-            string toIDX; //to index of the key
-            string myString; //temporary string
-            size_t pos; //position of the delimiter
-            size_t delimiter_lenght = delimiter.length();
-            
-            vector<int> constraint_idx = {0,1,2,3,4,5,6,7};
-            
-            //            for (int i=0; i<arcs.size(); ++i) {
-            for (int k=0; k<constraint_idx.size(); ++k) {
-                int i = constraint_idx[k];
-                myString = bus_pairs._keys->at(i);
-                pos = bus_pairs._keys->at(i).find(delimiter);
-                toIDX = myString.substr(pos+delimiter_lenght);
-                
-                
-                //                add the partitions&relaxation on the variables
-                auto cur_key = var_indices1._keys->at(i);
-                auto Pf_to1 = Pf_to(cur_key);
-                auto Pf_to_s1 = Pf_to_squared(cur_key);
-                indices var_indices_temp("var_indices_temp");
-                var_indices_temp.add({cur_key});
-                auto z1temp = z1.in(var_indices_temp,partns1);
-                
-                Constraint<> z1Sum("z1Sum"+to_string(i));
-                z1Sum = sum(z1temp);
-//                SOCP.add(z1Sum==1);
-                
-                auto Qf_to1 = Qf_to(cur_key);
-                auto Qf_to_s1 = Qf_to_squared(cur_key);
-                auto z2temp = z2.in(var_indices_temp,partns2);
-                
-                Constraint<> z2Sum("z2Sum"+to_string(i));
-                z2Sum = sum(z2temp);
-//                SOCP.add(z2Sum==1);
-                
-                auto ljiWii_to1 = ljiWii_to(toIDX+","+cur_key);
-                auto Wii_to1 = Wii(toIDX);
-                auto lji1 = lji(cur_key);
-                auto z3temp = z3.in(var_indices_temp,partns3);
-                
-                Constraint<> z3Sum("z3Sum"+to_string(i));
-                z3Sum = sum(z3temp);
-//                SOCP.add(z3Sum==1);
-                
-            }
-            
-            
-            auto z1M = z1.in_matrix();
+
             Constraint<> z1Sum_auto("z1Sum_auto");
-            z1Sum_auto = sum(z1M);
+            z1Sum_auto = sum(z1.in_matrix());
             SOCP.add(z1Sum_auto.in(var_indices1)==1);
             
-            auto z2M = z2.in_matrix();
             Constraint<> z2Sum_auto("z2Sum_auto");
-            z2Sum_auto = sum(z2M);
+            z2Sum_auto = sum(z2.in_matrix());
             SOCP.add(z2Sum_auto.in(var_indices1)==1);
 
-            auto z3M = z3.in_matrix();
             Constraint<> z3Sum_auto("z3Sum_auto");
-            z3Sum_auto = sum(z3M);
-            SOCP.add(z3Sum_auto.in(var_indices1)==1);
+            z3Sum_auto = sum(z3.in_matrix());
+            SOCP.add(z3Sum_auto.in(var_indices3)==1);
             
             SOCP.add_on_off_McCormick_new("Pf_to_squared", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
             SOCP.add_on_off_McCormick_new("Qf_to_squared", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
-            SOCP.add_on_off_McCormick_new("ljiWii_to", ljiWii_to,  Wii_to, lji, z3,  num_partitions3, num_partitions4);
+            SOCP.add_on_off_McCormick_new("ljiWii_to", ljiWii_to,  lji, Wii_to, z3,  num_partitions4, num_partitions3);
         
         }
         
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
+            Pf_to._num_partns = 15;
+            Qf_to._num_partns = 15;
             Wii._num_partns = 3;
             lji._num_partns = 3;
             
