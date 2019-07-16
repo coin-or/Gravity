@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = true;
+    bool current_partition_on_off_temp = true;
+    bool current_partition_on_off_automated = false;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;

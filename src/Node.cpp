@@ -13,6 +13,28 @@
 
 using namespace std;
 
+set<int> gravity::get_phases(string phases){
+    set<int> _phases;
+    if(phases.empty())
+        return _phases;
+    auto pos = phases.find_first_of(",");
+    auto ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    phases = phases.substr(pos+1);
+    if(phases.empty())
+        return _phases;
+    pos = phases.find_first_of(",");
+    ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    phases = phases.substr(pos+1);
+    if(phases.empty())
+        return _phases;
+    pos = phases.find_first_of(",");
+    ph = phases.substr(0,pos);
+    _phases.insert(stoi(ph));
+    return _phases;
+}
+
 Node::Node(){};
 
 Node::Node(string name, int id):_name(name),_id(id),fill_in(0){};
