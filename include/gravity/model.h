@@ -2795,7 +2795,7 @@ namespace gravity {
         }
         
         type get_obj_val() const{
-            return _obj->get_val();
+            return _obj->eval();
         }
         
         void print_obj_val(int prec = 5) const{
