@@ -615,8 +615,9 @@ namespace gravity {
                             if (worker_id == w_id){
                                 continue;
                             }
+                            MPI_Request req;
                             DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                            MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD);
+                            MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &req);
                             DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
                         }
                     }
