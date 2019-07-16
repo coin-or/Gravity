@@ -1357,6 +1357,31 @@ TEST_CASE("testing in_ith() function") {
     ndv2.print_vals(precision=5);
 }
 
+TEST_CASE("testing in_ignore_ith() function") {
+    indices ids("index_set");
+    ids = indices(range(1,3),range(9,10), range(2,4));
+    param<> dp("dp");
+    dp.in(range(1,3),range(2,4));
+    dp("1,2") = 1.5;
+    dp("3,4") = -231.5;
+    dp.print();
+    auto ndp = dp.in_ignore_ith(1, 1, ids);
+    ndp.print();
+    CHECK(ndp.get_dim()==ids.size());
+    indices idsv1("index_setv1");
+    idsv1.add("id1", "id11", "id111");
+    indices idsv2("index_setv2");
+    idsv2.add("id2", "id22", "id222");
+    var<> dv("dv");
+    dv.in(idsv1,idsv2);
+    int precision = 5;
+    dv.print_vals(precision=5);
+    indices ids_all("index_set_all");
+    ids_all.add("id1,id3,id2", "id11,id33,id22", "id111,id333,id222");
+    auto ndv = dv.in_ignore_ith(1, 1, ids_all);
+    ndv.print_vals(precision=5);
+}
+
 TEST_CASE("testing get_matrix()") {
     auto ids = indices(range(1,3),range(8,10));
     var<> dv("dv");
