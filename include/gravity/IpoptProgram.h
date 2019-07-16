@@ -69,9 +69,9 @@ public:
                                          )
     {
         _model->set_x(x);
-        if(_model->_objt==maximize){
-            _model->_obj->reverse_sign();
-        }
+//        if(_model->_objt==maximize){
+//            _model->_obj->reverse_sign();
+//        }
         for (auto &cp: _model->_cons_name) {
             cp.second->_dual.resize(cp.second->_dim[0]);
             auto idx = 0;
