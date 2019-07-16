@@ -1511,7 +1511,7 @@ namespace gravity {
             nb_inst = ids.size();
             if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
-                    key = _indices->_keys->at(key_ref);
+                    key = ids._keys->at(key_ref);
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
                         throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
