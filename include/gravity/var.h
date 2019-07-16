@@ -383,10 +383,28 @@ namespace gravity {
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
         var in_ith(unsigned start_position, const indices& ids) {
             var<type> res(*this);
             res.param<type>::operator=(param<type>::in_ith(start_position, ids));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            return res;
+        }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        var in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids_) {
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_ignore_ith(start_position, nb_entries, ids_));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
