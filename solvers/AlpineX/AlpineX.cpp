@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = true;
+    bool current_partition_on_off_temp = true;
+    bool current_partition_on_off_automated = false;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -485,11 +485,13 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_temp){
             
-            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
+//            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
+            var<> Pf_to_squared("Pf_to_squared", 0, 9);
             SOCP.add(Pf_to_squared.in(arcs));
             Pf_to_squared._lift = true;
             
-            var<> Qf_to_squared("Qf_to_squared", 0, grid.S_max*grid.S_max);
+//            var<> Qf_to_squared("Qf_to_squared", 0, grid.S_max*grid.S_max);
+            var<> Qf_to_squared("Qf_to_squared", 0, 9);
             SOCP.add(Qf_to_squared.in(arcs));
             Qf_to_squared._lift = true;
             
@@ -498,7 +500,8 @@ int main (int argc, char * argv[])
             auto Wii_to = Wii.to(arcs);
             auto id_set = indices("Wii_to,Arcs");
             id_set = combine(*Wii_to._indices, *lji._indices);
-            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
+//            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
+            var<> ljiWii_to("ljiWii_to",0,13.4444444);
             SOCP.add(ljiWii_to.in(id_set));
             ljiWii_to._lift = true;
             
@@ -521,8 +524,8 @@ int main (int argc, char * argv[])
             int num_partitions1 = 10; //number of partitions for Pf_to
             int num_partitions2 = 10; //number of partitions for Qf_to
             
-            int num_partitions3 = 4; //number of partitions for Wii(to)
-            int num_partitions4 = 4; //number of partitions for lji
+            int num_partitions3 = 3; //number of partitions for Wii(to)
+            int num_partitions4 = 3; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -617,10 +620,10 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
+            Wii._num_partns = 3;
+            lji._num_partns = 3;
             
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
@@ -755,8 +758,8 @@ int main (int argc, char * argv[])
     
     
     
-//    SOCP.print();
-//    SOCP.print_solution();
+    SOCP.print();
+    SOCP.print_solution();
 
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     double gap = 100*(upperbound - original_LB)/upperbound;

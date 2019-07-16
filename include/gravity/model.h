@@ -850,34 +850,59 @@ namespace gravity {
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
                 auto it = _vars_name.find(name);
+                
+                auto name1 = o1.get_name(true,true);
+                auto name2 = o2.get_name(true,true);
+                
                 if(it==_vars_name.end()){
                     var<type> vlift(name, lb, ub);
                     vlift._lift = true;
                     add(vlift.in(unique_ids));
                     lt._p = make_shared<var<type>>(vlift.in(ids));
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
-                        var<int> on("on");
-                        if (o1._name == o2._name) //if the variables are same add 1d partition
+                        if (name1 == name2) //if the variables are same add 1d partition
                         {
+                            var<int> on(name1+"_binary",0,1);
                             indices partns("partns");
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
-                            Constraint<> onSum("onSum"+o1._name+to_string(unique_ids.size()));
+                            Constraint<> onSum(name1+"_binarySum");
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
+                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
                         else{ //else add 2d partition
+                            var<int> on(name1+name2+"_binary",0,1);
+                            
+                            var<int> on1(name1+"_binary",0,1);
+                            var<int> on2(name2+"_binary",0,1);
+//                            add(on1.in(unique_ids,range(1,num_partns1)));
+//                            add(on2.in(unique_ids,range(1,num_partns2)));
+                            
                             indices partns("partns");
                             partns = indices(range(1,num_partns1),range(1,num_partns2));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
-                            Constraint<> onSum("onSum"+o1._name+o2._name+to_string(unique_ids.size()));
-                            onSum += sum(on.in_matrix());
-                            add(onSum.in(unique_ids) == 1);
+                            
+//                            Constraint<> onLink(name1+name2+"_binaryLink");
+//                            onLink = on1.in_matrix()*on2.in_matrix() - on.in_matrix();
+//                            add(onLink.in(unique_ids) == 0, true);
+                            
+//                            Constraint<> onSum1(name1+"_binarySum");
+//                            onSum1 = sum(on1.in_matrix());
+//                            add(onSum1.in(unique_ids) == 1);
+                            
+//                            Constraint<> onSum2(name2+"_binarySum");
+//                            onSum2 = sum(on2.in_matrix());
+//                            add(onSum2.in(unique_ids) == 1);
+                            
+                            Constraint<> onSumComb(name1+name2+"_binarySum");
+                            onSumComb = sum(on.in_matrix());
+                            add(onSumComb.in(unique_ids) == 1);
+                            
+                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
-                        
-                        add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o1_ids), on);
                     }
                     else {
                         add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
@@ -896,27 +921,49 @@ namespace gravity {
                         }
                         reindex_vars();
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
-                            var<int> on("on");
-                            if (o1._name == o2._name) //if the variables are same add 1d partition
+                            if (name1 == name2) //if the variables are same add 1d partition
                             {
+                                var<int> on(name1+"_binary",0,1);
                                 indices partns("partns");
                                 partns = indices(range(1,num_partns1));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
-                                Constraint<> onSum("onSum"+o1._name+to_string(added.size()));
+                                Constraint<> onSum("onSum"+name1+to_string(added.size()));
                                 onSum = sum(on.in_matrix());
                                 add(onSum.in(added) == 1);
+                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
                             }
                             else{ //else add 2d partition
+                                var<int> on(name1+name2+"_binary",0,1);
+                                
+                                var<int> on1(name1+"_binary",0,1);
+                                var<int> on2(name2+"_binary",0,1);
+//                                add(on1.in(added,range(1,num_partns1)));
+//                                add(on2.in(added,range(1,num_partns2)));
+                                
                                 indices partns("partns");
                                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                                 auto inst_partition = indices(added,partns);
                                 add(on.in(inst_partition));
-                                Constraint<> onSum("onSum"+o1._name+o2._name+to_string(added.size()));
-                                onSum = sum(on.in_matrix());
-                                add(onSum.in(added) == 1);
+                                
+//                                Constraint<> onLink(name1+name2+"_binaryLink");
+//                                onLink = on1.in_matrix()*on2.in_matrix() - on.in_matrix();
+                                //                            add(onLink.in(unique_ids) == 0, true);
+                                
+//                                Constraint<> onSum1(name1+"_binarySum");
+//                                onSum1 = sum(on1.in_matrix());
+//                                add(onSum1.in(added) == 1);
+                                
+//                                Constraint<> onSum2(name2+"_binarySum");
+//                                onSum2 = sum(on2.in_matrix());
+//                                add(onSum2.in(added) == 1);
+                                
+                                Constraint<> onSumComb(name1+name2+"_binarySum");
+                                onSumComb = sum(on.in_matrix());
+                                add(onSumComb.in(added) == 1);
+                                
+                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), on);
                             }
-                            add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o1_ids), on);
                         }
                         else {
                         add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
@@ -4522,11 +4569,6 @@ namespace gravity {
                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                 auto var_indices = combine(*v1._indices,*v2._indices);
                 auto inst_partition = indices(var_indices,partns);
-                //                DebugOn(var_indices.size() << endl);
-                //                DebugOn(inst_partition.size() << endl);
-                //                DebugOn(inst_partition._keys->at(0) << endl);
-                //                var_indices.print();
-                //                inst_partition.print();
                 
                 param<> V1par_MC1("V1par_MC1");
                 V1par_MC1.in(inst_partition);
