@@ -386,9 +386,14 @@ namespace gravity{
                     }
                     pos = nthOccurrence(key, ",", nb_entries);
                     if(pos>0){
-                        last_part = key.substr(pos);
+                        last_part = key.substr(pos+1);
                     }
-                    key = first_part+last_part;
+                    if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                        key = first_part+","+last_part;
+                    }
+                    else {
+                        key = first_part+last_part;
+                    }
                     auto it = res._keys_map->find(key);
                     if (it == res._keys_map->end()){
                         res.insert(key);
@@ -410,9 +415,14 @@ namespace gravity{
                     }
                     pos = nthOccurrence(key, ",", nb_entries);
                     if(pos>0){
-                        last_part = key.substr(pos);
+                        last_part = key.substr(pos+1);
                     }
-                    key = first_part+last_part;
+                    if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                        key = first_part+","+last_part;
+                    }
+                    else {
+                        key = first_part+last_part;
+                    }
                     auto it = res._keys_map->find(key);
                     if (it == res._keys_map->end()){
                         res.insert(key);
