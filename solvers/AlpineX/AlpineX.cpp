@@ -613,15 +613,15 @@ int main (int argc, char * argv[])
         
         }
         
-        arcs.print();
-        
-        
         indices arcs1("arcs1");
         arcs1.add("0,1,4","1,4,5","2,5,6");
         
         indices arcs2("arcs2");
-        arcs2.add("3,3,6","4,6,7","5,7,8","6,2,8","7,8,9");
- 
+        arcs2.add("3,3,6");
+        
+        indices arcs3("arcs3");
+        arcs3.add("4,6,7","5,7,8","6,2,8","7,8,9");
+        
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
@@ -636,6 +636,10 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to,2).in(arcs2) + pow(Qf_to, 2).in(arcs2));
             SOCP.add(I_to_Pf2.in(arcs2)==0, true);
+            
+            Constraint<> I_to_Pf3("I_to_Pf3");
+            I_to_Pf3=lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to,2).in(arcs3) + pow(Qf_to, 2).in(arcs3));
+            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
         }
     }
     
