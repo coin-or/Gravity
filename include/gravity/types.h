@@ -329,7 +329,7 @@ namespace gravity{
                     if(pos>0){
                         key = key.substr(pos+1);
                     }
-                    pos = nthOccurrence(key, ",", nb_entries+1);
+                    pos = nthOccurrence(key, ",", nb_entries);
                     if(pos>0){
                         key = key.substr(0,pos);
                     }
@@ -350,7 +350,7 @@ namespace gravity{
                     if(pos>0){
                         key = key.substr(pos+1);
                     }
-                    pos = nthOccurrence(key, ",", nb_entries+1);
+                    pos = nthOccurrence(key, ",", nb_entries);
                     if(pos>0){
                         key = key.substr(0,pos);
                     }
@@ -456,14 +456,26 @@ namespace gravity{
             vector<bool> res;
             assert(_ids);
             set<size_t> unique_ids;
-            for (auto &idx:_ids->at(0)) {
-                if(ids._keys_map->count(_keys->at(idx))){
-                    res.push_back(true);
-                }
-                else {
-                    res.push_back(false);
+            if(is_indexed()){/* If ids has key references, use those */
+                for (auto &idx:_ids->at(0)) {
+                    if(ids._keys_map->count(_keys->at(idx))){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
                 }
             }
+            else {
+                for (auto &key:*_keys) {
+                    if(ids._keys_map->count(key)){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }            
             return res;
         }
 
