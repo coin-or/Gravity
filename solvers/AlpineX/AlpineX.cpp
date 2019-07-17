@@ -534,11 +534,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 15; //number of partitions for Pf_to
+            int num_partitions2 = 15; //number of partitions for Qf_to
             
-            int num_partitions3 = 2; //number of partitions for Wii(to)
-            int num_partitions4 = 2; //number of partitions for lji
+            int num_partitions3 = 3; //number of partitions for Wii(to)
+            int num_partitions4 = 3; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -583,10 +583,10 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
-            Wii._num_partns = 2;
-            lji._num_partns = 2;
+            Pf_to._num_partns = 15;
+            Qf_to._num_partns = 15;
+            Wii._num_partns = 3;
+            lji._num_partns = 3;
             
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
