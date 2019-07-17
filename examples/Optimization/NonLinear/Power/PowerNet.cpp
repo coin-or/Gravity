@@ -159,6 +159,7 @@ void PowerNet::update_pij_bounds()
     for (auto n: nodes) {
         if(n->get_degree()==1)
         {
+            DebugOn("Degree 1 node "<<n->_name<<endl);
             if (n->_active)
             {
                 Pg_sum_min=0;
@@ -183,64 +184,68 @@ void PowerNet::update_pij_bounds()
                         Pg_sum_min+=pg_min(gen->_name).eval();
                         Pg_sum_max+=pg_max(gen->_name).eval();
                     }
-                    //Check if requried at all if(((Bus*)n)->gs()>=0)
+                    //Check if required at all if(((Bus*)n)->gs()>=0)
                     
-                    shunt_wmax=((Bus*)n)->gs()*wi_max(n->_name).eval();
-                    shunt_wmin=((Bus*)n)->gs()*wi_min(n->_name).eval();
+                    shunt_wmax=((Bus*)n)->gs()*w_max(n->_name).eval();
+                    shunt_wmin=((Bus*)n)->gs()*w_min(n->_name).eval();
                     
                     
                     if(node_src)
                     {
                         p_min=std::max(Pg_sum_min-pload-shunt_wmax, pf_from_min(arc_name).eval());
-                        pf_from_min(arc_name).add_val(p_min);
+                        pf_from_min.add_val(arc_name, p_min);
                         p_max=std::min(Pg_sum_max-pload-shunt_wmin, pf_from_max(arc_name).eval());
-                        pf_from_max(arc_name).add_val(p_max);
+                        pf_from_max.add_val(arc_name, p_max);
                     }
                     else
                     {
                         p_min=std::max(Pg_sum_min-pload-shunt_wmax, pf_to_min(arc_name).eval());
-                        pf_to_min(arc_name).add_val(p_min);
+                        pf_to_min.add_val(arc_name,p_min);
                         p_max=std::min(Pg_sum_max-pload-shunt_wmin, pf_to_max(arc_name).eval());
-                        pf_to_max(arc_name).add_val(p_max);
+                        pf_to_max.add_val(arc_name,p_max);
                     }
                 }
                 else
                 {
+                    DebugOn("No gen for node " <<n->_name<<endl);
                     if(((Bus*)n)->gs()==0)
                     {
+                 
                         if(node_src==true)
                         {
-                            //Also set flag to closed
-                            pf_from_min(arc_name).add_val(pload*(-1));
-                            pf_from_max(arc_name).add_val(pload*(-1));
-                            if(pload>=0)
-                            {
-                                pf_to_min(arc_name).add_val(std::max(pload, pf_to_min(arc_name).eval()));
-                            }
+                            pf_from_min.add_val(arc_name,pload*(-1));
+                            pf_from_max.add_val(arc_name,pload*(-1));
+//                            if(pload>=0)
+//                            {
+//                                pf_to_min.add_val(arc_name,std::max(pload, pf_to_min(arc_name).eval()));
+//                            }
                         }
                         else
                         {
-                            pf_to_min(arc_name).add_val(pload*(-1));
-                            pf_to_max(arc_name).add_val(pload*(-1));
-                            if(pload>=0)
-                            {
-                                pf_from_min(arc_name).add_val(std::max(pload, pf_from_min(arc_name).eval()));
-                            }
+                            
+                            pf_to_min.add_val(arc_name,pload*(-1));
+                            pf_to_max.add_val(arc_name,pload*(-1));
+//                            if(pload>=0)
+//                            {
+//                                pf_from_min.add_val(arc_name,std::max(pload, pf_from_min(arc_name).eval()));
+//                            }
                             
                         }
                     }
                     if(((Bus*)n)->bs()==0)
                     {
                         qload=ql(n->_name).eval();
+//                        auto q_map=pf_from_min.get_keys_map();
+//                        auto key_pos=q_map->at(arc_name);
                         if(node_src==true)
                         {
-                            qf_from_min(arc_name).add_val(qload*(-1));
-                            qf_from_max(arc_name).add_val(qload*(-1));
+                            qf_from_min.add_val(arc_name,qload*(-1));
+                            qf_from_max.add_val(arc_name,qload*(-1));
                         }
                         else
                         {
-                            qf_to_min(arc_name).add_val(qload*(-1));
-                            qf_to_max(arc_name).add_val(qload*(-1));
+                            qf_to_min.add_val(arc_name,qload*(-1));
+                            qf_to_max.add_val(arc_name,qload*(-1));
                         }
                         
                     }
@@ -251,37 +256,54 @@ void PowerNet::update_pij_bounds()
     for (auto a: arcs)
     {
         arc_name=a->_name;
+        Bus* bus_s = (Bus*)(a->_src);
+        Bus* bus_d = (Bus*)(a->_dest);
+        auto bus_pair_name = bus_s->_name + "," + bus_d->_name;
+      
+        DebugOn("Arc name\t" <<arc_name<<endl);
         if(pf_from_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
-            pf_to_min(arc_name).add_val(std::max(pf_from_max(arc_name).eval()*(-1), pf_to_min(arc_name).eval()));
+            pf_to_min.add_val(arc_name,std::max(pf_from_max(arc_name).eval()*(-1), pf_to_min(arc_name).eval()));
         }
         if(pf_to_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
-            pf_from_min(arc_name).add_val(std::max(pf_to_max(arc_name).eval()*(-1), pf_from_min(arc_name).eval()));
+            pf_from_min.add_val(arc_name,std::max(pf_to_max(arc_name).eval()*(-1), pf_from_min(arc_name).eval()));
+        }
+        if(qf_from_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0 && ch(arc_name).eval()==0)
+        {
+            qf_to_min.add_val(arc_name,std::max(qf_from_max(arc_name).eval()*(-1), qf_to_min(arc_name).eval()));
+        }
+        if(qf_to_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0 && ch(arc_name).eval()==0)
+        {
+            qf_from_min.add_val(arc_name,std::max(qf_to_max(arc_name).eval()*(-1), qf_from_min(arc_name).eval()));
         }
         
-        if(g(arc_name).eval()==0 && b(arc_name).eval()>=0)
+        if(g(arc_name).eval()==0 && b(arc_name).eval()<=0)
         {
             //Set flag to closed for pf_to
+            auto p_map=pf_to_min.get_keys_map();
+            auto key_pos=p_map->at(arc_name);
+            pf_to_min._off[key_pos]=true;
             if(pf_from_min(arc_name).eval()>=0 )
             {
-                th_min(arc_name).set_val(std::max(0.0, th_min(arc_name).eval()));
-                wi_min(arc_name).set_val(std::max(0.0, wi_min(arc_name).eval()));
+                th_min.add_val(bus_pair_name, std::max(0.0, th_min(bus_pair_name).eval()));
+                wi_min.add_val(bus_pair_name, std::max(0.0, wi_min(bus_pair_name).eval()));
             }
             if(pf_from_max(arc_name).eval()<=0 )
             {
-                th_max(arc_name).set_val(std::min(0.0, th_max(arc_name).eval()));
-                wi_max(arc_name).set_val(std::min(0.0, wi_max(arc_name).eval()));
+                th_max.add_val(bus_pair_name, std::min(0.0, th_max(bus_pair_name).eval()));
+                wi_max.add_val(bus_pair_name, std::min(0.0, wi_max(bus_pair_name).eval()));
+                
             }
             if(pf_to_min(arc_name).eval()>=0 )
             {
-                th_max(arc_name).set_val(std::min(0.0, th_max(arc_name).eval()));
-                wi_max(arc_name).set_val(std::min(0.0, wi_max(arc_name).eval()));
+                th_max.add_val(bus_pair_name, std::min(0.0, th_max(bus_pair_name).eval()));
+                wi_max.add_val(bus_pair_name, std::min(0.0, wi_max(bus_pair_name).eval()));
             }
             if(pf_to_max(arc_name).eval()<=0 )
             {
-                th_min(arc_name).set_val(std::max(0.0, th_min(arc_name).eval()));
-                wi_min(arc_name).set_val(std::max(0.0, wi_min(arc_name).eval()));
+                th_min.add_val(bus_pair_name, std::max(0.0, th_min(bus_pair_name).eval()));
+                wi_min.add_val(bus_pair_name, std::max(0.0, wi_min(bus_pair_name).eval()));
             }
         }
     }
@@ -1437,7 +1459,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    grid.update_pij_bounds();
+  //  grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2046,7 +2068,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    //grid.update_pij_bounds();
+    grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2118,13 +2140,19 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
     
     
     /* Power flow variables */
-    var<> Pf_from("Pf_from", -1.*S_max,S_max);
-    var<> Qf_from("Qf_from", -1.*S_max,S_max);
-    var<> Pf_to("Pf_to", -1.*S_max,S_max);
-    var<> Qf_to("Qf_to", -1.*S_max,S_max);
+//    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+//    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+//    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+//    var<> Qf_to("Qf_to", -1.*S_max,S_max);
+    
+    var<> Pf_from("Pf_from", pf_from_min,pf_from_max);
+    var<> Qf_from("Qf_from", qf_from_min,qf_from_max);
+    var<> Pf_to("Pf_to", pf_to_min,pf_to_max);
+    var<> Qf_to("Qf_to", qf_to_min,qf_to_max);
+    
     
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    
+    Pf_to._off=pf_to_min._off;
     
     /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", wr_min, wr_max);

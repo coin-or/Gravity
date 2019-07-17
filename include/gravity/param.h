@@ -71,7 +71,8 @@ namespace gravity {
         /* For Ipopt Use */
         vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
         vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
-        
+        vector<bool>                                   _off; /*<< on/off flag for multiple usage, one per instance */
+      //  shared_ptr<param_>                                        _off = nullptr;/*<< pointer on/off flag for multiple usage, one per instance */
         /**
          A shallow copy of p (ignoring _val and _range)
          @param[in] p param_ to copy from.
@@ -90,6 +91,7 @@ namespace gravity {
             _real = p._real;
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
+            _off=p._off;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -513,7 +515,7 @@ namespace gravity {
         ~param(){};
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         param (const param<T2>& p) {
-            *this = p;            
+            *this = p;
         }
 
         param (const param& p):param() {
@@ -620,6 +622,7 @@ namespace gravity {
             }
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
+            res._off=_off;
             return res;
         }
 
@@ -655,6 +658,7 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=p._off;
             return *this;
         }
         
@@ -695,6 +699,7 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=p._off;
             return *this;
         }
 
@@ -721,6 +726,7 @@ namespace gravity {
             _indices = move(p._indices);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=move(p._off);
             return *this;
         }
 
@@ -845,9 +851,14 @@ namespace gravity {
             this->_polar = true;
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void real_imag(const param<>& pr, const param<>& pi){
             this->_real = make_shared<param<>>(pr);
             this->_imag = make_shared<param<>>(pi);
+            this->_range->first.real(pr._range->first);
+            this->_range->first.imag(pi._range->first);
+            this->_range->second.real(pr._range->second);
+            this->_range->second.imag(pi._range->second);
         }
         
         void set_real(const param<>& p){
@@ -907,6 +918,8 @@ namespace gravity {
                 throw invalid_argument("Cannot call param::add_val(type val) on matrix");
             }
             _val->push_back(val);
+            _off.resize(_off.size()+1);
+            _off[_off.size()-1] = 0;
             update_range(val);
             _dim[0] = _val->size();
         }
@@ -932,6 +945,8 @@ namespace gravity {
             }
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
+            _off.resize(max(_off.size(),i+1));
+            _off[_off.size()-1] = 0;
             _val->at(i) = val;
             update_range(val);
         }
@@ -993,6 +1008,8 @@ namespace gravity {
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
+                _off.resize(max(_off.size(),index+1));
+                _off[_off.size()-1] = 0;
                 update_range(val);
                 return index;
             }
@@ -1500,6 +1517,11 @@ namespace gravity {
                     else {
                         _dim[0] = dim;
                     }
+                }
+                _off.resize(dim);
+                for(auto i=0;i<dim;i++)
+                {
+                    _off[i] = false;
                 }
                 param res(*this);
                 res._name += ".in("+ids.get_name()+")";
