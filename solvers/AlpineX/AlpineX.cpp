@@ -618,10 +618,10 @@ int main (int argc, char * argv[])
         
         indices arcs1("arcs1");
         arcs1.add("0,1,4","1,4,5","2,5,6");
-        arcs1.print();
+        
         indices arcs2("arcs2");
         arcs2.add("3,3,6","4,6,7","5,7,8","6,2,8","7,8,9");
-        arcs2.print();
+ 
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
