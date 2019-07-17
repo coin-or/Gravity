@@ -901,6 +901,24 @@ namespace gravity {
         
         //        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
         
+        func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar");
+            f_xstar.set_size(this->get_dim());
+            f_xstar._val = this->_val;
+            for(auto &it: *_vars){
+                auto v = it.second.first.get();
+                param<type> xstar("xstar_"+v->_name);
+                xstar.copy_vals(v);
+                param<type> df_xstar("df_xstar");
+                df_xstar.set_size(this->get_dim());
+                df_xstar._val = compute_derivative(v)->_val;
+                res.insert(true, df_xstar, *v);
+                res -= df_xstar*xstar;
+            }
+            res += f_xstar;
+            return res;
+        }
         
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
