@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = true;
-    bool current_partition_on_off_automated = false;
+    bool current_partition_on_off_temp = false;
+    bool current_partition_on_off_automated = true;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -510,10 +510,19 @@ int main (int argc, char * argv[])
             SOCP.get_constraint("I_to_Pf_concave")->_relaxed = true;
             //        SOCP.add(I_to_Pf.in(arcs)==0, true);
             
+            
+            param<> lb("lb"), ub("ub");
+            lb.in(arcs);
+            ub.in(arcs);
+            auto prod = Pf_to*Pf_to;
+            lb.set_val(prod._range->first);
+            ub.set_val(prod._range->second);
+            
 //            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
-            var<> Pf_to_squared("Lift(Pf_to^2)", 0, 9);
+            var<> Pf_to_squared("Lift(Pf_to^2)",lb,ub);
             SOCP.add(Pf_to_squared.in(arcs));
             Pf_to_squared._lift = true;
+            
             
             var<int> z1("Pf_to_binary",0,1);
             indices partns1("partns1");
@@ -522,9 +531,15 @@ int main (int argc, char * argv[])
             auto inst_partition1 = indices(var_indices1,partns1);
             SOCP.add(z1.in(inst_partition1));
             
+            param<> lb2("lb2"), ub2("ub2");
+            lb2.in(arcs);
+            ub2.in(arcs);
+            auto prod2 = Qf_to*Qf_to;
+            lb2.set_val(prod2._range->first);
+            ub2.set_val(prod2._range->second);
             
 //            var<> Qf_to_squared("Qf_to_squared", 0, grid.S_max*grid.S_max);
-            var<> Qf_to_squared("Lift(Qf_to^2)", 0, 9);
+            var<> Qf_to_squared("Lift(Qf_to^2)", lb2, ub2);
             SOCP.add(Qf_to_squared.in(arcs));
             Qf_to_squared._lift = true;
             
@@ -534,13 +549,24 @@ int main (int argc, char * argv[])
             auto inst_partition2 = indices(var_indices1,partns2);
             SOCP.add(z2.in(inst_partition2));
             
-            /*need to provide bounds for the variables,
-             have a scheme to provide bounds for the bilinear case*/
+            
             auto Wii_to = Wii.to(arcs);
             auto id_set = indices("Arcs,Wii_to");
             id_set = combine(*lji._indices,*Wii_to._indices);
+            
+            param<> lb3("lb3"), ub3("ub3");
+            lb3.in(id_set);
+            ub3.in(id_set);
+            auto prod3 = lji*Wii_to;
+            lb3.set_val(prod3._range->first);
+            ub3.set_val(prod3._range->second);
+            
+            /*need to provide bounds for the variables,
+             have a scheme to provide bounds for the bilinear case*/
+            
+            
 //            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
-            var<> ljiWii_to("Lift(ljiWii)",0,13.4444444);
+            var<> ljiWii_to("Lift(ljiWii)",lb3,ub3);
             SOCP.add(ljiWii_to.in(id_set));
             ljiWii_to._lift = true;
             
@@ -587,16 +613,29 @@ int main (int argc, char * argv[])
         
         }
         
+        arcs.print();
+        
+        
+        indices arcs1("arcs1");
+        arcs1.add("0,1,4","1,4,5","2,5,6");
+        arcs1.print();
+        indices arcs2("arcs2");
+        arcs2.add("3,3,6","4,6,7","5,7,8","6,2,8","7,8,9");
+        arcs2.print();
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
+            Pf_to._num_partns = 10;
+            Qf_to._num_partns = 10;
+            Wii._num_partns = 2;
+            lji._num_partns = 2;
             
             Constraint<> I_to_Pf("I_to_Pf");
-            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-            SOCP.add(I_to_Pf.in(arcs)==0, true);
+            I_to_Pf=lji.in(arcs1)*Wii.to(arcs1)-(pow(Pf_to,2).in(arcs1) + pow(Qf_to, 2).in(arcs2));
+            SOCP.add(I_to_Pf.in(arcs1)==0, true);
+            
+            Constraint<> I_to_Pf2("I_to_Pf2");
+            I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to,2).in(arcs2) + pow(Qf_to, 2).in(arcs2));
+            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
         }
     }
     
