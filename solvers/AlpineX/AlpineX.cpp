@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = true;
+    bool current_partition_on_off_temp = true;
+    bool current_partition_on_off_automated = false;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -492,21 +492,47 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_temp){
             
-            Constraint<> I_to_Pf("I_to_Pf");
+            // define the number of partitions for variables
+            /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
+            
+            int num_partitions3 = 4; //number of partitions for Wii(to)
+            int num_partitions4 = 4; //number of partitions for lji
+            
+            
+            /* create an index set for all z and unify them maybe later */
+            
+            DebugOn( "THIS ONE IS WITHOUT THE LIFT FUNCTION" << endl);
+            Constraint<> I_to_Pf("I_to_Pf_concave");
             I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
             SOCP.add(I_to_Pf.in(arcs)>=0);
-            SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+            SOCP.get_constraint("I_to_Pf_concave")->_relaxed = true;
             //        SOCP.add(I_to_Pf.in(arcs)==0, true);
             
 //            var<> Pf_to_squared("Pf_to_squared", 0, grid.S_max*grid.S_max);
-            var<> Pf_to_squared("Pf_to_squared", 0, 9);
+            var<> Pf_to_squared("Lift(Pf_to^2)", 0, 9);
             SOCP.add(Pf_to_squared.in(arcs));
             Pf_to_squared._lift = true;
             
+            var<int> z1("Pf_to_binary",0,1);
+            indices partns1("partns1");
+            partns1 = indices(range(1,num_partitions1));
+            auto var_indices1 = *Pf_to._indices;
+            auto inst_partition1 = indices(var_indices1,partns1);
+            SOCP.add(z1.in(inst_partition1));
+            
+            
 //            var<> Qf_to_squared("Qf_to_squared", 0, grid.S_max*grid.S_max);
-            var<> Qf_to_squared("Qf_to_squared", 0, 9);
+            var<> Qf_to_squared("Lift(Qf_to^2)", 0, 9);
             SOCP.add(Qf_to_squared.in(arcs));
             Qf_to_squared._lift = true;
+            
+            var<int> z2("Qf_to_binary",0,1);
+            indices partns2("partns2");
+            partns2 = indices(range(1,num_partitions2));
+            auto inst_partition2 = indices(var_indices1,partns2);
+            SOCP.add(z2.in(inst_partition2));
             
             /*need to provide bounds for the variables,
              have a scheme to provide bounds for the bilinear case*/
@@ -514,13 +540,17 @@ int main (int argc, char * argv[])
             auto id_set = indices("Arcs,Wii_to");
             id_set = combine(*lji._indices,*Wii_to._indices);
 //            var<> ljiWii_to("ljiWii_to",0,lji_max*grid.w_max.to(arcs));
-            var<> ljiWii_to("ljiWii_to",0,13.4444444);
+            var<> ljiWii_to("Lift(ljiWii)",0,13.4444444);
             SOCP.add(ljiWii_to.in(id_set));
             ljiWii_to._lift = true;
             
-            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
-            SOCP.add(I_to_Pf_EQ.in(arcs)==0);
+            
+            var<int> z3("ljiWii_binary",0,1);
+            indices partns3("partns3");
+            auto var_indices3 = combine(*lji._indices,*Wii_to._indices);
+            partns3 = indices(range(1,num_partitions4),range(1,num_partitions3));
+            auto inst_partition3 = indices(var_indices3,partns3);
+            SOCP.add(z3.in(inst_partition3));
             
             //collect the bounds on variables
             
@@ -532,65 +562,41 @@ int main (int argc, char * argv[])
             auto LB_Wii = grid.w_min;
             auto UB_Wii = grid.w_max;
             
-            // define the number of partitions for variables
-            /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 15; //number of partitions for Pf_to
-            int num_partitions2 = 15; //number of partitions for Qf_to
-            
-            int num_partitions3 = 3; //number of partitions for Wii(to)
-            int num_partitions4 = 3; //number of partitions for lji
-            
-            
-            /* create an index set for all z and unify them maybe later */
-            var<int> z1("z1",0,1);
-            indices partns1("partns1");
-            partns1 = indices(range(1,num_partitions1));
-            auto var_indices1 = *Pf_to._indices;
-            auto inst_partition1 = indices(var_indices1,partns1);
-            SOCP.add(z1.in(inst_partition1));
-            
-            var<int> z2("z2",0,1);
-            indices partns2("partns2");
-            partns2 = indices(range(1,num_partitions2));
-            auto inst_partition2 = indices(var_indices1,partns2);
-            SOCP.add(z2.in(inst_partition2));
-            
-            var<int> z3("z3",0,1);
-            indices partns3("partns3");
-            auto var_indices3 = combine(*lji._indices,*Wii_to._indices);
-            partns3 = indices(range(1,num_partitions4),range(1,num_partitions3));
-            auto inst_partition3 = indices(var_indices3,partns3);
-            SOCP.add(z3.in(inst_partition3));
-            
 
-            Constraint<> z1Sum_auto("z1Sum_auto");
+            Constraint<> z1Sum_auto("Pf_to_binarySum");
             z1Sum_auto = sum(z1.in_matrix());
             SOCP.add(z1Sum_auto.in(var_indices1)==1);
             
-            Constraint<> z2Sum_auto("z2Sum_auto");
+            SOCP.add_on_off_McCormick_new("Pf_to,Pf_to", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
+            
+            Constraint<> z2Sum_auto("Qf_to_binarySum");
             z2Sum_auto = sum(z2.in_matrix());
             SOCP.add(z2Sum_auto.in(var_indices1)==1);
+            
+            SOCP.add_on_off_McCormick_new("Qf_to,Qf_to", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
 
-            Constraint<> z3Sum_auto("z3Sum_auto");
+            Constraint<> z3Sum_auto("ljiWii_binarySum");
             z3Sum_auto = sum(z3.in_matrix());
             SOCP.add(z3Sum_auto.in(var_indices3)==1);
             
-            SOCP.add_on_off_McCormick_new("Pf_to_squared", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
-            SOCP.add_on_off_McCormick_new("Qf_to_squared", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
-            SOCP.add_on_off_McCormick_new("ljiWii_to", ljiWii_to,  lji, Wii_to, z3,  num_partitions4, num_partitions3);
+            SOCP.add_on_off_McCormick_new("Wii.to.in(Arc),lji", ljiWii_to,  lji, Wii_to, z3,  num_partitions4, num_partitions3);
+            
+            Constraint<> I_to_Pf_EQ("I_to_Pf_lifted");
+            I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
+            SOCP.add(I_to_Pf_EQ.in(arcs)==0);
         
         }
         
         if (current_partition_on_off_automated){
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 15;
-            Qf_to._num_partns = 15;
-            Wii._num_partns = 3;
-            lji._num_partns = 3;
+            Pf_to._num_partns = 20;
+            Qf_to._num_partns = 20;
+            Wii._num_partns = 4;
+            lji._num_partns = 4;
             
-            Constraint<> I_to_Pf2("I_to_Pf2");
-            I_to_Pf2=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-            SOCP.add(I_to_Pf2.in(arcs)==0, true);
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+            SOCP.add(I_to_Pf.in(arcs)==0, true);
         }
     }
     

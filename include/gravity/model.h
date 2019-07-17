@@ -4760,7 +4760,6 @@ namespace gravity {
                 auto nb_entries_v1 = v1._indices->get_nb_entries();
                 Constraint<type> MC1(name+"_McCormick1");
                 MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
-
                 MC1.in(inst_partition) >= 0;
                 add_on_off_multivariate_new(MC1, on);
                 
