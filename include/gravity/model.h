@@ -865,18 +865,23 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (name1 == name2) //if the variables are same add 1d partition
                         {
+                            // THIS CASE IS OK
                             var<int> on(name1+"_binary",0,1);
                             indices partns("partns");
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
 
-                            Constraint<> onSum(name1+"_binarySum");
+                            Constraint<> onSum(pair.first + "_binarySum");
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
                             add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
                         else{ //else add 2d partition
+                            
+                            //GOTTA CHECK INDIVIDUAL EXISTANCE OF INDIVIDUAL BINARY VARIABLES AND ADJUST STUFF
+                            // CREATE CONSTRAINTS NO MATTER WHAT IN THIS CASE
+                            
                             var<int> on(name1+name2+"_binary",0,1);
                             
                             var<int> on1(name1+"_binary",0,1);
@@ -942,6 +947,7 @@ namespace gravity {
                             DebugOn("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name1 << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name2 << endl);
                             if (name1 == name2) //if the variables are same add 1d partition
                             {
+                                // CHECK ADDED IN THIS CASE, IT HAS TO BE SOMETHING, OTHERWISE HOPEFULLY THIS CASE IS OK
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -963,8 +969,10 @@ namespace gravity {
                             }
                             else{ //else add 2d partition
                                 
+                                // CREATE THE ADDITIONAL CONSTRAINTS HERE
                                 indices partns("partns");
                                 partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                auto inst_partition = indices(unique_ids,partns);
                                 
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -987,21 +995,40 @@ namespace gravity {
                                 lb3.in(added,partns);
                                 ub3.in(added,partns);
                                 lb3.set_val(0), ub3.set_val(1);
-                                lb3.print();
-                                ub3.print();
                                 
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
                                 auto added2 = binvar2->add_bounds(lb2,ub2);
                                 auto added3 = binvar3->add_bounds(lb3,ub3);
                                 
-                                // add here the constraints link and _binarySum for individual binary variables //
+                                
+                                auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                
+                                Constraint<> onLink1(pair.first+"_binaryLink1");
+                                onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - binvar3->in(inst_partition);
+                                add(onLink1.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink2(pair.first+"_binaryLink2");
+                                onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
+                                add(onLink2.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink3(pair.first+"_binaryLink3");
+                                onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
+                                add(onLink3.in(inst_partition) <= 0);
+                                
+                                Constraint<> onSum1(o1._name+"_binarySum");
+                                onSum1 = sum(binvar1->in(added1).in_matrix());
+                                add(onSum1.in(added) == 1);
+                                
+                                Constraint<> onSum2(o2._name+"_binarySum");
+                                onSum2 = sum(binvar2->in(added2).in_matrix());
+                                add(onSum2.in(added) == 1);
                                 
                                 Constraint<> onSumComb(pair.first+"_binarySum");
                                 onSumComb = sum((binvar3->in(added3)).in_matrix());
                                 add(onSumComb.in(added) == 1);
                                 
-                               // FIX THIS
-                                //add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
 
                             }
                         }
