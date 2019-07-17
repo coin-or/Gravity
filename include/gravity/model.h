@@ -899,11 +899,9 @@ namespace gravity {
 
                             Constraint<> onLink1(pair.first+"_binaryLink1");
                             onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
-                            inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2).print();
                             add(onLink1.in(inst_partition) >= 0);
 
                             Constraint<> onLink2(pair.first+"_binaryLink2");
-                            inst_partition.ignore_ith(0,nb_entries_v1).print();
                             onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
                             add(onLink2.in(inst_partition) >= 0);
 
@@ -945,6 +943,8 @@ namespace gravity {
                         reindex_vars();
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             DebugOn("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name1 << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name2 << endl);
+                            DebugOn(" <<<<<<<<<< added <<<<<<<< ");
+                            added.print();
                             if (name1 == name2) //if the variables are same add 1d partition
                             {
                                 // CHECK ADDED IN THIS CASE, IT HAS TO BE SOMETHING, OTHERWISE HOPEFULLY THIS CASE IS OK
@@ -969,7 +969,7 @@ namespace gravity {
                             }
                             else{ //else add 2d partition
                                 
-                                // CREATE THE ADDITIONAL CONSTRAINTS HERE
+                                //THIS CASE IS OK
                                 indices partns("partns");
                                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                                 auto inst_partition = indices(unique_ids,partns);
@@ -999,7 +999,14 @@ namespace gravity {
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
                                 auto added2 = binvar2->add_bounds(lb2,ub2);
                                 auto added3 = binvar3->add_bounds(lb3,ub3);
-                                
+                                DebugOn("<<<<<<< unique_ids <<<<<<<<");
+                                unique_ids.print();
+                                DebugOn("<<<<<<< added1 <<<<<<<<");
+                                added1.print();
+                                DebugOn("<<<<<<< added2 <<<<<<<<" << added2.size());
+                                added2.print();
+                                DebugOn("<<<<<<< added3 <<<<<<<<");
+                                added3.print();
                                 
                                 auto nb_entries_v1 = o1_ids.get_nb_entries();
                                 auto nb_entries_v2 = o2_ids.get_nb_entries();
@@ -1016,13 +1023,17 @@ namespace gravity {
                                 onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
                                 add(onLink3.in(inst_partition) <= 0);
                                 
+                                if(!added1.empty()){
                                 Constraint<> onSum1(o1._name+"_binarySum");
                                 onSum1 = sum(binvar1->in(added1).in_matrix());
                                 add(onSum1.in(added) == 1);
+                                }
                                 
+                                if(!added2.empty()){
                                 Constraint<> onSum2(o2._name+"_binarySum");
                                 onSum2 = sum(binvar2->in(added2).in_matrix());
                                 add(onSum2.in(added) == 1);
+                                }
                                 
                                 Constraint<> onSumComb(pair.first+"_binarySum");
                                 onSumComb = sum((binvar3->in(added3)).in_matrix());
