@@ -1391,6 +1391,8 @@ namespace gravity {
             auto res(*this);
             return res.in(this->get_matrix_ids());
         }
+        
+        
         indices get_matrix_ids() const{
             auto res(*this->_indices);
             res.set_name("matrix("+_indices->get_name()+")");
@@ -1398,20 +1400,37 @@ namespace gravity {
             string key = "", first_key="";
             int inst = -1;
             string prev_key = "";
-            for (auto key: *_indices->_keys) {
-                first_key = key.substr(0,key.find(","));
-                if (first_key!=prev_key) {
-                    res._ids->resize(res._ids->size()+1);
-                    inst++;
+            if(is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: _indices->_ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    first_key = key.substr(0,key.find(","));
+                    if (first_key!=prev_key) {
+                        res._ids->resize(res._ids->size()+1);
+                        inst++;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(inst).push_back(it1->second);
+                    prev_key = first_key;
                 }
-                auto it1 = this->_indices->_keys_map->find(key);
-                if (it1 == this->_indices->_keys_map->end()){
-                    throw invalid_argument("In function get_matrix_ids(), unknown key.");
-                }
-                res._ids->at(inst).push_back(it1->second);
-                prev_key = first_key;
             }
-            inst++;
+            else {
+                for (auto key: *_indices->_keys) {
+                    first_key = key.substr(0,key.find(","));
+                    if (first_key!=prev_key) {
+                        res._ids->resize(res._ids->size()+1);
+                        inst++;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(inst).push_back(it1->second);
+                    prev_key = first_key;
+                }
+            }
             return res;
         }
         
@@ -1436,7 +1455,7 @@ namespace gravity {
             }
             /** Number of comma separated keys in current variable */
             auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            return this->in(ids.from_ith(start_position, nb_entries));
+            return this->in(ids.from_ith(start_position, nb_entries+1));
         }
         
         /** Index parameter/variable in the product of ids1...args

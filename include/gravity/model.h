@@ -1024,15 +1024,19 @@ namespace gravity {
                                 add(onLink3.in(inst_partition) <= 0);
                                 
                                 if(!added1.empty()){
-                                Constraint<> onSum1(o1._name+"_binarySum");
-                                onSum1 = sum(binvar1->in(added1).in_matrix());
-                                add(onSum1.in(added) == 1);
+                                    Constraint<> onSum1(o1._name+"_binarySum");
+                                    onSum1 = sum(binvar1->in(added1).in_matrix());
+                                    auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                    vset1.filter_refs(vset1.get_unique_refs());
+                                    add(onSum1.in(vset1) == 1);
                                 }
                                 
                                 if(!added2.empty()){
-                                Constraint<> onSum2(o2._name+"_binarySum");
-                                onSum2 = sum(binvar2->in(added2).in_matrix());
-                                add(onSum2.in(added) == 1);
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(binvar2->in(added2).in_matrix());
+                                    auto vset2 = added2.from_ith(0,nb_entries_v2);
+                                    vset2.filter_refs(vset2.get_unique_refs());
+                                    add(onSum2.in(vset2) == 1);
                                 }
                                 
                                 Constraint<> onSumComb(pair.first+"_binarySum");
