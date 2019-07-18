@@ -622,33 +622,48 @@ int main (int argc, char * argv[])
         indices arcs3("arcs3");
         arcs3.add("4,6,7","5,7,8","6,2,8","7,8,9");
         
+        indices bus_pairs1("bus_pairs1");
+        bus_pairs1.add("1,4","4,5","5,6");
+        
+        indices bus_pairs2("bus_pairs2");
+        bus_pairs2.add("5,6","6,7","7,8","2,8","8,9");
+        
         if (current_partition_on_off_automated){
+            
+   
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
-            Wii._num_partns = 1;
+            Wii._num_partns = 2;
             lji._num_partns = 2;
             
-//            Constraint<> I_to_Pf("I_to_Pf");
-//            I_to_Pf=lji.in(arcs1)*Wii.to(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
-//            SOCP.add(I_to_Pf.in(arcs1)==0, true);
-//
-//            Constraint<> I_to_Pf2("I_to_Pf2");
-//            I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
-//            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-//
-//            Constraint<> I_to_Pf3("I_to_Pf3");
-//            I_to_Pf3=lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
-//            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
+            R_Wij._num_partns = 10;
+            Im_Wij._num_partns = 10;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
-            R_Wij._num_partns = 1;
-            Im_Wij._num_partns = 2;
-            
             /* Equality of Second-order cone (for upperbound) */
-            Constraint<> Equality_SOC("Equality_SOC");
-            Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+            Constraint<> Equality_SOC1("Equality_SOC1");
+            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
+            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
+            
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
+            SOCP.add(I_to_Pf.in(arcs1)==0, true);
+
+            Constraint<> I_to_Pf2("I_to_Pf2");
+            I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
+            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
+
+            Constraint<> I_to_Pf3("I_to_Pf3");
+            I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
+            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
+            
+
+            Constraint<> Equality_SOC2("Equality_SOC2");
+            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
+            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
+            
+           
         }
     }
     
@@ -664,10 +679,10 @@ int main (int argc, char * argv[])
     /** Constraints */
     
     /* Second-order cone */
-    Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    SOCP.add(SOC.in(bus_pairs) <= 0);
-    SOCP.get_constraint("SOC")->_relaxed = true;
+//    Constraint<> SOC("SOC");
+//    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//    SOCP.add(SOC.in(bus_pairs) <= 0);
+//    SOCP.get_constraint("SOC")->_relaxed = true;
     
     /* Equality of Second-order cone (for upperbound) */
     Constraint<> Equality_SOC("Equality_SOC");
@@ -749,12 +764,6 @@ int main (int argc, char * argv[])
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
-    
-    
-    
-    SOCP.print();
-    
-    
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
@@ -796,7 +805,8 @@ int main (int argc, char * argv[])
 //        << get<2>(v[i]) << "\n";
     
     
-    
+//    SOCP.print();
+//    SOCP.print_solution();
     
     
     /************ Collecting the indices of variables that appear in the nonzero constraints ************/
@@ -816,7 +826,7 @@ int main (int argc, char * argv[])
     //
     //
     //    /* THERE IS A BIG BUG IN HERE */
-    //    /* The constraint indices are correct but the variable indices are wrong and basically the first 3 constraints are produces in here. (1,4), (4,5), (5,6) are the first three constraints. */
+    //    /* The constraint indices are correct but the variable indices are wrong and basically the first 3 constraints are produced in here. (1,4), (4,5), (5,6) are the first three constraints. */
     //    Model<> asd("asd");
     //    asd.add(R_Wij);
     //    asd.add(Im_Wij);
