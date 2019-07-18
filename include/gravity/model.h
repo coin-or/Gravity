@@ -865,9 +865,10 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                            // ************************************************************************************ THIS IS OK (BAD CONVENTION OF INDEXING)
+                            // ************************************************************************************ THIS IS OK
                             DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
+                            
                             indices partns("partns");
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
@@ -876,17 +877,18 @@ namespace gravity {
                             Constraint<> onSum(pair.first + "_binarySum");
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
+                            
                             add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
                         else{ //else add 2d partition
-
+                            
                             auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                             auto binvar_ptr2 = _vars_name.find(name2+"_binary");
                             
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-                                    // ************************************************************************************ INDICES SEEM TO BE WRONG, CHECK UNION AS WELL
+                                    // ************************************************************************************ MIGHT BE OK?
                                     DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
@@ -897,40 +899,26 @@ namespace gravity {
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     
-                                    indices added1("added1");
                                     param<int> lb1("lb1"), ub1("ub1");
-                                    ids.print();
-                                    o1_ids.print();
-                                    o2_ids.print();
-                                    o1._indices->print();
-                                    o2._indices->print();
-                                    union_ids(o1_ids, o2_ids).print();
-                                    //HERE NEED TO USE UNION OF o1_ids and o2_ids
                                     lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
                                     ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
                                     lb1.set_val(0), ub1.set_val(1);
-                                    added1 = binvar1->add_bounds(lb1,ub1);
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    reindex_vars();
                                     
-                                    unique_ids.print();
-                                    o1_ids.print();
-                                    o2_ids.print();
-                                    binvar1->_indices->print();
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     
                                     Constraint<> onLink1(pair.first+"_binaryLink1");
                                     onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - on;
                                     add(onLink1.in(inst_partition) >= 0);
-                                    onLink1.print();
                                     
                                     Constraint<> onLink2(pair.first+"_binaryLink2");
                                     onLink2 = binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
                                     add(onLink2.in(inst_partition) >= 0);
-                                    onLink2.print();
                                     
                                     Constraint<> onLink3(pair.first+"_binaryLink3");
                                     onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
                                     add(onLink3.in(inst_partition) <= 0);
-                                    onLink3.print();
                                     
                                     if(!added1.empty()){
                                         Constraint<> onSum1(o1._name+"_binarySum");
@@ -938,13 +926,11 @@ namespace gravity {
                                         auto vset1 = added1.from_ith(0,nb_entries_v1);
                                         vset1.filter_refs(vset1.get_unique_refs());
                                         add(onSum1.in(vset1) == 1);
-                                        onSum1.print();
                                     }
                                     
                                     Constraint<> onSumComb(pair.first+"_binarySum");
                                     onSumComb = sum(on.in_matrix());
                                     add(onSumComb.in(unique_ids) == 1);
-                                    onSumComb.print();
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                                 }
@@ -969,14 +955,12 @@ namespace gravity {
                                     ub1.in(o1_ids,partns);
                                     lb1.set_val(0), ub1.set_val(1);
                                     added1 = binvar1->add_bounds(lb1,ub1);
-
+                                    reindex_vars();
                                     
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     auto nb_entries_v2 = o2_ids.get_nb_entries();
                                     
                                     Constraint<> onLink1(pair.first+"_binaryLink1");
-                                    binvar1->_indices->print();
-                                    ((inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)).from_ith(0, nb_entries_v1+1)).print();
                                     onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
                                     add(onLink1.in(inst_partition) >= 0);
                                     
@@ -1029,6 +1013,7 @@ namespace gravity {
                                 lb2.set_val(0), ub2.set_val(1);
                                 
                                 auto added2 = binvar2->add_bounds(lb2,ub2);
+                                reindex_vars();
                                 
                                 auto nb_entries_v1 = o1_ids.get_nb_entries();
                                 auto nb_entries_v2 = o2_ids.get_nb_entries();
@@ -1065,16 +1050,11 @@ namespace gravity {
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-                                    // ************************************************************************************ CHECK UNION AND STUFF, SOMETHING IS WRONG
+                                    // ************************************************************************************ MIGHT BE OK?
                                     DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
-                                    
                                     var<int> on1(name1+"_binary",0,1);
-                                    
                                     add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
-                                    o1_ids.print();
-                                    o2_ids.print();
-                                    on1._indices->print();
                                     
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
@@ -1171,7 +1151,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                // ************************************************************************************ THIS IS OK (BAD CONVENTION OF INDEXING CAN INDEX ONLY BASED ON o1_ids, or change the name to include name1+name2)
+                                // ************************************************************************************ THIS IS OK
                                 DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -1182,6 +1162,7 @@ namespace gravity {
                                 lb1.set_val(0), ub1.set_val(1);
                                 
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
+                                reindex_vars();
                                 
                                 Constraint<> onSumComb(pair.first+"_binarySum");
                                 onSumComb = sum((binvar1->in(added1)).in_matrix());
@@ -1192,12 +1173,12 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-                                    // ************************************************************************************ CHECK THIS PART, INDEXING, UNION
+                                    // ************************************************************************************ MAYBE OK??
                                     DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     auto inst_partition = indices(added,partns);
-
+                                    
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     
@@ -1205,24 +1186,18 @@ namespace gravity {
                                     auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-                                    ids.print();
-                                    o1_ids.print();
-                                    o2_ids.print();
-                                    o1._indices->print();
-                                    o2._indices->print();
-                                    //HERE NEED TO USE UNION OF o1_ids and o2_ids
                                     lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
                                     ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
                                     lb1.set_val(0), ub1.set_val(1);
-                                    
-                                    auto added1 = binvar1->add_bounds(lb1,ub1);
                                     
                                     param<int> lb3("lb3"), ub3("ub3");
                                     lb3.in(added,partns);
                                     ub3.in(added,partns);
                                     lb3.set_val(0), ub3.set_val(1);
                                     
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
                                     auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    reindex_vars();
                                     
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     
@@ -1285,6 +1260,7 @@ namespace gravity {
                                     auto added1 = binvar1->add_bounds(lb1,ub1);
                                     auto added2 = binvar2->add_bounds(lb2,ub2);
                                     auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    reindex_vars();
                                     
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     auto nb_entries_v2 = o2_ids.get_nb_entries();
@@ -1316,9 +1292,14 @@ namespace gravity {
                                         vset2.filter_refs(vset2.get_unique_refs());
                                         add(onSum2.in(vset2) == 1);
                                     }
-                                    
+                                    binvar3->print();
+                                    (binvar3->in(added3)).in_matrix().print();
+                                    (binvar3->in(added3)).in_matrix()._indices->print();
+                                    added3.print();
+                                    added.print();
                                     Constraint<> onSumComb(pair.first+"_binarySum");
                                     onSumComb = sum((binvar3->in(added3)).in_matrix());
+                                    onSumComb.print();
                                     add(onSumComb.in(added) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
@@ -4759,6 +4740,142 @@ namespace gravity {
         //            }
         //        }
         
+        void get_on_off_coefficients(const Constraint<type>& c, const indices S){
+            if (c.get_ftype() != lin_) {
+                cerr << "Nonlinear constraint.\n";
+                exit(-1);
+            }
+            
+            /*allocate the coefficient vectors and the sum values to update them*/
+            type M1sum, M2sum;
+            
+            type LB,UB;
+            type LB_partn,UB_partn;
+            
+            size_t nb_ins = c.get_nb_inst();
+            
+            param<type> M1 ("M1");
+            M1.in(R(nb_ins));
+            
+            param<type> M2 ("M2");
+            M2.in(R(nb_ins));
+            
+            for (size_t inst = 0; inst<nb_ins; inst++)
+            {
+                M1sum = 0;
+                M2sum = 0;
+                
+                for (auto &pair:*c._lterms) {
+                    auto term = pair.second;
+                    type coef_val = 0;
+                    if (term._coef->is_function()) {
+                        auto coef = static_pointer_cast<func<type>>(term._coef);
+                        coef_val = coef->eval(inst);//this will give you the value of this instance
+                    }
+                    else if(term._coef->is_param()) {
+                        auto coef = static_pointer_cast<param<type>>(term._coef);
+                        coef_val = coef->eval(inst);//this will give you the value of this instance
+                    }
+                    else { /*means (term._coef->is_number())*/
+                        auto coef = static_pointer_cast<constant<type>>(term._coef);
+                        coef_val = coef->eval();
+                    }
+                    
+                    auto inst_id = term._p->get_id_inst(inst);
+                    auto num_partns = term._p->get_num_partns();
+                    auto cur_partn = term._p->get_cur_partn();
+                    
+                    /* update the coef_val as coef_val * sign */
+                    if (!term._sign) coef_val = -coef_val;
+                    
+                    if (cur_partn > num_partns) throw invalid_argument("Current partition is out of range (larger than the number of partitions)");
+                    
+                    auto lifted = term._p->get_lift();
+                    
+                    LB = (term._p->get_double_lb(inst_id));
+                    UB = (term._p->get_double_ub(inst_id));
+                    
+                    if (lifted){
+                        LB_partn = LB;
+                        UB_partn = UB;
+                    }
+                    else {
+                        /** following might be used if we utilize cur_partn and all ***/
+                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                        LB_partn = LB;
+                        UB_partn = UB;
+                    }
+                    
+                    if (c.get_ctype() == eq) {
+                        if (coef_val < 0){
+                            M1sum += coef_val * LB_partn;
+                            M2sum += coef_val * UB_partn;
+                        }
+                        else {
+                            M1sum += coef_val * UB_partn;
+                            M2sum += coef_val * LB_partn;
+                        }
+                        
+                    }
+                    
+                    else if (c.get_ctype() == leq) {
+                        if (coef_val < 0){
+                            M1sum += coef_val * LB_partn;
+                            
+                        }
+                        else {
+                            M1sum += coef_val * UB_partn;
+                            
+                        }
+                    }
+                    
+                    else {
+                        if (coef_val < 0){
+                            M2sum += coef_val * UB_partn;
+                        }
+                        else {
+                            M2sum += coef_val * LB_partn;
+                        }
+                    }
+                }
+                if (c.get_ctype() == eq) {
+                    M1.set_val(inst,M1sum);
+                    M2.set_val(inst,M2sum);
+                }
+                else if (c.get_ctype() == leq)  M1.set_val(inst,M1sum);
+                else M2.set_val(inst,M2sum);
+            }
+            
+            func<type> M1shifted;
+            func<type> M2shifted;
+            
+            if (!c.get_cst()->is_zero()) {
+                if (c.get_cst()->is_number()) {
+                    auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
+                    M1shifted = *f_cst + M1;
+                    M2shifted = *f_cst + M2;
+                }
+                else if (c.get_cst()->is_param()) {
+                    auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
+                    M1shifted = *f_cst + M1;
+                    M2shifted = *f_cst + M2;
+                }
+                else {
+                    auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
+                    M1shifted = *f_cst + M1;
+                    M2shifted = *f_cst + M2;
+                }
+            }
+            else{
+                M1shifted = M1;
+                M2shifted = M2;
+            }
+            
+            
+        }
+        
+        
         void add_on_off_multivariate_new(const Constraint<type>& c, const var<int>& on){
             if (c.get_ftype() != lin_) {
                 cerr << "Nonlinear constraint.\n";
@@ -5192,12 +5309,8 @@ namespace gravity {
                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                 auto var_indices = combine(*v1._indices,*v2._indices);
                 auto inst_partition = indices(var_indices,partns);
-                //                DebugOn(var_indices.size() << endl);
-                //                DebugOn(inst_partition.size() << endl);
-                //                DebugOn(inst_partition._keys->at(0) << endl);
-                //                var_indices.print();
-                //                inst_partition.print();
                 
+                // Create the parameters for the on/off constraints and bounds
                 param<type> V1par_MC1("V1par_MC1");
                 V1par_MC1.in(inst_partition);
                 param<type> V2par_MC1("V2par_MC1");
@@ -5373,6 +5486,7 @@ namespace gravity {
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
                 
+                //Create the parameters for on/off constraints
                 param<type> Vpar("Vpar");
                 Vpar.in(inst_partition);
                 param<type> Cpar("Cpar");
@@ -5420,7 +5534,7 @@ namespace gravity {
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
-//                add_on_off_multivariate_new(MC_secant, on);
+                add_on_off_multivariate_new(MC_secant, on);
                 
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
@@ -5432,12 +5546,12 @@ namespace gravity {
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
                 v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
                 v1_on_off_LB.in(inst_partition) >= 0;
-//                add(v1_on_off_LB);
+                add(v1_on_off_LB);
                 
                 Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
                 v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
                 v1_on_off_UB.in(inst_partition) <= 0;
-//                add(v1_on_off_UB);
+                add(v1_on_off_UB);
                 
             }
         }
