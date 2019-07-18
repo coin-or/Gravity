@@ -626,24 +626,24 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
-            Wii._num_partns = 2;
+            Wii._num_partns = 1;
             lji._num_partns = 2;
             
-            Constraint<> I_to_Pf("I_to_Pf");
-            I_to_Pf=lji.in(arcs1)*Wii.to(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
-            SOCP.add(I_to_Pf.in(arcs1)==0, true);
-
-            Constraint<> I_to_Pf2("I_to_Pf2");
-            I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
-            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-
-            Constraint<> I_to_Pf3("I_to_Pf3");
-            I_to_Pf3=lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
-            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
+//            Constraint<> I_to_Pf("I_to_Pf");
+//            I_to_Pf=lji.in(arcs1)*Wii.to(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
+//            SOCP.add(I_to_Pf.in(arcs1)==0, true);
+//
+//            Constraint<> I_to_Pf2("I_to_Pf2");
+//            I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
+//            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
+//
+//            Constraint<> I_to_Pf3("I_to_Pf3");
+//            I_to_Pf3=lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
+//            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             R_Wij._num_partns = 1;
-            Im_Wij._num_partns = 1;
+            Im_Wij._num_partns = 2;
             
             /* Equality of Second-order cone (for upperbound) */
             Constraint<> Equality_SOC("Equality_SOC");
@@ -748,6 +748,12 @@ int main (int argc, char * argv[])
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
+    
+    
+    
+    
+    SOCP.print();
+    
     
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
