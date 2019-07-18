@@ -475,7 +475,7 @@ namespace gravity{
                         res.push_back(false);
                     }
                 }
-            }            
+            }
             return res;
         }
 
@@ -847,6 +847,8 @@ namespace gravity{
         
         
         
+        
+        
         template<typename... Args>
         void insert(const string& s1, Args&&... args) {
             add(s1,args...);
@@ -994,7 +996,37 @@ namespace gravity{
         }
     };
     
-    
+    /** Adds all new keys found in ids
+     @return index set of added indices.
+     */
+    template<typename... Args>
+    indices union_ids(const indices& ids1, Args&&... args) {
+        vector<indices> all_ids;
+        all_ids = {ids1,forward<Args>(args)...};
+        indices res("Union(");
+        res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
+        res._keys = make_shared<vector<string>>(*ids1._keys);
+        auto nb_entries = ids1.get_nb_entries();
+        for (size_t i= 1; i < all_ids.size(); i++) {
+            auto ids = all_ids[i];
+            if(nb_entries!=ids.get_nb_entries()){
+                throw invalid_argument("union cannot be applied to index sets with different number of entries");
+            }
+            res.set_name(res.get_name() + ids.get_name()+",");
+            auto it = ids._keys->begin();
+            for (size_t i= 0; i < ids.size(); i++) {
+                auto idx = res._keys->size();
+                auto pp = res._keys_map->insert(make_pair<>(*it,idx));
+                if (pp.second) {//new index inserted
+                    res._keys->push_back(*it);
+                }
+                it++;
+            }
+        }
+        auto name = res.get_name();
+        res.set_name(name.substr(0,name.size()-1) + ")");
+        return res;
+    }
     
     indices operator-(const indices& s1, const indices& s2);
     
