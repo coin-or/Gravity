@@ -1387,13 +1387,13 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
-        param in_matrix() const{
+        param in_matrix(unsigned nb_entries) const{
             auto res(*this);
-            return res.in(this->get_matrix_ids());
+            return res.in(this->get_matrix_ids(nb_entries));
         }
         
         
-        indices get_matrix_ids() const{
+        indices get_matrix_ids(unsigned nb_entries) const{
             auto res(*this->_indices);
             res.set_name("matrix("+_indices->get_name()+")");
             res._ids = make_shared<vector<vector<size_t>>>();
@@ -1403,7 +1403,10 @@ namespace gravity {
             if(is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: _indices->_ids->at(0)){
                     key = _indices->_keys->at(key_ref);
-                    first_key = key.substr(0,key.find(","));
+                    auto pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        first_key = key.substr(0,pos);
+                    }
                     if (first_key!=prev_key) {
                         res._ids->resize(res._ids->size()+1);
                         inst++;
