@@ -1326,6 +1326,20 @@ TEST_CASE("testing normal distributions") {
     }
 }
 
+TEST_CASE("testing set union") {
+    indices ids1("index_set1");
+    ids1 = indices(range(1,2), range(2,4));
+    indices ids2("index_set2");
+    ids2 = indices(range(1,5), range(2,4));
+    auto union_set = union_ids(ids1, ids2);
+    union_set.print();
+    CHECK(union_set.size()==15);
+    indices ids3("index_set3");
+    ids3 = indices(range(1,5));
+    REQUIRE_THROWS_AS(union_ids(ids1,ids3), invalid_argument);
+}
+
+
 TEST_CASE("testing from_ith() function") {
     indices ids("index_set");
     ids = indices(range(1,3),range(9,10), range(2,4));
