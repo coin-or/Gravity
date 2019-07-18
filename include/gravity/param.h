@@ -2074,14 +2074,35 @@ namespace gravity {
         };
         
         
+        param& operator=(const func<type>& f) {
+            copy_vals(f);
+            if(f._indices)
+                *this = this->in(*f._indices);
+            return *this;
+        }
+        
+        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
+        void copy_vals(const func<T>& f){
+            _dim[0] = f._dim[0];
+            _dim[1] = f._dim[1];
+            auto dim = f.get_dim();
+            _val->resize(dim);
+            for (size_t i = 0; i < dim; i++) {
+                _val->at(i) = f._val->at(i);
+            }
+            reset_range();
+        }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
         void copy_vals(const param<T>& p){
+            _dim[0] = p._dim[0];
+            _dim[1] = p._dim[1];
             auto dim = p.get_dim();
             _val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
                 _val->at(i) = p._val->at(i);
             }
+            reset_range();
         }
         
         void copy_vals(const shared_ptr<param_>& p);
