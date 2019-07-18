@@ -863,66 +863,297 @@ namespace gravity {
                     add(vlift.in(unique_ids));
                     lt._p = make_shared<var<type>>(vlift.in(ids));
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
-                        if (name1 == name2) //if the variables are same add 1d partition
+                        if (o1 == o2) //if the variables are same add 1d partition
                         {
-                            // THIS CASE IS OK
+                            // ************************************************************************************ THIS IS OK (BAD CONVENTION OF INDEXING)
+                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             indices partns("partns");
                             partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
-
+                            
                             Constraint<> onSum(pair.first + "_binarySum");
                             onSum += sum(on.in_matrix());
                             add(onSum.in(unique_ids) == 1);
                             add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                         }
                         else{ //else add 2d partition
+
+                            auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                            auto binvar_ptr2 = _vars_name.find(name2+"_binary");
                             
-                            //GOTTA CHECK INDIVIDUAL EXISTANCE OF INDIVIDUAL BINARY VARIABLES AND ADJUST STUFF
-                            // CREATE CONSTRAINTS NO MATTER WHAT IN THIS CASE
+                            if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
+                                
+                                if(name1 == name2){
+                                    // ************************************************************************************ INDICES SEEM TO BE WRONG, CHECK UNION AS WELL
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    indices added1("added1");
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    ids.print();
+                                    o1_ids.print();
+                                    o2_ids.print();
+                                    o1._indices->print();
+                                    o2._indices->print();
+                                    auto union_ids = o1_ids;
+                                    union_ids.add(o2_ids);
+                                    //HERE NEED TO USE UNION OF o1_ids and o2_ids
+                                    lb1.in(union_ids,range(1,num_partns1));
+                                    ub1.in(union_ids,range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    added1 = binvar1->add_bounds(lb1,ub1);
+                                    
+                                    unique_ids.print();
+                                    o1_ids.print();
+                                    o2_ids.print();
+                                    binvar1->_indices->print();
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    onLink1.print();
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    onLink2.print();
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    onLink3.print();
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                        onSum1.print();
+                                    }
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix());
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    onSumComb.print();
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                
+                                else{
+                                    // ************************************************************************************ THIS IS OK
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    var<int> on2(name2+"_binary",0,1);
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    indices added1("added1");
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(o1_ids,partns);
+                                    ub1.in(o1_ids,partns);
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    added1 = binvar1->add_bounds(lb1,ub1);
+
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    binvar1->_indices->print();
+                                    ((inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)).from_ith(0, nb_entries_v1+1)).print();
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(on2.in_matrix());
+                                    add(onSum2.in(o2_ids) == 1);
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix());
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                
+                            }
                             
-                            var<int> on(name1+name2+"_binary",0,1);
-                            
-                            var<int> on1(name1+"_binary",0,1);
-                            var<int> on2(name2+"_binary",0,1);
-                            add(on1.in(o1_ids,range(1,num_partns1)));
-                            add(on2.in(o2_ids,range(1,num_partns2)));
-
-                            indices partns("partns");
-                            partns = indices(range(1,num_partns1),range(1,num_partns2));
-                            auto inst_partition = indices(unique_ids,partns);
-                            add(on.in(inst_partition));
-
-                            auto nb_entries_v1 = o1_ids.get_nb_entries();
-                            auto nb_entries_v2 = o2_ids.get_nb_entries();
-
-                            Constraint<> onLink1(pair.first+"_binaryLink1");
-                            onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
-                            add(onLink1.in(inst_partition) >= 0);
-
-                            Constraint<> onLink2(pair.first+"_binaryLink2");
-                            onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
-                            add(onLink2.in(inst_partition) >= 0);
-
-                            Constraint<> onLink3(pair.first+"_binaryLink3");
-                            onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
-                            add(onLink3.in(inst_partition) <= 0);
-
-                            Constraint<> onSum1(o1._name+"_binarySum");
-                            onSum1 = sum(on1.in_matrix());
-                            add(onSum1.in(o1_ids) == 1);
-
-                            Constraint<> onSum2(o2._name+"_binarySum");
-                            onSum2 = sum(on2.in_matrix());
-                            add(onSum2.in(o2_ids) == 1);
-                            
-                            Constraint<> onSumComb(pair.first+"_binarySum");
-                            onSumComb = sum(on.in_matrix());
-                            add(onSumComb.in(unique_ids) == 1);
-                            
-                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
-                    
+                            else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
+                                // ************************************************************************************ THIS IS OK
+                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                var<int> on(name1+name2+"_binary",0,1);
+                                var<int> on1(name1+"_binary",0,1);
+                                
+                                indices partns("partns");
+                                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                auto inst_partition = indices(unique_ids,partns);
+                                add(on.in(inst_partition));
+                                add(on1.in(o1_ids,range(1,num_partns1)));
+                                
+                                auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
+                                
+                                param<int> lb2("lb2"), ub2("ub2");
+                                lb2.in(o2_ids,partns);
+                                ub2.in(o2_ids,partns);
+                                lb2.set_val(0), ub2.set_val(1);
+                                
+                                auto added2 = binvar2->add_bounds(lb2,ub2);
+                                
+                                auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                
+                                Constraint<> onLink1(pair.first+"_binaryLink1");
+                                onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                add(onLink1.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink2(pair.first+"_binaryLink2");
+                                onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                add(onLink2.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink3(pair.first+"_binaryLink3");
+                                onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                add(onLink3.in(inst_partition) <= 0);
+                                
+                                Constraint<> onSum1(o1._name+"_binarySum");
+                                onSum1 = sum(on1.in_matrix());
+                                add(onSum1.in(o1_ids) == 1);
+                                
+                                if(!added2.empty()){
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(binvar2->in(added2).in_matrix());
+                                    auto vset2 = added2.from_ith(0,nb_entries_v2);
+                                    vset2.filter_refs(vset2.get_unique_refs());
+                                    add(onSum2.in(vset2) == 1);
+                                }
+                                
+                                Constraint<> onSumComb(pair.first+"_binarySum");
+                                onSumComb = sum(on.in_matrix());
+                                add(onSumComb.in(unique_ids) == 1);
+                                
+                                add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            }
+                            else{ //means both variables v1 and v2 haven't been partitioned
+                                if(name1==name2){
+                                    // ************************************************************************************ CHECK UNION AND STUFF, SOMETHING IS WRONG
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    
+                                    var<int> on1(name1+"_binary",0,1);
+                                    
+                                    auto union_ids = o1_ids;
+                                    union_ids.add(o2_ids);
+                                    add(on1.in(union_ids,range(1,num_partns1)));
+                                    o1_ids.print();
+                                    o2_ids.print();
+                                    union_ids.print();
+                                    on1._indices->print();
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on1.in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + on1.in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    Constraint<> onSum1(o1._name+"_binarySum");
+                                    onSum1 = sum(on1.in_matrix());
+                                    add(onSum1.in(union_ids) == 1);
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix());
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                else{
+                                    // ************************************************************************************ THIS IS OK
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    
+                                    var<int> on1(name1+"_binary",0,1);
+                                    var<int> on2(name2+"_binary",0,1);
+                                    add(on1.in(o1_ids,range(1,num_partns1)));
+                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    Constraint<> onSum1(o1._name+"_binarySum");
+                                    onSum1 = sum(on1.in_matrix());
+                                    add(onSum1.in(o1_ids) == 1);
+                                    
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(on2.in_matrix());
+                                    add(onSum2.in(o2_ids) == 1);
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix());
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                            }
                         }
                     }
                     else {
@@ -942,12 +1173,10 @@ namespace gravity {
                         }
                         reindex_vars();
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
-                            DebugOn("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name1 << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << name2 << endl);
-                            DebugOn(" <<<<<<<<<< added <<<<<<<< ");
-                            added.print();
-                            if (name1 == name2) //if the variables are same add 1d partition
+                            if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                // CHECK ADDED IN THIS CASE, IT HAS TO BE SOMETHING, OTHERWISE HOPEFULLY THIS CASE IS OK
+                                // ************************************************************************************ THIS IS OK (BAD CONVENTION OF INDEXING CAN INDEX ONLY BASED ON o1_ids, or change the name to include name1+name2)
+                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -955,9 +1184,6 @@ namespace gravity {
                                 lb1.in(added,range(1,num_partns1));
                                 ub1.in(added,range(1,num_partns1));
                                 lb1.set_val(0), ub1.set_val(1);
-                                DebugOn("HERE <<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl);
-                                lb1.print();
-                                ub1.print();
                                 
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
                                 
@@ -969,86 +1195,144 @@ namespace gravity {
                             }
                             else{ //else add 2d partition
                                 
-                                //THIS CASE IS OK
-                                indices partns("partns");
-                                partns = indices(range(1,num_partns1),range(1,num_partns2));
-                                auto inst_partition = indices(unique_ids,partns);
-                                
-                                auto binvar_ptr1 = _vars_name.find(name1+"_binary");
-                                auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
-                                auto binvar_ptr2 = _vars_name.find(name2+"_binary");
-                                auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
-                                auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
-                                auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
-                                
-                                param<int> lb1("lb1"), ub1("ub1");
-                                lb1.in(o1_ids,range(1,num_partns1));
-                                ub1.in(o1_ids,range(1,num_partns1));
-                                lb1.set_val(0), ub1.set_val(1);
-                                
-                                param<int> lb2("lb2"), ub2("ub2");
-                                lb2.in(o2_ids,range(1,num_partns2));
-                                ub2.in(o2_ids,range(1,num_partns2));
-                                lb2.set_val(0), ub2.set_val(1);
-                                
-                                param<int> lb3("lb3"), ub3("ub3");
-                                lb3.in(added,partns);
-                                ub3.in(added,partns);
-                                lb3.set_val(0), ub3.set_val(1);
-                                
-                                auto added1 = binvar1->add_bounds(lb1,ub1);
-                                auto added2 = binvar2->add_bounds(lb2,ub2);
-                                auto added3 = binvar3->add_bounds(lb3,ub3);
-                                DebugOn("<<<<<<< unique_ids <<<<<<<<");
-                                unique_ids.print();
-                                DebugOn("<<<<<<< added1 <<<<<<<<");
-                                added1.print();
-                                DebugOn("<<<<<<< added2 <<<<<<<<" << added2.size());
-                                added2.print();
-                                DebugOn("<<<<<<< added3 <<<<<<<<");
-                                added3.print();
-                                
-                                auto nb_entries_v1 = o1_ids.get_nb_entries();
-                                auto nb_entries_v2 = o2_ids.get_nb_entries();
-                                
-                                Constraint<> onLink1(pair.first+"_binaryLink1");
-                                onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - binvar3->in(inst_partition);
-                                add(onLink1.in(inst_partition) >= 0);
-                                
-                                Constraint<> onLink2(pair.first+"_binaryLink2");
-                                onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
-                                add(onLink2.in(inst_partition) >= 0);
-                                
-                                Constraint<> onLink3(pair.first+"_binaryLink3");
-                                onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
-                                add(onLink3.in(inst_partition) <= 0);
-                                
-                                if(!added1.empty()){
-                                    Constraint<> onSum1(o1._name+"_binarySum");
-                                    onSum1 = sum(binvar1->in(added1).in_matrix());
-                                    auto vset1 = added1.from_ith(0,nb_entries_v1);
-                                    vset1.filter_refs(vset1.get_unique_refs());
-                                    add(onSum1.in(vset1) == 1);
-                                }
-                                
-                                if(!added2.empty()){
-                                    Constraint<> onSum2(o2._name+"_binarySum");
-                                    onSum2 = sum(binvar2->in(added2).in_matrix());
-                                    auto vset2 = added2.from_ith(0,nb_entries_v2);
-                                    vset2.filter_refs(vset2.get_unique_refs());
-                                    add(onSum2.in(vset2) == 1);
-                                }
-                                
-                                Constraint<> onSumComb(pair.first+"_binarySum");
-                                onSumComb = sum((binvar3->in(added3)).in_matrix());
-                                add(onSumComb.in(added) == 1);
-                                
-                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                if(name1 == name2){
+                                    // ************************************************************************************ CHECK THIS PART, INDEXING, UNION
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(added,partns);
 
+                                    auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
+                                    auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    ids.print();
+                                    o1_ids.print();
+                                    o2_ids.print();
+                                    o1._indices->print();
+                                    o2._indices->print();
+                                    auto union_ids = o1_ids;
+                                    union_ids.add(o2_ids);
+                                    //HERE NEED TO USE UNION OF o1_ids and o2_ids
+                                    lb1.in(union_ids,range(1,num_partns1));
+                                    ub1.in(union_ids,range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    
+                                    param<int> lb3("lb3"), ub3("ub3");
+                                    lb3.in(added,partns);
+                                    ub3.in(added,partns);
+                                    lb3.set_val(0), ub3.set_val(1);
+                                    
+                                    auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix());
+                                    add(onSumComb.in(added) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                    
+                                }
+                                else{
+                                    // ************************************************************************************ THIS IS OK
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(added,partns);
+                                    
+                                    auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    auto binvar_ptr2 = _vars_name.find(name2+"_binary");
+                                    auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
+                                    auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
+                                    auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(o1_ids,range(1,num_partns1));
+                                    ub1.in(o1_ids,range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    
+                                    param<int> lb2("lb2"), ub2("ub2");
+                                    lb2.in(o2_ids,range(1,num_partns2));
+                                    ub2.in(o2_ids,range(1,num_partns2));
+                                    lb2.set_val(0), ub2.set_val(1);
+                                    
+                                    param<int> lb3("lb3"), ub3("ub3");
+                                    lb3.in(added,partns);
+                                    ub3.in(added,partns);
+                                    lb3.set_val(0), ub3.set_val(1);
+                                    
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    auto added2 = binvar2->add_bounds(lb2,ub2);
+                                    auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - binvar3->in(inst_partition);
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    if(!added2.empty()){
+                                        Constraint<> onSum2(o2._name+"_binarySum");
+                                        onSum2 = sum(binvar2->in(added2).in_matrix());
+                                        auto vset2 = added2.from_ith(0,nb_entries_v2);
+                                        vset2.filter_refs(vset2.get_unique_refs());
+                                        add(onSum2.in(vset2) == 1);
+                                    }
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix());
+                                    add(onSumComb.in(added) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                }
                             }
                         }
                         else {
-                        add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
+                            add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
                         }
                     }
                 }
@@ -4541,8 +4825,8 @@ namespace gravity {
                     }
                     else {
                         /** following might be used if we utilize cur_partn and all ***/
-//                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-//                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                         LB_partn = LB;
                         UB_partn = UB;
                     }
@@ -4713,7 +4997,7 @@ namespace gravity {
                 for (int i=0 ; i<num_partns1; ++i) {
                     auto LB_partn1 = v1.get_lb() + increment1*i;
                     auto UB_partn1 = LB_partn1 + increment1;
-
+                    
                     LB_partn1.eval_all();
                     UB_partn1.eval_all();
                     for (int j=0 ; j<num_partns2; ++j) {
@@ -4796,7 +5080,7 @@ namespace gravity {
                 MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
                 MC4.in(inst_partition) <= 0;
                 add_on_off_multivariate_new(MC4, on);
-
+                
                 
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
                 v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
@@ -4895,7 +5179,7 @@ namespace gravity {
         
         template<typename T1>
         void add_on_off_McCormick_refined(std::string name, var<T1>&& vlift, var<T1>&& v1, var<T1>&& v2, const var<int>& on) {
-        
+            
             if (!v1.is_bounded_below() || !v2.is_bounded_below() || !vlift.is_bounded_below() || !v1.is_bounded_above() || !v2.is_bounded_above() || !vlift.is_bounded_above()){
                 throw invalid_argument("Variables have to be bounded. Please set bounds for all!");}
             
