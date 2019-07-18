@@ -5420,7 +5420,7 @@ namespace gravity {
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC_secant, on);
+//                add_on_off_multivariate_new(MC_secant, on);
                 
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
@@ -5432,12 +5432,12 @@ namespace gravity {
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
                 v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
                 v1_on_off_LB.in(inst_partition) >= 0;
-                add(v1_on_off_LB);
+//                add(v1_on_off_LB);
                 
                 Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
                 v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
                 v1_on_off_UB.in(inst_partition) <= 0;
-                add(v1_on_off_UB);
+//                add(v1_on_off_UB);
                 
             }
         }
