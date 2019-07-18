@@ -904,11 +904,10 @@ namespace gravity {
                                     o2_ids.print();
                                     o1._indices->print();
                                     o2._indices->print();
-                                    auto union_ids = o1_ids;
-                                    union_ids.add(o2_ids);
+                                    union_ids(o1_ids, o2_ids).print();
                                     //HERE NEED TO USE UNION OF o1_ids and o2_ids
-                                    lb1.in(union_ids,range(1,num_partns1));
-                                    ub1.in(union_ids,range(1,num_partns1));
+                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
                                     lb1.set_val(0), ub1.set_val(1);
                                     added1 = binvar1->add_bounds(lb1,ub1);
                                     
@@ -1072,12 +1071,9 @@ namespace gravity {
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     
-                                    auto union_ids = o1_ids;
-                                    union_ids.add(o2_ids);
-                                    add(on1.in(union_ids,range(1,num_partns1)));
+                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
                                     o1_ids.print();
                                     o2_ids.print();
-                                    union_ids.print();
                                     on1._indices->print();
                                     
                                     indices partns("partns");
@@ -1101,7 +1097,7 @@ namespace gravity {
                                     
                                     Constraint<> onSum1(o1._name+"_binarySum");
                                     onSum1 = sum(on1.in_matrix());
-                                    add(onSum1.in(union_ids) == 1);
+                                    add(onSum1.in(union_ids(o1_ids,o2_ids)) == 1);
                                     
                                     Constraint<> onSumComb(pair.first+"_binarySum");
                                     onSumComb = sum(on.in_matrix());
@@ -1214,11 +1210,9 @@ namespace gravity {
                                     o2_ids.print();
                                     o1._indices->print();
                                     o2._indices->print();
-                                    auto union_ids = o1_ids;
-                                    union_ids.add(o2_ids);
                                     //HERE NEED TO USE UNION OF o1_ids and o2_ids
-                                    lb1.in(union_ids,range(1,num_partns1));
-                                    ub1.in(union_ids,range(1,num_partns1));
+                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
                                     lb1.set_val(0), ub1.set_val(1);
                                     
                                     auto added1 = binvar1->add_bounds(lb1,ub1);
