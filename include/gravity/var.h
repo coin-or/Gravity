@@ -215,6 +215,7 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -232,6 +233,7 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -317,6 +319,7 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -402,6 +405,7 @@ namespace gravity {
                 auto imag_var = static_pointer_cast<var<>>(res._imag);
                 res._imag = make_shared<var<>>(imag_var->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
