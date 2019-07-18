@@ -494,11 +494,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 20; //number of partitions for Pf_to
-            int num_partitions2 = 20; //number of partitions for Qf_to
+            int num_partitions1 = 10; //number of partitions for Pf_to
+            int num_partitions2 = 10; //number of partitions for Qf_to
             
-            int num_partitions3 = 4; //number of partitions for Wii(to)
-            int num_partitions4 = 4; //number of partitions for lji
+            int num_partitions3 = 2; //number of partitions for Wii(to)
+            int num_partitions4 = 2; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -632,16 +632,23 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf("I_to_Pf");
             I_to_Pf=lji.in(arcs1)*Wii.to(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
             SOCP.add(I_to_Pf.in(arcs1)==0, true);
-            
+
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
             SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-            
+
             Constraint<> I_to_Pf3("I_to_Pf3");
             I_to_Pf3=lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
             SOCP.add(I_to_Pf3.in(arcs3)==0, true);
-            SOCP.print();
-            cout << "ok";
+            
+            // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
+            R_Wij._num_partns = 1;
+            Im_Wij._num_partns = 1;
+            
+            /* Equality of Second-order cone (for upperbound) */
+            Constraint<> Equality_SOC("Equality_SOC");
+            Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
         }
     }
     
@@ -656,7 +663,7 @@ int main (int argc, char * argv[])
     
     /** Constraints */
     
-    /* Equality of Second-order cone (for upperbound) */
+    /* Second-order cone */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOCP.add(SOC.in(bus_pairs) <= 0);
@@ -771,9 +778,6 @@ int main (int argc, char * argv[])
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     
     
-    
-    SOCP.print();
-    SOCP.print_solution();
 
     auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     double gap = 100*(upperbound - original_LB)/upperbound;
