@@ -861,12 +861,22 @@ namespace gravity {
             this->_range->second.imag(pi._range->second);
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void set_real(const param<>& p){
             _real = make_shared<param<>>(p);
+            this->_range->first.real(p._range->first);
+            this->_range->first.imag(0);
+            this->_range->second.real(p._range->second);
+            this->_range->second.imag(0);
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void set_imag(const param<>& p){
             _imag = make_shared<param<>>(p);
+            this->_range->first.real(0);
+            this->_range->first.imag(p._range->first);
+            this->_range->second.real(0);
+            this->_range->second.imag(p._range->second);
         }
         
 
