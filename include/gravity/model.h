@@ -865,7 +865,7 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-//                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                            //                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
@@ -889,7 +889,7 @@ namespace gravity {
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
                                     indices partns("partns");
@@ -938,7 +938,7 @@ namespace gravity {
                                 }
                                 
                                 else{
-//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on2(name2+"_binary",0,1);
                                     
@@ -997,7 +997,7 @@ namespace gravity {
                             }
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
-//                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                //                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
                                 var<int> on(name1+name2+"_binary",0,1);
                                 var<int> on1(name1+"_binary",0,1);
                                 
@@ -1008,7 +1008,7 @@ namespace gravity {
                                 add(on1.in(o1_ids,range(1,num_partns1)));
                                 
                                 auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
-
+                                
                                 param<int> lb2("lb2"), ub2("ub2");
                                 lb2.in(o2_ids,range(1,num_partns2));
                                 ub2.in(o2_ids,range(1,num_partns2));
@@ -1054,7 +1054,7 @@ namespace gravity {
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on1(name1+"_binary",0,1);
                                     add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
@@ -1091,7 +1091,7 @@ namespace gravity {
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                                 }
                                 else{
-//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
                                     var<int> on1(name1+"_binary",0,1);
@@ -1157,7 +1157,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-//                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                //                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -1180,7 +1180,7 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-//                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     auto inst_partition = indices(added,partns);
@@ -1237,7 +1237,7 @@ namespace gravity {
                                     
                                 }
                                 else{
-//                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     auto inst_partition = indices(added,partns);
@@ -4744,33 +4744,58 @@ namespace gravity {
         //            }
         //        }
         
-        void get_on_off_coefficients(const Constraint<type>& c, const indices S){
+        void get_on_off_coefficients(Constraint<type>& c, const ConstraintType c_type){
             if (c.get_ftype() != lin_) {
                 cerr << "Nonlinear constraint.\n";
                 exit(-1);
             }
+            //TODO : only consider the non-lazy instances to add on-off constraint
             
             /*allocate the coefficient vectors and the sum values to update them*/
-            type M1sum, M2sum;
+            type M1sum_off, M2sum_off;
+            type M1sum_on, M2sum_on;
             
-            type LB,UB;
-            type LB_partn,UB_partn;
+            /*allocate the bound values*/
+            type LB_off,UB_off;
+            type LB_on,UB_on;
+            
+            /*allocate the boolean in S*/
+            bool in_S;
             
             size_t nb_ins = c.get_nb_inst();
             
-            param<type> M1 ("M1");
-            M1.in(R(nb_ins));
-            
-            param<type> M2 ("M2");
-            M2.in(R(nb_ins));
-            
             for (size_t inst = 0; inst<nb_ins; inst++)
             {
-                M1sum = 0;
-                M2sum = 0;
+                M1sum_off = 0;
+                M2sum_off = 0;
+                M1sum_on = 0;
+                M2sum_on = 0;
+                
+                c.eval_all();
+                
+                if (!c.get_cst()->is_zero()) {
+                    if (c.get_cst()->is_number()) {
+                        auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval();
+                        M2sum_on -= f_cst->eval();
+                    }
+                    else if (c.get_cst()->is_param()) {
+                        auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
+                    }
+                    else {
+                        auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
+                    }
+                }
                 
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
+                    
+                    in_S = term._in_S; //collect that the lterm is in S or not
+                    
                     type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
@@ -4796,89 +4821,121 @@ namespace gravity {
                     
                     auto lifted = term._p->get_lift();
                     
-                    LB = (term._p->get_double_lb(inst_id));
-                    UB = (term._p->get_double_ub(inst_id));
+                    LB_off = (term._p->get_double_lb(inst_id));
+                    UB_off = (term._p->get_double_ub(inst_id));
                     
-                    if (lifted){
-                        LB_partn = LB;
-                        UB_partn = UB;
+                    // TODO : need to get the bounds with the partition!
+                    LB_on = (term._p->get_double_lb(inst_id));
+                    UB_on = (term._p->get_double_ub(inst_id));
+                    
+                    //                    if (lifted){
+                    //                        LB_partn = LB;
+                    //                        UB_partn = UB;
+                    //                    }
+                    //                    else {
+                    //                        /** following might be used if we utilize cur_partn and all ***/
+                    //                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                    //                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                    //                        LB_partn = LB;
+                    //                        UB_partn = UB;
+                    //                    }
+                    
+                    if (c_type == leq) {
+                        if (coef_val < 0){
+                            M1sum_off += coef_val * LB_off * (1-in_S);
+                            M1sum_on -= coef_val * UB_on * (in_S);
+                        }
+                        else {
+                            M1sum_off += coef_val * UB_off * (1-in_S);
+                            M1sum_on -= coef_val * LB_on * (in_S);
+                        }
+                    }
+                    
+                    else if (c_type == geq){
+                        if (coef_val < 0){
+                            M2sum_off += coef_val * UB_off * (1-in_S);
+                            M2sum_on -= coef_val * LB_on * (in_S);
+                        }
+                        else {
+                            M2sum_off += coef_val * LB_off * (1-in_S);
+                            M2sum_on -= coef_val * UB_on * (in_S);
+                        }
                     }
                     else {
-                        /** following might be used if we utilize cur_partn and all ***/
-                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
-                        LB_partn = LB;
-                        UB_partn = UB;
-                    }
-                    
-                    if (c.get_ctype() == eq) {
-                        if (coef_val < 0){
-                            M1sum += coef_val * LB_partn;
-                            M2sum += coef_val * UB_partn;
-                        }
-                        else {
-                            M1sum += coef_val * UB_partn;
-                            M2sum += coef_val * LB_partn;
-                        }
-                        
-                    }
-                    
-                    else if (c.get_ctype() == leq) {
-                        if (coef_val < 0){
-                            M1sum += coef_val * LB_partn;
-                            
-                        }
-                        else {
-                            M1sum += coef_val * UB_partn;
-                            
-                        }
-                    }
-                    
-                    else {
-                        if (coef_val < 0){
-                            M2sum += coef_val * UB_partn;
-                        }
-                        else {
-                            M2sum += coef_val * LB_partn;
-                        }
+                        throw invalid_argument("Only leq and geq types are allowed. If you want to get coefficients for eq, use leq and geq consecutively.");
                     }
                 }
-                if (c.get_ctype() == eq) {
-                    M1.set_val(inst,M1sum);
-                    M2.set_val(inst,M2sum);
-                }
-                else if (c.get_ctype() == leq)  M1.set_val(inst,M1sum);
-                else M2.set_val(inst,M2sum);
-            }
-            
-            func<type> M1shifted;
-            func<type> M2shifted;
-            
-            if (!c.get_cst()->is_zero()) {
-                if (c.get_cst()->is_number()) {
-                    auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
-                    M1shifted = *f_cst + M1;
-                    M2shifted = *f_cst + M2;
-                }
-                else if (c.get_cst()->is_param()) {
-                    auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
-                    M1shifted = *f_cst + M1;
-                    M2shifted = *f_cst + M2;
+                if (c.get_ctype() == leq){
+//                    (c._offCoef).set_val(inst,M1sum_off);
+//                    (c._onCoef).set_val(inst,M1sum_on);
                 }
                 else {
-                    auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
-                    M1shifted = *f_cst + M1;
-                    M2shifted = *f_cst + M2;
+//                    c._offCoef.set_val(inst,M2sum_off);
+//                    c._onCoef.set_val(inst,M2sum_on);
                 }
             }
-            else{
-                M1shifted = M1;
-                M2shifted = M2;
-            }
-            
             
         }
         
+        void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on){
+            if (c.get_ftype() != lin_) {
+                cerr << "Nonlinear constraint.\n";
+                exit(-1);
+            }
+            
+            
+            //use bitset vector to represent S efficiently
+            auto n_terms = c._lterms->size();
+            if (n_terms > 64){
+                throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
+            }
+            bitset<64> S;
+            for (int i = 0 ; i < 1 ; ++i) { // JUST FOR TRIAL PURPOSES
+                //            for (int i = 0 ; i<pow(2,nterms) -1 ; ++i) { //not considering the full set
+                S = i;
+                int j = 0;
+                
+                func<type> LHS; //to handle the left hand side of the constaint
+                for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
+                    auto term = pair.second;
+                    term._in_S = S[j];
+                    if (1-S[j]){ //only if not in S
+                        LHS.insert(term);
+                    }
+                    j++;
+                }
+                
+                
+                
+                if (c.get_ctype() == eq) {
+                    get_on_off_coefficients(c, leq);
+                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res1<=0);
+                    
+                    get_on_off_coefficients(c, geq);
+                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res2>=0);
+                    
+                    
+                }
+                
+                else if (c.get_ctype() == leq) {
+                    get_on_off_coefficients(c, leq);
+                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res1<=0);
+                }
+                
+                else {
+                    get_on_off_coefficients(c, geq);
+                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res2>=0);
+                }
+            }
+        }
         
         void add_on_off_multivariate_new(const Constraint<type>& c, const var<int>& on){
             if (c.get_ftype() != lin_) {
@@ -5441,22 +5498,26 @@ namespace gravity {
                 Constraint<type> MC1(name+"_McCormick1");
                 MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
                 MC1.in(inst_partition) >= 0;
-                add_on_off_multivariate_new(MC1, on);
+//                add_on_off_multivariate_new(MC1, on);
+                add_on_off_multivariate_refined(MC1, on);
                 
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
                 MC2.in(inst_partition) >= 0;
-                add_on_off_multivariate_new(MC2, on);
+//                add_on_off_multivariate_new(MC2, on);
+                add_on_off_multivariate_refined(MC2, on);
                 
                 Constraint<type> MC3(name+"_McCormick3");
                 MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
                 MC3.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC3, on);
+//                add_on_off_multivariate_new(MC3, on);
+                add_on_off_multivariate_refined(MC3, on);
                 
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
                 MC4.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC4, on);
+//                add_on_off_multivariate_new(MC4, on);
+                add_on_off_multivariate_refined(MC4, on);
                 
                 
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
@@ -5538,7 +5599,8 @@ namespace gravity {
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC_secant, on);
+//                add_on_off_multivariate_new(MC_secant, on);
+                add_on_off_multivariate_refined(MC_secant, on);
                 
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
