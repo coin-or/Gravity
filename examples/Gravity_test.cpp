@@ -906,7 +906,7 @@ TEST_CASE("testing complex constraint expansion"){
         Model<> M("test");
         auto ids = indices("ids");
         ids.add({"id1", "id2"});
-        var<> x("x"), y("y"), u1("u1"), v1("v1"), u2("u2"), v2("v2");
+        var<> x("x",-1,1), y("y",-2,2), u1("u1",0,1), v1("v1",-3,1), u2("u2",2,3), v2("v2",0.5,1.4);
         M.add(x.in(ids),y.in(ids),u1.in(ids),v1.in(ids),u2.in(ids),v2.in(ids));
         var<Cpx> w1("w1"), w2("w2"), z("z");
         z.real_imag(x, y);
@@ -1371,6 +1371,7 @@ TEST_CASE("testing from_ith() function") {
     ndv2.print_vals(precision=5);
 }
 
+
 TEST_CASE("testing in_ignore_ith() function") {
     indices ids("index_set");
     ids = indices(range(1,3),range(9,10), range(2,4));
@@ -1405,6 +1406,37 @@ TEST_CASE("testing get_matrix()") {
     Constraint<> Sum("Sum");
     Sum = sum(dv2);
     Sum.print();
+
+TEST_CASE("testing Outer Approximation") {
+    DebugOn("testing Outer Approximation");
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices bus_pairs("bpairs");
+    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    SOC.in(bus_pairs);
+    SOC.print();
+    R_Wij.gravity::param<double>::set_val("1,2",0.5);
+    R_Wij.gravity::param<double>::set_val("3,4",-0.5);
+    Im_Wij.gravity::param<double>::set_val("1,2",-0.5);
+    Im_Wij.gravity::param<double>::set_val("3,4",-0.5);
+    Wii.gravity::param<double>::set_val("1",0.5);
+    Wii.gravity::param<double>::set_val("3",0.5);
+    SOC.eval_all();
+    SOC.compute_derivatives();
+    Constraint<> OA ("OA");
+    OA = SOC.get_outer_app();
+    Mtest.add(OA<=0);
+    OA.print();
+    Mtest.print();
 }
 
 #ifdef USE_MPI

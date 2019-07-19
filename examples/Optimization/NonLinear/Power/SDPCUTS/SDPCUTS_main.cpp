@@ -270,6 +270,7 @@ int main (int argc, char * argv[]) {
             SDP.add(SDP3 >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
+   
         
     }
     
@@ -331,6 +332,10 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from <= pow(S_max,2);
     SDP.add(Thermal_Limit_from.in(arcs));
     ACOPF.add(Thermal_Limit_from.in(arcs));
+    
+//    func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
+//    a.print();
+//    DebugOn("Outer"<<endl);
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
@@ -399,14 +404,14 @@ int main (int argc, char * argv[]) {
         
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-        
+       SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        I_from.print_symbolic();
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
         
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+        //SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
@@ -414,7 +419,7 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-        SDP.add(I_to_Pf.in(arcs)==0, true);
+    //    SDP.add(I_to_Pf.in(arcs)==0, true);
         
     }
     

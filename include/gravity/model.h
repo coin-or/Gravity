@@ -182,7 +182,7 @@ namespace gravity {
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
         map<size_t, shared_ptr<Constraint<type>>>           _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model. */
         map<string, shared_ptr<Constraint<type>>>           _cons_name; /**< Sorted map (by name) pointing to all constraints contained in this model. */
-        map<unique_id, set<shared_ptr<Constraint<type>>>>   _v_in_cons; /**< Set of constraints where each variable appears. */
+        map<string, set<shared_ptr<Constraint<type>>>>   _v_in_cons; /**< Set of constraints where each variable appears. */
         shared_ptr<func<type>>                              _obj = nullptr; /**< Pointer to objective function */
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
@@ -1557,6 +1557,9 @@ namespace gravity {
             //            }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
+                for (auto &vp: *newc->_vars) {
+                    _v_in_cons[vp.second.first->_name].insert(newc);
+                }
                 newc->_val = c._val;
                 newc->check_soc();
                 newc->check_rotated_soc();

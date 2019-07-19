@@ -110,21 +110,27 @@ int main (int argc, char * argv[]) {
     PowerNet grid;
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
+   
+    
     
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
-    
-    
-    
+    auto arcs = indices(grid.arcs);
+ 
+   
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
+
     int nb_threads = thread::hardware_concurrency();
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
+    //int nb_threads = thread::hardware_concurrency();
+    int nb_threads =12;
+    
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
     OPFUB.run(output = 5, tol = 1e-6, "ma57");
@@ -138,6 +144,10 @@ int main (int argc, char * argv[]) {
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     
     auto SDP=SDPL;
+    SDP->print();
+    
+    auto pf_to_min=grid.pf_to_min.in(arcs);
+    
     //    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
     //    solver<> SDPLBI(SDP,solv_type);
     //    SDP->print();
@@ -162,7 +172,8 @@ int main (int argc, char * argv[]) {
     const int max_iter=50,gap_count_int=6;
     
     
-    double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
+    double solver_time_end, solver_time =0, solver_time_start = get_wall_time(), gap;
+    shared_ptr<map<string,size_t>> p_map;
     //Check if gap is already not zero at root node
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
@@ -173,6 +184,11 @@ int main (int argc, char * argv[]) {
             string vname=it.first;
             v=SDP->get_var<double>(vname);
             auto v_keys=v.get_keys();
+            auto v_key_map=v.get_keys_map();
+//             if(vname=="Pf_to")
+//             {
+//                  p_map=pf_to_min.get_keys_map();
+//             }
             for(auto &key: *v_keys)
             {
                 p=vname+"|"+ key;
@@ -183,6 +199,27 @@ int main (int argc, char * argv[]) {
                 else{
                     fixed_point[p]=false;
                 }
+                auto key_pos=v_key_map->at(key);
+                
+                if(v._off[key_pos]==true)
+                {
+                    fixed_point[p]=true;
+                    DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                }
+               
+                if(vname=="Pf_to")
+                {
+                    
+            }
+//                auto key_pos=p_map->at(key);
+//
+//                if(pf_to_min._off[key_pos]==true)
+//                {
+//                   fixed_point[p]=true;
+//                    DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+//                }
+//                }
+
                 interval_original[p]=v.get_ub(key)-v.get_lb(key);
                 ub_original[p]=v.get_ub(key);
                 lb_original[p]=v.get_lb(key);
@@ -193,7 +230,7 @@ int main (int argc, char * argv[]) {
         }
         
         solver_time= get_wall_time()-solver_time_start;
-        
+         auto v_in_cons=SDP->_v_in_cons;
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
             iter++;
@@ -320,7 +357,6 @@ int main (int argc, char * argv[]) {
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                         {
-                                            //                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
                                             //If original interval is itself smaller than range_tol, do not have to reset interval
                                             if(interval_original[pk]>=range_tol)
                                             {
@@ -341,14 +377,12 @@ int main (int argc, char * argv[]) {
                                                     
                                                     vk.set_ub(keyk, ub_original[pk]);
                                                     vk.set_lb(keyk, ub_original[pk]-range_tol);
-                                                    //  DebugOn("Entered if 2"<<endl);
                                                 }
                                                 //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
                                                 else if(left<lb_original[pk])
                                                 {
                                                     vk.set_lb(keyk, lb_original[pk]);
                                                     vk.set_ub(keyk, lb_original[pk]+range_tol);
-                                                    //  DebugOn("Entered if 3"<<endl);
                                                     
                                                 }
                                                 //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
@@ -402,20 +436,33 @@ int main (int argc, char * argv[]) {
             solver_time= get_wall_time()-solver_time_start;
             DebugOn("Solved Fixed Point iteration " << iter << endl);
         }
-    }
-    vector<double> interval_gap;
-    double sum=0, avg, num_var=0.0;
-    for(auto &it:SDP->_vars_name)
-    {
-        string vname=it.first;
-        v=SDP->get_var<double>(vname);
-        auto v_keys=v.get_keys();
-        for(auto &key: *v_keys)
-        { num_var++;
-            p=vname+"|"+ key;
-            interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
-            sum+=interval_gap.back();
-            DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
+        vector<double> interval_gap;
+        double sum=0, avg, num_var=0.0;
+        for(auto &it:SDP->_vars_name)
+        {
+            string vname=it.first;
+            v=SDP->get_var<double>(vname);
+            auto v_keys=v.get_keys();
+            for(auto &key: *v_keys)
+            { num_var++;
+                p=vname+"|"+ key;
+                interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
+                sum+=interval_gap.back();
+                DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
+            }
+            
+        }
+        avg=sum/num_var;
+        
+        DebugOn("Average interval reduction\t"<<avg<<endl);
+        
+        if(!close)
+        {
+            
+            SDP->reset_constrs();
+            solver<> SDPLB1(SDP,solv_type);
+            
+            SDPLB1.run(output = 5, tol=1e-8);
         }
         
     }

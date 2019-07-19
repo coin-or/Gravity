@@ -512,6 +512,10 @@ namespace gravity {
     void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6){
         std::vector<thread> threads;
         std::vector<bool> feasible;
+        if(models.size()==0){
+            DebugOn("in run_parallel(models...), models is empty, returning");
+            return;
+        }
         /* Split models into nr_threads parts */
         auto nr_threads_ = std::min((size_t)nr_threads,models.size());
         std::vector<size_t> limits = bounds(nr_threads_, models.size());
