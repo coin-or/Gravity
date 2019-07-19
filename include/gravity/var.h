@@ -215,6 +215,7 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -232,6 +233,7 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -317,13 +319,20 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void real_imag(const var<>& pr, const var<>& pi){
             this->_real = make_shared<var<>>(pr);
             this->_imag = make_shared<var<>>(pi);
+            this->_range->first.real(pr._range->first);
+            this->_range->first.imag(pi._range->first);
+            this->_range->second.real(pr._range->second);
+            this->_range->second.imag(pi._range->second);
         }
+        
         
         void mag_ang(const var<>& pmag, const var<>& pang){
             this->_mag = make_shared<var<>>(pmag);
@@ -430,6 +439,7 @@ namespace gravity {
                 auto imag_var = static_pointer_cast<var<>>(res._imag);
                 res._imag = make_shared<var<>>(imag_var->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         

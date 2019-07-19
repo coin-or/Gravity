@@ -902,6 +902,82 @@ namespace gravity {
         //        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
         
         
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+        }
+        
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+        }
+        
+        /**
+         Recompute range based on stored values.
+         */
+        void reset_range(){
+            init_range();
+            if(is_double_indexed()){
+                for(auto i = 0; i<_indices->_ids->size();i++){
+                    for(auto j = 0; j<_indices->_ids->at(i).size();j++){
+                        auto idx = _indices->_ids->at(i).at(j);
+                        auto v = _val->at(idx);
+                        if(_range->first > v){
+                            _range->first = v;
+                        }
+                        if(_range->second  < v){
+                            _range->second = v;
+                        }
+                    }
+                }
+            }
+            else if(is_indexed()){
+                for(auto i = 0; i<_indices->_ids->at(0).size();i++){
+                    auto idx = _indices->_ids->at(0).at(i);
+                    auto v = _val->at(idx);
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
+            }
+            else {
+                for (auto v:*_val) {
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
+            }
+        }
+        
+        func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar");
+            f_xstar = *this;
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                param<type> xstar("xstar_"+v->_name);
+                xstar.in(*v->_indices);
+                xstar.copy_vals(v);
+                param<type> df_xstar("df_xstar"+v->_name);
+                auto df = *compute_derivative(*v);
+                df.eval_all();
+                df_xstar = df;
+                res.insert(true, df_xstar, *v);
+                res -= df_xstar*xstar;
+            }
+            res += f_xstar;
+            res._indices = this->_indices;
+            return res;
+        }
+        
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
             size_t vid = 0, vjd = 0;
