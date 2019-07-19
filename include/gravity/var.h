@@ -392,10 +392,44 @@ namespace gravity {
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
-        var in_ith(unsigned start_position, const indices& ids) {
+        var from_ith(unsigned start_position, const indices& ids) {
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in_ith(start_position, ids));//TODO assert lb dim = res dim
+            res.param<type>::operator=(param<type>::from_ith(start_position, ids));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            return res;
+        }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        var in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids_) {
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_ignore_ith(start_position, nb_entries, ids_));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            return res;
+        }
+        
+        template<typename... Args>
+        var in_matrix(unsigned nb_entries) const{
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_matrix(nb_entries));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
@@ -485,6 +519,16 @@ namespace gravity {
             return (_lb->eval(i)!=numeric_limits<type>::lowest());
         };
         
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_below(size_t i = 0) const{
+            return (_lb->eval(i).real()!=numeric_limits<type>::lowest() && _lb->eval(i).imag()!=numeric_limits<type>::lowest());
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_above(size_t i = 0) const{
+            return (_ub->eval(i).real()!=numeric_limits<type>::max() && _ub->eval(i).imag()!=numeric_limits<type>::max());
+        };
+        
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         bool is_constant(size_t i=0) const;
@@ -519,6 +563,63 @@ namespace gravity {
             this->set_val(v);
             return *this;
         }
+        
+        /** let this share the values of p */
+        void share_vals(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<var<bool>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<var<short>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<var<int>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<var<float>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (var<double>*)(p.get());
+                    share_vals_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<var<long double>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<var<Cpx>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& pp){
+            this->_val = pp._val;
+        }
+        
         /**
          \brief Update dimensions based on the current indexing-set
          \todo sparse matrix/double indexing

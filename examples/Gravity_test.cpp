@@ -1326,7 +1326,21 @@ TEST_CASE("testing normal distributions") {
     }
 }
 
-TEST_CASE("testing in_ith() function") {
+TEST_CASE("testing set union") {
+    indices ids1("index_set1");
+    ids1 = indices(range(1,2), range(2,4));
+    indices ids2("index_set2");
+    ids2 = indices(range(1,5), range(2,4));
+    auto union_set = union_ids(ids1, ids2);
+    union_set.print();
+    CHECK(union_set.size()==15);
+    indices ids3("index_set3");
+    ids3 = indices(range(1,5));
+    REQUIRE_THROWS_AS(union_ids(ids1,ids3), invalid_argument);
+}
+
+
+TEST_CASE("testing from_ith() function") {
     indices ids("index_set");
     ids = indices(range(1,3),range(9,10), range(2,4));
     param<> dp("dp");
@@ -1340,7 +1354,7 @@ TEST_CASE("testing in_ith() function") {
     CHECK(dp._range->first==-231.5);
     CHECK(dp._range->second==1.5);
     REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
-    auto ndp = dp.in_ith(2,ids);
+    auto ndp = dp.from_ith(2,ids);
     ndp.print();
     CHECK(ndp.get_dim()==ids.size());
     indices ids2("index_set2");
@@ -1349,13 +1363,49 @@ TEST_CASE("testing in_ith() function") {
     dv.in(range(9,10));
     int precision = 5;
     dv.print_vals(precision=5);
-    auto ndv = dv.in_ith(1,ids2);
+    auto ndv = dv.from_ith(1,ids2);
     ndv.print_vals(precision=5);
     var<> dv2("dv2");
     dv2.in(range(1,3));
-    auto ndv2 = dv2.in_ith(0,ids2);
+    auto ndv2 = dv2.from_ith(0,ids2);
     ndv2.print_vals(precision=5);
 }
+
+
+TEST_CASE("testing in_ignore_ith() function") {
+    indices ids("index_set");
+    ids = indices(range(1,3),range(9,10), range(2,4));
+    param<> dp("dp");
+    dp.in(range(1,3),range(2,4));
+    dp("1,2") = 1.5;
+    dp("3,4") = -231.5;
+    dp.print();
+    auto ndp = dp.in_ignore_ith(1, 1, ids);
+    ndp.print();
+    CHECK(ndp.get_dim()==ids.size());
+    indices idsv1("index_setv1");
+    idsv1.add("id1", "id11", "id111");
+    indices idsv2("index_setv2");
+    idsv2.add("id2", "id22", "id222");
+    var<> dv("dv");
+    dv.in(idsv1,idsv2);
+    int precision = 5;
+    dv.print_vals(precision=5);
+    indices ids_all("index_set_all");
+    ids_all.add("id1,id3,id2", "id11,id33,id22", "id111,id333,id222");
+    auto ndv = dv.in_ignore_ith(1, 1, ids_all);
+    ndv.print_vals(precision=5);
+}
+
+TEST_CASE("testing get_matrix()") {
+    auto ids = indices(range(1,3),range(8,10));
+    var<> dv("dv");
+    dv = dv.in(ids);
+    dv.print_vals(4);
+    auto dv2 = dv.in_matrix();
+    Constraint<> Sum("Sum");
+    Sum = sum(dv2);
+    Sum.print();
 
 TEST_CASE("testing Outer Approximation") {
     DebugOn("testing Outer Approximation");

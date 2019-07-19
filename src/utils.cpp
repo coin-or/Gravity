@@ -1,29 +1,6 @@
 #include <gravity/utils.h>
-#include <gravity/types.h>
 using namespace std;
 using namespace gravity;
-
-set<int> gravity::get_phases(string phases){
-    set<int> _phases;
-    if(phases.empty())
-        return _phases;
-    auto pos = phases.find_first_of(",");
-    auto ph = phases.substr(0,pos);
-    _phases.insert(stoi(ph));
-    phases = phases.substr(pos+1);
-    if(phases.empty())
-        return _phases;
-    pos = phases.find_first_of(",");
-    ph = phases.substr(0,pos);
-    _phases.insert(stoi(ph));
-    phases = phases.substr(pos+1);
-    if(phases.empty())
-        return _phases;
-    pos = phases.find_first_of(",");
-    ph = phases.substr(0,pos);
-    _phases.insert(stoi(ph));
-    return _phases;
-}
 
 gravity::indices time(unsigned p1 ,unsigned p2){
     auto res = range(p1,p2);
@@ -136,21 +113,21 @@ string clean_print(bool pos, const string& v, bool brackets){
     }
 }
 
-int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
-{
-    size_t  pos = 0;
-    int     cnt = 0;
-    
-    while( cnt != nth )
-    {
-        pos+=1;
-        pos = str.find(findMe, pos);
-        if ( pos == std::string::npos )
-            return -1;
-        cnt++;
-    }
-    return pos;
-}
+//int gravity::nthOccurrence(const std::string& str, const std::string& findMe, int nth)
+//{
+//    size_t  pos = 0;
+//    int     cnt = 0;
+//    
+//    while( cnt != nth )
+//    {
+//        pos+=1;
+//        pos = str.find(findMe, pos);
+//        if ( pos == std::string::npos )
+//            return -1;
+//        cnt++;
+//    }
+//    return pos;
+//}
 
 op::OptionParser readOptions(int argc, char * argv[]){
     string log_level ="0";
