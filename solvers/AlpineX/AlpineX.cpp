@@ -612,6 +612,7 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf_EQ("I_to_Pf_lifted");
             I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
             SOCP.add(I_to_Pf_EQ.in(arcs)==0);
+            
         
         }
         
@@ -664,7 +665,6 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf3("I_to_Pf3");
             I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
             SOCP.add(I_to_Pf3.in(arcs3)==0, true);
-            
             
         }
     }
@@ -862,6 +862,7 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
+    SOCP.print();
    
     return 0;
     
