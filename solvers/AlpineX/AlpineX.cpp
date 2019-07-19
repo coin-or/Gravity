@@ -652,11 +652,11 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
             SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-            
+
             Constraint<> Equality_SOC1("Equality_SOC1");
             Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
             SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
-            
+
             Constraint<> Equality_SOC2("Equality_SOC2");
             Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
             SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
@@ -664,8 +664,8 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf3("I_to_Pf3");
             I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
             SOCP.add(I_to_Pf3.in(arcs3)==0, true);
-
-           
+            
+            
         }
     }
     
