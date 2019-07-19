@@ -588,21 +588,23 @@ int main (int argc, char * argv[])
             auto LB_Wii = grid.w_min;
             auto UB_Wii = grid.w_max;
             
-
+            auto nb_entries_v1 = var_indices1.get_nb_entries();
+            auto nb_entries_v3 = var_indices3.get_nb_entries();
+            
             Constraint<> z1Sum_auto("Pf_to_binarySum");
-            z1Sum_auto = sum(z1.in_matrix());
+            z1Sum_auto = sum(z1.in_matrix(nb_entries_v1));
             SOCP.add(z1Sum_auto.in(var_indices1)==1);
             
             SOCP.add_on_off_McCormick_new("Pf_to,Pf_to", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
             
             Constraint<> z2Sum_auto("Qf_to_binarySum");
-            z2Sum_auto = sum(z2.in_matrix());
+            z2Sum_auto = sum(z2.in_matrix(nb_entries_v1));
             SOCP.add(z2Sum_auto.in(var_indices1)==1);
             
             SOCP.add_on_off_McCormick_new("Qf_to,Qf_to", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
 
             Constraint<> z3Sum_auto("ljiWii_binarySum");
-            z3Sum_auto = sum(z3.in_matrix());
+            z3Sum_auto = sum(z3.in_matrix(nb_entries_v3));
             SOCP.add(z3Sum_auto.in(var_indices3)==1);
             
             SOCP.add_on_off_McCormick_new("Wii.to.in(Arc),lji", ljiWii_to,  lji, Wii_to, z3,  num_partitions4, num_partitions3);
@@ -623,7 +625,7 @@ int main (int argc, char * argv[])
         arcs3.add("4,6,7","5,7,8","6,2,8","7,8,9");
         
         indices bus_pairs1("bus_pairs1");
-        bus_pairs1.add("1,4","4,5","5,6");
+        bus_pairs1.add("1,4","4,5","2,8","5,6");
         
         indices bus_pairs2("bus_pairs2");
         bus_pairs2.add("5,6","6,7","7,8","2,8","8,9");
@@ -632,19 +634,16 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
+            Pf_to._num_partns = 5;
+            Qf_to._num_partns = 5;
             Wii._num_partns = 2;
             lji._num_partns = 2;
             
-            R_Wij._num_partns = 10;
-            Im_Wij._num_partns = 10;
+            R_Wij._num_partns = 5;
+            Im_Wij._num_partns = 5;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
-            Constraint<> Equality_SOC1("Equality_SOC1");
-            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
-            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
             
             Constraint<> I_to_Pf("I_to_Pf");
             I_to_Pf=Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
@@ -653,16 +652,19 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf2("I_to_Pf2");
             I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
             SOCP.add(I_to_Pf2.in(arcs2)==0, true);
+            
+            Constraint<> Equality_SOC1("Equality_SOC1");
+            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
+            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
+            
+            Constraint<> Equality_SOC2("Equality_SOC2");
+            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
+            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
 
             Constraint<> I_to_Pf3("I_to_Pf3");
             I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
             SOCP.add(I_to_Pf3.in(arcs3)==0, true);
-            
 
-            Constraint<> Equality_SOC2("Equality_SOC2");
-            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
-            
            
         }
     }
@@ -860,8 +862,7 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
- 
-    
+   
     return 0;
     
 }

@@ -865,8 +865,7 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                            // ************************************************************************************ THIS IS OK
-                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+//                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
@@ -874,8 +873,10 @@ namespace gravity {
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
                             
+                            auto nb_entries = unique_ids.get_nb_entries();
+                            
                             Constraint<> onSum(pair.first + "_binarySum");
-                            onSum += sum(on.in_matrix());
+                            onSum += sum(on.in_matrix(nb_entries));
                             add(onSum.in(unique_ids) == 1);
                             
                             add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
@@ -888,8 +889,7 @@ namespace gravity {
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-                                    // ************************************************************************************ MIGHT BE OK?
-                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
                                     indices partns("partns");
@@ -922,22 +922,23 @@ namespace gravity {
                                     
                                     if(!added1.empty()){
                                         Constraint<> onSum1(o1._name+"_binarySum");
-                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
                                         auto vset1 = added1.from_ith(0,nb_entries_v1);
                                         vset1.filter_refs(vset1.get_unique_refs());
                                         add(onSum1.in(vset1) == 1);
                                     }
                                     
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum(on.in_matrix());
+                                    onSumComb = sum(on.in_matrix(nb_entries));
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                                 }
                                 
                                 else{
-                                    // ************************************************************************************ THIS IS OK
-                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on2(name2+"_binary",0,1);
                                     
@@ -974,18 +975,20 @@ namespace gravity {
                                     
                                     if(!added1.empty()){
                                         Constraint<> onSum1(o1._name+"_binarySum");
-                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
                                         auto vset1 = added1.from_ith(0,nb_entries_v1);
                                         vset1.filter_refs(vset1.get_unique_refs());
                                         add(onSum1.in(vset1) == 1);
                                     }
                                     
                                     Constraint<> onSum2(o2._name+"_binarySum");
-                                    onSum2 = sum(on2.in_matrix());
+                                    onSum2 = sum(on2.in_matrix(nb_entries_v1));
                                     add(onSum2.in(o2_ids) == 1);
                                     
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum(on.in_matrix());
+                                    onSumComb = sum(on.in_matrix(nb_entries));
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
@@ -994,8 +997,7 @@ namespace gravity {
                             }
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
-                                // ************************************************************************************ THIS IS OK
-                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+//                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
                                 var<int> on(name1+name2+"_binary",0,1);
                                 var<int> on1(name1+"_binary",0,1);
                                 
@@ -1006,10 +1008,10 @@ namespace gravity {
                                 add(on1.in(o1_ids,range(1,num_partns1)));
                                 
                                 auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
-                                
+
                                 param<int> lb2("lb2"), ub2("ub2");
-                                lb2.in(o2_ids,partns);
-                                ub2.in(o2_ids,partns);
+                                lb2.in(o2_ids,range(1,num_partns2));
+                                ub2.in(o2_ids,range(1,num_partns2));
                                 lb2.set_val(0), ub2.set_val(1);
                                 
                                 auto added2 = binvar2->add_bounds(lb2,ub2);
@@ -1031,27 +1033,28 @@ namespace gravity {
                                 add(onLink3.in(inst_partition) <= 0);
                                 
                                 Constraint<> onSum1(o1._name+"_binarySum");
-                                onSum1 = sum(on1.in_matrix());
+                                onSum1 = sum(on1.in_matrix(nb_entries_v1));
                                 add(onSum1.in(o1_ids) == 1);
                                 
                                 if(!added2.empty()){
                                     Constraint<> onSum2(o2._name+"_binarySum");
-                                    onSum2 = sum(binvar2->in(added2).in_matrix());
+                                    onSum2 = sum(binvar2->in(added2).in_matrix(nb_entries_v2));
                                     auto vset2 = added2.from_ith(0,nb_entries_v2);
                                     vset2.filter_refs(vset2.get_unique_refs());
                                     add(onSum2.in(vset2) == 1);
                                 }
                                 
+                                auto nb_entries = unique_ids.get_nb_entries();
+                                
                                 Constraint<> onSumComb(pair.first+"_binarySum");
-                                onSumComb = sum(on.in_matrix());
+                                onSumComb = sum(on.in_matrix(nb_entries));
                                 add(onSumComb.in(unique_ids) == 1);
                                 
                                 add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-                                    // ************************************************************************************ MIGHT BE OK?
-                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on1(name1+"_binary",0,1);
                                     add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
@@ -1076,18 +1079,19 @@ namespace gravity {
                                     add(onLink3.in(inst_partition) <= 0);
                                     
                                     Constraint<> onSum1(o1._name+"_binarySum");
-                                    onSum1 = sum(on1.in_matrix());
+                                    onSum1 = sum(on1.in_matrix(nb_entries_v1));
                                     add(onSum1.in(union_ids(o1_ids,o2_ids)) == 1);
                                     
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum(on.in_matrix());
+                                    onSumComb = sum(on.in_matrix(nb_entries));
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
                                 }
                                 else{
-                                    // ************************************************************************************ THIS IS OK
-                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
                                     var<int> on1(name1+"_binary",0,1);
@@ -1116,15 +1120,17 @@ namespace gravity {
                                     add(onLink3.in(inst_partition) <= 0);
                                     
                                     Constraint<> onSum1(o1._name+"_binarySum");
-                                    onSum1 = sum(on1.in_matrix());
+                                    onSum1 = sum(on1.in_matrix(nb_entries_v1));
                                     add(onSum1.in(o1_ids) == 1);
                                     
                                     Constraint<> onSum2(o2._name+"_binarySum");
-                                    onSum2 = sum(on2.in_matrix());
+                                    onSum2 = sum(on2.in_matrix(nb_entries_v2));
                                     add(onSum2.in(o2_ids) == 1);
                                     
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum(on.in_matrix());
+                                    onSumComb = sum(on.in_matrix(nb_entries));
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
@@ -1151,8 +1157,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                // ************************************************************************************ THIS IS OK
-                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+//                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -1164,8 +1169,10 @@ namespace gravity {
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
                                 reindex_vars();
                                 
+                                auto nb_entries = added.get_nb_entries();
+                                
                                 Constraint<> onSumComb(pair.first+"_binarySum");
-                                onSumComb = sum((binvar1->in(added1)).in_matrix());
+                                onSumComb = sum((binvar1->in(added1)).in_matrix(nb_entries));
                                 add(onSumComb.in(added) == 1);
                                 
                                 add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar1->in(added1));
@@ -1173,8 +1180,7 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-                                    // ************************************************************************************ MAYBE OK??
-                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     auto inst_partition = indices(added,partns);
@@ -1215,22 +1221,23 @@ namespace gravity {
                                     
                                     if(!added1.empty()){
                                         Constraint<> onSum1(o1._name+"_binarySum");
-                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
                                         auto vset1 = added1.from_ith(0,nb_entries_v1);
                                         vset1.filter_refs(vset1.get_unique_refs());
                                         add(onSum1.in(vset1) == 1);
                                     }
                                     
+                                    auto nb_entries = added.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum((binvar3->in(added3)).in_matrix());
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix(nb_entries));
                                     add(onSumComb.in(added) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
                                     
                                 }
                                 else{
-                                    // ************************************************************************************ THIS IS OK
-                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+//                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     indices partns("partns");
                                     partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     auto inst_partition = indices(added,partns);
@@ -1279,7 +1286,7 @@ namespace gravity {
                                     
                                     if(!added1.empty()){
                                         Constraint<> onSum1(o1._name+"_binarySum");
-                                        onSum1 = sum(binvar1->in(added1).in_matrix());
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
                                         auto vset1 = added1.from_ith(0,nb_entries_v1);
                                         vset1.filter_refs(vset1.get_unique_refs());
                                         add(onSum1.in(vset1) == 1);
@@ -1287,19 +1294,16 @@ namespace gravity {
                                     
                                     if(!added2.empty()){
                                         Constraint<> onSum2(o2._name+"_binarySum");
-                                        onSum2 = sum(binvar2->in(added2).in_matrix());
+                                        onSum2 = sum(binvar2->in(added2).in_matrix(nb_entries_v2));
                                         auto vset2 = added2.from_ith(0,nb_entries_v2);
                                         vset2.filter_refs(vset2.get_unique_refs());
                                         add(onSum2.in(vset2) == 1);
                                     }
-                                    binvar3->print();
-                                    (binvar3->in(added3)).in_matrix().print();
-                                    (binvar3->in(added3)).in_matrix()._indices->print();
-                                    added3.print();
-                                    added.print();
+                                    
+                                    auto nb_entries = added.get_nb_entries();
+                                    
                                     Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum((binvar3->in(added3)).in_matrix());
-                                    onSumComb.print();
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix(nb_entries));
                                     add(onSumComb.in(added) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
