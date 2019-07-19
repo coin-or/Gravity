@@ -869,7 +869,11 @@ namespace gravity {
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
-                            partns = indices(range(1,num_partns1));
+                            for (int i = 0; i < num_partns1 ; ++i)
+                            {
+                                partns.add(name1+to_string(i+1));
+                            }
+//                            partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
                             
@@ -892,16 +896,25 @@ namespace gravity {
                                     //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                            
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns1);
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns1));
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
-                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+//                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+//                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    lb1.in(union_ids(o1_ids, o2_ids),partns1);
+                                    ub1.in(union_ids(o1_ids, o2_ids),partns1);
                                     lb1.set_val(0), ub1.set_val(1);
                                     auto added1 = binvar1->add_bounds(lb1,ub1);
                                     reindex_vars();
@@ -942,11 +955,25 @@ namespace gravity {
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on2(name2+"_binary",0,1);
                                     
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                                    
+                                    indices partns2("partns2");
+                                    for (int i = 0; i < num_partns2 ; ++i)
+                                    {
+                                        partns2.add(name2+to_string(i+1));
+                                    }
+                                    
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
-                                    add(on2.in(o2_ids,range(1,num_partns2)));
+//                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    add(on2.in(o2_ids,partns2));
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     
@@ -1001,17 +1028,33 @@ namespace gravity {
                                 var<int> on(name1+name2+"_binary",0,1);
                                 var<int> on1(name1+"_binary",0,1);
                                 
+                                indices partns1("partns1");
+                                for (int i = 0; i < num_partns1 ; ++i)
+                                {
+                                    partns1.add(name1+to_string(i+1));
+                                }
+                                
+                                indices partns2("partns2");
+                                for (int i = 0; i < num_partns2 ; ++i)
+                                {
+                                    partns2.add(name2+to_string(i+1));
+                                }
+                                
                                 indices partns("partns");
-                                partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                partns = indices(partns1,partns2);
                                 auto inst_partition = indices(unique_ids,partns);
                                 add(on.in(inst_partition));
-                                add(on1.in(o1_ids,range(1,num_partns1)));
+//                                add(on1.in(o1_ids,range(1,num_partns1)));
+                                add(on1.in(o1_ids,partns1));
                                 
                                 auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
                                 
                                 param<int> lb2("lb2"), ub2("ub2");
-                                lb2.in(o2_ids,range(1,num_partns2));
-                                ub2.in(o2_ids,range(1,num_partns2));
+//                                lb2.in(o2_ids,range(1,num_partns2));
+//                                ub2.in(o2_ids,range(1,num_partns2));
+                                lb2.in(o2_ids,partns2);
+                                ub2.in(o2_ids,partns2);
                                 lb2.set_val(0), ub2.set_val(1);
                                 
                                 auto added2 = binvar2->add_bounds(lb2,ub2);
@@ -1057,10 +1100,25 @@ namespace gravity {
                                     //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     var<int> on(name1+name2+"_binary",0,1);
                                     var<int> on1(name1+"_binary",0,1);
-                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
+                                    
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                                    
+                                    indices partns2("partns2");
+                                    for (int i = 0; i < num_partns2 ; ++i)
+                                    {
+                                        partns2.add(name2+to_string(i+1));
+                                    }
+                                    
+//                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
+                                    add(on1.in(union_ids(o1_ids, o2_ids),partns1));
                                     
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
                                     
@@ -1096,11 +1154,27 @@ namespace gravity {
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     var<int> on2(name2+"_binary",0,1);
-                                    add(on1.in(o1_ids,range(1,num_partns1)));
-                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                                    
+                                    indices partns2("partns2");
+                                    for (int i = 0; i < num_partns2 ; ++i)
+                                    {
+                                        partns2.add(name2+to_string(i+1));
+                                    }
+                                    
+//                                    add(on1.in(o1_ids,range(1,num_partns1)));
+//                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    add(on1.in(o1_ids,partns1));
+                                    add(on2.in(o2_ids,partns2));
                                     
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
                                     
@@ -1161,9 +1235,15 @@ namespace gravity {
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
+                                indices partns("partns");
+                                for (int i = 0; i < num_partns1 ; ++i)
+                                {
+                                    partns.add(name1+to_string(i+1));
+                                }
+                                
                                 param<int> lb1("lb1"), ub1("ub1");
-                                lb1.in(added,range(1,num_partns1));
-                                ub1.in(added,range(1,num_partns1));
+                                lb1.in(added,partns);
+                                ub1.in(added,partns);
                                 lb1.set_val(0), ub1.set_val(1);
                                 
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
@@ -1181,8 +1261,17 @@ namespace gravity {
                                 
                                 if(name1 == name2){
                                     //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                                    
+                                    
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns1);
                                     auto inst_partition = indices(added,partns);
                                     
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
@@ -1192,8 +1281,10 @@ namespace gravity {
                                     auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
-                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+//                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+//                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    lb1.in(union_ids(o1_ids,o2_ids),partns1);
+                                    ub1.in(union_ids(o1_ids,o2_ids),partns1);
                                     lb1.set_val(0), ub1.set_val(1);
                                     
                                     param<int> lb3("lb3"), ub3("ub3");
@@ -1238,8 +1329,21 @@ namespace gravity {
                                 }
                                 else{
                                     //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+to_string(i+1));
+                                    }
+                                    
+                                    indices partns2("partns2");
+                                    for (int i = 0; i < num_partns2 ; ++i)
+                                    {
+                                        partns2.add(name2+to_string(i+1));
+                                    }
+                                    
                                     indices partns("partns");
-                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    partns = indices(partns1,partns2);
                                     auto inst_partition = indices(added,partns);
                                     
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
@@ -1250,13 +1354,17 @@ namespace gravity {
                                     auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-                                    lb1.in(o1_ids,range(1,num_partns1));
-                                    ub1.in(o1_ids,range(1,num_partns1));
+//                                    lb1.in(o1_ids,range(1,num_partns1));
+//                                    ub1.in(o1_ids,range(1,num_partns1));
+                                    lb1.in(o1_ids,partns1);
+                                    ub1.in(o1_ids,partns1);
                                     lb1.set_val(0), ub1.set_val(1);
                                     
                                     param<int> lb2("lb2"), ub2("ub2");
-                                    lb2.in(o2_ids,range(1,num_partns2));
-                                    ub2.in(o2_ids,range(1,num_partns2));
+//                                    lb2.in(o2_ids,range(1,num_partns2));
+//                                    ub2.in(o2_ids,range(1,num_partns2));
+                                    lb2.in(o2_ids,partns2);
+                                    ub2.in(o2_ids,partns2);
                                     lb2.set_val(0), ub2.set_val(1);
                                     
                                     param<int> lb3("lb3"), ub3("ub3");
@@ -4869,12 +4977,12 @@ namespace gravity {
                     }
                 }
                 if (c.get_ctype() == leq){
-//                    (c._offCoef).set_val(inst,M1sum_off);
-//                    (c._onCoef).set_val(inst,M1sum_on);
+                    c._offCoef.set_val(inst,M1sum_off);
+                    c._onCoef.set_val(inst,M1sum_on);
                 }
                 else {
-//                    c._offCoef.set_val(inst,M2sum_off);
-//                    c._onCoef.set_val(inst,M2sum_on);
+                    c._offCoef.set_val(inst,M2sum_off);
+                    c._onCoef.set_val(inst,M2sum_on);
                 }
             }
             
@@ -4886,6 +4994,10 @@ namespace gravity {
                 exit(-1);
             }
             
+            // TODO: consider only the not lazy ones in on-off
+            // TODO: maybe do this somehow in the constructor
+            c._onCoef.in(range(1,c.get_nb_inst()));
+            c._offCoef.in(range(1,c.get_nb_inst()));
             
             //use bitset vector to represent S efficiently
             auto n_terms = c._lterms->size();
@@ -4912,30 +5024,29 @@ namespace gravity {
                 
                 if (c.get_ctype() == eq) {
                     get_on_off_coefficients(c, leq);
-                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    Constraint<type> res1(c.get_name() + "_" + to_string(i) + "_on/off");
                     res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
-                    add_constraint(res1<=0);
+                    add_constraint(res1.in(*c._indices)<=0);
                     
                     get_on_off_coefficients(c, geq);
-                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
-                    add_constraint(res2>=0);
-                    
-                    
+                    add_constraint(res2.in(*c._indices)>=0);
+
                 }
                 
                 else if (c.get_ctype() == leq) {
                     get_on_off_coefficients(c, leq);
-                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    Constraint<type> res1(c.get_name() +  "_" + to_string(i) + "_on/off");
                     res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
-                    add_constraint(res1<=0);
+                    add_constraint(res1.in(*c._indices)<=0);
                 }
                 
                 else {
                     get_on_off_coefficients(c, geq);
-                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
-                    add_constraint(res2>=0);
+                    add_constraint(res2.in(*c._indices)>=0);
                 }
             }
         }
@@ -5365,12 +5476,30 @@ namespace gravity {
             int num_partns1 = v1._num_partns;
             int num_partns2 = v2._num_partns;
             
+            auto name1 = v1.get_name(true,true);
+            auto name2 = v2.get_name(true,true);
+            
             if(v1._name!=v2._name)
             {
                 if (on.get_dim() != v1.get_dim() * num_partns1 * num_partns2){
                     throw invalid_argument("Number of on variables are not conforming with the given number of partitions");}
+
+                indices partns1("partns1");
+                for (int i = 0; i < num_partns1 ; ++i)
+                {
+                    partns1.add(name1+to_string(i+1));
+                }
+                
+                indices partns2("partns2");
+                for (int i = 0; i < num_partns2 ; ++i)
+                {
+                    partns2.add(name2+to_string(i+1));
+                }
+                
                 indices partns("partns");
-                partns = indices(range(1,num_partns1),range(1,num_partns2));
+//                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                partns = indices(partns1,partns2);
+                
                 auto var_indices = combine(*v1._indices,*v2._indices);
                 auto inst_partition = indices(var_indices,partns);
                 
@@ -5444,8 +5573,8 @@ namespace gravity {
                         UB_partn2.eval_all();
                         for (size_t inst = 0; inst< nb_ins; inst++){
                             auto cur_var_idx = var_indices._keys->at(inst);
-                            string cur_idx = cur_var_idx+","+to_string(i+1)+","+to_string(j+1);
-                            
+                            string cur_idx = cur_var_idx+","+name1+to_string(i+1)+","+name2+to_string(j+1);
+
                             v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
                             v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
                             v1_on_LB.set_val(cur_idx,LB_partn1.eval(inst));
@@ -5549,8 +5678,13 @@ namespace gravity {
                 if (num_partns1 != num_partns2) throw invalid_argument("Partition numbers must be same since the two varibles are same.\n");
                 if (on.get_dim() != v1.get_dim() * num_partns1){
                     throw invalid_argument("Number of on variables are not conforming with the given number of partitions");}
+                
                 indices partns("partns");
-                partns = indices(range(1,num_partns1));
+                for (int i = 0; i < num_partns1 ; ++i)
+                {
+                    partns.add(name1+to_string(i+1));
+                }
+//                partns = indices(range(1,num_partns1));
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
                 
@@ -5584,7 +5718,7 @@ namespace gravity {
                     for (size_t inst = 0; inst< nb_ins; inst++){
                         auto cur_var_id = v1.get_id_inst(inst);
                         auto cur_var_idx = var_indices._keys->at(cur_var_id);
-                        string cur_idx = cur_var_idx+","+to_string(i+1);
+                        string cur_idx = cur_var_idx+","+name1+to_string(i+1);
                         v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
                         v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
                         v1_on_LB.set_val(cur_idx,LB_partn.eval(inst));
