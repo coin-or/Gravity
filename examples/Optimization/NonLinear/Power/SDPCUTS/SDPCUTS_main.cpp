@@ -36,7 +36,7 @@ int main (int argc, char * argv[]) {
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
-    double ilb, iub;
+
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
@@ -333,10 +333,7 @@ int main (int argc, char * argv[]) {
     SDP.add(Thermal_Limit_from.in(arcs));
     ACOPF.add(Thermal_Limit_from.in(arcs));
     
-//    func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
-//    a.print();
-//    DebugOn("Outer"<<endl);
-    
+  
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
@@ -436,6 +433,43 @@ int main (int argc, char * argv[]) {
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
+    
+    func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
+    a.print();
+    DebugOn("Outer"<<endl);
+    
+    vector<double> x,y;
+    DebugOn("Fxk\t"<<Thermal_Limit_from.eval("0,1,2"));
+    for (auto &it: *Thermal_Limit_from._vars)
+    {
+             string vname = it.first;
+        var<> v=SDP.get_var<double>(vname);
+        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
+        x.push_back(v.eval("0,1,2"));
+    }
+    DebugOn("xstart"<<endl);
+    for(auto i=0;i<x.size();i++)
+        DebugOn("xstart"<<x[i]<<endl);
+    
+    size_t nbinst=0;
+    double xv=0;
+   for (auto &it: *Thermal_Limit_from._vars)
+    {
+        auto v = it.second.first;
+        v->set_double_val(nbinst, xv);
+        y.push_back(xv);
+        DebugOn("xv\t"<<xv<<endl);
+    }
+    
+    
+//    for (auto &it: *KCL_P._vars)
+//    {
+//        string vname = it.first;
+//        var<> v=SDP.get_var<double>(vname);
+//        DebugOn(vname<<endl);
+//    }
+    
+    
 //
 //    //SDP.print();
 //    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
@@ -461,7 +495,7 @@ int main (int argc, char * argv[]) {
     
     solver<> ACOPFS(ACOPF,solv_type);
     
-    //SDP.print();
+    SDP.print();
 //    ACOPFS.run(output = 5, tol = 1e-6);
 //    ACOPF.print_constraints_stats(tol);
 //    ACOPF.print_nonzero_constraints(tol,true);
@@ -475,7 +509,7 @@ int main (int argc, char * argv[]) {
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-    //        SDP.print_solution();
+           SDP.print_solution();
     
     
     
