@@ -977,6 +977,214 @@ namespace gravity {
             res._indices = this->_indices;
             return res;
         }
+
+        
+        double l2norm(vector<double> x)
+        {
+            double res=0;
+            for(auto i=0;i<x.size();i++)
+            {
+                res+=x[i]*x[i];
+            }
+            res=sqrt(res);
+            return(res);
+        }
+        
+        
+        vector<double> linesearchbinary(vector<double> x_start, vector<double> x_end, string id)
+        {
+            const double int_tol=1e-6, zero_tol=1e-6;
+            const int max_iter=1000;
+            vector<double> x_f=x_start, x_t=x_end, temp, interval, mid;
+            double  f_f, f_t, f_mid, interval_norm;
+            bool solution_found=false;
+            
+            
+//            for(auto i=0;i<x_start.size();i++)
+//            {
+//                interval.push_back(x_end[i]-x_start[i]);
+//                mid.push_back((x_end[i]+x_start[i])*0.5);
+//            }
+            int counter=0;
+            for(auto &it: *_vars)
+            {
+               auto v = it.second.first;
+                v->_val=x_start[counter++];
+            }
+        
+             param<type> f_xstar("f_xstar");
+            f_xstar = *this;
+            f_f=f_xstar.eval(id);
+        }
+            
+//            f_f=fx->eval(x_start);
+//            f_t=fx->eval(x_end);
+//            interval_norm=l2norm(interval);
+//            if(f_f<=0 && f_t>=0 )
+//            {
+//                while(interval_norm>int_tol)
+//                {
+//                    for(i=0;i<x_start.size();i++)
+//                    {
+//                        mid[i]=(x_f[i]+x_t[i])*0.5;
+//                    }
+//
+//                    f_mid=fx->eval(mid);
+//                    if(f_mid>=zero_tol)
+//                    {
+//                        x_f=mid;
+//
+//                    }
+//                    else if(f_mid<=zero_tol*(-1))
+//                    {
+//                        x_t=mid;
+//
+//                    }
+//                    else
+//                    {
+//                        DebugOn("Reached answer"<<endl);
+//                        solution_found=true;
+//                        break;
+//                    }
+//                    for(i=0;i<x_start.size();i++)
+//                    {
+//                        interval[i]=x_t[i]-x_f[i];
+//                    }
+//                    interval_norm=l2norm(interval);
+//
+//                }
+//
+//            }
+//            else
+//            {
+//                DebugOn("Initial interval is wrong"<<endl);
+//            }
+//            return(mid);
+//        }
+        /** Finds a vector of outer points perturbing along each direction */
+        vector<vector<double>> get_outer_point(size_t nb_inst, int con_type)
+        {
+            vector<vector<double[_nb_vars]>> res[_nb_vars];
+            vector<double> xcurrent[_nb_vars];
+            const int max_iter=1000, max_dir=10;
+            const double step_tol=1e-6, step_init=1e-3, perturb_dist=1e-3;
+            double step, f_start, xv=0,f,ub,lb, fnew;
+            int count=0, iter, sign, iter_dir;
+            bool perturb=true, dir;
+            f_start=*this->eval(nb_inst);
+                for(auto &it: *_vars)
+                {
+                 auto v = it.second.first;
+                 v->set_double_val(nb_inst, xv);
+                 xcurrent.push_back(xv);
+                }
+            //If outer point do nothing, return what current??,
+            for(auto &it: *_vars)
+            {
+                perturb=false;
+                dir=false;
+                iter=0;
+                auto v = it.second.first;
+                xv=xcurrent[count];
+                step=step_tol;
+                iter_dir=0;
+                
+                // if interval zero do not perturb, else if x at upper bound (within range tol?) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
+                
+                while(!dir && iter_dir<=max_dir)
+                {
+                //v.set_double_ub(ub);
+                    //Do upper bound with position??? or use pointer version?
+                    
+                    ub=1000;
+                    lb=-1000;
+                v->get_double_val(nb_inst, min(ub, xv*(1+step)));
+                //v->get_double_val(nb_inst, xv*(1+step));
+                f=*this->eval(nb_inst);
+                if(con_type==-1)
+                {
+                if(f>f_start)
+                {
+                    dir=true;
+                    sign=1;
+                    
+                }
+                else if(f<f_start)
+                {
+                    dir=true;
+                    sign=-1;
+                }
+                    else
+                    {
+                        step=step*2;
+                    }
+                }
+                else if(con_type==1)
+                {
+                    if(f<f_start)
+                    {
+                        dir=true;
+                        sign=1;
+                        
+                    }
+                    else if(f>f_start)
+                    {
+                        dir=true;
+                        sign=-1;
+                    }
+                    else
+                    {
+                        step=step*2;
+                    }
+                    
+                }
+                    iter_dir++;
+                }
+                if(!dir)
+                {continue;}
+                else
+                {
+                step=step_init;
+                while(!perturb && iter<=max_iter)
+                 {
+                     if(sign==1)
+                     {
+                         xv=std::min(xv*(1+step), ub);
+                     }
+                     else
+                     {
+                         
+                         xv=std::max(xv*(1-step), lb);
+                     }
+                     fnew=*this->eval(nb_inst);
+                     if(con_type==-1)
+                     {
+                         if(fnew>0 && abs(xv-xcurrent[count])>=perturb_dist)
+                         {
+                             perturb=true;
+                      
+                             
+                         }
+                         else if(f<f_start)
+                         {
+                             
+                         }
+                         else
+                         {
+                             step=step*2;
+                         }
+                     }
+                     
+                     
+                     //if dir changes halve step and stop when step becomes too small
+                     //Perturb so that distance greater than perturb dist
+                 }
+                
+            }
+            }
+            count++;
+            }
+            
         
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
