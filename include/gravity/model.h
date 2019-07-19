@@ -406,6 +406,9 @@ namespace gravity {
                 _vars[v.get_vec_id()] = newv;
                 _nb_vars += v.get_dim();
             }
+            else {
+                throw invalid_argument("adding variable with same name, please rename: " + v._name);
+            }
         };
         
         
@@ -832,7 +835,7 @@ namespace gravity {
                     }
                     ids = combine(*o1._indices,*o2._indices);
                 }
-                auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys onlly */
+                auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
                 auto o1_ids = *o1._indices;
                 auto o2_ids = *o2._indices;
                 if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
@@ -840,18 +843,304 @@ namespace gravity {
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
+                // collect the number of partitions of each variable
+                int num_partns1 = o1._num_partns;
+                int num_partns2 = o2._num_partns;
+                
                 param<type> lb("lb"), ub("ub");
                 lb.in(unique_ids);ub.in(unique_ids);
                 auto prod = o1*o2;
                 lb.set_val(prod._range->first);
                 ub.set_val(prod._range->second);
                 auto it = _vars_name.find(name);
+                
+                auto name1 = o1.get_name(true,true);
+                auto name2 = o2.get_name(true,true);
+                
                 if(it==_vars_name.end()){
                     var<type> vlift(name, lb, ub);
                     vlift._lift = true;
                     add(vlift.in(unique_ids));
                     lt._p = make_shared<var<type>>(vlift.in(ids));
-                    add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
+                    if((num_partns1 > 1) || (num_partns2 > 1)) {
+                        if (o1 == o2) //if the variables are same add 1d partition
+                        {
+                            //                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                            var<int> on(name1+"_binary",0,1);
+                            
+                            indices partns("partns");
+                            partns = indices(range(1,num_partns1));
+                            auto inst_partition = indices(unique_ids,partns);
+                            add(on.in(inst_partition));
+                            
+                            auto nb_entries = unique_ids.get_nb_entries();
+                            
+                            Constraint<> onSum(pair.first + "_binarySum");
+                            onSum += sum(on.in_matrix(nb_entries));
+                            add(onSum.in(unique_ids) == 1);
+                            
+                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                        }
+                        else{ //else add 2d partition
+                            
+                            auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                            auto binvar_ptr2 = _vars_name.find(name2+"_binary");
+                            
+                            if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
+                                
+                                if(name1 == name2){
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    reindex_vars();
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix(nb_entries));
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                
+                                else{
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    var<int> on2(name2+"_binary",0,1);
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    indices added1("added1");
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(o1_ids,partns);
+                                    ub1.in(o1_ids,partns);
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    added1 = binvar1->add_bounds(lb1,ub1);
+                                    reindex_vars();
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(on2.in_matrix(nb_entries_v1));
+                                    add(onSum2.in(o2_ids) == 1);
+                                    
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix(nb_entries));
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                
+                            }
+                            
+                            else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
+                                //                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                var<int> on(name1+name2+"_binary",0,1);
+                                var<int> on1(name1+"_binary",0,1);
+                                
+                                indices partns("partns");
+                                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                auto inst_partition = indices(unique_ids,partns);
+                                add(on.in(inst_partition));
+                                add(on1.in(o1_ids,range(1,num_partns1)));
+                                
+                                auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
+                                
+                                param<int> lb2("lb2"), ub2("ub2");
+                                lb2.in(o2_ids,range(1,num_partns2));
+                                ub2.in(o2_ids,range(1,num_partns2));
+                                lb2.set_val(0), ub2.set_val(1);
+                                
+                                auto added2 = binvar2->add_bounds(lb2,ub2);
+                                reindex_vars();
+                                
+                                auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                
+                                Constraint<> onLink1(pair.first+"_binaryLink1");
+                                onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                add(onLink1.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink2(pair.first+"_binaryLink2");
+                                onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                add(onLink2.in(inst_partition) >= 0);
+                                
+                                Constraint<> onLink3(pair.first+"_binaryLink3");
+                                onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                add(onLink3.in(inst_partition) <= 0);
+                                
+                                Constraint<> onSum1(o1._name+"_binarySum");
+                                onSum1 = sum(on1.in_matrix(nb_entries_v1));
+                                add(onSum1.in(o1_ids) == 1);
+                                
+                                if(!added2.empty()){
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(binvar2->in(added2).in_matrix(nb_entries_v2));
+                                    auto vset2 = added2.from_ith(0,nb_entries_v2);
+                                    vset2.filter_refs(vset2.get_unique_refs());
+                                    add(onSum2.in(vset2) == 1);
+                                }
+                                
+                                auto nb_entries = unique_ids.get_nb_entries();
+                                
+                                Constraint<> onSumComb(pair.first+"_binarySum");
+                                onSumComb = sum(on.in_matrix(nb_entries));
+                                add(onSumComb.in(unique_ids) == 1);
+                                
+                                add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            }
+                            else{ //means both variables v1 and v2 haven't been partitioned
+                                if(name1==name2){
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    var<int> on1(name1+"_binary",0,1);
+                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on1.in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + on1.in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    Constraint<> onSum1(o1._name+"_binarySum");
+                                    onSum1 = sum(on1.in_matrix(nb_entries_v1));
+                                    add(onSum1.in(union_ids(o1_ids,o2_ids)) == 1);
+                                    
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix(nb_entries));
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                                else{
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    var<int> on(name1+name2+"_binary",0,1);
+                                    
+                                    var<int> on1(name1+"_binary",0,1);
+                                    var<int> on2(name2+"_binary",0,1);
+                                    add(on1.in(o1_ids,range(1,num_partns1)));
+                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(unique_ids,partns);
+                                    add(on.in(inst_partition));
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = on1.from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    Constraint<> onSum1(o1._name+"_binarySum");
+                                    onSum1 = sum(on1.in_matrix(nb_entries_v1));
+                                    add(onSum1.in(o1_ids) == 1);
+                                    
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(on2.in_matrix(nb_entries_v2));
+                                    add(onSum2.in(o2_ids) == 1);
+                                    
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum(on.in_matrix(nb_entries));
+                                    add(onSumComb.in(unique_ids) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
+                    }
                 }
                 else {
                     auto vlift = static_pointer_cast<var<type>>(it->second);
@@ -865,7 +1154,165 @@ namespace gravity {
                             o2_ids.filter_refs(keep_refs);
                         }
                         reindex_vars();
-                        add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
+                        if((num_partns1 > 1) || (num_partns2 > 1)) {
+                            if (o1 == o2) //if the variables are same add 1d partition
+                            {
+                                //                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                                auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                
+                                param<int> lb1("lb1"), ub1("ub1");
+                                lb1.in(added,range(1,num_partns1));
+                                ub1.in(added,range(1,num_partns1));
+                                lb1.set_val(0), ub1.set_val(1);
+                                
+                                auto added1 = binvar1->add_bounds(lb1,ub1);
+                                reindex_vars();
+                                
+                                auto nb_entries = added.get_nb_entries();
+                                
+                                Constraint<> onSumComb(pair.first+"_binarySum");
+                                onSumComb = sum((binvar1->in(added1)).in_matrix(nb_entries));
+                                add(onSumComb.in(added) == 1);
+                                
+                                add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar1->in(added1));
+                            }
+                            else{ //else add 2d partition
+                                
+                                if(name1 == name2){
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(added,partns);
+                                    
+                                    auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    
+                                    auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
+                                    auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    
+                                    param<int> lb3("lb3"), ub3("ub3");
+                                    lb3.in(added,partns);
+                                    ub3.in(added,partns);
+                                    lb3.set_val(0), ub3.set_val(1);
+                                    
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    reindex_vars();
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v1)) + binvar1->in_ignore_ith(nb_entries_v1,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    auto nb_entries = added.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix(nb_entries));
+                                    add(onSumComb.in(added) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                    
+                                }
+                                else{
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    indices partns("partns");
+                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    auto inst_partition = indices(added,partns);
+                                    
+                                    auto binvar_ptr1 = _vars_name.find(name1+"_binary");
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    auto binvar_ptr2 = _vars_name.find(name2+"_binary");
+                                    auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
+                                    auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
+                                    auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(o1_ids,range(1,num_partns1));
+                                    ub1.in(o1_ids,range(1,num_partns1));
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    
+                                    param<int> lb2("lb2"), ub2("ub2");
+                                    lb2.in(o2_ids,range(1,num_partns2));
+                                    ub2.in(o2_ids,range(1,num_partns2));
+                                    lb2.set_val(0), ub2.set_val(1);
+                                    
+                                    param<int> lb3("lb3"), ub3("ub3");
+                                    lb3.in(added,partns);
+                                    ub3.in(added,partns);
+                                    lb3.set_val(0), ub3.set_val(1);
+                                    
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    auto added2 = binvar2->add_bounds(lb2,ub2);
+                                    auto added3 = binvar3->add_bounds(lb3,ub3);
+                                    reindex_vars();
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    
+                                    Constraint<> onLink1(pair.first+"_binaryLink1");
+                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - binvar3->in(inst_partition);
+                                    add(onLink1.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink2(pair.first+"_binaryLink2");
+                                    onLink2 = binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - binvar3->in(inst_partition);
+                                    add(onLink2.in(inst_partition) >= 0);
+                                    
+                                    Constraint<> onLink3(pair.first+"_binaryLink3");
+                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar2->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - binvar3->in(inst_partition);
+                                    add(onLink3.in(inst_partition) <= 0);
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    if(!added2.empty()){
+                                        Constraint<> onSum2(o2._name+"_binarySum");
+                                        onSum2 = sum(binvar2->in(added2).in_matrix(nb_entries_v2));
+                                        auto vset2 = added2.from_ith(0,nb_entries_v2);
+                                        vset2.filter_refs(vset2.get_unique_refs());
+                                        add(onSum2.in(vset2) == 1);
+                                    }
+                                    
+                                    auto nb_entries = added.get_nb_entries();
+                                    
+                                    Constraint<> onSumComb(pair.first+"_binarySum");
+                                    onSumComb = sum((binvar3->in(added3)).in_matrix(nb_entries));
+                                    add(onSumComb.in(added) == 1);
+                                    
+                                    add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
+                                }
+                            }
+                        }
+                        else {
+                            add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
+                        }
                     }
                 }
                 
@@ -1931,13 +2378,13 @@ namespace gravity {
                     }
                     
                     // Lambda coefficient matrix when linking with partition variables
-                    param<> lambdaCOEF(name+"_lambda linking coefficients");
+                    param<type> lambdaCOEF(name+"_lambda linking coefficients");
                     
                     // Partition coefficient matrix when linking with lambda variables
-                    param<> zCOEF(name+"_partition linking coefficients");
+                    param<type> zCOEF(name+"_partition linking coefficients");
                     
                     // Partition assignment coefficients
-                    param<> zASGNCOEF(name+"_partition assignment coefficients");
+                    param<type> zASGNCOEF(name+"_partition assignment coefficients");
                     
                     if (model_type == "Model_II"){
                         // check if both of the variables involve a partition
@@ -2346,13 +2793,13 @@ namespace gravity {
                         }
                         
                         // Lambda coefficient matrix when linking with partition variables
-                        param<> lambdaCOEF(name+"_lambda linking coefficients");
+                        param<type> lambdaCOEF(name+"_lambda linking coefficients");
                         
                         // Partition coefficient matrix when linking with lambda variables
-                        param<> zCOEF(name+"_partition linking coefficients");
+                        param<type> zCOEF(name+"_partition linking coefficients");
                         
                         // Partition assignment coefficients
-                        param<> zASGNCOEF(name+"_partition assignment coefficients");
+                        param<type> zASGNCOEF(name+"_partition assignment coefficients");
                         
                         if (model_type == "Model_II"){
                             // check if the the variables involve a partition
@@ -2743,7 +3190,8 @@ namespace gravity {
         }
         
         type get_obj_val() const{
-            return _obj->get_val();
+            _obj->allocate_mem();
+            return _obj->eval();
         }
         
         void print_obj_val(int prec = 5) const{
@@ -2860,6 +3308,9 @@ namespace gravity {
                 if (nr_threads==0) {
                     nr_threads = 1;
                 }
+#ifdef USE_MPI
+                nr_threads = 1;
+#endif
                 vector<thread> threads;
                 /* Split cons into nr_threads parts */
                 vector<size_t> limits = bounds(nr_threads, _cons_vec.size());
@@ -4084,8 +4535,8 @@ namespace gravity {
                 exit(-1);
             }
             
-            param<> M1 ("M1");
-            param<> M2 ("M2");
+            param<type> M1 ("M1");
+            param<type> M2 ("M2");
             
             size_t nb_ins = c.get_nb_inst();
             
@@ -4093,7 +4544,7 @@ namespace gravity {
             {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
-                    double coef_val = 0;
+                    type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
@@ -4127,23 +4578,23 @@ namespace gravity {
                     
                     else if (c.get_ctype() == leq) {
                         if (coef_val < 0){
-                            double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                            type LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
                             M1.add_val(coef_val * LB_partn);
                             
                         }
                         else {
-                            double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                            type UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                             M1.add_val(coef_val * UB_partn);
                         }
                     }
                     
                     else {
                         if (coef_val < 0){
-                            double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                            auto UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                             M2.add_val(coef_val * UB_partn);
                         }
                         else {
-                            double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                            auto LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
                             M2.add_val(coef_val * LB_partn);
                             
                         }
@@ -4182,8 +4633,8 @@ namespace gravity {
         //                exit(-1);
         //            }
         //
-        //            param<> M1 ("M1");
-        //            param<> M2 ("M2");
+        //            param<type> M1 ("M1");
+        //            param<type> M2 ("M2");
         //            double M1sum;
         //            double M2sum;
         //            int i;
@@ -4296,26 +4747,216 @@ namespace gravity {
         //            }
         //        }
         
+        void get_on_off_coefficients(Constraint<type>& c, const ConstraintType c_type){
+            if (c.get_ftype() != lin_) {
+                cerr << "Nonlinear constraint.\n";
+                exit(-1);
+            }
+            //TODO : only consider the non-lazy instances to add on-off constraint
+            
+            /*allocate the coefficient vectors and the sum values to update them*/
+            type M1sum_off, M2sum_off;
+            type M1sum_on, M2sum_on;
+            
+            /*allocate the bound values*/
+            type LB_off,UB_off;
+            type LB_on,UB_on;
+            
+            /*allocate the boolean in S*/
+            bool in_S;
+            
+            size_t nb_ins = c.get_nb_inst();
+            
+            for (size_t inst = 0; inst<nb_ins; inst++)
+            {
+                M1sum_off = 0;
+                M2sum_off = 0;
+                M1sum_on = 0;
+                M2sum_on = 0;
+                
+                c.eval_all();
+                
+                if (!c.get_cst()->is_zero()) {
+                    if (c.get_cst()->is_number()) {
+                        auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval();
+                        M2sum_on -= f_cst->eval();
+                    }
+                    else if (c.get_cst()->is_param()) {
+                        auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
+                    }
+                    else {
+                        auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
+                    }
+                }
+                
+                for (auto &pair:*c._lterms) {
+                    auto term = pair.second;
+                    
+                    in_S = term._in_S; //collect that the lterm is in S or not
+                    
+                    type coef_val = 0;
+                    if (term._coef->is_function()) {
+                        auto coef = static_pointer_cast<func<type>>(term._coef);
+                        coef_val = coef->eval(inst);//this will give you the value of this instance
+                    }
+                    else if(term._coef->is_param()) {
+                        auto coef = static_pointer_cast<param<type>>(term._coef);
+                        coef_val = coef->eval(inst);//this will give you the value of this instance
+                    }
+                    else { /*means (term._coef->is_number())*/
+                        auto coef = static_pointer_cast<constant<type>>(term._coef);
+                        coef_val = coef->eval();
+                    }
+                    
+                    auto inst_id = term._p->get_id_inst(inst);
+                    auto num_partns = term._p->get_num_partns();
+                    auto cur_partn = term._p->get_cur_partn();
+                    
+                    /* update the coef_val as coef_val * sign */
+                    if (!term._sign) coef_val = -coef_val;
+                    
+                    if (cur_partn > num_partns) throw invalid_argument("Current partition is out of range (larger than the number of partitions)");
+                    
+                    auto lifted = term._p->get_lift();
+                    
+                    LB_off = (term._p->get_double_lb(inst_id));
+                    UB_off = (term._p->get_double_ub(inst_id));
+                    
+                    // TODO : need to get the bounds with the partition!
+                    LB_on = (term._p->get_double_lb(inst_id));
+                    UB_on = (term._p->get_double_ub(inst_id));
+                    
+                    //                    if (lifted){
+                    //                        LB_partn = LB;
+                    //                        UB_partn = UB;
+                    //                    }
+                    //                    else {
+                    //                        /** following might be used if we utilize cur_partn and all ***/
+                    //                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                    //                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                    //                        LB_partn = LB;
+                    //                        UB_partn = UB;
+                    //                    }
+                    
+                    if (c_type == leq) {
+                        if (coef_val < 0){
+                            M1sum_off += coef_val * LB_off * (1-in_S);
+                            M1sum_on -= coef_val * UB_on * (in_S);
+                        }
+                        else {
+                            M1sum_off += coef_val * UB_off * (1-in_S);
+                            M1sum_on -= coef_val * LB_on * (in_S);
+                        }
+                    }
+                    
+                    else if (c_type == geq){
+                        if (coef_val < 0){
+                            M2sum_off += coef_val * UB_off * (1-in_S);
+                            M2sum_on -= coef_val * LB_on * (in_S);
+                        }
+                        else {
+                            M2sum_off += coef_val * LB_off * (1-in_S);
+                            M2sum_on -= coef_val * UB_on * (in_S);
+                        }
+                    }
+                    else {
+                        throw invalid_argument("Only leq and geq types are allowed. If you want to get coefficients for eq, use leq and geq consecutively.");
+                    }
+                }
+                if (c.get_ctype() == leq){
+//                    (c._offCoef).set_val(inst,M1sum_off);
+//                    (c._onCoef).set_val(inst,M1sum_on);
+                }
+                else {
+//                    c._offCoef.set_val(inst,M2sum_off);
+//                    c._onCoef.set_val(inst,M2sum_on);
+                }
+            }
+            
+        }
+        
+        void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on){
+            if (c.get_ftype() != lin_) {
+                cerr << "Nonlinear constraint.\n";
+                exit(-1);
+            }
+            
+            
+            //use bitset vector to represent S efficiently
+            auto n_terms = c._lterms->size();
+            if (n_terms > 64){
+                throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
+            }
+            bitset<64> S;
+            for (int i = 0 ; i < 1 ; ++i) { // JUST FOR TRIAL PURPOSES
+                //            for (int i = 0 ; i<pow(2,nterms) -1 ; ++i) { //not considering the full set
+                S = i;
+                int j = 0;
+                
+                func<type> LHS; //to handle the left hand side of the constaint
+                for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
+                    auto term = pair.second;
+                    term._in_S = S[j];
+                    if (1-S[j]){ //only if not in S
+                        LHS.insert(term);
+                    }
+                    j++;
+                }
+                
+                
+                
+                if (c.get_ctype() == eq) {
+                    get_on_off_coefficients(c, leq);
+                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res1<=0);
+                    
+                    get_on_off_coefficients(c, geq);
+                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res2>=0);
+                    
+                    
+                }
+                
+                else if (c.get_ctype() == leq) {
+                    get_on_off_coefficients(c, leq);
+                    Constraint<type> res1(c.get_name() + to_string(i) + "_on/off");
+                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res1<=0);
+                }
+                
+                else {
+                    get_on_off_coefficients(c, geq);
+                    Constraint<type> res2(c.get_name() + to_string(i) + "_on/off2");
+                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    add_constraint(res2>=0);
+                }
+            }
+        }
+        
         void add_on_off_multivariate_new(const Constraint<type>& c, const var<int>& on){
             if (c.get_ftype() != lin_) {
                 cerr << "Nonlinear constraint.\n";
                 exit(-1);
             }
             /*allocate the coefficient vectors and the sum values to update them*/
-            double M1sum;
-            double M2sum;
+            type M1sum, M2sum;
             
-            double LB;
-            double UB;
-            double LB_partn;
-            double UB_partn;
+            type LB,UB;
+            type LB_partn,UB_partn;
             
             size_t nb_ins = c.get_nb_inst();
             
-            param<> M1 ("M1");
+            param<type> M1 ("M1");
             M1.in(R(nb_ins));
             
-            param<> M2 ("M2");
+            param<type> M2 ("M2");
             M2.in(R(nb_ins));
             
             for (size_t inst = 0; inst<nb_ins; inst++)
@@ -4325,7 +4966,7 @@ namespace gravity {
                 
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
-                    double coef_val = 0;
+                    type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
@@ -4359,8 +5000,8 @@ namespace gravity {
                     }
                     else {
                         /** following might be used if we utilize cur_partn and all ***/
-//                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-//                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
                         LB_partn = LB;
                         UB_partn = UB;
                     }
@@ -4405,8 +5046,8 @@ namespace gravity {
                 else M2.set_val(inst,M2sum);
             }
             
-            func<> M1shifted;
-            func<> M2shifted;
+            func<type> M1shifted;
+            func<type> M2shifted;
             
             if (!c.get_cst()->is_zero()) {
                 if (c.get_cst()->is_number()) {
@@ -4443,7 +5084,6 @@ namespace gravity {
             if (c.get_ctype() == leq){
                 Constraint<type> res1(c.get_name() + "_on/off");
                 res1 = c - M1shifted*(1-on);
-                M1shifted.print();
                 add_constraint(res1<=0);
             }
             
@@ -4471,58 +5111,316 @@ namespace gravity {
                 partns = indices(range(1,num_partns1),range(1,num_partns2));
                 auto var_indices = combine(*v1._indices,*v2._indices);
                 auto inst_partition = indices(var_indices,partns);
-                //                DebugOn(var_indices.size() << endl);
-                //                DebugOn(inst_partition.size() << endl);
-                //                DebugOn(inst_partition._keys->at(0) << endl);
-                //                var_indices.print();
-                //                inst_partition.print();
                 
-                param<> V1par_MC1("V1par_MC1");
+                param<type> V1par_MC1("V1par_MC1");
                 V1par_MC1.in(inst_partition);
-                param<> V2par_MC1("V2par_MC1");
+                param<type> V2par_MC1("V2par_MC1");
                 V2par_MC1.in(inst_partition);
-                param<> Cpar_MC1("Cpar_MC1");
+                param<type> Cpar_MC1("Cpar_MC1");
                 Cpar_MC1.in(inst_partition);
                 
-                param<> V1par_MC2("V1par_MC2");
+                param<type> V1par_MC2("V1par_MC2");
                 V1par_MC2.in(inst_partition);
-                param<> V2par_MC2("V2par_MC2");
+                param<type> V2par_MC2("V2par_MC2");
                 V2par_MC2.in(inst_partition);
-                param<> Cpar_MC2("Cpar_MC2");
+                param<type> Cpar_MC2("Cpar_MC2");
                 Cpar_MC2.in(inst_partition);
                 
-                param<> V1par_MC3("V1par_MC3");
+                param<type> V1par_MC3("V1par_MC3");
                 V1par_MC3.in(inst_partition);
-                param<> V2par_MC3("V2par_MC3");
+                param<type> V2par_MC3("V2par_MC3");
                 V2par_MC3.in(inst_partition);
-                param<> Cpar_MC3("Cpar_MC3");
+                param<type> Cpar_MC3("Cpar_MC3");
                 Cpar_MC3.in(inst_partition);
                 
-                param<> V1par_MC4("V1par_MC4");
+                param<type> V1par_MC4("V1par_MC4");
                 V1par_MC4.in(inst_partition);
-                param<> V2par_MC4("V2par_MC4");
+                param<type> V2par_MC4("V2par_MC4");
                 V2par_MC4.in(inst_partition);
-                param<> Cpar_MC4("Cpar_MC4");
+                param<type> Cpar_MC4("Cpar_MC4");
                 Cpar_MC4.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
-                param<> v2_on_LB("v2_on_LB");
+                param<type> v2_on_LB("v2_on_LB");
                 v2_on_LB.in(inst_partition);
-                param<> v2_off_LB("v2_off_LB");
+                param<type> v2_off_LB("v2_off_LB");
                 v2_off_LB.in(inst_partition);
                 
-                param<> v2_on_UB("v2_on_UB");
+                param<type> v2_on_UB("v2_on_UB");
                 v2_on_UB.in(inst_partition);
-                param<> v2_off_UB("v2_off_UB");
+                param<type> v2_off_UB("v2_off_UB");
+                v2_off_UB.in(inst_partition);
+                
+                size_t nb_ins = v1.get_nb_inst();
+                
+                auto v1_global_lb = v1.get_lb();
+                auto v1_global_ub = v1.get_ub();
+                auto v2_global_lb = v2.get_lb();
+                auto v2_global_ub = v2.get_ub();
+                auto increment1 = (v1_global_ub - v1_global_lb)/num_partns1;
+                auto increment2 = (v2_global_ub - v2_global_lb)/num_partns2;
+                
+                for (int i=0 ; i<num_partns1; ++i) {
+                    auto LB_partn1 = v1.get_lb() + increment1*i;
+                    auto UB_partn1 = LB_partn1 + increment1;
+                    
+                    LB_partn1.eval_all();
+                    UB_partn1.eval_all();
+                    for (int j=0 ; j<num_partns2; ++j) {
+                        auto LB_partn2 = v2.get_lb() + increment2*j;
+                        auto UB_partn2 = LB_partn2 + increment2;
+                        LB_partn2.eval_all();
+                        UB_partn2.eval_all();
+                        for (size_t inst = 0; inst< nb_ins; inst++){
+                            auto cur_var_idx = var_indices._keys->at(inst);
+                            string cur_idx = cur_var_idx+","+to_string(i+1)+","+to_string(j+1);
+                            
+                            v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
+                            v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
+                            v1_on_LB.set_val(cur_idx,LB_partn1.eval(inst));
+                            v1_on_UB.set_val(cur_idx,UB_partn1.eval(inst));
+                            
+                            v2_off_LB.set_val(cur_idx,v2_global_lb.eval(inst));
+                            v2_off_UB.set_val(cur_idx,v2_global_ub.eval(inst));
+                            v2_on_LB.set_val(cur_idx,LB_partn2.eval(inst));
+                            v2_on_UB.set_val(cur_idx,UB_partn2.eval(inst));
+                            
+                            V2par_MC1.set_val(cur_idx,LB_partn1.eval(inst));
+                            V1par_MC1.set_val(cur_idx,LB_partn2.eval(inst));
+                            Cpar_MC1.set_val(cur_idx,LB_partn1.eval(inst)*LB_partn2.eval(inst));
+                            
+                            V2par_MC2.set_val(cur_idx,UB_partn1.eval(inst));
+                            V1par_MC2.set_val(cur_idx,UB_partn2.eval(inst));
+                            Cpar_MC2.set_val(cur_idx,UB_partn1.eval(inst)*UB_partn2.eval(inst));
+                            
+                            //                            V2par_MC3.set_val(cur_idx,LB_partn1.eval(inst));
+                            //                            V1par_MC3.set_val(cur_idx,UB_partn2.eval(inst));
+                            Cpar_MC3.set_val(cur_idx,LB_partn1.eval(inst)*UB_partn2.eval(inst));
+                            
+                            //                            V2par_MC4.set_val(cur_idx,UB_partn1.eval(inst));
+                            //                            V1par_MC4.set_val(cur_idx,LB_partn2.eval(inst));
+                            Cpar_MC4.set_val(cur_idx,UB_partn1.eval(inst)*LB_partn2.eval(inst));
+                            
+                            //                Constraint<type> MC1(name+"_McCormick1");
+                            //                MC1 += vlift;
+                            //                MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
+                            //                MC1 >= 0;
+                            //                add_on_off(MC1, on);
+                            //                Constraint<type> MC2(name+"_McCormick2");
+                            //                MC2 += vlift;
+                            //                MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
+                            //                MC2 >= 0;
+                            //                add_on_off(MC2, on);
+                            //                Constraint<type> MC3(name+"_McCormick3");
+                            //                MC3 += vlift;
+                            //                MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
+                            //                MC3 <= 0;
+                            //                add_on_off(MC3, on);
+                            //                Constraint<type> MC4(name+"_McCormick4");
+                            //                MC4 += vlift;
+                            //                MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
+                            //                MC4 <= 0;
+                            //                add_on_off(MC4, on);
+                            
+                        }
+                    }
+                    
+                }
+                auto nb_entries_v1 = v1._indices->get_nb_entries();
+                Constraint<type> MC1(name+"_McCormick1");
+                MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
+                MC1.in(inst_partition) >= 0;
+                add_on_off_multivariate_new(MC1, on);
+                
+                Constraint<type> MC2(name+"_McCormick2");
+                MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
+                MC2.in(inst_partition) >= 0;
+                add_on_off_multivariate_new(MC2, on);
+                
+                Constraint<type> MC3(name+"_McCormick3");
+                MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
+                MC3.in(inst_partition) <= 0;
+                add_on_off_multivariate_new(MC3, on);
+                
+                Constraint<type> MC4(name+"_McCormick4");
+                MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
+                MC4.in(inst_partition) <= 0;
+                add_on_off_multivariate_new(MC4, on);
+                
+                
+                Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
+                v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
+                v1_on_off_LB.in(inst_partition) >= 0;
+                add(v1_on_off_LB);
+                
+                Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
+                v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
+                v1_on_off_UB.in(inst_partition) <= 0;
+                add(v1_on_off_UB);
+                
+                Constraint<type> v2_on_off_LB(name+"_v2_on_off_LB");
+                v2_on_off_LB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_LB - (1-on)*v2_off_LB;
+                v2_on_off_LB.in(inst_partition) >= 0;
+                add(v2_on_off_LB);
+                
+                Constraint<type> v2_on_off_UB(name+"_v2_on_off_UB");
+                v2_on_off_UB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_UB - (1-on)*v2_off_UB;
+                v2_on_off_UB.in(inst_partition) <= 0;
+                add(v2_on_off_UB);
+            }
+            
+            
+            else{ //if the variables are same lift the quadratic via on/off secant
+                if (num_partns1 != num_partns2) throw invalid_argument("Partition numbers must be same since the two varibles are same.\n");
+                if (on.get_dim() != v1.get_dim() * num_partns1){
+                    throw invalid_argument("Number of on variables are not conforming with the given number of partitions");}
+                indices partns("partns");
+                partns = indices(range(1,num_partns1));
+                auto var_indices = *v1._indices;
+                auto inst_partition = indices(var_indices,partns);
+                
+                param<type> Vpar("Vpar");
+                Vpar.in(inst_partition);
+                param<type> Cpar("Cpar");
+                Cpar.in(inst_partition);
+                
+                param<type> v1_on_LB("v1_on_LB");
+                v1_on_LB.in(inst_partition);
+                param<type> v1_off_LB("v1_off_LB");
+                v1_off_LB.in(inst_partition);
+                
+                param<type> v1_on_UB("v1_on_UB");
+                v1_on_UB.in(inst_partition);
+                param<type> v1_off_UB("v1_off_UB");
+                v1_off_UB.in(inst_partition);
+                
+                size_t nb_ins = v1.get_nb_inst();
+                
+                auto v1_global_lb = v1.get_lb();
+                auto v1_global_ub = v1.get_ub();
+                auto increment = (v1_global_ub - v1_global_lb)/num_partns1;
+                
+                for (int i=0 ; i<num_partns1; ++i) {
+                    auto LB_partn = v1.get_lb() + increment*i;
+                    auto UB_partn = LB_partn + increment;
+                    LB_partn.eval_all();
+                    UB_partn.eval_all();
+                    for (size_t inst = 0; inst< nb_ins; inst++){
+                        auto cur_var_id = v1.get_id_inst(inst);
+                        auto cur_var_idx = var_indices._keys->at(cur_var_id);
+                        string cur_idx = cur_var_idx+","+to_string(i+1);
+                        v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
+                        v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
+                        v1_on_LB.set_val(cur_idx,LB_partn.eval(inst));
+                        v1_on_UB.set_val(cur_idx,UB_partn.eval(inst));
+                        Vpar.set_val(cur_idx,LB_partn.eval(inst)+UB_partn.eval(inst));
+                        Cpar.set_val(cur_idx,LB_partn.eval(inst)*UB_partn.eval(inst));
+                        
+                    }
+                }
+                Constraint<type> MC_secant(name+"_secant");
+                MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
+                MC_secant.in(inst_partition) <= 0;
+                add_on_off_multivariate_new(MC_secant, on);
+                
+                Constraint<type> MC_squared(name+"_McCormick_squared");
+                MC_squared += vlift;
+                MC_squared -= v1*v1;
+                MC_squared >= 0;
+                MC_squared._relaxed = true; /* MC_squared is a relaxation of a non-convex constraint */
+                add(MC_squared.in(*vlift._indices));
+                
+                Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
+                v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
+                v1_on_off_LB.in(inst_partition) >= 0;
+                add(v1_on_off_LB);
+                
+                Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
+                v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
+                v1_on_off_UB.in(inst_partition) <= 0;
+                add(v1_on_off_UB);
+                
+            }
+        }
+        
+        template<typename T1>
+        void add_on_off_McCormick_refined(std::string name, var<T1>&& vlift, var<T1>&& v1, var<T1>&& v2, const var<int>& on) {
+            
+            if (!v1.is_bounded_below() || !v2.is_bounded_below() || !vlift.is_bounded_below() || !v1.is_bounded_above() || !v2.is_bounded_above() || !vlift.is_bounded_above()){
+                throw invalid_argument("Variables have to be bounded. Please set bounds for all!");}
+            
+            if (!(vlift._lift)){
+                throw invalid_argument("You forgot to set _lift to true for the lifted variable.");
+            }
+            
+            int num_partns1 = v1._num_partns;
+            int num_partns2 = v2._num_partns;
+            
+            if(v1._name!=v2._name)
+            {
+                if (on.get_dim() != v1.get_dim() * num_partns1 * num_partns2){
+                    throw invalid_argument("Number of on variables are not conforming with the given number of partitions");}
+                indices partns("partns");
+                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                auto var_indices = combine(*v1._indices,*v2._indices);
+                auto inst_partition = indices(var_indices,partns);
+                
+                // Create the parameters for the on/off constraints and bounds
+                param<type> V1par_MC1("V1par_MC1");
+                V1par_MC1.in(inst_partition);
+                param<type> V2par_MC1("V2par_MC1");
+                V2par_MC1.in(inst_partition);
+                param<type> Cpar_MC1("Cpar_MC1");
+                Cpar_MC1.in(inst_partition);
+                
+                param<type> V1par_MC2("V1par_MC2");
+                V1par_MC2.in(inst_partition);
+                param<type> V2par_MC2("V2par_MC2");
+                V2par_MC2.in(inst_partition);
+                param<type> Cpar_MC2("Cpar_MC2");
+                Cpar_MC2.in(inst_partition);
+                
+                param<type> V1par_MC3("V1par_MC3");
+                V1par_MC3.in(inst_partition);
+                param<type> V2par_MC3("V2par_MC3");
+                V2par_MC3.in(inst_partition);
+                param<type> Cpar_MC3("Cpar_MC3");
+                Cpar_MC3.in(inst_partition);
+                
+                param<type> V1par_MC4("V1par_MC4");
+                V1par_MC4.in(inst_partition);
+                param<type> V2par_MC4("V2par_MC4");
+                V2par_MC4.in(inst_partition);
+                param<type> Cpar_MC4("Cpar_MC4");
+                Cpar_MC4.in(inst_partition);
+                
+                param<type> v1_on_LB("v1_on_LB");
+                v1_on_LB.in(inst_partition);
+                param<type> v1_off_LB("v1_off_LB");
+                v1_off_LB.in(inst_partition);
+                
+                param<type> v1_on_UB("v1_on_UB");
+                v1_on_UB.in(inst_partition);
+                param<type> v1_off_UB("v1_off_UB");
+                v1_off_UB.in(inst_partition);
+                
+                param<type> v2_on_LB("v2_on_LB");
+                v2_on_LB.in(inst_partition);
+                param<type> v2_off_LB("v2_off_LB");
+                v2_off_LB.in(inst_partition);
+                
+                param<type> v2_on_UB("v2_on_UB");
+                v2_on_UB.in(inst_partition);
+                param<type> v2_off_UB("v2_off_UB");
                 v2_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
@@ -4574,22 +5472,22 @@ namespace gravity {
                             //                            V1par_MC4.set_val(cur_idx,LB_partn2.eval(inst));
                             Cpar_MC4.set_val(cur_idx,UB_partn1.eval(inst)*LB_partn2.eval(inst));
                             
-                            //                Constraint<> MC1(name+"_McCormick1");
+                            //                Constraint<type> MC1(name+"_McCormick1");
                             //                MC1 += vlift;
                             //                MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
                             //                MC1 >= 0;
                             //                add_on_off(MC1, on);
-                            //                Constraint<> MC2(name+"_McCormick2");
+                            //                Constraint<type> MC2(name+"_McCormick2");
                             //                MC2 += vlift;
                             //                MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
                             //                MC2 >= 0;
                             //                add_on_off(MC2, on);
-                            //                Constraint<> MC3(name+"_McCormick3");
+                            //                Constraint<type> MC3(name+"_McCormick3");
                             //                MC3 += vlift;
                             //                MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
                             //                MC3 <= 0;
                             //                add_on_off(MC3, on);
-                            //                Constraint<> MC4(name+"_McCormick4");
+                            //                Constraint<type> MC4(name+"_McCormick4");
                             //                MC4 += vlift;
                             //                MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
                             //                MC4 <= 0;
@@ -4599,45 +5497,49 @@ namespace gravity {
                     }
                     
                 }
-                Constraint<> MC1(name+"_McCormick1");
-                MC1 = vlift.in_ith(0,inst_partition) - V1par_MC1*v1.in_ith(0,inst_partition) - V2par_MC1*v2.in_ith(1,inst_partition) + Cpar_MC1;
+                auto nb_entries_v1 = v1._indices->get_nb_entries();
+                Constraint<type> MC1(name+"_McCormick1");
+                MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
                 MC1.in(inst_partition) >= 0;
-                add_on_off_multivariate_new(MC1, on);
+//                add_on_off_multivariate_new(MC1, on);
+                add_on_off_multivariate_refined(MC1, on);
                 
-                Constraint<> MC2(name+"_McCormick2");
-                MC2 = vlift.in_ith(0,inst_partition) - V1par_MC2*v1.in_ith(0,inst_partition) - V2par_MC2*v2.in_ith(1,inst_partition) + Cpar_MC2;
+                Constraint<type> MC2(name+"_McCormick2");
+                MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
                 MC2.in(inst_partition) >= 0;
-                add_on_off_multivariate_new(MC2, on);
-//                add_constraint(MC2);
+//                add_on_off_multivariate_new(MC2, on);
+                add_on_off_multivariate_refined(MC2, on);
                 
-                Constraint<> MC3(name+"_McCormick3");
-                MC3 = vlift.in_ith(0,inst_partition) - V1par_MC2*v1.in_ith(0,inst_partition) - V2par_MC1*v2.in_ith(1,inst_partition) + Cpar_MC3;
+                Constraint<type> MC3(name+"_McCormick3");
+                MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
                 MC3.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC3, on);
+//                add_on_off_multivariate_new(MC3, on);
+                add_on_off_multivariate_refined(MC3, on);
                 
-                Constraint<> MC4(name+"_McCormick4");
-                MC4 = vlift.in_ith(0,inst_partition) - V1par_MC1*v1.in_ith(0,inst_partition) - V2par_MC2*v2.in_ith(1,inst_partition) + Cpar_MC4;
+                Constraint<type> MC4(name+"_McCormick4");
+                MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
                 MC4.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC4, on);
-
+//                add_on_off_multivariate_new(MC4, on);
+                add_on_off_multivariate_refined(MC4, on);
                 
-                Constraint<> v1_on_off_LB(name+"_v1_on_off_LB");
-                v1_on_off_LB = v1.in_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
+                
+                Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
+                v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
                 v1_on_off_LB.in(inst_partition) >= 0;
                 add(v1_on_off_LB);
                 
-                Constraint<> v1_on_off_UB(name+"_v1_on_off_UB");
-                v1_on_off_UB = v1.in_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
+                Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
+                v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
                 v1_on_off_UB.in(inst_partition) <= 0;
                 add(v1_on_off_UB);
                 
-                Constraint<> v2_on_off_LB(name+"_v2_on_off_LB");
-                v2_on_off_LB = v2.in_ith(1,inst_partition) - on*v2_on_LB - (1-on)*v2_off_LB;
+                Constraint<type> v2_on_off_LB(name+"_v2_on_off_LB");
+                v2_on_off_LB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_LB - (1-on)*v2_off_LB;
                 v2_on_off_LB.in(inst_partition) >= 0;
                 add(v2_on_off_LB);
                 
-                Constraint<> v2_on_off_UB(name+"_v2_on_off_UB");
-                v2_on_off_UB = v2.in_ith(1,inst_partition) - on*v2_on_UB - (1-on)*v2_off_UB;
+                Constraint<type> v2_on_off_UB(name+"_v2_on_off_UB");
+                v2_on_off_UB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_UB - (1-on)*v2_off_UB;
                 v2_on_off_UB.in(inst_partition) <= 0;
                 add(v2_on_off_UB);
             }
@@ -4651,26 +5553,21 @@ namespace gravity {
                 partns = indices(range(1,num_partns1));
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
-//                DebugOn(var_indices.size() << endl);
-//                DebugOn(inst_partition.size() << endl);
-//                DebugOn(inst_partition._keys->at(0) << endl);
-//                var_indices.print();
-//                inst_partition.print();
                 
-                
-                param<> Vpar("Vpar");
+                //Create the parameters for on/off constraints
+                param<type> Vpar("Vpar");
                 Vpar.in(inst_partition);
-                param<> Cpar("Cpar");
+                param<type> Cpar("Cpar");
                 Cpar.in(inst_partition);
                 
-                param<> v1_on_LB("v1_on_LB");
+                param<type> v1_on_LB("v1_on_LB");
                 v1_on_LB.in(inst_partition);
-                param<> v1_off_LB("v1_off_LB");
+                param<type> v1_off_LB("v1_off_LB");
                 v1_off_LB.in(inst_partition);
                 
-                param<> v1_on_UB("v1_on_UB");
+                param<type> v1_on_UB("v1_on_UB");
                 v1_on_UB.in(inst_partition);
-                param<> v1_off_UB("v1_off_UB");
+                param<type> v1_off_UB("v1_off_UB");
                 v1_off_UB.in(inst_partition);
                 
                 size_t nb_ins = v1.get_nb_inst();
@@ -4702,10 +5599,11 @@ namespace gravity {
                         //                    LB_partn += increment;
                     }
                 }
-                Constraint<> MC_secant(name+"_secant");
-                MC_secant = vlift.in_ith(0,inst_partition) - Vpar*v1.in_ith(0,inst_partition) + Cpar;
+                Constraint<type> MC_secant(name+"_secant");
+                MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
-                add_on_off_multivariate_new(MC_secant, on);
+//                add_on_off_multivariate_new(MC_secant, on);
+                add_on_off_multivariate_refined(MC_secant, on);
                 
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
@@ -4714,13 +5612,13 @@ namespace gravity {
                 MC_squared._relaxed = true; /* MC_squared is a relaxation of a non-convex constraint */
                 add(MC_squared.in(*vlift._indices));
                 
-                Constraint<> v1_on_off_LB(name+"_v1_on_off_LB");
-                v1_on_off_LB = v1.in_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
+                Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
+                v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
                 v1_on_off_LB.in(inst_partition) >= 0;
                 add(v1_on_off_LB);
                 
-                Constraint<> v1_on_off_UB(name+"_v1_on_off_UB");
-                v1_on_off_UB = v1.in_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
+                Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
+                v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
                 v1_on_off_UB.in(inst_partition) <= 0;
                 add(v1_on_off_UB);
                 

@@ -1414,88 +1414,78 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+        param in_matrix(unsigned nb_entries) const{
+            auto res(*this);
+            return res.in(this->get_matrix_ids(nb_entries));
+        }
+        
+        
+        indices get_matrix_ids(unsigned nb_entries) const{
+            auto res(*this->_indices);
+            res.set_name("matrix("+_indices->get_name()+")");
+            res._ids = make_shared<vector<vector<size_t>>>();
+            string key = "", first_key="";
+            int inst = -1;
+            string prev_key = "";
+            if(is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: _indices->_ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    auto pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        first_key = key.substr(0,pos);
+                    }
+                    if (first_key!=prev_key) {
+                        res._ids->resize(res._ids->size()+1);
+                        inst++;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(inst).push_back(it1->second);
+                    prev_key = first_key;
+                }
+            }
+            else {
+                for (auto key: *_indices->_keys) {
+                    first_key = key.substr(0,key.find(","));
+                    if (first_key!=prev_key) {
+                        res._ids->resize(res._ids->size()+1);
+                        inst++;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(inst).push_back(it1->second);
+                    prev_key = first_key;
+                }
+            }
+            return res;
+        }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        param in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids) {
+            if(!_indices){
+                throw invalid_argument("unindexed param/var, first call in()");
+            }
+            return this->in(ids.ignore_ith(start_position, nb_entries));
+        }
+    
         /** Index parameter/variable in ids, look for the keys starting at the ith position
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
-        param in_ith(unsigned start_position, const indices& ids_) {
-            auto ids(ids_);
-            if(!ids._excluded_keys.empty()){
-                ids.remove_excluded();
-            }
+        param from_ith(unsigned start_position, const indices& ids) {
             if(!_indices){
                 throw invalid_argument("unindexed param/var, first call in()");
             }
-            param res(*this);
-            if(ids.empty()){
-                DebugOff("In function param.in_ith(unsigned position, const indices& ids), ids is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "_EMPTY";
-                res._dim[0] = 0;
-                res._dim[1] = 0;
-                //                res.set_range(0);
-                res.reset_range();
-                return res;
-            }
-            string key;
-            size_t nb_inst=1;
             /** Number of comma separated keys in current variable */
-            auto nb_sep_var = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            /** Number of comma separated keys in ids */
-            auto nb_sep_ids = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
-            if(nb_sep_var > nb_sep_ids){/* ids can have more keys if it's a super set of indices */
-                throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), ids keys have less entries than current param/var, check indexing");
-            }
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            nb_inst = ids.size();
-            if(ids.is_indexed()){/* If ids has key references, use those */
-                for(auto &key_ref: ids._ids->at(0)){
-                    key = _indices->_keys->at(key_ref);
-                    auto pos = nthOccurrence(key, ",", start_position);
-                    if(pos!=0){
-                        key = key.substr(pos+1);
-                    }
-                    pos = nthOccurrence(key, ",", nb_sep_var+1);
-                    if(pos!=0){
-                        key = key.substr(0,pos);
-                    }
-                    auto it = _indices->_keys_map->find(key);
-                    if (it == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
-                    }
-                    res._indices->_ids->at(0).push_back(it->second);
-                }
-                
-            }
-            else {
-                for(auto key: *ids._keys){
-                    auto pos = nthOccurrence(key, ",", start_position);
-                    if(pos!=0){
-                        key = key.substr(pos+1);
-                    }
-                    pos = nthOccurrence(key, ",", nb_sep_var+1);
-                    if(pos!=0){
-                        key = key.substr(0,pos);
-                    }
-                    auto it = _indices->_keys_map->find(key);
-                    if (it == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
-                    }
-                    res._indices->_ids->at(0).push_back(it->second);
-                }
-            }
-
-            if(res._is_transposed){
-                res._dim[1]=res._indices->_ids->at(0).size();
-            }
-            else {
-                res._dim[0]=res._indices->_ids->at(0).size();
-            }
-            res._name += ".in("+ids.get_name()+")";
-            res._indices->set_name(ids.get_name());
-            res.reset_range();
-            return res;
+            auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            return this->in(ids.from_ith(start_position, nb_entries+1));
         }
         
         /** Index parameter/variable in the product of ids1...args
@@ -1575,7 +1565,7 @@ namespace gravity {
             nb_inst = ids.size();
             if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
-                    key = _indices->_keys->at(key_ref);
+                    key = ids._keys->at(key_ref);
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
                         throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
