@@ -9,7 +9,7 @@
 #ifndef Cycle_Basis_PF_Arc_h
 #define Cycle_Basis_PF_Arc_h
 #include <gravity/Node.h>
-#include <gravity/types.h>
+//#include <gravity/types.h>
 #include <gravity/Path.h>
 #include <assert.h>
 #include <string>

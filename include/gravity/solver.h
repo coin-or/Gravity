@@ -67,7 +67,7 @@ void mosekNotAvailable();
 void ClpNotAvailable();
 
 namespace gravity {
-
+    
     
     template<typename type = double>
     class solver {
@@ -81,14 +81,14 @@ namespace gravity {
         /** Constructor */
         //@{
         solver();
-
+        
         solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
             _stype = stype;
             _model = model;
             _model->_built = true;
             init();
         }
-            
+        
         solver(gravity::Model<type>& model, SolverType stype){
             _stype = stype;
             _model = make_shared<gravity::Model<type>>(model);
@@ -163,7 +163,7 @@ namespace gravity {
                 ClpNotAvailable();
 #endif
             }
-        }        
+        }
         //@}
         void set_model(gravity::Model<type>& m);
         int run(bool relax){
@@ -213,7 +213,7 @@ namespace gravity {
                     if(lin_solver.first){
                         iapp->Options()->SetStringValue("linear_solver", lin_solver.second);
                     }
-//                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
+                    //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
                     
@@ -231,29 +231,18 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
-//                                iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
-//                        dyn_max_iter *= 2;
-//                    if (true) {
-//                                    if (false) {
                         mu_init = std::exp(-1)/std::exp(2);
                         DebugOn("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
-                        
-                        //                iapp->Options()->SetNumericValue("warm_start_bound_push", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_bound_frac", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_slack_bound_frac", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_slack_bound_push", 1e-12);
-                        //                iapp->Options()->SetNumericValue("warm_start_mult_bound_push", 1e-12);
                     }
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
-                    
-                    //mu_init, warm_start_mult_bound_push, warm_start_slack_bound_push, warm_start_bound_push
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
                     //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
@@ -268,7 +257,7 @@ namespace gravity {
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
-//                                                iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     
                     
                     
@@ -279,7 +268,7 @@ namespace gravity {
                     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     iapp->Options()->SetNumericValue("tol", tol);
                     //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
-//                                    iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
                     //            iapp.Options()->SetIntegerValue("print_level", 5);
                     
@@ -293,7 +282,7 @@ namespace gravity {
                     status = iapp->OptimizeTNLP(tmp);
                     if (IsValid(iapp->Statistics())) {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
-                        _nb_iterations = stats->IterationCount();                        
+                        _nb_iterations = stats->IterationCount();
                     }
                     if(_model->_objt==maximize){
                         *_model->_obj *= -1;
@@ -470,8 +459,8 @@ namespace gravity {
                     violated_constraints = _model->has_violated_constraints(tol);
                     if (violated_constraints) {
                         _model->reindex();
-//                        _model->print();
-//                        _model->print_symbolic();
+                        //                        _model->print();
+                        //                        _model->print_symbolic();
                         //                Constraint obj_cstr("obj_cstr_"+to_string(nb_it));
                         //                obj_cstr += _model->_obj - _model->_obj_ub;
                         //                if (_model->_objt==minimize) {
@@ -519,7 +508,7 @@ namespace gravity {
     }
     
     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-    template<typename type>    
+    template<typename type>
     void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6){
         std::vector<thread> threads;
         std::vector<bool> feasible;
@@ -554,66 +543,113 @@ namespace gravity {
      @tol numerical tolerance
      @nb_threads Number of parallel threads per worker
      @lin_solver linear system solver
+     @share_all propagate the solutions to all workers, if false, only worker 0 has updated solutions for all models
      */
     template<typename type>
-    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", bool share_all = false){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-	//vector<MPI_Request> reqs;
-	//reqs.resize(nb_workers);
-	MPI_Request reqs[nb_workers-1];
-        /* Split models into equal loads */
-        auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
-        auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-        DebugOn("I have " << nb_workers_ << " workers" << endl);
-        DebugOn("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
-        std::vector<size_t> limits = bounds(nb_workers_, models.size());
-        DebugOn("I will be splitting " << models.size() << " tasks ");
-        DebugOn("among " << nb_workers_ << " worker(s)" << endl);
-        DebugOn("limits size = " << limits.size() << endl);
-        for (size_t i = 0; i < limits.size(); ++i) {
-            DebugOn("limits[" << i << "] = " << limits[i] << endl);
-        }
-        /* Launch all threads in parallel */
-        
-        DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
-        auto vec = vector<shared_ptr<gravity::Model<type>>>();
-        for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-            vec.push_back(models[i]);
-        }
-        run_parallel(vec,stype,tol,nr_threads,lin_solver);
-        
-        if (worker_id == 0){
-            DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
-            for (auto w_id = 1; w_id<nb_workers; w_id++) {
-                for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    auto model = models[i];
-                    auto nb_vars = model->get_nb_vars();
-                    vector<double> solution;
-		    solution.resize(nb_vars);
-            	    DebugOn("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                    MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            	    DebugOn("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                    model->set_solution(solution);
+        MPI_Request send_reqs[nb_workers_*models.size()];
+        MPI_Request recv_reqs[nb_workers_*models.size()];
+
+        if(models.size()!=0){
+            err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+            err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+            /* Split models into equal loads */
+            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
+            auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
+            DebugOn("I have " << nb_workers_ << " workers" << endl);
+            DebugOn("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
+            std::vector<size_t> limits = bounds(nb_workers_, models.size());
+            DebugOn("I will be splitting " << models.size() << " tasks ");
+            DebugOn("among " << nb_workers_ << " worker(s)" << endl);
+            DebugOff("limits size = " << limits.size() << endl);
+            for (size_t i = 0; i < limits.size(); ++i) {
+                DebugOff("limits[" << i << "] = " << limits[i] << endl);
+            }
+            if(worker_id+1<limits.size()){
+                /* Launch all threads in parallel */
+                if(limits[worker_id] == limits[worker_id+1]){
+                    throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
-            } 
-        }
-        else{
-            DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
-            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                auto model = models[i];
-                auto nb_vars = model->get_nb_vars();
-                vector<double> solution;
-		solution.resize(nb_vars);
-                model->get_solution(solution);
-                DebugOn("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
-                DebugOn("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
+                DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                auto vec = vector<shared_ptr<gravity::Model<type>>>();
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    vec.push_back(models[i]);
+                }
+                run_parallel(vec,stype,tol,nr_threads,lin_solver);
+                if(!share_all){
+                    if (worker_id == 0){
+                        DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+                        for (auto w_id = 1; w_id<nb_workers_; w_id++) {
+                            for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                                auto model = models[i];
+                                auto nb_vars = model->get_nb_vars();
+                                vector<double> solution;
+                                solution.resize(nb_vars);
+                                DebugOff("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                                MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                                DebugOff("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                                model->set_solution(solution);
+                            }
+                        }
+                    }
+                    else {
+                        DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+                        for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                            auto model = models[i];
+                            auto nb_vars = model->get_nb_vars();
+                            vector<double> solution;
+                            solution.resize(nb_vars);
+                            model->get_solution(solution);
+                            DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                            MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
+                            DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
+                        }
+                    }
+                }
+                else {
+                    DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
+                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                        auto model = models[i];
+                        auto nb_vars = model->get_nb_vars();
+                        vector<double> solution;
+                        solution.resize(nb_vars);
+                        model->get_solution(solution);
+                        for (auto w_id = 0; w_id<nb_workers_; w_id++) {
+                            if (worker_id == w_id){
+                                continue;
+                            }
+                            
+                            DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                            MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
+                            DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
+                        }
+                    }
+                    MPI_Barrier(MPI_COMM_WORLD);
+                    DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
+                    for (auto w_id = 0; w_id<nb_workers_; w_id++) {
+                        if (worker_id == w_id){
+                            continue;
+                        }
+                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                            auto model = models[i];
+                            auto nb_vars = model->get_nb_vars();
+                            vector<double> solution;
+                            solution.resize(nb_vars);
+                            DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                            DebugOff("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            model->set_solution(solution);
+                            models[i]->_status=0;
+                        }
+                    }
+                }
             }
         }
-	MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);
     }
     
@@ -622,7 +658,7 @@ namespace gravity {
         run_MPI(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
     }
 #endif
-
+    
 }
 
 #endif /* defined(__Gravity____Solver__) */

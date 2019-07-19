@@ -17,7 +17,7 @@ namespace gravity {
         
     public:
         size_t                      _id = 0;
-        size_t                      _jac_cstr_idx; /* Firt index of the corresponding non-zero values in the Jacobian */
+        size_t                      _jac_cstr_idx; /* First index of the corresponding non-zero values in the Jacobian */
         ConstraintType              _ctype = leq; /**< Constraint type: leq, geq or eq */
         vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
         bool                        _relaxed = false; /**< True if this constraint is a relaxed version of an non-convex constraint, i.e. McCormick or from == to <= or >= */
@@ -27,6 +27,8 @@ namespace gravity {
         vector<bool>                _lazy;
         bool                        _all_satisfied = true;
         vector<bool>                _violated;
+        param<double>               _onCoef; /** Coefficient vector for on in on/off constraints */
+        param<double>               _offCoef; /** Coefficient vector for on in on/off constraints */
 
         
         
@@ -58,6 +60,13 @@ namespace gravity {
             this->_is_constraint = true;
             this->_all_lazy = make_shared<bool>(false);
             this->_dim[0] = 1;
+            this->_onCoef.set_name(name+"_onCoef");
+            this->_offCoef.set_name(name+"_offCoef");
+            
+            // TODO: we can define these coefficients in the same index set as the constraint in the future
+            // TODO: consider only the not lazy ones in on-off
+            this->_onCoef.in(range(1,this->get_nb_inst()));
+            this->_offCoef.in(range(1,this->get_nb_inst()));
         };
         
 //        Constraint& operator<=(type rhs) {
