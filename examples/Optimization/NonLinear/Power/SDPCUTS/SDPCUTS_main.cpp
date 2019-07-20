@@ -461,6 +461,15 @@ int main (int argc, char * argv[]) {
         DebugOn("xv\t"<<xv<<endl);
     }
     
+    auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
+    DebugOn("got xvv"<<endl);
+    for(auto i=0;i<xvv.size();i++)
+    {
+        for(auto j=0;j<xvv[i].size();j++)
+            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+        DebugOn(endl);
+    }
+    
     
 //    for (auto &it: *KCL_P._vars)
 //    {
