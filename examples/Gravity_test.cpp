@@ -1402,10 +1402,11 @@ TEST_CASE("testing get_matrix()") {
     var<> dv("dv");
     dv = dv.in(ids);
     dv.print_vals(4);
-    auto dv2 = dv.in_matrix();
+    auto dv2 = dv.in_matrix(1);
     Constraint<> Sum("Sum");
     Sum = sum(dv2);
     Sum.print();
+}
 
 TEST_CASE("testing Outer Approximation") {
     DebugOn("testing Outer Approximation");
