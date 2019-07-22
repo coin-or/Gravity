@@ -4911,7 +4911,6 @@ namespace gravity {
                     auto term = pair.second;
                     
                     auto in_S = *term._in_S; //collect that the lterm is in S or not
-                    DebugOn("THIS IS IN S INSIDE " << in_S << endl);
                     
                     type coef_val = 0;
                     if (term._coef->is_function()) {
@@ -5010,8 +5009,11 @@ namespace gravity {
                 throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
             }
             bitset<64> S;
-            for (int i = 0 ; i < 2 ; ++i) { // JUST FOR TRIAL PURPOSES
-//            for (int i = 0 ; i< std::pow(2,n_terms) -1 ; ++i) { //not considering the full set
+            //decide on the subset selection limit
+            int num_subset;
+            if (n_terms <= 2) num_subset = 1;
+            else num_subset = std::pow(2,n_terms) -1;
+            for (int i = 0 ; i< num_subset ; ++i) { //not considering the full set
                 S = i;
                 int j = 0;
                 
@@ -5019,7 +5021,6 @@ namespace gravity {
                 for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
                     auto term = pair.second;
                     *term._in_S = S[j];
-                    DebugOn("THIS IS IN S " << *term._in_S << endl);
                     if (1-S[j]){ //only if not in S
                         LHS.insert(term);
                     }
@@ -5029,30 +5030,39 @@ namespace gravity {
                 
                 if (c.get_ctype() == eq) {
                     get_on_off_coefficients(c, leq);
+                    auto offCoef1 = c._offCoef.deep_copy();
+                    auto onCoef1 = c._onCoef.deep_copy();
                     Constraint<type> res1(c.get_name() + "_" + to_string(i) + "_on/off");
-                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    res1 = LHS - offCoef1*(1-on) - onCoef1*on;
                     add_constraint(res1.in(*c._indices)<=0);
                     
                     get_on_off_coefficients(c, geq);
+                    auto offCoef2 = c._offCoef.deep_copy();
+                    auto onCoef2 = c._onCoef.deep_copy();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
-                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    res2 = LHS - offCoef2*(1-on) - onCoef2*on;
                     add_constraint(res2.in(*c._indices)>=0);
 
                 }
                 
                 else if (c.get_ctype() == leq) {
                     get_on_off_coefficients(c, leq);
+                    auto offCoef = c._offCoef.deep_copy();
+                    auto onCoef = c._onCoef.deep_copy();
                     Constraint<type> res1(c.get_name() +  "_" + to_string(i) + "_on/off");
-                    c._offCoef.print();
-                    c._onCoef.print();
-                    res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    res1 = LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res1.in(*c._indices)<=0);
                 }
                 
                 else {
                     get_on_off_coefficients(c, geq);
+                    auto offCoef = c._offCoef.deep_copy();
+                    auto onCoef = c._onCoef.deep_copy();
+                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off" << endl);
+                    offCoef.print();
+                    onCoef.print();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
-                    res2 = LHS - c._offCoef*(1-on) - c._onCoef*on;
+                    res2 = LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res2.in(*c._indices)>=0);
                 }
             }
