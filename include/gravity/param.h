@@ -452,9 +452,9 @@ namespace gravity {
         virtual void reset_bounds(){};
         
         /** Fill x with the variable's values */
-        virtual void set_double_val(double* x){};
+        virtual void get_double_val(double* x) const{};
         /** Fill the variable's values from x */
-        virtual void get_double_val(const double* x){};
+        virtual void set_double_val(const double* x){};
         
         /** Fill x with the variable's values */
         virtual void get_solution(vector<double>& x) const{};
@@ -462,18 +462,18 @@ namespace gravity {
         virtual void set_solution(const vector<double>& x){};
         
         /** Fill the variable's value at pos to x */
-        virtual void get_double_val(size_t pos, double x){};
+        virtual void set_double_val(size_t pos, double x) const{};
         
         /** Fill x from the variable's value at pos */
-        virtual void set_double_val(size_t pos, double& x){};
+        virtual void get_double_val(size_t pos, double& x) const{};
         
         /** round the value stored at position i to the nearest integer */
         virtual void round_vals(){};
 
         /** Fill x with the variable's lower bound values */
-        virtual void set_double_lb(double* x){};
+        virtual void get_double_lb(double* x) const{};
         /** Fill x with the variable's upper bound values */
-        virtual void set_double_ub(double* x){};
+        virtual void get_double_ub(double* x) const{};
         
         /** Return lower bound violation */
         virtual double get_lb_violation(size_t i){return 0;};
@@ -1981,10 +1981,10 @@ namespace gravity {
             throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
-        void set_double_val(double* x){set_double_val_(x);};
+        void get_double_val(double* x) const{get_double_val_(x);};
             
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void set_double_val_(double* x){
+        void get_double_val_(double* x) const{
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 x[vid+i] = (double)_val->at(i);
@@ -1992,14 +1992,14 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_val_(double* x){
-            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
+        void get_double_val_(double* x) const{
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
-        void get_double_val(const double* x){get_double_val_(x);};
+        void set_double_val(const double* x){set_double_val_(x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_double_val_(const double* x){
+        void set_double_val_(const double* x){
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 _val->at(i) = x[vid+i];
@@ -2007,8 +2007,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void get_double_val_(const double* x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        void set_double_val_(const double* x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
         /**
@@ -2027,31 +2027,31 @@ namespace gravity {
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         void set_solution_(const vector<double>& x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+            throw invalid_argument("Cannot call set_solution_ with a non-arithmetic type.");
         }
         
         
-        void get_double_val(size_t pos, double x){get_double_val_(pos,x);};
+        void set_double_val(size_t pos, double x){set_double_val_(pos,x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_double_val_(size_t pos, double x){
+        void set_double_val_(size_t pos, double x){
             _val->at(pos) = x;
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void get_double_val_(size_t i, double x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        void set_double_val_(size_t i, double x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
-        void set_double_val(size_t pos, double& x){set_double_val_(pos,x);};
+        void get_double_val(size_t pos, double& x) const{get_double_val_(pos,x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void set_double_val_(size_t pos, double& x){
+        void get_double_val_(size_t pos, double& x) const{
             x = _val->at(pos);
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_val_(size_t i, double& x){
+        void get_double_val_(size_t i, double& x) const{
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
