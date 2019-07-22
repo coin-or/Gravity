@@ -601,7 +601,7 @@ namespace gravity {
 //            res._vec_id = make_shared<size_t>();
 //            res._val = make_shared<vector<type>>(*_val);
             res._val = make_shared<vector<type>>();
-            res._val->resize(_val->size());
+            res.copy_vals(*this);
 //            res._val = make_shared<vector<type>>(*_val);
             res._range = make_shared<pair<type,type>>(*_range);
             res._name = _name;
