@@ -265,10 +265,10 @@ int main (int argc, char * argv[]) {
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDP.add_lazy(SDP3 >= 0);
+            SDP.add_lazy(SDP3.in(range(1,bag_size)) >= 0);
         }
         else {
-            SDP.add(SDP3 >= 0);
+            SDP.add(SDP3.in(range(1,bag_size)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
    
@@ -517,6 +517,15 @@ int main (int argc, char * argv[]) {
             DebugOn("XVV\t"<<xvv[i][j]<<"\t");
         DebugOn(endl);
     }
+    
+    xvv=SDP3.get_outer_point(1, 1);
+//    DebugOn("got xvv"<<endl);
+//    for(auto i=0;i<xvv.size();i++)
+//    {
+//        for(auto j=0;j<xvv[i].size();j++)
+//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+//        DebugOn(endl);
+//    }
 //
     
 //    for (auto &it: *KCL_P._vars)
