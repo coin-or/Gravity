@@ -462,7 +462,7 @@ namespace gravity {
         virtual void set_solution(const vector<double>& x){};
         
         /** Fill the variable's value at pos to x */
-        virtual void set_double_val(size_t pos, double x) const{};
+        virtual void set_double_val(size_t pos, double x){};
         
         /** Fill x from the variable's value at pos */
         virtual void get_double_val(size_t pos, double& x) const{};
