@@ -4907,7 +4907,7 @@ namespace gravity {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
                     
-                    auto in_S = term._in_S; //collect that the lterm is in S or not
+                    auto in_S = *term._in_S; //collect that the lterm is in S or not
                     DebugOn("THIS IS IN S INSIDE " << in_S << endl);
                     
                     type coef_val = 0;
@@ -5015,8 +5015,8 @@ namespace gravity {
                 func<type> LHS; //to handle the left hand side of the constaint
                 for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
                     auto term = pair.second;
-                    term._in_S = S[j];
-                    DebugOn("THIS IS IN S " << term._in_S << endl);
+                    *term._in_S = S[j];
+                    DebugOn("THIS IS IN S " << *term._in_S << endl);
                     if (1-S[j]){ //only if not in S
                         LHS.insert(term);
                     }

@@ -136,7 +136,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case float_: {
                 auto real_var = (var<float>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"_"+to_string(i))));
                 }
                 break;
@@ -144,7 +144,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case long_:{
                 auto real_var = (var<long double>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"_"+to_string(i))));
                 }
                 break;
@@ -152,7 +152,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case double_:{
                 auto real_var = (var<double>*)v;
                 for (size_t i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"_"+to_string(i)));
                 }
                 break;
@@ -160,7 +160,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case integer_:{
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"_"+to_string(i))));
                 }
                 break;
@@ -168,7 +168,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case short_:{
                 auto real_var = (var<short>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"_"+to_string(i))));
                 }
                 break;
@@ -176,7 +176,7 @@ void GurobiProgram::fill_in_grb_vmap(){
             case binary_:{
                 auto real_var = (var<bool>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
-                    auto vid = idx + v->get_id_inst(i);
+                    auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_BINARY, v->get_name(true,true)+"_"+to_string(i))));
                 }
                 break;
@@ -262,7 +262,7 @@ void GurobiProgram::create_grb_constraints(){
                     quadlhs = 0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
-                        if (it1.second._coef->_is_transposed) {
+                        if (it1.second._p->_is_vector || it1.second._coef->is_matrix()) {
                             auto dim =it1.second._p->get_dim(i);
                             for (size_t j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
@@ -283,7 +283,7 @@ void GurobiProgram::create_grb_constraints(){
                     for (auto& it1: c->get_qterms()) {
                         gvar1 = _grb_vars[it1.second._p->first->get_vec_id() + it1.second._p->first->get_id_inst(i)];
                         gvar2 = _grb_vars[it1.second._p->second->get_vec_id() + it1.second._p->second->get_id_inst(i)];
-                        if (it1.second._coef->_is_transposed) {
+                        if (it1.second._p->first->_is_vector) {
                             auto dim =it1.second._p->first->get_dim(i);
                             for (int j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
