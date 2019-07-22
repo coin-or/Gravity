@@ -658,7 +658,7 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
-            _off=p._off;
+            _off=p._off;            
             return *this;
         }
         
