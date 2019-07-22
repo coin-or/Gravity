@@ -4871,7 +4871,7 @@ namespace gravity {
             type LB_on,UB_on;
             
             /*allocate the boolean in S*/
-            bool in_S;
+//            bool in_S;
             
             size_t nb_ins = c.get_nb_inst();
             
@@ -4907,7 +4907,8 @@ namespace gravity {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
                     
-                    in_S = term._in_S; //collect that the lterm is in S or not
+                    auto in_S = term._in_S; //collect that the lterm is in S or not
+                    DebugOn("THIS IS IN S INSIDE " << in_S << endl);
                     
                     type coef_val = 0;
                     if (term._coef->is_function()) {
@@ -4950,7 +4951,7 @@ namespace gravity {
                         LB_on = (LB_off*(num_partns - cur_partn + 1) + UB_off*(cur_partn - 1))/num_partns;
                         UB_on = (LB_off*(num_partns - cur_partn) + UB_off*(cur_partn))/num_partns;
                     }
-                    
+                   
                     // can do this part slightly more efficient by only updating on and off based on in_S
                     if (c_type == leq) {
                         if (coef_val < 0){
@@ -5015,12 +5016,12 @@ namespace gravity {
                 for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
                     auto term = pair.second;
                     term._in_S = S[j];
+                    DebugOn("THIS IS IN S " << term._in_S << endl);
                     if (1-S[j]){ //only if not in S
                         LHS.insert(term);
                     }
                     j++;
                 }
-                
                 
                 
                 if (c.get_ctype() == eq) {
@@ -5039,6 +5040,8 @@ namespace gravity {
                 else if (c.get_ctype() == leq) {
                     get_on_off_coefficients(c, leq);
                     Constraint<type> res1(c.get_name() +  "_" + to_string(i) + "_on/off");
+                    c._offCoef.print();
+                    c._onCoef.print();
                     res1 = LHS - c._offCoef*(1-on) - c._onCoef*on;
                     add_constraint(res1.in(*c._indices)<=0);
                 }

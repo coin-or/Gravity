@@ -862,8 +862,7 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
-    SOCP.print();
-    
+    SOCP.print();    
    
     
     return 0;
