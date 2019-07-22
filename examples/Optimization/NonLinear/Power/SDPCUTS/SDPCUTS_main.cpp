@@ -246,8 +246,9 @@ int main (int argc, char * argv[]) {
     
     
     /** Constraints */
-    if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
-        
+//    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
+//    {
+    
         auto bag_size = bags_3d.size();
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
@@ -272,7 +273,7 @@ int main (int argc, char * argv[]) {
         }
    
         
-    }
+    //}
     
     /** Constraints */
     /* Second-order cone constraints */
@@ -434,34 +435,69 @@ int main (int argc, char * argv[]) {
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
     
-    func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
-    a.print();
-    DebugOn("Outer"<<endl);
+//    func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
+//    a.print();
+//    DebugOn("Outer"<<endl);
     
-    vector<double> x,y;
-    DebugOn("Fxk\t"<<Thermal_Limit_from.eval("0,1,2"));
-    for (auto &it: *Thermal_Limit_from._vars)
-    {
-             string vname = it.first;
-        var<> v=SDP.get_var<double>(vname);
-        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
-        x.push_back(v.eval("0,1,2"));
-    }
-    DebugOn("xstart"<<endl);
-    for(auto i=0;i<x.size();i++)
-        DebugOn("xstart"<<x[i]<<endl);
+    vector<double> x,y, xcurrent;
+
+//    for (auto &it: *Thermal_Limit_from._vars)
+//    {
+//             string vname = it.first;
+//        var<> v=SDP.get_var<double>(vname);
+//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
+//        x.push_back(v.eval("0,1,2"));
+//    }
+//
+//    for (auto &it: *Thermal_Limit_from._vars)
+//    {
+//        string vname = it.first;
+//        var<> v=SDP.get_var<double>(vname);
+//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
+//        x.push_back(v.eval("0,1,2"));
+//    }
+//    size_t nb_inst=0;
+//    double xv;
+//    for (auto &it: *SOC._vars)
+//    {
+//    auto v = it.second.first;
+//
+//        DebugOn("V id is\t"<<v->_id);
+//       DebugOn("v_name\t"<<v->_name);
+//        size_t posv=v->get_id_inst(nb_inst);
+//        v->set_double_val(posv, xv);
+////        var<> vk=SDP.get_var<double>("Wii.from");
+////        v->set_double_val(nb_inst, xv);
+//    xcurrent.push_back(xv);
+//        x.push_back(xv);
+//    }
+//    DebugOn("xcurrent"<<endl);
+//    for(auto i=0;i<xcurrent.size();i++)
+//        DebugOn("xcurrent"<<xcurrent[i]<<endl);
+//    DebugOn("xstart"<<endl);
+//    for(auto i=0;i<x.size();i++)
+//        DebugOn("xstart"<<x[i]<<endl);
     
     size_t nbinst=0;
-    double xv=0;
-   for (auto &it: *Thermal_Limit_from._vars)
-    {
-        auto v = it.second.first;
-        v->set_double_val(nbinst, xv);
-        y.push_back(xv);
-        DebugOn("xv\t"<<xv<<endl);
-    }
-    
+    //double xv=0;
+//   for (auto &it: *Thermal_Limit_from._vars)
+//    {
+//        auto v = it.second.first;
+//        v->set_double_val(nbinst, xv);
+//        y.push_back(xv);
+//        DebugOn("xv\t"<<xv<<endl);
+//    }
+//
     auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
+    DebugOn("got xvv"<<endl);
+    for(auto i=0;i<xvv.size();i++)
+    {
+        for(auto j=0;j<xvv[i].size();j++)
+        DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+        DebugOn(endl);
+    }
+
+    xvv=SOC.get_outer_point(0, -1);
     DebugOn("got xvv"<<endl);
     for(auto i=0;i<xvv.size();i++)
     {
@@ -470,6 +506,15 @@ int main (int argc, char * argv[]) {
         DebugOn(endl);
     }
     
+    xvv=LNC1.get_outer_point(0, 1);
+    DebugOn("got xvv"<<endl);
+    for(auto i=0;i<xvv.size();i++)
+    {
+        for(auto j=0;j<xvv[i].size();j++)
+            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+        DebugOn(endl);
+    }
+//
     
 //    for (auto &it: *KCL_P._vars)
 //    {
@@ -502,9 +547,9 @@ int main (int argc, char * argv[]) {
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(lower_bound) << " " << to_string(total_time)<<endl);
     
-    solver<> ACOPFS(ACOPF,solv_type);
+   // solver<> ACOPFS(ACOPF,solv_type);
     
-    SDP.print();
+   // SDP.print();
 //    ACOPFS.run(output = 5, tol = 1e-6);
 //    ACOPF.print_constraints_stats(tol);
 //    ACOPF.print_nonzero_constraints(tol,true);
