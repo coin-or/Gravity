@@ -283,6 +283,12 @@ int main (int argc, char * argv[])
                 model_type = "Model_III";
             }
             
+            /* Second-order cone */
+            Constraint<> SOC("SOC");
+            SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            SOCP.add(SOC.in(bus_pairs) <= 0);
+            SOCP.get_constraint("SOC")->_relaxed = true;
+            
             Constraint<> I_to_Pf("I_to_Pf");
             I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
             SOCP.add(I_to_Pf.in(arcs)>=0);
@@ -302,6 +308,20 @@ int main (int argc, char * argv[])
             I_to_Pf_EQ=ljiWii_to-(Pf_to_squared + Qf_to_squared);
             SOCP.add(I_to_Pf_EQ.in(arcs)==0);
             
+            var<> WijWji("WijWji");
+            SOCP.add(WijWji.in(bus_pairs));
+            
+            var<> R_WijWij("R_WijWij",pos_);
+            SOCP.add(R_WijWij.in(bus_pairs));
+            
+            var<> Im_WijWij("Im_WijWij",pos_);
+            SOCP.add(Im_WijWij.in(bus_pairs));
+            
+            /* Second-order cone constraints */
+            Constraint<> SOC_eq("SOC_eq");
+            SOC_eq = R_WijWij + Im_WijWij - WijWji;
+            SOCP.add(SOC_eq.in(bus_pairs) == 0);
+            
             //collect the bounds on variables
             
             //bounds for Pf_to and Qf_to
@@ -312,23 +332,37 @@ int main (int argc, char * argv[])
             auto LB_Wii = grid.w_min;
             auto UB_Wii = grid.w_max;
             
+            auto LB_R_Wij = grid.wr_min;
+            auto UB_R_Wij = grid.wr_max;
+            
+            auto LB_Im_Wij = grid.wi_min;
+            auto UB_Im_Wij = grid.wi_max;
+            
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 40; //number of partitions for Pf_to
-            int num_partitions2 = 40; //number of partitions for Qf_to
+            int num_partitions1 = 10; //number of partitions for Pf_to
+            int num_partitions2 = 10; //number of partitions for Qf_to
             
-            int num_partitions3 = 10; //number of partitions for Wii(to)
-            int num_partitions4 = 10; //number of partitions for lji
+            int num_partitions3 = 2; //number of partitions for Wii(to), Wii(from)
+            int num_partitions4 = 2; //number of partitions for lji
+            
+            int num_partitions5 = 10; //number of partitions for R_Wij
+            int num_partitions6 = 10; //number of partitions for Im_Wij
+            
             
             // allocate the partition bound arrays
             vector<double> p1(num_partitions1+1); //bounds for Pf_to
             vector<double> p2(num_partitions2+1); //bounds for Qf_to
-            vector<double> p3(num_partitions3+1); //bounds for Wii(to)
+            vector<double> p3(num_partitions3+1); //bounds for Wii(to), Wii(from)
             vector<double> p4(num_partitions4+1); //bounds for lji
+            
+            vector<double> p5(num_partitions5+1); //bounds for R_Wij
+            vector<double> p6(num_partitions6+1); //bounds for Im_Wij
             
             //parsing related items
             string delimiter = ","; //delimiter for correcly seperating the keys
             string toIDX; //to index of the key
+            string fromIDX; //from index of the key
             string myString; //temporary string
             size_t pos; //position of the delimiter
             size_t delimiter_lenght = delimiter.length();
@@ -340,6 +374,7 @@ int main (int argc, char * argv[])
                 int i = constraint_idx[k];
                 myString = bus_pairs._keys->at(i);
                 pos = bus_pairs._keys->at(i).find(delimiter);
+                fromIDX = myString.substr(0, pos);
                 toIDX = myString.substr(pos+delimiter_lenght);
                 
                 //fill the partition bounds for the variables
@@ -363,10 +398,24 @@ int main (int argc, char * argv[])
                 }
                 transform(p4.begin(), p4.end(), p4.begin(), bind(divides<double>(), placeholders::_1, num_partitions4));
                 
+                for (int j=0; j<num_partitions5+1; ++j) {
+                    p5[j] = (num_partitions5-j)*LB_R_Wij.eval(i)+(j)*UB_R_Wij.eval(i);
+                }
+                transform(p5.begin(), p5.end(), p5.begin(), bind(divides<double>(), placeholders::_1, num_partitions5));
+                
+                for (int j=0; j<num_partitions6+1; ++j) {
+                    p6[j] = (num_partitions6-j)*LB_Im_Wij.eval(i)+(j)*UB_Im_Wij.eval(i);
+                }
+                transform(p6.begin(), p6.end(), p6.begin(), bind(divides<double>(), placeholders::_1, num_partitions6));
+                
                 //add the partitions&relaxation on the variables
                 SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
                 SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
                 SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
+                
+                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
+                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
+                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
             }
         }
         
@@ -626,7 +675,7 @@ int main (int argc, char * argv[])
         arcs3.add("4,6,7","5,7,8","6,2,8","7,8,9");
         
         indices bus_pairs1("bus_pairs1");
-        bus_pairs1.add("1,4","4,5","2,8","5,6");
+        bus_pairs1.add("1,4","4,5","2,8","5,6","3,6");
         
         indices bus_pairs2("bus_pairs2");
         bus_pairs2.add("5,6","6,7","7,8","2,8","8,9");
@@ -635,13 +684,13 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 2;
-            Qf_to._num_partns = 2;
-            Wii._num_partns = 2;
-            lji._num_partns = 2;
+            Pf_to._num_partns = 1;
+            Qf_to._num_partns = 1;
+            Wii._num_partns = 10;
+            lji._num_partns = 10;
             
-            R_Wij._num_partns = 2;
-            Im_Wij._num_partns = 2;
+            R_Wij._num_partns = 1;
+            Im_Wij._num_partns = 1;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
@@ -650,22 +699,25 @@ int main (int argc, char * argv[])
             I_to_Pf=Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
             SOCP.add(I_to_Pf.in(arcs1)==0, true);
 
-//            Constraint<> I_to_Pf2("I_to_Pf2");
-//            I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
-//            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-//
-//            Constraint<> Equality_SOC1("Equality_SOC1");
-//            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
-//            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
-//
-//            Constraint<> Equality_SOC2("Equality_SOC2");
-//            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-//            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
-//
-//            Constraint<> I_to_Pf3("I_to_Pf3");
-//            I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
-//            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
+            Constraint<> I_to_Pf2("I_to_Pf2");
+            I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
+            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
+
+            Constraint<> Equality_SOC1("Equality_SOC1");
+            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
+            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
+
+            Constraint<> Equality_SOC2("Equality_SOC2");
+            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
+            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
+
+            Constraint<> I_to_Pf3("I_to_Pf3");
+            I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
+            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
             
+            Constraint<> Equality_SOC("Equality_SOC");
+            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
         }
     }
     
@@ -679,12 +731,6 @@ int main (int argc, char * argv[])
     ACOPF.min(obj);
     
     /** Constraints */
-    
-    /* Second-order cone */
-//    Constraint<> SOC("SOC");
-//    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-//    SOCP.add(SOC.in(bus_pairs) <= 0);
-//    SOCP.get_constraint("SOC")->_relaxed = true;
     
     /* Equality of Second-order cone (for upperbound) */
     Constraint<> Equality_SOC("Equality_SOC");
@@ -862,7 +908,8 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
-    SOCP.print();    
+    SOCP.print();
+    SOCP.print_solution();
    
     
     return 0;
