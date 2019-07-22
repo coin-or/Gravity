@@ -871,7 +871,7 @@ namespace gravity {
                             indices partns("partns");
                             for (int i = 0; i < num_partns1 ; ++i)
                             {
-                                partns.add(name1+to_string(i+1));
+                                partns.add(name1+ "{" +to_string(i+1) + "}");
                             }
 //                            partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
@@ -899,7 +899,7 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
                                     }
                             
                                     indices partns("partns");
@@ -958,13 +958,13 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
                                     }
                                     
                                     indices partns2("partns2");
                                     for (int i = 0; i < num_partns2 ; ++i)
                                     {
-                                        partns2.add(name2+to_string(i+1));
+                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
                                     indices partns("partns");
@@ -1031,13 +1031,13 @@ namespace gravity {
                                 indices partns1("partns1");
                                 for (int i = 0; i < num_partns1 ; ++i)
                                 {
-                                    partns1.add(name1+to_string(i+1));
+                                    partns1.add(name1+ "{" +to_string(i+1) + "}");
                                 }
                                 
                                 indices partns2("partns2");
                                 for (int i = 0; i < num_partns2 ; ++i)
                                 {
-                                    partns2.add(name2+to_string(i+1));
+                                    partns2.add(name2+ "{" + to_string(i+1) + "}");
                                 }
                                 
                                 indices partns("partns");
@@ -1104,13 +1104,13 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
                                     }
                                     
                                     indices partns2("partns2");
                                     for (int i = 0; i < num_partns2 ; ++i)
                                     {
-                                        partns2.add(name2+to_string(i+1));
+                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
 //                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
@@ -1158,13 +1158,13 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" + to_string(i+1) + "}");
                                     }
                                     
                                     indices partns2("partns2");
                                     for (int i = 0; i < num_partns2 ; ++i)
                                     {
-                                        partns2.add(name2+to_string(i+1));
+                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
 //                                    add(on1.in(o1_ids,range(1,num_partns1)));
@@ -1238,7 +1238,7 @@ namespace gravity {
                                 indices partns("partns");
                                 for (int i = 0; i < num_partns1 ; ++i)
                                 {
-                                    partns.add(name1+to_string(i+1));
+                                    partns.add(name1+  "{" + to_string(i+1) + "}");
                                 }
                                 
                                 param<int> lb1("lb1"), ub1("ub1");
@@ -1265,7 +1265,7 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" + to_string(i+1) + "}");
                                     }
                                     
                                     
@@ -1332,13 +1332,13 @@ namespace gravity {
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
-                                        partns1.add(name1+to_string(i+1));
+                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
                                     }
                                     
                                     indices partns2("partns2");
                                     for (int i = 0; i < num_partns2 ; ++i)
                                     {
-                                        partns2.add(name2+to_string(i+1));
+                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
                                     indices partns("partns");
@@ -4901,6 +4901,8 @@ namespace gravity {
                         M2sum_on -= f_cst->eval(inst);
                     }
                 }
+                //collect the instance index as a string
+                auto partition_info = c._indices->_keys->at(inst);
                 
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
@@ -4923,34 +4925,33 @@ namespace gravity {
                     
                     auto inst_id = term._p->get_id_inst(inst);
                     auto num_partns = term._p->get_num_partns();
-                    auto cur_partn = term._p->get_cur_partn();
                     
                     /* update the coef_val as coef_val * sign */
                     if (!term._sign) coef_val = -coef_val;
                     
-                    if (cur_partn > num_partns) throw invalid_argument("Current partition is out of range (larger than the number of partitions)");
-                    
-                    auto lifted = term._p->get_lift();
-                    
+                    //set the global bounds
                     LB_off = (term._p->get_double_lb(inst_id));
                     UB_off = (term._p->get_double_ub(inst_id));
                     
-                    // TODO : need to get the bounds with the partition!
-                    LB_on = (term._p->get_double_lb(inst_id));
-                    UB_on = (term._p->get_double_ub(inst_id));
+                    auto lifted = term._p->get_lift();
+                    if (lifted){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1
+                        LB_on = (term._p->get_double_lb(inst_id));
+                        UB_on = (term._p->get_double_ub(inst_id));
+                    }
+                    else {
+                        //collect the cur_partn number from the instance index (this is not the info _cur_partn stored in the variable, it is stored in the indices of the constraint)
+                        auto name1 = term._p->get_name(true,true);
+                        auto loc1 = partition_info.find(name1) + name1.length() +1 ;
+                        auto loc2 = partition_info.find_first_of('}', loc1);
+                        int cur_partn = stoi(partition_info.substr(loc1,loc2-loc1));
+                        
+                        if (cur_partn > num_partns) throw invalid_argument("Current partition is out of range (larger than the number of partitions)");
+                        
+                        LB_on = (LB_off*(num_partns - cur_partn + 1) + UB_off*(cur_partn - 1))/num_partns;
+                        UB_on = (LB_off*(num_partns - cur_partn) + UB_off*(cur_partn))/num_partns;
+                    }
                     
-                    //                    if (lifted){
-                    //                        LB_partn = LB;
-                    //                        UB_partn = UB;
-                    //                    }
-                    //                    else {
-                    //                        /** following might be used if we utilize cur_partn and all ***/
-                    //                        //                        LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-                    //                        //                        UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
-                    //                        LB_partn = LB;
-                    //                        UB_partn = UB;
-                    //                    }
-                    
+                    // can do this part slightly more efficient by only updating on and off based on in_S
                     if (c_type == leq) {
                         if (coef_val < 0){
                             M1sum_off += coef_val * LB_off * (1-in_S);
@@ -5005,8 +5006,8 @@ namespace gravity {
                 throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
             }
             bitset<64> S;
-            for (int i = 0 ; i < 1 ; ++i) { // JUST FOR TRIAL PURPOSES
-                //            for (int i = 0 ; i<pow(2,nterms) -1 ; ++i) { //not considering the full set
+            for (int i = 0 ; i < 2 ; ++i) { // JUST FOR TRIAL PURPOSES
+//            for (int i = 0 ; i< std::pow(2,n_terms) -1 ; ++i) { //not considering the full set
                 S = i;
                 int j = 0;
                 
@@ -5487,13 +5488,13 @@ namespace gravity {
                 indices partns1("partns1");
                 for (int i = 0; i < num_partns1 ; ++i)
                 {
-                    partns1.add(name1+to_string(i+1));
+                    partns1.add(name1+ "{" +to_string(i+1) + "}");
                 }
                 
                 indices partns2("partns2");
                 for (int i = 0; i < num_partns2 ; ++i)
                 {
-                    partns2.add(name2+to_string(i+1));
+                    partns2.add(name2+ "{"+ to_string(i+1) + "}");
                 }
                 
                 indices partns("partns");
@@ -5573,7 +5574,7 @@ namespace gravity {
                         UB_partn2.eval_all();
                         for (size_t inst = 0; inst< nb_ins; inst++){
                             auto cur_var_idx = var_indices._keys->at(inst);
-                            string cur_idx = cur_var_idx+","+name1+to_string(i+1)+","+name2+to_string(j+1);
+                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"}";
 
                             v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
                             v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
@@ -5682,7 +5683,7 @@ namespace gravity {
                 indices partns("partns");
                 for (int i = 0; i < num_partns1 ; ++i)
                 {
-                    partns.add(name1+to_string(i+1));
+                    partns.add(name1+"{"+to_string(i+1) + "}");
                 }
 //                partns = indices(range(1,num_partns1));
                 auto var_indices = *v1._indices;
@@ -5718,7 +5719,7 @@ namespace gravity {
                     for (size_t inst = 0; inst< nb_ins; inst++){
                         auto cur_var_id = v1.get_id_inst(inst);
                         auto cur_var_idx = var_indices._keys->at(cur_var_id);
-                        string cur_idx = cur_var_idx+","+name1+to_string(i+1);
+                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
                         v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
                         v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
                         v1_on_LB.set_val(cur_idx,LB_partn.eval(inst));
