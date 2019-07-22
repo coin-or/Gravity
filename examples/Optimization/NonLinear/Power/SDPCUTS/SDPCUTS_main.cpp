@@ -456,27 +456,30 @@ int main (int argc, char * argv[]) {
 //        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
 //        x.push_back(v.eval("0,1,2"));
 //    }
-//    size_t nb_inst=0;
-//    double xv;
-//    for (auto &it: *SOC._vars)
-//    {
-//    auto v = it.second.first;
-//
-//        DebugOn("V id is\t"<<v->_id);
-//       DebugOn("v_name\t"<<v->_name);
-//        size_t posv=v->get_id_inst(nb_inst);
-//        v->set_double_val(posv, xv);
-////        var<> vk=SDP.get_var<double>("Wii.from");
-////        v->set_double_val(nb_inst, xv);
-//    xcurrent.push_back(xv);
-//        x.push_back(xv);
-//    }
-//    DebugOn("xcurrent"<<endl);
-//    for(auto i=0;i<xcurrent.size();i++)
-//        DebugOn("xcurrent"<<xcurrent[i]<<endl);
-//    DebugOn("xstart"<<endl);
-//    for(auto i=0;i<x.size();i++)
-//        DebugOn("xstart"<<x[i]<<endl);
+  size_t nb_inst=0;
+    double xv,xva, xvb;
+    for (auto &it: *SOC._vars)
+    {
+    auto v = it.second.first;
+
+        DebugOn("V id is\t"<<v->_id);
+       DebugOn("v_name\t"<<v->_name);
+        size_t posv=v->get_id_inst(nb_inst);
+        v->get_double_val(posv, xv);
+//        var<> vk=SDP.get_var<double>("Wii.from");
+//        v->set_double_val(nb_inst, xv);
+    xcurrent.push_back(xv);
+        xva=xv+0.01;
+        v->set_double_val(posv, xva);
+        v->get_double_val(posv, xvb);
+        x.push_back(xvb);
+    }
+    DebugOn("xcurrent"<<endl);
+    for(auto i=0;i<xcurrent.size();i++)
+        DebugOn("xcurrent"<<xcurrent[i]<<endl);
+    DebugOn("xstart"<<endl);
+    for(auto i=0;i<x.size();i++)
+        DebugOn("xstart"<<x[i]<<endl);
     
     size_t nbinst=0;
     //double xv=0;
