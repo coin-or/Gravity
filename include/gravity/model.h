@@ -19,6 +19,9 @@
 #include <thread>
 #include <iostream>
 #include <functional>
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
 #ifdef USE_IPOPT
 #define HAVE_STDDEF_H
 #include <coin/IpIpoptApplication.hpp>
@@ -5762,6 +5765,8 @@ namespace gravity {
                 
             }
         }
+        
+        void run_obbt(double max_time = 300, unsigned max_iter=100) ;
         
         
         //        void add_on_off(const Constraint<type>& c, var<bool>& on){
