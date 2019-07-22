@@ -1078,19 +1078,18 @@ namespace gravity {
             bool perturb=true, dir;
             f_start=eval(nb_inst);
             for(auto &it: *_vars)
-                {
+            {
                  auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
-                 v->set_double_val(posv, xv);
+                 size_t posv=v->get_id_inst(nb_inst);
+                 v->get_double_val(posv, xv);
                  xcurrent.push_back(xv);
-                }
+            }
             int res_count=0;
-            //If outer point do nothing, return what current??,Implement
+            
             
             //No backtracking
             
-            // if interval zero do not perturb, perturb=false, else if x at upper bound (within range tol?) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
-            
+           
             //Once feasible direction is found not reversing direction. So shall work from any current point only for monotonic function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
             
             //Perturb so that distance between new point and current point is greater than perturb dist
@@ -1104,12 +1103,11 @@ namespace gravity {
                 xv=xcurrent[count];
                 step=step_tol;
                 iter_dir=0;
-                
                 ub=v->get_double_ub(posv);
                 lb=v->get_double_lb(posv);
                 auto df = *compute_derivative(*v);
                 dfdv=df.eval(posv);
-                
+                // if interval zero do not perturb, perturb=false, else if x at upper bound (within perturb_dist) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
                 if((ub-lb)<=perturb_dist)
                 {
                     dir=false;
@@ -1185,12 +1183,12 @@ namespace gravity {
                      if(sign==1)
                      {
                          xv=std::min(xv*(1+step), ub);
-                         v->get_double_val(posv, xv);
+                         v->set_double_val(posv, xv);
                      }
                      else
                      {
                          xv=std::max(xv*(1-step), lb);
-                         v->get_double_val(posv, xv);
+                         v->set_double_val(posv, xv);
                      }
                      fnew=eval(nb_inst);
                      if(con_type==-1)
@@ -1233,7 +1231,7 @@ namespace gravity {
                      }
                      iter++;
                  }
-                     if(perturb==true || (f>zero_tol && con_type==-1) || (f<-zero_tol && con_type==1) )
+                     if(perturb==true || (f>zero_tol && con_type==-1) || (f<(zero_tol*(-1)) && con_type==1) )
                      {
                          for(auto i=0;i<count;i++)
                              res[res_count].push_back(xcurrent[i]);
@@ -1243,10 +1241,9 @@ namespace gravity {
                          res_count++;
             }
             }
-            v->get_double_val(posv, xcurrent[count]);
+            v->set_double_val(posv, xcurrent[count]);
             f=f_start;
             count++;
-                
             }
             return(res);
         }
