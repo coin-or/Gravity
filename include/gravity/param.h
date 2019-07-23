@@ -72,6 +72,7 @@ namespace gravity {
         vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
         vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
         vector<bool>                                   _off; /*<< on/off flag for multiple usage, one per instance */
+        shared_ptr<bool>                               _in = nullptr;/*<< on/off flag for multiple usage, one per symbolic param/var */
       //  shared_ptr<param_>                                        _off = nullptr;/*<< pointer on/off flag for multiple usage, one per instance */
         /**
          A shallow copy of p (ignoring _val and _range)
@@ -92,6 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
+            _in=p._in;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -506,6 +508,7 @@ namespace gravity {
             update_type();
             init_range();
             _val = make_shared<vector<type>>();
+            _in = make_shared<bool>(true);
         }
         
         shared_ptr<param_> pcopy() const{return make_shared<param>(*this);};
@@ -623,6 +626,7 @@ namespace gravity {
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
             res._off=_off;
+            res._in=_in;
             return res;
         }
 
@@ -658,7 +662,8 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
-            _off=p._off;            
+            _off=p._off;
+            _in=p._in;
             return *this;
         }
         
@@ -700,6 +705,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
+            _in=p._in;
             return *this;
         }
 
@@ -727,6 +733,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=move(p._off);
+            _in=move(p._in);
             return *this;
         }
 
