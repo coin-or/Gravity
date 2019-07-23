@@ -167,6 +167,8 @@ namespace gravity {
             this->func<type>::operator=(c);
             this->_name = c._name;
             this->_is_constraint = true;
+            _onCoef = c._onCoef.deep_copy();
+            _offCoef = c._offCoef.deep_copy();
             return *this;
         }
         
@@ -191,6 +193,8 @@ namespace gravity {
             this->func<type>::operator=(move(c));
             this->_name = c._name;
             this->_is_constraint = true;
+            _onCoef = move(c._onCoef);
+            _offCoef = move(c._offCoef);
             return *this;
         }
         
