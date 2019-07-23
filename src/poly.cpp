@@ -29,7 +29,6 @@ namespace gravity{
         _coef = l._coef->copy();
         _p = l._p->pcopy();
         _sign = l._sign;
-        _in_S = l._in_S;
         return *this;
     }
 
@@ -37,7 +36,6 @@ namespace gravity{
         _coef = move(l._coef);
         _p = move(l._p);
         _sign = l._sign;
-        _in_S = move(l._in_S);
         return *this;
     }
 
