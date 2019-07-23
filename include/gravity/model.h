@@ -4873,9 +4873,6 @@ namespace gravity {
             type LB_off,UB_off;
             type LB_on,UB_on;
             
-            /*allocate the boolean in S*/
-//            bool in_S;
-            
             size_t nb_ins = c.get_nb_inst();
             
             for (size_t inst = 0; inst<nb_ins; inst++)
@@ -4910,8 +4907,7 @@ namespace gravity {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
                     
-                    auto in_S = *term._in_S; //collect that the lterm is in S or not
-                    
+                    double in_S = *term._in_S; //collect that the lterm is in S or not
                     type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
@@ -4973,7 +4969,7 @@ namespace gravity {
                         }
                         else {
                             M2sum_off += coef_val * LB_off * (1-in_S);
-                            M2sum_on -= coef_val * UB_on * (in_S);
+                            M2sum_on -= coef_val * UB_on * (int)(in_S);
                         }
                     }
                     else {
@@ -5013,8 +5009,9 @@ namespace gravity {
             int num_subset;
             if (n_terms <= 2) num_subset = 1;
             else num_subset = std::pow(2,n_terms) -1;
-            for (int i = 0 ; i< num_subset ; ++i) { //not considering the full set
-                S = i;
+            vector<int> myset = {0,4};
+            for (int i = 0 ; i< myset.size() ; ++i) { //not considering the full set
+                S = myset[i];
                 int j = 0;
                 
                 func<type> LHS; //to handle the left hand side of the constaint
@@ -5058,9 +5055,9 @@ namespace gravity {
                     get_on_off_coefficients(c, geq);
                     auto offCoef = c._offCoef.deep_copy();
                     auto onCoef = c._onCoef.deep_copy();
-                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off" << endl);
-                    offCoef.print();
-                    onCoef.print();
+//                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off2" << endl);
+//                    offCoef.print();
+//                    onCoef.print();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res2.in(*c._indices)>=0);
@@ -5648,7 +5645,7 @@ namespace gravity {
                 MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
                 MC1.in(inst_partition) >= 0;
 //                add_on_off_multivariate_new(MC1, on);
-                add_on_off_multivariate_refined(MC1, on);
+//                add_on_off_multivariate_refined(MC1, on);
                 
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
@@ -5660,7 +5657,7 @@ namespace gravity {
                 MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
                 MC3.in(inst_partition) <= 0;
 //                add_on_off_multivariate_new(MC3, on);
-                add_on_off_multivariate_refined(MC3, on);
+//                add_on_off_multivariate_refined(MC3, on);
                 
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
@@ -5672,22 +5669,22 @@ namespace gravity {
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
                 v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
                 v1_on_off_LB.in(inst_partition) >= 0;
-                add(v1_on_off_LB);
+//                add(v1_on_off_LB);
                 
                 Constraint<type> v1_on_off_UB(name+"_v1_on_off_UB");
                 v1_on_off_UB = v1.from_ith(0,inst_partition) - on*v1_on_UB - (1-on)*v1_off_UB;
                 v1_on_off_UB.in(inst_partition) <= 0;
-                add(v1_on_off_UB);
+//                add(v1_on_off_UB);
                 
                 Constraint<type> v2_on_off_LB(name+"_v2_on_off_LB");
                 v2_on_off_LB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_LB - (1-on)*v2_off_LB;
                 v2_on_off_LB.in(inst_partition) >= 0;
-                add(v2_on_off_LB);
+//                add(v2_on_off_LB);
                 
                 Constraint<type> v2_on_off_UB(name+"_v2_on_off_UB");
                 v2_on_off_UB = v2.from_ith(nb_entries_v1,inst_partition) - on*v2_on_UB - (1-on)*v2_off_UB;
                 v2_on_off_UB.in(inst_partition) <= 0;
-                add(v2_on_off_UB);
+//                add(v2_on_off_UB);
             }
             
             
