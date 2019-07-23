@@ -93,7 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
-            _in=p._in;
+            *_in=*p._in;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -626,7 +626,7 @@ namespace gravity {
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
             res._off=_off;
-            res._in=_in;
+            *res._in=*_in;
             return res;
         }
 
@@ -663,7 +663,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            _in=p._in;
+            *_in=*p._in;
             return *this;
         }
         
@@ -705,7 +705,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            _in=p._in;
+            *_in=*p._in;
             return *this;
         }
 
