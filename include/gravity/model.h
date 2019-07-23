@@ -5052,9 +5052,9 @@ namespace gravity {
                     get_on_off_coefficients(c, geq);
                     auto offCoef = c._offCoef.deep_copy();
                     auto onCoef = c._onCoef.deep_copy();
-//                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off2" << endl);
-//                    offCoef.print();
-//                    onCoef.print();
+                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off2" << endl);
+                    offCoef.print();
+                    onCoef.print();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res2.in(*c._indices)>=0);
