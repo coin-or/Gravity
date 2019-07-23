@@ -1455,7 +1455,10 @@ namespace gravity {
             }
             else {
                 for (auto key: *_indices->_keys) {
-                    first_key = key.substr(0,key.find(","));
+                    auto pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        first_key = key.substr(0,pos);
+                    }
                     if (first_key!=prev_key) {
                         res._ids->resize(res._ids->size()+1);
                         inst++;

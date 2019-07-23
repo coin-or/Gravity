@@ -5050,7 +5050,7 @@ namespace gravity {
                     
                     auto in_S = *term._p->_in; //collect that the lterm is in S or not
 //                    auto p = static_pointer_cast<param<type>>(term._p);
-//                    DebugOn("THIS IS NAME" << p->get_name(true,true) << "THIS IS IN S INSIDE " << in_S << endl);
+                    DebugOn("THIS IS NAME" << pair.first << "THIS IS IN S " << in_S << endl);
                     type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
@@ -5143,9 +5143,9 @@ namespace gravity {
                 func<type> LHS; //to handle the left hand side of the constaint
                 for (auto &lt:*c._lterms) { //set the _in_S values and create LHS
                     auto term = lt.second;
-                    *term._p->_in = S[j];
+                    *(term._p->_in) = S[j];
 //                    auto p = static_pointer_cast<param<type>>(term._p);
-//                    DebugOn("THIS IS NAME" << p->get_name(true,true) << "THIS IS IN S " << *term._in_S << endl);
+                    DebugOn("THIS IS NAME" << lt.first << "THIS IS IN S " << *(term._p->_in) << endl);
                     if (!S[j]){ //only if not in S
                         auto coef = lt.second._coef->copy();
                         if (coef->is_function()) {
