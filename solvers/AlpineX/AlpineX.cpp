@@ -22,10 +22,10 @@ int main (int argc, char * argv[])
     
     // Specify the additional constraints
     bool current = true;
-    bool current_partition_lambda = true;
+    bool current_partition_lambda = false;
     bool current_partition_on_off = false;
     bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = false;
+    bool current_partition_on_off_automated = true;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -695,9 +695,9 @@ int main (int argc, char * argv[])
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
             
-//            Constraint<> I_to_Pf("I_to_Pf");
-//            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//            SOCP.add(I_to_Pf.in(arcs)==0, true);
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            SOCP.add(I_to_Pf.in(arcs)==0, true);
 
             Constraint<> Equality_SOC("Equality_SOC");
             Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);

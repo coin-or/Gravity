@@ -846,6 +846,13 @@ namespace gravity {
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
+                
+               /* If some keys are repeated in individual indices, remove them from the refs of o1 and o2 */
+                auto keep_refs1 = o1_ids.get_unique_refs();
+                auto keep_refs2 = o2_ids.get_unique_refs();
+                o1_ids.filter_refs(keep_refs1);
+                o2_ids.filter_refs(keep_refs2);
+                
                 // collect the number of partitions of each variable
                 int num_partns1 = o1._num_partns;
                 int num_partns2 = o2._num_partns;
@@ -1198,6 +1205,8 @@ namespace gravity {
                                     
                                     Constraint<> onSum1(o1._name+"_binarySum");
                                     onSum1 = sum(on1.in_matrix(nb_entries_v1));
+                                    onSum1.print();
+                                    o1_ids.print();
                                     add(onSum1.in(o1_ids) == 1);
                                     
                                     Constraint<> onSum2(o2._name+"_binarySum");
