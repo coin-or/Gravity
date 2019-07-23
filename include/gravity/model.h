@@ -4887,36 +4887,18 @@ namespace gravity {
                 if (!c.get_cst()->is_zero()) {
                     if (c.get_cst()->is_number()) {
                         auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
-                        if (c_type == leq) {
-                            M1sum_on += f_cst->eval();
-                            M2sum_on += f_cst->eval();
-                        }
-                        else {
-                            M1sum_on -= f_cst->eval();
-                            M2sum_on -= f_cst->eval();
-                        }
+                        M1sum_on -= f_cst->eval();
+                        M2sum_on -= f_cst->eval();
                     }
                     else if (c.get_cst()->is_param()) {
                         auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
-                        if (c_type == leq) {
-                            M1sum_on += f_cst->eval(inst);
-                            M2sum_on += f_cst->eval(inst);
-                        }
-                        else {
-                            M1sum_on -= f_cst->eval(inst);
-                            M2sum_on -= f_cst->eval(inst);
-                        }
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
                     }
                     else {
                         auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
-                        if (c_type == leq) {
-                            M1sum_on += f_cst->eval(inst);
-                            M2sum_on += f_cst->eval(inst);
-                        }
-                        else {
-                            M1sum_on -= f_cst->eval(inst);
-                            M2sum_on -= f_cst->eval(inst);
-                        }
+                        M1sum_on -= f_cst->eval(inst);
+                        M2sum_on -= f_cst->eval(inst);
                     }
                 }
                 //collect the instance index as a string
@@ -4971,30 +4953,46 @@ namespace gravity {
                     // can do this part slightly more efficient by only updating on and off based on in_S
                     if (c_type == leq) {
                         if (coef_val < 0){
-                            M1sum_off += coef_val * LB_off * (1-in_S);
-                            M1sum_on -= coef_val * UB_on * (in_S);
+                            if(in_S){
+                                M1sum_on -= coef_val * UB_on;
+                            }
+                            else {
+                                M1sum_off += coef_val * LB_off;
+                            }
                         }
                         else {
-                            M1sum_off += coef_val * UB_off * (1-in_S);
-                            M1sum_on -= coef_val * LB_on * (in_S);
+                            if(in_S){
+                                M1sum_on -= coef_val * LB_on;
+                            }
+                            else {
+                                M1sum_off += coef_val * UB_off;
+                            }
                         }
                     }
                     
                     else if (c_type == geq){
                         if (coef_val < 0){
-                            M2sum_off += coef_val * UB_off * (1-in_S);
-                            M2sum_on -= coef_val * LB_on * (in_S);
+                            if(in_S){
+                                M2sum_on -= coef_val * LB_on;
+                            }
+                            else {
+                                M2sum_off += coef_val * UB_off;
+                            }
                         }
                         else {
-                            M2sum_off += coef_val * LB_off * (1-in_S);
-                            M2sum_on -= coef_val * UB_on * (int)(in_S);
+                            if(in_S){
+                                M2sum_on -= coef_val * UB_on;
+                            }
+                            else {
+                                M2sum_off += coef_val * LB_off;
+                            }
                         }
                     }
                     else {
                         throw invalid_argument("Only leq and geq types are allowed. If you want to get coefficients for eq, use leq and geq consecutively.");
                     }
                 }
-                if (c.get_ctype() == leq){
+                if (c_type == leq){
                     c._offCoef.set_val(inst,M1sum_off);
                     c._onCoef.set_val(inst,M1sum_on);
                 }
@@ -5039,10 +5037,6 @@ namespace gravity {
                     *term._in_S = S[j];
                     if (!S[j]){ //only if not in S
                         auto coef = lt.second._coef->copy();
-                        if (coef->_is_transposed) {
-                            coef->transpose();//TODO is this needed?
-                            coef->_is_vector = false;
-                        }
                         if (coef->is_function()) {
                             auto f_cst = *((func<type>*)(coef.get()));
                             auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
@@ -5080,12 +5074,14 @@ namespace gravity {
                     res1 = LHS - offCoef1*(1-on) - onCoef1*on;
                     add_constraint(res1.in(*c._indices)<=0);
                     
-                    get_on_off_coefficients(c, geq);
-                    auto offCoef2 = c._offCoef.deep_copy();
-                    auto onCoef2 = c._onCoef.deep_copy();
+                    Constraint<type> n_c(c);
+                    n_c *= -1;
+                    get_on_off_coefficients(n_c, leq);
+                    auto offCoef2 = n_c._offCoef.deep_copy();
+                    auto onCoef2 = n_c._onCoef.deep_copy();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - offCoef2*(1-on) - onCoef2*on;
-                    add_constraint(res2.in(*c._indices)>=0);
+                    add_constraint(res2.in(*c._indices)<=0);
 
                 }
                 
@@ -5099,15 +5095,23 @@ namespace gravity {
                 }
                 
                 else {
-                    get_on_off_coefficients(c, geq);
-                    auto offCoef = c._offCoef.deep_copy();
-                    auto onCoef = c._onCoef.deep_copy();
-//                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off2" << endl);
-//                    offCoef.print();
-//                    onCoef.print();
+                    Constraint<type> n_c(c);
+                    n_c *= -1;
+                    get_on_off_coefficients(n_c, leq);
+                    auto offCoef = n_c._offCoef.deep_copy();
+                    auto onCoef = n_c._onCoef.deep_copy();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = LHS - offCoef*(1-on) - onCoef*on;
-                    add_constraint(res2.in(*c._indices)>=0);
+                    add_constraint(res2.in(*c._indices)<=0);
+//                    get_on_off_coefficients(c, geq);
+//                    auto offCoef = c._offCoef.deep_copy();
+//                    auto onCoef = c._onCoef.deep_copy();
+////                    DebugOn(c.get_name() +  "_" + to_string(i) + "_on/off2" << endl);
+////                    offCoef.print();
+////                    onCoef.print();
+//                    Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
+//                    res2 = LHS - offCoef*(1-on) - onCoef*on;
+////                    add_constraint(res2.in(*c._indices)>=0);
                 }
             }
         }
