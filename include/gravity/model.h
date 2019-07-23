@@ -4887,18 +4887,36 @@ namespace gravity {
                 if (!c.get_cst()->is_zero()) {
                     if (c.get_cst()->is_number()) {
                         auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
-                        M1sum_on -= f_cst->eval();
-                        M2sum_on -= f_cst->eval();
+                        if (c_type == leq) {
+                            M1sum_on += f_cst->eval();
+                            M2sum_on += f_cst->eval();
+                        }
+                        else {
+                            M1sum_on -= f_cst->eval();
+                            M2sum_on -= f_cst->eval();
+                        }
                     }
                     else if (c.get_cst()->is_param()) {
                         auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
-                        M1sum_on -= f_cst->eval(inst);
-                        M2sum_on -= f_cst->eval(inst);
+                        if (c_type == leq) {
+                            M1sum_on += f_cst->eval(inst);
+                            M2sum_on += f_cst->eval(inst);
+                        }
+                        else {
+                            M1sum_on -= f_cst->eval(inst);
+                            M2sum_on -= f_cst->eval(inst);
+                        }
                     }
                     else {
                         auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
-                        M1sum_on -= f_cst->eval(inst);
-                        M2sum_on -= f_cst->eval(inst);
+                        if (c_type == leq) {
+                            M1sum_on += f_cst->eval(inst);
+                            M2sum_on += f_cst->eval(inst);
+                        }
+                        else {
+                            M1sum_on -= f_cst->eval(inst);
+                            M2sum_on -= f_cst->eval(inst);
+                        }
                     }
                 }
                 //collect the instance index as a string
@@ -5004,7 +5022,7 @@ namespace gravity {
             if (n_terms > 64){
                 throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
             }
-            bitset<64> S;
+            std::bitset<64> S;
             //decide on the subset selection limit
             int num_subset;
             if (n_terms <= 2) num_subset = 1;
@@ -5014,12 +5032,41 @@ namespace gravity {
                 S = myset[i];
                 int j = 0;
                 
+                shared_ptr<pair<type,type>> term_range;
                 func<type> LHS; //to handle the left hand side of the constaint
-                for (auto &pair:*c._lterms) { //set the _in_S values and create LHS
-                    auto term = pair.second;
+                for (auto &lt:*c._lterms) { //set the _in_S values and create LHS
+                    auto term = lt.second;
                     *term._in_S = S[j];
-                    if (1-S[j]){ //only if not in S
-                        LHS.insert(term);
+                    if (!S[j]){ //only if not in S
+                        auto coef = lt.second._coef->copy();
+                        if (coef->_is_transposed) {
+                            coef->transpose();//TODO is this needed?
+                            coef->_is_vector = false;
+                        }
+                        if (coef->is_function()) {
+                            auto f_cst = *((func<type>*)(coef.get()));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            term_range = get_product_range(f_cst._range,var_range);
+                            LHS.insert(lt.second._sign, f_cst, *term._p);
+                        }
+                        else if(coef->is_param()) {
+                            auto p_cst = *((param<type>*)(coef.get()));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            term_range = get_product_range(p_cst._range,var_range);
+                            LHS.insert(lt.second._sign, p_cst, *term._p);
+                        }
+                        else if(coef->is_number()) {
+                            auto p_cst = *((constant<type>*)(coef.get()));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
+                            LHS.insert(lt.second._sign, p_cst, *term._p);
+                        }
+                        if(lt.second._sign){
+                            LHS._range = get_plus_range(LHS._range, term_range);
+                        }
+                        else {
+                            LHS._range = get_minus_range(LHS._range, term_range);
+                        }
                     }
                     j++;
                 }
