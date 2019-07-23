@@ -846,6 +846,13 @@ namespace gravity {
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
+                
+               /* If some keys are repeated in individual indices, remove them from the refs of o1 and o2 */
+//                auto keep_refs1 = o1_ids.get_unique_refs();
+//                auto keep_refs2 = o2_ids.get_unique_refs();
+//                o1_ids.filter_refs(keep_refs1);
+//                o2_ids.filter_refs(keep_refs2);
+                
                 // collect the number of partitions of each variable
                 int num_partns1 = o1._num_partns;
                 int num_partns2 = o2._num_partns;
@@ -1208,6 +1215,7 @@ namespace gravity {
                                     
                                     Constraint<> onSumComb(pair.first+"_binarySum");
                                     onSumComb = sum(on.in_matrix(nb_entries));
+                                    onSumComb.print();
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
@@ -5046,43 +5054,41 @@ namespace gravity {
                 auto partition_info = c._indices->_keys->at(inst);
                 
                 for (auto &pair:*c._lterms) {
-                    auto term = pair.second;
-                    
-                    auto in_S = *term._p->_in; //collect that the lterm is in S or not
+                    auto in_S = *pair.second._p->_in; //collect that the lterm is in S or not
 //                    auto p = static_pointer_cast<param<type>>(term._p);
-                    DebugOn("THIS IS NAME" << pair.first << "THIS IS IN S " << in_S << endl);
+                    DebugOn("THIS IS IN S INSIDE " << in_S << endl);
                     type coef_val = 0;
-                    if (term._coef->is_function()) {
-                        auto coef = static_pointer_cast<func<type>>(term._coef);
+                    if (pair.second._coef->is_function()) {
+                        auto coef = static_pointer_cast<func<type>>(pair.second._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
                     }
-                    else if(term._coef->is_param()) {
-                        auto coef = static_pointer_cast<param<type>>(term._coef);
+                    else if(pair.second._coef->is_param()) {
+                        auto coef = static_pointer_cast<param<type>>(pair.second._coef);
                         coef_val = coef->eval(inst);//this will give you the value of this instance
                     }
                     else { /*means (term._coef->is_number())*/
-                        auto coef = static_pointer_cast<constant<type>>(term._coef);
+                        auto coef = static_pointer_cast<constant<type>>(pair.second._coef);
                         coef_val = coef->eval();
                     }
                     
-                    auto inst_id = term._p->get_id_inst(inst);
-                    auto num_partns = term._p->get_num_partns();
+                    auto inst_id = pair.second._p->get_id_inst(inst);
+                    auto num_partns = pair.second._p->get_num_partns();
                     
                     /* update the coef_val as coef_val * sign */
-                    if (!term._sign) coef_val = -coef_val;
+                    if (!pair.second._sign) coef_val = -coef_val;
                     
                     //set the global bounds
-                    LB_off = (term._p->get_double_lb(inst_id));
-                    UB_off = (term._p->get_double_ub(inst_id));
+                    LB_off = (pair.second._p->get_double_lb(inst_id));
+                    UB_off = (pair.second._p->get_double_ub(inst_id));
                     
-                    auto lifted = term._p->get_lift();
+                    auto lifted = pair.second._p->get_lift();
                     if (lifted){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1
-                        LB_on = (term._p->get_double_lb(inst_id));
-                        UB_on = (term._p->get_double_ub(inst_id));
+                        LB_on = (pair.second._p->get_double_lb(inst_id));
+                        UB_on = (pair.second._p->get_double_ub(inst_id));
                     }
                     else {
                         //collect the cur_partn number from the instance index (this is not the info _cur_partn stored in the variable, it is stored in the indices of the constraint)
-                        auto name1 = term._p->get_name(true,true);
+                        auto name1 = pair.second._p->get_name(true,true);
                         auto loc1 = partition_info.find(name1) + name1.length() +1 ;
                         auto loc2 = partition_info.find_first_of('}', loc1);
                         int cur_partn = stoi(partition_info.substr(loc1,loc2-loc1));
@@ -5137,34 +5143,34 @@ namespace gravity {
             if (n_terms <= 2) num_subset = 1;
             else num_subset = std::pow(2,n_terms) -1;
             for (int i = 0 ; i< num_subset ; ++i) { //not considering the full set
+                S = i;
                 int j = 0;
                 
                 shared_ptr<pair<type,type>> term_range;
                 func<type> LHS; //to handle the left hand side of the constaint
                 for (auto &lt:*c._lterms) { //set the _in_S values and create LHS
-                    auto term = lt.second;
-                    *(term._p->_in) = S[j];
+                    *(lt.second._p->_in) = S[j];
 //                    auto p = static_pointer_cast<param<type>>(term._p);
-                    DebugOn("THIS IS NAME" << lt.first << "THIS IS IN S " << *(term._p->_in) << endl);
+                    DebugOn("THIS IS IN S " << *(lt.second._p->_in) << endl);
                     if (!S[j]){ //only if not in S
                         auto coef = lt.second._coef->copy();
                         if (coef->is_function()) {
                             auto f_cst = *((func<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
                             term_range = get_product_range(f_cst._range,var_range);
-                            LHS.insert(lt.second._sign, f_cst, *term._p);
+                            LHS.insert(lt.second._sign, f_cst, *lt.second._p);
                         }
                         else if(coef->is_param()) {
                             auto p_cst = *((param<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
                             term_range = get_product_range(p_cst._range,var_range);
-                            LHS.insert(lt.second._sign, p_cst, *term._p);
+                            LHS.insert(lt.second._sign, p_cst, *lt.second._p);
                         }
                         else if(coef->is_number()) {
                             auto p_cst = *((constant<type>*)(coef.get()));
-                            auto var_range = make_shared<pair<type,type>>(c.get_range(term._p));
+                            auto var_range = make_shared<pair<type,type>>(c.get_range(lt.second._p));
                             term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
-                            LHS.insert(lt.second._sign, p_cst, *term._p);
+                            LHS.insert(lt.second._sign, p_cst, *lt.second._p);
                         }
                         if(lt.second._sign){
                             LHS._range = get_plus_range(LHS._range, term_range);
@@ -5816,7 +5822,7 @@ namespace gravity {
                 MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
                 MC1.in(inst_partition) >= 0;
 //                add_on_off_multivariate_new(MC1, on);
-                add_on_off_multivariate_refined(MC1, on);
+//                add_on_off_multivariate_refined(MC1, on);
                 
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
@@ -5828,13 +5834,13 @@ namespace gravity {
                 MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
                 MC3.in(inst_partition) <= 0;
 //                add_on_off_multivariate_new(MC3, on);
-                add_on_off_multivariate_refined(MC3, on);
+//                add_on_off_multivariate_refined(MC3, on);
                 
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
                 MC4.in(inst_partition) <= 0;
 //                add_on_off_multivariate_new(MC4, on);
-                add_on_off_multivariate_refined(MC4, on);
+//                add_on_off_multivariate_refined(MC4, on);
                 
                 
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");

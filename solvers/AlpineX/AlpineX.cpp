@@ -22,10 +22,10 @@ int main (int argc, char * argv[])
     
     // Specify the additional constraints
     bool current = true;
-    bool current_partition_lambda = true;
+    bool current_partition_lambda = false;
     bool current_partition_on_off = false;
     bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = false;
+    bool current_partition_on_off_automated = true;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -684,13 +684,13 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
+            Pf_to._num_partns = 1;
+            Qf_to._num_partns = 1;
+            Wii._num_partns = 2;
+            lji._num_partns = 1;
             
-            R_Wij._num_partns = 20;
-            Im_Wij._num_partns = 20;
+            R_Wij._num_partns = 1;
+            Im_Wij._num_partns = 1;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
@@ -839,7 +839,7 @@ int main (int argc, char * argv[])
 //        << get<2>(v[i]) << "\n";
     
     
-//    SOCP.print();
+    SOCP.print();
 //    SOCP.print_solution();
     
     
