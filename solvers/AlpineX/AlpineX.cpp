@@ -684,24 +684,25 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 1;
-            Qf_to._num_partns = 1;
-            Wii._num_partns = 2;
-            lji._num_partns = 1;
+            Pf_to._num_partns = 20;
+            Qf_to._num_partns = 20;
+            Wii._num_partns = 4;
+            lji._num_partns = 4;
             
-            R_Wij._num_partns = 1;
-            Im_Wij._num_partns = 1;
+            R_Wij._num_partns = 10;
+            Im_Wij._num_partns = 10;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
             
-//            Constraint<> I_to_Pf("I_to_Pf");
-//            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//            SOCP.add(I_to_Pf.in(arcs)==0, true);
+            Constraint<> I_to_Pf("I_to_Pf");
+            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            SOCP.add(I_to_Pf.in(arcs)==0, true);
 
-            Constraint<> Equality_SOC("Equality_SOC");
-            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+//            Constraint<> Equality_SOC("Equality_SOC");
+//            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+            
         }
     }
     
@@ -715,6 +716,11 @@ int main (int argc, char * argv[])
     ACOPF.min(obj);
     
     /** Constraints */
+    
+     /* Second-order cone */
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    SOCP.add(SOC.in(bus_pairs) <= 0);
     
     /* Equality of Second-order cone (for upperbound) */
     Constraint<> Equality_SOC("Equality_SOC");
@@ -839,7 +845,7 @@ int main (int argc, char * argv[])
 //        << get<2>(v[i]) << "\n";
     
     
-    SOCP.print();
+//    SOCP.print();
 //    SOCP.print_solution();
     
     
@@ -894,7 +900,7 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
-//    SOCP.print();
+    SOCP.print();
 //    SOCP.print_solution();
    
     
