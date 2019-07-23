@@ -22,10 +22,10 @@ int main (int argc, char * argv[])
     
     // Specify the additional constraints
     bool current = true;
-    bool current_partition_lambda = false;
+    bool current_partition_lambda = true;
     bool current_partition_on_off = false;
     bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = true;
+    bool current_partition_on_off_automated = false;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -340,14 +340,14 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
             
-            int num_partitions3 = 2; //number of partitions for Wii(to), Wii(from)
-            int num_partitions4 = 2; //number of partitions for lji
+            int num_partitions3 = 4; //number of partitions for Wii(to), Wii(from)
+            int num_partitions4 = 4; //number of partitions for lji
             
-            int num_partitions5 = 10; //number of partitions for R_Wij
-            int num_partitions6 = 10; //number of partitions for Im_Wij
+            int num_partitions5 = 20; //number of partitions for R_Wij
+            int num_partitions6 = 20; //number of partitions for Im_Wij
             
             
             // allocate the partition bound arrays
@@ -409,9 +409,9 @@ int main (int argc, char * argv[])
                 transform(p6.begin(), p6.end(), p6.begin(), bind(divides<double>(), placeholders::_1, num_partitions6));
                 
                 //add the partitions&relaxation on the variables
-                SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
-                SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
-                SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
+//                SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
+//                SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
+//                SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
                 
                 SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
                 SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
@@ -684,40 +684,24 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 1;
-            Qf_to._num_partns = 1;
+            Pf_to._num_partns = 20;
+            Qf_to._num_partns = 20;
             Wii._num_partns = 4;
-            lji._num_partns = 1;
+            lji._num_partns = 4;
             
-            R_Wij._num_partns = 1;
-            Im_Wij._num_partns = 1;
+            R_Wij._num_partns = 20;
+            Im_Wij._num_partns = 20;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
             
 //            Constraint<> I_to_Pf("I_to_Pf");
-//            I_to_Pf=Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
-//            SOCP.add(I_to_Pf.in(arcs1)==0, true);
+//            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            SOCP.add(I_to_Pf.in(arcs)==0, true);
 
-//            Constraint<> I_to_Pf2("I_to_Pf2");
-//            I_to_Pf2=Wii.to(arcs2)*lji.in(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
-//            SOCP.add(I_to_Pf2.in(arcs2)==0, true);
-//
-//            Constraint<> Equality_SOC1("Equality_SOC1");
-//            Equality_SOC1 = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
-//            SOCP.add(Equality_SOC1.in(bus_pairs1) == 0, true);
-//
-//            Constraint<> Equality_SOC2("Equality_SOC2");
-//            Equality_SOC2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-//            SOCP.add(Equality_SOC2.in(bus_pairs2) == 0, true);
-//
-//            Constraint<> I_to_Pf3("I_to_Pf3");
-//            I_to_Pf3=Wii.to(arcs3)*lji.in(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
-//            SOCP.add(I_to_Pf3.in(arcs3)==0, true);
-//
             Constraint<> Equality_SOC("Equality_SOC");
-            Equality_SOC = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-            SOCP.add(Equality_SOC.in(bus_pairs2) == 0, true);
+            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
         }
     }
     
@@ -842,11 +826,13 @@ int main (int argc, char * argv[])
     
     
 
-    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     double gap = 100*(upperbound - original_LB)/upperbound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    
+    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
+    
 //    for (int i = 0; i < v.size(); i++)
 //        cout << get<0>(v[i])<< " "
 //        << get<1>(v[i]) << " "
@@ -908,8 +894,8 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
-    SOCP.print();
-    SOCP.print_solution();
+//    SOCP.print();
+//    SOCP.print_solution();
    
     
     return 0;
