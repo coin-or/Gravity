@@ -30,11 +30,8 @@ namespace gravity {
         shared_ptr<constant_>               _coef = nullptr; /**< Coefficient */
         shared_ptr<param_>                  _p = nullptr; /**< Variable */
         bool                                _sign = true; /**< True if +, false if - */
-        shared_ptr<bool>                    _in_S = nullptr; /**< True if the term is in S (when creating the on/off constraints), false if not */
         
-        lterm(){
-            _in_S = make_shared<bool>(false);
-        };
+        lterm(){};
         
         lterm(lterm&& t){
             *this = move(t);

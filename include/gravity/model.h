@@ -4916,7 +4916,7 @@ namespace gravity {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
                     
-                    double in_S = *term._in_S; //collect that the lterm is in S or not
+                    auto in_S = *term._p->_in; //collect that the lterm is in S or not
                     type coef_val = 0;
                     if (term._coef->is_function()) {
                         auto coef = static_pointer_cast<func<type>>(term._coef);
@@ -5057,7 +5057,7 @@ namespace gravity {
                 for (auto &pair:*c._lterms) {
                     auto term = pair.second;
                     
-                    auto in_S = *term._in_S; //collect that the lterm is in S or not
+                    auto in_S = *term._p->_in; //collect that the lterm is in S or not
 //                    auto p = static_pointer_cast<param<type>>(term._p);
 //                    DebugOn("THIS IS NAME" << p->get_name(true,true) << "THIS IS IN S INSIDE " << in_S << endl);
                     type coef_val = 0;
@@ -5152,7 +5152,7 @@ namespace gravity {
                 func<type> LHS; //to handle the left hand side of the constaint
                 for (auto &lt:*c._lterms) { //set the _in_S values and create LHS
                     auto term = lt.second;
-                    *term._in_S = S[j];
+                    *term._p->_in = S[j];
 //                    auto p = static_pointer_cast<param<type>>(term._p);
 //                    DebugOn("THIS IS NAME" << p->get_name(true,true) << "THIS IS IN S " << *term._in_S << endl);
                     if (!S[j]){ //only if not in S
@@ -5198,12 +5198,12 @@ namespace gravity {
                     n_c *= -1;
                     
                     // NEED A BETTER WAY THAN THIS SOMETHING LIKE n_c.deep_copy(c), but that currently does not work
-                    int k = 0;
-                    for (auto &lt:*n_c._lterms) { //set the _in_S values for n_c
-                        auto term = lt.second;
-                        *term._in_S = S[k];
-                        ++k;
-                    }
+//                    int k = 0;
+//                    for (auto &lt:*n_c._lterms) { //set the _in_S values for n_c
+//                        auto term = lt.second;
+//                         *term._p->_in = S[k];
+//                        ++k;
+//                    }
                     
                     get_on_off_coefficients_standard(n_c);
                     auto offCoef2 = n_c._offCoef.deep_copy();
@@ -5228,12 +5228,12 @@ namespace gravity {
                     n_c *= -1;
                     
                     // NEED A BETTER WAY THAN THIS SOMETHING LIKE n_c.deep_copy(c), but that currently does not work
-                    int k = 0;
-                    for (auto &lt:*n_c._lterms) { //set the _in_S values for n_c
-                        auto term = lt.second;
-                        *term._in_S = S[k];
-                        ++k;
-                    }
+//                    int k = 0;
+//                    for (auto &lt:*n_c._lterms) { //set the _in_S values for n_c
+//                        auto term = lt.second;
+//                         *term._p->_in = S[k];
+//                        ++k;
+//                    }
                     
                     get_on_off_coefficients_standard(n_c);
                     auto offCoef = n_c._offCoef.deep_copy();
