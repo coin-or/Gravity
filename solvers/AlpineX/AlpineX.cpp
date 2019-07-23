@@ -24,8 +24,8 @@ int main (int argc, char * argv[])
     bool current = true;
     bool current_partition_lambda = false;
     bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = false;
-    bool current_partition_on_off_automated = true;
+    bool current_partition_on_off_temp = true;
+    bool current_partition_on_off_automated = false;
     
     //    Specify the use of partitioning scheme without current
     bool do_partition = false;
@@ -268,13 +268,12 @@ int main (int argc, char * argv[])
         
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-//        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-//        SOCP.add(I_from_Pf.in(arcs)>=0);
-//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
-        //        SOCP.add(I_from_Pf.in(arcs)==0, true);
+        SOCP.add(I_from_Pf.in(arcs)>=0);
+        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
         
         
@@ -283,12 +282,7 @@ int main (int argc, char * argv[])
                 model_type = "Model_III";
             }
             
-            /* Second-order cone */
-            Constraint<> SOC("SOC");
-            SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SOCP.add(SOC.in(bus_pairs) <= 0);
-            SOCP.get_constraint("SOC")->_relaxed = true;
-            
+            DebugOn( "THIS ONE IS THE LAMBDA FORMULATION" << endl);
             Constraint<> I_to_Pf("I_to_Pf");
             I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
             SOCP.add(I_to_Pf.in(arcs)>=0);
@@ -409,13 +403,13 @@ int main (int argc, char * argv[])
                 transform(p6.begin(), p6.end(), p6.begin(), bind(divides<double>(), placeholders::_1, num_partitions6));
                 
                 //add the partitions&relaxation on the variables
-//                SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
-//                SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
-//                SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
+                SOCP.partition("Pf_to_squared" + to_string(i), model_type, Pf_to_squared(i), Pf_to(i), Pf_to(i),p1,p1);
+                SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
+                SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
                 
-                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
-                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
-                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
+//                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
+//                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
+//                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
             }
         }
         
@@ -460,11 +454,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 20; //number of partitions for Pf_to
-            int num_partitions2 = 20; //number of partitions for Qf_to
+            int num_partitions1 = 10; //number of partitions for Pf_to
+            int num_partitions2 = 10; //number of partitions for Qf_to
             
-            int num_partitions3 = 4; //number of partitions for Wii(to)
-            int num_partitions4 = 4; //number of partitions for lji
+            int num_partitions3 = 2; //number of partitions for Wii(to)
+            int num_partitions4 = 2; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -543,11 +537,11 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 20; //number of partitions for Pf_to
+            int num_partitions2 = 20; //number of partitions for Qf_to
             
-            int num_partitions3 = 2; //number of partitions for Wii(to)
-            int num_partitions4 = 2; //number of partitions for lji
+            int num_partitions3 = 4; //number of partitions for Wii(to)
+            int num_partitions4 = 4; //number of partitions for lji
             
             
             /* create an index set for all z and unify them maybe later */
@@ -696,7 +690,7 @@ int main (int argc, char * argv[])
             /* Equality of Second-order cone (for upperbound) */
             
             Constraint<> I_to_Pf("I_to_Pf");
-            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             SOCP.add(I_to_Pf.in(arcs)==0, true);
 
 //            Constraint<> Equality_SOC("Equality_SOC");
@@ -763,27 +757,27 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-//    SOCP.add(PAD_UB.in(bus_pairs));
-//    ACOPF.add(PAD_UB.in(bus_pairs));
+    SOCP.add(PAD_UB.in(bus_pairs));
+    ACOPF.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-//    SOCP.add(PAD_LB.in(bus_pairs));
-//    ACOPF.add(PAD_LB.in(bus_pairs));
+    SOCP.add(PAD_LB.in(bus_pairs));
+    ACOPF.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-//    SOCP.add(Thermal_Limit_from.in(arcs));
-//    ACOPF.add(Thermal_Limit_from.in(arcs));
+    SOCP.add(Thermal_Limit_from.in(arcs));
+    ACOPF.add(Thermal_Limit_from.in(arcs));
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-//    SOCP.add(Thermal_Limit_to.in(arcs));
-//    ACOPF.add(Thermal_Limit_to.in(arcs));
+    SOCP.add(Thermal_Limit_to.in(arcs));
+    ACOPF.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -791,16 +785,16 @@ int main (int argc, char * argv[])
     LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-//    SOCP.add(LNC1.in(bus_pairs) >= 0);
-//    ACOPF.add(LNC1.in(bus_pairs) >= 0);
+    SOCP.add(LNC1.in(bus_pairs) >= 0);
+    ACOPF.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-//    SOCP.add(LNC2.in(bus_pairs) >= 0);
-//    ACOPF.add(LNC2.in(bus_pairs) >= 0);
+    SOCP.add(LNC2.in(bus_pairs) >= 0);
+    ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
@@ -831,13 +825,13 @@ int main (int argc, char * argv[])
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     
     
-
+    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     double gap = 100*(upperbound - original_LB)/upperbound;
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
-    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
+    
     
 //    for (int i = 0; i < v.size(); i++)
 //        cout << get<0>(v[i])<< " "
@@ -900,9 +894,9 @@ int main (int argc, char * argv[])
 //    xtempcons.get_cst()->print();
 //    xtempcons2.get_cst()->print();
     
-    SOCP.print();
+//    SOCP.print();
 //    SOCP.print_solution();
-   
+    
     
     return 0;
     

@@ -5156,7 +5156,7 @@ namespace gravity {
             int num_subset;
             if (n_terms <= 2) num_subset = 1;
             else num_subset = std::pow(2,n_terms) -1;
-            for (int i = 0 ; i< num_subset ; ++i) { //not considering the full set
+            for (int i = 0 ; i< num_subset ; ++i) { //should be num_subset
                 S = i;
                 int j = 0;
                 
