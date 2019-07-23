@@ -684,20 +684,20 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
+            Pf_to._num_partns = 1;
+            Qf_to._num_partns = 1;
+            Wii._num_partns = 2;
+            lji._num_partns = 1;
             
-            R_Wij._num_partns = 20;
-            Im_Wij._num_partns = 20;
+            R_Wij._num_partns = 1;
+            Im_Wij._num_partns = 1;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
             
-            Constraint<> I_to_Pf("I_to_Pf");
-            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            SOCP.add(I_to_Pf.in(arcs)==0, true);
+//            Constraint<> I_to_Pf("I_to_Pf");
+//            I_to_Pf=Wii.to(arcs)*lji.in(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            SOCP.add(I_to_Pf.in(arcs)==0, true);
 
             Constraint<> Equality_SOC("Equality_SOC");
             Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
