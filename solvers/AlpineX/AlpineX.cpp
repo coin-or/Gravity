@@ -268,11 +268,11 @@ int main (int argc, char * argv[])
         
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+//        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP.add(I_from_Pf.in(arcs)>=0);
+//        SOCP.add(I_from_Pf.in(arcs)>=0);
 //        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         //        SOCP.add(I_from_Pf.in(arcs)==0, true);
         
@@ -773,27 +773,27 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add(PAD_UB.in(bus_pairs));
-    ACOPF.add(PAD_UB.in(bus_pairs));
+//    SOCP.add(PAD_UB.in(bus_pairs));
+//    ACOPF.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add(PAD_LB.in(bus_pairs));
-    ACOPF.add(PAD_LB.in(bus_pairs));
+//    SOCP.add(PAD_LB.in(bus_pairs));
+//    ACOPF.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_from.in(arcs));
-    ACOPF.add(Thermal_Limit_from.in(arcs));
+//    SOCP.add(Thermal_Limit_from.in(arcs));
+//    ACOPF.add(Thermal_Limit_from.in(arcs));
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_to.in(arcs));
-    ACOPF.add(Thermal_Limit_to.in(arcs));
+//    SOCP.add(Thermal_Limit_to.in(arcs));
+//    ACOPF.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -801,16 +801,16 @@ int main (int argc, char * argv[])
     LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SOCP.add(LNC1.in(bus_pairs) >= 0);
-    ACOPF.add(LNC1.in(bus_pairs) >= 0);
+//    SOCP.add(LNC1.in(bus_pairs) >= 0);
+//    ACOPF.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
     LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SOCP.add(LNC2.in(bus_pairs) >= 0);
-    ACOPF.add(LNC2.in(bus_pairs) >= 0);
+//    SOCP.add(LNC2.in(bus_pairs) >= 0);
+//    ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);

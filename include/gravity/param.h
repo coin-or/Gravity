@@ -2099,7 +2099,7 @@ namespace gravity {
             _dim[1] = p._dim[1];
             auto dim = p.get_dim();
             _val->resize(dim);
-            for (size_t i = 0; i < dim; i++) {
+            for (size_t i = 0; i < p._val->size(); i++) {
                 _val->at(i) = p._val->at(i);
             }
             reset_range();
