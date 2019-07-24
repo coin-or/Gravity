@@ -690,7 +690,7 @@ namespace gravity {
         
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(const Constraint<Cpx>& c, bool convexify = false){
+        void add(const Constraint<Cpx>& c, bool convexify = false, string method_type = "on/off"){
             if (c.get_dim()==0) {
                 return;
             }
@@ -709,9 +709,9 @@ namespace gravity {
             c_imag._dim[0] = c._dim[0];
             if(convexify){
                 c_real.check_soc();c_real.check_rotated_soc();
-                auto lifted_real = lift(c_real);
+                auto lifted_real = lift(c_real, method_type);
                 c_imag.check_soc();c_imag.check_rotated_soc();
-                auto lifted_imag = lift(c_imag);
+                auto lifted_imag = lift(c_imag, method_type);
                 lifted_real._ctype = c._ctype;
                 lifted_real._indices = c._indices;
                 lifted_real._dim[0] = c._dim[0];
@@ -757,12 +757,16 @@ namespace gravity {
             //            c_imag.print_symbolic();
         }
         
-        Constraint<type> lift(const Constraint<type>& c){
+        Constraint<type> lift(const Constraint<type>& c, string model_type){
             if(c.is_constant() || c.is_linear() || c.is_convex()){
                 return c;
             }
             if(c.is_nonlinear()){
                 throw invalid_argument("lift can only be called on polynomial constraints");
+            }
+            // lambda models are taken from Padberg's paper as they are described in type II and type III
+            if((model_type != "on/off") && (model_type != "lambda_II") && (model_type != "lambda_III")){
+                throw invalid_argument("model_type can only be one of the following: 'on/off', 'lambda_II', 'lambda_III' ");
             }
             Constraint<type> lifted(c._name+"_lifted");
             if (!c.get_cst()->is_zero()) {
@@ -846,7 +850,7 @@ namespace gravity {
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
-            
+                
                 // collect the number of partitions of each variable
                 int num_partns1 = o1._num_partns;
                 int num_partns2 = o2._num_partns;
@@ -888,17 +892,181 @@ namespace gravity {
                             {
                                 partns.add(name1+ "{" +to_string(i+1) + "}");
                             }
-//                            partns = indices(range(1,num_partns1));
+                            //                            partns = indices(range(1,num_partns1));
                             auto inst_partition = indices(unique_ids,partns);
                             add(on.in(inst_partition));
                             
                             auto nb_entries = unique_ids.get_nb_entries();
-                            
                             Constraint<> onSum(pair.first + "_binarySum");
                             onSum += sum(on.in_matrix(nb_entries));
                             add(onSum.in(unique_ids) == 1);
                             
-                            add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            if(model_type == "on/off"){
+                                add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                            }
+                            
+                            else{ //means it is one of the lambda formulations
+                                
+                                //difference is this has one more partition index
+                                indices partns_lambda("partns_lambda");
+                                for (int i = 0; i < num_partns1+1 ; ++i)
+                                {
+                                    partns_lambda.add(name1+ "{" +to_string(i+1) + "}");
+                                }
+                                auto inst_partition_lambda = indices(unique_ids,partns_lambda);
+                                
+                                // Convex combination variables
+                                var<> lambda(name1+"_lambda",pos_);
+                                add(lambda.in(inst_partition_lambda));
+                                
+                                /** Parameters */
+                                // Bounds on variable v1 & v2
+                                param<> bounds(name1+"_bounds");
+                                bounds.in(inst_partition_lambda);
+                                
+                                // Function values on the extreme points
+                                param<> EP(name+"_grid_values");
+                                EP.in(inst_partition_lambda);
+                                
+                                size_t nb_ins = vlift.in(unique_ids).get_nb_inst();
+                                auto o1_global_lb = o1.get_lb();
+                                auto increment = (o1.get_ub() - o1_global_lb)/num_partns1;
+                                
+                                // fill bounds and function values
+                                for (int i=0 ; i<num_partns1+1; ++i) {
+                                    auto bound_partn = o1_global_lb + increment*i;
+                                    bound_partn.eval_all();
+                                    for (size_t inst = 0; inst< nb_ins; inst++){
+                                        auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                        auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
+                                        bounds.set_val(cur_idx,bound_partn.eval(inst));
+                                        EP.set_val(cur_idx,(bound_partn.eval(inst)*bound_partn.eval(inst)));
+                                    }
+                                }
+                                
+                                // Lambda coefficient matrix when linking with partition variables
+                                param<> lambda_coef(name+"_lambda_linking_coefficients");
+                                
+                                // Partition coefficient matrix when linking with lambda variables
+                                param<> on_coef(name+"_partition_linking_coefficients");
+                                
+                                if(model_type == "lambda_II"){
+                                    // Lambda coefficient matrix when linking with partition variables
+                                    lambda_coef.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                    
+                                    // Partition coefficient matrix when linking with lambda variables
+                                    on_coef.in(indices(inst_partition, range(1,num_partns1+1)));
+                                    
+                                    // fill lambda_coef
+                                    for (size_t inst = 0; inst< nb_ins; inst++){
+                                        auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                        auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                        for (int i=0 ; i<num_partns1+1; ++i) {
+                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                            lambda_coef.set_val(cur_idx,1);
+                                        }
+                                    }
+                                    
+                                    // fill on_coef
+                                    for (size_t inst = 0; inst< nb_ins; inst++){
+                                        auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                        auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
+                                        on_coef.set_val(cur_idx,1);
+                                        for (int i=1 ; i<num_partns1; ++i) {
+                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
+                                            on_coef.set_val(cur_idx,1);
+                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                            on_coef.set_val(cur_idx,1);
+                                        }
+                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
+                                        on_coef.set_val(cur_idx,1);
+                                    }
+                                }
+                                
+                                else /*means model_type == "lambda_III" */{
+                                    // Lambda coefficient matrix when linking with partition variables
+                                    lambda_coef.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                    
+                                    // Partition coefficient matrix when linking with lambda variables
+                                    on_coef.in(indices(inst_partition, range(1,(num_partns1-2)*2+2)));
+                                    
+                                    // fill lambda_coef
+                                    for (size_t inst = 0; inst< nb_ins; inst++){
+                                        auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                        auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
+                                        lambda_coef.set_val(cur_idx,1);
+                                        for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
+                                            for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                lambda_coef.set_val(cur_idx,1);
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                lambda_coef.set_val(cur_idx,-1);
+                                            }
+                                        }
+                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+to_string((num_partns1-2)*2+2);
+                                        lambda_coef.set_val(cur_idx,1);
+                                    }
+                                    
+                                    // fill on_coef
+                                    for (size_t inst = 0; inst< nb_ins; inst++){
+                                        auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                        auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
+                                        on_coef.set_val(cur_idx,1);
+                                        
+                                        for (int i=1; i<num_partns1; ++i) {
+                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
+                                            on_coef.set_val(cur_idx, 1);
+                                        }
+                                        
+                                        for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
+                                            for (int j=i/2+1; j<num_partns1; ++j) {
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                on_coef.set_val(cur_idx,-1);
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                on_coef.set_val(cur_idx,1);
+                                            }
+                                        }
+                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
+                                        on_coef.set_val(cur_idx,1);
+                                    }
+                                    
+                                }
+                                
+                                
+                                /** Constraints */
+                                // Representation of the quadratic term with secant
+                                Constraint<> quad_ub(pair.first+"_quad_ub");
+                                /************** this might not be working **************/
+                                quad_ub = sum(EP.in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - vlift.in(unique_ids);
+                                add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
+                                
+                                Constraint<> quad_lb(pair.first+"_quad_lb");
+                                quad_lb = o1.in(o1_ids)*o1.in(o1_ids) - vlift.in(unique_ids);
+                                quad_lb._relaxed = true;
+                                add(quad_lb.in(unique_ids) <= 0); /*using it as the lower bound to be valid*/
+                                
+                                // Representation of o1 with convex combination
+                                Constraint<> o1_rep(pair.first+"_o1_rep");
+                                /************** this might not be working **************/
+                                o1_rep == sum(bounds.in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - o1.in(o1_ids);
+                                add(o1_rep.in(unique_ids) == 0);
+                                
+                                // Linking partition variables with lambda
+                                Constraint<> on_link_lambda(pair.first+"_on_link_lambda");
+                                /************** this might not be working **************/
+                                on_link_lambda = sum(lambda_coef.from_ith(0, nb_entries+1).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.from_ith(0,nb_entries+1).in_matrix(nb_entries)*on.in_matrix(nb_entries));
+                                add(on_link_lambda.in(indices(unique_ids,range(1,num_partns1))) <= 0);
+                                
+                                // sum over lambda
+                                Constraint<> lambdaSum(pair.first+"_lambdaSum");
+                                lambdaSum = sum(lambda.in_matrix(nb_entries));
+                                add(lambdaSum.in(unique_ids) == 1);
+                            }
+                            
                         }
                         else{ //else add 2d partition
                             
@@ -916,18 +1084,18 @@ namespace gravity {
                                     {
                                         partns1.add(name1+ "{" +to_string(i+1) + "}");
                                     }
-                            
+                                    
                                     indices partns("partns");
                                     partns = indices(partns1,partns1);
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns1));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns1));
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-//                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
-//                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    //                                    lb1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
+                                    //                                    ub1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1));
                                     lb1.in(union_ids(o1_ids_uq, o2_ids_uq),partns1);
                                     ub1.in(union_ids(o1_ids_uq, o2_ids_uq),partns1);
                                     lb1.set_val(0), ub1.set_val(1);
@@ -983,11 +1151,11 @@ namespace gravity {
                                     }
                                     
                                     indices partns("partns");
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
-//                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    //                                    add(on2.in(o2_ids,range(1,num_partns2)));
                                     add(on2.in(o2_ids_uq,partns2));
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -1056,18 +1224,18 @@ namespace gravity {
                                 }
                                 
                                 indices partns("partns");
-//                                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                //                                partns = indices(range(1,num_partns1),range(1,num_partns2));
                                 partns = indices(partns1,partns2);
                                 auto inst_partition = indices(unique_ids,partns);
                                 add(on.in(inst_partition));
-//                                add(on1.in(o1_ids,range(1,num_partns1)));
+                                //                                add(on1.in(o1_ids,range(1,num_partns1)));
                                 add(on1.in(o1_ids_uq,partns1));
                                 
                                 auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
                                 
                                 param<int> lb2("lb2"), ub2("ub2");
-//                                lb2.in(o2_ids,range(1,num_partns2));
-//                                ub2.in(o2_ids,range(1,num_partns2));
+                                //                                lb2.in(o2_ids,range(1,num_partns2));
+                                //                                ub2.in(o2_ids,range(1,num_partns2));
                                 lb2.in(o2_ids_uq,partns2);
                                 ub2.in(o2_ids_uq,partns2);
                                 lb2.set_val(0), ub2.set_val(1);
@@ -1128,11 +1296,11 @@ namespace gravity {
                                         partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
-//                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
+                                    //                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
                                     add(on1.in(union_ids(o1_ids_uq, o2_ids_uq),partns1));
                                     
                                     indices partns("partns");
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
@@ -1182,16 +1350,16 @@ namespace gravity {
                                         partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     
-//                                    add(on1.in(o1_ids,range(1,num_partns1)));
-//                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    //                                    add(on1.in(o1_ids,range(1,num_partns1)));
+                                    //                                    add(on2.in(o2_ids,range(1,num_partns2)));
                                     
-//                                    add(on1.in(o1_ids,partns1));
-//                                    add(on2.in(o2_ids,partns2));
+                                    //                                    add(on1.in(o1_ids,partns1));
+                                    //                                    add(on2.in(o2_ids,partns2));
                                     add(on1.in(o1_ids_uq,partns1));
                                     add(on2.in(o2_ids_uq,partns2));
                                     
                                     indices partns("partns");
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     partns = indices(partns1,partns2);
                                     auto inst_partition = indices(unique_ids,partns);
                                     add(on.in(inst_partition));
@@ -1288,7 +1456,7 @@ namespace gravity {
                                 
                                 if(name1 == name2){
                                     //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
-
+                                    
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
@@ -1297,7 +1465,7 @@ namespace gravity {
                                     
                                     
                                     indices partns("partns");
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     partns = indices(partns1,partns1);
                                     auto inst_partition = indices(added,partns);
                                     
@@ -1308,8 +1476,8 @@ namespace gravity {
                                     auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-//                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
-//                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    //                                    lb1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
+                                    //                                    ub1.in(union_ids(o1_ids,o2_ids),range(1,num_partns1));
                                     lb1.in(union_ids(o1_ids_uq,o2_ids_uq),partns1);
                                     ub1.in(union_ids(o1_ids_uq,o2_ids_uq),partns1);
                                     lb1.set_val(0), ub1.set_val(1);
@@ -1369,7 +1537,7 @@ namespace gravity {
                                     }
                                     
                                     indices partns("partns");
-//                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                    //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
                                     partns = indices(partns1,partns2);
                                     auto inst_partition = indices(added,partns);
                                     
@@ -1381,15 +1549,15 @@ namespace gravity {
                                     auto binvar3 = static_pointer_cast<var<int>>(binvar_ptr3->second);
                                     
                                     param<int> lb1("lb1"), ub1("ub1");
-//                                    lb1.in(o1_ids,range(1,num_partns1));
-//                                    ub1.in(o1_ids,range(1,num_partns1));
+                                    //                                    lb1.in(o1_ids,range(1,num_partns1));
+                                    //                                    ub1.in(o1_ids,range(1,num_partns1));
                                     lb1.in(o1_ids_uq,partns1);
                                     ub1.in(o1_ids_uq,partns1);
                                     lb1.set_val(0), ub1.set_val(1);
                                     
                                     param<int> lb2("lb2"), ub2("ub2");
-//                                    lb2.in(o2_ids,range(1,num_partns2));
-//                                    ub2.in(o2_ids,range(1,num_partns2));
+                                    //                                    lb2.in(o2_ids,range(1,num_partns2));
+                                    //                                    ub2.in(o2_ids,range(1,num_partns2));
                                     lb2.in(o2_ids_uq,partns2);
                                     ub2.in(o2_ids_uq,partns2);
                                     lb2.set_val(0), ub2.set_val(1);
@@ -1546,7 +1714,7 @@ namespace gravity {
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(Constraint<Cpx>&& c, bool convexify = false){
+        void add(Constraint<Cpx>&& c, bool convexify = false, string model_type = "on/off"){
             if (c.get_dim()==0) {
                 return;
             }
@@ -1560,8 +1728,8 @@ namespace gravity {
             c_imag._ctype = c._ctype;
             c_imag._indices = c._indices;
             if(convexify){
-                add(lift(c_real));
-                add(lift(c_imag));
+                add(lift(c_real, model_type));
+                add(lift(c_imag, model_type));
             }
             else {
                 add_constraint(c_real);
@@ -1610,11 +1778,11 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c, bool convexify = false){
+        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c,convexify);
+            add_constraint(c,convexify, method_type);
         }
         
         
@@ -1683,7 +1851,7 @@ namespace gravity {
         }
         
         
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -1738,7 +1906,7 @@ namespace gravity {
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-                    auto lifted = lift(*newc);
+                    auto lifted = lift(*newc, method_type);
                     return add_constraint(lifted);
                 }
                 embed(newc, false);
@@ -4973,7 +5141,7 @@ namespace gravity {
                         LB_on = (LB_off*(num_partns - cur_partn + 1) + UB_off*(cur_partn - 1))/num_partns;
                         UB_on = (LB_off*(num_partns - cur_partn) + UB_off*(cur_partn))/num_partns;
                     }
-                   
+                    
                     // can do this part slightly more efficient by only updating on and off based on in_S
                     if (c_type == leq) {
                         if (coef_val < 0){
@@ -5047,6 +5215,7 @@ namespace gravity {
             
             for (size_t inst = 0; inst<nb_ins; inst++)
             {
+                string prev_name = "";
                 M1sum_off = 0;
                 M1sum_on = 0;
                 
@@ -5103,34 +5272,48 @@ namespace gravity {
                     else {
                         //collect the cur_partn number from the instance index (this is not the info _cur_partn stored in the variable, it is stored in the indices of the constraint)
                         auto name1 = pair.second._p->get_name(true,true);
-                        auto loc1 = partition_info.find(name1) + name1.length() +1 ;
-                        auto loc2 = partition_info.find_first_of('}', loc1);
-                        int cur_partn = stoi(partition_info.substr(loc1,loc2-loc1));
+                        int cur_partn;
+                        //THERE IS A BIG BUG HERE, WE ARE CURRENTLY ASSUMING WHEN TWO VARIABLES HAVE THE SAME NAME, FIRST ONE IN LTERM IS THE FIRST ONE IN THE CONSTRAINT INDEX
+                        // ALSO WE ARE ASSUMING THERE ARE ONLY THE THERE ARE MAXIMUM OF TWO TERMS IN THE PARTITION
+                        if(prev_name == name1){
+                            auto loc1 = partition_info.rfind(name1) + name1.length() +1 ;
+                            auto loc2 = partition_info.find_first_of('}', loc1);
+                            cur_partn = stoi(partition_info.substr(loc1,loc2-loc1));
+                            
+                        }
+                        else{
+                            auto loc1 = partition_info.find(name1) + name1.length() +1 ;
+                            auto loc2 = partition_info.find_first_of('}', loc1);
+                            cur_partn = stoi(partition_info.substr(loc1,loc2-loc1));
+                        }
+                        
+                        //set the prev_name for variables having the same name
+                        prev_name = name1;
                         
                         if (cur_partn > num_partns) throw invalid_argument("Current partition is out of range (larger than the number of partitions)");
                         
                         LB_on = (LB_off*(num_partns - cur_partn + 1) + UB_off*(cur_partn - 1))/num_partns;
                         UB_on = (LB_off*(num_partns - cur_partn) + UB_off*(cur_partn))/num_partns;
                     }
-                        if (coef_val < 0){
-                            if(in_S){
-                                M1sum_on -= coef_val * UB_on;
-                            }
-                            else {
-                                M1sum_off += coef_val * LB_off;
-                            }
+                    if (coef_val < 0){
+                        if(in_S){
+                            M1sum_on -= coef_val * UB_on;
                         }
                         else {
-                            if(in_S){
-                                M1sum_on -= coef_val * LB_on;
-                            }
-                            else {
-                                M1sum_off += coef_val * UB_off;
-                            }
+                            M1sum_off += coef_val * LB_off;
                         }
                     }
-                    c._offCoef.set_val(inst,M1sum_off);
-                    c._onCoef.set_val(inst,M1sum_on);
+                    else {
+                        if(in_S){
+                            M1sum_on -= coef_val * LB_on;
+                        }
+                        else {
+                            M1sum_off += coef_val * UB_off;
+                        }
+                    }
+                }
+                c._offCoef.set_val(inst,M1sum_off);
+                c._onCoef.set_val(inst,M1sum_on);
             }
             
         }
@@ -5211,7 +5394,7 @@ namespace gravity {
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = -1 * LHS - offCoef2*(1-on) - onCoef2*on;
                     add_constraint(res2.in(*c._indices)<=0);
-
+                    
                 }
                 
                 else if (c.get_ctype() == leq) {
@@ -5668,7 +5851,7 @@ namespace gravity {
             {
                 if (on.get_dim() != v1.get_dim() * num_partns1 * num_partns2){
                     throw invalid_argument("Number of on variables are not conforming with the given number of partitions");}
-
+                
                 indices partns1("partns1");
                 for (int i = 0; i < num_partns1 ; ++i)
                 {
@@ -5682,7 +5865,7 @@ namespace gravity {
                 }
                 
                 indices partns("partns");
-//                partns = indices(range(1,num_partns1),range(1,num_partns2));
+                //                partns = indices(range(1,num_partns1),range(1,num_partns2));
                 partns = indices(partns1,partns2);
                 
                 auto var_indices = combine(*v1._indices,*v2._indices);
@@ -5747,19 +5930,19 @@ namespace gravity {
                 auto increment2 = (v2_global_ub - v2_global_lb)/num_partns2;
                 
                 for (int i=0 ; i<num_partns1; ++i) {
-                    auto LB_partn1 = v1.get_lb() + increment1*i;
+                    auto LB_partn1 = v1_global_lb + increment1*i;
                     auto UB_partn1 = LB_partn1 + increment1;
                     LB_partn1.eval_all();
                     UB_partn1.eval_all();
                     for (int j=0 ; j<num_partns2; ++j) {
-                        auto LB_partn2 = v2.get_lb() + increment2*j;
+                        auto LB_partn2 = v2_global_lb + increment2*j;
                         auto UB_partn2 = LB_partn2 + increment2;
                         LB_partn2.eval_all();
                         UB_partn2.eval_all();
                         for (size_t inst = 0; inst< nb_ins; inst++){
                             auto cur_var_idx = var_indices._keys->at(inst);
                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"}";
-
+                            
                             v1_off_LB.set_val(cur_idx,v1_global_lb.eval(inst));
                             v1_off_UB.set_val(cur_idx,v1_global_ub.eval(inst));
                             v1_on_LB.set_val(cur_idx,LB_partn1.eval(inst));
@@ -5815,25 +5998,25 @@ namespace gravity {
                 Constraint<type> MC1(name+"_McCormick1");
                 MC1 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC1;
                 MC1.in(inst_partition) >= 0;
-//                add_on_off_multivariate_new(MC1, on);
+                //                add_on_off_multivariate_new(MC1, on);
                 add_on_off_multivariate_refined(MC1, on);
                 
                 Constraint<type> MC2(name+"_McCormick2");
                 MC2 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC2;
                 MC2.in(inst_partition) >= 0;
-//                add_on_off_multivariate_new(MC2, on);
+                //                add_on_off_multivariate_new(MC2, on);
                 add_on_off_multivariate_refined(MC2, on);
                 
                 Constraint<type> MC3(name+"_McCormick3");
                 MC3 = vlift.from_ith(0,inst_partition) - V1par_MC2*v1.from_ith(0,inst_partition) - V2par_MC1*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC3;
                 MC3.in(inst_partition) <= 0;
-//                add_on_off_multivariate_new(MC3, on);
+                //                add_on_off_multivariate_new(MC3, on);
                 add_on_off_multivariate_refined(MC3, on);
                 
                 Constraint<type> MC4(name+"_McCormick4");
                 MC4 = vlift.from_ith(0,inst_partition) - V1par_MC1*v1.from_ith(0,inst_partition) - V2par_MC2*v2.from_ith(nb_entries_v1,inst_partition) + Cpar_MC4;
                 MC4.in(inst_partition) <= 0;
-//                add_on_off_multivariate_new(MC4, on);
+                //                add_on_off_multivariate_new(MC4, on);
                 add_on_off_multivariate_refined(MC4, on);
                 
                 
@@ -5869,7 +6052,7 @@ namespace gravity {
                 {
                     partns.add(name1+"{"+to_string(i+1) + "}");
                 }
-//                partns = indices(range(1,num_partns1));
+                //                partns = indices(range(1,num_partns1));
                 auto var_indices = *v1._indices;
                 auto inst_partition = indices(var_indices,partns);
                 
@@ -5896,7 +6079,7 @@ namespace gravity {
                 auto increment = (v1_global_ub - v1_global_lb)/num_partns1;
                 
                 for (int i=0 ; i<num_partns1; ++i) {
-                    auto LB_partn = v1.get_lb() + increment*i;
+                    auto LB_partn = v1_global_lb + increment*i;
                     auto UB_partn = LB_partn + increment;
                     LB_partn.eval_all();
                     UB_partn.eval_all();
@@ -5921,7 +6104,7 @@ namespace gravity {
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
-//                add_on_off_multivariate_new(MC_secant, on);
+                //                add_on_off_multivariate_new(MC_secant, on);
                 add_on_off_multivariate_refined(MC_secant, on);
                 
                 Constraint<type> MC_squared(name+"_McCormick_squared");
