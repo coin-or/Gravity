@@ -990,77 +990,123 @@ namespace gravity {
             return(res);
         }
         
+        //x_start is an interior oiint and x_end is an outer point.
+        //Interior and outer clasification depends on constraint type (\geq 0 or \leq 0) as input by con_type
+        pair<vector<double>,bool> linesearchbinary(vector<double> x_start, vector<double> x_end, size_t nb_inst, int con_type)
+        {
+            pair<vector<double>,bool> res;
+            const double int_tol=1e-6, zero_tol=1e-6;
+            const int max_iter=1000;
+            vector<double> x_f=x_start, x_t=x_end, xcurrent, interval, mid;
+            double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
+            bool solution_found=false;
+            int iter=0;
+            for(auto i=0;i<x_start.size();i++)
+            {
+                interval.push_back(x_end[i]-x_start[i]);
+                mid.push_back((x_end[i]+x_start[i])*0.5);
+            }
+            int counter=0;
+            for(auto &it: *_vars)
+            {
+               auto v = it.second.first;
+               size_t posv=v->get_id_inst(nb_inst);
+               v->get_double_val(posv, xv);
+               xcurrent.push_back(xv);
+               v->set_double_val(posv, x_start[counter++]);
+            }
+            f_a=eval(nb_inst);
+            
+            counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->set_double_val(posv, x_end[counter++]);
+            }
+            f_b=eval(nb_inst);
+            if(con_type==-1)
+            {
+                f_f=f_a;
+                f_t=f_b;
+            }
+            else
+            {
+                f_f=f_b;
+                f_t=f_a;
+            }
+            interval_norm=l2norm(interval);
         
-//        vector<double> linesearchbinary(vector<double> x_start, vector<double> x_end, string id)
-//        {
-//            const double int_tol=1e-6, zero_tol=1e-6;
-//            const int max_iter=1000;
-//            vector<double> x_f=x_start, x_t=x_end, temp, interval, mid;
-//            double  f_f, f_t, f_mid, interval_norm;
-//            bool solution_found=false;
-//
-//
-////            for(auto i=0;i<x_start.size();i++)
-////            {
-////                interval.push_back(x_end[i]-x_start[i]);
-////                mid.push_back((x_end[i]+x_start[i])*0.5);
-////            }
-//            int counter=0;
-//            for(auto &it: *_vars)
-//            {
-//               auto v = it.second.first;
-//                v->_val=x_start[counter++];
-//            }
-//
-//             param<type> f_xstar("f_xstar");
-//            f_xstar = *this;
-//            f_f=f_xstar.eval(id);
-//        }
-//
-//            f_f=fx->eval(x_start);
-//            f_t=fx->eval(x_end);
-//            interval_norm=l2norm(interval);
-//            if(f_f<=0 && f_t>=0 )
-//            {
-//                while(interval_norm>int_tol)
-//                {
-//                    for(i=0;i<x_start.size();i++)
-//                    {
-//                        mid[i]=(x_f[i]+x_t[i])*0.5;
-//                    }
-//
-//                    f_mid=fx->eval(mid);
-//                    if(f_mid>=zero_tol)
-//                    {
-//                        x_f=mid;
-//
-//                    }
-//                    else if(f_mid<=zero_tol*(-1))
-//                    {
-//                        x_t=mid;
-//
-//                    }
-//                    else
-//                    {
-//                        DebugOn("Reached answer"<<endl);
-//                        solution_found=true;
-//                        break;
-//                    }
-//                    for(i=0;i<x_start.size();i++)
-//                    {
-//                        interval[i]=x_t[i]-x_f[i];
-//                    }
-//                    interval_norm=l2norm(interval);
-//
-//                }
-//
-//            }
-//            else
-//            {
-//                DebugOn("Initial interval is wrong"<<endl);
-//            }
-//            return(mid);
-//        }
+            if(f_f<=0 && f_t>=0 )
+            {
+                while(interval_norm>int_tol && iter<=max_iter)
+                {
+                    for(auto i=0;i<x_start.size();i++)
+                    {
+                    mid[i]=(x_f[i]+x_t[i])*0.5;
+                    }
+                    counter=0;
+                    for(auto &it: *_vars)
+                    {
+                        auto v = it.second.first;
+                        size_t posv=v->get_id_inst(nb_inst);
+                        v->set_double_val(posv, mid[counter++]);
+                    }
+                    f_mid=eval(nb_inst);
+                    if(f_mid>=zero_tol)
+                    {
+                    x_f=mid;
+                    }
+                    else if(f_mid<=zero_tol*(-1))
+                    {
+                    x_t=mid;
+                    }
+                    else
+                    {
+                        DebugOn("Reached answer"<<endl);
+                        solution_found=true;
+                        break;
+                    }
+                    for(auto i=0;i<x_start.size();i++)
+                    {
+                        interval[i]=x_t[i]-x_f[i];
+                    }
+                    interval_norm=l2norm(interval);
+                    iter++;
+                }
+            }
+            
+         
+            res.first=mid;
+            res.second=solution_found;
+            if(res.second)
+            {
+                DebugOn("Solution to line search found"<<endl);
+                for(auto i=0;i<res.first.size();i++)
+                    DebugOn(res.first[i]<<endl);
+                counter=0;
+                for(auto &it: *_vars)
+                {
+                    auto v = it.second.first;
+                    size_t posv=v->get_id_inst(nb_inst);
+                    v->set_double_val(posv, mid[counter++]);
+                }
+                DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
+                
+            }
+            counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->set_double_val(posv, xcurrent[counter++]);
+            }
+            return res;
+        }
+            
+            
+            
+        
         /** Finds a vector of outer points perturbing along each direction */
         //Algorithm finds an outer point for each index of each variable if available
         //First, if available,the outer point is at least at a distance perturb_distance greater than original value of variable
@@ -1071,7 +1117,7 @@ namespace gravity {
             vector<vector<double> > res(_nb_vars);
            // vector<vector<double> > res;
             vector<double> xcurrent, ub_v, lb_v;
-            const int max_iter=1000, max_dir=10;
+            const int max_iter=1000;
             const double step_tol=1e-6, step_init=1e-3, perturb_dist=1e-3, zero_tol=1e-6;
             double step, f_start, xv=0,xv_p=0,f,ub,lb, fnew, dfdv;
             int count=0, iter, sign, iter_dir;
@@ -1090,7 +1136,7 @@ namespace gravity {
             //No backtracking
             
            
-            //Once feasible direction is found not reversing direction. So shall work from any current point only for monotonic function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
+            //Once feasible direction is found algorithm does not reverse direction. So shall work from any current point only for monotonic function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
             
             //Perturb so that distance between new point and current point is greater than perturb dist
             for(auto &it: *_vars)
@@ -1106,13 +1152,13 @@ namespace gravity {
                 ub=v->get_double_ub(posv);
                 lb=v->get_double_lb(posv);
                 auto df = *compute_derivative(*v);
-                dfdv=df.eval(posv);
+                dfdv=df.eval(nb_inst);
                 // if interval zero do not perturb, perturb=false, else if x at upper bound (within perturb_dist) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
                 if((ub-lb)<=perturb_dist)
                 {
                     dir=false;
                 }
-                else if(xv-lb<=perturb_dist)
+                else if((xv-lb)<=perturb_dist)
                 {
                     sign=1;
                     dir=true;
@@ -1127,7 +1173,7 @@ namespace gravity {
                     }
                         
                 }
-                else if(ub-xv<=perturb_dist)
+                else if((ub-xv)<=perturb_dist)
                 {
                     sign=-1;
                     dir=true;
@@ -1204,7 +1250,7 @@ namespace gravity {
                              f=fnew;
                              xv_p=xv;
                          }
-                         else if(fnew<f)
+                         else if(fnew<=f)
                          {
                              perturb=false;
                              break;
@@ -1212,7 +1258,7 @@ namespace gravity {
                      }
                      if(con_type==1)
                      {
-                         if(fnew<-zero_tol && abs(xv-xcurrent[count])>=perturb_dist)
+                         if(fnew<(zero_tol*(-1)) && abs(xv-xcurrent[count])>=perturb_dist)
                          {
                              perturb=true;
                              xv_p=xv;
@@ -1223,7 +1269,7 @@ namespace gravity {
                              f=fnew;
                              xv_p=xv;
                          }
-                         else if(fnew>f)
+                         else if(fnew>=f)
                          {
                              perturb=false;
                              break;
@@ -1239,12 +1285,23 @@ namespace gravity {
                          for(auto i=count+1;i<_nb_vars;i++)
                              res[res_count].push_back(xcurrent[i]);
                          res_count++;
+                         
+                         for(auto &it: *_vars)
+                         {
+                             auto v = it.second.first;
+                             size_t posv=v->get_id_inst(nb_inst);
+                             v->get_double_val(posv, xv);
+                             DebugOn("Xvalues of Outer point\t"<<xv<<endl);
+                         }
+                         DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
+
             }
             }
             v->set_double_val(posv, xcurrent[count]);
             f=f_start;
             count++;
             }
+           // _evaluated=false;
             return(res);
         }
             
