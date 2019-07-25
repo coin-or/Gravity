@@ -265,10 +265,10 @@ int main (int argc, char * argv[]) {
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDP.add_lazy(SDP3.in(range(1,bag_size)) >= 0);
+            SDP.add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
         }
         else {
-            SDP.add(SDP3.in(range(1,bag_size)) >= 0);
+            SDP.add(SDP3.in(range(0,bag_size-1)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
    
@@ -458,30 +458,30 @@ int main (int argc, char * argv[]) {
 //    }
   size_t nb_inst=0;
     double xv,xva, xvb;
-    for (auto &it: *SOC._vars)
-    {
-    auto v = it.second.first;
-
-        DebugOn("V id is\t"<<v->_id);
-       DebugOn("v_name\t"<<v->_name);
-        size_t posv=v->get_id_inst(nb_inst);
-        v->get_double_val(posv, xv);
-//        var<> vk=SDP.get_var<double>("Wii.from");
-//        v->set_double_val(nb_inst, xv);
-    xcurrent.push_back(xv);
-        xva=xv+0.01;
-        v->set_double_val(posv, xva);
-        v->get_double_val(posv, xvb);
-        x.push_back(xvb);
-    }
-    DebugOn("xcurrent"<<endl);
-    for(auto i=0;i<xcurrent.size();i++)
-        DebugOn("xcurrent"<<xcurrent[i]<<endl);
-    DebugOn("xstart"<<endl);
-    for(auto i=0;i<x.size();i++)
-        DebugOn("xstart"<<x[i]<<endl);
+//    for (auto &it: *SDP3._vars)
+//    {
+//    auto v = it.second.first;
+//
+//        DebugOn("V id is\t"<<v->_id);
+//       DebugOn("v_name\t"<<v->_name);
+//        size_t posv=v->get_id_inst(nb_inst);
+//        v->get_double_val(posv, xv);
+////        var<> vk=SDP.get_var<double>("Wii.from");
+////        v->set_double_val(nb_inst, xv);
+//    xcurrent.push_back(xv);
+//        xva=xv+0.01;
+//        v->set_double_val(posv, xva);
+//        v->get_double_val(posv, xvb);
+//        x.push_back(xvb);
+//    }
+//    DebugOn("xcurrent"<<endl);
+//    for(auto i=0;i<xcurrent.size();i++)
+//        DebugOn("xcurrent"<<xcurrent[i]<<endl);
+//    DebugOn("xstart"<<endl);
+//    for(auto i=0;i<x.size();i++)
+//        DebugOn("xstart"<<x[i]<<endl);
     
-    size_t nbinst=0;
+  
     //double xv=0;
 //   for (auto &it: *Thermal_Limit_from._vars)
 //    {
@@ -491,34 +491,16 @@ int main (int argc, char * argv[]) {
 //        DebugOn("xv\t"<<xv<<endl);
 //    }
 //
-    auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
-    DebugOn("got xvv"<<endl);
-    for(auto i=0;i<xvv.size();i++)
-    {
-        for(auto j=0;j<xvv[i].size();j++)
-        DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-        DebugOn(endl);
-    }
-
-    xvv=SOC.get_outer_point(0, -1);
-    DebugOn("got xvv"<<endl);
-    for(auto i=0;i<xvv.size();i++)
-    {
-        for(auto j=0;j<xvv[i].size();j++)
-            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-        DebugOn(endl);
-    }
-    
-    xvv=LNC1.get_outer_point(0, 1);
-    DebugOn("got xvv"<<endl);
-    for(auto i=0;i<xvv.size();i++)
-    {
-        for(auto j=0;j<xvv[i].size();j++)
-            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-        DebugOn(endl);
-    }
-    
-    xvv=SDP3.get_outer_point(1, 1);
+//    auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
+//    DebugOn("got xvv"<<endl);
+//    for(auto i=0;i<xvv.size();i++)
+//    {
+//        for(auto j=0;j<xvv[i].size();j++)
+//        DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+//        DebugOn(endl);
+//    }
+//
+//    xvv=SOC.get_outer_point(0, -1);
 //    DebugOn("got xvv"<<endl);
 //    for(auto i=0;i<xvv.size();i++)
 //    {
@@ -527,7 +509,101 @@ int main (int argc, char * argv[]) {
 //        DebugOn(endl);
 //    }
 //
+//    xvv=LNC1.get_outer_point(0, 1);
+//    DebugOn("got xvv"<<endl);
+//    for(auto i=0;i<xvv.size();i++)
+//    {
+//        for(auto j=0;j<xvv[i].size();j++)
+//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+//        DebugOn(endl);
+//    }
+    //SDP.reset_constrs();
     
+
+//    DebugOn("got xvv"<<endl);
+//    for(auto i=0;i<xvv.size();i++)
+//    {
+//        for(auto j=0;j<xvv[i].size();j++)
+//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+//        DebugOn(endl);
+//    }
+    
+    size_t n=2;
+    DebugOn("Outer point and function value from func.h"<<endl);
+    auto xvv=SDP3.get_outer_point(n, 1);
+        for (auto &it: *SDP3._vars)
+        {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->get_double_val(posv, xv);
+        xcurrent.push_back(xv);
+//        double lb,ub;
+//        lb=v->get_double_lb(posv);
+//        ub=v->get_double_ub(posv);
+//        v->set_double_val(posv, (lb+ub)*0.5);
+//        x.push_back((lb+ub)*0.5);
+        }
+      // SDP.reset_constrs();
+    
+
+ 
+    
+    DebugOn("Instance of function interested in\t"<<n<<endl);
+    
+        DebugOn("Outer point and function value from main"<<endl);
+    int counter=0;
+    for (auto &it: *SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, xvv[0][counter++]);
+        
+    }
+    DebugOn("Outer point "<<endl);
+    for(auto i=0;i<xvv[0].size();i++)
+        DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
+       DebugOn("Function value at pos"<<n<<" at outer point\t"<<SDP3.eval(n)<<endl);
+    
+     DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
+    
+ 
+
+//
+//    DebugOn("Function value at interior point\t"<<SDP3.eval(n)<<endl);
+//    DebugOn("All Function values at interior point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2))<<endl;
+//    DebugOn("Interior point "<<endl);
+//    for(auto i=0;i<x.size();i++)
+//        DebugOn("xstart\t"<<x[i]<<endl);
+//
+   
+
+    
+    
+    
+
+//    counter=0;
+//    for (auto &it: *SDP3._vars)
+//    {
+//        auto v = it.second.first;
+//        size_t posv=v->get_id_inst(nb_inst);
+//        v->set_double_val(posv, xcurrent[counter++]);
+//    }
+    
+    func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
+   // a.print();
+    
+//        func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
+//        a.print();
+
+  
+    DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
+   // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
+//    if(res.second)
+//    {
+//        DebugOn("Active point found"<<endl);
+//        for(auto i=0;i<res.first.size();i++)
+//            DebugOn(res.first[i]<<endl);
+//    }
 //    for (auto &it: *KCL_P._vars)
 //    {
 //        string vname = it.first;
