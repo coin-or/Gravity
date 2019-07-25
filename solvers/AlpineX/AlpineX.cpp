@@ -339,14 +339,14 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 10; //number of partitions for Pf_to
-            int num_partitions2 = 10; //number of partitions for Qf_to
+            int num_partitions1 = 15; //number of partitions for Pf_to
+            int num_partitions2 = 15; //number of partitions for Qf_to
             
-            int num_partitions3 = 10; //number of partitions for Wii(to), Wii(from)
-            int num_partitions4 = 10; //number of partitions for lji
+            int num_partitions3 = 3; //number of partitions for Wii(to), Wii(from)
+            int num_partitions4 = 3; //number of partitions for lji
             
-            int num_partitions5 = 10; //number of partitions for R_Wij
-            int num_partitions6 = 10; //number of partitions for Im_Wij
+            int num_partitions5 = 15; //number of partitions for R_Wij
+            int num_partitions6 = 15; //number of partitions for Im_Wij
             
             
             // allocate the partition bound arrays
@@ -412,10 +412,14 @@ int main (int argc, char * argv[])
                 SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
                 SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
                 
-                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
-                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
-                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
+//                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
+//                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
+//                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
             }
+            
+            
+            SOCP.print();
+            SOCP.print_constraints();
         }
         
         if (current_partition_on_off){
@@ -683,13 +687,13 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
-            Wii._num_partns = 10;
-            lji._num_partns = 10;
+            Pf_to._num_partns = 15;
+            Qf_to._num_partns = 15;
+            Wii._num_partns = 3;
+            lji._num_partns = 3;
             
-            R_Wij._num_partns = 10;
-            Im_Wij._num_partns = 10;
+            R_Wij._num_partns = 15;
+            Im_Wij._num_partns = 15;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
@@ -698,14 +702,15 @@ int main (int argc, char * argv[])
             I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             SOCP.add(I_to_Pf.in(arcs)==0, true);
 
-            Constraint<> Equality_SOC("Equality_SOC");
-            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+//            Constraint<> Equality_SOC("Equality_SOC");
+//            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
             
-//            /* Second-order cone */
-//            Constraint<> SOC("SOC");
-//            SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-//            SOCP.add(SOC.in(bus_pairs) <= 0);
+            /* Second-order cone */
+            Constraint<> SOC("SOC");
+            SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            SOCP.add(SOC.in(bus_pairs) <= 0);
+            
             
         }
     }
@@ -801,6 +806,14 @@ int main (int argc, char * argv[])
     LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
     SOCP.add(LNC2.in(bus_pairs) >= 0);
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
+    
+    
+    /***************** CALLING OBBT BEFORE CALLING RUN **********************/
+    SOCP.run_obbt();
+    SOCP.reset_constrs();
+    
+    SOCP.print();
+
     
     /* Solver selection */
     solver<> SOCOPF_CPX(SOCP, cplex);
