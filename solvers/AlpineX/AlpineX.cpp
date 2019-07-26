@@ -687,13 +687,13 @@ int main (int argc, char * argv[])
             
    
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 15;
-            Qf_to._num_partns = 15;
+            Pf_to._num_partns = 30;
+            Qf_to._num_partns = 30;
             Wii._num_partns = 3;
             lji._num_partns = 3;
             
-            R_Wij._num_partns = 15;
-            Im_Wij._num_partns = 15;
+            R_Wij._num_partns = 30;
+            Im_Wij._num_partns = 30;
             
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
