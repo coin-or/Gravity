@@ -682,7 +682,6 @@ namespace gravity {
             auto it = _vars.find(v.get_id());
             if (it!=_vars.end()) {
                 _nb_vars -= v.get_dim();
-                delete it->second;
                 _vars.erase(it);
             }
             reindex_vars();
@@ -757,6 +756,7 @@ namespace gravity {
             //            c_imag.print_symbolic();
         }
         
+        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
         Constraint<type> lift(const Constraint<type>& c, string model_type){
             if(c.is_constant() || c.is_linear() || c.is_convex()){
                 return c;
@@ -2072,51 +2072,51 @@ namespace gravity {
             _has_callback = true;
         }
         
-        template<typename T>
-        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
-            for (auto &c_p: _cons_name) {
-                auto c = c_p.second;
-                if (!c->has_var(*v)) {
-                    continue;
-                }
-                c->replace(v, f);
-            }
-            _vars_name.erase(v->_name);
-            auto vid = *v->_vec_id;
-            delete _vars.at(vid);
-            _vars.erase(vid);
-            reindex_vars();
-        }
+//        template<typename T>
+//        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
+//            for (auto &c_p: _cons_name) {
+//                auto c = c_p.second;
+//                if (!c->has_var(*v)) {
+//                    continue;
+//                }
+//                c->replace(v, f);
+//            }
+//            _vars_name.erase(v->_name);
+//            auto vid = *v->_vec_id;
+//            delete _vars.at(vid);
+//            _vars.erase(vid);
+//            reindex_vars();
+//        }
         
         
-        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
-            for (auto& c_pair:_cons_name) {
-                if (!c_pair.second->is_ineq()) {
-                    auto &lterms = c_pair.second->get_lterms();
-                    if (!lterms.empty()) {
-                        auto first = lterms.begin();
-                        auto v = first->second._p;
-                        if (v->_is_vector) {
-                            continue;
-                        }
-                        auto f = *c_pair.second;
-                        if (first->second._sign) {
-                            //                    f -= *v;
-                            //                    f *= -1;
-                        }
-                        else {
-                            //                    f += *v;
-                        }
-                        DebugOff(f.to_str());
-                        _cons.erase(c_pair.second->_id);
-                        _cons_name.erase(c_pair.first);
-                        replace(v,f);
-                        //                project();
-                        return;
-                    }
-                }
-            }
-        }
+//        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+//            for (auto& c_pair:_cons_name) {
+//                if (!c_pair.second->is_ineq()) {
+//                    auto &lterms = c_pair.second->get_lterms();
+//                    if (!lterms.empty()) {
+//                        auto first = lterms.begin();
+//                        auto v = first->second._p;
+//                        if (v->_is_vector) {
+//                            continue;
+//                        }
+//                        auto f = *c_pair.second;
+//                        if (first->second._sign) {
+//                            //                    f -= *v;
+//                            //                    f *= -1;
+//                        }
+//                        else {
+//                            //                    f += *v;
+//                        }
+//                        DebugOff(f.to_str());
+//                        _cons.erase(c_pair.second->_id);
+//                        _cons_name.erase(c_pair.first);
+//                        replace(v,f);
+//                        //                project();
+//                        return;
+//                    }
+//                }
+//            }
+//        }
         
         
         shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
@@ -5099,7 +5099,9 @@ namespace gravity {
         }
         
         
+        
         /*** adding on/off option to a constraint within an interval ***/
+        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
         void add_on_off_univariate(const Constraint<type>& c, var<bool>& on, int num_partns, int cur_partn){
             if (c.get_ftype() != lin_) {
                 cerr << "Nonlinear constraint.\n";
@@ -6395,7 +6397,9 @@ namespace gravity {
             }
         }
         
-        void run_obbt(double max_time = 300, unsigned max_iter=100);
+        template<typename T=type,
+        typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
+        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0));
         
         
         //        void add_on_off(const Constraint<type>& c, var<bool>& on){

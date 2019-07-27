@@ -13,8 +13,11 @@
 using namespace std;
 namespace gravity {
     
-    template<typename T>
-    void Model<T>::run_obbt(double max_time, unsigned max_iter) {
+    template <typename type>
+    template<typename T,
+    typename std::enable_if<is_same<type,double>::value>::type*>
+    void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound) {
+                
 #ifdef USE_MPI
         auto err_init = MPI_Init(nullptr,nullptr);
         int worker_id, nb_workers;
@@ -56,7 +59,7 @@ namespace gravity {
         for(auto &it:this->_vars_name)
         {
             string vname=it.first;
-            v=this->get_var<double>(vname);
+            v=this->get_var<T>(vname);
             auto v_keys=v.get_keys();
             auto v_key_map=v.get_keys_map();
             //             if(vname=="Pf_to")
@@ -100,7 +103,7 @@ namespace gravity {
             for (auto it=this->_vars_name.begin(); it!=this->_vars_name.end(); it++)
             {
                 vname=it->first;
-                v = this->get_var<double>(vname);
+                v = this->get_var<T>(vname);
                 auto v_keys=v.get_keys();
                 for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                 {
@@ -129,9 +132,14 @@ namespace gravity {
                         for(auto &dir: dir_array)
                         {
                             auto modelk = this->copy();
+                            if(upper_bound.first){/* Add upperbound constraint */
+                                Constraint<> obj_UB("obj_UB");
+                                obj_UB=*(this->_obj) - upper_bound.second;
+                                modelk->add(obj_UB<=0);
+                            }
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
-                            vark=modelk->get_var(vname);
+                            vark=modelk->template get_var<T>(vname);
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));
@@ -166,7 +174,7 @@ namespace gravity {
                                     pos=mkname.find("|");
                                     keyk.assign(mkname, 0, pos);
                                     dirk=mkname.substr(pos+1);
-                                    vk=this->get_var<double>(vkname);
+                                    vk=this->get_var<T>(vkname);
                                     pk=vkname+"|"+keyk;
                                     //Update bounds only of the model status is solved to optimal                                }
                                     if(model->_status==0)
@@ -302,7 +310,7 @@ namespace gravity {
         for(auto &it:this->_vars_name)
         {
             string vname=it.first;
-            v=this->get_var<double>(vname);
+            v=this->get_var<T>(vname);
             auto v_keys=v.get_keys();
             for(auto &key: *v_keys)
             { num_var++;
@@ -317,18 +325,18 @@ namespace gravity {
 
         DebugOn("Average interval reduction\t"<<avg<<endl);
 
-        if(!close)
-        {
-
-            this->reset_constrs();
-            solver<> SDPLB1(*this,solv_type);
-
-            SDPLB1.run(output = 5, tol=1e-8);
-        }
-
-        avg=sum/num_var;
-
-        DebugOn("Average interval reduction\t"<<avg<<endl);
+//        if(!close)
+//        {
+//
+//            this->reset_constrs();
+//            solver<T> SDPLB1(*this,solv_type);
+//
+//            SDPLB1.run(output = 5, tol=1e-8);
+//        }
+//
+//        avg=sum/num_var;
+//
+//        DebugOn("Average interval reduction\t"<<avg<<endl);
 
         if(!close)
         {
@@ -336,9 +344,9 @@ namespace gravity {
             if(worker_id==0){
 #endif
                 this->reset_constrs();
-                solver<> SDPLB1(*this,solv_type);
+                solver<T> SDPLB1(*this,solv_type);
 
-                SDPLB1.run(output = 5, tol=1e-6, "ma97");
+                SDPLB1.run(output = 5, tol=1e-6);
                 this->print_constraints_stats(tol);
                 bool print_only_relaxed;
                 this->print_nonzero_constraints(tol,print_only_relaxed=true);
@@ -390,4 +398,12 @@ namespace gravity {
 
     }
 
+    template void gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&);
+//    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
+//    template func<double> constant<double>::get_real() const;
+//    template class Model<double>;
+//    template class Model<Cpx>;
+
 }
+
+
