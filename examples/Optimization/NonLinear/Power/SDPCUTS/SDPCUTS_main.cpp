@@ -456,7 +456,7 @@ int main (int argc, char * argv[]) {
 //        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
 //        x.push_back(v.eval("0,1,2"));
 //    }
-  size_t nb_inst=0;
+  size_t nb_inst=2;
     double xv,xva, xvb;
 //    for (auto &it: *SDP3._vars)
 //    {
@@ -528,9 +528,9 @@ int main (int argc, char * argv[]) {
 //        DebugOn(endl);
 //    }
     
-    size_t n=2;
+    
     DebugOn("Outer point and function value from func.h"<<endl);
-    auto xvv=SDP3.get_outer_point(n, 1);
+    auto xvv=SDP3.get_outer_point(nb_inst, 1);
         for (auto &it: *SDP3._vars)
         {
         auto v = it.second.first;
@@ -548,7 +548,7 @@ int main (int argc, char * argv[]) {
 
  
     
-    DebugOn("Instance of function interested in\t"<<n<<endl);
+    DebugOn("Instance of function interested in\t"<<nb_inst<<endl);
     
         DebugOn("Outer point and function value from main"<<endl);
     int counter=0;
@@ -560,9 +560,10 @@ int main (int argc, char * argv[]) {
         
     }
     DebugOn("Outer point "<<endl);
+    SDP3.uneval();
     for(auto i=0;i<xvv[0].size();i++)
         DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
-       DebugOn("Function value at pos"<<n<<" at outer point\t"<<SDP3.eval(n)<<endl);
+       DebugOn("Function value at pos"<<nb_inst<<" at outer point\t"<<SDP3.eval(nb_inst)<<endl);
     
      DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
     
@@ -595,7 +596,7 @@ int main (int argc, char * argv[]) {
 //        func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
 //        a.print();
 
-  
+  SDP3.uneval();
     DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
    // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
 //    if(res.second)
