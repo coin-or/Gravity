@@ -591,7 +591,7 @@ int main (int argc, char * argv[]) {
 //    }
     
     func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
-   // a.print();
+    a.print();
     
 //        func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
 //        a.print();
