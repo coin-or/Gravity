@@ -970,6 +970,8 @@ namespace gravity {
                 auto df = *compute_derivative(*v);
                 df.eval_all();
                 df_xstar = df;
+                auto ids = v->_indices->get_unique_keys();
+                *df_xstar._indices = ids;
                 res.insert(true, df_xstar, *v);
                 res -= df_xstar*xstar;
             }

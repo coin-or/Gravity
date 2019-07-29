@@ -550,6 +550,23 @@ namespace gravity {
         }
         
         /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void copy_vals_(param<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void copy_vals_(param<T2>& pp){
+            _val->resize(pp._val->size());
+            for (size_t i = 0; i < _val->size(); i++) {
+                _val->at(i) = pp._val->at(i);
+            }
+            _range->first = pp._range->first;
+            _range->second = pp._range->second;
+        }
+        
+        /** let this share the values of p */
         void share_vals(const shared_ptr<param_>& p){
             switch (p->get_intype()) {
                 case binary_:{
@@ -2085,7 +2102,7 @@ namespace gravity {
         void copy_vals(const func<T>& f){
             _dim[0] = f._dim[0];
             _dim[1] = f._dim[1];
-            auto dim = f.get_dim();
+            auto dim = get_dim();
             _val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
                 _val->at(i) = f._val->at(i);
@@ -2093,17 +2110,10 @@ namespace gravity {
             reset_range();
         }
         
-        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
-        void copy_vals(const param<T>& p){
-            _dim[0] = p._dim[0];
-            _dim[1] = p._dim[1];
-            auto dim = p.get_dim();
-            _val->resize(dim);
-            for (size_t i = 0; i < dim; i++) {
-                _val->at(i) = p._val->at(i);
-            }
-            reset_range();
-        }
+//        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
+//        void copy_vals(const param<T>& p){
+//            
+//        }
         
         void copy_vals(const shared_ptr<param_>& p);
                 
