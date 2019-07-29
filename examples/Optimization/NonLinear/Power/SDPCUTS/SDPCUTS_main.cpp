@@ -562,7 +562,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Outer point "<<endl);
     for(auto i=0;i<xvv[0].size();i++)
         DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
-       DebugOn("Function value at pos"<<n<<" at outer point\t"<<SDP3.eval(n)<<endl);
+       DebugOn("Function value at pos"<<n<<" at outer point\t"<<SDP3.eval("2")<<endl);
     
      DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
     
@@ -596,7 +596,7 @@ int main (int argc, char * argv[]) {
 //        a.print();
 
   
-    DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
+    //DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
    // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
 //    if(res.second)
 //    {
