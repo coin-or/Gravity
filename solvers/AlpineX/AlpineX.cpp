@@ -264,16 +264,39 @@ int main (int argc, char * argv[])
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
         SOCP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
         
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+//        SOCP.add(I_from_Pf.in(arcs)>=0);
         SOCP.add(I_from_Pf.in(arcs)==0,true);
 //        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
-            
+        /* Set the number of partitions (default is 1)*/
+        Pf_to._num_partns = 5;
+        Qf_to._num_partns = 5;
+        Wii._num_partns = 2;
+        lji._num_partns = 2;
+        
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//        SOCP.add(I_to_Pf.in(arcs)>=0);
+        SOCP.add(I_to_Pf.in(arcs)==0,true);
+//        SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+        
+
         Constraint<> Equality_SOC("Equality_SOC");
         Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
         SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+        
+
+        
+        
     }
     
     
@@ -481,14 +504,14 @@ int main (int argc, char * argv[])
             
             // define the number of partitions for variables
             /************** THESE SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-            int num_partitions1 = 15; //number of partitions for Pf_to
-            int num_partitions2 = 15; //number of partitions for Qf_to
+            int num_partitions1 = 1; //number of partitions for Pf_to
+            int num_partitions2 = 1; //number of partitions for Qf_to
             
-            int num_partitions3 = 3; //number of partitions for Wii(to), Wii(from)
-            int num_partitions4 = 3; //number of partitions for lji
+            int num_partitions3 = 1; //number of partitions for Wii(to), Wii(from)
+            int num_partitions4 = 1; //number of partitions for lji
             
-            int num_partitions5 = 15; //number of partitions for R_Wij
-            int num_partitions6 = 15; //number of partitions for Im_Wij
+            int num_partitions5 = 1; //number of partitions for R_Wij
+            int num_partitions6 = 1; //number of partitions for Im_Wij
             
             
             // allocate the partition bound arrays
@@ -554,14 +577,12 @@ int main (int argc, char * argv[])
                 SOCP.partition("Qf_to_squared" + to_string(i), model_type, Qf_to_squared(i), Qf_to(i), Qf_to(i),p2,p2);
                 SOCP.partition("ljiWii_to" + to_string(i), model_type, ljiWii_to(i),  Wii(toIDX), lji(i),p3,p4);
                 
-                //                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
-                //                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
-                //                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
+                                SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p3,p3);
+                                SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p5,p5);
+                                SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p6,p6);
             }
             
             
-            SOCP.print();
-            SOCP.print_constraints();
         }
         
         if (current_partition_on_off){
@@ -840,18 +861,18 @@ int main (int argc, char * argv[])
             // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
             /* Equality of Second-order cone (for upperbound) */
             
-            Constraint<> I_to_Pf("I_to_Pf");
-            I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            SOCP.add(I_to_Pf.in(arcs)==0, true);
+//            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+//            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            SOCP.add(I_to_Pf_EQ.in(arcs)==0, true);
             
-            //            Constraint<> Equality_SOC("Equality_SOC");
-            //            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            //            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+//            Constraint<> Equality_SOC("Equality_SOC");
+//            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
             
             /* Second-order cone */
-            Constraint<> SOC("SOC");
-            SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-            SOCP.add(SOC.in(bus_pairs) <= 0);
+//            Constraint<> SOC("SOC");
+//            SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+//            SOCP.add(SOC.in(bus_pairs) <= 0);
             
             
         }
@@ -883,11 +904,10 @@ int main (int argc, char * argv[])
     
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     
-    
-    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
-    
     gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    
+    //    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     
     
     
