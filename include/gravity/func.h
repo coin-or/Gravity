@@ -968,8 +968,11 @@ namespace gravity {
                 xstar.copy_vals(v);
                 param<type> df_xstar("df_xstar"+v->_name);
                 auto df = *compute_derivative(*v);
+                //df.uneval();
                 df.eval_all();
                 df_xstar = df;
+                auto ids = v->_indices->get_unique_keys();
+                *df_xstar._indices = ids;
                 res.insert(true, df_xstar, *v);
                 res -= df_xstar*xstar;
             }
@@ -1015,6 +1018,7 @@ namespace gravity {
                xcurrent.push_back(xv);
                v->set_double_val(posv, x_start[counter++]);
             }
+            uneval();
             f_a=eval(nb_inst);
             
             counter=0;
@@ -1024,6 +1028,7 @@ namespace gravity {
                 size_t posv=v->get_id_inst(nb_inst);
                 v->set_double_val(posv, x_end[counter++]);
             }
+            uneval();
             f_b=eval(nb_inst);
             if(con_type==-1)
             {
@@ -1052,6 +1057,7 @@ namespace gravity {
                         size_t posv=v->get_id_inst(nb_inst);
                         v->set_double_val(posv, mid[counter++]);
                     }
+                    uneval();
                     f_mid=eval(nb_inst);
                     if(f_mid>=zero_tol)
                     {
@@ -1091,6 +1097,7 @@ namespace gravity {
                     size_t posv=v->get_id_inst(nb_inst);
                     v->set_double_val(posv, mid[counter++]);
                 }
+                uneval();
                 DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
                 
             }
@@ -1110,7 +1117,7 @@ namespace gravity {
         /** Finds a vector of outer points perturbing along each direction */
         //Algorithm finds an outer point for each index of each variable if available
         //First, if available,the outer point is at least at a distance perturb_distance greater than original value of variable
-        //Else, if avaialbale the algorithm returns any outer point produced by perturbing variable
+        //Else, if available, the algorithm returns any outer point produced by perturbing variable
         //Else, the algorithm does not return anything
         vector<vector<double> > get_outer_point(size_t nb_inst, int con_type)
         {
@@ -1152,6 +1159,7 @@ namespace gravity {
                 ub=v->get_double_ub(posv);
                 lb=v->get_double_lb(posv);
                 auto df = *compute_derivative(*v);
+                df.uneval();
                 dfdv=df.eval(nb_inst);
                 // if interval zero do not perturb, perturb=false, else if x at upper bound (within perturb_dist) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
                 if((ub-lb)<=perturb_dist)
@@ -1236,6 +1244,7 @@ namespace gravity {
                          xv=std::max(xv*(1-step), lb);
                          v->set_double_val(posv, xv);
                      }
+                     uneval();
                      fnew=eval(nb_inst);
                      if(con_type==-1)
                      {
@@ -1293,6 +1302,7 @@ namespace gravity {
                              v->get_double_val(posv, xv);
                              DebugOn("Xvalues of Outer point\t"<<xv<<endl);
                          }
+                         uneval();
                          DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
 
             }
@@ -1301,7 +1311,6 @@ namespace gravity {
             f=f_start;
             count++;
             }
-           // _evaluated=false;
             return(res);
         }
             
