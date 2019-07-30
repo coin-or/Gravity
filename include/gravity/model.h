@@ -10,6 +10,7 @@
 #define model_hpp
 
 #include <stdio.h>
+#include <bitset>
 #include <gravity/constraint.h>
 #include <map>
 #include <unordered_set>
@@ -2763,8 +2764,8 @@ namespace gravity {
         void fill_in_var_bounds(double* x_l ,double* x_u) {
             for(auto &v_p: _vars)
             {
-                v_p.second->set_double_lb(x_l);
-                v_p.second->set_double_ub(x_u);
+                v_p.second->get_double_lb(x_l);
+                v_p.second->get_double_ub(x_u);
             }
         }
         
@@ -2776,7 +2777,7 @@ namespace gravity {
         void set_x(const double* x){
             for(auto &v_p: _vars)
             {
-                v_p.second->get_double_val(x);
+                v_p.second->set_double_val(x);
             }
         }
         
@@ -4622,7 +4623,7 @@ namespace gravity {
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_var_init(double* x) {
             for(auto& v_p: _vars){
-                v_p.second->set_double_val(x);
+                v_p.second->get_double_val(x);
             }
         }
         

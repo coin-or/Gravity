@@ -129,7 +129,7 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
     //int nb_threads = thread::hardware_concurrency();
-    int nb_threads =12;
+//    int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -145,6 +145,7 @@ int main (int argc, char * argv[]) {
     
     auto SDP=SDPL;
     SDP->print();
+    SDP->print_solution();
     
     auto pf_to_min=grid.pf_to_min.in(arcs);
     
@@ -172,7 +173,7 @@ int main (int argc, char * argv[]) {
     const int max_iter=50,gap_count_int=6;
     
     
-    double solver_time_end, solver_time =0, solver_time_start = get_wall_time(), gap;
+    double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
     shared_ptr<map<string,size_t>> p_map;
     //Check if gap is already not zero at root node
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
@@ -466,9 +467,9 @@ int main (int argc, char * argv[]) {
         }
         
     }
-    avg=sum/num_var;
-    
-    DebugOn("Average interval reduction\t"<<avg<<endl);
+//    avg=sum/num_var;
+//
+//    DebugOn("Average interval reduction\t"<<avg<<endl);
     
     if(!close)
     {
