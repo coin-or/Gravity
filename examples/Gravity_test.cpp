@@ -963,8 +963,8 @@ TEST_CASE("testing multithread solve"){
         auto models = {ACOPF1, ACOPF2};
         /* run in parallel */
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(abs(ACOPF1->get_obj_val()-17551.8909275818)<tol);
-        CHECK(abs(ACOPF2->get_obj_val()-17551.8909275818)<tol);
+        CHECK(abs(ACOPF1->get_obj_val()-17551.89)<1e-4);
+        CHECK(abs(ACOPF2->get_obj_val()-17551.89)<1e-4);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();
