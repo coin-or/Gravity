@@ -10,6 +10,7 @@
 #define model_hpp
 
 #include <stdio.h>
+#include <bitset>
 #include <gravity/constraint.h>
 #include <map>
 #include <unordered_set>
@@ -525,7 +526,11 @@ namespace gravity {
             if (it==_vars_name.end()) {
                 throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
             }
-            return *(var<T>*)it->second.get();
+            auto v = dynamic_pointer_cast<var<T>>(it->second);
+            if(v){
+                return *v;
+            }
+            throw invalid_argument("In function: Model::get_var<T>(const string& vname) const, cannot cast variable, make sure to use the right numerical type T");
         }
         
         /* Return the number of nonzeros in the lower left part of the hessian */
@@ -2848,8 +2853,8 @@ namespace gravity {
         void fill_in_var_bounds(double* x_l ,double* x_u) {
             for(auto &v_p: _vars)
             {
-                v_p.second->set_double_lb(x_l);
-                v_p.second->set_double_ub(x_u);
+                v_p.second->get_double_lb(x_l);
+                v_p.second->get_double_ub(x_u);
             }
         }
         
@@ -2861,7 +2866,7 @@ namespace gravity {
         void set_x(const double* x){
             for(auto &v_p: _vars)
             {
-                v_p.second->get_double_val(x);
+                v_p.second->set_double_val(x);
             }
         }
         
@@ -4707,7 +4712,7 @@ namespace gravity {
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void fill_in_var_init(double* x) {
             for(auto& v_p: _vars){
-                v_p.second->set_double_val(x);
+                v_p.second->get_double_val(x);
             }
         }
         

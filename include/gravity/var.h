@@ -870,13 +870,13 @@ namespace gravity {
         
         
         /** Fill x with the variable's lower bound values */
-        void set_double_lb(double* x){set_double_lb_(x);};
+        void get_double_lb(double* x) const{get_double_lb_(x);};
         /** Fill x with the variable's upper bound values */
-        void set_double_ub(double* x){set_double_ub_(x);};
+        void get_double_ub(double* x) const{get_double_ub_(x);};
         
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
-        void set_double_lb_(double* x){
+        void get_double_lb_(double* x) const{
             auto vid = this->get_id();
             for (size_t i = 0; i < this->get_dim(); i++) {
                 x[vid+i] = (double)this->get_double_lb_(i);
@@ -884,7 +884,7 @@ namespace gravity {
         };
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
-        void set_double_ub_(double* x){
+        void get_double_ub_(double* x) const{
             auto vid = this->get_id();
             for (size_t i = 0; i < this->get_dim(); i++) {
                 x[vid+i] = (double)this->get_double_ub_(i);
@@ -892,13 +892,13 @@ namespace gravity {
         };
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_lb_(double* x){
-            throw invalid_argument("Cannot call get_lb_violation_ with a non-arithmetic type.");
+        void get_double_lb_(double* x) const{
+            throw invalid_argument("Cannot call get_double_lb_ with a non-arithmetic type.");
         };
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_ub_(double* x){
-            throw invalid_argument("Cannot call get_ub_violation_ with a non-arithmetic type.");
+        void get_double_ub_(double* x) const{
+            throw invalid_argument("Cannot call get_double_ub_ with a non-arithmetic type.");
         };
         
         
