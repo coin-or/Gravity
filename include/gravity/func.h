@@ -971,7 +971,7 @@ namespace gravity {
                 df.eval_all();
                 df_xstar = df;
                 auto ids = v->_indices->get_unique_keys();
-                *df_xstar._indices = ids;
+                df_xstar._indices = make_shared<indices>(ids);
                 res.insert(true, df_xstar, *v);
                 res -= df_xstar*xstar;
             }

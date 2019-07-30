@@ -593,8 +593,8 @@ int main (int argc, char * argv[]) {
     func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
     a.print();
     
-//        func<> a=Thermal_Limit_from.get_outer_app().in(arcs);
-//        a.print();
+        func<> aa=Thermal_Limit_from.get_outer_app().in(arcs);
+        aa.print();
 
   SDP3.uneval();
     DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
