@@ -15,7 +15,7 @@ using namespace std;
 
 namespace gravity{
 
-    lterm::lterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p){
+    lterm::lterm(bool sign, shared_ptr<constant_> coef, shared_ptr<param_> p):lterm(){
         _coef = coef;
         _p = p;
         _sign = sign;
