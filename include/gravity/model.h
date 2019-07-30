@@ -10,6 +10,7 @@
 #define model_hpp
 
 #include <stdio.h>
+#include <bitset>
 #include <gravity/constraint.h>
 #include <map>
 #include <unordered_set>
@@ -4892,7 +4893,7 @@ namespace gravity {
             if (n_terms > 64){
                 throw invalid_argument("Currently we can not handle more than 64 linear terms in an on/off constraint. Please do not use partitioning or decrease the number of linear terms.");
             }
-            bitset<64> S;
+            std::bitset<64> S;
             for (int i = 0 ; i < 1 ; ++i) { // JUST FOR TRIAL PURPOSES
                 //            for (int i = 0 ; i<pow(2,nterms) -1 ; ++i) { //not considering the full set
                 S = i;
