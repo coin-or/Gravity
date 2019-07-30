@@ -61,7 +61,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::AdvInd, 1);
         cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
-        cplex.setParam(IloCplex::PreInd, 0);
+//        cplex.setParam(IloCplex::PreInd, 0);
         IloNumArray vals(*_cplex_env);
         IloNumVarArray vars(*_cplex_env);
         double val = 0;

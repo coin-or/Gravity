@@ -857,9 +857,41 @@ namespace gravity {
                 
                 param<type> lb("lb"), ub("ub");
                 lb.in(unique_ids);ub.in(unique_ids);
-                auto prod = o1*o2;
-                lb.set_val(prod._range->first);
-                ub.set_val(prod._range->second);
+  
+                for (int i=0; i<unique_ids.size(); i++) {
+                    
+                    
+                    // MAKE THIS 2 CASES WITH IF(o1==o2) to make it more efficient
+                    //calculate all the possibilities and assign the worst case
+                    size_t id1;
+                    size_t id2;
+                    if(o1_ids._ids == nullptr){
+                        id1 = i;
+                    }
+                    else id1 = o1_ids._ids->at(0).at(i);
+                    if(o2_ids._ids == nullptr){
+                        id2 = i;
+                    }
+                    else id2 = o2_ids._ids->at(0).at(i);
+                    
+                    auto key1 = o1_ids._keys->at(id1);
+                    auto key2 = o2_ids._keys->at(id2);
+                    auto prod_b1 = o1.get_lb(key1)*o2.get_lb(key2);
+                    auto prod_b2 = o1.get_lb(key1)*o2.get_ub(key2);
+                    auto prod_b3 = o1.get_ub(key1)*o2.get_lb(key2);
+                    auto prod_b4 = o1.get_ub(key1)*o2.get_ub(key2);
+                    if(o1==o2){
+                        lb.set_val(i, std::max(std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)), (type)0 ));
+                        ub.set_val(i, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
+                    }
+                    else{
+                        lb.set_val(i, std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)));
+                        ub.set_val(i, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
+                    }
+                }
+//                auto prod = o1*o2;
+//                lb.set_val(prod._range->first);
+//                ub.set_val(prod._range->second);
                 auto it = _vars_name.find(name);
                 
                 auto name1 = o1.get_name(true,true);
@@ -2356,7 +2388,7 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = abs(c->eval(inst));
                             if(diff>tol){
-                                DebugOn(c->_name << " Non-zero equation: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                                DebugOn(c->_name << " Non-zero equation: " << to_string(inst) << ", value = "<< diff << endl);
                             }
                         }
                         break;
@@ -2364,7 +2396,7 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOn(c->_name << " Non-zero <= inequality: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                                DebugOn(c->_name << " Non-zero <= inequality: " << to_string(inst) << ", value = "<< diff << endl);
                             }
                         }
                         break;
@@ -2372,7 +2404,7 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff > tol) {
-                                DebugOn(c->_name << " Non-zero >= inequality: " << c->to_str(inst,5) << ", value = "<< diff << endl);
+                                DebugOn(c->_name << " Non-zero >= inequality: " << to_string(inst) << ", value = "<< diff << endl);
                             }
                         }
                         break;
@@ -2403,7 +2435,7 @@ namespace gravity {
                             auto diff = abs(c->eval(inst));
                             if(diff>tol){
                                 v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(c->_name << " Non-zero equation: " << c->to_str(inst,5) << ", value = "<< abs(diff) << endl);
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
                             }
                         }
                         break;
@@ -2412,7 +2444,7 @@ namespace gravity {
                             auto diff = c->eval(inst);
                             if(diff < -tol) {
                                 v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(c->_name << " Non-zero <= inequality: " << c->to_str(inst,5) << ", value = "<< abs(diff) << endl);
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
                             }
                         }
                         break;
@@ -2421,7 +2453,7 @@ namespace gravity {
                             auto diff = c->eval(inst);
                             if(diff > tol) {
                                 v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(c->_name << " Non-zero >= inequality: " << c->to_str(inst,5) << ", value = "<< abs(diff) << endl);
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
                             }
                         }
                         break;
@@ -2432,6 +2464,63 @@ namespace gravity {
             }
             sort(v.begin(), v.end(), std::greater<tuple<double,int,int>>());
             return v;
+        }
+        
+        indices sorted_nonzero_constraint_indices(double tol, bool print_name, string constraint_name) const{
+            // returns the indices of the constraint given a constraint_name
+            
+            vector<tuple<double, string>> v; //violation amount & the index of a given constraint
+            size_t nb_inst = 0;
+            shared_ptr<Constraint<type>> c = nullptr;
+            for(auto& c_p: _cons_name)
+            {
+                c = c_p.second;
+                if(c->_name != constraint_name){
+                    continue;
+                }
+                
+                nb_inst = c->get_nb_inst();
+                switch (c->get_ctype()) {
+                    case eq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = abs(c->eval(inst));
+                            if(diff>tol){
+                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                            }
+                        }
+                        break;
+                    case leq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff < -tol) {
+                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                            }
+                        }
+                        break;
+                    case geq:
+                        for (size_t inst=0; inst<nb_inst; inst++) {
+                            auto diff = c->eval(inst);
+                            if(diff > tol) {
+                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        break;
+                }
+            }
+            sort(v.begin(), v.end(), std::greater<tuple<double,string>>());
+            
+            // HERE IS THE PART TO COLLECT THE SORTED INDEX SET
+            indices nonzero_idx("nonzero_idx"); //the indices of the nonzero_constraint instances
+            for (int i = 0; i < v.size(); i++)
+                nonzero_idx.add(get<1>(v[i]));
+            
+            return nonzero_idx;
         }
         
         
