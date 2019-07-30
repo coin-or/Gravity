@@ -525,7 +525,11 @@ namespace gravity {
             if (it==_vars_name.end()) {
                 throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
             }
-            return *(var<T>*)it->second.get();
+            auto v = dynamic_pointer_cast<var<T>>(it->second);
+            if(v){
+                return *v;
+            }
+            throw invalid_argument("In function: Model::get_var<T>(const string& vname) const, cannot cast variable, make sure to use the right numerical type T");
         }
         
         /* Return the number of nonzeros in the lower left part of the hessian */
