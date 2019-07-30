@@ -91,10 +91,10 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
                 if(cplex.isExtracted(_cplex_vars[i][j])){
-                    _model->_vars[i]->get_double_val(j,cplex.getValue(_cplex_vars[i][j]));
+                    _model->_vars[i]->set_double_val(j,cplex.getValue(_cplex_vars[i][j]));
                 }
                 else {
-                    _model->_vars[i]->get_double_val(j, 0);
+                    _model->_vars[i]->set_double_val(j, 0);
                 }
             }
         }

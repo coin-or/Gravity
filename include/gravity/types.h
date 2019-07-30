@@ -621,6 +621,9 @@ namespace gravity{
             if(cpy._ids){
                 _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
             }
+            else{
+                _ids = nullptr;
+            }
             _time_extended = cpy._time_extended;
             _time_pos = cpy._time_pos;
             return *this;
