@@ -63,10 +63,6 @@ namespace gravity {
             this->_onCoef.set_name(name+"_onCoef");
             this->_offCoef.set_name(name+"_offCoef");
             
-            // TODO: we can define these coefficients in the same index set as the constraint in the future
-            // TODO: consider only the not lazy ones in on-off
-            this->_onCoef.in(range(1,this->get_nb_inst()));
-            this->_offCoef.in(range(1,this->get_nb_inst()));
         };
         
 //        Constraint& operator<=(type rhs) {
@@ -171,6 +167,8 @@ namespace gravity {
             this->func<type>::operator=(c);
             this->_name = c._name;
             this->_is_constraint = true;
+            _onCoef = c._onCoef.deep_copy();
+            _offCoef = c._offCoef.deep_copy();
             return *this;
         }
         
@@ -195,6 +193,8 @@ namespace gravity {
             this->func<type>::operator=(move(c));
             this->_name = c._name;
             this->_is_constraint = true;
+            _onCoef = move(c._onCoef);
+            _offCoef = move(c._offCoef);
             return *this;
         }
         
