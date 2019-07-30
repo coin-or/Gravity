@@ -968,6 +968,7 @@ namespace gravity {
                 xstar.copy_vals(v);
                 param<type> df_xstar("df_xstar"+v->_name);
                 auto df = *compute_derivative(*v);
+                //df.uneval();
                 df.eval_all();
                 df_xstar = df;
                 auto ids = v->_indices->get_unique_keys();
@@ -1017,6 +1018,7 @@ namespace gravity {
                xcurrent.push_back(xv);
                v->set_double_val(posv, x_start[counter++]);
             }
+            uneval();
             f_a=eval(nb_inst);
             
             counter=0;
@@ -1026,6 +1028,7 @@ namespace gravity {
                 size_t posv=v->get_id_inst(nb_inst);
                 v->set_double_val(posv, x_end[counter++]);
             }
+            uneval();
             f_b=eval(nb_inst);
             if(con_type==-1)
             {
@@ -1054,6 +1057,7 @@ namespace gravity {
                         size_t posv=v->get_id_inst(nb_inst);
                         v->set_double_val(posv, mid[counter++]);
                     }
+                    uneval();
                     f_mid=eval(nb_inst);
                     if(f_mid>=zero_tol)
                     {
@@ -1093,6 +1097,7 @@ namespace gravity {
                     size_t posv=v->get_id_inst(nb_inst);
                     v->set_double_val(posv, mid[counter++]);
                 }
+                uneval();
                 DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
                 
             }
@@ -1306,7 +1311,6 @@ namespace gravity {
             f=f_start;
             count++;
             }
-           // _evaluated=false;
             return(res);
         }
             
