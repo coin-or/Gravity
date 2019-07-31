@@ -1,7 +1,7 @@
 language: cpp
 sudo: required
 compiler:
-- gcc
+- gcc-8
 os:
 - linux
 addons:
@@ -12,8 +12,8 @@ packages:
     - gcc-8
     - g++-8
 before_install:
-- export CC=/usr/bin/gcc-8
-- export CXX=/usr/bin/g++-8
+#- export CC=/usr/bin/gcc-8
+#- export CXX=/usr/bin/g++-8
 - sudo apt-get clean
 - sudo rm -rf /var/lib/apt/lists/*
 - sudo apt-get update 
