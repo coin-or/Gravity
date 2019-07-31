@@ -272,20 +272,19 @@ int main (int argc, char * argv[])
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-//        SOCP.add(I_from_Pf.in(arcs)>=0);
-        SOCP.add(I_from_Pf.in(arcs)==0,true);
-//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+        SOCP.add(I_from_Pf.in(arcs)>=0);
+        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
         SOCP.add(I_to_Pf.in(arcs)>=0);
-//        SOCP.add(I_to_Pf.in(arcs)==0,true);
         SOCP.get_constraint("I_to_Pf")->_relaxed = true;
         
 
-        Constraint<> Equality_SOC("Equality_SOC");
-        Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
+        /* Second-order cone */
+        Constraint<> SOC("SOC");
+        SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+        SOCP.add(SOC.in(bus_pairs) <= 0);
         
     }
     
@@ -399,41 +398,40 @@ int main (int argc, char * argv[])
     gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Gap after OBBT = " << to_string(gap) << "%."<<endl);
     
-    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     auto nonzero_idx = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
 
     
     if(current){
-        
-        param<Cpx> T("T"), Y("Y"), Ych("Ych");
-        var<Cpx> L_from("L_from"), Wij("Wij");
-        T.real_imag(cc.in(arcs), dd.in(arcs));
-        Y.real_imag(g.in(arcs), b.in(arcs));
-        Ych.set_imag(ch_half.in(arcs));
-        
-        
-        L_from.set_real(lij.in(arcs));
-        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
-        var<Cpx> Sij("Sij"), Sji("Sji");
-        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
-        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
-        
-        
-        Constraint<Cpx> I_from("I_from");
-        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SOCP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-        
-        var<Cpx> L_to("L_to");
-        L_to.set_real(lji.in(arcs));
-        
-        Constraint<Cpx> I_to("I_to");
-        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
-        
-        Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP.add(I_from_Pf.in(arcs)>=0);
-        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+        //THESE ARE ALREADY INCLUDED BEFORE OBBT
+//        param<Cpx> T("T"), Y("Y"), Ych("Ych");
+//        var<Cpx> L_from("L_from"), Wij("Wij");
+//        T.real_imag(cc.in(arcs), dd.in(arcs));
+//        Y.real_imag(g.in(arcs), b.in(arcs));
+//        Ych.set_imag(ch_half.in(arcs));
+//
+//
+//        L_from.set_real(lij.in(arcs));
+//        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
+//        var<Cpx> Sij("Sij"), Sji("Sji");
+//        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
+//        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
+//
+//
+//        Constraint<Cpx> I_from("I_from");
+//        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
+//        SOCP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+//
+//        var<Cpx> L_to("L_to");
+//        L_to.set_real(lji.in(arcs));
+//
+//        Constraint<Cpx> I_to("I_to");
+//        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+//        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+//
+//        Constraint<> I_from_Pf("I_from_Pf");
+//        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+//        SOCP.add(I_from_Pf.in(arcs)>=0);
+//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
         
         
@@ -826,20 +824,9 @@ int main (int argc, char * argv[])
             
         }
         
-        indices arcs1("arcs1");
-        arcs1.add("0,1,4","1,4,5","2,5,6");
+        indices nonzero_arcs("nonzero_arcs");
+        nonzero_arcs.add("40,25,37", "4,2,30" ,"13,6,31", "19,10,32", "36,22,35", "9,5,6", "28,16,24", "18,10,13", "38,23,36", "14,7,8", "1,1,39", "16,9,39", "17,10,11", "11,6,7", "29,17,18");
         
-        indices arcs2("arcs2");
-        arcs2.add("3,3,6","4,6,7");
-        
-        indices arcs3("arcs3");
-        arcs3.add("4,6,7","5,7,8","6,2,8","7,8,9");
-        
-        indices bus_pairs1("bus_pairs1");
-        bus_pairs1.add("1,4","4,5","3,6","5,6","6,7","7,8","2,8");
-        
-        indices bus_pairs2("bus_pairs2");
-        bus_pairs2.add("8,9");
         
         if (current_partition_on_off_automated){
             
@@ -847,33 +834,39 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
-            Wii._num_partns = 2;
-            lji._num_partns = 2;
+            Wii._num_partns = 4;
+            lji._num_partns = 4;
             
-            R_Wij._num_partns = 10;
-            Im_Wij._num_partns = 10;
+            Pf_from._num_partns = 10;
+            Qf_from._num_partns = 10;
+            lij._num_partns = 4;
             
-            // NOT ENOUGH, ADD MORE LIFTS PLEASEEE
-            /* Equality of Second-order cone (for upperbound) */
+//            R_Wij._num_partns = 10;
+//            Im_Wij._num_partns = 10;
+            
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ = lji.in(nonzero_arcs)*Wii.to(nonzero_arcs)-(pow(Pf_to.in(nonzero_arcs),2) + pow(Qf_to.in(nonzero_arcs), 2));
+            SOCP.add(I_to_Pf_EQ.in(nonzero_arcs)==0, true);
+            
+//            Constraint<> I_from_Pf_EQ("I_from_Pf_EQ");
+//            I_from_Pf_EQ=lij.in(nonzero_arcs)*Wii.from(nonzero_arcs)-pow(tr.in(nonzero_arcs),2)*(pow(Pf_from.in(nonzero_arcs),2) + pow(Qf_from.in(nonzero_arcs),2));
+//            SOCP.add(I_from_Pf_EQ.in(nonzero_arcs)==0,true);
             
 //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
 //            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
-            
-            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
-            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
+//
+//            Constraint<> I_from_Pf_EQ("I_from_Pf_EQ");
+//            I_from_Pf_EQ=lij.in(nonzero_idx)*Wii.from(nonzero_idx)-pow(tr.in(nonzero_idx),2)*(pow(Pf_from.in(nonzero_idx),2) + pow(Qf_from.in(nonzero_idx),2));
+//            SOCP.add(I_from_Pf_EQ.in(nonzero_idx)==0,true);
+          
             
 //            Constraint<> Equality_SOC("Equality_SOC");
 //            Equality_SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
 //            SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
             
-            /* Second-order cone */
-//            Constraint<> SOC("SOC");
-//            SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-//            SOCP.add(SOC.in(bus_pairs) <= 0);
+            SOCP.print();
             
-//            SOCP.print();
         }
     }
 
@@ -907,6 +900,7 @@ int main (int argc, char * argv[])
     
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
+    auto v = SOCP.sorted_nonzero_constraints(tol,true,true);
     
   
     
