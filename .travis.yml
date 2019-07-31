@@ -1,23 +1,21 @@
 language: cpp
 sudo: required
-compiler:
-- gcc-8
-os:
-- linux
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-packages:
-    - gcc-8
-    - g++-8
+- compiler: gcc-8
+    os: linux
+    env: USE_CONFIG=yes CC=gcc-8
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-8
 before_install:
 #- export CC=/usr/bin/gcc-8
 #- export CXX=/usr/bin/g++-8
-- sudo apt-get clean
-- sudo rm -rf /var/lib/apt/lists/*
-- sudo apt-get update 
-- sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
+#- sudo apt-get clean
+#- sudo rm -rf /var/lib/apt/lists/*
+#- sudo apt-get update 
+#- sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
 #- wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
 #- tar xvzf Ipopt-3.12.12.tgz
 #- mkdir third_party
