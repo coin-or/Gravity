@@ -235,12 +235,15 @@ int main (int argc, char * argv[]) {
     bool current = true;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
+    //var<> eta("eta", 0, 10);
     if(current){
         SDP.add(lij.in(arcs),lji.in(arcs));
     }
     
+    //SDP.add(eta.in(range(0, 0)));
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+   // obj=eta("0")*(-1);
     SDP.min(obj);
     ACOPF.min(obj);
     
@@ -434,206 +437,196 @@ int main (int argc, char * argv[]) {
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
-    
-    func<> therm=Thermal_Limit_from.get_outer_app().in(arcs);
+    SDP.print_solution();
+   
     Thermal_Limit_from.uneval();
-//    func<> therm=Thermal_Limit_from.get_outer_app();
-//    therm.print();
-//    DebugOn("Outer"<<endl);
-    
-       auto xvva=Thermal_Limit_from.get_outer_point(2, -1);
-    
+    func<> therm=Thermal_Limit_from.get_outer_app().in(arcs);
+    DebugOn("Outer_approximation");
+    therm.print();
+
+
+    size_t nb_inst=2;
+
+     Thermal_Limit_from.uneval();
+    DebugOn("Thermal limit from fval at inner point "<< Thermal_Limit_from.eval(nb_inst)<<endl);
+
+    Thermal_Limit_from.uneval();
+    auto xvva=Thermal_Limit_from.get_outer_point(nb_inst, Thermal_Limit_from._ctype);
     vector<double> x,y, xcurrent;
+    double xv;
 
-//    for (auto &it: *Thermal_Limit_from._vars)
-//    {
-//             string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
-//        x.push_back(v.eval("0,1,2"));
-//    }
+    for (auto &it: *Thermal_Limit_from._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->get_double_val(posv, xv);
+        xcurrent.push_back(xv);
+    }
+
+    Thermal_Limit_from.uneval();
+    auto res=Thermal_Limit_from.linesearchbinary(xcurrent,xvva[0], nb_inst, Thermal_Limit_from._ctype);
+    DebugOn("Line search "<<res.second<<endl);
+        if(res.second)
+        {
+            DebugOn("Active point found"<<endl);
+            for(auto i=0;i<res.first.size();i++)
+                DebugOn(res.first[i]<<endl);
+        }
+    int counter=0;
+
+    for (auto &it: *Thermal_Limit_from._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, res.first[counter++]);
+    }
+
+      Thermal_Limit_from.uneval();
+
+    DebugOn("fvalue at active point "<<Thermal_Limit_from.eval(nb_inst)<<endl);
+    counter=0;
+    for (auto &it: *Thermal_Limit_from._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, xcurrent[counter++]);
+    }
 //
-//    for (auto &it: *Thermal_Limit_from._vars)
-//    {
-//        string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
-//        x.push_back(v.eval("0,1,2"));
-//    }
-  size_t nb_inst=0;
-    double xv,xva, xvb;
-//    for (auto &it: *SDP3._vars)
-//    {
-//    auto v = it.second.first;
 //
-//        DebugOn("V id is\t"<<v->_id);
-//       DebugOn("v_name\t"<<v->_name);
-//        size_t posv=v->get_id_inst(nb_inst);
-//        v->get_double_val(posv, xv);
-////        var<> vk=SDP.get_var<double>("Wii.from");
-////        v->set_double_val(nb_inst, xv);
-//    xcurrent.push_back(xv);
-//        xva=xv+0.01;
-//        v->set_double_val(posv, xva);
-//        v->get_double_val(posv, xvb);
-//        x.push_back(xvb);
-//    }
-//    DebugOn("xcurrent"<<endl);
-//    for(auto i=0;i<xcurrent.size();i++)
-//        DebugOn("xcurrent"<<xcurrent[i]<<endl);
-//    DebugOn("xstart"<<endl);
-//    for(auto i=0;i<x.size();i++)
-//        DebugOn("xstart"<<x[i]<<endl);
     
-  
-    //double xv=0;
-//   for (auto &it: *Thermal_Limit_from._vars)
-//    {
-//        auto v = it.second.first;
-//        v->set_double_val(nbinst, xv);
-//        y.push_back(xv);
-//        DebugOn("xv\t"<<xv<<endl);
-//    }
+    
+    
+    SDP3.uneval();
+        func<> therma= SDP3.get_outer_app().in(arcs);
+        DebugOn("Outer_approximation");
+        therma.print();
+    
+    
+        nb_inst=2;
+    
+     SDP3.uneval();
+    DebugOn("fval at current point "<<  SDP3.eval(nb_inst)<<endl);
+    
+     SDP3.uneval();
+
+    vector<double> xa, xcurrenta;
+    double xva;
+    
+    for (auto &it: *SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->get_double_val(posv, xva);
+        xcurrenta.push_back(xva);
+        DebugOn(xva<<endl);
+    }
+    
+    auto xvvaa= SDP3.get_outer_point(nb_inst,  SDP3._ctype);
+    
+    xa={0.0365431,
+    -0.00872291,
+    0.0251189,
+    1.01707,
+    1.00635,
+    1.02271,
+    1.03334,
+    1.01223,
+        1.01909};
+
+counter=0;
+//    auto xvvb= SDP3.get_outer_point(nb_inst,leq);
 //
-//    auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//        DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-//
-//    xvv=SOC.get_outer_point(0, -1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-//
-//    xvv=LNC1.get_outer_point(0, 1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-    //SDP.reset_constrs();
+////    x[x.back()]*=1.01;
+////    x[x.back()-1]*=1.01;
+////    x[x.back()-2]*=1.01;
+//        int counter=0;
+    for (auto &it: *SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+//            double lb,ub;
+//            lb=v->get_double_lb(posv);
+//            ub=v->get_double_ub(posv);
+            v->set_double_val(posv,xa[counter++]);
+            //x.push_back((lb+ub)*0.5);
+
+    }
+    SDP3.uneval();
+    DebugOn("Function value at interior point "<< SDP3.eval(nb_inst)<<endl);
+    
+    counter=0;
+    for (auto &it: * SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, xcurrenta[counter++]);
+    }
+
+    
+     SDP3.uneval();
+    res= SDP3.linesearchbinary(xa,xvvaa[0], nb_inst, SDP3._ctype);
+    DebugOn("Line search "<<res.second<<endl);
+    if(res.second)
+    {
+        DebugOn("Active point found"<<endl);
+        for(auto i=0;i<res.first.size();i++)
+            DebugOn(res.first[i]<<endl);
+    }
+    counter=0;
+    
+    for (auto &it: *SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, res.first[counter++]);
+    }
+    
+     SDP3.uneval();
+    
+    DebugOn("fvalue at active point "<<SDP3.eval(nb_inst)<<endl);
+    
+    counter=0;
+    for (auto &it: *SDP3._vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(nb_inst);
+        v->set_double_val(posv, xcurrenta[counter++]);
+    }
+
+    auto SDPcon=SDP.get_constraint("SDP_3D");
+    bool interior=false;
+    vector<double> xinterior;
+    for(auto i=0;i<SDPcon->get_nb_inst();i++)
+    {
+        if(abs(SDPcon->eval(i))<=tol)
+        {
+            DebugOn("Active instant "<<i<<endl);
+            if(interior==false)
+            {
+                auto SDPI=build_SDPOPF(grid, false, upper_bound, true);
+                solver<> SDPOPFI(SDPI,solv_type);
+                SDPOPFI.run(output = 5, tol = 1e-6);
+                
+            }
+            
+        }
+    }
+    
     
 
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
     
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
     {
         DebugOn("Outer point and function value from func.h"<<endl);
-        auto xvv=SDP3.get_outer_point(nb_inst, 1);
-        for (auto &it: *SDP3._vars)
-            {
-            auto v = it.second.first;
-            size_t posv=v->get_id_inst(nb_inst);
-            v->get_double_val(posv, xv);
-            xcurrent.push_back(xv);
-    //        double lb,ub;
-    //        lb=v->get_double_lb(posv);
-    //        ub=v->get_double_ub(posv);
-    //        v->set_double_val(posv, (lb+ub)*0.5);
-    //        x.push_back((lb+ub)*0.5);
-            }
-          // SDP.reset_constrs();
-        
-
-     
-        
-        DebugOn("Instance of function interested in\t"<<nb_inst<<endl);
-        
-            DebugOn("Outer point and function value from main"<<endl);
-        int counter=0;
-        for (auto &it: *SDP3._vars)
-        {
-            auto v = it.second.first;
-            size_t posv=v->get_id_inst(nb_inst);
-            v->set_double_val(posv, xvv[0][counter++]);
-            
-        }
-        DebugOn("Outer point "<<endl);
         SDP3.uneval();
-        for(auto i=0;i<xvv[0].size();i++)
-            DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
-
-           DebugOn("Function value at pos"<<nb_inst<<" at outer point\t"<<SDP3.eval(nb_inst)<<endl);
-
-        
-//         DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
-        
-     
-
-    //
-    //    DebugOn("Function value at interior point\t"<<SDP3.eval(n)<<endl);
-    //    DebugOn("All Function values at interior point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2))<<endl;
-    //    DebugOn("Interior point "<<endl);
-    //    for(auto i=0;i<x.size();i++)
-    //        DebugOn("xstart\t"<<x[i]<<endl);
-    //
-       
-
+  
         
         
-        
-
-    //    counter=0;
-    //    for (auto &it: *SDP3._vars)
-    //    {
-    //        auto v = it.second.first;
-    //        size_t posv=v->get_id_inst(nb_inst);
-    //        v->set_double_val(posv, xcurrent[counter++]);
-    //    }
-        
-        func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
-        a.print();
-        
-            func<> aa=Thermal_Limit_from.get_outer_app().in(arcs);
-            aa.print();
-
-
-      SDP3.uneval();
+  
     }
-  //  DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
-
-   // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
-//    if(res.second)
-//    {
-//        DebugOn("Active point found"<<endl);
-//        for(auto i=0;i<res.first.size();i++)
-//            DebugOn(res.first[i]<<endl);
-//    }
-//    for (auto &it: *KCL_P._vars)
-//    {
-//        string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn(vname<<endl);
-//    }
+ 
     
-    
-//
-//    //SDP.print();
-//    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
-////    SDP.print_constraints_stats(tol);
-//    auto v = SDP.sorted_nonzero_constraints(tol);
-//
-//    for (int i = 0; i < v.size(); i++)
-//        cout << get<0>(v[i])<< " "
-//        << get<1>(v[i]) << " "
-//        << get<2>(v[i]) << "\n";
-    
+ 
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
