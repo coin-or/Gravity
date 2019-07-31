@@ -246,10 +246,10 @@ int main (int argc, char * argv[]) {
     
     
     /** Constraints */
-//    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
-//    {
-    
-        auto bag_size = bags_3d.size();
+    auto bag_size = bags_3d.size();
+    Constraint<> SDP3("SDP_3D");
+    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
+    {        
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
@@ -257,7 +257,7 @@ int main (int argc, char * argv[]) {
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         
         
-        Constraint<> SDP3("SDP_3D");
+        
         SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
         SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
         SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
@@ -273,7 +273,7 @@ int main (int argc, char * argv[]) {
         }
    
         
-    //}
+    }
     
     /** Constraints */
     /* Second-order cone constraints */
@@ -460,7 +460,7 @@ int main (int argc, char * argv[]) {
 //        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
 //        x.push_back(v.eval("0,1,2"));
 //    }
-  size_t nb_inst=2;
+  size_t nb_inst=0;
     double xv,xva, xvb;
 //    for (auto &it: *SDP3._vars)
 //    {
@@ -532,78 +532,80 @@ int main (int argc, char * argv[]) {
 //        DebugOn(endl);
 //    }
     
-    
-    DebugOn("Outer point and function value from func.h"<<endl);
-    auto xvv=SDP3.get_outer_point(nb_inst, 1);
-    for (auto &it: *SDP3._vars)
-        {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(nb_inst);
-        v->get_double_val(posv, xv);
-        xcurrent.push_back(xv);
-//        double lb,ub;
-//        lb=v->get_double_lb(posv);
-//        ub=v->get_double_ub(posv);
-//        v->set_double_val(posv, (lb+ub)*0.5);
-//        x.push_back((lb+ub)*0.5);
-        }
-      // SDP.reset_constrs();
-    
-
- 
-    
-    DebugOn("Instance of function interested in\t"<<nb_inst<<endl);
-    
-        DebugOn("Outer point and function value from main"<<endl);
-    int counter=0;
-    for (auto &it: *SDP3._vars)
+    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
     {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(nb_inst);
-        v->set_double_val(posv, xvv[0][counter++]);
+        DebugOn("Outer point and function value from func.h"<<endl);
+        auto xvv=SDP3.get_outer_point(nb_inst, 1);
+        for (auto &it: *SDP3._vars)
+            {
+            auto v = it.second.first;
+            size_t posv=v->get_id_inst(nb_inst);
+            v->get_double_val(posv, xv);
+            xcurrent.push_back(xv);
+    //        double lb,ub;
+    //        lb=v->get_double_lb(posv);
+    //        ub=v->get_double_ub(posv);
+    //        v->set_double_val(posv, (lb+ub)*0.5);
+    //        x.push_back((lb+ub)*0.5);
+            }
+          // SDP.reset_constrs();
         
+
+     
+        
+        DebugOn("Instance of function interested in\t"<<nb_inst<<endl);
+        
+            DebugOn("Outer point and function value from main"<<endl);
+        int counter=0;
+        for (auto &it: *SDP3._vars)
+        {
+            auto v = it.second.first;
+            size_t posv=v->get_id_inst(nb_inst);
+            v->set_double_val(posv, xvv[0][counter++]);
+            
+        }
+        DebugOn("Outer point "<<endl);
+        SDP3.uneval();
+        for(auto i=0;i<xvv[0].size();i++)
+            DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
+
+           DebugOn("Function value at pos"<<nb_inst<<" at outer point\t"<<SDP3.eval(nb_inst)<<endl);
+
+        
+//         DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
+        
+     
+
+    //
+    //    DebugOn("Function value at interior point\t"<<SDP3.eval(n)<<endl);
+    //    DebugOn("All Function values at interior point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2))<<endl;
+    //    DebugOn("Interior point "<<endl);
+    //    for(auto i=0;i<x.size();i++)
+    //        DebugOn("xstart\t"<<x[i]<<endl);
+    //
+       
+
+        
+        
+        
+
+    //    counter=0;
+    //    for (auto &it: *SDP3._vars)
+    //    {
+    //        auto v = it.second.first;
+    //        size_t posv=v->get_id_inst(nb_inst);
+    //        v->set_double_val(posv, xcurrent[counter++]);
+    //    }
+        
+        func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
+        a.print();
+        
+            func<> aa=Thermal_Limit_from.get_outer_app().in(arcs);
+            aa.print();
+
+
+      SDP3.uneval();
     }
-    DebugOn("Outer point "<<endl);
-    SDP3.uneval();
-    for(auto i=0;i<xvv[0].size();i++)
-        DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
-
-       DebugOn("Function value at pos"<<nb_inst<<" at outer point\t"<<SDP3.eval(nb_inst)<<endl);
-
-    
-     DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
-    
- 
-
-//
-//    DebugOn("Function value at interior point\t"<<SDP3.eval(n)<<endl);
-//    DebugOn("All Function values at interior point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2))<<endl;
-//    DebugOn("Interior point "<<endl);
-//    for(auto i=0;i<x.size();i++)
-//        DebugOn("xstart\t"<<x[i]<<endl);
-//
-   
-
-    
-    
-    
-
-//    counter=0;
-//    for (auto &it: *SDP3._vars)
-//    {
-//        auto v = it.second.first;
-//        size_t posv=v->get_id_inst(nb_inst);
-//        v->set_double_val(posv, xcurrent[counter++]);
-//    }
-    
-    func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
-    a.print();
-    
-        func<> aa=Thermal_Limit_from.get_outer_app().in(arcs);
-        aa.print();
-
-
-  SDP3.uneval();
   //  DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
 
    // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
