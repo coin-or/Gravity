@@ -1,15 +1,12 @@
 language: cpp
 sudo: required
-- compiler: gcc-8
-    os: linux
-    env: USE_CONFIG=yes CC=gcc-8
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-        packages:
-          - gcc-8
 before_install:
+- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+- sudo apt update
+- sudo apt-get install gcc-8 g++-8
+# To point to the new install
+- sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60
+- sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
 #- export CC=/usr/bin/gcc-8
 #- export CXX=/usr/bin/g++-8
 #- sudo apt-get clean
