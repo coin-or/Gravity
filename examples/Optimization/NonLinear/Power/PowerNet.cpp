@@ -2031,7 +2031,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, bool interior)
 {
     bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true, add_original=false, convexify=true;
     loss=true;
