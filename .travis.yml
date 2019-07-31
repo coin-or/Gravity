@@ -17,11 +17,6 @@ before_install:
 #- sudo /etc/init.d/redis-server stop
 - sudo free -m -t
 - sudo swapon -s
-after_failure:
-# show memory usage again
-- sudo free -m -t
-# show actions of the OOM killer
-- sudo dmesg
 #- export CC=/usr/bin/gcc-8
 #- export CXX=/usr/bin/g++-8
 #- sudo apt-get clean
@@ -62,3 +57,8 @@ script:
 - ./get_code_cov.sh
 after_success: 
 - bash <(curl -s https://codecov.io/bash) -t 7a0a32a0-cc52-4460-9ec6-c4950095b532
+after_failure:
+# show memory usage again
+- sudo free -m -t
+# show actions of the OOM killer
+- sudo dmesg
