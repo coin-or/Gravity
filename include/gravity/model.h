@@ -3341,35 +3341,35 @@ namespace gravity {
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
-                                        lambdaSum = sum(lambda.in_matrix(nb_entries));
+                                        lambdaSum = sum(lambda->in_matrix(nb_entries));
                                         add(lambdaSum.in(added) == 1);
                                     }
                                     
