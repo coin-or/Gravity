@@ -8,7 +8,7 @@
 //
 #include <gravity/model.h>
 #include <gravity/solver.h>
-
+#include <math.h> //for setting the rounding direction
 
 using namespace std;
 namespace gravity {
@@ -16,7 +16,7 @@ namespace gravity {
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound) {
+    void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
                 
 #ifdef USE_MPI
         auto err_init = MPI_Init(nullptr,nullptr);
@@ -99,7 +99,7 @@ namespace gravity {
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
             iter++;
-            terminate=true;
+//            terminate=true;
             for (auto it=this->_vars_name.begin(); it!=this->_vars_name.end(); it++)
             {
                 vname=it->first;
@@ -202,10 +202,14 @@ namespace gravity {
                                         else
                                         {
                                             if(dirk=="LB"){
-                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
+                                                auto objk_rounded = floor(objk*std::pow(10,precision))/std::pow(10,precision);
+//                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
+                                                  vk.set_lb(keyk, objk_rounded);/* IN MPI this needs to be broadcasted back to the other workers */
                                             }
                                             else{
-                                                vk.set_ub(keyk, objk);
+                                                auto objk_rounded = ceil(objk*std::pow(10,precision))/std::pow(10,precision);
+                                                vk.set_ub(keyk, objk_rounded);
+//                                                vk.set_ub(keyk, objk);
                                             }
                                             //If crossover in bounds,just exchange them
                                             if(vk.get_ub(keyk)<vk.get_lb(keyk))
@@ -213,8 +217,12 @@ namespace gravity {
                                                 fixed_point[pk]=true;
                                                 temp=vk.get_ub(keyk);
                                                 tempa=vk.get_lb(keyk);
-                                                vk.set_ub(keyk, tempa);
-                                                vk.set_lb(keyk, temp);
+                                                auto tempa_rounded = ceil(tempa*std::pow(10,precision))/std::pow(10,precision);
+                                                auto temp_rounded = floor(temp*std::pow(10,precision))/std::pow(10,precision);
+                                                vk.set_ub(keyk, tempa_rounded);
+                                                vk.set_lb(keyk, temp_rounded);
+//                                                vk.set_ub(keyk, tempa);
+//                                                vk.set_lb(keyk, temp);
 
                                             }
                                             else if(!vk._lift){
@@ -237,21 +245,32 @@ namespace gravity {
                                                 //If resized interval does not cross original bounds, reset
                                                 if(right<=ub_original[pk] && left>=lb_original[pk])
                                                 {
-                                                    vk.set_ub(keyk, right);
-                                                    vk.set_lb(keyk, left);
+                                                    auto right_rounded = ceil(right*std::pow(10,precision))/std::pow(10,precision);
+                                                    auto left_rounded = floor(left*std::pow(10,precision))/std::pow(10,precision);
+                                                    vk.set_ub(keyk, right_rounded);
+                                                    vk.set_lb(keyk, left_rounded);
+//                                                    vk.set_ub(keyk, right);
+//                                                    vk.set_lb(keyk, left);
                                                 }
                                                 //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
                                                 else if(right>ub_original[pk])
                                                 {
-
-                                                    vk.set_ub(keyk, ub_original[pk]);
-                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                    auto ub_rounded = ceil(ub_original[pk]*std::pow(10,precision))/std::pow(10,precision);
+                                                    auto lb_rounded = floor((ub_original[pk]-range_tol)*std::pow(10,precision))/std::pow(10,precision);
+                                                    vk.set_ub(keyk, ub_rounded);
+                                                    vk.set_lb(keyk, lb_rounded);
+//                                                    vk.set_ub(keyk, ub_original[pk]);
+//                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
                                                 }
                                                 //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
                                                 else if(left<lb_original[pk])
                                                 {
-                                                    vk.set_lb(keyk, lb_original[pk]);
-                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                    auto lb_rounded = floor(lb_original[pk]*std::pow(10,precision))/std::pow(10,precision);
+                                                    auto ub_rounded = ceil((lb_original[pk]+range_tol)*std::pow(10,precision))/std::pow(10,precision);
+                                                    vk.set_lb(keyk, lb_rounded);
+                                                    vk.set_ub(keyk, ub_rounded);
+//                                                    vk.set_lb(keyk, lb_original[pk]);
+//                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
 
                                                 }
                                                 //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
@@ -398,7 +417,7 @@ namespace gravity {
 
     }
 
-    template void gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&);
+    template void gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
 //    template class Model<double>;
